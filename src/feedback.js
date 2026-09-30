@@ -48,7 +48,7 @@ function badge(valid, label = '') {
 export function createFeedback(scene) {
   const validHover = brackets(true), invalidHover = brackets(false);
   const plane = map => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshBasicMaterial({map, transparent:true, depthTest:false, depthWrite:false, toneMapped:false, side:THREE.DoubleSide}));
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshBasicMaterial({map, transparent:true, depthTest:true, depthWrite:false, toneMapped:false, side:THREE.DoubleSide}));
     m.rotation.x = -Math.PI / 2; m.renderOrder = 10; scene.add(m); return m;
   };
   const sprite = map => {

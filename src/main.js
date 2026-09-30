@@ -3,6 +3,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import {makeWorld,findPath,key} from './world.js';
 import {createFeedback} from './feedback.js';
 import {createSlimeFace} from './slime-face.js';
+import {createContactShadow} from './contact-shadow.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
@@ -18,7 +19,7 @@ addEventListener('keydown', event => {
 addEventListener('keyup', event => rotationKeys.delete(event.key));
 addEventListener('blur', () => rotationKeys.clear());
 document.addEventListener('visibilitychange', () => { if (document.hidden) rotationKeys.clear(); });
-scene.add(new THREE.HemisphereLight('#fffce8','#879981',2.6));const sun=new THREE.DirectionalLight('#fff3d3',3);sun.position.set(-8,19,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15,far:60});sun.shadow.normalBias=.035;scene.add(sun);
+scene.add(new THREE.HemisphereLight('#fffce8','#879981',2.6));const sun=new THREE.DirectionalLight('#fff3d3',3);sun.position.set(-8,19,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-15,right:15,top:15,bottom:-15,far:60});sun.shadow.normalBias=.008;scene.add(sun);
 const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.9,...extra});
 const soil=mat('#a5a084'),grass=[mat('#b9ca89'),mat('#b4c484'),mat('#bdcc91'),mat('#b6c88b')],bark=mat('#a68c6b'),leaves=[mat('#799b62'),mat('#95b575'),mat('#a9c589')],rock=mat('#a5ada6'),wood=mat('#a98a64'),dark=mat('#314b41');
 function mesh(geometry,material,parent=scene){const m=new THREE.Mesh(geometry,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
@@ -65,6 +66,7 @@ const bodyPositions=body.geometry.getAttribute('position');
 body.updateMatrix();
 let tile=world.get(key(6,4)),path=[],segment=null,target=null,gatherTime=0,inventory={sticks:0,stones:0};player.position.set(tile.x-6,tile.h,tile.z-6);
 const feedback=createFeedback(scene);
+const contactShadow=createContactShadow(scene,world);
 let toastTimer;function toast(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
 function updateUI(){const count=inventory.sticks+inventory.stones;$('sticks').textContent=inventory.sticks;$('stones').textContent=inventory.stones;$('bag-total').textContent=`${count} ITEMS`;$('quest-count').textContent=`${count} / 6 materials collected`;$('quest-progress').style.width=`${count/6*100}%`;$('quest-check').textContent=count===6?'✓':'◇';}
 function moveTo(t,resource){const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&resource===target){return;}const start=segment?segment.to:tile;const route=findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}$('toast').classList.remove('visible');clearTimeout(toastTimer);target=resource||null;gatherTime=0;path=route;feedback.destination(t);$('activity').textContent=resource?'On the way to gather':'Exploring the clearing';}
@@ -152,6 +154,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   bottom=Math.min(bottom,bodyVertex.y);
  }
  visual.position.y=.002-bottom;
+ contactShadow.update(player.position,visual.scale);
  // Alternate reach, dip, and scoop gestures while keeping the body steady.
  for(let i=0;i<hands.length;i++){
   const hand=hands[i],side=i===0?-1:1;
