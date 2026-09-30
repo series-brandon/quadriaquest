@@ -7,9 +7,19 @@ export function idlePose(time) {
     twist: Math.sin(time * 1.4) * .09, lean: Math.sin(time * 2.1) * .025 };
 }
 
-export function slidePose(time) {
-  return { squash: .91 + Math.sin(time * 10) * .025, stretch: 1.1,
-    twist: Math.sin(time * 5) * .018, lean: .075 };
+// One grounded propulsion cycle per tile: compress, push, extend, recover.
+// Distance and deformation share a phase, so the push actually accelerates him.
+export function slideMotion(progress) {
+  const t=clamp(progress), cycle=t*Math.PI*2;
+  const push=Math.sin(Math.PI*t)**2;
+  const preload=Math.sin(Math.PI*clamp(t/.35))**2*(1-smooth((t-.2)/.15));
+  return {
+    distance:t-.65*Math.sin(cycle)/(Math.PI*2), lift:0,
+    squash:1-.16*preload-.075*push,
+    stretch:1-.12*preload+.24*push,
+    twist:0, lean:.02+.11*push,
+    armDrive:-.11*Math.sin(cycle)
+  };
 }
 
 export const STEP_DURATION = .92;

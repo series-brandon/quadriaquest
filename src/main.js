@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {makeWorld,findPath,key} from './world.js';
 import {createFeedback} from './feedback.js';
-import {idlePose,slidePose,stepMotion,STEP_DURATION} from './slime-motion.js';
+import {idlePose,slideMotion,stepMotion,STEP_DURATION} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
 const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,120),raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let angle=Math.PI/4,elevation=THREE.MathUtils.degToRad(35.264),zoom=22,hover=null;
@@ -55,7 +55,8 @@ resourceSpecs.forEach(([x,z,type],id)=>{const t=world.get(key(x,z)),group=new TH
 });
 const player=new THREE.Group();scene.add(player);const body=mesh(new RoundedBoxGeometry(.72,.72,.72,4,.16),mat('#a4ce77',{roughness:.4}),player);body.position.y=.43;
 const face=new THREE.Group();player.add(face);for(const x of [-.14,.14]){const eye=mesh(new THREE.SphereGeometry(.043,12,8),dark,face);eye.position.set(x,.5,.355);const glint=mesh(new THREE.SphereGeometry(.012,8,6),mat('#fffef1'),face);glint.position.set(x-.01,.515,.387);const cheek=mesh(new THREE.SphereGeometry(.035,10,6),mat('#dfb594'),face);cheek.scale.set(1,.55,.3);cheek.position.set(x*1.5,.4,.363);}const smile=mesh(new THREE.TorusGeometry(.04,.009,6,12,Math.PI),dark,face);smile.rotation.z=Math.PI;smile.position.set(0,.415,.375);
-for(const x of [-.46,.46]){const hand=mesh(new THREE.SphereGeometry(.105,12,10),mat('#b5d994'),player);hand.position.set(x,.33,.08);}
+const hands=[];
+for(const x of [-.46,.46]){const hand=mesh(new THREE.SphereGeometry(.105,12,10),mat('#b5d994'),player);hand.position.set(x,.33,.08);hands.push(hand);}
 const visual=new THREE.Group();visual.add(...[...player.children]);player.add(visual);
 let facing=0;
 let tile=world.get(key(6,4)),path=[],segment=null,target=null,gatherTime=0,inventory={sticks:0,stones:0};player.position.set(tile.x-6,tile.h,tile.z-6);
@@ -97,7 +98,7 @@ const clock=new THREE.Clock();let elapsed=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;
  angle += (Number(rotationKeys.has('ArrowRight')) - Number(rotationKeys.has('ArrowLeft'))) * keyboardRotationSpeed * dt;
  elevation = THREE.MathUtils.clamp(elevation + (Number(rotationKeys.has('ArrowUp')) - Number(rotationKeys.has('ArrowDown'))) * Math.PI / 3 * dt, THREE.MathUtils.degToRad(20), THREE.MathUtils.degToRad(75));
- let pose=idlePose(elapsed);
+ let pose=idlePose(elapsed),handWork=null;
  if(!segment&&path.length){
   const to=path.shift();segment={from:player.position.clone(),to,age:0,height:to.h-player.position.y};
   facing=Math.atan2(to.x-tile.x,to.z-tile.z);
@@ -109,7 +110,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   segment.age+=dt;
   const stepped=Math.abs(segment.height)>.01;
   const duration=stepped?STEP_DURATION:1/2.4;
-  const motion=stepped?stepMotion(segment.age,segment.height):{distance:Math.min(1,segment.age/duration),lift:0,...slidePose(elapsed)};
+  const motion=stepped?stepMotion(segment.age,segment.height):slideMotion(segment.age/duration);
   player.position.set(
     THREE.MathUtils.lerp(segment.from.x,segment.to.x-6,motion.distance),
     segment.from.y+motion.lift,
@@ -121,7 +122,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   if(target&&!target.collected){
     feedback.interacting();gatherTime+=dt;
     $('activity').textContent=`Gathering ${target.type}…`;
-    pose={squash:1+Math.sin(elapsed*12)*.075,stretch:1,twist:Math.sin(elapsed*7)*.07,lean:.025};
+    handWork=gatherTime;
+    pose={squash:.97,stretch:1,twist:0,lean:.035};
     if(gatherTime>=1.2){
       target.collected=true;target.group.visible=false;inventory[target.type]++;
       toast(`+1 ${target.type} added to your satchel`);target=null;gatherTime=0;
@@ -134,6 +136,22 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  visual.scale.lerp(new THREE.Vector3(width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)),blend);
  visual.rotation.x=THREE.MathUtils.lerp(visual.rotation.x,pose.lean,blend);
  visual.rotation.y=THREE.MathUtils.lerp(visual.rotation.y,pose.twist,blend);
+ // Alternate reach, dip, and scoop gestures while keeping the body steady.
+ for(let i=0;i<hands.length;i++){
+  const hand=hands[i],side=i===0?-1:1;
+  let x=side*.46,y=.33,z=.08+(pose.armDrive||0),curl=0;
+  if(handWork!==null){
+    const phase=handWork*Math.PI*5+i*Math.PI;
+    const reach=(Math.sin(phase)+1)/2;
+    x=side*(.22+.09*(1-reach));
+    y=.26+.1*Math.cos(phase);
+    z=.43+.2*reach;
+    curl=Math.sin(phase)*.35;
+  }
+  hand.position.lerp(new THREE.Vector3(x,y,z),1-Math.exp(-dt*22));
+  hand.rotation.x=THREE.MathUtils.lerp(hand.rotation.x,curl,blend);
+  hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
+ }
  $('action-progress').style.width=`${gatherTime/1.2*100}%`;
  const focus=player.position.clone().add(new THREE.Vector3(0,.35,0));const horizontalDistance=zoom*Math.cos(elevation);camera.position.set(focus.x+Math.sin(angle)*horizontalDistance,focus.y+Math.sin(elevation)*zoom,focus.z+Math.cos(angle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();feedback.update(dt,elapsed,camera);renderer.render(scene,camera);
 }
