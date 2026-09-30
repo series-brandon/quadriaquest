@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {makeWorld,findPath,key} from './world.js';
 import {createFeedback} from './feedback.js';
+import {createSlimeFace} from './slime-face.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
@@ -54,11 +55,14 @@ resourceSpecs.forEach(([x,z,type],id)=>{const t=world.get(key(x,z)),group=new TH
  const halo=mesh(new THREE.RingGeometry(.35,.37,32),new THREE.MeshBasicMaterial({color:'#f5f0c9',side:THREE.DoubleSide,transparent:true,opacity:.8}),group);halo.rotation.x=-Math.PI/2;halo.position.y=.015;
 });
 const player=new THREE.Group();scene.add(player);const body=mesh(new RoundedBoxGeometry(.72,.72,.72,4,.16),mat('#a4ce77',{roughness:.4}),player);body.position.y=.43;
-const face=new THREE.Group();player.add(face);for(const x of [-.14,.14]){const eye=mesh(new THREE.SphereGeometry(.043,12,8),dark,face);eye.position.set(x,.5,.355);const glint=mesh(new THREE.SphereGeometry(.012,8,6),mat('#fffef1'),face);glint.position.set(x-.01,.515,.387);const cheek=mesh(new THREE.SphereGeometry(.035,10,6),mat('#dfb594'),face);cheek.scale.set(1,.55,.3);cheek.position.set(x*1.5,.4,.363);}const smile=mesh(new THREE.TorusGeometry(.04,.009,6,12,Math.PI),dark,face);smile.rotation.z=Math.PI;smile.position.set(0,.415,.375);
+const expressionFace=createSlimeFace();player.add(expressionFace.group);
 const hands=[];
 for(const x of [-.46,.46]){const hand=mesh(new THREE.SphereGeometry(.105,12,10),mat('#b5d994'),player);hand.position.set(x,.33,.08);hands.push(hand);}
 const visual=new THREE.Group();visual.add(...[...player.children]);player.add(visual);
-let facing=0;
+let facing=0,happyUntil=0;
+const bodyVertex=new THREE.Vector3(),bodyTransform=new THREE.Matrix4();
+const bodyPositions=body.geometry.getAttribute('position');
+body.updateMatrix();
 let tile=world.get(key(6,4)),path=[],segment=null,target=null,gatherTime=0,inventory={sticks:0,stones:0};player.position.set(tile.x-6,tile.h,tile.z-6);
 const feedback=createFeedback(scene);
 let toastTimer;function toast(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
@@ -92,13 +96,13 @@ function updateHover(){
  if(t){$('tooltip').textContent=!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+hover.resource.type:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
 }
 function changeZoom(delta){zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,34);}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});$('rotate-left').onclick=()=>angle-=Math.PI/4;$('rotate-right').onclick=()=>angle+=Math.PI/4;$('zoom-in').onclick=()=>changeZoom(-1.5);$('zoom-out').onclick=()=>changeZoom(1.5);
-$('reset').onclick=()=>{path=[];segment=null;target=null;gatherTime=0;inventory={sticks:0,stones:0};tile=world.get(key(6,4));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources){r.collected=false;r.group.visible=true;}feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
+$('reset').onclick=()=>{happyUntil=0;path=[];segment=null;target=null;gatherTime=0;inventory={sticks:0,stones:0};tile=world.get(key(6,4));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources){r.collected=false;r.group.visible=true;}feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;
  angle += (Number(rotationKeys.has('ArrowRight')) - Number(rotationKeys.has('ArrowLeft'))) * keyboardRotationSpeed * dt;
  elevation = THREE.MathUtils.clamp(elevation + (Number(rotationKeys.has('ArrowUp')) - Number(rotationKeys.has('ArrowDown'))) * Math.PI / 3 * dt, THREE.MathUtils.degToRad(20), THREE.MathUtils.degToRad(75));
- let pose=idlePose(elapsed),handWork=null;
+ let pose=idlePose(elapsed),handWork=null,expression=elapsed<happyUntil?'happy':'idle';
  if(!segment&&path.length){
   const to=path.shift();segment={from:player.position.clone(),to,age:0,height:to.h-player.position.y};
   facing=Math.atan2(to.x-tile.x,to.z-tile.z);
@@ -109,6 +113,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(segment){
   segment.age+=dt;
   const stepped=Math.abs(segment.height)>.01;
+  expression=stepped?'struggle':'focused';
   const duration=stepped?STEP_DURATION:1/2.4;
   const motion=stepped?stepMotion(segment.age,segment.height):slideMotion(segment.age/duration);
   player.position.set(
@@ -122,9 +127,10 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   if(target&&!target.collected){
     feedback.interacting();gatherTime+=dt;
     $('activity').textContent=`Gathering ${target.type}…`;
-    handWork=gatherTime;
+    handWork=gatherTime;expression='focused';
     pose={squash:.97,stretch:1,twist:0,lean:.035};
     if(gatherTime>=1.2){
+      happyUntil=elapsed+1.2;expression='happy';
       target.collected=true;target.group.visible=false;inventory[target.type]++;
       toast(`+1 ${target.type} added to your satchel`);target=null;gatherTime=0;
       feedback.complete();$('tooltip').style.display='none';updateUI();
@@ -132,10 +138,20 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     }
   }else{feedback.complete();$('activity').textContent=inventory.sticks+inventory.stones===6?'Clearing explored':'Taking it all in';}
  }
+ expressionFace.set(expression);
  const blend=1-Math.exp(-dt*24),width=1/Math.sqrt(pose.squash);
  visual.scale.lerp(new THREE.Vector3(width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)),blend);
  visual.rotation.x=THREE.MathUtils.lerp(visual.rotation.x,pose.lean,blend);
  visual.rotation.y=THREE.MathUtils.lerp(visual.rotation.y,pose.twist,blend);
+ // Keep the lowest transformed body vertex on the surface, even during lean
+ // and squash. The root's jump height remains independent of this correction.
+ visual.position.y=0;visual.updateMatrix();bodyTransform.multiplyMatrices(visual.matrix,body.matrix);
+ let bottom=Infinity;
+ for(let i=0;i<bodyPositions.count;i++){
+  bodyVertex.fromBufferAttribute(bodyPositions,i).applyMatrix4(bodyTransform);
+  bottom=Math.min(bottom,bodyVertex.y);
+ }
+ visual.position.y=.002-bottom;
  // Alternate reach, dip, and scoop gestures while keeping the body steady.
  for(let i=0;i<hands.length;i++){
   const hand=hands[i],side=i===0?-1:1;
