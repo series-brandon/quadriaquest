@@ -14,6 +14,8 @@ export const rows = [
 '  222222222  ',
 '    22222    ',
 ];
+// A clear corner of the central upper meadow, away from its rock pile.
+export const SPAWN = {x:6,z:6};
 export const key = (x,z) => `${x},${z}`;
 export function makeWorld(){
  const map=new Map();rows.forEach((row,z)=>[...row].forEach((v,x)=>{if(v!==' ')map.set(key(x,z),{x,z,h:Number(v)/2,blocked:false,water:false});}));

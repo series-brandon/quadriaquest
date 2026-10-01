@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {makeWorld,findPath,key} from './world.js';
+import {makeWorld,findPath,key,SPAWN} from './world.js';
 import {createFeedback} from './feedback.js';
 import {createSlimeFace} from './slime-face.js';
 import {createContactShadow} from './contact-shadow.js';
+import {createOpening} from './opening.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
@@ -55,6 +56,11 @@ resourceSpecs.forEach(([x,z,type],id)=>{const t=world.get(key(x,z)),group=new TH
  for(let j=0;j<3;j++){let obj;if(type==='sticks'){obj=mesh(new THREE.CylinderGeometry(.045,.055,.6,6),wood,group);obj.rotation.set(Math.PI/2,.2+j*.6,.2);obj.position.set((j-1)*.13,.09+j*.045,(j-1)*.07);}else{obj=mesh(new THREE.IcosahedronGeometry(.17+j*.035,1),rock,group);obj.scale.set(1,.7,.8);obj.position.set((j-1)*.2,.14,j%2*.16);}obj.userData.resource=resource;obj.userData.tile=t;pickables.push(obj);}
  const halo=mesh(new THREE.RingGeometry(.35,.37,32),new THREE.MeshBasicMaterial({color:'#f5f0c9',side:THREE.DoubleSide,transparent:true,opacity:.8}),group);halo.rotation.x=-Math.PI/2;halo.position.y=.015;
 });
+const clearingObjects=scene.children.filter(object=>!object.isLight);
+for(const object of clearingObjects)object.visible=false;
+const introTile=new THREE.Group();scene.add(introTile);introTile.position.set(0,0,-2);
+const introBase=mesh(new RoundedBoxGeometry(1,.94,1,3,.045),soil,introTile);introBase.position.y=.47;
+const introGrass=mesh(new RoundedBoxGeometry(1,.1,1,3,.045),grass[0],introTile);introGrass.position.y=.95;
 const player=new THREE.Group();scene.add(player);const body=mesh(new RoundedBoxGeometry(.72,.72,.72,4,.16),mat('#a4ce77',{roughness:.4}),player);body.position.y=.43;
 const expressionFace=createSlimeFace();player.add(expressionFace.group);
 const hands=[];
@@ -64,46 +70,84 @@ let facing=0,happyUntil=0;
 const bodyVertex=new THREE.Vector3(),bodyTransform=new THREE.Matrix4();
 const bodyPositions=body.geometry.getAttribute('position');
 body.updateMatrix();
-let tile=world.get(key(6,4)),path=[],segment=null,target=null,gatherTime=0,inventory={sticks:0,stones:0};player.position.set(tile.x-6,tile.h,tile.z-6);
+let tile=world.get(key(SPAWN.x,SPAWN.z)),path=[],segment=null,target=null,gatherTime=0,inventory={sticks:0,stones:0};player.position.set(tile.x-6,tile.h,tile.z-6);
 const feedback=createFeedback(scene);
 const contactShadow=createContactShadow(scene,world);
-let toastTimer;function toast(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
-function updateUI(){const count=inventory.sticks+inventory.stones;$('sticks').textContent=inventory.sticks;$('stones').textContent=inventory.stones;$('bag-total').textContent=`${count} ITEMS`;$('quest-count').textContent=`${count} / 6 materials collected`;$('quest-progress').style.width=`${count/6*100}%`;$('quest-check').textContent=count===6?'✓':'◇';}
-function moveTo(t,resource){const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&resource===target){return;}const start=segment?segment.to:tile;const route=findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}$('toast').classList.remove('visible');clearTimeout(toastTimer);target=resource||null;gatherTime=0;path=route;feedback.destination(t);$('activity').textContent=resource?'On the way to gather':'Exploring the clearing';}
-function pick(event){const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObjects(pickables.filter(m=>!m.userData.resource?.collected),false)[0];}
-let down=null,dragged=false;renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,button:e.button};dragged=false;renderer.domElement.setPointerCapture(e.pointerId);});
-let pointerOnCanvas=false, pointerClient={x:0,y:0};
-renderer.domElement.addEventListener('pointermove',e=>{
- pointerOnCanvas=true;pointerClient={x:e.clientX,y:e.clientY};
- if(down&&down.button===2){angle+=(e.clientX-down.x)*.008;down.x=e.clientX;dragged=true;return;}
- if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)dragged=true;
+const introSpawn=new THREE.Vector3(0,1,-2);
+const clearingSpawn=new THREE.Vector3(tile.x-6,tile.h,tile.z-6);
+const opening=createOpening({player,visual,face:expressionFace,introSpawn,spawn:clearingSpawn,
+ setColor(color){body.material.color.set(color);for(const hand of hands)hand.material.color.set(color).lerp(new THREE.Color('#ffffff'),.18);},
+ showClearing(){for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
-renderer.domElement.addEventListener('pointerup',e=>{
- if(down?.button===0&&!dragged){
+let toastTimer;function toast(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
+function updateUI(){const count=inventory.sticks+inventory.stones;opening.collected(count);$('sticks').textContent=inventory.sticks;$('stones').textContent=inventory.stones;$('bag-total').textContent=`${count} ITEMS`;$('quest-count').textContent=`${count} / 6 materials collected`;$('quest-progress').style.width=`${count/6*100}%`;$('quest-check').textContent=count===6?'✓':'◇';}
+function moveTo(t,resource){if(!opening.canMove)return;if(!opening.canGather)resource=null;const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&resource===target){return;}const start=segment?segment.to:tile;const route=findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}$('toast').classList.remove('visible');clearTimeout(toastTimer);opening.moving(tile,t);target=resource||null;gatherTime=0;path=route;feedback.destination(t);$('activity').textContent=resource?'On the way to gather':'Exploring the clearing';}
+function pick(event){const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObjects(pickables.filter(m=>!m.userData.resource?.collected),false)[0];}
+let down=null,dragged=false,pinchDistance=null;
+const activePointers=new Map();
+let pointerOnCanvas=false,pointerClient={x:0,y:0};
+const canvas=renderer.domElement;
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+function spread(){const [a,b]=[...activePointers.values()];return Math.hypot(a.x-b.x,a.y-b.y);}
+canvas.addEventListener('pointerdown',e=>{
+ if(!opening.playable)return;
+ activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
+ if(activePointers.size===1){down={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,button:e.button};dragged=false;}
+ else{dragged=true;pinchDistance=spread();}
+});
+canvas.addEventListener('pointermove',e=>{
+ if(!opening.playable)return;
+ pointerOnCanvas=true;pointerClient={x:e.clientX,y:e.clientY};
+ if(!activePointers.has(e.pointerId)||!down)return;
+ activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(activePointers.size>=2){
+  const distance=spread();if(pinchDistance>0&&distance>0)changeZoom(22*Math.log(pinchDistance/distance));
+  pinchDistance=distance;dragged=true;return;
+ }
+ if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>6)dragged=true;
+ if(dragged){
+  const delta=(e.clientX-down.lastX)*.008,oldElevation=elevation;
+  angle+=delta;elevation=THREE.MathUtils.clamp(elevation+(e.clientY-down.lastY)*.005,THREE.MathUtils.degToRad(20),THREE.MathUtils.degToRad(75));
+  opening.rotated(Math.abs(delta)+Math.abs(elevation-oldElevation));
+ }
+ down.lastX=e.clientX;down.lastY=e.clientY;
+});
+canvas.addEventListener('pointerup',e=>{
+ if(opening.canMove&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=hit?.object.userData;
   if(data?.tile)moveTo(data.tile,data.resource);
-  else {const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the clearing.');}
+  else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the clearing.');}
  }
- down=null;
+ activePointers.delete(e.pointerId);pinchDistance=null;
+ if(!activePointers.size)down=null;
+ else{const p=[...activePointers.values()][0];down={x:p.x,y:p.y,lastX:p.x,lastY:p.y,button:0};dragged=true;}
 });
-renderer.domElement.addEventListener('pointercancel',()=>{down=null;pointerOnCanvas=false;feedback.hover(null);});
-renderer.domElement.addEventListener('pointerleave',()=>{pointerOnCanvas=false;$('tooltip').style.display='none';feedback.hover(null);});
+function cancelGesture(){activePointers.clear();down=null;pinchDistance=null;dragged=true;}
+canvas.addEventListener('pointercancel',cancelGesture);addEventListener('blur',cancelGesture);
+canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;$('tooltip').style.display='none';feedback.hover(null);});
 function updateHover(){
- if(!pointerOnCanvas)return;
+ if(!pointerOnCanvas||!opening.canMove){feedback.hover(null);$('tooltip').style.display='none';return;}
  const hit=pick({clientX:pointerClient.x,clientY:pointerClient.y});hover=hit?.object.userData;
  const t=hover?.tile,valid=!!t&&findPath(world,segment?segment.to:tile,t)!==null;
  feedback.hover(t,valid);
  renderer.domElement.style.cursor=t?(valid?'pointer':'not-allowed'):'default';
  $('tooltip').style.display=t?'block':'none';
- if(t){$('tooltip').textContent=!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+hover.resource.type:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
+ if(t){$('tooltip').textContent=!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource&&opening.canGather?'Gather '+hover.resource.type:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
 }
-function changeZoom(delta){zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,34);}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});$('rotate-left').onclick=()=>angle-=Math.PI/4;$('rotate-right').onclick=()=>angle+=Math.PI/4;$('zoom-in').onclick=()=>changeZoom(-1.5);$('zoom-out').onclick=()=>changeZoom(1.5);
-$('reset').onclick=()=>{happyUntil=0;path=[];segment=null;target=null;gatherTime=0;inventory={sticks:0,stones:0};tile=world.get(key(6,4));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources){r.collected=false;r.group.visible=true;}feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
+function changeZoom(delta){if(!opening.playable)return;const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});$('rotate-left').onclick=()=>angle-=Math.PI/4;$('rotate-right').onclick=()=>angle+=Math.PI/4;$('zoom-in').onclick=()=>changeZoom(-1.5);$('zoom-out').onclick=()=>changeZoom(1.5);
+$('reset').onclick=()=>{happyUntil=0;path=[];segment=null;target=null;gatherTime=0;inventory={sticks:0,stones:0};tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources){r.collected=false;r.group.visible=true;}feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;opening.update(dt);
+ if(!opening.playable){rotationKeys.clear();
+  const focus=(opening.inClearing?clearingSpawn:introSpawn).clone().add(new THREE.Vector3(0,.35,0)),distance=opening.inClearing?22:6.5;
+  camera.position.set(focus.x+Math.sin(Math.PI/4)*distance*Math.cos(elevation),focus.y+Math.sin(elevation)*distance,focus.z+Math.cos(Math.PI/4)*distance*Math.cos(elevation));
+  camera.lookAt(focus);camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale);renderer.render(scene,camera);return;
+ }
+ const oldAngle=angle,oldElevation=elevation;
  angle += (Number(rotationKeys.has('ArrowRight')) - Number(rotationKeys.has('ArrowLeft'))) * keyboardRotationSpeed * dt;
  elevation = THREE.MathUtils.clamp(elevation + (Number(rotationKeys.has('ArrowUp')) - Number(rotationKeys.has('ArrowDown'))) * Math.PI / 3 * dt, THREE.MathUtils.degToRad(20), THREE.MathUtils.degToRad(75));
+ opening.rotated(Math.abs(angle-oldAngle)+Math.abs(elevation-oldElevation));
  let pose=idlePose(elapsed),handWork=null,expression=elapsed<happyUntil?'happy':'idle';
  if(!segment&&path.length){
   const to=path.shift();segment={from:player.position.clone(),to,age:0,height:to.h-player.position.y};
@@ -124,7 +168,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     THREE.MathUtils.lerp(segment.from.z,segment.to.z-6,motion.distance)
   );
   pose=motion;
-  if(segment.age>=duration){tile=segment.to;player.position.set(tile.x-6,tile.h,tile.z-6);segment=null;}
+  if(segment.age>=duration){tile=segment.to;player.position.set(tile.x-6,tile.h,tile.z-6);segment=null;if(!path.length)opening.arrived(tile);}
  }else if(!path.length){
   if(target&&!target.collected){
     feedback.interacting();gatherTime+=dt;
@@ -176,4 +220,4 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
 }
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
-window.clime={getState:()=>({tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,target:target?.id??null,gatherTime,inventory:{...inventory},angle,elevation,zoom}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);return{x:(p.x+1)*innerWidth/2,y:(1-p.y)*innerHeight/2};}};
+window.clime={getState:()=>({tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,target:target?.id??null,gatherTime,inventory:{...inventory},angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);return{x:(p.x+1)*innerWidth/2,y:(1-p.y)*innerHeight/2};}};
