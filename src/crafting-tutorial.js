@@ -9,7 +9,7 @@ const introduction=[
   'Oh, right, sorry, just a sec...',
   'There we go! Now you should be able to get into your menus to craft what we need.'
 ];
-export function createCraftingTutorial({getInventory,startCraft,freePlay=false}){
+export function createCraftingTutorial({getInventory,startCraft,freePlay=false,onComplete=()=>{}}){
   const $=id=>document.getElementById(id);
   let stage=freePlay?'done':'inactive',lineIndex=0,advance=null,successNext=null,firstTree=!freePlay;
   const host=document.createElement('div');host.id='game-menus';host.hidden=!freePlay;
@@ -79,7 +79,7 @@ export function createCraftingTutorial({getInventory,startCraft,freePlay=false})
     get stage(){return stage;},
     craftCancelled(){if(stage==='crafting'){stage='retry';guide('game-menu-toggle');tutorial('Crafting interrupted. Your materials are safe. Open the menu and craft a Crude Axe again.');}},
     craftComplete(){refresh();if(stage==='crafting'){stage='craft-success';tutorial('You crafted a Crude Axe! Your new tool is in your inventory.',true,()=>{stage='chop-dialogue';say("All right! We've got an axe! Let's do some light deforestation!",activateChopping);});}},
-    chopped(logs){refresh();if(firstTree){firstTree=false;stage='chop-success';tutorial(`You chopped your first tree and gained ${logs} Wooden Logs!`,true,()=>{stage='done';$('gather-tutorial').hidden=true;});}},
-    refresh
+    chopped(logs){refresh();if(firstTree){firstTree=false;stage='chop-success';tutorial(`You chopped your first tree and gained ${logs} Wooden Logs!`,true,()=>{stage='done';$('gather-tutorial').hidden=true;onComplete();});}},
+    closeMenus,refresh
   };
 }

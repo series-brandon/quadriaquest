@@ -24,7 +24,7 @@ export function highlightResource(group,{height=.95}={}){
   const arrow=new THREE.Sprite(new THREE.SpriteMaterial({map:arrowTexture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));
   arrow.scale.set(.45,.68,1);arrow.position.y=height;arrow.renderOrder=9;arrow.visible=false;group.add(arrow);
   return {update(show,time,hovered=false){
-    arrow.visible=show;arrow.position.y=.95+Math.sin(time*3.5)*.07;
+    arrow.visible=show;arrow.position.y=height+Math.sin(time*3.5)*.07;
     for(const outline of borders){outline.visible=show||hovered;outline.material=hovered?white:gold;}
     for(const outline of glows)outline.visible=show&&!hovered;
   }};
