@@ -1,3 +1,4 @@
+import {SOCIAL_DURATIONS} from './slime-social.js';
 import {spawnMotion} from './slime-motion.js';
 const openingLines = [
   'Hello there!',
@@ -22,7 +23,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   const continueButton=document.createElement('button');
   continueButton.id='tutorial-continue';continueButton.type='button';continueButton.textContent='Click to continue';continueButton.hidden=true;
   tutorial.append(continueButton);
-  let finished=false;
+  let finished=false,reaction=null;
   let phase='intro-wait',age=0,step=0,mode='line',next=null;
   let name='Pip',color='#a4ce77',inClearing=false,playable=false;
   const lessons=[
@@ -98,7 +99,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     input.addEventListener('input',()=>{color=input.value;setColor(color);});label.append(input);controls.append(label);
     button('This is me',()=>{
       show('So this is what you look like?','confirm');
-      button('Yes',()=>show("Brilliant! You're a dashing little one!",'line',chooseName));
+      button('Yes',()=>{reaction={kind:'Happy hop',time:0};show("Brilliant! You're a dashing little one!",'line',chooseName);});
       button('No, try another color',chooseColor,true);
     });
   }
@@ -110,7 +111,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
       const proposed=input.value.trim();
       if(!proposed){input.setCustomValidity('Please enter a name.');input.reportValidity();return;}
       name=proposed;show(`So they call you ${name}?`,'confirm');
-      button('Yes',()=>show(`Well, ${name}, you're in for quite an adventure! Let's get you started!`,'line',()=>{dialogue.hidden=true;transition('fade-out');}));
+      button('Yes',()=>{reaction={kind:'Wave',time:0};show(`Well, ${name}, you're in for quite an adventure! Let's get you started!`,'line',()=>{dialogue.hidden=true;transition('fade-out');});});
       button('No, change my name',chooseName,true);
     };
     input.addEventListener('input',()=>input.setCustomValidity(''));
@@ -124,7 +125,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
       document.querySelector('.character-card strong').textContent=name;
     }
   }
-  function advance(){if(mode==='line'&&next){const action=next;next=null;action();}}
+  function advance(){if(reaction)return;if(mode==='line'&&next){const action=next;next=null;action();}}
   dialogue.addEventListener('click',e=>{if(!e.target.closest('button,input,label'))advance();});
   dialogue.addEventListener('keydown',e=>{
     if(e.target===dialogue&&(e.key==='Enter'||e.key===' ')){e.preventDefault();advance();}
@@ -140,6 +141,8 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   player.visible=false;player.position.copy(introSpawn);player.position.y+=14;
   player.rotation.y=Math.PI/4;
   return {
+    get reaction(){return reaction;},
+    get quiet(){return phase==='dialogue'&&!reaction;},
     get finished(){return finished;},
     get playable(){return playable;},
     get canMove(){return playable&&lesson>=2&&!awaitingContinue;},
@@ -152,6 +155,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     get profile(){return {name,color};},
     update(dt){
       age+=dt;
+      if(reaction){reaction.time+=dt;if(reaction.time>=SOCIAL_DURATIONS[reaction.kind])reaction=null;}
       if(playable)return;
       if(phase==='intro-wait'&&age>=.9)transition('intro-drop');
       else if(phase==='intro-drop'||phase==='world-drop'){

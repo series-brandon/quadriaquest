@@ -17,8 +17,8 @@ export function createSlimeFace() {
   const cream=new THREE.MeshBasicMaterial({color:LIGHT_INK,toneMapped:false});
   const pink=new THREE.MeshStandardMaterial({color:'#eea8a0'});
   function part(geometry,material,parent=group){const m=new THREE.Mesh(geometry,material);parent.add(m);return m;}
-  const normal=new THREE.Group(),focused=new THREE.Group(),struggle=new THREE.Group(),happy=new THREE.Group();
-  group.add(normal,focused,struggle,happy);
+  const normal=new THREE.Group(),focused=new THREE.Group(),struggle=new THREE.Group(),happy=new THREE.Group(),sleeping=new THREE.Group();
+  group.add(normal,focused,struggle,happy,sleeping);
   function line(points,parent,r=.009){
     const curve=new THREE.CatmullRomCurve3(points.map(([x,y])=>new THREE.Vector3(x,y,.382)));
     return part(new THREE.TubeGeometry(curve,12,r,6,false),ink,parent);
@@ -29,6 +29,7 @@ export function createSlimeFace() {
       if(parent===focused)eye.scale.y=.75;
       const glint=part(new THREE.SphereGeometry(.012,8,6),cream,parent);glint.position.set(x-.01,.512,.387);
     }
+    line([[x-.045,.50],[x,.484],[x+.045,.50]],sleeping,.012);
     const sign=Math.sign(x);
     line([[x-sign*.06,.55],[x+sign*.055,.59]],focused,.013);
     line([[x+sign*.045,.55],[x-sign*.025,.51],[x+sign*.045,.475]],struggle,.012);
@@ -41,7 +42,8 @@ export function createSlimeFace() {
   const tenseMouth=line([[-.055,.397],[-.028,.411],[0,.385],[.028,.411],[.055,.397]],struggle,.009);
   const mouth=part(new THREE.SphereGeometry(.078,20,12),ink,happy);mouth.position.set(0,.39,.377);mouth.scale.set(1,.8,.23);
   const tongue=part(new THREE.SphereGeometry(.043,16,8),pink,happy);tongue.position.set(0,.356,.394);tongue.scale.set(1,.48,.2);
-  const expressions={idle:normal,focused,struggle,happy};
+  const sleepyMouth=part(new THREE.SphereGeometry(.023,12,8),ink,sleeping);sleepyMouth.position.set(0,.39,.38);sleepyMouth.scale.set(.8,1,.25);
+  const expressions={idle:normal,focused,struggle,happy,sleeping};
   return {group,setBodyColor(color){
     const chosen=faceInkFor(color);
     ink.color.set(chosen);

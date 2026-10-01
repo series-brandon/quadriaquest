@@ -24,7 +24,7 @@ test('XP and level explanations return to gathering and final success only after
     const button=label=>{const b=get('dialogue-controls').children.find(n=>n.textContent===label);assert.ok(b,label);b.click();};
     opening.update(1);opening.update(1.4);
     for(let i=0;i<4;i++)dialogue();
-    button('This is me');button('Yes');dialogue();button('That’s my name');button('Yes');dialogue();
+    button('This is me');button('Yes');assert.equal(opening.reaction.kind,'Happy hop');dialogue();assert.equal(opening.reaction.kind,'Happy hop');opening.update(1.2);dialogue();button('That’s my name');button('Yes');assert.equal(opening.reaction.kind,'Wave');opening.update(2.3);dialogue();
     for(const dt of [1.3,.4,1.3,.9,1.4])opening.update(dt);
     for(let i=0;i<4;i++)dialogue();
     const continueLesson=()=>get('gather-tutorial').children.find(n=>n.id==='tutorial-continue').click();

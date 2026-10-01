@@ -1,3 +1,4 @@
+import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion,CHOP_DURATION} from '../slime-motion.js';
 import {showSkillReward} from '../skills.js';
 import './playground.css';
@@ -10,8 +11,8 @@ export function createFreeOpening({player,visual,spawn,showClearing}){
     profile:{name:'Pip',color:'#a4ce77'},update(){},rotated(){},zoomed(){},moving(){},arrived(){},collected(){}};
 }
 
-const animations=['Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Hat celebration','Happy','Focused','Preparing','Struggle'];
-const durations={'Hat celebration':4.3,Chopping:CHOP_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
+const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Hat celebration','Happy','Focused','Preparing','Struggle'];
+const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   const panel=document.createElement('details');panel.id='quadra-dev-playground';panel.open=true;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>collapse</small></summary>
@@ -106,6 +107,7 @@ export function mountPlayground(api){
   api.reset('all');refresh();
   return {
     stop:()=>stop(false),
+    get previewing(){return !!preview;},
     get chopping(){return preview==='Chopping';},get time(){return time;},get holdingFeedback(){return holdingFeedback;},
     frame(dt){
       snapshotAge+=dt;if(snapshotAge>.25){snapshotAge=0;refresh();}
@@ -114,6 +116,7 @@ export function mountPlayground(api){
       const duration=durations[preview]||2;
       if(time>=duration){if($('loop').checked){time%=duration;if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});}else{stop();status('Preview finished.');return null;}}
       if(preview==='Hat celebration')return null;
+      if(SOCIAL_DURATIONS[preview])return socialMotion(preview,time);
       let pose=idlePose(time),expression='idle',handWork=null,lift=0;
       if(preview==='Sliding'){pose=slideMotion(time/duration);expression='focused';}
       if(preview.startsWith('Jump')){pose=stepMotion(time,preview==='Jump up'?.5:-.5);lift=pose.lift+(preview==='Jump down'?.5:0);expression=time<.32?'preparing':'struggle';}

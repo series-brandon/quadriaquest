@@ -1,3 +1,5 @@
+import {socialMotion,createIdleClock} from './slime-social.js';
+import {createSleepFeedback} from './sleep-feedback.js';
 import {createTutorialFinale} from './tutorial-finale.js';
 import {itemChangeMessage} from './item-feedback.js';
 import * as THREE from 'three';
@@ -86,6 +88,8 @@ body.updateMatrix();
 let tile=world.get(key(SPAWN.x,SPAWN.z)),path=[],segment=null,target=null,gatherTime=0,inventory={sticks:0,stones:0,axes:0,logs:0,hats:0};player.position.set(tile.x-6,tile.h,tile.z-6);
 const feedback=createFeedback(scene);
 const contactShadow=createContactShadow(scene,world);
+const idleClock=createIdleClock(),sleepFeedback=createSleepFeedback(scene);
+for(const event of ['pointerdown','keydown','wheel','input'])document.addEventListener(event,()=>idleClock.wake(),{capture:true,passive:true});
 const introSpawn=new THREE.Vector3(0,1,-2);
 const clearingSpawn=new THREE.Vector3(tile.x-6,tile.h,tile.z-6);
 let debug=null;
@@ -212,17 +216,28 @@ $('reset').onclick=()=>{gatheringSkill=createGatheringSkill();happyUntil=0;path=
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;opening.update(dt);
+ const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!activeAction&&!actorTarget&&!finale.busy&&!rotationKeys.size&&!debug?.previewing):opening.quiet);
+ let sleeping=asleep;
  if(!opening.playable){rotationKeys.clear();
+  if(opening.quiet||opening.reaction){
+    const social=opening.reaction?socialMotion(opening.reaction.kind,opening.reaction.time):asleep?socialMotion('Sleeping',idleClock.sleepTime):null;
+    player.position.copy(opening.inClearing?clearingSpawn:introSpawn);
+    visual.rotation.set(social?.pose.lean||0,social?.pose.twist||0,social?.pose.roll||0);
+    if(social){player.position.y+=social.lift;const width=1/Math.sqrt(social.pose.squash);visual.scale.set(width,social.pose.squash,width);visual.position.y=-.07*social.pose.squash;}
+    expressionFace.set(social?.expression||'idle');
+    for(let i=0;i<hands.length;i++){const h=social?.hands[i]||[(i===0?-1:1)*.46,.33,.08,0,0];hands[i].position.set(h[0],h[1],h[2]);hands[i].rotation.set(h[3],0,h[4]);}
+  }
   const focus=(opening.inClearing?clearingSpawn:introSpawn).clone().add(new THREE.Vector3(0,.35,0)),distance=opening.inClearing?22:6.5;
   camera.position.set(focus.x+Math.sin(Math.PI/4)*distance*Math.cos(elevation),focus.y+Math.sin(elevation)*distance,focus.z+Math.cos(Math.PI/4)*distance*Math.cos(elevation));
-  camera.lookAt(focus);camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale);renderer.render(scene,camera);return;
+  camera.lookAt(focus);camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);return;
  }
  finale.update(dt,elapsed,hover?.actor);
  const oldAngle=angle,oldElevation=elevation;
  angle += (Number(rotationKeys.has('ArrowRight')) - Number(rotationKeys.has('ArrowLeft'))) * keyboardRotationSpeed * dt;
  elevation = THREE.MathUtils.clamp(elevation + (Number(rotationKeys.has('ArrowUp')) - Number(rotationKeys.has('ArrowDown'))) * Math.PI / 3 * dt, THREE.MathUtils.degToRad(20), THREE.MathUtils.degToRad(75));
  opening.rotated(Math.abs(angle-oldAngle)+Math.abs(elevation-oldElevation));
- let pose=idlePose(elapsed),handWork=null,expression=elapsed<happyUntil?'happy':'idle';
+ let pose=idlePose(elapsed),handWork=null,expression=elapsed<happyUntil?'happy':'idle',socialHands=null;
+ if(asleep){const social=socialMotion('Sleeping',idleClock.sleepTime);pose=social.pose;expression=social.expression;socialHands=social.hands;}
  if(!segment&&path.length){
   const to=path.shift();segment={from:player.position.clone(),to,age:0,height:to.h-player.position.y};
   facing=Math.atan2(to.x-tile.x,to.z-tile.z);
@@ -290,7 +305,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     }
   }else{if(!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.complete();$('activity').textContent=inventory.sticks+inventory.stones===6?'Clearing explored':'Taking it all in';}
  }
- if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;player.position.y=tile.h+preview.lift;}}
+ if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  const celebration=finale.celebration;
  if(celebration){expression='happy';handWork=null;facing=celebration.angle;pose=idlePose(elapsed);pose.squash=1+Math.sin(celebration.age*9)*.07;}
  expressionFace.set(expression);
@@ -298,6 +313,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  visual.scale.lerp(new THREE.Vector3(width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)),blend);
  visual.rotation.x=THREE.MathUtils.lerp(visual.rotation.x,pose.lean,blend);
  visual.rotation.y=THREE.MathUtils.lerp(visual.rotation.y,pose.twist,blend);
+ visual.rotation.z=THREE.MathUtils.lerp(visual.rotation.z,pose.roll||0,blend);
  // Keep the lowest transformed body vertex on the surface, even during lean
  // and squash. The root's jump height remains independent of this correction.
  visual.position.y=0;visual.updateMatrix();bodyTransform.multiplyMatrices(visual.matrix,body.matrix);
@@ -323,6 +339,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     curl=Math.sin(phase)*.35;
   }
   if(chopping)[x,y,z,curl,roll,yaw=0]=i===0?chopping.right:chopping.left;
+  if(socialHands)[x,y,z,curl,roll]=socialHands[i];
   if(celebration){const lift=THREE.MathUtils.smoothstep(celebration.age,.55,1.15);x=side*.31;y=.55+lift*.34;z=.55;curl=0;roll=0;yaw=0;}
   hand.position.lerp(new THREE.Vector3(x,y,z),1-Math.exp(-dt*22));
   hand.rotation.x=THREE.MathUtils.lerp(hand.rotation.x,curl,blend);
@@ -344,7 +361,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  $('action-progress').style.width=`${gatherTime/gatheringDuration(gatheringSkill)*100}%`;
  const closeup=celebration?Math.min(THREE.MathUtils.smoothstep(celebration.age,0,1),1-THREE.MathUtils.smoothstep(celebration.age,3.3,4.3)):0;
  const viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
- const focus=player.position.clone().add(new THREE.Vector3(0,.35+closeup*.3,0));const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.collected,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.collected);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,innerWidth,innerHeight);renderer.render(scene,camera);
+ const focus=player.position.clone().add(new THREE.Vector3(0,.35+closeup*.3,0));const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.collected,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.collected);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,innerWidth,innerHeight);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);
 }
 if(__PLAYGROUND__){
  debug=playground.mountPlayground({
