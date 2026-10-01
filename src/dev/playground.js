@@ -29,7 +29,7 @@ export function mountPlayground(api){
       <label>Slime color <input id="dev-color" type="color" value="#a4ce77"></label>
       <p class="dev-note">Previews run in place without consuming items or earning XP. Stop to play normally.</p>
     </fieldset>
-    <fieldset><legend>Skills</legend>
+    <fieldset><legend>Skills</legend><div><button data-dev="skills-menu">Open Skills menu</button><button data-dev="skills-lesson">Replay Skills tutorial</button></div><p class="dev-note">Replay sets Gathering to level 2 (120 XP) for the first-level lesson.</p>
       <label>Skill <select id="dev-skill">${Object.keys(api.skills).map(a=>`<option>${a}</option>`).join('')}</select></label>
       <label>Amount <input id="dev-skill-amount" type="number" min="0" max="1000000" step="1" value="20"></label>
       <div><button data-dev="xp">Add XP</button><button data-dev="levels">Add levels</button></div>
@@ -68,6 +68,8 @@ export function mountPlayground(api){
       }
       if(b.dataset.dev){
         const action=b.dataset.dev;
+        if(action==='skills-menu'){stop();api.showSkills();}
+        if(action==='skills-lesson'){stop();api.skillsLesson();}
         if(action==='themes'){stop();compareThemes();}
         if(action==='splash'){stop();api.showSplash();}
         if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}

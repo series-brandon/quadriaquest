@@ -22,7 +22,16 @@ export function showGatheringPrompt(count){
   document.getElementById('tutorial-progress').style.width=`${count/6*100}%`;
 }
 
-export function createOpening({player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete}) {
+export function showGatheringCompletion(){
+  const tutorial=document.getElementById('gather-tutorial');tutorial.hidden=false;
+  showGatheringPrompt(6);
+  document.getElementById('tutorial-title').textContent='All six collected!';
+  document.getElementById('tutorial-copy').textContent='A brilliant start. Your first resources are safely gathered.';
+  tutorial.querySelector('.progress-track').hidden=false;tutorial.classList.add('complete');
+  const button=document.getElementById('tutorial-continue');button.hidden=false;button.textContent='Click to continue';
+}
+
+export function createOpening({player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel}) {
   const dialogue=document.getElementById('dialogue');
   const line=document.getElementById('dialogue-line');
   const prompt=document.getElementById('dialogue-prompt');
@@ -32,7 +41,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   const continueButton=document.createElement('button');
   continueButton.id='tutorial-continue';continueButton.type='button';continueButton.textContent='Click to continue';continueButton.hidden=true;
   tutorial.append(continueButton);
-  let finished=false,reaction=null;
+  let finished=false,reaction=null,skillsPending=false;
   let phase='intro-wait',age=0,step=0,mode='line',next=null;
   let name='Pip',color='#a4ce77',inClearing=false,playable=false;
   const lessons=[
@@ -43,13 +52,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   ];
   let lesson=0,awaitingContinue=false,rotationAmount=0,zoomAmount=0,moveGoal=null;
   let collectedCount=0,interruption=null,xpExplained=false,levelExplained=false;
-  function showGatherSuccess(){
-    document.getElementById('tutorial-title').textContent='All six collected!';
-    document.getElementById('tutorial-copy').textContent='A brilliant start. Your first resources are safely gathered.';
-    tutorial.querySelector('.progress-track').hidden=false;
-    tutorial.classList.add('complete');awaitingContinue=true;continueButton.hidden=false;
-    continueButton.textContent='Click to continue';
-  }
+  function showGatherSuccess(){showGatheringCompletion();awaitingContinue=true;}
   function explainSkill(kind){
     interruption=kind;awaitingContinue=true;continueButton.hidden=false;
     continueButton.textContent=kind==='level'?'Okay':'Click to continue';
@@ -60,6 +63,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
       : "You just gained your first level! It's just a start, but your Gathering ability just got a little bit better! Keep going! Soon you'll be a master of many skills!";
   }
   function showLesson(){
+    tutorial.hidden=false;
     continueButton.hidden=true;continueButton.textContent='Click to continue';
     document.getElementById('tutorial-title').textContent=lesson===3?'Pick up some items':'TUTORIAL';
     document.getElementById('tutorial-copy').textContent=lessons[lesson].text;
@@ -80,7 +84,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     awaitingContinue=false;continueButton.hidden=true;
     if(interruption){
       const completed=interruption;interruption=null;
-      if(completed==='xp')showLesson();else showGatherSuccess();
+      if(completed==='xp')showLesson();else if(onFirstLevel){skillsPending=true;onFirstLevel(()=>{skillsPending=false;showLesson();showGatherSuccess();});}else showGatherSuccess();
       return;
     }
     if(lesson<lessons.length-1){lesson++;showLesson();}
@@ -155,8 +159,8 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     get quiet(){return phase==='dialogue'&&!reaction;},
     get finished(){return finished;},
     get playable(){return playable;},
-    get canMove(){return playable&&lesson>=2&&!awaitingContinue;},
-    get canGather(){return playable&&lesson===3&&!awaitingContinue;},
+    get canMove(){return playable&&lesson>=2&&!awaitingContinue&&!skillsPending;},
+    get canGather(){return playable&&lesson===3&&!awaitingContinue&&!skillsPending;},
     rotated(amount){if(playable&&lesson===0){rotationAmount+=Math.abs(amount);if(rotationAmount>=.08)succeed();}},
     zoomed(amount){if(playable&&lesson===1){zoomAmount+=Math.abs(amount);if(zoomAmount>=.045)succeed();}},
     moving(from,to){if(lesson===2&&!awaitingContinue)moveGoal={from:{x:from.x,z:from.z},to:{x:to.x,z:to.z}};},

@@ -19,7 +19,8 @@ test('XP and level explanations return to gathering and final success only after
   globalThis.document={getElementById(id){if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);},createElement(){return new Element();},querySelector(){return new Element();}};
   try{
     const get=id=>document.getElementById(id);
-    const opening=createOpening({player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
+    let finishSkills;
+    const opening=createOpening({onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
     const dialogue=()=>get('dialogue').click();
     const button=label=>{const b=get('dialogue-controls').children.find(n=>n.textContent===label);assert.ok(b,label);b.click();};
     opening.update(1);opening.update(1.4);
@@ -42,7 +43,12 @@ test('XP and level explanations return to gathering and final success only after
     assert.equal(opening.canGather,true);
     opening.collected(6,{xp:20,leveledUp:true});
     assert.match(get('tutorial-copy').textContent,/first level/);assert.equal(opening.canMove,false);
-    continueLesson();assert.equal(get('tutorial-title').textContent,'All six collected!');
+    continueLesson();assert.equal(typeof finishSkills,'function');assert.equal(opening.canMove,false);assert.equal(opening.canGather,false);
+    // The Skills controller hides the shared tutorial panel before returning.
+    get('gather-tutorial').hidden=true;
+    get('tutorial-count').textContent='';get('tutorial-progress').style.width='0%';
+    finishSkills();assert.equal(get('tutorial-title').textContent,'All six collected!');
+    assert.equal(get('tutorial-count').textContent,'6 / 6 collected');assert.equal(get('tutorial-progress').style.width,'100%');
     assert.equal(get('gather-tutorial').hidden,false);assert.equal(opening.canMove,false);
     continueLesson();assert.equal(get('gather-tutorial').hidden,true);assert.equal(opening.canMove,true);
   }finally{globalThis.document=previous;}

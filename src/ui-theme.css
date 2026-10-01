@@ -24,3 +24,9 @@ p{color:var(--ui-muted)}
 .splash-heading p{color:var(--ui-ink);font-family:'Trebuchet MS',sans-serif}
 .splash-start button{background:var(--ui-button);color:var(--ui-button-ink);border-color:var(--ui-border);border-radius:18px;font-family:'Trebuchet MS',sans-serif;box-shadow:0 5px 0 var(--ui-border),0 12px 28px #382b4922}
 .splash-start button:hover{background:#614769}.splash-start button:focus-visible{outline-color:var(--ui-accent)}
+#game-menu-bar{display:flex;gap:8px}
+#open-skills{padding:13px 24px;white-space:nowrap;background:#eee0e5}
+#skills-panel{position:absolute;right:0;bottom:70px;width:min(350px,calc(100vw - 40px));max-height:55vh;overflow:auto;padding:22px;background:var(--ui-paper);color:var(--ui-ink);border:1px solid var(--ui-border);border-radius:18px;box-shadow:0 12px 40px #382b4922}
+.skill-entry{padding:15px 12px;margin-top:14px;border:1px solid var(--ui-border);border-radius:12px}.skill-entry>div{display:flex;justify-content:space-between;gap:10px}.skill-entry b{font-size:12px}.skill-entry p{margin:8px 0;color:var(--ui-muted)}.skill-entry small{display:block;font-size:11px;line-height:1.8}.skill-entry progress{display:block;width:100%;height:7px;margin:10px 0;appearance:none;border:0;border-radius:4px;overflow:hidden;background:#ddc8d8}.skill-entry progress::-webkit-progress-bar{background:#ddc8d8}.skill-entry progress::-webkit-progress-value{background:var(--ui-accent)}.skill-entry progress::-moz-progress-bar{background:var(--ui-accent)}.skill-focus{outline:2px solid #eac35f;box-shadow:0 0 16px #efbf5535}
+body:has(#skills-panel:not([hidden])) #gather-tutorial{left:24px;transform:none;width:min(440px,calc(100vw - 420px))}
+@media(max-width:700px){body:has(#skills-panel:not([hidden])) #gather-tutorial{left:16px;width:calc(100% - 32px)}#skills-panel{max-height:38vh;bottom:65px}body:has(#skills-panel:not([hidden])) #game-menus{bottom:230px}}
