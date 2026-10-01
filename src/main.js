@@ -10,7 +10,7 @@ import {createCraftingTutorial} from './crafting-tutorial.js';
 import {craftAxe,cancelActivity,tickCraft,chopTree} from './activities.js';
 import {highlightResource} from './resource-highlight.js';
 import {createGatheringSkill,awardGatheringXp,gatheringDuration,awardSkillXp,showSkillReward,updateSkillRewards,clearSkillRewards} from './skills.js';
-import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose} from './slime-motion.js';
+import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,chopMotion} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
 const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,120),raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let angle=Math.PI/4,elevation=THREE.MathUtils.degToRad(35.264),zoom=22,hover=null;
@@ -71,7 +71,7 @@ const player=new THREE.Group();scene.add(player);const body=mesh(new RoundedBoxG
 const expressionFace=createSlimeFace();player.add(expressionFace.group);
 const hands=[];
 for(const x of [-.46,.46]){const hand=mesh(new THREE.SphereGeometry(.105,12,10),body.material,player);hand.position.set(x,.33,.08);hands.push(hand);}
-const axeTool=new THREE.Group();hands[1].add(axeTool);axeTool.visible=false;
+const axeTool=new THREE.Group();hands[0].add(axeTool);axeTool.visible=false;axeTool.rotation.y=-Math.PI/2;
 const axeHandle=mesh(new THREE.CylinderGeometry(.023,.028,.43,6),wood,axeTool);axeHandle.position.y=.17;
 const axeHead=mesh(new RoundedBoxGeometry(.2,.14,.075,2,.025),rock,axeTool);axeHead.position.set(.065,.35,0);
 const visual=new THREE.Group();visual.add(...[...player.children]);player.add(visual);
@@ -239,8 +239,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     }else{
       feedback.interacting('Chopping');action.elapsed+=dt;
       facing=Math.atan2(action.tree.x-tile.x,action.tree.z-tile.z);
-      const swing=Math.sin(action.elapsed*9);pose=workPose('chop',action.elapsed);
-      action.tree.group.rotation.z=swing*.018;
+      const chop=chopMotion(action.elapsed);pose=chop.body;
+      action.tree.group.rotation.z=chop.impact;
       if(action.elapsed>=action.duration){
         action.status='complete';action.tree.felled=true;chopTarget=null;activeAction=null;
         const direction=new THREE.Vector3(action.tree.x-tile.x,0,action.tree.z-tile.z).normalize();
@@ -280,11 +280,12 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  visual.position.y=.002-bottom;
  contactShadow.update(player.position,visual.scale);
  axeTool.visible=(activeAction?.kind==='chop'&&activeAction.status==='active')||(__PLAYGROUND__&&debug?.chopping);
- // Alternate reach, dip, and scoop gestures while keeping the body steady.
+ const chopping=axeTool.visible?chopMotion(activeAction?.elapsed??debug?.time??0):null;
+ // Both hands share the chop cycle; other interactions keep their scoop gesture.
  for(let i=0;i<hands.length;i++){
   const hand=hands[i],side=i===0?-1:1;
-  let x=side*.46,y=.33,z=.08+(pose.armDrive||0),curl=0;
-  if(handWork!==null){
+  let x=side*.46,y=.33,z=.08+(pose.armDrive||0),curl=0,roll=0;
+  if(handWork!==null&&!chopping){
     const phase=handWork*Math.PI*5+i*Math.PI;
     const reach=(Math.sin(phase)+1)/2;
     x=side*(.22+.09*(1-reach));
@@ -292,9 +293,10 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     z=.43+.2*reach;
     curl=Math.sin(phase)*.35;
   }
-  if(axeTool.visible&&i===1){const swing=Math.sin((activeAction?.elapsed??debug?.time??0)*9);x=.42;y=.38+.14*swing;z=.22+.23*Math.max(0,swing);curl=-.65+1.1*swing;}
+  if(chopping)[x,y,z,curl,roll]=i===0?chopping.right:chopping.left;
   hand.position.lerp(new THREE.Vector3(x,y,z),1-Math.exp(-dt*22));
   hand.rotation.x=THREE.MathUtils.lerp(hand.rotation.x,curl,blend);
+  hand.rotation.z=THREE.MathUtils.lerp(hand.rotation.z,roll,blend);
   hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
  }
  for(let i=fallingTrees.length-1;i>=0;i--){

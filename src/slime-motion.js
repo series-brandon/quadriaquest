@@ -52,11 +52,35 @@ export function stepMotion(seconds, height) {
 
 // Shared by gameplay and the development animation viewer.
 export function workPose(kind,time){
-  return {squash:.97,stretch:1,twist:0,lean:kind==='chop'?.03+Math.max(0,Math.sin(time*9))*.07:.035};
+  if(kind==='chop')return chopMotion(time).body;
+  return {squash:.97,stretch:1,twist:0,lean:.035};
 }
 export function spawnMotion(time){
   let squash=1,lift=0;
   if(time<.68){const p=Math.min(1,time/.68);lift=14*(1-p*p);squash=1+.18*Math.sin(Math.PI*p);}
   else{const p=Math.min(1,(time-.68)/.52);squash=1-.3*Math.sin(Math.PI*p)*Math.exp(-p);}
   return {squash,lift,stretch:1,twist:0,lean:0};
+}
+
+// Local forward is +Z, so the slime's anatomical right hand is at -X.
+// Draw back, raise, strike diagonally, hold the impact, then recover.
+export const CHOP_DURATION=1.05;
+const chopKeys=[
+  {at:0, right:[-.46,.34,.16,.12,0],left:[.46,.33,.08,0,0],body:[.98,.01,0]},
+  {at:.25,right:[-.55,.39,-.18,-.55,-.12],left:[.28,.37,.43,-.15,0],body:[.96,-.045,-.075]},
+  {at:.43,right:[-.53,.64,-.10,-.70,-.22],left:[.24,.39,.48,-.2,0],body:[1.035,-.065,-.09]},
+  {at:.60,right:[-.30,.30,.64,.92,.18],left:[.49,.32,.02,.18,0],body:[.93,.12,.065]},
+  {at:.73,right:[-.30,.30,.64,.92,.18],left:[.49,.32,.02,.18,0],body:[.93,.12,.065]},
+  {at:1,right:[-.46,.34,.16,.12,0],left:[.46,.33,.08,0,0],body:[.98,.01,0]}
+];
+export function chopMotion(time){
+  const phase=((time%CHOP_DURATION)+CHOP_DURATION)%CHOP_DURATION/CHOP_DURATION;
+  const index=chopKeys.findIndex(key=>key.at>phase);
+  const a=chopKeys[index-1],b=chopKeys[index];
+  const t=smooth((phase-a.at)/(b.at-a.at));
+  const mix=(from,to)=>from.map((value,i)=>value+(to[i]-value)*t);
+  const body=mix(a.body,b.body);
+  return {right:mix(a.right,b.right),left:mix(a.left,b.left),
+    body:{squash:body[0],stretch:1,lean:body[1],twist:body[2]},
+    impact:phase>=.60&&phase<.73?Math.sin((phase-.60)/.13*Math.PI)*.025:0};
 }

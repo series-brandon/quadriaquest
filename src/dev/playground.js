@@ -1,4 +1,4 @@
-import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion} from '../slime-motion.js';
+import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion,CHOP_DURATION} from '../slime-motion.js';
 import {showSkillReward} from '../skills.js';
 import './playground.css';
 
@@ -11,7 +11,7 @@ export function createFreeOpening({player,visual,spawn,showClearing}){
 }
 
 const animations=['Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Happy','Focused','Preparing','Struggle'];
-const durations={'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
+const durations={Chopping:CHOP_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   const panel=document.createElement('details');panel.id='quadra-dev-playground';panel.open=true;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>collapse</small></summary>
