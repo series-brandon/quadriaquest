@@ -1,10 +1,4 @@
-export const ITEMS={
- sticks:{name:'Stick',plural:'Sticks',icon:'╱',description:'A small fallen branch. Useful for crafting simple tools.'},
- stones:{name:'Stone',plural:'Stones',icon:'◆',description:'A sturdy little stone. Useful for crafting simple tools.'},
- axes:{name:'Crude Axe',plural:'Crude Axes',icon:'⚒',description:'A simple axe for chopping trees. Keep it in your inventory to use it.'},
- logs:{name:'Wooden Logs',plural:'Wooden Logs',icon:'▰',description:'Freshly chopped wood. A useful crafting material.'},
- hats:{name:'Top Hat',plural:'Top Hats',icon:'🎩',description:'A rather fancy reward for a well-practiced adventurer. Use the hat button to wear it.'}
-};
+import {ITEMS} from './items.js';
 export function createInventoryMenu(host,getInventory,onSelect,onClose){
  const panel=document.createElement('section');panel.id='inventory-panel';panel.hidden=true;panel.setAttribute('aria-label','Inventory');
  panel.innerHTML='<div class="crafting-heading"><h2>Inventory</h2><button aria-label="Close inventory menu">×</button></div><div class="inventory-grid"></div><p class="inventory-empty">Your inventory is empty.</p><section class="inventory-detail" aria-live="polite"></section>';
@@ -17,8 +11,8 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose){
   if(!inventory[selected])selected=null;
   grid.replaceChildren();
   for(const [id,item]of Object.entries(ITEMS))if(inventory[id]>0){
-   const b=document.createElement('button');b.type='button';b.dataset.item=id;b.className='inventory-stack';b.setAttribute('aria-label',`${item.plural}, quantity ${inventory[id]}`);b.setAttribute('aria-pressed',String(selected===id));
-   b.innerHTML=`<span aria-hidden="true">${item.icon}</span><strong>${item.plural}</strong><b>${inventory[id]}</b>`;
+   const b=document.createElement('button');b.type='button';b.dataset.item=id;b.className='inventory-stack';b.setAttribute('aria-label',`${item.name}, quantity ${inventory[id]}`);b.setAttribute('aria-pressed',String(selected===id));
+   b.innerHTML=`<span aria-hidden="true">${item.icon}</span><strong>${item.name}</strong><b>×${inventory[id]}</b>`;
    if(guided&&id==='sticks')b.classList.add('gold-guide');
    b.onclick=()=>{selected=id;refresh(true);onSelect(id);};grid.append(b);
   }

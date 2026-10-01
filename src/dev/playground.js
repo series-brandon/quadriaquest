@@ -1,3 +1,4 @@
+import {ITEMS,itemStack} from '../items.js';
 import {WATER_DEFAULTS} from '../water-effects.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {mountThemeComparison} from './theme-comparison.js';
@@ -51,8 +52,8 @@ export function mountPlayground(api){
       <label>Amount <input id="dev-skill-amount" type="number" min="0" max="1000000" step="1" value="20"></label>
       <div><button data-dev="xp">Add XP</button><button data-dev="levels">Add levels</button></div>
     </fieldset>
-    <fieldset><legend>Inventory</legend><div><button data-dev="inventory-menu">Open Inventory menu</button><button data-dev="inventory-lesson">Replay Inventory tutorial</button></div><p class="dev-note">Tutorial replay sets Sticks and Stones to 3 each.</p>
-      <label>Item <select id="dev-item"><option value="sticks">Stick</option><option value="stones">Stone</option><option value="axes">Crude Axe</option><option value="logs">Wooden Logs</option><option value="hats">Top Hat</option></select></label>
+    <fieldset><legend>Inventory</legend><div><button data-dev="inventory-menu">Open Inventory menu</button><button data-dev="inventory-lesson">Replay Inventory tutorial</button></div><p class="dev-note">Tutorial replay sets Sticks ×3 and Rocks ×3.</p>
+      <label>Item <select id="dev-item">${Object.entries(ITEMS).map(([id,item])=>`<option value="${id}">${item.name}</option>`).join('')}</select></label>
       <label>Quantity <input id="dev-quantity" type="number" min="0" max="1000000" step="1" value="1"></label>
       <div><button data-dev="add">Add item</button><button data-dev="remove">Remove item</button></div>
     </fieldset>
@@ -65,7 +66,7 @@ export function mountPlayground(api){
     </div></fieldset>
     <fieldset><legend>Resource picking</legend><label><input id="dev-hitboxes" type="checkbox"> Show half-tile hitboxes</label></fieldset>
     <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="all">Full test area</button></div></fieldset>
-    <output id="dev-status" aria-live="polite">Ready. Starter kit: 10 Sticks, 10 Stones, 1 Crude Axe.</output>
+    <output id="dev-status" aria-live="polite">Ready. Starter kit: Sticks ×10, Rocks ×10, Crude Axe ×1.</output>
     <pre id="dev-state"></pre>`;
   document.body.append(panel);
   const compareThemes=mountThemeComparison(api);
@@ -75,7 +76,7 @@ export function mountPlayground(api){
   const amount=id=>{const n=Number($(id).value);if(!Number.isSafeInteger(n)||n<0||n>1000000)throw Error('Enter a whole number from 0 to 1,000,000.');return n;};
   const status=text=>$('status').textContent=text;
   function stop(force=true){if(!force&&!preview&&!holdingFeedback)return;preview=null;time=0;holdingFeedback=false;api.finale.stopPreview();api.stop();}
-  function refresh(){api.refresh();$('state').textContent=Object.entries(api.skills).map(([name,s])=>`${name}: Lv ${s.level} · ${s.xp} XP`).join('\n')+'\n'+Object.entries(api.inventory).map(([name,n])=>`${name}: ${n}`).join(' · ');}
+  function refresh(){api.refresh();$('state').textContent=Object.entries(api.skills).map(([name,s])=>`${name}: Lv ${s.level} · ${s.xp} XP`).join('\n')+'\n'+Object.entries(api.inventory).map(([name,n])=>itemStack(name,n)).join(' · ');}
   panel.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     try{
@@ -110,7 +111,7 @@ export function mountPlayground(api){
           const item=$('item').value,n=amount('quantity'),before=api.inventory[item];
           api.inventory[item]=Math.max(0,before+(action==='add'?n:-n));
           api.showItemChanges({[item]:api.inventory[item]-before});
-          status(`${item}: ${api.inventory[item]}`);
+          status(itemStack(item,api.inventory[item]));
         }
       }
       if(b.dataset.juice){

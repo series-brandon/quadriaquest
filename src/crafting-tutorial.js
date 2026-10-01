@@ -19,7 +19,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false"><span aria-hidden="true">☰</span></button>
     <nav id="game-menu-bar" hidden aria-label="Game menu"><button id="open-skills">Skills</button><button id="open-inventory" hidden>Inventory</button><button id="open-crafting" hidden>Crafting</button></nav>
     <section id="crafting-panel" hidden aria-label="Crafting"><div class="crafting-heading"><h2>Crafting</h2><button id="close-crafting" aria-label="Close crafting menu">×</button></div><p class="crafting-intro">Something useful from something simple.</p>
-      <button id="craft-axe" class="recipe"><span class="axe-symbol" aria-hidden="true">⚒</span><span><strong class="item-name">Crude Axe</strong><small>1 Stick + 1 Stone · 2 seconds</small></span><span aria-hidden="true">→</span></button>
+      <button id="craft-axe" class="recipe"><span class="axe-symbol" aria-hidden="true">⚒</span><span><strong class="item-name">Crude Axe</strong><small>Sticks ×1 + Rocks ×1 · 2 seconds</small></span><span aria-hidden="true">→</span></button>
       <p id="crafting-stock"></p><p id="recipe-error" role="status"></p>
     </section>`;
   document.body.append(host);
@@ -41,13 +41,13 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
     if(stage==='inventory-menu'){
       stage='inventory-stacks';guide(null);openInventory();inventoryMenu.lock(true);
       tutorial("Here are your supplies! Items of the same type stack together. The number on each stack shows how many you're carrying.",true,()=>{
-        stage='inventory-select';tutorial('Select your Sticks to take a closer look.');inventoryMenu.guide(true);
+        stage='inventory-select';tutorial('Select your Sticks stack to take a closer look.');inventoryMenu.guide(true);
       });$('tutorial-title').textContent='TUTORIAL';$('tutorial-continue').textContent='Continue';
     }else if(['inactive','done','chop'].includes(stage))openInventory();
   };
   function startInventory(done){
     closeMenus();guide(null);advance=null;successNext=null;inventoryDone=done;stage='inventory-intro';host.hidden=false;
-    say('Now, what happened to all those sticks and stones you picked up?',()=>say('Assuming no holes in reality, you should have them stored safe and sound.',()=>say("Everything you collect goes into your inventory. Let's have a look!",()=>{
+    say('Now, what happened to all those sticks and rocks you picked up?',()=>say('Assuming no holes in reality, you should have them stored safe and sound.',()=>say("Everything you collect goes into your inventory. Let's have a look!",()=>{
       $('open-inventory').hidden=false;stage='inventory-toggle';guide('game-menu-toggle');tutorial('Open the game menu to check your inventory.');
     })));
   }
@@ -82,8 +82,8 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   function closeMenus(){ $('game-menu-bar').hidden=true;$('crafting-panel').hidden=true;skillsPanel.hidden=true;inventoryMenu.close();$('game-menu-toggle').setAttribute('aria-expanded','false');}
   function writeItems(element,text){
     element.replaceChildren();
-    for(const part of text.split(/(Crude Axe|Wooden Logs|Stick|Stone)/g)){
-      if(/^(Crude Axe|Wooden Logs|Stick|Stone)$/.test(part)){const strong=document.createElement('strong');strong.className='item-name';strong.textContent=part;element.append(strong);}
+    for(const part of text.split(/(Crude Axe|Small Logs|Sticks|Rocks)/g)){
+      if(/^(Crude Axe|Small Logs|Sticks|Rocks)$/.test(part)){const strong=document.createElement('strong');strong.className='item-name';strong.textContent=part;element.append(strong);}
       else element.append(document.createTextNode(part));
     }
   }
@@ -127,11 +127,11 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   $('close-crafting').addEventListener('click',()=>{closeMenus();if(stage==='recipe'){stage='retry';guide('game-menu-toggle');}});
   $('craft-axe').addEventListener('click',()=>{
     if(!['recipe','chop','done'].includes(stage))return;
-    if(!startCraft()){$('recipe-error').textContent='You need 1 Stick and 1 Stone, and must finish moving first.';return;}
+    if(!startCraft()){$('recipe-error').textContent='You need Sticks ×1 and Rocks ×1, and must finish moving first.';return;}
     closeMenus();guide(null);
     if(stage==='recipe'){stage='crafting';tutorial('Be patient while you’re crafting. If you move before you finish, you’ll have to start over!');}
   });
-  function refresh(){if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();const i=getInventory();$('crafting-stock').textContent=`Sticks: ${i.sticks} · Stones: ${i.stones} · Crude Axes: ${i.axes||0} · Wooden Logs: ${i.logs||0}`;$('recipe-error').textContent='';$('craft-axe').disabled=i.sticks<1||i.stones<1;}
+  function refresh(){if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();const i=getInventory();$('crafting-stock').textContent=`Sticks ×${i.sticks} · Rocks ×${i.stones} · Crude Axe ×${i.axes||0} · Small Logs ×${i.logs||0}`;$('recipe-error').textContent='';$('craft-axe').disabled=i.sticks<1||i.stones<1;}
   return {
     startSkills,openSkills,startInventory,openInventory,
     start(){ $('open-crafting').hidden=false;stage='intro';lineIndex=0;nextIntro();},
@@ -141,7 +141,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
     get stage(){return stage;},
     craftCancelled(){if(stage==='crafting'){stage='retry';guide('game-menu-toggle');tutorial('Crafting interrupted. Your materials are safe. Open the menu and craft a Crude Axe again.');}},
     craftComplete(){refresh();if(stage==='crafting'){stage='craft-success';tutorial('You crafted a Crude Axe! Your new tool is in your inventory.',true,()=>{stage='chop-dialogue';say("All right! We've got an axe! Let's do some light deforestation!",activateChopping);});}},
-    chopped(logs){refresh();if(firstTree){firstTree=false;stage='chop-success';tutorial(`You chopped your first tree and gained ${logs} Wooden Logs!`,true,()=>{stage='done';$('gather-tutorial').hidden=true;onComplete();});}},
+    chopped(logs){refresh();if(firstTree){firstTree=false;stage='chop-success';tutorial(`You chopped your first tree and gained Small Logs ×${logs}!`,true,()=>{stage='done';$('gather-tutorial').hidden=true;onComplete();});}},
     closeMenus,refresh
   };
 }

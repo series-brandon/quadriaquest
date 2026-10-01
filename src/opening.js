@@ -10,14 +10,14 @@ const clearingLines = [
   'Here we are!',
   'A small part of Quadra, specifically built for you to learn the ropes!',
   "Let's get started by learning how to gather some resources.",
-  "In this area, you'll see some sticks and stones. Try picking them up!"
+  "In this area, you'll see some sticks and rocks. Try picking them up!"
 ];
 
 export function showGatheringPrompt(count){
   document.getElementById('tutorial-title').textContent='Pick up some items';
   document.getElementById('tutorial-copy').textContent=count>0
     ? 'Finish collecting the items off the ground.'
-    : 'Click/Tap on the gold-highlighted sticks and stones to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items.';
+    : 'Click/Tap on the gold-highlighted sticks and rocks to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items.';
   document.getElementById('tutorial-count').textContent=count+' / 6 collected';
   document.getElementById('tutorial-progress').style.width=`${count/6*100}%`;
 }
@@ -48,7 +48,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     {id:'rotate',text:'Use the arrow keys or drag the screen to rotate the camera',success:'Nice! You can look around.'},
     {id:'zoom',text:'Use the scroll wheel or pinch-and-zoom to zoom in and out!',success:'Perfect! A closer look.'},
     {id:'move',text:'Click/Tap to move to any location. Beware! You might not be able to go to some locations.',success:'You made it!'},
-    {id:'gather',text:"Click/Tap on the gold-highlighted sticks and stones to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items."}
+    {id:'gather',text:"Click/Tap on the gold-highlighted sticks and rocks to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items."}
   ];
   let lesson=0,awaitingContinue=false,rotationAmount=0,zoomAmount=0,moveGoal=null;
   let collectedCount=0,interruption=null,xpExplained=false,levelExplained=false;
