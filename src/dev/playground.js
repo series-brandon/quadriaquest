@@ -46,6 +46,7 @@ export function mountPlayground(api){
     <fieldset><legend>Tutorial finale</legend><p class="dev-note">Replay the real sequence or test its parts. Practice reset arms the hidden goal; Complete practice clears those objects without granting loot.</p><div>
       ${['Closing dialogue','Drop portal','Use portal','Practice reset','Complete practice','Reward dialogue','Drop chest','Open chest','Hat celebration','Wear/remove hat','Enter placeholder','Return to clearing','Reset finale'].map(a=>`<button data-finale="${a}">${a}</button>`).join('')}
     </div></fieldset>
+    <fieldset><legend>Resource picking</legend><label><input id="dev-hitboxes" type="checkbox"> Show half-tile hitboxes</label></fieldset>
     <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="all">Full test area</button></div></fieldset>
     <output id="dev-status" aria-live="polite">Ready. Starter kit: 10 Sticks, 10 Stones, 1 Crude Axe.</output>
     <pre id="dev-state"></pre>`;
@@ -121,6 +122,7 @@ export function mountPlayground(api){
       refresh();
     }catch(error){status(error.message);}
   });
+  $('hitboxes').addEventListener('change',()=>api.showResourceHitboxes($('hitboxes').checked));
   $('color').addEventListener('input',()=>api.color($('color').value));
   api.reset('all');refresh();
   return {

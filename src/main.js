@@ -1,3 +1,4 @@
+import {createResourceHitbox} from './resource-hitbox.js';
 import './ui-theme.css';
 import {createSlimeBend} from './slime-bend.js';
 import {createSplash} from './splash.js';
@@ -67,6 +68,7 @@ const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones']
 resourceSpecs.forEach(([x,z,type],id)=>{const t=world.get(key(x,z)),group=new THREE.Group();group.position.set(x-6,t.h,z-6);scene.add(group);const resource={id,x,z,type,group,collected:false};resources.push(resource);
  for(let j=0;j<3;j++){let obj;if(type==='sticks'){obj=mesh(new THREE.CylinderGeometry(.045,.055,.6,6),wood,group);obj.rotation.set(Math.PI/2,.2+j*.6,.2);obj.position.set((j-1)*.13,.09+j*.045,(j-1)*.07);}else{obj=mesh(new THREE.IcosahedronGeometry(.17+j*.035,1),rock,group);obj.scale.set(1,.7,.8);obj.position.set((j-1)*.2,.14,j%2*.16);}obj.userData.resource=resource;obj.userData.tile=t;pickables.push(obj);}
  resource.highlight=highlightResource(group);
+ resource.hitbox=createResourceHitbox(resource,t);pickables.push(resource.hitbox);
 });
 const clearingObjects=scene.children.filter(object=>!object.isLight);
 for(const object of clearingObjects)object.visible=false;
@@ -375,6 +377,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
 if(__PLAYGROUND__){
  debug=playground.mountPlayground({
   showSplash(){stopAll();splash.show();},
+  showResourceHitboxes(show){for(const r of resources)r.hitbox.material.colorWrite=show;},
   showSkills(){craftingTutorial.openSkills();},
   skillsLesson(){stopAll();Object.assign(gatheringSkill,{xp:120,level:2});craftingTutorial.startSkills();},
   skills:{Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill},
