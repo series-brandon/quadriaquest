@@ -5,6 +5,7 @@ import {createFeedback} from './feedback.js';
 import {createSlimeFace} from './slime-face.js';
 import {createContactShadow} from './contact-shadow.js';
 import {createOpening} from './opening.js';
+import {highlightResource} from './resource-highlight.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
@@ -54,7 +55,7 @@ for(const t of world.values())if(!t.blocked&&(t.x*17+t.z*13)%7===0){for(let j=0;
 const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[];
 resourceSpecs.forEach(([x,z,type],id)=>{const t=world.get(key(x,z)),group=new THREE.Group();group.position.set(x-6,t.h,z-6);scene.add(group);const resource={id,x,z,type,group,collected:false};resources.push(resource);
  for(let j=0;j<3;j++){let obj;if(type==='sticks'){obj=mesh(new THREE.CylinderGeometry(.045,.055,.6,6),wood,group);obj.rotation.set(Math.PI/2,.2+j*.6,.2);obj.position.set((j-1)*.13,.09+j*.045,(j-1)*.07);}else{obj=mesh(new THREE.IcosahedronGeometry(.17+j*.035,1),rock,group);obj.scale.set(1,.7,.8);obj.position.set((j-1)*.2,.14,j%2*.16);}obj.userData.resource=resource;obj.userData.tile=t;pickables.push(obj);}
- const halo=mesh(new THREE.RingGeometry(.35,.37,32),new THREE.MeshBasicMaterial({color:'#f5f0c9',side:THREE.DoubleSide,transparent:true,opacity:.8}),group);halo.rotation.x=-Math.PI/2;halo.position.y=.015;
+ resource.highlight=highlightResource(group);
 });
 const clearingObjects=scene.children.filter(object=>!object.isLight);
 for(const object of clearingObjects)object.visible=false;
@@ -64,7 +65,7 @@ const introGrass=mesh(new RoundedBoxGeometry(1,.1,1,3,.045),grass[0],introTile);
 const player=new THREE.Group();scene.add(player);const body=mesh(new RoundedBoxGeometry(.72,.72,.72,4,.16),mat('#a4ce77',{roughness:.4}),player);body.position.y=.43;
 const expressionFace=createSlimeFace();player.add(expressionFace.group);
 const hands=[];
-for(const x of [-.46,.46]){const hand=mesh(new THREE.SphereGeometry(.105,12,10),mat('#b5d994'),player);hand.position.set(x,.33,.08);hands.push(hand);}
+for(const x of [-.46,.46]){const hand=mesh(new THREE.SphereGeometry(.105,12,10),body.material,player);hand.position.set(x,.33,.08);hands.push(hand);}
 const visual=new THREE.Group();visual.add(...[...player.children]);player.add(visual);
 let facing=0,happyUntil=0;
 const bodyVertex=new THREE.Vector3(),bodyTransform=new THREE.Matrix4();
@@ -76,7 +77,7 @@ const contactShadow=createContactShadow(scene,world);
 const introSpawn=new THREE.Vector3(0,1,-2);
 const clearingSpawn=new THREE.Vector3(tile.x-6,tile.h,tile.z-6);
 const opening=createOpening({player,visual,face:expressionFace,introSpawn,spawn:clearingSpawn,
- setColor(color){body.material.color.set(color);for(const hand of hands)hand.material.color.set(color).lerp(new THREE.Color('#ffffff'),.18);},
+ setColor(color){body.material.color.set(color);expressionFace.setBodyColor(color);},
  showClearing(){for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
 let toastTimer;function toast(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
@@ -215,8 +216,9 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   hand.rotation.x=THREE.MathUtils.lerp(hand.rotation.x,curl,blend);
   hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
  }
+ const showResourceArrows=opening.canGather&&inventory.sticks+inventory.stones===0;
  $('action-progress').style.width=`${gatherTime/1.2*100}%`;
- const focus=player.position.clone().add(new THREE.Vector3(0,.35,0));const horizontalDistance=zoom*Math.cos(elevation);camera.position.set(focus.x+Math.sin(angle)*horizontalDistance,focus.y+Math.sin(elevation)*zoom,focus.z+Math.cos(angle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();feedback.update(dt,elapsed,camera);renderer.render(scene,camera);
+ const focus=player.position.clone().add(new THREE.Vector3(0,.35,0));const horizontalDistance=zoom*Math.cos(elevation);camera.position.set(focus.x+Math.sin(angle)*horizontalDistance,focus.y+Math.sin(elevation)*zoom,focus.z+Math.cos(angle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.collected,elapsed,pointerOnCanvas&&opening.canMove&&hover?.resource===resource&&!resource.collected);feedback.update(dt,elapsed,camera);renderer.render(scene,camera);
 }
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.

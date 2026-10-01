@@ -1,9 +1,20 @@
 import * as THREE from 'three';
 
+const DARK_INK='#20332d', LIGHT_INK='#fff6df';
+const luminance=c=>.2126*c.r+.7152*c.g+.0722*c.b;
+export function faceInkFor(bodyColor) {
+  const body=luminance(new THREE.Color(bodyColor));
+  const dark=luminance(new THREE.Color(DARK_INK)),light=luminance(new THREE.Color(LIGHT_INK));
+  const contrast=other=>(Math.max(body,other)+.05)/(Math.min(body,other)+.05);
+  return contrast(light)>contrast(dark)?LIGHT_INK:DARK_INK;
+}
+
 export function createSlimeFace() {
   const group=new THREE.Group();
-  const ink=new THREE.MeshStandardMaterial({color:'#314b41',roughness:.85});
-  const cream=new THREE.MeshStandardMaterial({color:'#fffef1'});
+  // Unlit ink keeps expressions legible on both lit and shaded sides.
+  const ink=new THREE.MeshBasicMaterial({color:DARK_INK,toneMapped:false});
+  const eyeInk=new THREE.MeshBasicMaterial({color:DARK_INK,toneMapped:false});
+  const cream=new THREE.MeshBasicMaterial({color:LIGHT_INK,toneMapped:false});
   const pink=new THREE.MeshStandardMaterial({color:'#eea8a0'});
   function part(geometry,material,parent=group){const m=new THREE.Mesh(geometry,material);parent.add(m);return m;}
   const normal=new THREE.Group(),focused=new THREE.Group(),struggle=new THREE.Group(),happy=new THREE.Group();
@@ -14,7 +25,7 @@ export function createSlimeFace() {
   }
   for(const x of [-.14,.14]){
     for(const parent of [normal,focused]){
-      const eye=part(new THREE.SphereGeometry(.043,12,8),ink,parent);eye.position.set(x,.5,.355);
+      const eye=part(new THREE.SphereGeometry(.043,12,8),eyeInk,parent);eye.position.set(x,.5,.355);
       if(parent===focused)eye.scale.y=.75;
       const glint=part(new THREE.SphereGeometry(.012,8,6),cream,parent);glint.position.set(x-.01,.512,.387);
     }
@@ -31,7 +42,13 @@ export function createSlimeFace() {
   const mouth=part(new THREE.SphereGeometry(.078,20,12),ink,happy);mouth.position.set(0,.39,.377);mouth.scale.set(1,.8,.23);
   const tongue=part(new THREE.SphereGeometry(.043,16,8),pink,happy);tongue.position.set(0,.356,.394);tongue.scale.set(1,.48,.2);
   const expressions={idle:normal,focused,struggle,happy};
-  return {group,set(state){
+  return {group,setBodyColor(color){
+    const chosen=faceInkFor(color);
+    ink.color.set(chosen);
+    // Pale gray eyes preserve a white catchlight without dark pupil-like dots.
+    eyeInk.color.set(chosen===LIGHT_INK?'#cdd3d0':DARK_INK);
+    cream.color.set('#ffffff');
+  },set(state){
     const preparing=state==='preparing';
     for(const [name,part]of Object.entries(expressions))part.visible=name===(preparing?'struggle':state);
     tenseMouth.visible=preparing;effortMouth.visible=!preparing;

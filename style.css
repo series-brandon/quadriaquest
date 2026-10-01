@@ -23,3 +23,6 @@ body>header,body>.journal,body>footer,body>.controls-hint{display:none}
 #gather-tutorial .progress-track{margin:12px 0 0}
 #gather-tutorial.complete{border-color:#a6bd86}
 @media(max-width:600px){#dialogue{padding:20px;bottom:24px}#dialogue-line{font-size:16px}#gather-tutorial{bottom:14px;padding:15px 18px}}
+#gather-tutorial.complete{pointer-events:auto}
+#tutorial-continue{display:block;margin:14px 0 0 auto;padding:10px 17px;background:#4d6948;color:#fff;font-size:12px;border-radius:9px;pointer-events:auto}
+#tutorial-continue:hover{background:#3e5939}

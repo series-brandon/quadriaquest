@@ -18,28 +18,39 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   const controls=document.getElementById('dialogue-controls');
   const veil=document.getElementById('scene-fade');
   const tutorial=document.getElementById('gather-tutorial');
+  const continueButton=document.createElement('button');
+  continueButton.id='tutorial-continue';continueButton.type='button';continueButton.textContent='Click to continue';continueButton.hidden=true;
+  tutorial.append(continueButton);
   let phase='intro-wait',age=0,step=0,mode='line',next=null;
   let name='Pip',color='#a4ce77',inClearing=false,playable=false;
   const lessons=[
     {id:'rotate',text:'Use the arrow keys or drag the screen to rotate the camera',success:'Nice! You can look around.'},
     {id:'zoom',text:'Use the scroll wheel or pinch-and-zoom to zoom in and out!',success:'Perfect! A closer look.'},
     {id:'move',text:'Click/Tap to move to any location. Beware! You might not be able to go to some locations.',success:'You made it!'},
-    {id:'gather',text:"Click/Tap on a resource to collect it. You will walk over and begin collecting. Collecting takes a moment, so be sure to wait until it's done before you click/tap away."}
+    {id:'gather',text:"Click/Tap on the gold-highlighted sticks and stones to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items."}
   ];
-  let lesson=0,successAge=null,rotationAmount=0,zoomAmount=0,moveGoal=null;
+  let lesson=0,awaitingContinue=false,rotationAmount=0,zoomAmount=0,moveGoal=null;
   function showLesson(){
-    document.getElementById('tutorial-title').textContent='TUTORIAL';
+    continueButton.hidden=true;
+    document.getElementById('tutorial-title').textContent=lesson===3?'Pick up some items':'TUTORIAL';
     document.getElementById('tutorial-copy').textContent=lessons[lesson].text;
     document.getElementById('tutorial-count').textContent=lesson===3?'0 / 6 collected':(lesson+1)+' / 4';
     tutorial.classList.remove('complete');
     tutorial.querySelector('.progress-track').hidden=lesson!==3;
   }
   function succeed(){
-    if(successAge!==null)return;
-    successAge=0;tutorial.classList.add('complete');
+    if(awaitingContinue)return;
+    awaitingContinue=true;continueButton.hidden=false;tutorial.classList.add('complete');
     document.getElementById('tutorial-title').textContent='✓ Well done!';
     document.getElementById('tutorial-copy').textContent=lessons[lesson].success;
   }
+  continueButton.addEventListener('click',event=>{
+    event.stopPropagation();
+    if(!awaitingContinue)return;
+    awaitingContinue=false;continueButton.hidden=true;
+    if(lesson<lessons.length-1){lesson++;showLesson();}
+    else tutorial.hidden=true;
+  });
   const transition=to=>{phase=to;age=0;};
   function show(text,kind='line',advance=null){
     dialogue.hidden=false;line.textContent=text;mode=kind;next=advance;
@@ -108,20 +119,17 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   player.rotation.y=Math.PI/4;
   return {
     get playable(){return playable;},
-    get canMove(){return playable&&lesson>=2&&successAge===null;},
+    get canMove(){return playable&&lesson>=2&&!awaitingContinue;},
     get canGather(){return playable&&lesson===3;},
     rotated(amount){if(playable&&lesson===0){rotationAmount+=Math.abs(amount);if(rotationAmount>=.08)succeed();}},
     zoomed(amount){if(playable&&lesson===1){zoomAmount+=Math.abs(amount);if(zoomAmount>=.045)succeed();}},
-    moving(from,to){if(lesson===2&&successAge===null)moveGoal={from:{x:from.x,z:from.z},to:{x:to.x,z:to.z}};},
+    moving(from,to){if(lesson===2&&!awaitingContinue)moveGoal={from:{x:from.x,z:from.z},to:{x:to.x,z:to.z}};},
     arrived(at){if(lesson!==2||!moveGoal)return;const {from,to}=moveGoal;if(at.x===to.x&&at.z===to.z&&(at.x!==from.x||at.z!==from.z)){moveGoal=null;succeed();}},
     get inClearing(){return inClearing;},
     get profile(){return {name,color};},
     update(dt){
       age+=dt;
-      if(playable){
-        if(successAge!==null){successAge+=dt;if(successAge>=1.15){lesson++;successAge=null;showLesson();}}
-        return;
-      }
+      if(playable)return;
       if(phase==='intro-wait'&&age>=.9)transition('intro-drop');
       else if(phase==='intro-drop'||phase==='world-drop'){
         landAnimation(age);
@@ -146,7 +154,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
       if(count===6){
         document.getElementById('tutorial-title').textContent='All six collected!';
         document.getElementById('tutorial-copy').textContent='A brilliant start. Your first resources are safely gathered.';
-        tutorial.classList.add('complete');
+        tutorial.classList.add('complete');awaitingContinue=true;continueButton.hidden=false;
       }
     }
   };
