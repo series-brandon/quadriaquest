@@ -47,3 +47,16 @@ body>header,body>.journal,body>footer,body>.controls-hint{display:none}
 @media(prefers-reduced-motion:reduce){.gold-guide::before{animation:none}}
 #hat-equipment{position:fixed;z-index:25;left:24px;bottom:24px;padding:13px 18px;background:#fcfdf5ed;border:1px solid #d9c58c;border-radius:12px;box-shadow:0 5px 22px #33443315;font-size:13px;color:#425641}
 #area-name{position:fixed;top:24px;left:50%;transform:translateX(-50%);padding:10px 18px;background:#fcfdf5dd;border-radius:20px;font-size:12px;color:#425641;pointer-events:none}
+
+#splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:6vh 24px 5vh;background:linear-gradient(#e6ece355,transparent 40%,transparent 70%,#dce5dc88);color:#284337}
+#splash[hidden]{display:none}
+.splash-heading p{font-size:11px;letter-spacing:.23em;font-weight:700}
+.splash-heading h1{font-family:Georgia,serif;font-size:clamp(48px,9vw,100px);line-height:.95;letter-spacing:-.055em;margin:16px 0;text-shadow:0 3px 0 #ffffff88}
+.splash-heading h1 span{color:#628448}
+.splash-heading .splash-subtitle{font-size:15px;letter-spacing:.04em;font-weight:400}
+.splash-start{display:grid;gap:18px;justify-items:center}
+.splash-start button{background:#304e3e;color:#fff6dc;border:1px solid #ffffff88;border-radius:18px;padding:17px 74px;font-size:22px;font-weight:700;box-shadow:0 7px 0 #203b30,0 15px 30px #304e3e30;cursor:pointer;transition:transform .15s,background .15s}
+.splash-start button:hover{transform:translateY(-3px);background:#426449}
+.splash-start button:focus-visible{outline:3px solid #b79140;outline-offset:7px}
+.splash-start small{font-size:9px;letter-spacing:.2em}
+body:has(#splash:not([hidden])) #game-menu-toggle{visibility:hidden}

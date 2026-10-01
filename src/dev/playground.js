@@ -18,6 +18,7 @@ export function mountPlayground(api){
   const panel=document.createElement('details');panel.id='quadra-dev-playground';panel.open=true;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>collapse</small></summary>
     <p class="dev-note">Tutorial skipped · changes are session-only</p>
+    <button data-dev="splash">Preview splash screen</button>
     <fieldset><legend>Animation preview</legend>
       <label>Animation <select id="dev-animation">${animations.map(a=>`<option>${a}</option>`).join('')}</select></label>
       <label><input id="dev-loop" type="checkbox" checked> Loop</label>
@@ -64,6 +65,7 @@ export function mountPlayground(api){
       }
       if(b.dataset.dev){
         const action=b.dataset.dev;
+        if(action==='splash'){stop();api.showSplash();}
         if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}
         if(action==='stop'){stop();status('Preview stopped. Normal play enabled.');}
         if(action==='face')api.faceTowardCamera();

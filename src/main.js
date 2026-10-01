@@ -1,4 +1,5 @@
 import {createSlimeBend} from './slime-bend.js';
+import {createSplash} from './splash.js';
 import {socialMotion,createIdleClock,SLEEP_SETTLE} from './slime-social.js';
 import {createSleepFeedback} from './sleep-feedback.js';
 import {createTutorialFinale} from './tutorial-finale.js';
@@ -220,7 +221,7 @@ function changeZoom(delta){if(!opening.playable)return;const before=zoom;zoom=TH
 $('reset').onclick=()=>{gatheringSkill=createGatheringSkill();happyUntil=0;path=[];segment=null;target=null;gatherTime=0;inventory={sticks:0,stones:0};tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources){r.collected=false;r.group.visible=true;}feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;opening.update(dt);
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;opening.update(dt);
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!activeAction&&!actorTarget&&!finale.busy&&!debug?.previewing):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
  if(!opening.playable){rotationKeys.clear();
@@ -372,6 +373,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
 }
 if(__PLAYGROUND__){
  debug=playground.mountPlayground({
+  showSplash(){stopAll();splash.show();},
   skills:{Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill},
   inventory,player,feedback,getTile:()=>tile,finale,
   doze(){idleClock.update(30,true);},
@@ -393,6 +395,7 @@ if(__PLAYGROUND__){
   faceTowardCamera(){facing=angle;player.rotation.y=angle;}
  });
 }
+const splash=createSplash(renderer,!__PLAYGROUND__);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
 if(__PLAYGROUND__)window.clime={getState:()=>({tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},tutorialStage:craftingTutorial.stage,finale:finale.state,action:activeAction?.kind??null,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);return{x:(p.x+1)*innerWidth/2,y:(1-p.y)*innerHeight/2};}};

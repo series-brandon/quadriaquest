@@ -101,3 +101,7 @@ Confirming the slime color plays a happy hop; confirming the name plays a small 
 
 
 The wave bends the upper body away from the raised hand while keeping the base flat and stationary. The face follows the curved body, and a worn hat follows the crown. The hand follows the bend as it rises, reaching slightly over the head with a short side-to-side wobble. Sleeping uses the same grounded bend for its lopsided slump instead of rotating the base off the ground. These deformations are shared by gameplay and the playground previews.
+
+### Title screen and prototype ending
+
+The current title is **Quadra Quest**. Normal play starts on a title screen with a Play button and a live 3D vignette: a sleeping slime, drifting Zs, and a distinct floating garden with tile-centered trees at gameplay scale, flowers, a small pond, and half-height ledges. The opening tutorial waits until Play is pressed. The playground skips this screen by default and provides **Preview splash screen**; Play returns to the test area there. Entering the second area displays “You've reached the end of the prototype! Thanks for playing!” after the transition. Dismiss it to explore or return through the portal. The playground's **Enter placeholder** control exercises this same ending.

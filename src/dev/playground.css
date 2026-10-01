@@ -13,3 +13,5 @@
 #quadra-dev-playground .dev-note{font-size:11px;color:#bbcbbf;}
 #quadra-dev-playground output{display:block;color:#d2ee8d;}
 #quadra-dev-playground pre{white-space:pre-wrap;font:11px/1.6 monospace;}
+
+body:has(#splash:not([hidden])) #quadra-dev-playground{visibility:hidden}
