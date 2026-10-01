@@ -189,7 +189,7 @@ canvas.addEventListener('pointermove',e=>{
  }
  if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>6)dragged=true;
  if(dragged){
-  const delta=(e.clientX-down.lastX)*.008,oldElevation=elevation;
+  const delta=-(e.clientX-down.lastX)*.008,oldElevation=elevation;
   angle+=delta;elevation=THREE.MathUtils.clamp(elevation+(e.clientY-down.lastY)*.005,THREE.MathUtils.degToRad(20),THREE.MathUtils.degToRad(75));
   opening.rotated(Math.abs(delta)+Math.abs(elevation-oldElevation));
  }

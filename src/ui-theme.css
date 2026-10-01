@@ -1,4 +1,8 @@
 /* Twilight Storybook: the shared production UI palette. World colors stay independent. */
+/* Game gestures should not select labels or flash the browser's tap overlay. */
+html,body,body *{-webkit-tap-highlight-color:transparent}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 :root{--ui-ink:#382b49;--ui-paper:#faf1e7;--ui-muted:#79677f;--ui-accent:#a55b55;--ui-button:#493452;--ui-button-ink:#fff0db;--ui-border:#c7abc1;font-family:'Trebuchet MS',sans-serif;color:var(--ui-ink)}
 button{color:var(--ui-ink)}
 button:hover{background:#eadbe5}
