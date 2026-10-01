@@ -284,7 +284,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  // Both hands share the chop cycle; other interactions keep their scoop gesture.
  for(let i=0;i<hands.length;i++){
   const hand=hands[i],side=i===0?-1:1;
-  let x=side*.46,y=.33,z=.08+(pose.armDrive||0),curl=0,roll=0;
+  let x=side*.46,y=.33,z=.08+(pose.armDrive||0),curl=0,roll=0,yaw=0;
   if(handWork!==null&&!chopping){
     const phase=handWork*Math.PI*5+i*Math.PI;
     const reach=(Math.sin(phase)+1)/2;
@@ -293,10 +293,11 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     z=.43+.2*reach;
     curl=Math.sin(phase)*.35;
   }
-  if(chopping)[x,y,z,curl,roll]=i===0?chopping.right:chopping.left;
+  if(chopping)[x,y,z,curl,roll,yaw=0]=i===0?chopping.right:chopping.left;
   hand.position.lerp(new THREE.Vector3(x,y,z),1-Math.exp(-dt*22));
   hand.rotation.x=THREE.MathUtils.lerp(hand.rotation.x,curl,blend);
   hand.rotation.z=THREE.MathUtils.lerp(hand.rotation.z,roll,blend);
+  hand.rotation.y=THREE.MathUtils.lerp(hand.rotation.y,yaw,blend);
   hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
  }
  for(let i=fallingTrees.length-1;i>=0;i--){

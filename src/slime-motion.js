@@ -63,15 +63,17 @@ export function spawnMotion(time){
 }
 
 // Local forward is +Z, so the slime's anatomical right hand is at -X.
-// Draw back, raise, strike diagonally, hold the impact, then recover.
+// Hand keys: x, y, z, pitch, roll, yaw. Drop vertically first, then
+// sweep sideways with an outward roll and blade turned into the tree’s side.
 export const CHOP_DURATION=1.05;
 const chopKeys=[
-  {at:0, right:[-.46,.34,.16,.12,0],left:[.46,.33,.08,0,0],body:[.98,.01,0]},
-  {at:.25,right:[-.55,.39,-.18,-.55,-.12],left:[.28,.37,.43,-.15,0],body:[.96,-.045,-.075]},
-  {at:.43,right:[-.53,.64,-.10,-.70,-.22],left:[.24,.39,.48,-.2,0],body:[1.035,-.065,-.09]},
-  {at:.60,right:[-.30,.30,.64,.92,.18],left:[.49,.32,.02,.18,0],body:[.93,.12,.065]},
-  {at:.73,right:[-.30,.30,.64,.92,.18],left:[.49,.32,.02,.18,0],body:[.93,.12,.065]},
-  {at:1,right:[-.46,.34,.16,.12,0],left:[.46,.33,.08,0,0],body:[.98,.01,0]}
+  {at:0, right:[-.46,.34,.16,.12,0,0],left:[.46,.33,.08,0,0],body:[.98,.01,0]},
+  {at:.25,right:[-.55,.39,-.18,-.55,-.12,-.12],left:[.28,.37,.43,-.15,0],body:[.96,-.045,-.075]},
+  {at:.43,right:[-.53,.64,-.10,-.70,0,0],left:[.24,.39,.48,-.2,0],body:[1.035,-.065,-.09]},
+  {at:.515,right:[-.53,.32,.35,.40,0,0],left:[.40,.34,.18,.08,0],body:[.97,.055,-.015]},
+  {at:.60,right:[.08,.30,.64,.72,Math.PI/4,Math.PI/3],left:[.49,.32,.02,.18,0],body:[.93,.12,.065]},
+  {at:.73,right:[.08,.30,.64,.72,Math.PI/4,Math.PI/3],left:[.49,.32,.02,.18,0],body:[.93,.12,.065]},
+  {at:1,right:[-.46,.34,.16,.12,0,0],left:[.46,.33,.08,0,0],body:[.98,.01,0]}
 ];
 export function chopMotion(time){
   const phase=((time%CHOP_DURATION)+CHOP_DURATION)%CHOP_DURATION/CHOP_DURATION;
