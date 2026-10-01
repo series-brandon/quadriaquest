@@ -1,3 +1,4 @@
+import {miningMotion,MINING_DURATION} from '../mining.js';
 import {ITEMS,itemStack} from '../items.js';
 import {WATER_DEFAULTS} from '../water-effects.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
@@ -15,8 +16,8 @@ export function createFreeOpening({player,visual,spawn,showClearing}){
     profile:{name:'Pip',color:'#a4ce77'},update(){},rotated(){},zoomed(){},moving(){},arrived(){},collected(){}};
 }
 
-const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Hat celebration','Happy','Focused','Preparing','Struggle'];
-const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
+const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Hat celebration','Happy','Focused','Preparing','Struggle'];
+const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   const panel=document.createElement('details');panel.id='quadra-dev-playground';panel.open=true;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>collapse</small></summary>
@@ -58,15 +59,16 @@ export function mountPlayground(api){
       <div><button data-dev="add">Add item</button><button data-dev="remove">Remove item</button></div>
     </fieldset>
     <fieldset><legend>Visual feedback only</legend><p class="dev-note">Item gain/loss uses the selected inventory item and quantity without changing your inventory.</p><div>
-      ${['Going','Gathering','Crafting','Chopping','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
+      ${['Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
     <fieldset><legend>Gathering tutorial prompt</legend><div><button data-prompt="0">Before first pickup</button><button data-prompt="1">After first XP</button><button data-prompt="hide">Hide prompt</button></div></fieldset>
     <fieldset><legend>Tutorial finale</legend><p class="dev-note">Replay the real sequence or test its parts. Practice reset arms the hidden goal; Complete practice clears those objects without granting loot.</p><div>
       ${['Closing dialogue','Drop portal','Use portal','Practice reset','Complete practice','Reward dialogue','Drop chest','Open chest','Hat celebration','Wear/remove hat','Enter placeholder','Return to clearing','Reset finale'].map(a=>`<button data-finale="${a}">${a}</button>`).join('')}
     </div></fieldset>
+    <fieldset><legend>Mining</legend><div><button data-dev="mining-lesson">Replay Mining tutorial</button><button data-dev="mining-stop">Stop Mining tutorial</button><button data-dev="mine-nearest">Mine nearest boulder</button></div><p class="dev-note">Replay restores boulders, gives Sticks ×3 / Rocks ×3, removes the pickaxe, and offers optional guidance. Use Mining animation to loop the real swing.</p></fieldset>
     <fieldset><legend>Resource picking</legend><label><input id="dev-hitboxes" type="checkbox"> Show half-tile hitboxes</label></fieldset>
-    <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="all">Full test area</button></div></fieldset>
-    <output id="dev-status" aria-live="polite">Ready. Starter kit: Sticks ×10, Rocks ×10, Crude Axe ×1.</output>
+    <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="boulders">Boulders</button><button data-reset="all">Full test area</button></div></fieldset>
+    <output id="dev-status" aria-live="polite">Ready. Starter kit: Sticks ×10, Rocks ×10, Crude Axe ×1, Crude Pickaxe ×1.</output>
     <pre id="dev-state"></pre>`;
   document.body.append(panel);
   const compareThemes=mountThemeComparison(api);
@@ -90,6 +92,9 @@ export function mountPlayground(api){
         const action=b.dataset.dev;
         if(action==='water-restart'){api.restartWater();status('Water animation restarted.');}
         if(action==='water-reset'){Object.assign(api.waterSettings,WATER_DEFAULTS);for(const [id,key] of Object.entries(waterControls)){const input=$('water-'+id);if(input.type==='checkbox')input.checked=WATER_DEFAULTS[key];else input.value=WATER_DEFAULTS[key];}api.restartWater();status('Water defaults restored.');}
+        if(action==='mining-lesson'){stop();api.miningLesson();}
+        if(action==='mining-stop'){stop();api.stopMiningLesson();}
+        if(action==='mine-nearest'){stop();api.mineNearest();}
         if(action==='inventory-menu'){stop();api.showInventory();}
         if(action==='inventory-lesson'){stop();api.inventoryLesson();}
         if(action==='skills-menu'){stop();api.showSkills();}
@@ -116,9 +121,9 @@ export function mountPlayground(api){
       }
       if(b.dataset.juice){
         stop();const kind=b.dataset.juice;holdingFeedback=true;
-        if(['Going','Gathering','Crafting','Chopping','Opening','Traveling','Arrived','Done'].includes(kind)){
+        if(['Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done'].includes(kind)){
           api.feedback.destination(api.getTile());
-          if(['Gathering','Crafting','Chopping','Opening','Traveling','Done'].includes(kind))api.feedback.interacting(kind==='Done'?'Gathering':kind);
+          if(['Gathering','Crafting','Chopping','Mining','Opening','Traveling','Done'].includes(kind))api.feedback.interacting(kind==='Done'?'Gathering':kind);
           if(['Arrived','Done'].includes(kind))api.feedback.complete();
         }
         if(kind==='Item gain'||kind==='Item loss')api.showItemChanges({[$('item').value]:amount('quantity')*(kind==='Item gain'?1:-1)});
@@ -161,6 +166,7 @@ export function mountPlayground(api){
   return {
     stop:()=>stop(false),
     get previewing(){return !!preview;},
+    get mining(){return preview==='Mining';},
     get chopping(){return preview==='Chopping';},get time(){return time;},get holdingFeedback(){return holdingFeedback;},
     frame(dt){
       snapshotAge+=dt;if(snapshotAge>.25){snapshotAge=0;refresh();}
@@ -173,6 +179,7 @@ export function mountPlayground(api){
       let pose=idlePose(time),expression='idle',handWork=null,lift=0;
       if(preview==='Sliding'){pose=slideMotion(time/duration);expression='focused';}
       if(preview.startsWith('Jump')){pose=stepMotion(time,preview==='Jump up'?.5:-.5);lift=pose.lift+(preview==='Jump down'?.5:0);expression=time<.32?'preparing':'struggle';}
+      if(preview==='Mining'){handWork=time;expression='focused';pose=miningMotion(time).body;}
       if(['Gathering','Crafting','Chopping'].includes(preview)){handWork=time;expression='focused';pose=workPose(preview==='Chopping'?'chop':'gather',time);}
       if(preview==='Spawn landing'){pose=spawnMotion(time);lift=pose.lift;expression=time<.68?'struggle':'idle';}
       if(['Happy','Focused','Preparing','Struggle'].includes(preview))expression=preview.toLowerCase();

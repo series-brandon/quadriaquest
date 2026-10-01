@@ -9,3 +9,7 @@ test('practice requires every resource and fully fallen tree, independently of i
  trees[0].group.visible=false;trees[0].felled=false;assert.equal(practiceCleared(resources,trees),false);
  assert.equal(practiceCleared([],[]),false);
 });
+test('practice also waits for boulders to finish disappearing',()=>{
+ const resources=[{collected:true}],nodes=[{kind:'tree',felled:true,group:{visible:false}},{kind:'boulder',felled:false,group:{visible:true}}];
+ assert.equal(practiceCleared(resources,nodes),false);nodes[1].felled=true;assert.equal(practiceCleared(resources,nodes),false);nodes[1].group.visible=false;assert.equal(practiceCleared(resources,nodes),true);
+});
