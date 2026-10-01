@@ -175,13 +175,13 @@ const canvas=renderer.domElement;
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 function spread(){const [a,b]=[...activePointers.values()];return Math.hypot(a.x-b.x,a.y-b.y);}
 canvas.addEventListener('pointerdown',e=>{
- if(!opening.playable)return;
+ if(!opening.playable||finale.cameraFocus)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
  if(activePointers.size===1){down={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,button:e.button};dragged=false;}
  else{dragged=true;pinchDistance=spread();}
 });
 canvas.addEventListener('pointermove',e=>{
- if(!opening.playable)return;
+ if(!opening.playable||finale.cameraFocus)return;
  pointerOnCanvas=true;pointerClient={x:e.clientX,y:e.clientY};
  if(!activePointers.has(e.pointerId)||!down)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -220,7 +220,7 @@ function updateHover(){
  $('tooltip').style.display=t?'block':'none';
  if(t){$('tooltip').textContent=actor?(actor.opened?'Empty chest':!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(valid?'Chop tree':!inventory.axes?'Missing the required tool!':'No safe route'):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource&&opening.canGather?'Gather '+hover.resource.type:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
 }
-function changeZoom(delta){if(!opening.playable)return;const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});$('rotate-left').onclick=()=>angle-=Math.PI/4;$('rotate-right').onclick=()=>angle+=Math.PI/4;$('zoom-in').onclick=()=>changeZoom(-1.5);$('zoom-out').onclick=()=>changeZoom(1.5);
+function changeZoom(delta){if(!opening.playable||finale.cameraFocus)return;const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});$('rotate-left').onclick=()=>angle-=Math.PI/4;$('rotate-right').onclick=()=>angle+=Math.PI/4;$('zoom-in').onclick=()=>changeZoom(-1.5);$('zoom-out').onclick=()=>changeZoom(1.5);
 $('reset').onclick=()=>{gatheringSkill=createGatheringSkill();happyUntil=0;path=[];segment=null;target=null;gatherTime=0;inventory={sticks:0,stones:0};tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources){r.collected=false;r.group.visible=true;}feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
@@ -242,6 +242,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   camera.lookAt(focus);camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);return;
  }
  finale.update(dt,elapsed,hover?.actor);
+ if(finale.cameraFocus)rotationKeys.clear();
  const oldAngle=angle,oldElevation=elevation;
  angle += (Number(rotationKeys.has('ArrowRight')) - Number(rotationKeys.has('ArrowLeft'))) * keyboardRotationSpeed * dt;
  elevation = THREE.MathUtils.clamp(elevation + (Number(rotationKeys.has('ArrowUp')) - Number(rotationKeys.has('ArrowDown'))) * Math.PI / 3 * dt, THREE.MathUtils.degToRad(20), THREE.MathUtils.degToRad(75));
@@ -371,8 +372,10 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const showResourceArrows=!opening.finished&&opening.canGather&&inventory.sticks+inventory.stones===0;
  $('action-progress').style.width=`${gatherTime/gatheringDuration(gatheringSkill)*100}%`;
  const closeup=celebration?Math.min(THREE.MathUtils.smoothstep(celebration.age,0,1),1-THREE.MathUtils.smoothstep(celebration.age,3.3,4.3)):0;
- const viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
- const focus=player.position.clone().add(new THREE.Vector3(0,.35+closeup*.3,0));const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.collected,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.collected);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,innerWidth,innerHeight);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);
+ const crystalFocus=finale.cameraFocus,crystalBlend=crystalFocus?(crystalFocus.phase==='out'?1-THREE.MathUtils.smoothstep(crystalFocus.age,0,1):THREE.MathUtils.smoothstep(crystalFocus.age,0,1)):0;
+ let viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
+ const focus=player.position.clone().add(new THREE.Vector3(0,.35+closeup*.3,0));if(crystalFocus){focus.lerp(crystalFocus.position,crystalBlend);viewZoom=THREE.MathUtils.lerp(viewZoom,7,crystalBlend);viewElevation=THREE.MathUtils.lerp(viewElevation,.45,crystalBlend);}
+ const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.collected,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.collected);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,innerWidth,innerHeight);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);
 }
 if(__PLAYGROUND__){
  debug=playground.mountPlayground({

@@ -5,9 +5,11 @@ import {spawnMotion} from './slime-motion.js';
 import {practiceCleared} from './practice-goal.js';
 import {findPath,key} from './world.js';
 
+const portalInstruction="I've taught you all I can here in this area, when you're ready to move on, move over to the Iter Portal and we'll move on to the next area.";
+
 export function createTutorialFinale(api){
   const $=id=>document.getElementById(id),actors=[],drops=[];
-  let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,transition=null,inPlaceholder=false,equipped=false;
+  let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null,transition=null,inPlaceholder=false,equipped=false;
   const hat=makeTopHat(),heldHat=makeTopHat();api.visual.add(hat,heldHat);hat.position.y=.79;hat.visible=false;heldHat.visible=false;
   const equipment=document.createElement('button');equipment.id='hat-equipment';equipment.hidden=true;document.body.append(equipment);
   equipment.onclick=()=>{if(!busy())equipped=!equipped;};
@@ -22,7 +24,7 @@ export function createTutorialFinale(api){
   const returnTile=tiles.find(t=>t.x===6&&t.z===4);returnTile.blocked=true;
   const returnPortal=createActor(makeCrystal(),returnTile,'return','Return to the clearing',0,placeholder);
   returnPortal.ready=true;returnPortal.group.position.y=returnTile.h;
-  function busy(){return !!next||drops.length>0||!!celebration||!!transition;}
+  function busy(){return !!next||drops.length>0||!!celebration||!!crystalFocus||!!transition;}
   function hideDialogue(){next=null;$('dialogue').hidden=true;}
   function say(text,advance){
     api.stop();$('gather-tutorial').hidden=true;$('dialogue').hidden=false;$('dialogue-line').textContent=text;
@@ -53,7 +55,8 @@ export function createTutorialFinale(api){
   function dropPortal(after=()=>{}){
     api.stop();removeActor(portal);const t=chooseTile({x:8,z:8});if(!t)return;
     portal=createActor(makeCrystal(),t,'portal','Enter Iter Portal',0);stage='portal-drop';
-    drop(portal.group,t.h,0,()=>{portal.ready=true;stage='practice';after();});
+    say(portalInstruction,null);$('dialogue-prompt').hidden=true;
+    drop(portal.group,t.h,0,()=>{portal.ready=true;stage='portal-focus';crystalFocus={age:0,phase:'in',position:new THREE.Vector3(t.x-6,t.h+1,t.z-6),after};});
   }
   function resetPractice(){
     hideDialogue();api.stop();api.clearFalling();practice=false;rewardTriggered=false;removeActor(chest);chest=null;
@@ -64,8 +67,8 @@ export function createTutorialFinale(api){
   }
   function begin(){
     say('Well done! This is just the start of what you will do here in Quadra!',()=>
-      say("I've taught you all I can here in this area, when you're ready to move on, move over to the Iter Portal and we'll move on to the next area.",()=>{
-        hideDialogue();dropPortal(()=>say("Here, I'll reset this area so you can practice some more if you want!",resetPractice));
+      say(portalInstruction,()=>{
+        dropPortal(()=>say("Here, I'll reset this area so you can practice some more if you want!",resetPractice));
       }));stage='closing';
   }
   function dropChest(){
@@ -86,7 +89,7 @@ export function createTutorialFinale(api){
   function refresh(){if(!(api.inventory.hats>0))equipped=false;equipment.hidden=!(api.inventory.hats>0)||!!celebration;equipment.textContent=equipped?'Remove Top Hat':'Wear Top Hat';hat.visible=equipped&&!celebration;}
   return {
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,travel,
-    get busy(){return busy();},get celebration(){return celebration;},get inPlaceholder(){return inPlaceholder;},get stage(){return stage;},
+    get busy(){return busy();},get celebration(){return celebration;},get cameraFocus(){return crystalFocus;},get inPlaceholder(){return inPlaceholder;},get stage(){return stage;},
     get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped};},
     refresh,
     bendHat(amount){hat.position.x=amount;},
@@ -101,12 +104,21 @@ export function createTutorialFinale(api){
     },
     reset(){
       hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;
-      celebration=null;transition=null;heldHat.visible=false;equipped=false;practice=false;rewardTriggered=false;stage='inactive';
+      celebration=null;crystalFocus=null;transition=null;heldHat.visible=false;equipped=false;practice=false;rewardTriggered=false;stage='inactive';
       if(inPlaceholder){api.switchArea(false,placeholder,tiles);inPlaceholder=false;}
       removeActor(portal);removeActor(chest);portal=chest=null;location.hidden=true;$('scene-fade').style.opacity='0';refresh();
     },
     update(dt,time,hover){
       for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.age+=dt;if(d.age<d.delay)continue;const motion=spawnMotion(d.age-d.delay);d.group.position.y=d.y+motion.lift;d.group.scale.set(1/Math.sqrt(motion.squash),motion.squash,1/Math.sqrt(motion.squash));if(d.age-d.delay>=1.2){d.group.position.y=d.y;d.group.scale.setScalar(1);drops.splice(i,1);d.complete();}}
+      if(crystalFocus){
+        crystalFocus.age+=dt;
+        if(crystalFocus.phase==='in'&&crystalFocus.age>=1){
+          crystalFocus.phase='hold';stage='portal-wait';$('dialogue-prompt').hidden=false;
+          next=()=>{crystalFocus.phase='out';crystalFocus.age=0;stage='portal-return';$('dialogue-prompt').hidden=true;};
+        }else if(crystalFocus.phase==='out'&&crystalFocus.age>=1){
+          const after=crystalFocus.after;crystalFocus=null;stage='practice';hideDialogue();after();
+        }
+      }
       if(stage==='resetting'&&!drops.length){practice=true;stage='practice';}
       for(const a of actors){const here=a.kind==='return'?inPlaceholder:!inPlaceholder;a.highlight.update(here&&a.ready&&!a.opened,time,here&&hover===a&&a.ready&&!a.opened);if(a.kind!=='chest'&&a.ready)a.group.position.y=a.tile.h+.12+Math.sin(time*1.8)*.10;}
       if(practice&&!inPlaceholder&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
