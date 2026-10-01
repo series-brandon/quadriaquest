@@ -72,7 +72,7 @@ export function createFeedback(scene) {
     });
   }
   const pendingTexture=statusTexture('Going','dots');
-  const workingTexture=statusTexture('Gathering');
+  const workingTextures={Gathering:statusTexture('Gathering'),Crafting:statusTexture('Crafting'),Chopping:statusTexture('Chopping')};
   const arrivedTexture=statusTexture('Arrived!','check');
   const doneTexture=statusTexture('Done!','check');
   const spinnerTexture=texture(ctx=>{
@@ -97,9 +97,9 @@ export function createFeedback(scene) {
       destination.visible=true;destination.position.set(t.x-6,t.h,t.z-6);
       pin.material.map=pendingTexture;pin.material.opacity=1;base.material.opacity=1;spinner.visible=false;
     },
-    interacting(){
+    interacting(label='Gathering'){
       if(state!=='approaching')return;
-      state='interacting';pin.material.map=workingTexture;spinner.visible=true;
+      state='interacting';pin.material.map=workingTextures[label]||workingTextures.Gathering;spinner.visible=true;
     },
     complete(){
       if(state!=='approaching'&&state!=='interacting')return;

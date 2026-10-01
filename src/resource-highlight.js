@@ -10,7 +10,7 @@ ctx.lineJoin='round';ctx.strokeStyle='#fff3be';ctx.lineWidth=12;ctx.stroke();ctx
 const gradient=ctx.createLinearGradient(0,20,0,165);gradient.addColorStop(0,'#ffe798');gradient.addColorStop(1,'#e9a92d');ctx.fillStyle=gradient;ctx.fill();
 const arrowTexture=new THREE.CanvasTexture(canvas);arrowTexture.colorSpace=THREE.SRGBColorSpace;
 
-export function highlightResource(group){
+export function highlightResource(group,{height=.95}={}){
   const borders=[],glows=[];
   // Inverted hulls outline the item itself, with a softer outer gold edge.
   for(const item of [...group.children]){
@@ -22,7 +22,7 @@ export function highlightResource(group){
     }
   }
   const arrow=new THREE.Sprite(new THREE.SpriteMaterial({map:arrowTexture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));
-  arrow.scale.set(.45,.68,1);arrow.position.y=.95;arrow.renderOrder=9;arrow.visible=false;group.add(arrow);
+  arrow.scale.set(.45,.68,1);arrow.position.y=height;arrow.renderOrder=9;arrow.visible=false;group.add(arrow);
   return {update(show,time,hovered=false){
     arrow.visible=show;arrow.position.y=.95+Math.sin(time*3.5)*.07;
     for(const outline of borders){outline.visible=show||hovered;outline.material=hovered?white:gold;}

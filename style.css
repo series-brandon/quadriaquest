@@ -26,3 +26,22 @@ body>header,body>.journal,body>footer,body>.controls-hint{display:none}
 #gather-tutorial.complete{pointer-events:auto}
 #tutorial-continue{display:block;margin:14px 0 0 auto;padding:10px 17px;background:#4d6948;color:#fff;font-size:12px;border-radius:9px;pointer-events:auto}
 #tutorial-continue:hover{background:#3e5939}
+#skill-rewards{position:fixed;top:12%;left:50%;transform:translateX(-50%);z-index:35;display:flex;align-items:center;flex-direction:column;gap:10px;pointer-events:none;width:max-content;max-width:calc(100% - 32px)}
+.skill-reward{padding:12px 20px;background:#f8fff1f5;border:1px solid #b5d794;border-radius:14px;color:#456439;font-size:15px;font-weight:700;box-shadow:0 8px 30px #345b2420;animation:skill-pop 3.2s both}
+.skill-reward.level-up{background:#fffae8;border-color:#e7c86e;color:#80601b;text-align:center;animation-duration:5s}
+.skill-reward span{display:block;font-size:11px;font-weight:400;margin-top:6px}
+@keyframes skill-pop{0%{opacity:0;transform:translateY(14px) scale(.9)}10%,78%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-22px)}}
+@media(prefers-reduced-motion:reduce){.skill-reward{animation-name:skill-fade}@keyframes skill-fade{0%,100%{opacity:0}10%,78%{opacity:1}}}
+.floating-xp{position:fixed;z-index:34;transform:translate(-50%,-100%);pointer-events:none;white-space:nowrap;font-size:12px;font-weight:700;letter-spacing:.15px;color:#fff1ac;text-shadow:-1px -1px 1px #293d29,1px -1px 1px #293d29,-1px 1px 1px #293d29,1px 1px 1px #293d29,0 2px 4px #293d2980;will-change:top,opacity}
+#game-menus{position:fixed;right:26px;bottom:26px;z-index:32}
+#game-menu-toggle{width:54px;height:54px;border-radius:17px;background:#fcfdf5;color:#435c3b;box-shadow:0 6px 26px #29442d26;border:1px solid #fff;font-size:26px}
+#game-menu-bar{position:absolute;right:0;bottom:68px;background:#fafcf4;padding:10px;border-radius:14px;box-shadow:0 8px 35px #29442d20}
+#open-crafting{padding:13px 24px;background:#e9eedf;white-space:nowrap}
+#crafting-panel{position:absolute;right:0;bottom:70px;width:min(350px,calc(100vw - 40px));padding:24px;background:#fafcf6fa;border:1px solid #fff;border-radius:18px;box-shadow:0 12px 45px #29442d29}
+.crafting-heading{display:flex;justify-content:space-between;align-items:center}.crafting-heading h2{font-size:20px;margin:0}.crafting-heading button{font-size:23px;width:32px;height:32px}
+.crafting-intro{font-size:11px;margin:8px 0 28px}.recipe{position:relative;width:100%;display:flex;gap:12px;align-items:center;text-align:left;padding:15px 10px;background:#edf1e4;border:1px solid #d4dec5;border-radius:12px}.recipe small{display:block;margin-top:7px;font-size:10px;color:#7c896b}.recipe:disabled{opacity:.5;cursor:not-allowed}.axe-symbol{font-size:28px;color:#957749}.item-name{color:#9c6b17;font-weight:700}#crafting-stock{font-size:10px;line-height:1.7;margin-top:18px}#recipe-error{font-size:11px;color:#a34736;margin-top:8px}
+.gold-guide{position:relative!important;outline:2px solid #eac35f;box-shadow:0 0 0 5px #f6d87b35,0 0 24px #efbf5570!important}
+.gold-guide::before{content:'';position:absolute;left:50%;bottom:calc(100% + 10px);width:27px;height:40px;transform:translateX(-50%);background:linear-gradient(#ffe798,#e9a92d);clip-path:polygon(35% 0,65% 0,65% 55%,100% 55%,50% 100%,0 55%,35% 55%);filter:drop-shadow(0 1px 1px #76521b);animation:guide-bob 1s ease-in-out infinite;pointer-events:none}
+@keyframes guide-bob{50%{transform:translate(-50%,-5px)}}
+@media(max-width:600px){#game-menus{right:15px;bottom:195px}}
+@media(prefers-reduced-motion:reduce){.gold-guide::before{animation:none}}
