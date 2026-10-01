@@ -1,3 +1,4 @@
+import './ui-theme.css';
 import {createSlimeBend} from './slime-bend.js';
 import {createSplash} from './splash.js';
 import {socialMotion,createIdleClock,SLEEP_SETTLE} from './slime-social.js';

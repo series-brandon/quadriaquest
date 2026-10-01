@@ -15,3 +15,12 @@
 #quadra-dev-playground pre{white-space:pre-wrap;font:11px/1.6 monospace;}
 
 body:has(#splash:not([hidden])) #quadra-dev-playground{visibility:hidden}
+/* Use the selected game's palette for the playground chrome too. */
+#quadra-dev-playground{background:#302638f5;color:#faf1e7;border-color:#c7abc1}
+#quadra-dev-playground summary,#quadra-dev-playground legend,#quadra-dev-playground output{color:#edbdad}
+#quadra-dev-playground fieldset{border-color:#806a88}
+#quadra-dev-playground input,#quadra-dev-playground select{background:#faf1e7;color:#382b49}
+#quadra-dev-playground button{background:#594361;color:#fff0db;border-color:#a88fae}
+#quadra-dev-playground button:hover{background:#71537b}
+#quadra-dev-playground .dev-note{color:#d0bfd4}
+#quadra-dev-playground :focus-visible{outline-color:#edbdad}

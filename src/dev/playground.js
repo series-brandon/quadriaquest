@@ -1,4 +1,5 @@
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
+import {mountThemeComparison} from './theme-comparison.js';
 import {showGatheringPrompt} from '../opening.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion,CHOP_DURATION} from '../slime-motion.js';
 import {showSkillReward} from '../skills.js';
@@ -19,6 +20,7 @@ export function mountPlayground(api){
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>collapse</small></summary>
     <p class="dev-note">Tutorial skipped · changes are session-only</p>
     <button data-dev="splash">Preview splash screen</button>
+    <button data-dev="themes">Compare UI styles</button>
     <fieldset><legend>Animation preview</legend>
       <label>Animation <select id="dev-animation">${animations.map(a=>`<option>${a}</option>`).join('')}</select></label>
       <label><input id="dev-loop" type="checkbox" checked> Loop</label>
@@ -48,6 +50,7 @@ export function mountPlayground(api){
     <output id="dev-status" aria-live="polite">Ready. Starter kit: 10 Sticks, 10 Stones, 1 Crude Axe.</output>
     <pre id="dev-state"></pre>`;
   document.body.append(panel);
+  const compareThemes=mountThemeComparison(api);
   const $=id=>panel.querySelector('#dev-'+id);
   let preview=null,time=0,holdingFeedback=false,snapshotAge=0;
   const amount=id=>{const n=Number($(id).value);if(!Number.isSafeInteger(n)||n<0||n>1000000)throw Error('Enter a whole number from 0 to 1,000,000.');return n;};
@@ -65,6 +68,7 @@ export function mountPlayground(api){
       }
       if(b.dataset.dev){
         const action=b.dataset.dev;
+        if(action==='themes'){stop();compareThemes();}
         if(action==='splash'){stop();api.showSplash();}
         if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}
         if(action==='stop'){stop();status('Preview stopped. Normal play enabled.');}

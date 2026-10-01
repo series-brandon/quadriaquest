@@ -1,0 +1,26 @@
+/* Twilight Storybook: the shared production UI palette. World colors stay independent. */
+:root{--ui-ink:#382b49;--ui-paper:#faf1e7;--ui-muted:#79677f;--ui-accent:#a55b55;--ui-button:#493452;--ui-button-ink:#fff0db;--ui-border:#c7abc1;font-family:'Trebuchet MS',sans-serif;color:var(--ui-ink)}
+button{color:var(--ui-ink)}
+button:hover{background:#eadbe5}
+button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}
+p{color:var(--ui-muted)}
+#dialogue,#gather-tutorial,#crafting-panel,#game-menu-bar,#toast,#area-name,#hat-equipment{background:#faf1e7f5;color:var(--ui-ink);border:1px solid var(--ui-border);box-shadow:0 12px 40px #382b491a}
+#dialogue,#crafting-panel{border-radius:18px}
+#dialogue-line,#tutorial-copy,.tutorial-heading,.color-choice,.crafting-heading{color:var(--ui-ink)}
+.dialogue-speaker,.item-name{color:var(--ui-accent)}
+#dialogue-prompt,#tutorial-count,.recipe small,.crafting-intro,#crafting-stock{color:var(--ui-muted)}
+#dialogue-controls button,#tutorial-continue{background:var(--ui-button);color:var(--ui-button-ink);border:1px solid var(--ui-border);border-radius:18px;box-shadow:0 3px 0 var(--ui-border)}
+#dialogue-controls button:hover,#tutorial-continue:hover{background:#614769}
+#dialogue-controls button.secondary,#open-crafting,.recipe{background:#eee0e5;color:var(--ui-ink);border-color:var(--ui-border)}
+#dialogue-controls input[type=text],#dialogue-controls input[type=color]{background:#fff9f2;color:var(--ui-ink);border-color:var(--ui-border)}
+.progress-track{background:#ddc8d8}.progress-track>div{background:var(--ui-accent)}
+#gather-tutorial.complete{border-color:var(--ui-accent)}
+#tooltip{background:#493452f2;color:var(--ui-button-ink)}
+.skill-reward{background:var(--ui-paper);border-color:var(--ui-border);color:var(--ui-ink)}
+#game-menu-toggle{background:var(--ui-paper);color:var(--ui-button);border-color:var(--ui-border);box-shadow:0 6px 26px #382b4926}
+#splash{color:var(--ui-ink);background:linear-gradient(var(--ui-paper),transparent 42%,transparent 74%,var(--ui-paper))}
+.splash-heading h1{font-family:Georgia,serif;font-weight:600;letter-spacing:-.045em;text-shadow:none}
+.splash-heading h1 span{color:var(--ui-accent)}
+.splash-heading p{color:var(--ui-ink);font-family:'Trebuchet MS',sans-serif}
+.splash-start button{background:var(--ui-button);color:var(--ui-button-ink);border-color:var(--ui-border);border-radius:18px;font-family:'Trebuchet MS',sans-serif;box-shadow:0 5px 0 var(--ui-border),0 12px 28px #382b4922}
+.splash-start button:hover{background:#614769}.splash-start button:focus-visible{outline-color:var(--ui-accent)}
