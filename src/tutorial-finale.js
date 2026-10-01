@@ -89,6 +89,7 @@ export function createTutorialFinale(api){
     get busy(){return busy();},get celebration(){return celebration;},get inPlaceholder(){return inPlaceholder;},get stage(){return stage;},
     get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped};},
     refresh,
+    bendHat(amount){hat.position.x=amount;},
     usePortal(){const actor=inPlaceholder?returnPortal:portal;if(actor)api.approach(actor);},
     openChest(){if(chest)api.approach(chest);},
     stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;refresh();}},

@@ -9,7 +9,9 @@ test('sleep starts at thirty idle seconds and resets on input or work',()=>{
 test('hop lands and wave lowers its hand when reactions finish',()=>{
  assert.ok(socialMotion('Happy hop',.48).lift>.4);
  assert.equal(socialMotion('Happy hop',SOCIAL_DURATIONS['Happy hop']).lift,0);
- assert.ok(socialMotion('Wave',1).hands[0][1]>.9);
+ assert.ok(socialMotion('Wave',1).hands[0][1]>.7);
+ assert.ok(socialMotion('Wave',1).pose.bend>0);
+ assert.equal(socialMotion('Wave',1).pose.roll,0);
  assert.equal(socialMotion('Wave',SOCIAL_DURATIONS.Wave).hands[0][1],.33);
  assert.equal(socialMotion('Sleeping',0).pose.squash,1);
  assert.equal(socialMotion('Sleeping',1).sleeping,false);

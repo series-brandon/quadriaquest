@@ -11,8 +11,9 @@ export function socialMotion(kind,time){
     else pose.squash=1-.18*Math.sin(Math.PI*Math.min(1,(time-.78)/.32));
   }else if(kind==='Wave'){
     const raised=smooth(time/.35)*(1-smooth((time-1.8)/.4));
-    pose.roll=.13*raised;pose.twist=.04*raised;
-    hands[0]=[-.46-.08*raised+.1*Math.sin(time*13)*raised,.33+.7*raised,.08+.06*raised,0,raised*(.25+Math.sin(time*13)*.48)];
+    pose.bend=.15*raised; // Bend toward +X, away from the right hand at -X.
+    // Follow the head's bend, then reach slightly inward as the hand rises.
+    hands[0]=[-.46+pose.bend+.08*raised+.06*Math.sin(time*13)*raised,.33+.52*raised,.08+.06*raised,0,raised*(.25+Math.sin(time*13)*.32)];
     hands[1]=[.46,.33-.04*raised,.08,0,-.08*raised];
   }else if(kind==='Sleeping'){
     const settle=smooth(time/SLEEP_SETTLE),breath=Math.sin(Math.max(0,time-SLEEP_SETTLE)*Math.PI/2);

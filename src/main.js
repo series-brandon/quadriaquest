@@ -1,3 +1,4 @@
+import {createSlimeBend} from './slime-bend.js';
 import {socialMotion,createIdleClock,SLEEP_SETTLE} from './slime-social.js';
 import {createSleepFeedback} from './sleep-feedback.js';
 import {createTutorialFinale} from './tutorial-finale.js';
@@ -78,6 +79,7 @@ const axeTool=new THREE.Group();hands[0].add(axeTool);axeTool.visible=false;axeT
 const axeHandle=mesh(new THREE.CylinderGeometry(.023,.028,.43,6),wood,axeTool);axeHandle.position.y=.17;
 const axeHead=mesh(new RoundedBoxGeometry(.2,.14,.075,2,.025),rock,axeTool);axeHead.position.set(.065,.35,0);
 const visual=new THREE.Group();visual.add(...[...player.children]);player.add(visual);
+const bendSlime=createSlimeBend(visual,[body,expressionFace.group]);
 let facing=0,happyUntil=0;
 let gatheringSkill=createGatheringSkill();
 const craftingSkill=createGatheringSkill(),lumberjackSkill=createGatheringSkill();
@@ -227,6 +229,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     player.position.copy(opening.inClearing?clearingSpawn:introSpawn);
     visual.rotation.set(social?.pose.lean||0,social?.pose.twist||0,social?.pose.roll||0);
     if(social){player.position.y+=social.lift;const width=1/Math.sqrt(social.pose.squash);visual.scale.set(width,social.pose.squash,width);visual.position.y=-.07*social.pose.squash;}
+    bendSlime(social?.pose.bend||0);finale.bendHat(social?.pose.bend||0);
     expressionFace.set(social?.expression||'idle');
     for(let i=0;i<hands.length;i++){const h=social?.hands[i]||[(i===0?-1:1)*.46,.33,.08,0,0];hands[i].position.set(h[0],h[1],h[2]);hands[i].rotation.set(h[3],0,h[4]);}
   }
@@ -311,6 +314,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  const celebration=finale.celebration;
  if(celebration){expression='happy';handWork=null;facing=celebration.angle;pose=idlePose(elapsed);pose.squash=1+Math.sin(celebration.age*9)*.07;}
+ bendSlime(pose.bend||0);finale.bendHat(pose.bend||0);
  expressionFace.set(expression);
  const blend=1-Math.exp(-dt*24),width=1/Math.sqrt(pose.squash);
  visual.scale.lerp(new THREE.Vector3(width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)),blend);
