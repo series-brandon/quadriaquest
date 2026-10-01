@@ -13,6 +13,15 @@ const clearingLines = [
   "In this area, you'll see some sticks and stones. Try picking them up!"
 ];
 
+export function showGatheringPrompt(count){
+  document.getElementById('tutorial-title').textContent='Pick up some items';
+  document.getElementById('tutorial-copy').textContent=count>0
+    ? 'Finish collecting the items off the ground.'
+    : 'Click/Tap on the gold-highlighted sticks and stones to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items.';
+  document.getElementById('tutorial-count').textContent=count+' / 6 collected';
+  document.getElementById('tutorial-progress').style.width=`${count/6*100}%`;
+}
+
 export function createOpening({player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete}) {
   const dialogue=document.getElementById('dialogue');
   const line=document.getElementById('dialogue-line');
@@ -57,6 +66,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     document.getElementById('tutorial-count').textContent=lesson===3?collectedCount+' / 6 collected':(lesson+1)+' / 4';
     tutorial.classList.remove('complete');
     tutorial.querySelector('.progress-track').hidden=lesson!==3;
+    if(lesson===3)showGatheringPrompt(collectedCount);
   }
   function succeed(){
     if(awaitingContinue)return;

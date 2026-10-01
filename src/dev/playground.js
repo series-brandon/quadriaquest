@@ -1,4 +1,5 @@
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
+import {showGatheringPrompt} from '../opening.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion,CHOP_DURATION} from '../slime-motion.js';
 import {showSkillReward} from '../skills.js';
 import './playground.css';
@@ -38,6 +39,7 @@ export function mountPlayground(api){
     <fieldset><legend>Visual feedback only</legend><p class="dev-note">Item gain/loss uses the selected inventory item and quantity without changing your inventory.</p><div>
       ${['Going','Gathering','Crafting','Chopping','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
+    <fieldset><legend>Gathering tutorial prompt</legend><div><button data-prompt="0">Before first pickup</button><button data-prompt="1">After first XP</button><button data-prompt="hide">Hide prompt</button></div></fieldset>
     <fieldset><legend>Tutorial finale</legend><p class="dev-note">Replay the real sequence or test its parts. Practice reset arms the hidden goal; Complete practice clears those objects without granting loot.</p><div>
       ${['Closing dialogue','Drop portal','Use portal','Practice reset','Complete practice','Reward dialogue','Drop chest','Open chest','Hat celebration','Wear/remove hat','Enter placeholder','Return to clearing','Reset finale'].map(a=>`<button data-finale="${a}">${a}</button>`).join('')}
     </div></fieldset>
@@ -54,6 +56,12 @@ export function mountPlayground(api){
   panel.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     try{
+      if(b.dataset.prompt){
+        const tutorial=document.getElementById('gather-tutorial');
+        tutorial.hidden=b.dataset.prompt==='hide';
+        if(!tutorial.hidden){showGatheringPrompt(Number(b.dataset.prompt));tutorial.classList.remove('complete');tutorial.querySelector('.progress-track').hidden=false;}
+        status('Gathering prompt preview — no gameplay progress changed.');
+      }
       if(b.dataset.dev){
         const action=b.dataset.dev;
         if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}

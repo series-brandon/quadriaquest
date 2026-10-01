@@ -37,6 +37,7 @@ test('XP and level explanations return to gathering and final success only after
     assert.match(get('tutorial-copy').textContent,/first experience points/);
     continueLesson();assert.equal(opening.canGather,true);
     assert.equal(get('tutorial-count').textContent,'1 / 6 collected');
+    assert.equal(get('tutorial-copy').textContent,'Finish collecting the items off the ground.');
     for(let count=2;count<=5;count++)opening.collected(count,{xp:20,leveledUp:false});
     assert.equal(opening.canGather,true);
     opening.collected(6,{xp:20,leveledUp:true});

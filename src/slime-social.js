@@ -18,7 +18,8 @@ export function socialMotion(kind,time){
   }else if(kind==='Sleeping'){
     const settle=smooth(time/SLEEP_SETTLE),breath=Math.sin(Math.max(0,time-SLEEP_SETTLE)*Math.PI/2);
     expression=settle<.35?'idle':'sleeping';
-    pose.squash=1+settle*(-.17+breath*.022);pose.lean=.035*settle;pose.roll=.14*settle;pose.twist=-.035*settle;
+    // Slump the upper body rather than tipping the whole slime off its base.
+    pose.squash=1+settle*(-.17+breath*.022);pose.bend=-.10*settle;pose.twist=-.035*settle;
     hands[0][1]=.33-.13*settle;hands[1][1]=.33-.065*settle;
   }
   return {pose,expression,lift,hands,handWork:null,sleeping:kind==='Sleeping'&&time>=SLEEP_SETTLE};

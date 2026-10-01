@@ -16,6 +16,8 @@ test('hop lands and wave lowers its hand when reactions finish',()=>{
  assert.equal(socialMotion('Sleeping',0).pose.squash,1);
  assert.equal(socialMotion('Sleeping',1).sleeping,false);
  assert.equal(socialMotion('Sleeping',2).sleeping,true);
- assert.ok(socialMotion('Sleeping',2).pose.roll>.1);
+ assert.ok(socialMotion('Sleeping',2).pose.bend<0);
+ assert.equal(socialMotion('Sleeping',2).pose.roll,0);
+ assert.equal(socialMotion('Sleeping',2).pose.lean,0);
  assert.ok(socialMotion('Sleeping',2).pose.squash<socialMotion('Sleeping',1).pose.squash);
 });
