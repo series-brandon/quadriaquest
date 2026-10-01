@@ -33,6 +33,8 @@ After the axe is crafted, dialogue introduces woodcutting. Trees receive golden 
 
 ## Development playground
 
+**Required for every addition:** Update playground support in the same change whenever anything new is added, and keep it current when behavior changes. Never finish or move on with outdated debug coverage. If unsure whether or how something should be exposed, ask the user. The standing contributor rules are in [AGENTS.md](AGENTS.md#keep-the-dev-playground-current).
+
 Run `npm run dev:debug`, then open **http://127.0.0.1:5174/**. It skips the opening and all tutorials and drops Pip into the clearing with 10 Sticks, 10 Stones, and a Crude Axe. Normal movement, gathering, crafting, and chopping are available immediately. Refreshing retains debug mode but resets the session.
 
 The collapsible DEV PLAYGROUND panel provides:
