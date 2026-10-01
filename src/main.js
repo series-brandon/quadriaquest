@@ -1,3 +1,4 @@
+import {itemChangeMessage} from './item-feedback.js';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {makeWorld,findPath,key,SPAWN} from './world.js';
@@ -130,6 +131,7 @@ function selectTree(tree){
  feedback.destination(result.at);
 }
 let toastTimer;function toast(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
+function showItemChanges(changes){const message=itemChangeMessage(changes);if(message)toast(message);}
 function updateUI(reward){const count=inventory.sticks+inventory.stones;opening.collected(count,reward);$('sticks').textContent=inventory.sticks;$('stones').textContent=inventory.stones;$('bag-total').textContent=`${count} ITEMS`;$('quest-count').textContent=`${count} / 6 materials collected`;$('quest-progress').style.width=`${count/6*100}%`;$('quest-check').textContent=count===6?'✓':'◇';}
 function moveTo(t,resource){if(!canMove())return;if(__PLAYGROUND__)debug?.stop();if(!opening.canGather)resource=null;const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&resource===target){return;}const start=segment?segment.to:tile;const route=findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}$('toast').classList.remove('visible');clearTimeout(toastTimer);if(activeAction&&route.length===0&&!segment&&!resource)return;cancelWork();opening.moving(tile,t);target=resource||null;gatherTime=0;path=route;feedback.destination(t);$('activity').textContent=resource?'On the way to gather':'Exploring the clearing';}
 function pick(event){const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObjects(pickables.filter(m=>!m.userData.resource?.collected&&!m.userData.tree?.felled),false)[0];}
@@ -231,7 +233,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
       feedback.interacting('Crafting');
       if(tickCraft(action,dt,inventory)){
         activeAction=null;happyUntil=elapsed+1.2;expression='happy';feedback.complete();
-        showSkillReward(awardSkillXp(craftingSkill,'Crafting'),player.position);toast('+1 Crude Axe');
+        showSkillReward(awardSkillXp(craftingSkill,'Crafting'),player.position);showItemChanges({sticks:-1,stones:-1,axes:1});
         updateUI();craftingTutorial.craftComplete();
       }
     }else{
@@ -255,9 +257,9 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
       happyUntil=elapsed+1.2;expression='happy';
       target.collected=true;target.group.visible=false;inventory[target.type]++;
       const reward=awardGatheringXp(gatheringSkill);showSkillReward(reward,player.position);
-      toast(`+1 ${target.type} added to your satchel`);target=null;gatherTime=0;
+      showItemChanges({[target.type]:1});target=null;gatherTime=0;
       feedback.complete();$('tooltip').style.display='none';updateUI(reward);
-      if(inventory.sticks+inventory.stones===6){toast('A promising start. You found every material!');$('activity').textContent='Clearing explored';}
+      if(inventory.sticks+inventory.stones===6){$('activity').textContent='Clearing explored';}
     }
   }else{if(!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.complete();$('activity').textContent=inventory.sticks+inventory.stones===6?'Clearing explored':'Taking it all in';}
  }
@@ -300,7 +302,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   fall.tree.group.quaternion.setFromAxisAngle(fall.axis,p*p*Math.PI/2);
   if(p===1){
     fall.tree.group.visible=false;fall.tree.tile.blocked=false;inventory.logs+=fall.logs;
-    showSkillReward(awardSkillXp(lumberjackSkill,'Lumberjack'),player.position);toast(`+${fall.logs} Wooden Logs`);
+    showSkillReward(awardSkillXp(lumberjackSkill,'Lumberjack'),player.position);showItemChanges({logs:fall.logs});
     happyUntil=elapsed+1.2;craftingTutorial.chopped(fall.logs);fallingTrees.splice(i,1);
   }
  }
@@ -323,6 +325,7 @@ if(__PLAYGROUND__){
    craftingTutorial.refresh();
   },
   refresh:()=>craftingTutorial.refresh(),
+  showItemChanges,
   color(value){body.material.color.set(value);expressionFace.setBodyColor(value);},
   faceTowardCamera(){facing=angle;player.rotation.y=angle;}
  });

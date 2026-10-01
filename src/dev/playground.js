@@ -34,8 +34,8 @@ export function mountPlayground(api){
       <label>Quantity <input id="dev-quantity" type="number" min="0" max="1000000" step="1" value="1"></label>
       <div><button data-dev="add">Add item</button><button data-dev="remove">Remove item</button></div>
     </fieldset>
-    <fieldset><legend>Visual feedback only</legend><div>
-      ${['Going','Gathering','Crafting','Chopping','Arrived','Done','Blocked','XP gain','Level gain','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
+    <fieldset><legend>Visual feedback only</legend><p class="dev-note">Item gain/loss uses the selected inventory item and quantity without changing your inventory.</p><div>
+      ${['Going','Gathering','Crafting','Chopping','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
     <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="all">Full test area</button></div></fieldset>
     <output id="dev-status" aria-live="polite">Ready. Starter kit: 10 Sticks, 10 Stones, 1 Crude Axe.</output>
@@ -62,7 +62,10 @@ export function mountPlayground(api){
           status(`${name}: level ${skill.level}, ${skill.xp} XP.`);
         }
         if(action==='add'||action==='remove'){
-          const item=$('item').value,n=amount('quantity');api.inventory[item]=Math.max(0,api.inventory[item]+(action==='add'?n:-n));status(`${item}: ${api.inventory[item]}`);
+          const item=$('item').value,n=amount('quantity'),before=api.inventory[item];
+          api.inventory[item]=Math.max(0,before+(action==='add'?n:-n));
+          api.showItemChanges({[item]:api.inventory[item]-before});
+          status(`${item}: ${api.inventory[item]}`);
         }
       }
       if(b.dataset.juice){
@@ -72,6 +75,7 @@ export function mountPlayground(api){
           if(['Gathering','Crafting','Chopping','Done'].includes(kind))api.feedback.interacting(kind==='Done'?'Gathering':kind);
           if(['Arrived','Done'].includes(kind))api.feedback.complete();
         }
+        if(kind==='Item gain'||kind==='Item loss')api.showItemChanges({[$('item').value]:amount('quantity')*(kind==='Item gain'?1:-1)});
         if(kind==='Blocked')api.feedback.pulse(api.player.position,false);
         if(kind==='XP gain'||kind==='Level gain')showSkillReward({skillName:$('skill').value,xp:20,level:api.skills[$('skill').value].level+1,leveledUp:kind==='Level gain'},api.player.position);
         if(kind==='Clear'){holdingFeedback=false;api.feedback.clearDestination();}

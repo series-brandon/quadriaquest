@@ -41,8 +41,8 @@ The collapsible DEV PLAYGROUND panel provides:
 
 - Play once or loop idle, sliding, jumps, spawn landing, gathering, crafting, chopping, and facial expressions. Use ¼×, ½×, 1×, or 2× speed and Face camera. Previews run in place and do not spend items or earn XP; Stop returns to normal play.
 - Add any whole-number XP or level amount (up to 1,000,000 per operation) to Gathering, Crafting, or Lumberjack. Levels and XP stay consistent with the prototype's 120 XP per level.
-- Add/remove quantities of any currently implemented item. Removal clamps at zero.
-- Trigger Going, interaction spinners, Arrived/Done, blocked clicks, XP text, and level-up feedback independently of gameplay rewards.
+- Add/remove quantities of any currently implemented item. Removal clamps at zero. Edits show the actual item gain/loss using the same notification as gameplay; zero changes do not show a notification.
+- Trigger Going, interaction spinners, Arrived/Done, blocked clicks, XP text, level-up feedback, and item gain/loss notifications independently of gameplay rewards.
 - Restore ground items, restore trees, or reset the entire test area (including skills, starter inventory, player position, and camera).
 
 Run `npm run dev` for the normal tutorial experience on port 5173. Both servers can run side by side; no URL parameter or saved browser setting enables debug mode in the normal app.
