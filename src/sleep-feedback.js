@@ -9,6 +9,6 @@ export function createSleepFeedback(scene){
   return {update(dt,active,position,camera){
     if(!active){age=0;for(const p of particles)p.visible=false;return;}
     age+=dt;right.set(1,0,0).applyQuaternion(camera.quaternion);
-    particles.forEach((p,i)=>{const local=age-i*.7;p.visible=local>=0;if(local<0)return;const t=(local%2.1)/2.1;p.position.copy(position).addScaledVector(right,.25+t*.4);p.position.y+=.95+t*.8;p.scale.setScalar(.15+t*.15);p.material.opacity=Math.sin(Math.PI*t)*.85;});
+    particles.forEach((p,i)=>{const local=age-i*1.4;p.visible=local>=0;if(local<0)return;const t=(local%4.2)/4.2;p.position.copy(position).addScaledVector(right,.25+t*.4+Math.sin(t*Math.PI*2)*Math.sin(t*Math.PI)*.09);p.position.y+=.95+t*.8;p.scale.setScalar(.15+t*.15);p.material.opacity=Math.sin(Math.PI*t)*.85;});
   }};
 }

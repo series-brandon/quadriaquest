@@ -1,4 +1,4 @@
-import {socialMotion,createIdleClock} from './slime-social.js';
+import {socialMotion,createIdleClock,SLEEP_SETTLE} from './slime-social.js';
 import {createSleepFeedback} from './sleep-feedback.js';
 import {createTutorialFinale} from './tutorial-finale.js';
 import {itemChangeMessage} from './item-feedback.js';
@@ -89,7 +89,9 @@ let tile=world.get(key(SPAWN.x,SPAWN.z)),path=[],segment=null,target=null,gather
 const feedback=createFeedback(scene);
 const contactShadow=createContactShadow(scene,world);
 const idleClock=createIdleClock(),sleepFeedback=createSleepFeedback(scene);
-for(const event of ['pointerdown','keydown','wheel','input'])document.addEventListener(event,()=>idleClock.wake(),{capture:true,passive:true});
+// Orbit drags, pinches and camera keys do not count as wake-up actions.
+document.addEventListener('click',event=>{if(event.target===renderer.domElement){if(!opening.playable)idleClock.wake();return;}if(!event.target.closest('.camera-controls'))idleClock.wake();},{capture:true});
+document.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)&&event.target.closest?.('#dialogue'))idleClock.wake();},{capture:true});
 const introSpawn=new THREE.Vector3(0,1,-2);
 const clearingSpawn=new THREE.Vector3(tile.x-6,tile.h,tile.z-6);
 let debug=null;
@@ -190,6 +192,7 @@ canvas.addEventListener('pointermove',e=>{
  down.lastX=e.clientX;down.lastY=e.clientY;
 });
 canvas.addEventListener('pointerup',e=>{
+ if(activePointers.size===1&&down?.button===0&&!dragged)idleClock.wake();
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=hit?.object.userData;
   if(data?.actor)selectActor(data.actor);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
@@ -216,8 +219,8 @@ $('reset').onclick=()=>{gatheringSkill=createGatheringSkill();happyUntil=0;path=
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;opening.update(dt);
- const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!activeAction&&!actorTarget&&!finale.busy&&!rotationKeys.size&&!debug?.previewing):opening.quiet);
- let sleeping=asleep;
+ const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!activeAction&&!actorTarget&&!finale.busy&&!debug?.previewing):opening.quiet);
+ let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
  if(!opening.playable){rotationKeys.clear();
   if(opening.quiet||opening.reaction){
     const social=opening.reaction?socialMotion(opening.reaction.kind,opening.reaction.time):asleep?socialMotion('Sleeping',idleClock.sleepTime):null;
@@ -367,6 +370,8 @@ if(__PLAYGROUND__){
  debug=playground.mountPlayground({
   skills:{Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill},
   inventory,player,feedback,getTile:()=>tile,finale,
+  doze(){idleClock.update(30,true);},
+  wake(){idleClock.wake();},
   completePractice(){for(const r of resources){r.collected=true;r.group.visible=false;}for(const t of trees){t.felled=true;t.group.visible=false;t.tile.blocked=false;}fallingTrees.length=0;},
   stop(){cancelWork();path=[];segment=null;target=null;gatherTime=0;player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();},
   reset(kind){

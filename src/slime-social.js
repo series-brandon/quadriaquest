@@ -1,5 +1,6 @@
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
-export const SOCIAL_DURATIONS={'Happy hop':1.1,Wave:2.2,Sleeping:4};
+export const SLEEP_SETTLE=2;
+export const SOCIAL_DURATIONS={'Happy hop':1.1,Wave:2.2,Sleeping:6};
 export function socialMotion(kind,time){
   const pose={squash:1,stretch:1,twist:0,lean:0,roll:0};
   const hands=[[-.46,.33,.08,0,0],[.46,.33,.08,0,0]];
@@ -14,10 +15,12 @@ export function socialMotion(kind,time){
     hands[0]=[-.46-.08*raised+.1*Math.sin(time*13)*raised,.33+.7*raised,.08+.06*raised,0,raised*(.25+Math.sin(time*13)*.48)];
     hands[1]=[.46,.33-.04*raised,.08,0,-.08*raised];
   }else if(kind==='Sleeping'){
-    expression='sleeping';pose.squash=.91+Math.sin(time*Math.PI/2)*.025;pose.lean=.035;pose.roll=.025;
-    hands[0][1]=hands[1][1]=.25;
+    const settle=smooth(time/SLEEP_SETTLE),breath=Math.sin(Math.max(0,time-SLEEP_SETTLE)*Math.PI/2);
+    expression=settle<.35?'idle':'sleeping';
+    pose.squash=1+settle*(-.17+breath*.022);pose.lean=.035*settle;pose.roll=.14*settle;pose.twist=-.035*settle;
+    hands[0][1]=.33-.13*settle;hands[1][1]=.33-.065*settle;
   }
-  return {pose,expression,lift,hands,handWork:null,sleeping:kind==='Sleeping'};
+  return {pose,expression,lift,hands,handWork:null,sleeping:kind==='Sleeping'&&time>=SLEEP_SETTLE};
 }
 export function createIdleClock(threshold=30){
   let age=0;

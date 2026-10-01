@@ -21,7 +21,7 @@ export function mountPlayground(api){
       <label>Animation <select id="dev-animation">${animations.map(a=>`<option>${a}</option>`).join('')}</select></label>
       <label><input id="dev-loop" type="checkbox" checked> Loop</label>
       <label>Speed <select id="dev-speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
-      <div><button data-dev="play">Play / restart</button><button data-dev="stop">Stop</button><button data-dev="face">Face camera</button></div>
+      <div><button data-dev="play">Play / restart</button><button data-dev="stop">Stop</button><button data-dev="face">Face camera</button><button data-dev="doze">Doze off</button><button data-dev="wake">Wake up</button></div>
       <label>Slime color <input id="dev-color" type="color" value="#a4ce77"></label>
       <p class="dev-note">Previews run in place without consuming items or earning XP. Stop to play normally.</p>
     </fieldset>
@@ -59,6 +59,8 @@ export function mountPlayground(api){
         if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}
         if(action==='stop'){stop();status('Preview stopped. Normal play enabled.');}
         if(action==='face')api.faceTowardCamera();
+        if(action==='doze'){stop();api.doze();status('Dozing naturally. Orbit or zoom without waking; click to wake.');}
+        if(action==='wake'){stop();api.wake();status('Awake.');}
         if(action==='xp'||action==='levels'){
           const name=$('skill').value,skill=api.skills[name],n=amount('skill-amount'),old=skill.level;
           skill.xp+=action==='xp'?n:n*120;skill.level=1+Math.floor(skill.xp/120);
@@ -114,7 +116,7 @@ export function mountPlayground(api){
       if(!preview)return null;
       time+=dt*Number($('speed').value);
       const duration=durations[preview]||2;
-      if(time>=duration){if($('loop').checked){time%=duration;if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});}else{stop();status('Preview finished.');return null;}}
+      if(time>=duration){if($('loop').checked){if(preview!=='Sleeping')time%=duration;if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});}else{stop();status('Preview finished.');return null;}}
       if(preview==='Hat celebration')return null;
       if(SOCIAL_DURATIONS[preview])return socialMotion(preview,time);
       let pose=idlePose(time),expression='idle',handWork=null,lift=0;
