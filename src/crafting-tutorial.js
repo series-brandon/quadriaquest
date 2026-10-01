@@ -1,3 +1,4 @@
+import {createInventoryMenu} from './inventory-menu.js';
 import {showGatheringCompletion} from './opening.js';
 import {GATHERING_XP_PER_LEVEL} from './skills.js';
 const introduction=[
@@ -12,11 +13,11 @@ const introduction=[
 export function createCraftingTutorial({getInventory,getSkills,startCraft,freePlay=false,onComplete=()=>{}}){
   const $=id=>document.getElementById(id);
   let stage=freePlay?'done':'inactive',lineIndex=0,advance=null,successNext=null,firstTree=!freePlay;
-  let skillsDone=null;
+  let skillsDone=null,inventoryDone=null;
   if(!$('tutorial-continue')){const b=document.createElement('button');b.id='tutorial-continue';b.hidden=true;$('gather-tutorial').append(b);}
   const host=document.createElement('div');host.id='game-menus';host.hidden=!freePlay;
   host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false"><span aria-hidden="true">☰</span></button>
-    <nav id="game-menu-bar" hidden aria-label="Game menu"><button id="open-skills">Skills</button><button id="open-crafting" hidden>Crafting</button></nav>
+    <nav id="game-menu-bar" hidden aria-label="Game menu"><button id="open-skills">Skills</button><button id="open-inventory" hidden>Inventory</button><button id="open-crafting" hidden>Crafting</button></nav>
     <section id="crafting-panel" hidden aria-label="Crafting"><div class="crafting-heading"><h2>Crafting</h2><button id="close-crafting" aria-label="Close crafting menu">×</button></div><p class="crafting-intro">Something useful from something simple.</p>
       <button id="craft-axe" class="recipe"><span class="axe-symbol" aria-hidden="true">⚒</span><span><strong class="item-name">Crude Axe</strong><small>1 Stick + 1 Stone · 2 seconds</small></span><span aria-hidden="true">→</span></button>
       <p id="crafting-stock"></p><p id="recipe-error" role="status"></p>
@@ -25,6 +26,31 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   const skillsPanel=document.createElement('section');skillsPanel.id='skills-panel';skillsPanel.hidden=true;skillsPanel.setAttribute('aria-label','Skills');
   skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><div id="skills-list"></div>';
   host.append(skillsPanel);$('open-crafting').hidden=!freePlay;
+  const inventoryMenu=createInventoryMenu(host,getInventory,id=>{
+    if(stage!=='inventory-select'||id!=='sticks')return;
+    stage='inventory-detail';inventoryMenu.guide(false);
+    tutorial("Select an item to read about it. These sticks might not look like much, but they'll come in handy soon!",true,()=>{
+      closeMenus();guide(null);inventoryMenu.lock(false);stage=freePlay?'done':'inactive';
+      const done=inventoryDone;inventoryDone=null;
+      if(done)done();else{showGatheringCompletion();successNext=()=>{$('gather-tutorial').hidden=true;};}
+    });$('tutorial-title').textContent='TUTORIAL';$('tutorial-continue').textContent='Got it!';
+  },()=>{if(!stage.startsWith('inventory-'))closeMenus();});
+  $('open-inventory').hidden=!freePlay;
+  function openInventory(){closeMenus();inventoryMenu.open();}
+  $('open-inventory').onclick=()=>{
+    if(stage==='inventory-menu'){
+      stage='inventory-stacks';guide(null);openInventory();inventoryMenu.lock(true);
+      tutorial("Here are your supplies! Items of the same type stack together. The number on each stack shows how many you're carrying.",true,()=>{
+        stage='inventory-select';tutorial('Select your Sticks to take a closer look.');inventoryMenu.guide(true);
+      });$('tutorial-title').textContent='TUTORIAL';$('tutorial-continue').textContent='Continue';
+    }else if(['inactive','done','chop'].includes(stage))openInventory();
+  };
+  function startInventory(done){
+    closeMenus();guide(null);advance=null;successNext=null;inventoryDone=done;stage='inventory-intro';host.hidden=false;
+    say('Now, what happened to all those sticks and stones you picked up?',()=>say('Assuming no holes in reality, you should have them stored safe and sound.',()=>say("Everything you collect goes into your inventory. Let's have a look!",()=>{
+      $('open-inventory').hidden=false;stage='inventory-toggle';guide('game-menu-toggle');tutorial('Open the game menu to check your inventory.');
+    })));
+  }
   function renderSkills(){
     $('close-skills').disabled=stage.startsWith('skills-');
     $('skills-list').innerHTML=Object.entries(getSkills()).map(([name,skill])=>{
@@ -38,7 +64,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
       stage='skills-detail';guide(null);openSkills();
       tutorial("Here's your Gathering skill! Each skill shows your current level, total experience, and progress toward the next level. You've reached Gathering level 2!",true,()=>{
         stage='skills-summary';renderSkills();tutorial('You can check your skills here any time. Skills improve as you use them, so try different activities and watch yourself grow!',true,()=>{
-          closeMenus();stage=freePlay?'done':'inactive';$('gather-tutorial').hidden=true;const done=skillsDone;skillsDone=null;if(done)done();else{showGatheringCompletion();successNext=()=>{$('gather-tutorial').hidden=true;};}
+          const done=skillsDone;skillsDone=null;startInventory(done);
         });$('tutorial-title').textContent='TUTORIAL';$('tutorial-continue').textContent='Got it!';
       });$('tutorial-title').textContent='TUTORIAL';$('tutorial-continue').textContent='Continue';
     }else if(['inactive','done','chop'].includes(stage))openSkills();
@@ -53,7 +79,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   }
 
   function guide(id){for(const node of host.querySelectorAll('.gold-guide'))node.classList.remove('gold-guide');if(id)$(id).classList.add('gold-guide');}
-  function closeMenus(){ $('game-menu-bar').hidden=true;$('crafting-panel').hidden=true;skillsPanel.hidden=true;$('game-menu-toggle').setAttribute('aria-expanded','false');}
+  function closeMenus(){ $('game-menu-bar').hidden=true;$('crafting-panel').hidden=true;skillsPanel.hidden=true;inventoryMenu.close();$('game-menu-toggle').setAttribute('aria-expanded','false');}
   function writeItems(element,text){
     element.replaceChildren();
     for(const part of text.split(/(Crude Axe|Wooden Logs|Stick|Stone)/g)){
@@ -83,6 +109,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   $('dialogue').addEventListener('keydown',e=>{if(e.target===$('dialogue')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();advanceLine(e);}});
   $('tutorial-continue')?.addEventListener('click',()=>{if(successNext){const next=successNext;successNext=null;next();}});
   $('game-menu-toggle').addEventListener('click',()=>{
+    if(stage.startsWith('inventory-')){if(stage==='inventory-toggle'){stage='inventory-menu';$('game-menu-bar').hidden=false;$('game-menu-toggle').setAttribute('aria-expanded','true');guide('open-inventory');tutorial('Open the Inventory menu.');}return;}
     if(stage.startsWith('skills-')){if(stage==='skills-toggle'){stage='skills-menu';$('game-menu-bar').hidden=false;$('game-menu-toggle').setAttribute('aria-expanded','true');guide('open-skills');tutorial('Open the Skills menu.');}return;}
     if(['intro','crafting','craft-success','chop-dialogue','chop-success'].includes(stage))return;
     if(stage==='menu'||stage==='retry'){
@@ -91,6 +118,8 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
     $('game-menu-toggle').setAttribute('aria-expanded',String(!$('game-menu-bar').hidden));
   });
   $('open-crafting').addEventListener('click',()=>{
+    if(stage.startsWith('skills-')||stage.startsWith('inventory-'))return;
+    closeMenus();
     $('crafting-panel').hidden=false;$('game-menu-bar').hidden=true;$('game-menu-toggle').setAttribute('aria-expanded','false');
     if(['craft-menu','recipe','retry'].includes(stage)){stage='recipe';tutorial('Craft a Crude Axe.');guide('craft-axe');}
     refresh();
@@ -102,9 +131,9 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
     closeMenus();guide(null);
     if(stage==='recipe'){stage='crafting';tutorial('Be patient while you’re crafting. If you move before you finish, you’ll have to start over!');}
   });
-  function refresh(){if(!skillsPanel.hidden)renderSkills();const i=getInventory();$('crafting-stock').textContent=`Sticks: ${i.sticks} · Stones: ${i.stones} · Crude Axes: ${i.axes||0} · Wooden Logs: ${i.logs||0}`;$('recipe-error').textContent='';$('craft-axe').disabled=i.sticks<1||i.stones<1;}
+  function refresh(){if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();const i=getInventory();$('crafting-stock').textContent=`Sticks: ${i.sticks} · Stones: ${i.stones} · Crude Axes: ${i.axes||0} · Wooden Logs: ${i.logs||0}`;$('recipe-error').textContent='';$('craft-axe').disabled=i.sticks<1||i.stones<1;}
   return {
-    startSkills,openSkills,
+    startSkills,openSkills,startInventory,openInventory,
     start(){ $('open-crafting').hidden=false;stage='intro';lineIndex=0;nextIntro();},
     get blocksMovement(){return !['inactive','crafting','retry','chop','done'].includes(stage);},
     get canChop(){return stage==='chop'||stage==='done';},

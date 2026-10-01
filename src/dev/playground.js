@@ -34,7 +34,7 @@ export function mountPlayground(api){
       <label>Amount <input id="dev-skill-amount" type="number" min="0" max="1000000" step="1" value="20"></label>
       <div><button data-dev="xp">Add XP</button><button data-dev="levels">Add levels</button></div>
     </fieldset>
-    <fieldset><legend>Inventory</legend>
+    <fieldset><legend>Inventory</legend><div><button data-dev="inventory-menu">Open Inventory menu</button><button data-dev="inventory-lesson">Replay Inventory tutorial</button></div><p class="dev-note">Tutorial replay sets Sticks and Stones to 3 each.</p>
       <label>Item <select id="dev-item"><option value="sticks">Stick</option><option value="stones">Stone</option><option value="axes">Crude Axe</option><option value="logs">Wooden Logs</option><option value="hats">Top Hat</option></select></label>
       <label>Quantity <input id="dev-quantity" type="number" min="0" max="1000000" step="1" value="1"></label>
       <div><button data-dev="add">Add item</button><button data-dev="remove">Remove item</button></div>
@@ -69,6 +69,8 @@ export function mountPlayground(api){
       }
       if(b.dataset.dev){
         const action=b.dataset.dev;
+        if(action==='inventory-menu'){stop();api.showInventory();}
+        if(action==='inventory-lesson'){stop();api.inventoryLesson();}
         if(action==='skills-menu'){stop();api.showSkills();}
         if(action==='skills-lesson'){stop();api.skillsLesson();}
         if(action==='themes'){stop();compareThemes();}

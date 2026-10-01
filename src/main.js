@@ -164,7 +164,7 @@ function selectActor(actor){
 }
 function isVisible(object){for(let o=object;o;o=o.parent)if(!o.visible)return false;return true;}
 let toastTimer;function toast(s){$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
-function showItemChanges(changes){const message=itemChangeMessage(changes);if(message)toast(message);}
+function showItemChanges(changes){craftingTutorial.refresh();const message=itemChangeMessage(changes);if(message)toast(message);}
 function updateUI(reward){const count=inventory.sticks+inventory.stones;opening.collected(count,reward);$('sticks').textContent=inventory.sticks;$('stones').textContent=inventory.stones;$('bag-total').textContent=`${count} ITEMS`;$('quest-count').textContent=`${count} / 6 materials collected`;$('quest-progress').style.width=`${count/6*100}%`;$('quest-check').textContent=count===6?'✓':'◇';}
 function moveTo(t,resource){if(!canMove())return;if(__PLAYGROUND__)debug?.stop();if(!opening.canGather)resource=null;const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&resource===target){return;}const start=segment?segment.to:tile;const route=findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}$('toast').classList.remove('visible');clearTimeout(toastTimer);if(activeAction&&route.length===0&&!segment&&!resource)return;cancelWork();opening.moving(tile,t);target=resource||null;gatherTime=0;path=route;feedback.destination(t);$('activity').textContent=resource?'On the way to gather':'Exploring the clearing';}
 function pick(event){const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObjects(pickables.filter(m=>isVisible(m)&&!m.userData.resource?.collected&&!m.userData.tree?.felled),false)[0];}
@@ -378,8 +378,10 @@ if(__PLAYGROUND__){
  debug=playground.mountPlayground({
   showSplash(){stopAll();splash.show();},
   showResourceHitboxes(show){for(const r of resources)r.hitbox.material.colorWrite=show;},
+  showInventory(){craftingTutorial.openInventory();},
+  inventoryLesson(){stopAll();Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startInventory();},
   showSkills(){craftingTutorial.openSkills();},
-  skillsLesson(){stopAll();Object.assign(gatheringSkill,{xp:120,level:2});craftingTutorial.startSkills();},
+  skillsLesson(){stopAll();Object.assign(gatheringSkill,{xp:120,level:2});Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startSkills();},
   skills:{Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill},
   inventory,player,feedback,getTile:()=>tile,finale,
   doze(){idleClock.update(30,true);},
