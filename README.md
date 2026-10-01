@@ -30,3 +30,29 @@ Gathering awards 20 XP per completed pickup. The prototype starts Gathering at l
 The next tutorial leg introduces crafting through one-line dialogue, then reveals a bottom-right game menu. Golden outlines and floating arrows guide the menu button, Crafting option, and Crude Axe recipe. The axe takes 1 Stick, 1 Stone, and two uninterrupted seconds to craft. Materials are consumed only on completion; moving cancels the action without consuming them. Crafting uses the slime’s hand animation and overhead progress marker, awards 20 Crafting XP as floating text, and ends with a success message that requires Continue. In-game item names in instructions and recipes are highlighted.
 
 After the axe is crafted, dialogue introduces woodcutting. Trees receive golden outlines and arrows until the first tree is felled. Clicking a tree with a Crude Axe in inventory routes the player to an adjacent reachable tile and starts a 3–6 second chopping action with an animated axe. Moving interrupts chopping and restarts its progress on the next attempt; clicking the same tree does not interrupt it. The completed tree falls, clears its blocked tile, and rewards 1–3 Wooden Logs and 20 Lumberjack XP. A dismissible success message completes this tutorial leg. Crafting remains accessible afterward.
+
+## Development playground
+
+Run `npm run dev:debug`, then open **http://127.0.0.1:5174/**. It skips the opening and all tutorials and drops Pip into the clearing with 10 Sticks, 10 Stones, and a Crude Axe. Normal movement, gathering, crafting, and chopping are available immediately. Refreshing retains debug mode but resets the session.
+
+The collapsible DEV PLAYGROUND panel provides:
+
+- Play once or loop idle, sliding, jumps, spawn landing, gathering, crafting, chopping, and facial expressions. Use ¼×, ½×, 1×, or 2× speed and Face camera. Previews run in place and do not spend items or earn XP; Stop returns to normal play.
+- Add any whole-number XP or level amount (up to 1,000,000 per operation) to Gathering, Crafting, or Lumberjack. Levels and XP stay consistent with the prototype's 120 XP per level.
+- Add/remove quantities of any currently implemented item. Removal clamps at zero.
+- Trigger Going, interaction spinners, Arrived/Done, blocked clicks, XP text, and level-up feedback independently of gameplay rewards.
+- Restore ground items, restore trees, or reset the entire test area (including skills, starter inventory, player position, and camera).
+
+Run `npm run dev` for the normal tutorial experience on port 5173. Both servers can run side by side; no URL parameter or saved browser setting enables debug mode in the normal app.
+
+Build and compare both variants:
+
+```sh
+npm run build
+npm run build:debug
+npm run check:debug-isolation
+```
+
+`dist/` is the normal distributable. `dist-playground/` is explicitly debug-only. `npm run preview` serves the normal build on port 4173; `npm run preview:debug` serves the debug build on port 4174. Never deploy `dist-playground/` as the normal game.
+
+`vite.config.js` defines the compile-time `__PLAYGROUND__` flag **only** for the `playground` mode. The panel and CSS live in `src/dev/`, dynamically imported inside that flag. Normal builds eliminate the import, mutation adapter, preview hooks, and `window.clime` inspection API. The isolation check scans both outputs to confirm the debug panel/control/style markers are absent from the normal build and present in the debug build. To remove the tooling entirely, remove `src/dev/`, the guarded hooks in `src/main.js`, the debug scripts, and the flag/config; the production gameplay modules remain independent of the debug module.

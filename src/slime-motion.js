@@ -49,3 +49,14 @@ export function stepMotion(seconds, height) {
   }
   return {distance,lift,squash,stretch,lean,twist:0};
 }
+
+// Shared by gameplay and the development animation viewer.
+export function workPose(kind,time){
+  return {squash:.97,stretch:1,twist:0,lean:kind==='chop'?.03+Math.max(0,Math.sin(time*9))*.07:.035};
+}
+export function spawnMotion(time){
+  let squash=1,lift=0;
+  if(time<.68){const p=Math.min(1,time/.68);lift=14*(1-p*p);squash=1+.18*Math.sin(Math.PI*p);}
+  else{const p=Math.min(1,(time-.68)/.52);squash=1-.3*Math.sin(Math.PI*p)*Math.exp(-p);}
+  return {squash,lift,stretch:1,twist:0,lean:0};
+}

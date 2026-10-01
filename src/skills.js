@@ -41,3 +41,9 @@ export function updateSkillRewards(dt,camera,width,height){
     if(progress===1){reward.element.remove();floatingXp.splice(i,1);}
   }
 }
+
+export function clearSkillRewards(){
+  for(const reward of floatingXp)reward.element.remove();
+  floatingXp.length=0;
+  document.getElementById('skill-rewards')?.replaceChildren();
+}

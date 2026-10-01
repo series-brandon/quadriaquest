@@ -1,3 +1,4 @@
+import {spawnMotion} from './slime-motion.js';
 const openingLines = [
   'Hello there!',
   'Welcome to the world of Quadra!',
@@ -132,9 +133,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     const landing=inClearing?spawn:introSpawn;
     player.visible=true;player.position.copy(landing);
     visual.rotation.set(0,0,0);face.set(t<.68?'struggle':'idle');
-    let squash=1;
-    if(t<.68){const p=Math.min(1,t/.68);player.position.y+=14*(1-p*p);squash=1+.18*Math.sin(Math.PI*p);}
-    else {const p=Math.min(1,(t-.68)/.52);squash=1-.3*Math.sin(Math.PI*p)*Math.exp(-p);}
+    const {squash,lift}=spawnMotion(t);player.position.y+=lift;
     visual.scale.set(1/Math.sqrt(squash),squash,1/Math.sqrt(squash));
     visual.position.y=-.07*squash;
   }

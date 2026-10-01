@@ -9,10 +9,10 @@ const introduction=[
   'Oh, right, sorry, just a sec...',
   'There we go! Now you should be able to get into your menus to craft what we need.'
 ];
-export function createCraftingTutorial({getInventory,startCraft}){
+export function createCraftingTutorial({getInventory,startCraft,freePlay=false}){
   const $=id=>document.getElementById(id);
-  let stage='inactive',lineIndex=0,advance=null,successNext=null,firstTree=true;
-  const host=document.createElement('div');host.id='game-menus';host.hidden=true;
+  let stage=freePlay?'done':'inactive',lineIndex=0,advance=null,successNext=null,firstTree=!freePlay;
+  const host=document.createElement('div');host.id='game-menus';host.hidden=!freePlay;
   host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false"><span aria-hidden="true">☰</span></button>
     <nav id="game-menu-bar" hidden aria-label="Game menu"><button id="open-crafting">Crafting</button></nav>
     <section id="crafting-panel" hidden aria-label="Crafting"><div class="crafting-heading"><h2>Crafting</h2><button id="close-crafting" aria-label="Close crafting menu">×</button></div><p class="crafting-intro">Something useful from something simple.</p>
@@ -50,7 +50,7 @@ export function createCraftingTutorial({getInventory,startCraft}){
   function advanceLine(event){if(event.target.closest('button,input,label'))return;if(advance){const next=advance;advance=null;next();}}
   $('dialogue').addEventListener('click',advanceLine);
   $('dialogue').addEventListener('keydown',e=>{if(e.target===$('dialogue')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();advanceLine(e);}});
-  $('tutorial-continue').addEventListener('click',()=>{if(successNext){const next=successNext;successNext=null;next();}});
+  $('tutorial-continue')?.addEventListener('click',()=>{if(successNext){const next=successNext;successNext=null;next();}});
   $('game-menu-toggle').addEventListener('click',()=>{
     if(['intro','crafting','craft-success','chop-dialogue','chop-success'].includes(stage))return;
     if(stage==='menu'||stage==='retry'){
