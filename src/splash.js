@@ -1,3 +1,4 @@
+import {createWaterEffects} from './water-effects.js';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {createSlimeFace} from './slime-face.js';
@@ -15,6 +16,7 @@ export function createSplash(renderer,enabled){
   const camera=new THREE.PerspectiveCamera(38,1,.1,50);
   function mesh(geometry,color,parent=scene){const m=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:.85}));m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
   // A separate pocket garden: a low pond shelf and raised rear corners.
+  const waterEffects=createWaterEffects(scene,renderer);
   const heights=new Map(),pond=new Set(['-2,0','-1,0','-2,1','-1,1']);
   for(let x=-3;x<=3;x++)for(let z=-2;z<=2;z++){
     if(Math.abs(x)===3&&Math.abs(z)===2)continue;
@@ -23,7 +25,8 @@ export function createSplash(renderer,enabled){
     mesh(new THREE.BoxGeometry(.985,water?.7:h,.985),'#a29979').position.set(x,(water?.7:h)/2-1,z);
     if(water){
       const surface=mesh(new THREE.BoxGeometry(.998,.15,.998),'#8dbdb3');surface.position.set(x,-.225,z);surface.material.roughness=.3;surface.material.metalness=.08;
-      for(let n=0;n<2;n++)mesh(new THREE.BoxGeometry(.24,.004,.018),'#c9e3cc').position.set(x+(n-.5)*.3,-.147,z+(n-.5)*.34);
+      const side=surface.material,hiddenFace=new THREE.MeshBasicMaterial({visible:false});surface.material=[[1,0],[-1,0],null,null,[0,1],[0,-1]].map((offset,i)=>i===2||(offset&&pond.has(`${x+offset[0]},${z+offset[1]}`))?hiddenFace:side);
+      waterEffects.add(x,-.15,z,side);
     }else mesh(new RoundedBoxGeometry(.985,.12,.985,3,.045),(x+z)%2?'#a9bf83':'#b8c98c').position.set(x,h-1,z);
   }
   for(const [x,z] of [[-2,-2],[2,-2],[3,0]]){
@@ -52,8 +55,8 @@ export function createSplash(renderer,enabled){
   function show(){overlay.hidden=false;blocked=[...document.body.children].filter(el=>el!==overlay&&!el.inert);for(const el of blocked)el.inert=true;overlay.querySelector('button').focus();}
   const close=()=>{overlay.hidden=true;for(const el of blocked)el.inert=false;blocked=[];};overlay.querySelector('button').onclick=close;
   if(enabled)show();
-  return {get active(){return !overlay.hidden;},show,render(dt){
-    age+=dt;const {pose}=socialMotion('Sleeping',age);bend(pose.bend);const width=1/Math.sqrt(pose.squash);slime.scale.set(width,pose.squash,width);slime.position.y=.065-.07*pose.squash;
+  return {restartWater(){waterEffects.restart();},get active(){return !overlay.hidden;},show,render(dt){
+    waterEffects.update(dt);age+=dt;const {pose}=socialMotion('Sleeping',age);bend(pose.bend);const width=1/Math.sqrt(pose.squash);slime.scale.set(width,pose.squash,width);slime.position.y=.065-.07*pose.squash;
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();const distance=camera.aspect<.8?17:14;
     camera.position.set(distance*.4, distance*.5,distance*.85);camera.lookAt(0,1.4,0);camera.updateMatrixWorld();
     zs.update(dt,true,slime.position,camera);renderer.render(scene,camera);

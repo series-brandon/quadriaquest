@@ -1,3 +1,4 @@
+import {WATER_DEFAULTS} from '../water-effects.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {mountThemeComparison} from './theme-comparison.js';
 import {showGatheringPrompt} from '../opening.js';
@@ -29,6 +30,22 @@ export function mountPlayground(api){
       <label>Slime color <input id="dev-color" type="color" value="#a4ce77"></label>
       <p class="dev-note">Previews run in place without consuming items or earning XP. Stop to play normally.</p>
     </fieldset>
+    <fieldset><legend>Water animation</legend>
+      <label><input id="dev-water-enabled" type="checkbox" ${WATER_DEFAULTS.enabled?'checked':''}> Animate water</label>
+      <label><input id="dev-water-shimmers" type="checkbox" ${WATER_DEFAULTS.shimmers?'checked':''}> Shimmer strips</label>
+      <label><input id="dev-water-waves" type="checkbox" ${WATER_DEFAULTS.waves?'checked':''}> Surface waves</label>
+      <label><input id="dev-water-shoreline" type="checkbox" ${WATER_DEFAULTS.fixedShoreline?'checked':''}> Fixed shoreline</label>
+      <label>Water color <input id="dev-water-color" type="color" value="${WATER_DEFAULTS.color}"></label>
+      <label><input id="dev-water-faceted" type="checkbox" ${WATER_DEFAULTS.faceted?'checked':''}> Faceted water lighting</label>
+      <label>Wave strength <input id="dev-water-strength" type="number" min="0" max="4" step="0.25" value="${WATER_DEFAULTS.waveStrength}"></label>
+      <label>Water roughness <input id="dev-water-roughness" type="number" min="0" max="1" step="0.05" value="${WATER_DEFAULTS.roughness}"></label>
+      <label>Reflection strength <input id="dev-water-reflection" type="number" min="0" max="5" step="0.25" value="${WATER_DEFAULTS.reflectionStrength}"></label>
+      <label>Water opacity <input id="dev-water-opacity" type="number" min="0" max="1" step="0.05" value="${WATER_DEFAULTS.opacity}"></label>
+      <label>Water speed <input id="dev-water-speed" type="number" min="0" max="3" step="0.25" value="${WATER_DEFAULTS.speed}"></label>
+      <label>Water intensity <input id="dev-water-intensity" type="number" min="0" max="3" step="0.25" value="${WATER_DEFAULTS.intensity}"></label>
+      <div><button data-dev="water-restart">Replay water</button><button data-dev="water-reset">Reset water</button></div>
+      <p class="dev-note">Short drifting shimmer lines in the clearing and splash ponds. Compare surface waves and faceted lighting independently. Wave strength 4 is the default. Uncheck Fixed shoreline to let waves lap against banks. Lower roughness gives sharper highlights; reflection strength 0 removes sky reflections. Opacity 1 is opaque; lower it to reveal the shallow bed and pebbles. Speed 0 pauses; Water intensity controls only the shimmer strips and has no effect while they are off.</p>
+    </fieldset>
     <fieldset><legend>Skills</legend><div><button data-dev="skills-menu">Open Skills menu</button><button data-dev="skills-lesson">Replay Skills tutorial</button></div><p class="dev-note">Replay sets Gathering to level 2 (120 XP) for the first-level lesson.</p>
       <label>Skill <select id="dev-skill">${Object.keys(api.skills).map(a=>`<option>${a}</option>`).join('')}</select></label>
       <label>Amount <input id="dev-skill-amount" type="number" min="0" max="1000000" step="1" value="20"></label>
@@ -53,6 +70,7 @@ export function mountPlayground(api){
   document.body.append(panel);
   const compareThemes=mountThemeComparison(api);
   const $=id=>panel.querySelector('#dev-'+id);
+  const waterControls={"enabled": "enabled", "shimmers": "shimmers", "waves": "waves", "shoreline": "fixedShoreline", "color": "color", "faceted": "faceted", "strength": "waveStrength", "roughness": "roughness", "reflection": "reflectionStrength", "opacity": "opacity", "speed": "speed", "intensity": "intensity"};
   let preview=null,time=0,holdingFeedback=false,snapshotAge=0;
   const amount=id=>{const n=Number($(id).value);if(!Number.isSafeInteger(n)||n<0||n>1000000)throw Error('Enter a whole number from 0 to 1,000,000.');return n;};
   const status=text=>$('status').textContent=text;
@@ -69,6 +87,8 @@ export function mountPlayground(api){
       }
       if(b.dataset.dev){
         const action=b.dataset.dev;
+        if(action==='water-restart'){api.restartWater();status('Water animation restarted.');}
+        if(action==='water-reset'){Object.assign(api.waterSettings,WATER_DEFAULTS);for(const [id,key] of Object.entries(waterControls)){const input=$('water-'+id);if(input.type==='checkbox')input.checked=WATER_DEFAULTS[key];else input.value=WATER_DEFAULTS[key];}api.restartWater();status('Water defaults restored.');}
         if(action==='inventory-menu'){stop();api.showInventory();}
         if(action==='inventory-lesson'){stop();api.inventoryLesson();}
         if(action==='skills-menu'){stop();api.showSkills();}
@@ -124,6 +144,16 @@ export function mountPlayground(api){
       refresh();
     }catch(error){status(error.message);}
   });
+  for(const [id,key,max] of [['roughness','roughness',1],['reflection','reflectionStrength',5]])$('water-'+id).addEventListener('input',()=>{const value=Number($('water-'+id).value);if(Number.isFinite(value))api.waterSettings[key]=Math.max(0,Math.min(max,value));});
+  $('water-shimmers').addEventListener('change',()=>api.waterSettings.shimmers=$('water-shimmers').checked);
+  $('water-shoreline').addEventListener('change',()=>api.waterSettings.fixedShoreline=$('water-shoreline').checked);
+  $('water-color').addEventListener('input',()=>api.waterSettings.color=$('water-color').value);
+  $('water-faceted').addEventListener('change',()=>api.waterSettings.faceted=$('water-faceted').checked);
+  $('water-strength').addEventListener('input',()=>{const value=Number($('water-strength').value);if(Number.isFinite(value))api.waterSettings.waveStrength=Math.max(0,Math.min(4,value));});
+  $('water-opacity').addEventListener('input',()=>{const value=Number($('water-opacity').value);if(Number.isFinite(value))api.waterSettings.opacity=Math.max(0,Math.min(1,value));});
+  $('water-waves').addEventListener('change',()=>api.waterSettings.waves=$('water-waves').checked);
+  $('water-enabled').addEventListener('change',()=>api.waterSettings.enabled=$('water-enabled').checked);
+  for(const name of ['speed','intensity'])$('water-'+name).addEventListener('input',()=>{const value=Number($('water-'+name).value);if(Number.isFinite(value))api.waterSettings[name]=Math.max(0,Math.min(3,value));});
   $('hitboxes').addEventListener('change',()=>api.showResourceHitboxes($('hitboxes').checked));
   $('color').addEventListener('input',()=>api.color($('color').value));
   api.reset('all');refresh();

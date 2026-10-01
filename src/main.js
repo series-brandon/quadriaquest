@@ -1,3 +1,4 @@
+import {createWaterEffects,waterSettings} from './water-effects.js';
 import {createResourceHitbox} from './resource-hitbox.js';
 import './ui-theme.css';
 import {createSlimeBend} from './slime-bend.js';
@@ -54,8 +55,9 @@ function terrain(t,index){
  const linePoints=[];for(const [a,b,visible]of [[[-.5,-.5],[.5,-.5],!exposed[2]],[[-.5,-.5],[-.5,.5],!exposed[0]]])if(visible)linePoints.push(new THREE.Vector3(a[0],t.h+.002,a[1]),new THREE.Vector3(b[0],t.h+.002,b[1]));
  const lines=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(linePoints),new THREE.LineBasicMaterial({color:'#72865c',transparent:true,opacity:.16}));lines.position.set(t.x-6,0,t.z-6);scene.add(lines);
 }
-let idx=0;for(const t of world.values()){
- if(t.water){const water=mesh(new THREE.BoxGeometry(1,.85,1),mat('#8dbdb3',{roughness:.3,metalness:.08}));water.position.set(t.x-6,.425,t.z-6);water.userData.tile=t;pickables.push(water);for(let n=0;n<2;n++){const ripple=mesh(new THREE.BoxGeometry(.24,.004,.018),mat('#c9e3cc'));ripple.position.set(t.x-6+(n-.5)*.3,.86,t.z-6+(n-.5)*.34);}}else terrain(t,idx++);
+let idx=0;const waterEffects=createWaterEffects(scene,renderer);
+for(const t of world.values()){
+ if(t.water){const water=mesh(new THREE.BoxGeometry(1,.85,1),mat('#8dbdb3',{roughness:.3,metalness:.08}));water.position.set(t.x-6,.425,t.z-6);water.userData.tile=t;pickables.push(water);const hiddenTop=new THREE.MeshBasicMaterial({visible:false});const side=water.material;water.material=[[1,0],[-1,0],null,null,[0,1],[0,-1]].map((offset,i)=>i===2||(offset&&world.get(key(t.x+offset[0],t.z+offset[1]))?.water)?hiddenTop:side);const surface=waterEffects.add(t.x-6,.85,t.z-6,side);surface.userData.tile=t;pickables.push(surface);}else terrain(t,idx++);
 }
 const ground=mesh(new THREE.PlaneGeometry(200,200),mat('#e5e9df'));ground.rotation.x=-Math.PI/2;ground.position.y=-.045;ground.castShadow=false;
 const trees=[],fallingTrees=[];
@@ -225,7 +227,7 @@ function changeZoom(delta){if(!opening.playable||finale.cameraFocus)return;const
 $('reset').onclick=()=>{gatheringSkill=createGatheringSkill();happyUntil=0;path=[];segment=null;target=null;gatherTime=0;inventory={sticks:0,stones:0};tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources){r.collected=false;r.group.visible=true;}feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;opening.update(dt);
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;waterEffects.update(dt);opening.update(dt);
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!activeAction&&!actorTarget&&!finale.busy&&!debug?.previewing):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
  if(!opening.playable){rotationKeys.clear();
@@ -380,6 +382,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
 }
 if(__PLAYGROUND__){
  debug=playground.mountPlayground({
+  waterSettings,restartWater(){waterEffects.restart();splash.restartWater();},
   showSplash(){stopAll();splash.show();},
   showResourceHitboxes(show){for(const r of resources)r.hitbox.material.colorWrite=show;},
   showInventory(){craftingTutorial.openInventory();},

@@ -128,3 +128,26 @@ After the Iter Crystal lands, the camera eases to a close view of it, holds with
 The portal instruction dialogue stays visible throughout the crystal drop and camera reveal. Its continue hint is hidden while zooming in, then appears at the close-up. The close-up holds indefinitely until the player clicks/taps (or presses Enter/Space) to continue. The camera then eases back for one second; only after it returns does the practice-reset dialogue appear. Playground Drop portal shows the same explanatory dialogue during its reveal.
 
 Crystal travel places the player on a valid cardinally adjacent tile beside the destination crystal, in both directions. Arrival prefers the south neighbor, then east, north, and west; blocked tiles, water, missing tiles, and elevation differences greater than a half block are excluded. If no safe neighbor exists, travel is cancelled with a message. Playground **Enter placeholder**, **Return to clearing**, and **Use portal** exercise the same arrival logic; direct placeholder travel supplies a clearing crystal when one has not yet been introduced.
+
+**Water polish.** Inland water and ocean water have distinct visual directions. Ponds use translucent, faceted water with a shallow bed and scattered pebbles. Rivers should eventually add directional flow; ocean shoreline motion remains a future treatment.
+
+The clearing and splash garden share these pond defaults:
+
+| Setting | Default |
+| --- | --- |
+| Animate water | On |
+| Shimmer strips | Off |
+| Surface waves | On |
+| Fixed shoreline | On |
+| Water color | RGB (0, 64, 112), #004070 |
+| Faceted water lighting | On |
+| Wave strength | 4 |
+| Water roughness | 0 |
+| Reflection strength | 3.5 |
+| Water opacity | 0.75 |
+| Water speed | 1.25 |
+| Water intensity | 1 (only affects shimmer strips) |
+
+Waves remain continuous across tiles and fade to zero at banks by default, with displacement bounded to 0.072 tile. Uncheck **Fixed shoreline** to let them lap against banks. **Shimmer strips** independently enables the decorative pale lines. Both ponds use a generated sky reflection with soft clouds and a sun highlight; this does not reflect live trees or the slime. Roughness controls highlight sharpness, and reflection strength 0 removes the sky contribution while direct lights still produce highlights. Transparency uses alpha blending without refraction.
+
+All settings have playground controls, shared with **Preview splash screen**. **Replay water** restarts animation; **Reset water** restores the defaults above from the same preset used by normal play. Speed 0 pauses animation. Developer controls remain exclusive to playground builds.
