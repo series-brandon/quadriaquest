@@ -1,3 +1,4 @@
+import {portalSpawn} from './portal-spawn.js';
 import * as THREE from 'three';
 import {makeCrystal,makeChest,makeTopHat} from './finale-models.js';
 import {highlightResource} from './resource-highlight.js';
@@ -8,7 +9,7 @@ import {findPath,key} from './world.js';
 const portalInstruction="I've taught you all I can here in this area, when you're ready to move on, move over to the Iter Portal and we'll move on to the next area.";
 
 export function createTutorialFinale(api){
-  const $=id=>document.getElementById(id),actors=[],drops=[];
+  const $=id=>document.getElementById(id),actors=[],drops=[],clearingTiles=new Map(api.world);
   let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null,transition=null,inPlaceholder=false,equipped=false;
   const hat=makeTopHat(),heldHat=makeTopHat();api.visual.add(hat,heldHat);hat.position.y=.79;hat.visible=false;heldHat.visible=false;
   const equipment=document.createElement('button');equipment.id='hat-equipment';equipment.hidden=true;document.body.append(equipment);
@@ -85,7 +86,15 @@ export function createTutorialFinale(api){
     const cameraAngle=chest?Math.atan2(p.x-chest.group.position.x,p.z-chest.group.position.z):api.getAngle();
     celebration={age:0,angle:cameraAngle,...options};stage='celebration';
   }
-  function travel(destination){if(busy()||((destination==='placeholder')===inPlaceholder))return;api.stop();hideDialogue();transition={age:0,destination,switched:false};$('scene-fade').hidden=false;}
+  function travel(destination){
+    if(busy()||((destination==='placeholder')===inPlaceholder))return;
+    // Direct playground travel still needs a real return crystal in the clearing.
+    if(!portal&&!inPlaceholder){const t=chooseTile({x:8,z:8});if(t){portal=createActor(makeCrystal(),t,'portal','Enter Iter Portal',0);portal.ready=true;}}
+    const destinationMap=destination==='placeholder'?new Map(tiles.map(t=>[key(t.x,t.z),t])):clearingTiles;
+    const landing=portalSpawn(destinationMap,(destination==='placeholder'?returnPortal:portal)?.tile);
+    if(!landing){api.travelBlocked();return;}
+    api.stop();hideDialogue();transition={age:0,destination,landing,switched:false};$('scene-fade').hidden=false;
+  }
   function refresh(){if(!(api.inventory.hats>0))equipped=false;equipment.hidden=!(api.inventory.hats>0)||!!celebration;equipment.textContent=equipped?'Remove Top Hat':'Wear Top Hat';hat.visible=equipped&&!celebration;}
   return {
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,travel,
@@ -123,7 +132,7 @@ export function createTutorialFinale(api){
       for(const a of actors){const here=a.kind==='return'?inPlaceholder:!inPlaceholder;a.highlight.update(here&&a.ready&&!a.opened,time,here&&hover===a&&a.ready&&!a.opened);if(a.kind!=='chest'&&a.ready)a.group.position.y=a.tile.h+.12+Math.sin(time*1.8)*.10;}
       if(practice&&!inPlaceholder&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
       if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;heldHat.visible=t>.55&&t<3.5;heldHat.position.set(0,.72+Math.min(1,Math.max(0,(t-.55)/.6))*.20,.56);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}
-      if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';api.switchArea(inPlaceholder,placeholder,tiles);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;location.hidden=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)say("You've reached the end of the prototype! Thanks for playing!",hideDialogue);}}
+      if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';api.switchArea(inPlaceholder,placeholder,tiles,transition.landing);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;location.hidden=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)say("You've reached the end of the prototype! Thanks for playing!",hideDialogue);}}
       refresh();$('game-menus').inert=busy();
     }
   };

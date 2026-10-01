@@ -113,11 +113,12 @@ const finale=createTutorialFinale({scene,world,player,visual,trees,resources,pic
  getTile:()=>tile,getAngle:()=>angle,stop:stopAll,showItemChanges,approach:selectActor,
  clearFalling(){fallingTrees.length=0;},
  ensureClearSpawn(){if(trees.some(t=>t.x===tile.x&&t.z===tile.z)){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}},
- switchArea(away,group,tiles){
+ travelBlocked(){toast("There’s no safe space beside the destination crystal.");},
+ switchArea(away,group,tiles,landing){
   stopAll();
   if(away){clearingVisibility=new Map(clearingObjects.map(o=>[o,o.visible]));for(const o of clearingObjects)if(o!==ground)o.visible=false;world.clear();for(const t of tiles)world.set(key(t.x,t.z),t);group.visible=true;}
   else{group.visible=false;world.clear();for(const [k,t]of clearingTiles)world.set(k,t);for(const [o,visible]of clearingVisibility||[])o.visible=visible;}
-  tile=world.get(key(6,6));player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();
+  tile=landing||world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();
  }
 });
 function canMove(){return opening.canMove&&!craftingTutorial.blocksMovement&&!finale.busy;}
