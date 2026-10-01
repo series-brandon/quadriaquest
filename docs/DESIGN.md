@@ -63,12 +63,12 @@ Combat, crafting, the full skill system, multiple maps, transportation, defeat h
 
 **Visual references.** The supplied mockups guide individual qualities rather than mandate their exact art style or assets:
 
-- [Mockup 1](/Users/brandonmanning/Desktop/Mockup_1.webp): clear block-height differences and stepped map composition.
-- [Mockup 2](/Users/brandonmanning/Desktop/mockup2.png): readable tiles and subtle separation between neighbors.
-- [Mockup 3](/Users/brandonmanning/Desktop/mockup3.jpg): softened exposed edges, adapted to avoid rounding shared tile boundaries.
-- [Mockup 4](/Users/brandonmanning/Desktop/mockup4.avif): tile separation, based on the user's description; this image could not be rendered during drafting.
+- [Mockup 1](references/Mockup_1.webp): clear block-height differences and stepped map composition.
+- [Mockup 2](references/mockup2.png): readable tiles and subtle separation between neighbors.
+- [Mockup 3](references/mockup3.jpg): softened exposed edges, adapted to avoid rounding shared tile boundaries.
+- [Mockup 4](references/mockup4.avif): tile separation, based on the user's description; this image could not be rendered during drafting.
 
-These reference files currently live outside the project. Pixel art, exact colors, and the references' material styles are not requirements.
+These reference files are stored in the project under `docs/references/`. Pixel art, exact colors, and the references' material styles are not requirements.
 
 **Deferred decisions.** Final character design, detailed art direction, transportation fiction, respawn locations, combat formulas, and the broader progression systems remain open. None blocks the first playable prototype.
 

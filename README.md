@@ -1,6 +1,6 @@
 # Project Clime
 
-A small browser RPG prototype built with JavaScript, Three.js, HTML, and CSS. The agreed design is recorded in [DESIGN.md](DESIGN.md).
+A small browser RPG prototype built with JavaScript, Three.js, HTML, and CSS. The agreed design is recorded in [DESIGN.md](docs/DESIGN.md).
 
 Run locally with Node.js 22 or newer:
 
