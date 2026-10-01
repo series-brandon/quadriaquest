@@ -9,15 +9,18 @@ export function makeBoulder(){
  return group;
 }
 export function makePickaxe(){
- const group=new THREE.Group();
+ const group=new THREE.Group();group.rotation.y=-Math.PI/2;
  const handle=new THREE.Mesh(new THREE.CylinderGeometry(.025,.032,.5,6),new THREE.MeshStandardMaterial({color:'#a98a64',roughness:.9}));handle.position.y=.19;group.add(handle);
  const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(-.25,.33,0),new THREE.Vector3(0,.43,0),new THREE.Vector3(.25,.33,0)]);
  const head=new THREE.Mesh(new THREE.TubeGeometry(curve,6,.045,4,false),new THREE.MeshStandardMaterial({color:'#899ba6',roughness:.65,flatShading:true}));group.add(head);return group;
 }
 export const MINING_DURATION=1.15;
+export const MINING_GRIP_SPACING=.21;
 export function miningMotion(time){
  const p=(time%MINING_DURATION)/MINING_DURATION;
  const swing=p<.48?(.5-.5*Math.cos(Math.PI*p/.48)):p<.66?1-(p-.48)/.18:0;
  const strike=p>=.66&&p<.8?Math.sin((p-.66)/.14*Math.PI):0;
- return {right:[-.3,.36+swing*.48,.48-swing*.38,.7-swing*1.7,0,0],left:[.22,.32+swing*.15,.35-swing*.1,.15,0,0],body:{squash:1-.07*strike,stretch:1,lean:.09-.14*swing,twist:0},impact:strike*.018};
+ const y=.52+swing*.48,z=.48-swing*.38,curl=.7-swing*1.7;
+ // Stack both grips on the centered shaft throughout the vertical swing.
+ return {right:[0,y,z,curl,0,0],left:[0,y+Math.cos(curl)*MINING_GRIP_SPACING,z+Math.sin(curl)*MINING_GRIP_SPACING,curl,0,0],body:{squash:1-.07*strike,stretch:1,lean:.09-.14*swing,twist:0},impact:strike*.018};
 }

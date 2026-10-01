@@ -1,4 +1,4 @@
-import {BOULDER_TILES,makeBoulder,makePickaxe,miningMotion} from './mining.js';
+import {BOULDER_TILES,makeBoulder,makePickaxe,miningMotion,MINING_GRIP_SPACING} from './mining.js';
 import {ITEMS} from './items.js';
 import {createWaterEffects,waterSettings} from './water-effects.js';
 import {createResourceHitbox} from './resource-hitbox.js';
@@ -366,6 +366,12 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   hand.rotation.z=THREE.MathUtils.lerp(hand.rotation.z,roll,blend);
   hand.rotation.y=THREE.MathUtils.lerp(hand.rotation.y,yaw,blend);
   hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
+ }
+ if(pickaxeTool.visible){
+  // Follow the actual smoothed tool transform so the upper grip never slips.
+  hands[0].updateMatrix();
+  hands[1].position.set(0,MINING_GRIP_SPACING,0).applyMatrix4(hands[0].matrix);
+  hands[1].quaternion.copy(hands[0].quaternion);
  }
  for(let i=fallingTrees.length-1;i>=0;i--){
   const fall=fallingTrees[i];fall.age+=dt;const p=Math.min(1,fall.age/.85);
