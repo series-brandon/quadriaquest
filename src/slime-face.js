@@ -27,8 +27,13 @@ export function createSlimeFace() {
   line([[-.04,.415],[0,.38],[.04,.415]],normal);
   line([[-.045,.397],[.01,.405],[.047,.397]],focused,.011);
   const effortMouth=part(new THREE.SphereGeometry(.032,12,8),ink,struggle);effortMouth.position.set(0,.395,.375);effortMouth.scale.set(.8,1.25,.25);
+  const tenseMouth=line([[-.055,.397],[-.028,.411],[0,.385],[.028,.411],[.055,.397]],struggle,.009);
   const mouth=part(new THREE.SphereGeometry(.078,20,12),ink,happy);mouth.position.set(0,.39,.377);mouth.scale.set(1,.8,.23);
   const tongue=part(new THREE.SphereGeometry(.043,16,8),pink,happy);tongue.position.set(0,.356,.394);tongue.scale.set(1,.48,.2);
   const expressions={idle:normal,focused,struggle,happy};
-  return {group,set(state){for(const [name,part]of Object.entries(expressions))part.visible=name===state;}};
+  return {group,set(state){
+    const preparing=state==='preparing';
+    for(const [name,part]of Object.entries(expressions))part.visible=name===(preparing?'struggle':state);
+    tenseMouth.visible=preparing;effortMouth.visible=!preparing;
+  }};
 }

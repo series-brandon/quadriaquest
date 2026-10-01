@@ -115,7 +115,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(segment){
   segment.age+=dt;
   const stepped=Math.abs(segment.height)>.01;
-  expression=stepped?'struggle':'focused';
+  expression=stepped?(segment.age<.32?'preparing':'struggle'):'focused';
   const duration=stepped?STEP_DURATION:1/2.4;
   const motion=stepped?stepMotion(segment.age,segment.height):slideMotion(segment.age/duration);
   player.position.set(
