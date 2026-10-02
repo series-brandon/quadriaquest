@@ -166,7 +166,7 @@ Crafting recipes display required/owned counts per ingredient (for example, Stic
 
 ## Journal, objectives, and feedback polish
 
-Conversations retain a warm paper panel near the bottom. Active tutorial objectives use a smaller plum card at the upper left with progress and explicit continuation. Conversations temporarily hide objectives. Tutorial guidance still targets actual menu controls.
+Conversations retain a warm paper panel near the bottom. Dismissible tutorial tips share the bottom message area in a plum card with explicit continuation. Objectives live in Quests and produce brief upper-left progress updates. Conversations temporarily hide tutorial tips. Tutorial guidance still targets actual menu controls.
 
 The adventurer’s journal shares persistent Skills, Inventory, and Crafting navigation. In ordinary play its button opens the last-used page directly; teaching steps retain explicit tab selection. Desktop can expand the compact right-side journal into a centered layout, with the size preference saved locally. Mobile uses a large sheet. Inventory uses searchable compact rows, item details, and equipment actions; skills use searchable compact rows with always-visible level/progress and expandable XP details. Crafting separates recipe selection, material requirements, timing, output, and the craft button. Crude recipes remain subject to the existing tutorial restrictions.
 
@@ -183,3 +183,14 @@ The playground exposes each effect individually, music-context selection, all sh
 **Phone journal layout.** At widths up to 700px the journal fills the safe viewport, with persistent tabs and an explicit close control. Inventory is a list/detail drill-down with Back to items; it does not split limited phone height between two scrolling panes. The same tutorial card docks inside the journal during menu lessons and returns to the world overlay when the journal closes. Crafting text wraps, inputs avoid mobile focus zoom, and primary touch targets are at least 44px. Desktop compact/expanded layouts remain separate. Existing playground menu and tutorial replay controls exercise both layouts; its collapsed mobile launcher moves away from the journal header.
 
 **Settings access.** The game menu launcher stays at the top right. Its Settings entry and the splash-screen cog open the same sound-settings dialog, sharing saved Music, Effects, Ambience, and Mute values. Settings can be adjusted before Play without advancing the tutorial. The separate floating Sound launcher is removed. Playground Open Settings and splash preview exercise both entry points.
+
+
+### Tutorial tips and quest objectives
+
+Dialogue and dismissible tutorial tips share the bottom message area. Dialogue uses warm paper with a speaker; tips use plum with a Tutorial label and explicit Continue. Tips explain controls or systems; they do not serve as a permanent progress tracker. Opening the journal preserves the current tip.
+
+Objectives persist independently in the Quests tab under A Small Beginning, with detailed instructions, counts/progress, and a visible completed-task history beneath the active tasks. Assignment, changes, and completion produce a compact top-left notification that fades after a few seconds. Updates replace the existing notification; completion records immediately, before any Continue click. Camera, movement, gathering, skills/inventory lessons, crafting, chopping, mining, and the Iter Crystal are tracked. Optional mining/crafting guidance remains accessible from quest details. After the narrator asks the player to pick up Sticks and Rocks, the gathering quest is assigned. A dismissible tip announces the quest, followed by “Oh wait, I forgot... here you go!” as the menu appears with golden guidance. The player opens the menu, selects the highlighted Quests tab, and reads a brief explanation before continuing into the camera and movement lessons.
+
+The playground exposes tip preview and objective add/update/complete/reset controls, plus direct Quests access and Replay Quests tutorial for the complete menu-reveal sequence. Existing tutorial replays exercise real objective updates; full test-area reset clears objectives.
+
+The Rotate, Zoom, and Move tips remain visible while performing their actions. Continue stays disabled until success (movement requires arrival at a different tile). The playground can replay these three lessons using the real opening controller. Quests show task bullets, followed by completed tasks with a checkmark and Completed label.

@@ -41,3 +41,24 @@ test('normal chopping leads into optional mining guidance, retry, success and fi
   tutorial.startMining();tutorial.reset();assert.equal(tutorial.stage,'done');assert.equal(get('tutorial-help').hidden,true);
  }finally{globalThis.document=previous;}
 });
+
+test('first quest introduces the hidden menu, guides Quests, then resumes opening lessons',()=>{
+ const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
+ try{
+  let resumed=0;
+  const tutorial=createCraftingTutorial({getInventory:()=>({}),getSkills:()=>({}),startCraft:()=>false});
+  tutorial.startQuests(()=>resumed++);
+  assert.equal(get('game-menus').hidden,true);
+  assert.match(get('tutorial-copy').children.map(n=>n.textContent||'').join(''),/been given a quest/);
+  get('tutorial-continue').click();
+  assert.equal(tutorial.stage,'quests-reveal');assert.equal(get('game-menus').hidden,false);
+  assert.ok(get('game-menu-toggle').classes.has('gold-guide'));assert.equal(resumed,0);
+  get('game-menu-toggle').click();assert.equal(tutorial.stage,'quests-reveal');
+  get('dialogue').click();assert.equal(tutorial.stage,'quests-toggle');
+  get('game-menu-toggle').click();assert.equal(tutorial.stage,'quests-menu');
+  assert.ok(get('open-quests').classes.has('gold-guide'));
+  tutorial.questsOpened();assert.equal(tutorial.stage,'quests-detail');assert.equal(resumed,0);
+  get('tutorial-continue').click();assert.equal(resumed,1);assert.equal(tutorial.stage,'inactive');
+  assert.equal(get('quests-panel').hidden,true);assert.equal(get('gather-tutorial').hidden,true);
+ }finally{globalThis.document=previous;}
+});

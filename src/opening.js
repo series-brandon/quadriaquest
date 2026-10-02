@@ -1,3 +1,4 @@
+import {updateObjective,finishObjective} from './quests.js';
 import {SOCIAL_DURATIONS} from './slime-social.js';
 import {spawnMotion} from './slime-motion.js';
 const openingLines = [
@@ -14,7 +15,8 @@ const clearingLines = [
 ];
 
 export function showGatheringPrompt(count){
-  document.getElementById('tutorial-title').textContent='Pick up some items';
+  updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',count,6);
+  document.getElementById('tutorial-title').textContent='Gathering resources';
   document.getElementById('tutorial-copy').textContent=count>0
     ? 'Finish collecting the items off the ground.'
     : 'Click/Tap on the gold-highlighted sticks and rocks to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items.';
@@ -31,7 +33,7 @@ export function showGatheringCompletion(){
   const button=document.getElementById('tutorial-continue');button.hidden=false;button.textContent='Click to continue';
 }
 
-export function createOpening({player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel}) {
+export function createOpening({player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel,onFirstQuest}) {
   const dialogue=document.getElementById('dialogue');
   const line=document.getElementById('dialogue-line');
   const prompt=document.getElementById('dialogue-prompt');
@@ -50,36 +52,43 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     {id:'move',text:'Click/Tap to move to any location. Beware! You might not be able to go to some locations.',success:'You made it!'},
     {id:'gather',text:"Click/Tap on the gold-highlighted sticks and rocks to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items."}
   ];
+  let briefing=false,controlsDone=null;
   let lesson=0,awaitingContinue=false,rotationAmount=0,zoomAmount=0,moveGoal=null;
   let collectedCount=0,interruption=null,xpExplained=false,levelExplained=false;
   function showGatherSuccess(){showGatheringCompletion();awaitingContinue=true;}
   function explainSkill(kind){
-    interruption=kind;awaitingContinue=true;continueButton.hidden=false;
+    briefing=false;tutorial.hidden=false;interruption=kind;awaitingContinue=true;continueButton.hidden=false;
     continueButton.textContent=kind==='level'?'Okay':'Click to continue';
     tutorial.classList.add('complete');tutorial.querySelector('.progress-track').hidden=true;
-    document.getElementById('tutorial-title').textContent='TUTORIAL';
+    document.getElementById('tutorial-title').textContent=kind==='xp'?'Experience points':'Your first level';
     document.getElementById('tutorial-copy').textContent=kind==='xp'
       ? 'You just gained your first experience points! Most of the things you do in Quadra will reward you with experience points in specific skills. As you gain experience points, you will level up, which will improve your abilities with those specific skills!'
       : "You just gained your first level! It's just a start, but your Gathering ability just got a little bit better! Keep going! Soon you'll be a master of many skills!";
   }
   function showLesson(){
     tutorial.hidden=false;
-    continueButton.hidden=true;continueButton.textContent='Click to continue';
+    briefing=lesson===3;continueButton.hidden=false;continueButton.disabled=lesson<3;continueButton.textContent=lesson<3?'Continue':'Dismiss';
     document.getElementById('tutorial-title').textContent=['Rotate your view','Zoom in and out','Find your footing','Pick up some items'][lesson];
     document.getElementById('tutorial-copy').textContent=lessons[lesson].text;
     document.getElementById('tutorial-count').textContent=lesson===3?collectedCount+' / 6 collected':(lesson+1)+' / 4';
     tutorial.classList.remove('complete');
     tutorial.querySelector('.progress-track').hidden=lesson!==3;
     if(lesson===3)showGatheringPrompt(collectedCount);
+    else updateObjective(lessons[lesson].id,['Rotate the camera','Try zooming','Move to a new tile'][lesson],lessons[lesson].text);
+    tutorial.querySelector('.progress-track').hidden=true;document.getElementById('tutorial-count').textContent='';
+    if(lesson===3&&collectedCount>0){briefing=false;tutorial.hidden=true;}
   }
   function succeed(){
     if(awaitingContinue)return;
-    awaitingContinue=true;continueButton.hidden=false;tutorial.classList.add('complete');
+    continueButton.disabled=false;continueButton.textContent='Continue';
+    finishObjective(lessons[lesson].id);tutorial.hidden=false;briefing=false;awaitingContinue=true;continueButton.hidden=false;tutorial.classList.add('complete');
     document.getElementById('tutorial-title').textContent='✓ Well done!';
     document.getElementById('tutorial-copy').textContent=lessons[lesson].success;
   }
   continueButton.addEventListener('click',event=>{
     event.stopPropagation();
+    if(continueButton.disabled)return;
+    if(briefing){briefing=false;tutorial.hidden=true;return;}
     if(!awaitingContinue)return;
     awaitingContinue=false;continueButton.hidden=true;
     if(interruption){
@@ -87,6 +96,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
       if(completed==='xp')showLesson();else if(onFirstLevel){skillsPending=true;onFirstLevel(()=>{skillsPending=false;showLesson();showGatherSuccess();});}else showGatherSuccess();
       return;
     }
+    if(lesson===2&&controlsDone){const done=controlsDone;controlsDone=null;done();return;}
     if(lesson<lessons.length-1){lesson++;showLesson();}
     else {tutorial.hidden=true;if(onComplete){finished=true;onComplete();}}
   });
@@ -133,10 +143,11 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     button('That’s my name',submit);input.focus();
   }
   function clearingLine(){
-    if(step<clearingLines.length)show(clearingLines[step++],'line',clearingLine);
+    if(step<clearingLines.length){show(clearingLines[step++],'line',clearingLine);}
     else {
-      dialogue.hidden=true;tutorial.hidden=false;playable=true;transition('play');showLesson();
-      document.querySelector('.character-card strong').textContent=name;
+      dialogue.hidden=true;
+      const beginLessons=()=>{playable=true;transition('play');showLesson();document.querySelector('.character-card strong').textContent=name;};
+      if(onFirstQuest)onFirstQuest(beginLessons);else beginLessons();
     }
   }
   function advance(){if(reaction)return;if(mode==='line'&&next){const action=next;next=null;action();}}
@@ -152,17 +163,20 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     visual.scale.set(1/Math.sqrt(squash),squash,1/Math.sqrt(squash));
     visual.position.y=-.07*squash;
   }
+  function enterFreePlay(){finished=true;playable=true;inClearing=true;lesson=3;briefing=awaitingContinue=skillsPending=false;controlsDone=null;continueButton.disabled=false;tutorial.hidden=true;dialogue.hidden=true;transition('play');}
   player.visible=false;player.position.copy(introSpawn);player.position.y+=14;
   player.rotation.y=Math.PI/4;
   return {
+    enterFreePlay,
+    startControls(done){finished=false;playable=true;inClearing=true;lesson=0;awaitingContinue=false;rotationAmount=zoomAmount=0;moveGoal=null;controlsDone=done;dialogue.hidden=true;transition('play');showLesson();},
     get reaction(){return reaction;},
     get quiet(){return phase==='dialogue'&&!reaction;},
     get finished(){return finished;},
     get playable(){return playable;},
-    get canMove(){return playable&&lesson>=2&&!awaitingContinue&&!skillsPending;},
-    get canGather(){return playable&&lesson===3&&!awaitingContinue&&!skillsPending;},
-    rotated(amount){if(playable&&lesson===0){rotationAmount+=Math.abs(amount);if(rotationAmount>=.08)succeed();}},
-    zoomed(amount){if(playable&&lesson===1){zoomAmount+=Math.abs(amount);if(zoomAmount>=.045)succeed();}},
+    get canMove(){return playable&&lesson>=2&&!briefing&&!awaitingContinue&&!skillsPending;},
+    get canGather(){return playable&&lesson===3&&!briefing&&!awaitingContinue&&!skillsPending;},
+    rotated(amount){if(playable&&!briefing&&lesson===0){rotationAmount+=Math.abs(amount);if(rotationAmount>=.08)succeed();}},
+    zoomed(amount){if(playable&&!briefing&&lesson===1){zoomAmount+=Math.abs(amount);if(zoomAmount>=.045)succeed();}},
     moving(from,to){if(lesson===2&&!awaitingContinue)moveGoal={from:{x:from.x,z:from.z},to:{x:to.x,z:to.z}};},
     arrived(at){if(lesson!==2||!moveGoal)return;const {from,to}=moveGoal;if(at.x===to.x&&at.z===to.z&&(at.x!==from.x||at.z!==from.z)){moveGoal=null;succeed();}},
     get inClearing(){return inClearing;},
@@ -191,6 +205,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     collected(count,reward){
       if(lesson!==3||finished)return;
       collectedCount=count;
+      updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',count,6);
       document.getElementById('tutorial-count').textContent=`${count} / 6 collected`;
       document.getElementById('tutorial-progress').style.width=`${count/6*100}%`;
       if(reward&&!xpExplained){xpExplained=true;explainSkill('xp');}

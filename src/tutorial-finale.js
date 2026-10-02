@@ -1,3 +1,4 @@
+import {updateObjective,finishObjective} from './quests.js';
 import {portalSpawn} from './portal-spawn.js';
 import * as THREE from 'three';
 import {makeCrystal,makeChest,makeTopHat} from './finale-models.js';
@@ -54,7 +55,7 @@ export function createTutorialFinale(api){
   function dropPortal(after=()=>{}){
     api.stop();removeActor(portal);const t=chooseTile({x:8,z:8});if(!t)return;
     portal=createActor(makeCrystal(),t,'portal','Enter Iter Portal',0);stage='portal-drop';
-    say(portalInstruction,null);$('dialogue-prompt').hidden=true;
+    updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel. You can practice here before leaving.');say(portalInstruction,null);$('dialogue-prompt').hidden=true;
     drop(portal.group,t.h,0,()=>{portal.ready=true;stage='portal-focus';crystalFocus={age:0,phase:'in',position:new THREE.Vector3(t.x-6,t.h+1,t.z-6),after};});
   }
   function resetPractice(){
@@ -130,7 +131,7 @@ export function createTutorialFinale(api){
       for(const a of actors){const here=a.kind==='return'?inPlaceholder:!inPlaceholder;a.highlight.update(here&&a.ready&&!a.opened,time,here&&hover===a&&a.ready&&!a.opened);if(a.kind!=='chest'&&a.ready)a.group.position.y=a.tile.h+.12+Math.sin(time*1.8)*.10;}
       if(practice&&!inPlaceholder&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
       if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;heldHat.visible=t>.55&&t<3.5;heldHat.position.set(0,.72+Math.min(1,Math.max(0,(t-.55)/.6))*.20,.56);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}
-      if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';api.switchArea(inPlaceholder,placeholder,tiles,transition.landing);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;location.hidden=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)say("You've reached the end of the prototype! Thanks for playing!",hideDialogue);}}
+      if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';if(inPlaceholder)finishObjective('portal');api.switchArea(inPlaceholder,placeholder,tiles,transition.landing);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;location.hidden=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)say("You've reached the end of the prototype! Thanks for playing!",hideDialogue);}}
       refresh();$('game-menus').inert=busy();
     }
   };

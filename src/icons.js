@@ -1,5 +1,6 @@
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
+ quests:'<path d="M6 3h14v18H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zM6 3v18M10 8h6M10 12h6M10 16h4"/>',
  settings:'<path d="m9 3 1-2h4l1 2 3 2 2 0 2 4-1 2v3l1 2-2 4-2 0-3 2-1 2h-4l-1-2-3-2H4l-2-4 1-2v-3L2 9l2-4h2z" transform="translate(1 0) scale(.92)"/><circle cx="12" cy="12" r="4"/>',
  inventory:'<path d="M8 9V7a4 4 0 0 1 8 0v2M5 9h14l1 11H4z"/><path d="M4 13h16M10 13v3h4v-3"/>',
  skills:'<path d="m5 18 5-12 9 5-8 8z"/><circle cx="5" cy="18" r="2"/><circle cx="10" cy="6" r="2"/><circle cx="19" cy="11" r="2"/>',

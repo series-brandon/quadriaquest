@@ -3,7 +3,18 @@ import {ITEMS} from './items.js';
 export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment={}){
  const panel=document.createElement('section');panel.id='inventory-panel';panel.hidden=true;panel.setAttribute('aria-label','Inventory');
  panel.innerHTML='<div class="crafting-heading"><h2>Inventory</h2><button aria-label="Close inventory menu">×</button></div><input class="journal-search" type="search" placeholder="Search supplies…" aria-label="Search inventory"><div class="inventory-grid"></div><p class="inventory-empty">Your inventory is empty.</p><section class="inventory-detail" aria-live="polite"></section>';
- host.append(panel);let selected=null,last='',guided=false;
+ host.append(panel);let selected=null,last='',guided=false,guideFrame;
+ const guideOverlay=document.createElement('div');guideOverlay.id='inventory-guide';guideOverlay.className='gold-guide';guideOverlay.hidden=true;guideOverlay.setAttribute('aria-hidden','true');document.body.append(guideOverlay);
+ function positionGuide(){
+  if(!guided){guideOverlay.hidden=true;return;}
+  const target=grid.querySelector('[data-item="sticks"]');
+  const box=target?.getBoundingClientRect(),bounds=grid.getBoundingClientRect();
+  const visible=box&&box.width>0&&box.height>0&&box.top>=bounds.top-1&&box.top<bounds.bottom-16;
+  guideOverlay.hidden=!visible;
+  if(visible)Object.assign(guideOverlay.style,{left:box.left+'px',top:box.top+'px',width:box.width+'px',height:Math.min(box.height,bounds.bottom-box.top)+'px'});
+  guideFrame=requestAnimationFrame(positionGuide);
+ }
+
  panel.querySelector('button').onclick=onClose;
  const grid=panel.querySelector('.inventory-grid'),detail=panel.querySelector('.inventory-detail'),search=panel.querySelector('.journal-search');
  search.oninput=()=>refresh(true);
@@ -20,7 +31,6 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
     const badge=document.createElement('small');badge.className='inventory-equipped';badge.textContent='Equipped';b.append(badge);
     b.setAttribute('aria-label',`${item.name}, equipped, quantity ${inventory[id]}`);
    }
-   if(guided&&id==='sticks')b.classList.add('gold-guide');
    b.onclick=()=>{selected=id;refresh(true);onSelect(id);};grid.append(b);
   }
   grid.scrollTop=scrollTop;
@@ -31,5 +41,5 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
   }
   else detail.textContent='Select an item to take a closer look.';
  }
- return {panel,refresh,open(){selected=null;last='';search.value='';panel.hidden=false;refresh();},close(){panel.hidden=true;},guide(value){guided=value;if(value){search.value='';selected=null;}refresh(true);if(value)grid.scrollTop=0;},lock(value){panel.querySelector('button').disabled=value;}};
+ return {panel,refresh,open(){selected=null;last='';search.value='';panel.hidden=false;refresh();},close(){panel.hidden=true;},guide(value){guided=value;if(guideFrame!==undefined)cancelAnimationFrame(guideFrame);guideOverlay.hidden=true;if(value){search.value='';selected=null;}refresh(true);if(value){grid.scrollTop=0;guideFrame=requestAnimationFrame(positionGuide);}},lock(value){panel.querySelector('button').disabled=value;}};
 }

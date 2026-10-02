@@ -4,17 +4,17 @@ import {ITEMS,itemStack} from '../items.js';
 import {WATER_DEFAULTS} from '../water-effects.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {mountThemeComparison} from './theme-comparison.js';
-import {showGatheringPrompt} from '../opening.js';
+import {createOpening,showGatheringPrompt} from '../opening.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion,CHOP_DURATION} from '../slime-motion.js';
 import {showSkillReward} from '../skills.js';
 import './playground.css';
 
 // This entire module (including its stylesheet) is behind the compile-time flag.
-export function createFreeOpening({player,visual,spawn,showClearing}){
-  showClearing();player.visible=true;player.position.copy(spawn);visual.scale.setScalar(1);
-  for(const id of ['dialogue','gather-tutorial','scene-fade'])document.getElementById(id).hidden=true;
-  return {playable:true,canMove:true,canGather:true,finished:true,inClearing:true,
-    profile:{name:'Pip',color:'#a4ce77'},update(){},rotated(){},zoomed(){},moving(){},arrived(){},collected(){}};
+export function createFreeOpening(options){
+  const opening=createOpening(options);
+  options.showClearing();options.player.visible=true;options.player.position.copy(options.spawn);options.visual.scale.setScalar(1);
+  opening.enterFreePlay();document.getElementById('scene-fade').hidden=true;
+  return opening;
 }
 
 const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Hat celebration','Happy','Focused','Preparing','Struggle'];
@@ -22,7 +22,7 @@ const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATIO
 export function mountPlayground(api){
   const panel=document.createElement('details');panel.id='quadra-dev-playground';panel.open=true;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>collapse</small></summary>
-    <fieldset><legend>UI &amp; audio polish</legend><button data-dev="crafting-menu">Open Crafting menu</button><button data-dev="receipt">Crafting receipt</button><button data-dev="clear-loot">Clear item feed</button><button data-dev="audio-reset">Reset audio</button><button data-dev="settings">Open Settings</button><details><summary>Icon sheet</summary><div class="dev-icons">${ICON_NAMES.map(name=>`<span>${icon(name)} ${name}</span>`).join('')}</div></details><p class="dev-note">Journal tabs, search, expand/minimize, and item controls use the real menus. Sound controls are in Settings (journal or splash cog).</p><label>Music preview<select id="dev-music"><option value="">Follow game</option><option value="splash">Splash</option><option value="intro">Introduction</option><option value="clearing">Clearing</option></select></label><div>${['pickup','craft','complete','chop','mine','fall','level','portal','blocked','wind','bird','insect'].map(name=>`<button data-sound="${name}">${name}</button>`).join('')}</div></fieldset>
+    <fieldset><legend>Tips &amp; objectives</legend><button data-dev="controls-lesson">Replay camera &amp; movement tips</button><button data-dev="quests-lesson">Replay Quests tutorial</button><button data-objective="tip">Show tutorial tip</button><button data-objective="add">Add objective</button><button data-objective="update">Update objective</button><button data-objective="complete">Complete objective</button><button data-objective="reset">Reset objectives</button><button data-dev="quests">Open Quests</button></fieldset><fieldset><legend>UI &amp; audio polish</legend><button data-dev="crafting-menu">Open Crafting menu</button><button data-dev="receipt">Crafting receipt</button><button data-dev="clear-loot">Clear item feed</button><button data-dev="audio-reset">Reset audio</button><button data-dev="settings">Open Settings</button><details><summary>Icon sheet</summary><div class="dev-icons">${ICON_NAMES.map(name=>`<span>${icon(name)} ${name}</span>`).join('')}</div></details><p class="dev-note">Journal tabs, search, expand/minimize, and item controls use the real menus. Sound controls are in Settings (journal or splash cog).</p><label>Music preview<select id="dev-music"><option value="">Follow game</option><option value="splash">Splash</option><option value="intro">Introduction</option><option value="clearing">Clearing</option></select></label><div>${['pickup','craft','complete','chop','mine','fall','level','portal','blocked','wind','bird','insect'].map(name=>`<button data-sound="${name}">${name}</button>`).join('')}</div></fieldset>
     <p class="dev-note">Tutorial skipped · changes are session-only</p>
     <button data-dev="splash">Preview splash screen</button>
     <button data-dev="themes">Compare UI styles</button>
@@ -85,6 +85,7 @@ export function mountPlayground(api){
   panel.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     try{
+      if(b.dataset.objective)api.objectives[b.dataset.objective]();
       if(b.dataset.sound){api.audio.unlock();api.audio.play(b.dataset.sound);}
       if(b.dataset.prompt){
         const tutorial=document.getElementById('gather-tutorial');
@@ -97,6 +98,7 @@ export function mountPlayground(api){
         if(action==='crafting-menu'){stop();api.showCrafting();}
         if(action==='receipt')api.itemFeed.show({sticks:-1,stones:-1,axes:1});
         if(action==='clear-loot')api.itemFeed.clear();
+        if(action==='quests')document.getElementById('open-quests').click();
         if(action==='settings')api.openSettings();
         if(action==='audio-reset'){api.audio.reset();panel.querySelector('#dev-music').value='';for(const input of document.querySelectorAll('[data-audio]'))input.value=api.audio.settings[input.dataset.audio];document.getElementById('audio-muted').checked=false;}
         if(action==='water-restart'){api.restartWater();status('Water animation restarted.');}
@@ -107,6 +109,8 @@ export function mountPlayground(api){
         if(action==='inventory-menu'){stop();api.showInventory();}
         if(action==='inventory-lesson'){stop();api.inventoryLesson();}
         if(action==='skills-menu'){stop();api.showSkills();}
+        if(action==='controls-lesson'){stop();api.controlsLesson();}
+        if(action==='quests-lesson'){stop();api.questsLesson();}
         if(action==='skills-lesson'){stop();api.skillsLesson();}
         if(action==='themes'){stop();compareThemes();}
         if(action==='splash'){stop();api.showSplash();}

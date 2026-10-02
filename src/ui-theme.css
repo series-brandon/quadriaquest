@@ -124,14 +124,44 @@ body #game-menus{bottom:20px;right:20px}
 @media(max-width:700px){body:has(#journal:not([hidden])) #journal #gather-tutorial{position:relative;inset:auto;transform:none;width:auto;align-self:stretch;max-width:none;margin:0 10px 6px;max-height:30dvh}#journal .journal-header,#journal #game-menu-bar{flex-shrink:0}}
 @media(max-width:700px){body:has(#dialogue:not([hidden])) #audio-settings{top:max(12px,env(safe-area-inset-top));bottom:auto;left:auto;right:12px}body:has(#dialogue:not([hidden])) #audio-settings>div{top:50px;bottom:auto;left:auto;right:0}}
 /* Keep tutorial decoration within the inventory scrollport. */
-#journal #inventory-panel>.inventory-grid:has(.gold-guide){padding:60px 22px 24px;gap:12px}
+#inventory-guide.gold-guide{position:fixed!important;z-index:44;pointer-events:none;border-radius:8px}
 /* Settings has one shared home, reachable from the journal and splash. */
 body #game-menus{top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));bottom:auto}
 #journal:not(.expanded){top:82px;bottom:auto;max-height:calc(100dvh - 100px)}
-#game-menu-toggle.gold-guide::before{left:auto;right:calc(100% + 12px);bottom:8px;transform:rotate(-90deg);animation:none}
+#game-menu-toggle.gold-guide::before{left:auto;right:calc(100% + 22px);top:50%;bottom:auto;width:36px;height:54px;transform:translateY(-50%) rotate(-90deg);animation:menu-guide-bob 1.8s ease-in-out infinite}
+@keyframes menu-guide-bob{0%,100%{transform:translate(-7px,-50%) rotate(-90deg)}50%{transform:translate(3px,-50%) rotate(-90deg)}}
+@media(prefers-reduced-motion:reduce){#game-menu-toggle.gold-guide::before{animation:none}}
 #game-settings{width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:24px;border:1px solid var(--ui-border);border-radius:18px;background:var(--ui-paper);color:var(--ui-ink);box-shadow:0 18px 65px #382b4933;overflow:auto}
 #game-settings::backdrop{background:#241b36aa;backdrop-filter:blur(3px)}.settings-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.settings-heading h2{font:24px Georgia,serif;margin:0}.settings-heading button{width:44px;height:44px;font-size:26px}#game-settings h3{font-size:14px;margin:24px 0 12px}#game-settings label{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0;min-height:36px;font-size:15px}#game-settings input[type=range]{width:160px;accent-color:var(--ui-button)}#game-settings .mute-setting{justify-content:flex-start}#game-settings input[type=checkbox]{width:20px;height:20px;accent-color:var(--ui-button)}
 .splash-actions{--splash-button-size:62px;display:flex;align-items:center;justify-content:center;gap:14px}
 .splash-actions button{box-sizing:border-box;height:var(--splash-button-size);padding-top:0;padding-bottom:0}
 #splash-settings{position:static;flex:0 0 var(--splash-button-size);width:var(--splash-button-size);height:var(--splash-button-size);padding:0;display:grid;place-items:center;background:var(--ui-paper);border:1px solid var(--ui-border);border-radius:14px;color:var(--ui-button);pointer-events:auto}
 @media(max-width:700px){#journal:not(.expanded){inset:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-height:none}#journal #game-menu-bar button{flex-direction:column;font-size:11px;gap:5px;padding:8px 4px}#journal #game-menu-bar .game-icon{width:21px;height:21px}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:80px;max-height:35dvh}#game-settings{padding:20px}#game-settings label{min-height:44px}#item-feed{bottom:20px}}
+/* Tips share the dialogue area; objective updates are brief, independent receipts. */
+body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:auto;bottom:24px;left:50%;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));max-height:38dvh;overflow:auto;z-index:45;pointer-events:auto}
+#gather-tutorial .progress-track,#gather-tutorial #tutorial-count{display:none}
+#gather-tutorial #tutorial-title::before{content:'TUTORIAL · ';opacity:.75}
+#gather-tutorial #tutorial-copy{font-size:16px}
+#objective-update{position:fixed;top:22px;left:22px;z-index:25;width:min(280px,calc(100vw - 106px));padding:12px 16px;border:1px solid #ac91ba;border-radius:12px;background:#493452ed;color:#fff0db;pointer-events:none;transition:opacity .65s,transform .65s}
+#objective-update strong{display:block;font-size:13px;line-height:1.4}#objective-update progress{display:block;width:100%;height:5px;margin-top:9px;accent-color:#dbb878}#objective-update.complete{background:#304e40f7;border-color:#739c7d}#objective-update.fading{opacity:0;transform:translateY(-8px)}
+#journal #quests-panel{padding:18px 22px;overflow:auto;min-height:0;flex:1}#quests-panel h3{font-family:Georgia,serif;font-size:23px}#quests-panel h4{margin:0 0 8px}#quests-panel article{padding:16px 0;border-bottom:1px solid #49345225}#quests-panel p{font-size:14px;line-height:1.6}#quests-panel progress{width:100%;accent-color:#614769}#quests-panel small{display:block;margin-top:5px}#quests-panel details{margin-top:20px}#quests-panel summary{cursor:pointer}
+@media(max-width:700px){body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:auto;bottom:max(12px,env(safe-area-inset-bottom));left:12px;transform:none;width:calc(100vw - 24px);max-height:34dvh}body:has(#gather-tutorial:not([hidden])) #journal,body:has(#gather-tutorial:not([hidden])) #journal.expanded{bottom:calc(34dvh + 24px)}#journal #game-menu-bar button{font-size:10px;min-width:0}#objective-update{top:16px;left:12px}#journal #quests-panel{padding:14px}}
+#gather-tutorial #tutorial-title::before{content:none}
+#gather-tutorial::before{content:'TUTORIAL';display:block;font-size:10px;letter-spacing:.16em;opacity:.7;margin-bottom:10px}
+#journal #game-menu-bar button{flex:1;min-width:0;flex-direction:column;justify-content:center;gap:5px;padding:8px 4px;font-size:11px}
+@media(min-width:701px){body:has(#gather-tutorial:not([hidden])) #journal:not(.expanded){max-height:calc(100dvh - 370px)}}
+#gather-tutorial .tutorial-actions{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px}
+#gather-tutorial .tutorial-actions button{margin:0;min-height:44px;font:inherit;font-size:14px;cursor:pointer}
+#gather-tutorial .tutorial-actions button:hover{background:#fff5e7}
+#quests-panel .quest-help{display:inline-flex;align-items:center;justify-content:center;margin-top:18px;min-height:44px;padding:10px 16px;background:var(--ui-button);color:var(--ui-button-ink);border:1px solid var(--ui-border);border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
+#quests-panel .quest-help:hover{background:#614769}
+#quests-panel .quest-help:focus-visible,#gather-tutorial .tutorial-actions button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}
+#gather-tutorial .tutorial-actions button:disabled{opacity:.45;cursor:not-allowed;background:#f4e6d5}
+#quests-panel .quest-tasks{margin:0;padding-left:20px}
+#quests-panel .quest-tasks>li{padding:16px 0;border-bottom:1px solid #49345225}
+#quests-panel .quest-tasks>li::marker{color:var(--ui-button)}
+#quests-panel .completed-tasks{margin-top:12px;list-style:none;padding-left:0}
+#quests-panel .completed-task{color:#46694e;padding:12px 0}
+#quests-panel .completed-task h4{font-size:14px;margin:0}
+#quests-panel .completed-task small{margin:5px 0 0 20px;font-size:11px}
+@media(min-width:701px){body:has(#gather-tutorial:not([hidden])) #journal:not(.expanded):has(#inventory-panel:not([hidden])){max-height:calc(100dvh - 290px)}#journal:not(.expanded) #inventory-panel:not(.viewing-item){grid-template-rows:auto auto minmax(0,1fr) auto}}

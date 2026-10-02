@@ -72,3 +72,5 @@ Mining follows chopping before the Iter Portal finale. Three former trees are bo
 
 ### UI and audio polish previews
 The **UI & audio polish** playground section opens real crafting, previews grouped crafting receipts, clears the loot feed, shows the SVG icon sheet, and auditions individual sounds or music contexts. Inventory/Skills controls open the shared journal; its own search, tabs, and expand button exercise the real layouts. Settings in the top-right journal menu or the splash-screen cog control Music, Effects, Ambience, and Mute. Audio is a procedural first pass and starts after a user gesture.
+
+The playground’s **Tips & objectives** controls preview dismissible tips, add/update/complete/reset objectives, and open Quests. Tutorial replays use the same quest tracking as normal play.
