@@ -174,3 +174,33 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 /* Dismissible tips may use the available height instead of a small viewport fraction. */
 body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{max-height:calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
 @media(max-width:700px){body:has(#journal:not([hidden])) #journal #gather-tutorial{max-height:calc(100dvh - 160px - env(safe-area-inset-top) - env(safe-area-inset-bottom));flex:0 1 auto;min-height:0}}
+
+/* Crafting uses one recipe browser, with an inset selection ring and space for guides. */
+#journal #crafting-panel,#journal.expanded #crafting-panel{display:block;overflow:auto}
+#journal #crafting-panel[hidden]{display:none}
+.recipe-browser{display:grid;grid-template-columns:minmax(130px,.85fr) minmax(0,1.3fr);gap:16px;min-height:300px}
+#journal .recipe-choices{display:flex;flex-direction:column;gap:8px;margin:0;padding:8px;max-height:440px;overflow:auto;align-self:start;min-width:0}
+#journal .recipe-choice{flex:none;width:100%;min-height:48px;text-align:left;outline:none;box-sizing:border-box}
+#journal .recipe-choice[aria-pressed=true]{border-color:var(--ui-accent);box-shadow:inset 0 0 0 1px var(--ui-accent);background:#e5d6e5}
+#journal .recipe-details{min-width:0;padding:8px;display:flex;flex-direction:column}
+#journal .recipe-detail{min-height:300px;display:flex;flex-direction:column;grid-column:auto;grid-row:auto}
+#journal .recipe-detail[hidden]{display:none}
+#journal .recipe-detail h3{margin:0 0 12px;font-size:21px}
+#journal .recipe-detail>p{margin:0 0 12px;line-height:1.5;min-height:3em}
+#journal .ingredient-counts{gap:12px;border-top:1px solid var(--ui-border);border-bottom:1px solid var(--ui-border);margin:8px 0}
+#journal .ingredient{line-height:1.5;align-items:flex-start;white-space:normal}
+#journal .recipe-facts{display:flex;flex-direction:column;gap:8px;margin:14px 0 20px}
+#journal .recipe-detail>.recipe{margin-top:auto;min-height:48px}
+#journal .recipe-back{display:none}
+#journal .recipe-detail .gold-guide{outline-offset:0}
+@media(max-width:700px){
+ #journal .recipe-browser{display:block;min-height:0}
+ #journal .recipe-choices{max-height:none;padding:8px;display:flex}
+ #journal .recipe-details{display:none}
+ #journal .viewing-recipe .recipe-choices{display:none}
+ #journal .viewing-recipe .recipe-details{display:flex}
+ #journal .recipe-back{display:block;align-self:flex-start;margin:0 0 20px;padding:10px 12px;border:1px solid var(--ui-border);border-radius:8px;background:#eee3e8;color:var(--ui-ink);font:inherit;min-height:44px}
+ #journal .recipe-detail{min-height:340px}
+}
+
+@media(min-width:701px){#journal:has(#crafting-panel:not([hidden])){width:min(680px,calc(100vw - 48px))}#journal.expanded:has(#crafting-panel:not([hidden])){width:min(840px,calc(100vw - 48px))}}

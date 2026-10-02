@@ -1,0 +1,43 @@
+#character-dialogue,#placement-controls,#willow-health{position:fixed;z-index:55;color:var(--ui-ink,#332b42);background:var(--ui-paper,#faf1df);border:1px solid var(--ui-border,#b4a1bd);border-radius:18px;box-shadow:0 12px 35px #22192b35;user-select:none;-webkit-tap-highlight-color:transparent}
+#character-dialogue{bottom:22px;left:50%;transform:translateX(-50%);box-sizing:border-box}
+#character-dialogue[hidden],#placement-controls[hidden],#willow-health[hidden]{display:none}
+.speaker-portrait{text-align:center}.speaker-portrait canvas{display:block}.speaker-portrait strong{display:block}.speaker-content{min-width:0}.speaker-content p{line-height:1.5}.speaker-choices{display:grid;gap:8px}.speaker-choices button{text-align:left}
+#character-dialogue.entering .speaker-portrait{animation:portrait-in .25s ease-out}#character-dialogue.exiting .speaker-portrait{animation:portrait-out .22s ease-in forwards}#character-dialogue[data-side=right]{--portrait-dir:250px}#character-dialogue[data-side=left]{--portrait-dir:-250px}@keyframes portrait-in{from{transform:translateX(var(--portrait-dir));opacity:0}to{transform:none;opacity:1}}@keyframes portrait-out{to{transform:translateX(var(--portrait-dir));opacity:0}}
+.willow-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:15px}
+#character-dialogue button,#placement-controls button,#cooking-menu button,.willow-modal button,#companions-panel button{background:var(--ui-button,#5b456d);color:var(--ui-button-ink,#fff9ec);border:1px solid var(--ui-border,#806b91);border-radius:10px;padding:10px 15px;min-height:44px;font:inherit;cursor:pointer}
+#willow-health{top:18px;left:18px;padding:10px 14px;display:grid;gap:5px;font-size:13px;z-index:20}#willow-health progress{width:145px;accent-color:#79a776}.enemy-health{position:fixed;transform:translate(-50%,-100%);background:#443247;color:#fff3df;border-radius:8px;padding:6px 9px;pointer-events:none;z-index:19;font-size:12px}
+#placement-controls{bottom:210px;left:50%;transform:translateX(-50%);padding:12px;display:flex;gap:10px;align-items:center}#placement-controls button:disabled{opacity:.4}
+#cooking-menu,.willow-modal{color:var(--ui-ink);background:var(--ui-paper,#faf1df);border:1px solid var(--ui-border);border-radius:18px;padding:24px;max-width:min(460px,calc(100vw - 48px));font:inherit}#cooking-menu::backdrop,.willow-modal::backdrop{background:#29203177}#cooking-menu input,.willow-modal input{font:inherit;padding:10px;border:1px solid #a995b5;border-radius:8px;max-width:180px}.willow-modal button{margin:12px 8px 0 0}
+#companions-panel{padding:18px;min-height:230px;overflow:auto}.companion-content button{margin:8px}.companion-content canvas{display:block;width:200px;height:150px;margin:auto}
+body:has(#willow-health:not([hidden])) #objective-update{top:110px}
+@media(max-width:700px){#character-dialogue{bottom:12px}.speaker-portrait strong{font-size:13px}#willow-health{top:8px;left:8px;padding:6px 9px}#willow-health progress{width:100px}#placement-controls{bottom:240px;max-width:calc(100vw - 28px);flex-wrap:wrap}body:has(#journal:not([hidden])) #willow-health,body:has(#journal:not([hidden])) #objective-update{display:none}#journal #game-menu-bar button{min-width:48px;flex:1 0 48px}}
+@media(prefers-reduced-motion:reduce){#character-dialogue .speaker-portrait{animation:none!important}}
+/* A fixed reading column and action row: only the portrait changes sides. */
+#character-dialogue{display:grid;grid-template-columns:150px minmax(0,1fr) 150px;align-items:center;gap:8px;width:min(820px,calc(100% - 28px));min-height:250px;padding:20px}
+#character-dialogue .speaker-portrait{grid-row:1;grid-column:1;width:150px;align-self:end}
+#character-dialogue[data-side=right] .speaker-portrait{grid-column:3}
+#character-dialogue .speaker-content{grid-column:2;grid-row:1;min-height:200px;display:flex;flex-direction:column}
+#character-dialogue .speaker-content p{flex:1;margin-bottom:20px;font-size:17px}
+#character-dialogue .speaker-portrait canvas{width:150px;height:180px;object-fit:cover}
+#character-dialogue .speaker-next{float:none;align-self:flex-end;margin-top:12px}
+#character-dialogue .speaker-choices{width:100%}
+#character-dialogue .speaker-portrait strong{padding:8px 0;color:var(--ui-ink)}
+@media(max-width:700px){
+ #character-dialogue{grid-template-columns:1fr 1fr;grid-template-rows:125px auto;max-height:calc(100dvh - 24px);overflow:auto;padding:14px;gap:8px;min-height:0}
+ #character-dialogue .speaker-portrait,#character-dialogue[data-side=right] .speaker-portrait{grid-row:1;width:130px;align-self:end;grid-column:1;justify-self:start}
+ #character-dialogue[data-side=right] .speaker-portrait{grid-column:2;justify-self:end}
+ #character-dialogue .speaker-portrait canvas{width:130px;height:110px}
+ #character-dialogue .speaker-content{grid-column:1/-1;grid-row:2;min-height:160px}
+ #character-dialogue .speaker-content p{font-size:16px;margin-bottom:12px}
+ #character-dialogue .speaker-choices button{font-size:14px;min-height:44px}
+}
+/* Reserve the same space for choices and single-line replies; sliding never adds scrollbars. */
+#character-dialogue{height:300px;overflow:hidden}
+#character-dialogue .speaker-content{height:100%;min-height:0;overflow-y:auto;overflow-x:hidden}
+#character-dialogue .speaker-portrait{align-self:center}
+@media(max-width:700px){
+ #character-dialogue{height:390px;grid-template-rows:140px minmax(0,1fr);overflow:hidden}
+ #character-dialogue .speaker-content{min-height:0}
+ #character-dialogue .speaker-portrait,#character-dialogue[data-side=right] .speaker-portrait{align-self:center}
+}
+@media(max-width:700px){#character-dialogue .speaker-portrait canvas{object-fit:contain}}

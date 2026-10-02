@@ -27,7 +27,7 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
   for(const [id,item]of Object.entries(ITEMS))if(inventory[id]>0&&item.name.toLowerCase().includes((search.value||'').toLowerCase())){
    const b=document.createElement('button');b.type='button';b.dataset.item=id;b.className='inventory-stack';b.setAttribute('aria-label',`${item.name}, quantity ${inventory[id]}`);b.setAttribute('aria-pressed',String(selected===id));
    b.innerHTML=`<span aria-hidden="true">${icon(id)}</span><strong>${item.name}</strong><b>×${inventory[id]}</b>`;
-   if(id==='hats'&&equipment.state?.().equipped){
+   if((id==='hats'&&equipment.state?.().equipped)||equipment.isEquipped?.(id)){
     const badge=document.createElement('small');badge.className='inventory-equipped';badge.textContent='Equipped';b.append(badge);
     b.setAttribute('aria-label',`${item.name}, equipped, quantity ${inventory[id]}`);
    }
@@ -38,6 +38,7 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
   detail.replaceChildren();panel.classList.toggle('viewing-item',!!selected);
   if(selected){const back=document.createElement('button');back.type='button';back.className='inventory-back';back.textContent='Back to items';back.onclick=()=>{selected=null;refresh(true);};detail.append(back);const item=ITEMS[selected];const title=document.createElement('h3'),copy=document.createElement('p'),quantity=document.createElement('small');title.textContent=item.name;copy.textContent=item.description;quantity.textContent=`Quantity: ${inventory[selected]}`;detail.append(title,copy,quantity);
    if(selected==='hats'&&equipment.toggle){const state=equipment.state();const button=document.createElement('button');button.type='button';button.className='inventory-equip';button.textContent=state.equipped?'Unequip':'Equip';button.disabled=!state.canEquip;button.onclick=()=>{equipment.toggle();refresh(true);};detail.append(button);}
+   for(const action of equipment.actions?.(selected)||[]){const button=document.createElement('button');button.type='button';button.className='inventory-equip';button.textContent=action.label;button.disabled=!!action.disabled;button.onclick=()=>{action.run();refresh(true);};detail.append(button);}
   }
   else detail.textContent='Select an item to take a closer look.';
  }

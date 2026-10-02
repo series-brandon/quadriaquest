@@ -9,9 +9,10 @@ function fixture(){
   constructor(){this.children=[];this.handlers={};this.hidden=false;this.style={};this.dataset={};this.classes=new Set();this.classList={add:c=>this.classes.add(c),remove:c=>this.classes.delete(c),toggle:(c,on)=>on?this.classes.add(c):this.classes.delete(c)};}
   set id(id){this._id=id;nodes.set(id,this);}get id(){return this._id;}
   set innerHTML(html){for(const [,id]of html.matchAll(/id="([^"]+)"/g))get(id);}
+  insertBefore(child,before){const index=this.children.indexOf(before);if(index<0)this.children.push(child);else this.children.splice(index,0,child);}
   append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}
-  setAttribute(){} querySelector(selector){return this.queries??=new Element();}
-  querySelectorAll(){return [...nodes.values()].filter(n=>n.classes.has('gold-guide'));}
+  setAttribute(){} querySelector(selector){this.queries??={};return this.queries[selector]??=new Element();}
+  querySelectorAll(selector){if(selector==='progress'||selector==='small'){this.lists??={};return this.lists[selector]??=[new Element(),new Element()];}return [...nodes.values()].filter(n=>n.classes.has('gold-guide'));}
   addEventListener(name,fn){(this.handlers[name]??=[]).push(fn);}
   click(){const event={target:{closest(){return null;}}};this.onclick?.(event);for(const fn of this.handlers.click||[])fn(event);}
  }
@@ -60,5 +61,20 @@ test('first quest introduces the hidden menu, guides Quests, then resumes openin
   tutorial.questsOpened();assert.equal(tutorial.stage,'quests-detail');assert.equal(resumed,0);
   get('tutorial-continue').click();assert.equal(resumed,1);assert.equal(tutorial.stage,'inactive');
   assert.equal(get('quests-panel').hidden,true);assert.equal(get('gather-tutorial').hidden,true);
+ }finally{globalThis.document=previous;}
+});
+
+ test('skill refresh preserves disclosure rows and open state while XP changes',()=>{
+ const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
+ try{
+  const skill={level:1,xp:0};
+  const tutorial=createCraftingTutorial({freePlay:true,getInventory:()=>({}),getSkills:()=>({Gathering:skill}),startCraft:()=>false});
+  get('open-skills').click();const row=get('skills-list').children[0];
+  row.open=true;for(let i=0;i<8;i++)tutorial.refresh();
+  assert.equal(get('skills-list').children.length,1);assert.equal(get('skills-list').children[0],row);assert.equal(row.open,true);
+  skill.xp=20;tutorial.refresh();assert.equal(row.querySelector('p').textContent,'20 total XP');assert.equal(row.open,true);
+  row.open=false;tutorial.refresh();assert.equal(row.open,false);
+  get('skills-search').value='mining';get('skills-search').oninput();assert.equal(row.hidden,true);
+  get('skills-search').value='';get('skills-search').oninput();assert.equal(row.hidden,false);assert.equal(get('skills-list').children[0],row);
  }finally{globalThis.document=previous;}
 });

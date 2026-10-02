@@ -194,3 +194,7 @@ Objectives persist independently in the Quests tab under A Small Beginning, with
 The playground exposes tip preview and objective add/update/complete/reset controls, plus direct Quests access and Replay Quests tutorial for the complete menu-reveal sequence. Existing tutorial replays exercise real objective updates; full test-area reset clears objectives.
 
 The Rotate, Zoom, and Move tips remain visible while performing their actions. Continue stays disabled until success (movement requires arrival at a different tile). The playground can replay these three lessons using the real opening controller. Quests show task bullets, followed by completed tasks with a checkmark and Completed label.
+
+## Second tutorial area: Willowbank
+
+The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Combat, equipment, Carpentry, companions, Fishing, placement, and Culinary skills. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. The prototype ending appears after cooking and eating, rather than on arrival.

@@ -13,17 +13,7 @@ export function createTutorialFinale(api){
   const $=id=>document.getElementById(id),actors=[],drops=[],clearingTiles=new Map(api.world);
   let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null,transition=null,inPlaceholder=false,equipped=false;
   const hat=makeTopHat(),heldHat=makeTopHat();api.visual.add(hat,heldHat);hat.position.y=.79;hat.visible=false;heldHat.visible=false;
-  const location=document.createElement('div');location.id='area-name';location.hidden=true;location.textContent='Beyond the clearing · Next area preview';document.body.append(location);
-  const placeholder=new THREE.Group();placeholder.visible=false;api.scene.add(placeholder);
-  const tiles=[];
-  for(let z=4;z<=8;z++)for(let x=4;x<=8;x++){
-    const t={x,z,h:1,blocked:false,water:false};tiles.push(t);
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(.985,1,.985),new THREE.MeshStandardMaterial({color:(x+z)%2?'#a6b9b7':'#b9cbc1',roughness:.9}));
-    mesh.position.set(x-6,.5,z-6);mesh.receiveShadow=true;mesh.userData.tile=t;placeholder.add(mesh);api.pickables.push(mesh);
-  }
-  const returnTile=tiles.find(t=>t.x===6&&t.z===4);returnTile.blocked=true;
-  const returnPortal=createActor(makeCrystal(),returnTile,'return','Return to the clearing',0,placeholder);
-  returnPortal.ready=true;returnPortal.group.position.y=returnTile.h;
+  const placeholder=api.destination.group,tiles=api.destination.tiles,returnPortal=api.destination.crystal;
   function busy(){return !!next||drops.length>0||!!celebration||!!crystalFocus||!!transition;}
   function hideDialogue(){next=null;$('dialogue').hidden=true;}
   function say(text,advance){
@@ -114,7 +104,7 @@ export function createTutorialFinale(api){
       hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;
       celebration=null;crystalFocus=null;transition=null;heldHat.visible=false;equipped=false;practice=false;rewardTriggered=false;stage='inactive';
       if(inPlaceholder){api.switchArea(false,placeholder,tiles);inPlaceholder=false;}
-      removeActor(portal);removeActor(chest);portal=chest=null;location.hidden=true;$('scene-fade').style.opacity='0';refresh();
+      removeActor(portal);removeActor(chest);portal=chest=null;$('scene-fade').style.opacity='0';refresh();
     },
     update(dt,time,hover){
       for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.age+=dt;if(d.age<d.delay)continue;const motion=spawnMotion(d.age-d.delay);d.group.position.y=d.y+motion.lift;d.group.scale.set(1/Math.sqrt(motion.squash),motion.squash,1/Math.sqrt(motion.squash));if(d.age-d.delay>=1.2){d.group.position.y=d.y;d.group.scale.setScalar(1);drops.splice(i,1);d.complete();}}
@@ -131,7 +121,7 @@ export function createTutorialFinale(api){
       for(const a of actors){const here=a.kind==='return'?inPlaceholder:!inPlaceholder;a.highlight.update(here&&a.ready&&!a.opened,time,here&&hover===a&&a.ready&&!a.opened);if(a.kind!=='chest'&&a.ready)a.group.position.y=a.tile.h+.12+Math.sin(time*1.8)*.10;}
       if(practice&&!inPlaceholder&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
       if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;heldHat.visible=t>.55&&t<3.5;heldHat.position.set(0,.72+Math.min(1,Math.max(0,(t-.55)/.6))*.20,.56);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}
-      if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';if(inPlaceholder)finishObjective('portal');api.switchArea(inPlaceholder,placeholder,tiles,transition.landing);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;location.hidden=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)say("You've reached the end of the prototype! Thanks for playing!",hideDialogue);}}
+      if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';if(inPlaceholder)finishObjective('portal');api.switchArea(inPlaceholder,placeholder,tiles,transition.landing);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)api.arrived();}}
       refresh();$('game-menus').inert=busy();
     }
   };

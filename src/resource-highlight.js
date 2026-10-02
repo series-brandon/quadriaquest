@@ -13,16 +13,17 @@ const arrowTexture=new THREE.CanvasTexture(canvas);arrowTexture.colorSpace=THREE
 export function highlightResource(group,{height=.95}={}){
   const borders=[],glows=[];
   // Inverted hulls outline the item itself, with a softer outer gold edge.
-  for(const item of [...group.children]){
+  const meshes=[];group.traverse(item=>{if(item.isMesh&&!item.userData.portraitIgnore)meshes.push(item);});
+  for(const item of meshes){
     if(!item.isMesh)continue;
     for(const [material,amount]of [[glow,.032],[gold,.014]]){
       const geometry=item.geometry.clone(),positions=geometry.attributes.position,normals=geometry.attributes.normal;
       for(let i=0;i<positions.count;i++)positions.setXYZ(i,positions.getX(i)+normals.getX(i)*amount,positions.getY(i)+normals.getY(i)*amount,positions.getZ(i)+normals.getZ(i)*amount);
-      const outline=new THREE.Mesh(geometry,material);outline.position.copy(item.position);outline.rotation.copy(item.rotation);outline.scale.copy(item.scale);group.add(outline);outline.visible=false;(material===gold?borders:glows).push(outline);
+      const outline=new THREE.Mesh(geometry,material);outline.position.copy(item.position);outline.rotation.copy(item.rotation);outline.scale.copy(item.scale);outline.userData.portraitIgnore=true;item.parent.add(outline);outline.visible=false;(material===gold?borders:glows).push(outline);
     }
   }
   const arrow=new THREE.Sprite(new THREE.SpriteMaterial({map:arrowTexture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));
-  arrow.scale.set(.45,.68,1);arrow.position.y=height;arrow.renderOrder=9;arrow.visible=false;group.add(arrow);
+  arrow.userData.portraitIgnore=true;arrow.scale.set(.45,.68,1);arrow.position.y=height;arrow.renderOrder=9;arrow.visible=false;group.add(arrow);
   return {update(show,time,hovered=false){
     arrow.visible=show;arrow.position.y=height+Math.sin(time*3.5)*.07;
     for(const outline of borders){outline.visible=show||hovered;outline.material=hovered?white:gold;}

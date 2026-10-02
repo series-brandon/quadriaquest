@@ -17,15 +17,17 @@ export function updateObjective(id,title,description,current=0,total=1){
  timer=setTimeout(()=>{notification.classList.add('fading');timer=setTimeout(()=>{notification.hidden=true;},650);},4500);
 }
 export function finishObjective(id){const g=objectives.get(id);if(g)updateObjective(id,g.title,g.description,g.total,g.total);}
-export function resetObjectives(){objectives.clear();helpActions.clear();clearTimeout(timer);if(notification)notification.hidden=true;render();}
+export function resetObjectives(prefix){if(prefix){for(const id of objectives.keys())if(id.startsWith(prefix)){objectives.delete(id);helpActions.delete(id);}}else{objectives.clear();helpActions.clear();}clearTimeout(timer);if(notification)notification.hidden=true;render();}
 function render(){
  if(!panel)return;const list=panel.querySelector('.quest-list');list.replaceChildren();
  if(!objectives.size){list.textContent='Your next adventure will appear here.';return;}
- const heading=document.createElement('h3');heading.textContent='A Small Beginning';list.append(heading);
+ for(const chapter of ['A Small Beginning','A Friend Across the Water']){
+ const goals=[...objectives.values()].filter(g=>(g.id.startsWith('willow-')?'A Friend Across the Water':'A Small Beginning')===chapter);if(!goals.length)continue;
+ const heading=document.createElement('h3');heading.textContent=chapter;list.append(heading);
  for(const done of [false,true]){
   const section=document.createElement('ul');section.className=done?'quest-tasks completed-tasks':'quest-tasks';
   section.setAttribute('aria-label',done?'Completed tasks':'Current tasks');
-  for(const g of objectives.values()){
+  for(const g of goals){
    if((g.current===g.total)!==done)continue;
    const row=document.createElement('li'),title=document.createElement('h4'),description=document.createElement('p'),progress=document.createElement('progress'),count=document.createElement('small');
    title.textContent=g.title;description.textContent=g.description;progress.max=g.total;progress.value=g.current;progress.setAttribute('aria-label',g.title);count.textContent=`${g.current} / ${g.total}${done?' · Complete':''}`;
@@ -33,6 +35,7 @@ function render(){
    row.append(title,description,progress,count);if(!done&&helpActions.has(g.id)){const help=document.createElement('button');help.className='quest-help';help.textContent='Show me how';help.onclick=helpActions.get(g.id);row.append(help);}section.append(row);
   }
   list.append(section);
+ }
  }
 }
 export function createQuestPanel(host,close){

@@ -80,3 +80,7 @@ Open the game menu and choose **Debug** (Show debug menu) to access playground c
 The playground’s **Terrain colors** section provides a live **Grass color** picker for the clearing and splash map. The standard base is RGB **53, 141, 61** (`#358d3d`). The selected color centers the existing subtle tile hue, saturation, and lightness variations. Changes are session-only; **Reset grass color** restores the original palette exactly.
 
 The splash slime receives a random body/hand color on each page load, with adaptive face contrast. Its appearance is independent of player customization. **Randomize splash slime** in the playground rerolls and previews it; **Preview splash screen** retains the current roll. Future random splash cosmetics should use the same appearance entry point.
+
+Willowbank is the second playable tutorial area. See [the chapter design](docs/WILLOWBANK.md) for its quest flow and rules. The playground’s **Willowbank chapter** controls provide direct entry, checkpoints, encounters, health, repair/fishing/placement, naming, and animation previews.
+
+The playground's **Shared model preview** opens the real terrain, foliage, resource and character models with repeatable animation controls. Willowbank's **arrival** button replays the narrator/camera introduction; chapter animation options include goblin idle/walk/attack/hit, cat happy/sad/walk, and Reed idle. Existing area/reset controls exercise the shared water and adjacent resource gathering.
