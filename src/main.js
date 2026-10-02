@@ -409,6 +409,7 @@ if(__PLAYGROUND__){
   showInventory(){craftingTutorial.openInventory();},
   inventoryLesson(){stopAll();Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startInventory();},
   showSkills(){craftingTutorial.openSkills();},
+  gatheringLesson(){this.reset('all');Object.assign(inventory,{sticks:0,stones:0});Object.assign(gatheringSkill,{xp:0,level:1});opening.startGathering();},
   controlsLesson(){stopAll();craftingTutorial.reset();opening.startControls(()=>opening.enterFreePlay());},
   questsLesson(){stopAll();craftingTutorial.reset();craftingTutorial.startQuests();},
   skillsLesson(){stopAll();Object.assign(gatheringSkill,{xp:120,level:2});Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startSkills();},

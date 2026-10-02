@@ -63,7 +63,7 @@ export function mountPlayground(api){
     <fieldset><legend>Visual feedback only</legend><p class="dev-note">Item gain/loss uses the selected inventory item and quantity without changing your inventory.</p><div>
       ${['Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
-    <fieldset><legend>Gathering tutorial prompt</legend><div><button data-prompt="0">Before first pickup</button><button data-prompt="1">After first XP</button><button data-prompt="hide">Hide prompt</button></div></fieldset>
+    <fieldset><legend>Gathering tutorial prompt</legend><button data-dev="gathering-lesson">Replay gathering tutorial</button><div><button data-prompt="0">Before first pickup</button><button data-prompt="1">After first XP</button><button data-prompt="hide">Hide prompt</button></div></fieldset>
     <fieldset><legend>Tutorial finale</legend><p class="dev-note">Replay the real sequence or test its parts. Practice reset arms the hidden goal; Complete practice clears those objects without granting loot.</p><div>
       ${['Closing dialogue','Drop portal','Use portal','Practice reset','Complete practice','Reward dialogue','Drop chest','Open chest','Hat celebration','Wear/remove hat','Enter placeholder','Return to clearing','Reset finale'].map(a=>`<button data-finale="${a}">${a}</button>`).join('')}
     </div></fieldset>
@@ -109,6 +109,7 @@ export function mountPlayground(api){
         if(action==='inventory-menu'){stop();api.showInventory();}
         if(action==='inventory-lesson'){stop();api.inventoryLesson();}
         if(action==='skills-menu'){stop();api.showSkills();}
+        if(action==='gathering-lesson'){stop();api.gatheringLesson();}
         if(action==='controls-lesson'){stop();api.controlsLesson();}
         if(action==='quests-lesson'){stop();api.questsLesson();}
         if(action==='skills-lesson'){stop();api.skillsLesson();}

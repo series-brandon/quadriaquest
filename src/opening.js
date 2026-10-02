@@ -168,13 +168,14 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   player.rotation.y=Math.PI/4;
   return {
     enterFreePlay,
+    startGathering(){enterFreePlay();finished=false;collectedCount=0;xpExplained=levelExplained=false;interruption=null;showLesson();},
     startControls(done){finished=false;playable=true;inClearing=true;lesson=0;awaitingContinue=false;rotationAmount=zoomAmount=0;moveGoal=null;controlsDone=done;dialogue.hidden=true;transition('play');showLesson();},
     get reaction(){return reaction;},
     get quiet(){return phase==='dialogue'&&!reaction;},
     get finished(){return finished;},
     get playable(){return playable;},
-    get canMove(){return playable&&lesson>=2&&!briefing&&!awaitingContinue&&!skillsPending;},
-    get canGather(){return playable&&lesson===3&&!briefing&&!awaitingContinue&&!skillsPending;},
+    get canMove(){return playable&&lesson>=2&&!awaitingContinue&&!skillsPending;},
+    get canGather(){return playable&&lesson===3&&!awaitingContinue&&!skillsPending;},
     rotated(amount){if(playable&&!briefing&&lesson===0){rotationAmount+=Math.abs(amount);if(rotationAmount>=.08)succeed();}},
     zoomed(amount){if(playable&&!briefing&&lesson===1){zoomAmount+=Math.abs(amount);if(zoomAmount>=.045)succeed();}},
     moving(from,to){if(lesson===2&&!awaitingContinue)moveGoal={from:{x:from.x,z:from.z},to:{x:to.x,z:to.z}};},
@@ -204,6 +205,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     },
     collected(count,reward){
       if(lesson!==3||finished)return;
+      if(count>0&&briefing){briefing=false;tutorial.hidden=true;}
       collectedCount=count;
       updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',count,6);
       document.getElementById('tutorial-count').textContent=`${count} / 6 collected`;

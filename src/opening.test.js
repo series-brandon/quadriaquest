@@ -37,8 +37,9 @@ test('XP and level explanations return to gathering and final success only after
     assert.equal(controlButton.disabled,true);opening.zoomed(.2);assert.equal(controlButton.disabled,false);continueLesson();
     assert.equal(opening.canMove,true);assert.equal(controlButton.disabled,true);
     opening.moving({x:0,z:0},{x:0,z:0});opening.arrived({x:0,z:0});assert.equal(controlButton.disabled,true);
-    opening.moving({x:0,z:0},{x:1,z:0});assert.equal(controlButton.disabled,true);opening.arrived({x:1,z:0});assert.equal(controlButton.disabled,false);continueLesson();continueLesson();
-    assert.equal(opening.canGather,true);
+    opening.moving({x:0,z:0},{x:1,z:0});assert.equal(controlButton.disabled,true);opening.arrived({x:1,z:0});assert.equal(controlButton.disabled,false);continueLesson();
+    assert.equal(get('gather-tutorial').hidden,false);assert.equal(controlButton.textContent,'Dismiss');
+    assert.equal(opening.canMove,true);assert.equal(opening.canGather,true);
     opening.collected(1,{xp:20,leveledUp:false});
     assert.match(get('tutorial-copy').textContent,/first experience points/);
     assert.equal(opening.canMove,false);opening.update(30);
