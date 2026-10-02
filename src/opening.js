@@ -65,7 +65,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   function showLesson(){
     tutorial.hidden=false;
     continueButton.hidden=true;continueButton.textContent='Click to continue';
-    document.getElementById('tutorial-title').textContent=lesson===3?'Pick up some items':'TUTORIAL';
+    document.getElementById('tutorial-title').textContent=['Rotate your view','Zoom in and out','Find your footing','Pick up some items'][lesson];
     document.getElementById('tutorial-copy').textContent=lessons[lesson].text;
     document.getElementById('tutorial-count').textContent=lesson===3?collectedCount+' / 6 collected':(lesson+1)+' / 4';
     tutorial.classList.remove('complete');

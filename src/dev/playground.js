@@ -1,3 +1,4 @@
+import {icon,ICON_NAMES} from '../icons.js';
 import {miningMotion,MINING_DURATION} from '../mining.js';
 import {ITEMS,itemStack} from '../items.js';
 import {WATER_DEFAULTS} from '../water-effects.js';
@@ -21,6 +22,7 @@ const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATIO
 export function mountPlayground(api){
   const panel=document.createElement('details');panel.id='quadra-dev-playground';panel.open=true;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>collapse</small></summary>
+    <fieldset><legend>UI &amp; audio polish</legend><button data-dev="crafting-menu">Open Crafting menu</button><button data-dev="receipt">Crafting receipt</button><button data-dev="clear-loot">Clear item feed</button><button data-dev="audio-reset">Reset audio</button><button data-dev="settings">Open Settings</button><details><summary>Icon sheet</summary><div class="dev-icons">${ICON_NAMES.map(name=>`<span>${icon(name)} ${name}</span>`).join('')}</div></details><p class="dev-note">Journal tabs, search, expand/minimize, and item controls use the real menus. Sound controls are in Settings (journal or splash cog).</p><label>Music preview<select id="dev-music"><option value="">Follow game</option><option value="splash">Splash</option><option value="intro">Introduction</option><option value="clearing">Clearing</option></select></label><div>${['pickup','craft','complete','chop','mine','fall','level','portal','blocked','wind','bird','insect'].map(name=>`<button data-sound="${name}">${name}</button>`).join('')}</div></fieldset>
     <p class="dev-note">Tutorial skipped · changes are session-only</p>
     <button data-dev="splash">Preview splash screen</button>
     <button data-dev="themes">Compare UI styles</button>
@@ -77,11 +79,13 @@ export function mountPlayground(api){
   let preview=null,time=0,holdingFeedback=false,snapshotAge=0;
   const amount=id=>{const n=Number($(id).value);if(!Number.isSafeInteger(n)||n<0||n>1000000)throw Error('Enter a whole number from 0 to 1,000,000.');return n;};
   const status=text=>$('status').textContent=text;
+  panel.querySelector('#dev-music').onchange=e=>{api.audio.unlock();api.audio.preview(e.target.value||null);};
   function stop(force=true){if(!force&&!preview&&!holdingFeedback)return;preview=null;time=0;holdingFeedback=false;api.finale.stopPreview();api.stop();}
   function refresh(){api.refresh();$('state').textContent=Object.entries(api.skills).map(([name,s])=>`${name}: Lv ${s.level} · ${s.xp} XP`).join('\n')+'\n'+Object.entries(api.inventory).map(([name,n])=>itemStack(name,n)).join(' · ');}
   panel.addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     try{
+      if(b.dataset.sound){api.audio.unlock();api.audio.play(b.dataset.sound);}
       if(b.dataset.prompt){
         const tutorial=document.getElementById('gather-tutorial');
         tutorial.hidden=b.dataset.prompt==='hide';
@@ -90,6 +94,11 @@ export function mountPlayground(api){
       }
       if(b.dataset.dev){
         const action=b.dataset.dev;
+        if(action==='crafting-menu'){stop();api.showCrafting();}
+        if(action==='receipt')api.itemFeed.show({sticks:-1,stones:-1,axes:1});
+        if(action==='clear-loot')api.itemFeed.clear();
+        if(action==='settings')api.openSettings();
+        if(action==='audio-reset'){api.audio.reset();panel.querySelector('#dev-music').value='';for(const input of document.querySelectorAll('[data-audio]'))input.value=api.audio.settings[input.dataset.audio];document.getElementById('audio-muted').checked=false;}
         if(action==='water-restart'){api.restartWater();status('Water animation restarted.');}
         if(action==='water-reset'){Object.assign(api.waterSettings,WATER_DEFAULTS);for(const [id,key] of Object.entries(waterControls)){const input=$('water-'+id);if(input.type==='checkbox')input.checked=WATER_DEFAULTS[key];else input.value=WATER_DEFAULTS[key];}api.restartWater();status('Water defaults restored.');}
         if(action==='mining-lesson'){stop();api.miningLesson();}

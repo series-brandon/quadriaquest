@@ -12,8 +12,6 @@ export function createTutorialFinale(api){
   const $=id=>document.getElementById(id),actors=[],drops=[],clearingTiles=new Map(api.world);
   let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null,transition=null,inPlaceholder=false,equipped=false;
   const hat=makeTopHat(),heldHat=makeTopHat();api.visual.add(hat,heldHat);hat.position.y=.79;hat.visible=false;heldHat.visible=false;
-  const equipment=document.createElement('button');equipment.id='hat-equipment';equipment.hidden=true;document.body.append(equipment);
-  equipment.onclick=()=>{if(!busy())equipped=!equipped;};
   const location=document.createElement('div');location.id='area-name';location.hidden=true;location.textContent='Beyond the clearing · Next area preview';document.body.append(location);
   const placeholder=new THREE.Group();placeholder.visible=false;api.scene.add(placeholder);
   const tiles=[];
@@ -95,17 +93,17 @@ export function createTutorialFinale(api){
     if(!landing){api.travelBlocked();return;}
     api.stop();hideDialogue();transition={age:0,destination,landing,switched:false};$('scene-fade').hidden=false;
   }
-  function refresh(){if(!(api.inventory.hats>0))equipped=false;equipment.hidden=!(api.inventory.hats>0)||!!celebration;equipment.textContent=equipped?'Remove Top Hat':'Wear Top Hat';hat.visible=equipped&&!celebration;}
+  function refresh(){if(!(api.inventory.hats>0))equipped=false;hat.visible=equipped&&!celebration;}
   return {
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,travel,
     get busy(){return busy();},get celebration(){return celebration;},get cameraFocus(){return crystalFocus;},get inPlaceholder(){return inPlaceholder;},get stage(){return stage;},
-    get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped};},
+    get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped,canEquip:!busy()};},
     refresh,
     bendHat(amount){hat.position.x=amount;},
     usePortal(){const actor=inPlaceholder?returnPortal:portal;if(actor)api.approach(actor);},
     openChest(){if(chest)api.approach(chest);},
     stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;refresh();}},
-    equip(){if(api.inventory.hats>0)equipped=!equipped;},
+    equip(){if(api.inventory.hats>0&&!busy())equipped=!equipped;refresh();},
     interact(actor){
       if(!actor.ready||actor.opened||busy())return;
       if(actor.kind==='chest'){actor.opened=true;actor.lid.rotation.x=-1;actor.lid.position.set(0,.64,-.18);api.inventory.hats=(api.inventory.hats||0)+1;api.showItemChanges({hats:1});celebrate();}

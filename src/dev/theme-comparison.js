@@ -22,9 +22,9 @@ export function mountThemeComparison(api){
   board.hidden=true;document.body.dataset.uiTheme=id;api.showSplash();document.getElementById('splash').append(bar);bar.inert=false;bar.hidden=false;bar.querySelector('select').value=id;
  });
  bar.querySelector('select').onchange=e=>{if(e.target.value==='original')delete document.body.dataset.uiTheme;else document.body.dataset.uiTheme=e.target.value;};
- bar.querySelector('[data-back]').onclick=()=>{document.getElementById('splash').querySelector('.splash-start button').click();clear();show();};
- bar.querySelector('[data-reset]').onclick=()=>{document.getElementById('splash').querySelector('.splash-start button').click();clear();};
- document.addEventListener('click',e=>{if(e.target.matches('.splash-start button'))clear();});
+ bar.querySelector('[data-back]').onclick=()=>{document.getElementById('splash').querySelector('#splash-play').click();clear();show();};
+ bar.querySelector('[data-reset]').onclick=()=>{document.getElementById('splash').querySelector('#splash-play').click();clear();};
+ document.addEventListener('click',e=>{if(e.target.matches('#splash-play'))clear();});
  board.addEventListener('keydown',e=>{if(e.key==='Escape')board.querySelector('[data-close]').click();});
  return show;
 }

@@ -22,6 +22,7 @@ export function showSkillReward(reward,position){
   const xp=document.createElement('div');xp.className='floating-xp';xp.textContent=`+${reward.xp} ${reward.skillName||'Gathering'} Exp.!`;xp.setAttribute('role','status');document.body.append(xp);
   floatingXp.push({element:xp,origin:position.clone().add(new THREE.Vector3(0,1.05,0)),age:0});
   if(reward.leveledUp){
+    window.dispatchEvent(new Event('quadra-level'));
     const level=document.createElement('div');level.className='skill-reward level-up';
     const title=document.createElement('strong');title.textContent=`✦ ${reward.skillName||'Gathering'} level has increased!`;
     const detail=document.createElement('span');detail.textContent=reward.skillName==='Gathering'||!reward.skillName?`Level ${reward.level} · Gathering is now faster`:`Level ${reward.level}`;

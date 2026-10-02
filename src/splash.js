@@ -1,3 +1,4 @@
+import {icon} from './icons.js';
 import {createWaterEffects} from './water-effects.js';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -6,9 +7,10 @@ import {createSleepFeedback} from './sleep-feedback.js';
 import {socialMotion} from './slime-social.js';
 import {createSlimeBend} from './slime-bend.js';
 
-export function createSplash(renderer,enabled){
+export function createSplash(renderer,enabled,settings){
   const overlay=document.createElement('section');overlay.id='splash';overlay.hidden=!enabled;
-  overlay.innerHTML='<div class="splash-heading"><p>A LITTLE SLIME. A BIG ADVENTURE.</p><h1>Quadra <span>Quest</span></h1><p class="splash-subtitle">A world of small wonders awaits.</p></div><div class="splash-start"><button type="button">Play</button><small>AN EARLY PLAYABLE PROTOTYPE</small></div>';
+  overlay.innerHTML='<div class="splash-heading"><p>A LITTLE SLIME. A BIG ADVENTURE.</p><h1>Quadra <span>Quest</span></h1><p class="splash-subtitle">A world of small wonders awaits.</p></div><div class="splash-start"><div class="splash-actions"><button id="splash-play" type="button">Play</button></div><small>AN EARLY PLAYABLE PROTOTYPE</small></div>';
+  const settingsButton=document.createElement('button');settingsButton.id='splash-settings';settingsButton.setAttribute('aria-label','Open settings');settingsButton.innerHTML=icon('settings');settingsButton.onclick=()=>settings.open();overlay.querySelector('.splash-actions').append(settingsButton);
   document.body.append(overlay);
   const scene=new THREE.Scene();scene.background=new THREE.Color('#dce5dc');
   scene.add(new THREE.HemisphereLight('#fff9df','#719584',3));
@@ -52,8 +54,8 @@ export function createSplash(renderer,enabled){
   const bend=createSlimeBend(slime,[body,face.group]);
   const zs=createSleepFeedback(scene);let age=2;
   let blocked=[];
-  function show(){overlay.hidden=false;blocked=[...document.body.children].filter(el=>el!==overlay&&!el.inert);for(const el of blocked)el.inert=true;overlay.querySelector('button').focus();}
-  const close=()=>{overlay.hidden=true;for(const el of blocked)el.inert=false;blocked=[];};overlay.querySelector('button').onclick=close;
+  function show(){overlay.hidden=false;blocked=[...document.body.children].filter(el=>el!==overlay&&el.id!=='game-settings'&&!el.inert);for(const el of blocked)el.inert=true;}
+  const close=()=>{overlay.hidden=true;for(const el of blocked)el.inert=false;blocked=[];};overlay.querySelector('#splash-play').onclick=close;
   if(enabled)show();
   return {restartWater(){waterEffects.restart();},get active(){return !overlay.hidden;},show,render(dt){
     waterEffects.update(dt);age+=dt;const {pose}=socialMotion('Sleeping',age);bend(pose.bend);const width=1/Math.sqrt(pose.squash);slime.scale.set(width,pose.squash,width);slime.position.y=.065-.07*pose.squash;

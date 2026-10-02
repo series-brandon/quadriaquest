@@ -1,4 +1,4 @@
-import {ITEMS,itemStack} from './items.js';
+import {icon} from './icons.js';
 import {createInventoryMenu} from './inventory-menu.js';
 import {showGatheringCompletion} from './opening.js';
 import {GATHERING_XP_PER_LEVEL} from './skills.js';
@@ -11,7 +11,7 @@ const introduction=[
   "So let's learn about crafting.",
   "Open your game menu again. This time, we'll make something!"
 ];
-export function createCraftingTutorial({getInventory,getSkills,startCraft,freePlay=false,onComplete=()=>{}}){
+export function createCraftingTutorial({getInventory,getSkills,startCraft,equipment={},freePlay=false,onComplete=()=>{}}){
   const $=id=>document.getElementById(id);
   let stage=freePlay?'done':'inactive',lineIndex=0,advance=null,successNext=null,firstTree=!freePlay;
   let skillsDone=null,inventoryDone=null,miningGuided=false;
@@ -21,14 +21,17 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false"><span aria-hidden="true">☰</span></button>
     <nav id="game-menu-bar" hidden aria-label="Game menu"><button id="open-skills">Skills</button><button id="open-inventory" hidden>Inventory</button><button id="open-crafting" hidden>Crafting</button></nav>
     <section id="crafting-panel" hidden aria-label="Crafting"><div class="crafting-heading"><h2>Crafting</h2><button id="close-crafting" aria-label="Close crafting menu">×</button></div><p class="crafting-intro">Something useful from something simple.</p>
-      <button id="craft-axe" class="recipe"><span class="axe-symbol" aria-hidden="true">⚒</span><span><strong class="item-name">Crude Axe</strong><small>Sticks ×1 + Rocks ×1 · 2 seconds</small></span><span aria-hidden="true">→</span></button>
-      <button id="craft-pickaxe" class="recipe" hidden><span class="axe-symbol" aria-hidden="true">⛏</span><span><strong class="item-name">Crude Pickaxe</strong><small>Sticks ×1 + Rocks ×1 · 2 seconds</small></span><span aria-hidden="true">→</span></button>
-      <p id="crafting-stock"></p><p id="recipe-error" role="status"></p>
+      <div class="recipe-choices"><button class="recipe-choice" id="choose-axe" aria-pressed="true">${icon('axes')} Crude Axe</button><button class="recipe-choice" id="choose-pickaxe" aria-pressed="false" hidden>${icon('pickaxes')} Crude Pickaxe</button></div>
+      <article class="recipe-detail" id="axe-detail"><h3>Crude Axe</h3><p>A simple tool for chopping trees.</p><div class="ingredient-counts" id="axe-ingredients"></div><div class="recipe-facts"><span>Time · 2 seconds</span><span>Produces · Crude Axe ×1</span></div><button id="craft-axe" class="recipe">Craft Crude Axe</button></article>
+      <article class="recipe-detail" id="pickaxe-detail" hidden><h3>Crude Pickaxe</h3><p>A simple tool for mining boulders.</p><div class="ingredient-counts" id="pickaxe-ingredients"></div><div class="recipe-facts"><span>Time · 2 seconds</span><span>Produces · Crude Pickaxe ×1</span></div><button id="craft-pickaxe" class="recipe" hidden>Craft Crude Pickaxe</button></article>
+      <p id="recipe-error" role="status"></p>
     </section>`;
   document.body.append(host);
   const skillsPanel=document.createElement('section');skillsPanel.id='skills-panel';skillsPanel.hidden=true;skillsPanel.setAttribute('aria-label','Skills');
-  skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><div id="skills-list"></div>';
-  host.append(skillsPanel);$('open-crafting').hidden=!freePlay;$('craft-pickaxe').hidden=!freePlay;
+  skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><input id="skills-search" class="journal-search" type="search" placeholder="Search skills…" aria-label="Search skills"><div id="skills-list"></div>';
+  host.append(skillsPanel);$('open-crafting').hidden=!freePlay;$('craft-pickaxe').hidden=!freePlay;$('choose-pickaxe').hidden=!freePlay;
+  function selectRecipe(name){for(const kind of ['axe','pickaxe']){$(kind+'-detail').hidden=kind!==name;$('choose-'+kind).setAttribute('aria-pressed',String(kind===name));}if(miningGuided&&stage==='pickaxe')guide(name==='pickaxe'?'craft-pickaxe':'choose-pickaxe');}
+  $('choose-axe').onclick=()=>selectRecipe('axe');$('choose-pickaxe').onclick=()=>selectRecipe('pickaxe');
   const inventoryMenu=createInventoryMenu(host,getInventory,id=>{
     if(stage!=='inventory-select'||id!=='sticks')return;
     stage='inventory-detail';inventoryMenu.guide(false);
@@ -37,7 +40,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
       const done=inventoryDone;inventoryDone=null;
       if(done)done();else{showGatheringCompletion();successNext=()=>{$('gather-tutorial').hidden=true;};}
     });$('tutorial-title').textContent='TUTORIAL';$('tutorial-continue').textContent='Got it!';
-  },()=>{if(!stage.startsWith('inventory-'))closeMenus();});
+  },()=>{if(!stage.startsWith('inventory-'))closeMenus();},equipment);
   $('open-inventory').hidden=!freePlay;
   function openInventory(){closeMenus();inventoryMenu.open();}
   $('open-inventory').onclick=()=>{
@@ -54,14 +57,16 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
       $('open-inventory').hidden=false;stage='inventory-toggle';guide('game-menu-toggle');tutorial('Open the game menu to check your inventory.');
     })));
   }
+  $('skills-search').oninput=()=>renderSkills();
   function renderSkills(){
+    const expanded=new Set([...$('skills-list').querySelectorAll('details[open]')].map(node=>node.dataset.skill));
     $('close-skills').disabled=stage.startsWith('skills-');
-    $('skills-list').innerHTML=Object.entries(getSkills()).map(([name,skill])=>{
+    $('skills-list').innerHTML=Object.entries(getSkills()).filter(([name])=>name.toLowerCase().includes(($('skills-search').value||'').toLowerCase())).map(([name,skill])=>{
       const progress=skill.xp%GATHERING_XP_PER_LEVEL,remaining=GATHERING_XP_PER_LEVEL-progress;
-      return `<article class="skill-entry ${stage==='skills-detail'&&name==='Gathering'?'skill-focus':''}"><div><strong>${name}</strong><b>Level ${skill.level}</b></div><p>${skill.xp} total XP</p><progress max="${GATHERING_XP_PER_LEVEL}" value="${progress}" aria-label="${name} progress toward level ${skill.level+1}"></progress><small>${progress} / ${GATHERING_XP_PER_LEVEL} XP toward Level ${skill.level+1}</small><small>${remaining} XP to next level</small></article>`;
+      return `<details data-skill="${name}" ${(stage==='skills-detail'&&name==='Gathering')||expanded.has(name)?'open':''} class="skill-entry ${stage==='skills-detail'&&name==='Gathering'?'skill-focus':''}"><summary>${icon(name)}<strong>${name}</strong><b>Lv ${skill.level}</b><progress max="${GATHERING_XP_PER_LEVEL}" value="${progress}" aria-label="${name} progress"></progress></summary><p>${skill.xp} total XP</p><progress max="${GATHERING_XP_PER_LEVEL}" value="${progress}" aria-label="${name} progress toward level ${skill.level+1}"></progress><small>${progress} / ${GATHERING_XP_PER_LEVEL} XP toward Level ${skill.level+1}</small><small>${remaining} XP to next level</small></details>`;
     }).join('');
   }
-  function openSkills(){closeMenus();renderSkills();skillsPanel.hidden=false;}
+  function openSkills(){closeMenus();$('skills-search').value='';renderSkills();skillsPanel.hidden=false;}
   $('open-skills').onclick=()=>{
     if(stage==='skills-menu'){
       stage='skills-detail';guide(null);openSkills();
@@ -92,7 +97,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   }
   function tutorial(text,success=false,next=null){
     help.hidden=true;$('dialogue').hidden=true;$('gather-tutorial').hidden=false;
-    $('tutorial-title').textContent=success?'✓ Well done!':'TUTORIAL';
+    $('tutorial-title').textContent=success?'Well done!':({chop:'Chop a tree',pickaxe:'Craft a Crude Pickaxe',mine:'Mine a boulder',recipe:'Craft a Crude Axe',crafting:'Crafting your axe','mining-craft':'Crafting your pickaxe'})[stage]||'YOUR NEXT STEP';
     $('tutorial-count').textContent='';writeItems($('tutorial-copy'),text);
     $('gather-tutorial').querySelector('.progress-track').hidden=true;
     $('gather-tutorial').classList.toggle('complete',success);
@@ -109,7 +114,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   function activateChopping(){stage='chop';guide(null);tutorial('Click on a tree with an appropriate tool in your inventory to start chopping it down. Be patient! If you move before you finish, you’ll have to start over!');}
   function pickaxeGuide(){
     if(!miningGuided||stage!=='pickaxe')return;
-    guide(!$('crafting-panel').hidden?'craft-pickaxe':!$('game-menu-bar').hidden?'open-crafting':'game-menu-toggle');
+    guide(!$('crafting-panel').hidden?(!$('pickaxe-detail').hidden?'craft-pickaxe':'choose-pickaxe'):(!$('game-menu-bar').hidden||!skillsPanel.hidden||!inventoryMenu.panel.hidden)?'open-crafting':'game-menu-toggle');
   }
   function pickaxePrompt(){
     stage='pickaxe';tutorial('Craft a Crude Pickaxe using Sticks ×1 and Rocks ×1.');help.hidden=miningGuided;pickaxeGuide();
@@ -118,7 +123,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
     stage='mine';miningGuided=false;guide(null);tutorial('Mine a Boulder to collect Stone.');help.hidden=false;
   }
   function startMining(){
-    closeMenus();guide(null);advance=null;successNext=null;miningGuided=false;stage='mining-intro';host.hidden=false;$('open-crafting').hidden=false;$('craft-pickaxe').hidden=false;
+    closeMenus();guide(null);advance=null;successNext=null;miningGuided=false;stage='mining-intro';host.hidden=false;$('open-crafting').hidden=false;$('craft-pickaxe').hidden=false;$('choose-pickaxe').hidden=false;
     const lines=[
       'Nicely done! Wood will come in handy, but some things need something sturdier.',
       'See those boulders? We can mine some Stone from them.',
@@ -150,7 +155,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
   $('open-crafting').addEventListener('click',()=>{
     if(stage.startsWith('skills-')||stage.startsWith('inventory-'))return;
     closeMenus();
-    $('crafting-panel').hidden=false;$('game-menu-bar').hidden=true;$('game-menu-toggle').setAttribute('aria-expanded','false');
+    selectRecipe(stage==='pickaxe'?'pickaxe':'axe');$('crafting-panel').hidden=false;$('game-menu-bar').hidden=true;$('game-menu-toggle').setAttribute('aria-expanded','false');
     if(['craft-menu','recipe','retry'].includes(stage)){stage='recipe';tutorial('Craft a Crude Axe.');guide('craft-axe');}
     pickaxeGuide();refresh();
   });
@@ -167,7 +172,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,freePl
     closeMenus();guide(null);
     if(stage==='pickaxe'){stage='mining-craft';tutorial('Making your Crude Pickaxe… Moving before it’s finished will interrupt crafting.');}
   };
-  function refresh(){if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();const i=getInventory();$('crafting-stock').textContent=Object.keys(ITEMS).map(id=>itemStack(id,i[id]||0)).join(' · ');$('recipe-error').textContent='';$('craft-axe').disabled=i.sticks<1||i.stones<1||!['recipe','done'].includes(stage);$('craft-pickaxe').disabled=i.sticks<1||i.stones<1||!['pickaxe','mine','done'].includes(stage);}
+  function refresh(){if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();const i=getInventory();for(const kind of ['axe','pickaxe']){$(kind+'-ingredients').innerHTML=[['sticks','Sticks'],['stones','Rocks']].map(([key,name])=>`<span class="ingredient ${i[key]>=1?'enough':'missing'}">${icon(key)}<span>${name} · 1 required / ${i[key]||0} owned${i[key]>=1?'':' · Missing 1'}</span></span>`).join('');}$('recipe-error').textContent='';$('craft-axe').disabled=i.sticks<1||i.stones<1||!['recipe','done'].includes(stage);$('craft-pickaxe').disabled=i.sticks<1||i.stones<1||!['pickaxe','mine','done'].includes(stage);}
   return {
     startSkills,openSkills,startInventory,openInventory,startMining,reset,
     start(){ $('open-crafting').hidden=false;stage='intro';lineIndex=0;nextIntro();},
