@@ -165,3 +165,12 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 #quests-panel .completed-task h4{font-size:14px;margin:0}
 #quests-panel .completed-task small{margin:5px 0 0 20px;font-size:11px}
 @media(min-width:701px){body:has(#gather-tutorial:not([hidden])) #journal:not(.expanded):has(#inventory-panel:not([hidden])){max-height:calc(100dvh - 290px)}#journal:not(.expanded) #inventory-panel:not(.viewing-item){grid-template-rows:auto auto minmax(0,1fr) auto}}
+/* Mobile journal owns the full viewport; teaching tips become its footer. */
+@media(max-width:700px){
+ body #game-menus #journal,body #game-menus #journal.expanded,body #game-menus #journal:not(.expanded){inset:0;width:100%;height:100dvh;max-width:none;max-height:none;border:0;border-radius:0;transform:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:var(--ui-paper);box-sizing:border-box}
+ body:has(#journal:not([hidden])) #journal #gather-tutorial{position:relative;inset:auto;transform:none;width:auto;max-width:none;max-height:34dvh;flex:none;align-self:stretch;margin:10px 12px 12px;padding:12px 14px;border-radius:12px;overflow:auto}
+}
+
+/* Dismissible tips may use the available height instead of a small viewport fraction. */
+body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{max-height:calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+@media(max-width:700px){body:has(#journal:not([hidden])) #journal #gather-tutorial{max-height:calc(100dvh - 160px - env(safe-area-inset-top) - env(safe-area-inset-bottom));flex:0 1 auto;min-height:0}}

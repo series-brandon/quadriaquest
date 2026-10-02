@@ -44,6 +44,9 @@ test('XP and level explanations return to gathering and final success only after
     assert.match(get('tutorial-copy').textContent,/first experience points/);
     assert.equal(opening.canMove,false);opening.update(30);
     assert.match(get('tutorial-copy').textContent,/first experience points/);
+    continueLesson();assert.match(get('tutorial-copy').textContent,/Higher skill levels/);
+    assert.equal(opening.canGather,false);assert.equal(opening.canMove,false);assert.equal(get('gather-tutorial').hidden,false);
+    assert.equal(objectives.get('gather').current,1);assert.equal(controlButton.textContent,'Dismiss');
     continueLesson();assert.equal(opening.canGather,true);
     assert.equal(get('gather-tutorial').hidden,true);assert.equal(objectives.get('gather').current,1);
     assert.equal(get('tutorial-copy').textContent,'Finish collecting the items off the ground.');
@@ -51,6 +54,7 @@ test('XP and level explanations return to gathering and final success only after
     assert.equal(opening.canGather,true);
     opening.collected(6,{xp:20,leveledUp:true});assert.equal(objectives.get('gather').current,6);
     assert.match(get('tutorial-copy').textContent,/first level/);assert.equal(opening.canMove,false);
+    continueLesson();assert.match(get('tutorial-copy').textContent,/master of many skills/);assert.equal(finishSkills,undefined);assert.equal(opening.canMove,false);
     continueLesson();assert.equal(typeof finishSkills,'function');assert.equal(opening.canMove,false);assert.equal(opening.canGather,false);
     // The Skills controller hides the shared tutorial panel before returning.
     get('gather-tutorial').hidden=true;

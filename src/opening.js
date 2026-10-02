@@ -19,7 +19,7 @@ export function showGatheringPrompt(count){
   document.getElementById('tutorial-title').textContent='Gathering resources';
   document.getElementById('tutorial-copy').textContent=count>0
     ? 'Finish collecting the items off the ground.'
-    : 'Click/Tap on the gold-highlighted sticks and rocks to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items.';
+    : 'Click or tap a gold-highlighted item to gather it. Wait until you finish—moving interrupts gathering. Collect all six!';
   document.getElementById('tutorial-count').textContent=count+' / 6 collected';
   document.getElementById('tutorial-progress').style.width=`${count/6*100}%`;
 }
@@ -50,7 +50,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     {id:'rotate',text:'Use the arrow keys or drag the screen to rotate the camera',success:'Nice! You can look around.'},
     {id:'zoom',text:'Use the scroll wheel or pinch-and-zoom to zoom in and out!',success:'Perfect! A closer look.'},
     {id:'move',text:'Click/Tap to move to any location. Beware! You might not be able to go to some locations.',success:'You made it!'},
-    {id:'gather',text:"Click/Tap on the gold-highlighted sticks and rocks to pick them up. The golden arrows point out your first items. You will walk over and begin collecting. Collecting takes a moment, so wait until it’s done before clicking/tapping away. Pick up all 6 items."}
+    {id:'gather',text:"Click or tap a gold-highlighted item to gather it. Wait until you finish—moving interrupts gathering. Collect all six!"}
   ];
   let briefing=false,controlsDone=null;
   let lesson=0,awaitingContinue=false,rotationAmount=0,zoomAmount=0,moveGoal=null;
@@ -58,12 +58,14 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   function showGatherSuccess(){showGatheringCompletion();awaitingContinue=true;}
   function explainSkill(kind){
     briefing=false;tutorial.hidden=false;interruption=kind;awaitingContinue=true;continueButton.hidden=false;
-    continueButton.textContent=kind==='level'?'Okay':'Click to continue';
+    continueButton.textContent=kind==='xp'||kind==='level'?'Continue':kind==='level-encouragement'?'Okay':'Dismiss';
     tutorial.classList.add('complete');tutorial.querySelector('.progress-track').hidden=true;
-    document.getElementById('tutorial-title').textContent=kind==='xp'?'Experience points':'Your first level';
+    document.getElementById('tutorial-title').textContent=kind==='xp'?'Experience points · 1/2':kind==='xp-benefits'?'Experience points · 2/2':kind==='level'?'Your first level · 1/2':'Your first level · 2/2';
     document.getElementById('tutorial-copy').textContent=kind==='xp'
-      ? 'You just gained your first experience points! Most of the things you do in Quadra will reward you with experience points in specific skills. As you gain experience points, you will level up, which will improve your abilities with those specific skills!'
-      : "You just gained your first level! It's just a start, but your Gathering ability just got a little bit better! Keep going! Soon you'll be a master of many skills!";
+      ? 'You just gained your first experience points! Most activities in Quadra reward experience in a specific skill.'
+      : kind==='xp-benefits' ? 'Earn enough experience to level up. Higher skill levels improve your abilities!'
+      : kind==='level' ? "You just gained your first level! Your Gathering ability just got a little bit better!"
+      : "It’s just a start. Keep going! Soon you’ll be a master of many skills!";
   }
   function showLesson(){
     tutorial.hidden=false;
@@ -93,7 +95,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     awaitingContinue=false;continueButton.hidden=true;
     if(interruption){
       const completed=interruption;interruption=null;
-      if(completed==='xp')showLesson();else if(onFirstLevel){skillsPending=true;onFirstLevel(()=>{skillsPending=false;showLesson();showGatherSuccess();});}else showGatherSuccess();
+      if(completed==='xp')explainSkill('xp-benefits');else if(completed==='xp-benefits')showLesson();else if(completed==='level')explainSkill('level-encouragement');else if(onFirstLevel){skillsPending=true;onFirstLevel(()=>{skillsPending=false;showLesson();showGatherSuccess();});}else showGatherSuccess();
       return;
     }
     if(lesson===2&&controlsDone){const done=controlsDone;controlsDone=null;done();return;}
@@ -168,6 +170,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   player.rotation.y=Math.PI/4;
   return {
     enterFreePlay,
+    startLevelExplanation(){enterFreePlay();finished=false;collectedCount=6;xpExplained=levelExplained=true;showGatheringPrompt(6);explainSkill('level');},
     startGathering(){enterFreePlay();finished=false;collectedCount=0;xpExplained=levelExplained=false;interruption=null;showLesson();},
     startControls(done){finished=false;playable=true;inClearing=true;lesson=0;awaitingContinue=false;rotationAmount=zoomAmount=0;moveGoal=null;controlsDone=done;dialogue.hidden=true;transition('play');showLesson();},
     get reaction(){return reaction;},

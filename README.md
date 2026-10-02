@@ -74,3 +74,9 @@ Mining follows chopping before the Iter Portal finale. Three former trees are bo
 The **UI & audio polish** playground section opens real crafting, previews grouped crafting receipts, clears the loot feed, shows the SVG icon sheet, and auditions individual sounds or music contexts. Inventory/Skills controls open the shared journal; its own search, tabs, and expand button exercise the real layouts. Settings in the top-right journal menu or the splash-screen cog control Music, Effects, Ambience, and Mute. Audio is a procedural first pass and starts after a user gesture.
 
 The playground’s **Tips & objectives** controls preview dismissible tips, add/update/complete/reset objectives, and open Quests. Tutorial replays use the same quest tracking as normal play.
+
+Open the game menu and choose **Debug** (Show debug menu) to access playground controls. The playground starts closed and has no floating launcher; close it using its header. This entry is excluded from normal builds.
+
+The playground’s **Terrain colors** section provides a live **Grass color** picker for the clearing and splash map. The standard base is RGB **53, 141, 61** (`#358d3d`). The selected color centers the existing subtle tile hue, saturation, and lightness variations. Changes are session-only; **Reset grass color** restores the original palette exactly.
+
+The splash slime receives a random body/hand color on each page load, with adaptive face contrast. Its appearance is independent of player customization. **Randomize splash slime** in the playground rerolls and previews it; **Preview splash screen** retains the current roll. Future random splash cosmetics should use the same appearance entry point.

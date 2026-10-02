@@ -1,3 +1,4 @@
+import {GRASS_BASE_COLOR,createGrassColors} from '../grass-palette.js';
 import {icon,ICON_NAMES} from '../icons.js';
 import {miningMotion,MINING_DURATION} from '../mining.js';
 import {ITEMS,itemStack} from '../items.js';
@@ -17,14 +18,20 @@ export function createFreeOpening(options){
   return opening;
 }
 
+export function createGrassPaletteControls(getMaterials){
+  const set=value=>{const colors=createGrassColors(value);getMaterials().forEach((material,i)=>material.color.copy(colors[i%colors.length]));};
+  return {defaultColor:GRASS_BASE_COLOR,set,reset:()=>set(GRASS_BASE_COLOR)};
+}
+
 const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Hat celebration','Happy','Focused','Preparing','Struggle'];
 const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
-  const panel=document.createElement('details');panel.id='quadra-dev-playground';panel.open=true;
-  panel.innerHTML=`<summary>DEV PLAYGROUND <small>collapse</small></summary>
+  const panel=document.createElement('details');panel.id='quadra-dev-playground';panel.open=false;
+  panel.innerHTML=`<summary>DEV PLAYGROUND <small>close</small></summary>
     <fieldset><legend>Tips &amp; objectives</legend><button data-dev="controls-lesson">Replay camera &amp; movement tips</button><button data-dev="quests-lesson">Replay Quests tutorial</button><button data-objective="tip">Show tutorial tip</button><button data-objective="add">Add objective</button><button data-objective="update">Update objective</button><button data-objective="complete">Complete objective</button><button data-objective="reset">Reset objectives</button><button data-dev="quests">Open Quests</button></fieldset><fieldset><legend>UI &amp; audio polish</legend><button data-dev="crafting-menu">Open Crafting menu</button><button data-dev="receipt">Crafting receipt</button><button data-dev="clear-loot">Clear item feed</button><button data-dev="audio-reset">Reset audio</button><button data-dev="settings">Open Settings</button><details><summary>Icon sheet</summary><div class="dev-icons">${ICON_NAMES.map(name=>`<span>${icon(name)} ${name}</span>`).join('')}</div></details><p class="dev-note">Journal tabs, search, expand/minimize, and item controls use the real menus. Sound controls are in Settings (journal or splash cog).</p><label>Music preview<select id="dev-music"><option value="">Follow game</option><option value="splash">Splash</option><option value="intro">Introduction</option><option value="clearing">Clearing</option></select></label><div>${['pickup','craft','complete','chop','mine','fall','level','portal','blocked','wind','bird','insect'].map(name=>`<button data-sound="${name}">${name}</button>`).join('')}</div></fieldset>
     <p class="dev-note">Tutorial skipped · changes are session-only</p>
     <button data-dev="splash">Preview splash screen</button>
+    <button data-dev="splash-randomize">Randomize splash slime</button>
     <button data-dev="themes">Compare UI styles</button>
     <fieldset><legend>Animation preview</legend>
       <label>Animation <select id="dev-animation">${animations.map(a=>`<option>${a}</option>`).join('')}</select></label>
@@ -33,6 +40,11 @@ export function mountPlayground(api){
       <div><button data-dev="play">Play / restart</button><button data-dev="stop">Stop</button><button data-dev="face">Face camera</button><button data-dev="doze">Doze off</button><button data-dev="wake">Wake up</button></div>
       <label>Slime color <input id="dev-color" type="color" value="#a4ce77"></label>
       <p class="dev-note">Previews run in place without consuming items or earning XP. Stop to play normally.</p>
+    </fieldset>
+    <fieldset><legend>Terrain colors</legend>
+      <label>Grass color <input id="dev-grass-color" type="color" value="${api.grassPalette.defaultColor}"></label>
+      <button data-dev="grass-reset">Reset grass color</button>
+      <p class="dev-note">Live clearing and splash grass color. Subtle tile variations stay centered on your chosen color. Session-only; reset restores the original palette.</p>
     </fieldset>
     <fieldset><legend>Water animation</legend>
       <label><input id="dev-water-enabled" type="checkbox" ${WATER_DEFAULTS.enabled?'checked':''}> Animate water</label>
@@ -63,7 +75,7 @@ export function mountPlayground(api){
     <fieldset><legend>Visual feedback only</legend><p class="dev-note">Item gain/loss uses the selected inventory item and quantity without changing your inventory.</p><div>
       ${['Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
-    <fieldset><legend>Gathering tutorial prompt</legend><button data-dev="gathering-lesson">Replay gathering tutorial</button><div><button data-prompt="0">Before first pickup</button><button data-prompt="1">After first XP</button><button data-prompt="hide">Hide prompt</button></div></fieldset>
+    <fieldset><legend>Gathering tutorial prompt</legend><button data-dev="level-lesson">Replay first level tips</button><button data-dev="gathering-lesson">Replay gathering tutorial</button><div><button data-prompt="0">Before first pickup</button><button data-prompt="1">After first XP</button><button data-prompt="hide">Hide prompt</button></div></fieldset>
     <fieldset><legend>Tutorial finale</legend><p class="dev-note">Replay the real sequence or test its parts. Practice reset arms the hidden goal; Complete practice clears those objects without granting loot.</p><div>
       ${['Closing dialogue','Drop portal','Use portal','Practice reset','Complete practice','Reward dialogue','Drop chest','Open chest','Hat celebration','Wear/remove hat','Enter placeholder','Return to clearing','Reset finale'].map(a=>`<button data-finale="${a}">${a}</button>`).join('')}
     </div></fieldset>
@@ -73,6 +85,10 @@ export function mountPlayground(api){
     <output id="dev-status" aria-live="polite">Ready. Starter kit: Sticks ×10, Rocks ×10, Crude Axe ×1, Crude Pickaxe ×1.</output>
     <pre id="dev-state"></pre>`;
   document.body.append(panel);
+  const launcher=document.createElement('button');launcher.id='show-debug-menu';launcher.type='button';launcher.setAttribute('aria-label','Show debug menu');launcher.setAttribute('aria-controls',panel.id);launcher.setAttribute('aria-expanded','false');launcher.innerHTML=icon('settings')+'<span>Debug</span>';
+  document.getElementById('game-menu-bar').append(launcher);
+  launcher.onclick=()=>{panel.open=true;panel.querySelector('summary').focus();};
+  panel.addEventListener('toggle',()=>{launcher.setAttribute('aria-expanded',String(panel.open));if(!panel.open&&panel.contains(document.activeElement))launcher.focus();});
   const compareThemes=mountThemeComparison(api);
   const $=id=>panel.querySelector('#dev-'+id);
   const waterControls={"enabled": "enabled", "shimmers": "shimmers", "waves": "waves", "shoreline": "fixedShoreline", "color": "color", "faceted": "faceted", "strength": "waveStrength", "roughness": "roughness", "reflection": "reflectionStrength", "opacity": "opacity", "speed": "speed", "intensity": "intensity"};
@@ -101,6 +117,7 @@ export function mountPlayground(api){
         if(action==='quests')document.getElementById('open-quests').click();
         if(action==='settings')api.openSettings();
         if(action==='audio-reset'){api.audio.reset();panel.querySelector('#dev-music').value='';for(const input of document.querySelectorAll('[data-audio]'))input.value=api.audio.settings[input.dataset.audio];document.getElementById('audio-muted').checked=false;}
+        if(action==='grass-reset'){api.grassPalette.reset();$('grass-color').value=api.grassPalette.defaultColor;status('Original grass palette restored.');}
         if(action==='water-restart'){api.restartWater();status('Water animation restarted.');}
         if(action==='water-reset'){Object.assign(api.waterSettings,WATER_DEFAULTS);for(const [id,key] of Object.entries(waterControls)){const input=$('water-'+id);if(input.type==='checkbox')input.checked=WATER_DEFAULTS[key];else input.value=WATER_DEFAULTS[key];}api.restartWater();status('Water defaults restored.');}
         if(action==='mining-lesson'){stop();api.miningLesson();}
@@ -109,12 +126,14 @@ export function mountPlayground(api){
         if(action==='inventory-menu'){stop();api.showInventory();}
         if(action==='inventory-lesson'){stop();api.inventoryLesson();}
         if(action==='skills-menu'){stop();api.showSkills();}
+        if(action==='level-lesson'){stop();api.levelLesson();}
         if(action==='gathering-lesson'){stop();api.gatheringLesson();}
         if(action==='controls-lesson'){stop();api.controlsLesson();}
         if(action==='quests-lesson'){stop();api.questsLesson();}
         if(action==='skills-lesson'){stop();api.skillsLesson();}
         if(action==='themes'){stop();compareThemes();}
         if(action==='splash'){stop();api.showSplash();}
+        if(action==='splash-randomize'){stop();api.randomizeSplash();}
         if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}
         if(action==='stop'){stop();status('Preview stopped. Normal play enabled.');}
         if(action==='face')api.faceTowardCamera();
@@ -167,6 +186,7 @@ export function mountPlayground(api){
   for(const [id,key,max] of [['roughness','roughness',1],['reflection','reflectionStrength',5]])$('water-'+id).addEventListener('input',()=>{const value=Number($('water-'+id).value);if(Number.isFinite(value))api.waterSettings[key]=Math.max(0,Math.min(max,value));});
   $('water-shimmers').addEventListener('change',()=>api.waterSettings.shimmers=$('water-shimmers').checked);
   $('water-shoreline').addEventListener('change',()=>api.waterSettings.fixedShoreline=$('water-shoreline').checked);
+  $('grass-color').addEventListener('input',()=>api.grassPalette.set($('grass-color').value));
   $('water-color').addEventListener('input',()=>api.waterSettings.color=$('water-color').value);
   $('water-faceted').addEventListener('change',()=>api.waterSettings.faceted=$('water-faceted').checked);
   $('water-strength').addEventListener('input',()=>{const value=Number($('water-strength').value);if(Number.isFinite(value))api.waterSettings.waveStrength=Math.max(0,Math.min(4,value));});

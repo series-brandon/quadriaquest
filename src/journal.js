@@ -19,7 +19,7 @@ export function mountJournal(controller,settings){
  $('game-menu-toggle').innerHTML=icon('inventory');$('game-menu-toggle').setAttribute('aria-label','Open adventurer’s journal');
  for(const name of ['skills','inventory','crafting'])$('open-'+name).innerHTML=icon(name)+`<span>${name[0].toUpperCase()+name.slice(1)}</span>`;
  const activeClose=()=>['inventory','skills','crafting','quests'].map(name=>$(name+'-panel')).find(panel=>!panel.hidden)?.querySelector('.crafting-heading button');
- const mobile=matchMedia('(max-width:700px)');
+ const mobile=matchMedia('(max-width:700px)'),tip=$('gather-tutorial'),tipParent=tip.parentElement;
  function closePage(){const close=activeClose();if(close&&!close.disabled)close.click();else if(!close)controller.closeMenus();}
  $('journal-close').onclick=closePage;
  let last='quests';
@@ -27,6 +27,8 @@ export function mountJournal(controller,settings){
   const active=['inventory','skills','crafting','quests'].find(name=>!$(name+'-panel').hidden);
   const hide=!active&&nav.hidden;if(shell.hidden!==hide)shell.hidden=hide;
   shell.classList.toggle('has-page',!!active);
+  if(mobile.matches&&!hide){if(tip.parentElement!==shell)shell.append(tip);}
+  else if(tip.parentElement!==tipParent)tipParent.append(tip);
   if(active)last=active;
 
   const questClose=questPanel.querySelector('.crafting-heading button');const locked=controller.stage==='quests-detail';if(questClose.disabled!==locked)questClose.disabled=locked;
