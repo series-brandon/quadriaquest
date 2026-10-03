@@ -22,6 +22,7 @@ import {part,fisher,goblin,companion,campfire,animateCampfire,makeBridge,fishing
 import {WILLOWBANK,RECIPES,NEW_SKILLS,ENEMIES,canMake,finishRecipe,durationFor,damageRoll,incomingHealth,validCampTile,makeWillowbankTiles} from './willowbank-rules.js';
 import {createGatheringSkill,showSkillReward,gatheringDuration} from './skills.js';
 import {updateObjective,finishObjective,setObjectiveHelp,resetObjectives} from './quests.js';
+import {interactionRoute} from './interaction-route.js';
 import {findPath,key} from './world.js';
 import {portalSpawn} from './portal-spawn.js';
 import {ITEMS} from './items.js';
@@ -45,7 +46,7 @@ export function createWillowbank(api){
  let injuryReaction=null,combatSandbox=false;
  const hud=document.createElement('aside');hud.id='willow-health';hud.hidden=true;hud.innerHTML='<strong>Your health</strong><progress max="30" value="30"></progress><span>30 / 30</span>';document.body.append(hud);
  const tip=document.getElementById('gather-tutorial');
- const placementUI=document.createElement('section');placementUI.id='placement-controls';placementUI.hidden=true;placementUI.innerHTML='<strong>Choose a clear tile</strong><button data-place>Place</button><button data-cancel>Cancel</button>';document.body.append(placementUI);
+ const placementUI=document.createElement('section');placementUI.id='placement-controls';placementUI.hidden=true;placementUI.innerHTML='<strong>Choose a clear tile</strong><button data-cancel>Cancel</button>';document.body.append(placementUI);
  const cookUI=document.createElement('dialog');cookUI.id='cooking-menu';cookUI.innerHTML='<h2>Campfire</h2><p>Raw Pondfish ×1 → Cooked Pondfish ×1<br>3 seconds · Restores 10 health</p><label>Quantity <input type="number" min="1" max="99" value="1"></label><div class="willow-actions"><button data-cook>Cook fish</button><button data-pack>Pack up</button><button data-close>Close</button></div><p role="status"></p>';document.body.append(cookUI);
  let petDetailOpen=false;
  const petUI=document.createElement('section');petUI.id='companions-panel';petUI.hidden=true;petUI.setAttribute('aria-label','Companions');petUI.innerHTML='<div class="crafting-heading"><h2>Companions</h2><button aria-label="Close companions">×</button></div><div class="companion-content"></div>';
@@ -114,7 +115,7 @@ export function createWillowbank(api){
   if(phase==='fish'){goal('fish','Catch Raw Pondfish','Craft a Crude Fishing Rod from Sticks ×2, then fish at the rippling water in the pond.',caught,2);setObjectiveHelp('willow-fish',()=>{if(!api.inventory.rods)helpCraft('rods');else guided=true;});showTip('Dinner starts here','Craft a Crude Fishing Rod, then click or tap a fishing spot. Each catch ends with a little celebration. Click the spot again to catch another fish.',null,()=>{if(!api.inventory.rods)helpCraft('rods');else guided=true;});}
   if(phase==='flint'){goal('flint','Collect Flint','Gather Flint on the ground near the water.',flintCollected,1);guided=true;showTip('A spark of an idea','Look near the water for Flint. Gather one piece to get started.');}
   if(phase==='fire'){goal('fire','Prepare a Campfire','Craft Flint and Stone from Flint ×1 and Stone ×1, then a Campfire from Small Logs ×2. The fire-starting tool is reusable.',api.inventory.campfires||fire?1:0);setObjectiveHelp('willow-fire',()=>helpCraft(api.inventory.firestarters?'campfires':'firestarters'));showTip('Build a Campfire','Make Flint and Stone, then craft a Campfire. Select the Campfire in your inventory and choose Place.',null,()=>helpCraft(api.inventory.firestarters?'campfires':'firestarters'));}
-  if(phase==='place'){goal('place','Place your Campfire','Use Place in your Campfire inventory details. Choose a clear meadow tile, then confirm.');showTip('Make yourself at home','Select your Campfire in your inventory, then choose Place.');}
+  if(phase==='place'){goal('place','Place your Campfire','Use Place in your Campfire inventory details. Click or tap a clear meadow tile to walk over and place it.');showTip('Make yourself at home','Select your Campfire in your inventory, then choose Place.');}
   if(phase==='cook'){goal('cook','Cook a Pondfish','Interact with your Campfire and cook a Raw Pondfish.',cooked,1);guided=true;showTip('Something warm','Click or tap your Campfire to open its cooking menu. Cook a Pondfish to make your first meal.');}
   if(phase==='eat'){goal('eat','Eat a Cooked Pondfish','Select Cooked Pondfish in your inventory and choose Eat. It restores 10 health.',eaten,1);showTip('Time to recover','Select the Cooked Pondfish in your inventory and choose Eat. Food restores health. Eat your cooked fish to soothe that sore hand!',null,()=>api.openInventory());}
  }
@@ -127,7 +128,7 @@ export function createWillowbank(api){
  }
  function planWander(a){return wanderRoute(map,a.tile,PATROL_AREAS[a.kind],tile=>tile===api.tile()||api.routeContains(tile));}
  function resetEnemy(a){a.patrolRoute=[];a.patrolClock=wanderDelay();a.attackAge=0;a.hitAge=0;a.tile.blocked=false;a.x=a.home.x;a.z=a.home.z;a.tile=a.home;a.home.blocked=!a.opened;a.hp=ENEMIES[a.kind].health;a.group.position.set(a.x-6,a.tile.h,a.z-6);a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=a.tile;});}
- function cancel(){caughtFish.visible=false;injuryReaction=null;if(action?.target&&(action.kind==='Chopping'||action.kind==='Mining'))action.target.group.rotation.z=0;preview=null;modelPreview=null;if(action?.kind==='Repairing')showBridge(0);action=null;if(combat){resetEnemy(combat.enemy);combat=null;}api.feedback.clearDestination();}
+ function cancel(){cancelPlacement();caughtFish.visible=false;injuryReaction=null;if(action?.target&&(action.kind==='Chopping'||action.kind==='Mining'))action.target.group.rotation.z=0;preview=null;modelPreview=null;if(action?.kind==='Repairing')showBridge(0);action=null;if(combat){resetEnemy(combat.enemy);combat=null;}api.feedback.clearDestination();}
  function disengage(){if(combat){chase={enemy:combat.enemy,origin:combat.enemy.tile,age:0,attackClock:0,stepClock:0};combat=null;}}
  function clearChase(){if(chase){resetEnemy(chase.enemy);chase=null;}}
 
@@ -151,12 +152,26 @@ export function createWillowbank(api){
    else finish();
   },a);
  }
- function beginPlacement(){if(!active||busy()||combat||chase||!api.inventory.campfires)return;api.stop();cancel();api.closeMenus();placement=true;selectedCampTile=null;ghost.visible=false;placementUI.hidden=false;placementUI.querySelector('[data-place]').disabled=true;showTip('Place your Campfire','Choose a clear meadow tile. Green means it fits; red means it can’t go there. Select Place to confirm, or Cancel to keep it.');}
- function selectPlacement(tile){selectedCampTile=tile;const occupied=actors.some(a=>!a.opened&&a.tile===tile)||api.tile()===tile;const valid=validCampTile(tile,{occupied,reachable:tile&&findPath(map,api.tile(),tile)!==null});ghost.visible=!!tile;if(tile){ghost.position.set(tile.x-6,tile.h,tile.z-6);ghost.traverse(m=>{if(m.isMesh)m.material.color.set(valid?'#88dc94':'#ed7777');});}placementUI.querySelector('strong').textContent=valid?'Place Campfire here?':'Choose a clear meadow tile';placementUI.querySelector('[data-place]').disabled=!valid;return true;}
+ function beginPlacement(){if(!active||busy()||combat||chase||!api.inventory.campfires)return;if(fire){api.toast('Pack up your existing Campfire first.');return;}api.stop();cancel();api.closeMenus();placement=true;selectedCampTile=null;ghost.visible=false;placementUI.hidden=false;placementUI.querySelector('strong').textContent='Choose a clear tile';showTip('Place your Campfire','Choose a clear meadow tile. Green means it fits; red means it can’t go there. Click or tap to walk over and place it, or Cancel to keep it.');}
+ function placementStatus(tile){
+  const occupied=actors.some(a=>!a.opened&&a.tile===tile)||api.occupied(tile)||(petOwned&&petFollowing&&follower.occupies(tile));
+  if(!validCampTile(tile,{occupied}))return {valid:false,label:'Can’t place Campfire here',reason:'Choose an empty, clear meadow tile for your Campfire.'};
+  if(!interactionRoute(map,api.tile(),{x:tile.x,z:tile.z,tile}))return {valid:false,label:'No safe route to place Campfire',reason:'There is no safe route to place your Campfire there.'};
+  return {valid:true,label:'Place Campfire here'};
+ }
+ function showPlacementGhost(tile,valid){ghost.visible=!!tile;if(tile){ghost.position.set(tile.x-6,tile.water?.86:tile.h,tile.z-6);ghost.traverse(m=>{if(m.isMesh)m.material.color.set(valid?'#88dc94':'#ed7777');});}}
+ function hoverPlacement(tile){if(!placement)return null;const status=placementStatus(tile);showPlacementGhost(tile,status.valid);return status;}
+ function selectPlacement(tile){
+  const status=hoverPlacement(tile);if(!status)return;
+  if(!status.valid){api.toast(status.reason);if(tile)api.feedback.pulse(new THREE.Vector3(tile.x-6,tile.water?.86:tile.h,tile.z-6),false);return;}
+  placement=false;placementUI.hidden=true;tip.hidden=true;
+  const marker={x:tile.x,z:tile.z,tile,group:ghost,kind:'place',willow:true,ready:true,opened:false,duration:0};
+  api.approach(marker);
+  selectedCampTile=tile;showPlacementGhost(tile,true);
+ }
  function cancelPlacement(){placement=false;selectedCampTile=null;ghost.visible=false;placementUI.hidden=true;}
- placementUI.querySelector('[data-cancel]').onclick=cancelPlacement;
- placementUI.querySelector('[data-place]').onclick=()=>{if(!selectedCampTile||!api.inventory.campfires)return;const tile=selectedCampTile;cancelPlacement();const marker={x:tile.x,z:tile.z,tile,group:ghost,kind:'place',willow:true,ready:true,opened:false,duration:0};api.approach(marker);};
- function placeFire(tile){if(!api.inventory.campfires||!validCampTile(tile,{occupied:!!fire&&fire.tile===tile})){api.toast('That spot is no longer available.');return;}if(fire){api.toast('Pack up your existing Campfire first.');return;}change({campfires:-1});fire=actor(campfire(),tile.x,tile.z,'fire','Use Campfire');if(phase==='place'||phase==='fire'){done('fire');done('place');phase='cook';lines([['There we go. Much better than chewing on a cold fish.','idle']],prompt);}}
+ placementUI.querySelector('[data-cancel]').onclick=()=>{cancelPlacement();tip.hidden=true;};
+ function placeFire(tile){const valid=placementStatus(tile).valid;cancelPlacement();if(!api.inventory.campfires||!valid){api.toast('That spot is no longer available.');return;}if(fire){api.toast('Pack up your existing Campfire first.');return;}change({campfires:-1});fire=actor(campfire(),tile.x,tile.z,'fire','Use Campfire');if(phase==='place'||phase==='fire'){done('fire');done('place');phase='cook';lines([['There we go. Much better than chewing on a cold fish.','idle']],prompt);}}
  function openCooking(){api.stop();cookUI.querySelector('[role=status]').textContent='';cookUI.querySelector('input').max=String(Math.max(1,api.inventory.rawFish||0));cookUI.showModal();}
  cookUI.querySelector('[data-close]').onclick=()=>cookUI.close();
  cookUI.querySelector('[data-pack]').onclick=()=>{cookUI.close();if(!fire)return;fire.group.visible=false;fire.opened=true;fire.tile.blocked=false;fire.tile.buildable=true;fire=null;change({campfires:1});};
@@ -184,7 +199,7 @@ export function createWillowbank(api){
  const catchPose=catchStep?.kind==='Celebration'?holdUpMotion(catchStep.time,'fish'):catchStep?catchMotion(catchStep.time):null;caughtFish.visible=active&&!!catchPose?.prop?.visible;if(caughtFish.visible)caughtFish.position.set(0,catchPose.prop.y,catchPose.prop.z);
  for(const id of Object.keys(held))held[id].visible=active&&((id==='swords'||id==='shields')?equipment[id]&&!action&&!defeated:id==='hammers'?!injuryReaction&&(action?.kind||preview?.kind)==='Repairing':catchStep?catchStep.kind==='Fishing catch':['Fishing','Fishing cast'].includes(action?.kind||preview?.kind));
   let petMoving=false;
-  if(petOwned&&petFollowing){pet.visible=true;if(!active&&pet.parent!==api.scene)api.scene.attach(pet);else if(active&&pet.parent!==group)group.attach(pet);petMoving=follower.update(dt,api.world,api.tile(),api.routeContains,api.occupied);}else pet.visible=!petOwned&&active;
+  if(petOwned&&petFollowing){pet.visible=true;if(!active&&pet.parent!==api.scene)api.scene.attach(pet);else if(active&&pet.parent!==group)group.attach(pet);petMoving=follower.update(dt,api.world,api.tile(),tile=>tile===selectedCampTile||api.routeContains(tile),api.occupied);}else pet.visible=!petOwned&&active;
   if(rescueAge!==null&&rescueWaiting&&!api.moving()&&!api.occupied(t(WILLOWBANK.bridgeStart-1,WILLOWBANK.bridgeZ))){rescueWaiting=false;api.face(WILLOWBANK.bridgeStart,WILLOWBANK.bridgeZ);}
   if(rescueAge!==null&&!rescueWaiting){const target=new THREE.Vector3(WILLOWBANK.bridgeStart-7,1,WILLOWBANK.bridgeZ-6),distance=pet.position.distanceTo(target),travel=Math.min(distance,dt*1.4);if(distance>.01){pet.rotation.y+=Math.atan2(Math.sin(-Math.PI/2-pet.rotation.y),Math.cos(-Math.PI/2-pet.rotation.y))*(1-Math.exp(-dt*12));pet.position.lerp(target,travel/distance);rescueGait+=travel*4;petMoving=true;}}
   animateCompanion(pet,time,{sad:!petOwned&&rescueAge===null,moving:petMoving,gait:rescueAge!==null?rescueGait:follower.gait});if(!active)return null;water.update(dt);animateFishingSpot(spot.group,time);
@@ -246,7 +261,7 @@ reedFacing.update(dt);reed.group.scale.set(1,1+Math.sin(time*2.8)*.025,1);reed.h
  companionCannotYield(tile){return petOwned&&petFollowing&&pet.visible&&follower.occupies(tile)&&follower.yieldBlocked;},
  companionOccupies(tile){return petOwned&&petFollowing&&pet.visible&&follower.occupies(tile);},
  updateFishingRig(){if(!held.rods.visible){resetFishingRodMotion(held.rods);return;}const anchor=preview?api.player.localToWorld(new THREE.Vector3(0,.02,1.7)):spot.group.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,.025,0));const castTime=action?.kind==='Fishing'&&action.age<CAST_DURATION?action.age:preview?.kind==='Fishing cast'?Math.min(preview.time,CAST_DURATION):null;if(castTime!==null){updateFishingCast(held.rods,anchor,castTime);return;}const time=action?.kind==='Fishing'?action.age-action.catchAt:preview?.kind==='Fishing catch'?preview.time:-1;updateFishingRodMotion(held.rods,anchor,time>=0?time:null);},
- get working(){return !!action||!!combat||!!chase||!!preview;},get placing(){return placement;},selectPlacement,
+ get working(){return !!action||!!combat||!!chase||!!preview;},get placing(){return placement;},selectPlacement,hoverPlacement,
   isEquipped:id=>!!equipment[id],equipmentState:()=>({...equipment,health,petOwned,petFollowing}),
   inventoryActions(id){if(!entered)return [];if(id==='swords'||id==='shields')return [{label:equipment[id]?'Unequip':'Equip',disabled:busy()||!!combat||!!chase||!!action,run(){equipment[id]=!equipment[id];checkProgress();}}];if(id==='campfires')return [{label:'Place',disabled:!active||busy()||!!fire,run:beginPlacement}];if(id==='cookedFish')return [{label:'Eat',disabled:busy()||!!combat||!!chase,run:()=>eat()}];return [];},
   get expression(){return dialogue.expressionFor('left');},

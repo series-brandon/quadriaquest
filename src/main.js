@@ -207,7 +207,7 @@ canvas.addEventListener('pointerup',e=>{
  if(activePointers.size===1&&down?.button===0&&!dragged)idleClock.wake();
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=hit?.object.userData;
-  if(data?.actor)selectActor(data.actor);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
+  if(willow.placing)willow.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
   else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the clearing.');}
  }
  activePointers.delete(e.pointerId);pinchDistance=null;
@@ -216,15 +216,15 @@ canvas.addEventListener('pointerup',e=>{
 });
 function cancelGesture(){activePointers.clear();down=null;pinchDistance=null;dragged=true;}
 canvas.addEventListener('pointercancel',cancelGesture);addEventListener('blur',cancelGesture);
-canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;$('tooltip').style.display='none';feedback.hover(null);});
+canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;willow.hoverPlacement(null);$('tooltip').style.display='none';feedback.hover(null);});
 function updateHover(){
- if(!pointerOnCanvas||!canMove()){feedback.hover(null);$('tooltip').style.display='none';return;}
+ if(!pointerOnCanvas||!canMove()){willow.hoverPlacement(null);feedback.hover(null);$('tooltip').style.display='none';return;}
  const hit=pick({clientX:pointerClient.x,clientY:pointerClient.y});hover=hit?.object.userData;
- const t=hover?.tile,tree=hover?.tree,actor=hover?.actor,valid=actor?actor.ready&&!actor.opened&&!!routeToTree(actor):tree?(tree.kind==='boulder'?craftingTutorial.canMine&&inventory.pickaxes>0:craftingTutorial.canChop&&inventory.axes>0)&&!!routeToTree(tree):hover?.resource&&opening.canGather?!!routeToTree(hover.resource):!!t&&findPath(world,segment?segment.to:tile,t)!==null;
+ const t=hover?.tile,tree=hover?.tree,actor=hover?.actor,placementStatus=willow.hoverPlacement(t),valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&!!routeToTree(actor):tree?(tree.kind==='boulder'?craftingTutorial.canMine&&inventory.pickaxes>0:craftingTutorial.canChop&&inventory.axes>0)&&!!routeToTree(tree):hover?.resource&&opening.canGather?!!routeToTree(hover.resource):!!t&&findPath(world,segment?segment.to:tile,t)!==null;
  feedback.hover(t,valid);
  renderer.domElement.style.cursor=t?(valid?'pointer':'not-allowed'):'default';
  $('tooltip').style.display=t?'block':'none';
- if(t){$('tooltip').textContent=actor?(actor.opened?'Empty chest':!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(valid?(tree.kind==='boulder'?'Mine Boulder':'Chop tree'):!inventory[tree.kind==='boulder'?'pickaxes':'axes']?'Missing the required tool!':'No safe route'):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource&&opening.canGather?'Gather '+ITEMS[hover.resource.type].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
+ if(t){$('tooltip').textContent=placementStatus?placementStatus.label:actor?(actor.opened?'Empty chest':!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(valid?(tree.kind==='boulder'?'Mine Boulder':'Chop tree'):!inventory[tree.kind==='boulder'?'pickaxes':'axes']?'Missing the required tool!':'No safe route'):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource&&opening.canGather?'Gather '+ITEMS[hover.resource.type].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
 }
 function changeZoom(delta){if(!opening.playable||finale.cameraFocus||willow?.cameraFocus)return;const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});$('rotate-left').onclick=()=>angle-=Math.PI/4;$('rotate-right').onclick=()=>angle+=Math.PI/4;$('zoom-in').onclick=()=>changeZoom(-1.5);$('zoom-out').onclick=()=>changeZoom(1.5);
 $('reset').onclick=()=>{gatheringSkill=createGatheringSkill();happyUntil=0;path=[];segment=null;target=null;gatherTime=0;inventory={sticks:0,stones:0};tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources){r.collected=false;r.group.visible=true;}feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
