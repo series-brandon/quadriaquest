@@ -99,7 +99,7 @@ Defeat uses the shared Fainted expression (spiral eyes) and a 2.4-second brief t
 
 The shared model viewer includes Fishing catch, Celebration, Jump up, and Jump down, all using gameplay motion functions. Raw Pondfish is a portable model in the catalogue. The Willowbank Fishing catch loop previews without rewards; the fish checkpoint exercises the real one-catch interaction, rewards, and tutorial continuation.
 
-The rod flexes under tension and its line is rebuilt from the bent tip to a fixed world-space water anchor after player transforms update. Fishing catch is only the sideways hook pull; gameplay chains it into Celebration with Raw Pondfish. Celebration accepts any held model; the viewer offers Generic item, Raw Pondfish, and Top Hat. Model, animation, and expression lists are alphabetized, with Default first for expressions.
+The rod flexes under tension and its line is rebuilt from the bent tip to a fixed world-space water anchor after player transforms update. Fishing catch is only the sideways hook pull; gameplay chains it into Celebration with Raw Pondfish. Celebration accepts any held model; the viewer offers Generic item, Raw Pondfish, and Top Hat. Model and expression lists are alphabetized, with Default first for expressions. Animation lists put Idle (or Static) first and preselect it; remaining animations are alphabetized. Models without either use their catalogue default first.
 
 Fishing catch swings the rod tip outward from the slime while keeping the line anchored. Celebration uses one lift curve for hands and item, with hands closer together and the item just above them.
 
