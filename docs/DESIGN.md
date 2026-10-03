@@ -198,3 +198,41 @@ The Rotate, Zoom, and Move tips remain visible while performing their actions. C
 ## Second tutorial area: Willowbank
 
 The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Combat, equipment, Carpentry, companions, Fishing, placement, and Culinary skills. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. The prototype ending appears after cooking and eating, rather than on arrival.
+
+
+## Area three: combat tutorial outline
+
+Status: planned, not implemented. Willowbank now teaches the rescue/carpentry/follower/fishing/cooking/eating sequence; area three owns combat. Final location name, NPC, premise, map, and exact dialogue need design approval before implementation.
+
+### Proposed sequence
+
+1. Arrive beside the destination Iter Crystal with inventory, skills, equipment, health, and follower retained. Introduce a safe staging area and point out the first enemy using the shared camera/dialogue presentation.
+2. Fight the forgiving Goblin Scrapper unarmed. Teach click-to-approach, continuous attacks, timing/range, damage/miss feedback, and clicking away to disengage. Preserve its existing protection against lethal damage.
+3. Craft a Stone Sword (Stone ×2, Sticks ×1) and Wooden Shield (Small Logs ×2, Sticks ×1). Reveal their recipes here; use optional “Show me how” guidance instead of repeating mandatory crafting instruction.
+4. Equip both through the shared inventory detail actions and equipped badges. Equipment possession and equipment use remain distinct.
+5. Fight the stronger Goblin Bruiser. Preserve real defeat, animation, and respawn at a valid adjacent tile beside the destination crystal; keep all inventory. Explain using food already learned in Willowbank.
+6. Mark combat objectives complete and show the prototype-ending message here. Keep the area and earlier maps revisitable.
+
+### Reuse and extraction handoff
+
+| Existing implementation | Reuse in area three |
+|---|---|
+| `willowbank-models.js`: goblin/tool factories and `animateGoblin` | Identical goblin rigs, equipment orientation, idle, walk, attack and hit reactions; no map-specific model copies. |
+| `combat-motion.js` and player combat motion in `main.js` | Same punch windup/contact/recovery, sword/shield presentation and attack clocks. |
+| `combat-feedback.js` | Damage, block and miss splats; clear on defeat, travel and reset. |
+| `willowbank-rules.js`: `ENEMIES`, `damageRoll`, `incomingHealth`, sword/shield recipes | Preserve current balance as an initial baseline. Move these into shared combat/recipe modules rather than copying them. |
+| `willowbank.js`: combat/chase/equipment/health/defeat code | Extract to a portable encounter/player-vitals controller when adding the area. Willowbank’s injury and food must use the same player health; travel must not create a second health pool. |
+| `wander.js` | Independent randomized patrols; supply area-three patrol bounds instead of reusing Willowbank coordinates. |
+| `character-dialogue.js`, `conversation-facing.js`, shared camera focus | Same NPC turning, live portraits, standalone choices, quiet cutscene presentation and held focus until Continue. |
+| Crafting, inventory, skills, quests, item feedback | Reuse real menus, skill rewards, recipe availability and objective history. New area owns only its quest sequence. |
+| `portal-spawn.js`, shared terrain/resources/water/follower | Place crystals and reusable entities; ensure four-neighbor arrival selection and follower travel. |
+
+Existing combat baseline: player 30 health; unarmed 1–3 damage / 1.5 s, sword 3–5, shield reduces incoming damage by 1 (minimum 1). Scrapper has 8 health, 1 damage / 2.5 s, and cannot reduce the player below 1. Bruiser has 24 health and 3–5 damage / 2 s. Hits, pursuit/leashing, enemy health reset, and defeat already exist. Preserve or deliberately rebalance them, not reimplement them independently.
+
+### Map and progression requirements
+
+Provide a safe crystal/NPC/crafting space, an isolated first encounter, and a separate stronger encounter. Supply renewable Sticks, Rocks, Stone, and Small Logs so arriving with an empty inventory cannot block crafting. Keep food and recovery accessible without requiring a return trip. Combat may be attempted early; the stronger fight should reward preparation without making equipment an invisible gate. The follower remains cosmetic, occupies its own tile, and cannot be targeted.
+
+### Playground and acceptance checklist
+
+Current combat is retained behind explicit Willowbank dev sandbox controls while no third map exists. On implementation, relocate those fixtures to the actual third area and keep shared controls calling real gameplay. Add direct entry/reset and checkpoints for unarmed, recipes, equip, stronger fight and completion. Verify both enemies, random wander, retreat/pursuit/leash, repeated defeat/respawn, food healing, inventory preservation, companion travel, recipe visibility, camera return and journal history. Retest the clearing and peaceful Willowbank to ensure no combat actors or objectives leak into them. Build both variants and verify debug isolation.

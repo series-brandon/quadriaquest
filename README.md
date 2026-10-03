@@ -20,7 +20,7 @@ npm test
 npm run build
 ```
 
-This first prototype has no saved progress, combat, map travel, or multiplayer yet. Inventory is held in memory and resets on refresh. Character and world assets are generated in JavaScript. The optional Google Fonts stylesheet falls back to system fonts when offline.
+The prototype has no saved progress or multiplayer yet. It includes the clearing and Willowbank; combat remains in an explicit dev sandbox while its third area is planned. Inventory is held in memory and resets on refresh. Character and world assets are generated in JavaScript. The optional Google Fonts stylesheet falls back to system fonts when offline.
 
 During the gathering lesson, gold outlines, soft gold edges, and floating arrows identify the six resources. All gold highlighting and arrows disappear immediately after the first successful pickup. Only the item under the cursor receives a white hover outline; other items remain unmarked.
 
@@ -104,4 +104,6 @@ Character dialogue uses a fixed short reading card. Advance a question to reveal
 
 NPC conversation facing uses `createConversationFacing` on the world model, independently of portrait framing. In the playground, enter Willowbank, move to different sides of Reed, and use **talk** (or interact with Reed) to exercise the smooth turn; **Reset Willowbank** clears it.
 
-Willowbank → **Replay first fight introduction** resets the chapter and replays Reed’s thank-you and the camera focus on the weaker goblin. Advance the instruction to return the camera and open the combat tutorial. This uses the same sequence as accepting Reed’s request.
+Willowbank → **Replay bridge introduction** resets the chapter and replays Reed’s thank-you and the camera focus on the broken bridge and island. Advance the instruction to return the camera and open the carpentry tutorial. This uses the same sequence as accepting Reed’s request.
+
+Willowbank is now a peaceful rescue tutorial. **bridge → Load checkpoint + supplies → Repair bridge** exercises the one-time injury and resumed repair; **Hammer injury** previews the motion. Later checkpoints preserve the 25-health healing setup. **Load combat sandbox (deferred area 3)** explicitly enables legacy enemies/equipment for testing without combat quests. See the [area-three handoff outline](docs/DESIGN.md#area-three-combat-tutorial-outline).

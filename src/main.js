@@ -1,3 +1,4 @@
+import {hammerInjuryPose} from './bridge-injury.js';
 import {animateResourceDepletion,animateResourceHit} from './resource-depletion.js';
 import {punchMotion} from './combat-motion.js';
 import {interactionRoute} from './interaction-route.js';
@@ -105,7 +106,7 @@ const opening=(playground?.createFreeOpening||createOpening)({player,visual,face
  showClearing(){for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
 let finale,willow;
-const craftingTutorial=createCraftingTutorial({equipment:{state:()=>({...finale?.state,...willow?.equipmentState()}),toggle:()=>finale.equip(),isEquipped:id=>willow?.isEquipped(id),actions:id=>willow?.inventoryActions(id)},chapter:{unlocked:()=>willow?.unlocked,craft:id=>willow?.craft(id)},getSkills:()=>({Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,...willow?.skills}),getInventory:()=>inventory,startCraft,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
+const craftingTutorial=createCraftingTutorial({equipment:{state:()=>({...finale?.state,...willow?.equipmentState()}),toggle:()=>finale.equip(),isEquipped:id=>willow?.isEquipped(id),actions:id=>willow?.inventoryActions(id)},chapter:{unlocked:()=>willow?.unlocked,recipeAvailable:id=>willow?.recipeAvailable(id),craft:id=>willow?.craft(id)},getSkills:()=>({Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,...willow?.visibleSkills}),getInventory:()=>inventory,startCraft,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
 const clearingTiles=new Map(world);let clearingVisibility=null;
 function stopAll(){cancelWork();path=[];segment=null;target=null;gatherTime=0;player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();craftingTutorial.closeMenus();}
 willow=createWillowbank({scene,world,renderer,player,visual,hands,pickables,inventory,feedback,
@@ -328,14 +329,15 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   expression=kind==='Defeated'?'struggle':'focused';handWork=t;sleeping=false;pose=workPose('gather',t);
   if(kind==='Defeated'){pose={...idlePose(t),squash:.2,lean:0,twist:0};handWork=null;}
   if(kind==='Combat'){const punch=punchMotion(t);pose=idlePose(elapsed);pose.lean=punch.lean;handWork=null;socialHands=[punch.right,punch.left];}
+  if(kind==='Hammer injury'){pose=hammerInjuryPose(t);socialHands=pose.hands;handWork=null;expression='struggle';}
   if(kind==='Repairing'){const swing=(Math.sin(t*8)+1)/2;socialHands=[[-.32,.4+swing*.5,.4,-swing*.9,0],[.3,.3,.4,0,0]];}
   if(kind==='Chopping'||kind==='Mining')pose=(kind==='Mining'?miningMotion(t):chopMotion(t)).body;
-  if(kind==='Fishing'){socialHands=[[-.35,.4,.3,-.25,0],[.3,.3,.2,0,0]];}
+  if(kind==='Fishing'){const bob=Math.sin(t*2)*.015;handWork=null;socialHands=[[0,.35+bob,.48,.9,0],[0,.5+bob,.67,.9,0]];pose=idlePose(t);}
  }
  const celebration=finale.celebration;
  if(celebration){expression='happy';handWork=null;facing=celebration.angle;pose=idlePose(elapsed);pose.squash=1+Math.sin(celebration.age*9)*.07;}
  bendSlime(pose.bend||0);finale.bendHat(pose.bend||0);
- expressionFace.set(expression);
+ expressionFace.set(willow?.expression||expression);
  const blend=1-Math.exp(-dt*24),width=1/Math.sqrt(pose.squash);
  visual.scale.lerp(new THREE.Vector3(width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)),blend);
  visual.rotation.x=THREE.MathUtils.lerp(visual.rotation.x,pose.lean,blend);
@@ -374,6 +376,10 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   hand.rotation.z=THREE.MathUtils.lerp(hand.rotation.z,roll,blend);
   hand.rotation.y=THREE.MathUtils.lerp(hand.rotation.y,yaw,blend);
   hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
+ }
+ if(chapterMotion?.kind==='Fishing'){
+  // Place the supporting hand on the same shaft after smoothing the main grip.
+  hands[0].updateMatrix();hands[1].position.set(0,.24,0).applyMatrix4(hands[0].matrix);hands[1].quaternion.copy(hands[0].quaternion);
  }
  if(pickaxeTool.visible){
   // Follow the actual smoothed tool transform so the upper grip never slips.

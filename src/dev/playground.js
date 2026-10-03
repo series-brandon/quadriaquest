@@ -25,7 +25,7 @@ export function createGrassPaletteControls(getMaterials){
   return {defaultColor:GRASS_BASE_COLOR,set,reset:()=>set(GRASS_BASE_COLOR)};
 }
 
-const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Hat celebration','Happy','Focused','Preparing','Struggle'];
+const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Hat celebration','Happy','Focused','Preparing','Struggle','Concerned'];
 const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   let modelPreview;
@@ -46,11 +46,11 @@ export function mountPlayground(api){
     </fieldset>
     <fieldset><legend>Willowbank chapter</legend>
       <button data-willow="enter">Enter Willowbank</button><button data-willow="reset">Reset Willowbank</button><button data-willow="wander">Wander goblins now</button>
-      <label>Quest checkpoint<select id="dev-willow-stage">${['meet','scrapper','equipment','bruiser','bridge','fish','flint','fire','place','cook','eat'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="stage">Load checkpoint + supplies</button>
+      <label>Quest checkpoint<select id="dev-willow-stage">${['meet','bridge','fish','flint','fire','place','cook','eat'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="stage">Load checkpoint + supplies</button>
       <div>${['arrival','talk','heal','hurt','lose','cancel','name','placement','tip'].map(s=>`<button data-willow="${s}">${s}</button>`).join('')}</div>
       <button data-willow="hit">Damage splat (3)</button><button data-willow="zero">Blocked splat (0)</button><button data-willow="miss">Miss splat</button><button data-willow="follow">Test follower</button>
-      <button data-willow="firstFight">Replay first fight introduction</button><button data-willow="scrapper">Fight Scrapper</button><button data-willow="bruiser">Fight Bruiser</button><button data-willow="chop">Chop a tree</button><button data-willow="mine">Mine a boulder</button><button data-willow="repair">Repair bridge</button><button data-willow="fish">Fish</button>
-      <label>Animation<select id="dev-willow-animation">${['Unarmed','Sword and shield','Defeated','Repairing','Fishing','Cooking','Goblin idle','Goblin walk','Goblin attack','Goblin hit','Corgi happy','Corgi sad','Corgi walk','Reed idle'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="preview">Loop chapter animation</button>
+      <button data-willow="bridgeIntro">Replay bridge introduction</button><button data-willow="combatPractice">Load combat sandbox (deferred area 3)</button><button data-willow="scrapper">Fight Scrapper</button><button data-willow="bruiser">Fight Bruiser</button><button data-willow="chop">Chop a tree</button><button data-willow="mine">Mine a boulder</button><button data-willow="repair">Repair bridge</button><button data-willow="fish">Fish</button>
+      <label>Animation<select id="dev-willow-animation">${['Unarmed','Sword and shield','Defeated','Repairing','Hammer injury','Fishing','Cooking','Goblin idle','Goblin walk','Goblin attack','Goblin hit','Corgi happy','Corgi sad','Corgi walk','Reed idle'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="preview">Loop chapter animation</button>
       <p class="dev-note">Enter first, then choose a checkpoint. Checkpoints supply materials and replay the real quest. Inventory/skill controls include all new items and skills. Cancel stops previews. Reset restores encounters, bridge, follower, resources, and health.</p>
     </fieldset>
     <fieldset><legend>Terrain colors</legend>
@@ -231,7 +231,7 @@ export function mountPlayground(api){
       if(preview==='Mining'){handWork=time;expression='focused';pose=miningMotion(time).body;}
       if(['Gathering','Crafting','Chopping'].includes(preview)){handWork=time;expression='focused';pose=workPose(preview==='Chopping'?'chop':'gather',time);}
       if(preview==='Spawn landing'){pose=spawnMotion(time);lift=pose.lift;expression=time<.68?'struggle':'idle';}
-      if(['Happy','Focused','Preparing','Struggle'].includes(preview))expression=preview.toLowerCase();
+      if(['Happy','Focused','Preparing','Struggle','Concerned'].includes(preview))expression=preview.toLowerCase();
       return {pose,expression,handWork,lift};
     }
   };

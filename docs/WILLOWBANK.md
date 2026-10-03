@@ -1,73 +1,79 @@
-# Willowbank: A Friend Across the Water
+# Willowbank: Broken Bridge Rescue
 
-The second tutorial replaces the Iter Crystal's placeholder destination. Reed, a fisher slime, asks the player to drive away two goblins and repair a bridge to a stranded corgi companion. Dialogue choices add flavor and allow refusal/re-entry without losing progress. Only the active speaker's live animated model appears, sliding in from their side; player colors and cosmetics are shared with the world model.
+The second tutorial focuses on dialogue, carpentry, followers, fishing, cooking, and eating. Reed is a worried fisher slime: the bridge collapsed unexpectedly while a local animal was playing on the island. The animal is a visitor, not Reed’s pet. Combat and sword/shield instruction belong to the planned third area.
 
 ## Flow
 
-Talk to Reed → protected unarmed Scrapper fight → Stone Sword and Wooden Shield crafting/equipment → Bruiser fight → Crude Hammer and bridge repair → companion rescue/naming → fishing → Flint gathering → fire-starting tool and Campfire crafting → placement → cooking → eating → prototype completion.
+Talk to Reed → agree to help → thank-you and camera view of the broken bridge/island → craft Crude Hammer → repair bridge → one-time hammer injury → finish repair → rescue/name companion → craft fishing rod → catch fish → gather Flint → craft fire starter and Campfire → place Campfire → cook → eat → Willowbank completion.
 
-Current objectives and completed history live under their own quest heading. Optional crafting guidance uses the real crafting menu. Tips can be dismissed; Reed and the journal retain instructions. Completed early encounters and owned equipment count. The area stays explorable after completion.
+Reed’s choices remain flavor choices with refusal and re-entry. Accepting completes the dialogue objective and opens the bridge task directly. The island camera stays focused until the player advances; the world is undimmed and the portrait hidden during the pan.
 
-## Rules
+## Bridge injury and healing
 
-- Player health: 30. Unarmed: 1–3 damage every 1.5 seconds. Sword: 3–5. Shield: minus 1 incoming damage, minimum 1.
-- Player hit chance: 90%, increasing 0.5 percentage points per Combat level (cap 98%). Enemy hit chance: 85%.
-- Scrapper: 8 health, 1 damage every 2.5 seconds. This encounter cannot reduce player health below 1.
-- Disengaging allows a short pursuit within three tiles of the enemy’s home; the crystal is safe. Enemies return and reset after losing interest.
-- Bruiser: 24 health, 3–5 damage every 2 seconds. Defeat respawns the player at the area's Iter Crystal with full health and inventory retained.
-- Combat, Carpentry, Fishing, Culinary use 120 XP per level. Activity durations decrease with skill level.
-- Ground supplies and harvest nodes regenerate, providing a renewable local source of every required material.
-- Tool possession enables interactions; combat equipment must be equipped. Hats remain a separate slot.
-- Crafting, repairs, and cooking consume inputs only on successful completion. Moving interrupts the current action.
-- Bridge repair is one six-second interaction with three visible stages and 40 Carpentry XP.
-- Fishing repeats four-second catches until interrupted: one Raw Pondfish and 20 Fishing XP each.
-- Cooking is guaranteed, takes three seconds per fish, and awards 20 Culinary XP. Cooked Pondfish restores 10 health. Eating at full health requires confirmation.
-- Campfires require buildable clear ground, use explicit placement confirmation, and can be packed up. Flint and Stone is reusable. No fuel or bait management yet.
-- Companion naming defaults to Pebble (1–20 characters). Follow/Rest and Rename are in the Companions journal tab. Followers are cosmetic, cannot block movement or take damage, and follow across areas.
+The first tutorial repair pauses at 75% progress. The slime recoils and shakes its hand for 1.2 seconds, loses 5 health (never below 1), and displays the existing damage splat. The player says: “Youch! I smashed my finger!” Dismissing the line resumes the same repair from its saved progress. Inputs and XP are awarded only when repair finishes.
+
+The event is chapter-specific, not a random carpentry penalty. It remains consumed if the player later cancels/restarts the repair or changes areas. Explicit chapter reset resets the event. Ordinary repairs and animation previews do not apply this injury.
+
+After the rescue and companion naming, Reed says:
+- “Thanks for helping that little one! How’s your hand?”
+- “Here—let me teach you how to catch yourself a meal. A little food should help you feel better.”
+- “First, you’ll need a fishing rod. A simple one will do.”
+
+Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. Full-health eating still requires confirmation.
+
+## Rules and materials
+
+- Health starts at 30. Carpentry, Fishing, and Culinary use 120 XP per level; skill levels reduce activity duration.
+- All required materials can be replenished locally through respawning ground bundles, trees, boulders, and Flint. Axes and pickaxes remain craftable.
+- Repair requires a Crude Hammer in inventory and consumes Small Logs ×3 on completion; six seconds with three construction stages and 40 Carpentry XP.
+- Fishing repeats four-second catches until interrupted: one Raw Pondfish and 20 Fishing XP each. The lesson requires two fish.
+- Cooking is guaranteed, takes three seconds per fish, and grants 20 Culinary XP.
+- Campfires use clear buildable tiles, explicit placement confirmation, and can be packed up. Flint and Stone is reusable; no fuel/bait system yet.
+- Companion name defaults to Pebble (1–20 characters). Rename and Follow/Rest use the Companions tab. The follower is cosmetic and cannot take damage.
+- Sword/shield recipes and Combat skill are not exposed by the Willowbank lesson. The explicit dev combat sandbox enables them for testing.
+- Completion leaves the area explorable and the return crystal usable. There is no third destination or prototype-ending message here while area three awaits design.
 
 ## Recipes
 
 | Output | Consumed | Reusable tool | Seconds |
 |---|---|---|---:|
-| Stone Sword | Stone ×2, Sticks ×1 | — | 3 |
-| Wooden Shield | Small Logs ×2, Sticks ×1 | — | 3 |
 | Crude Hammer | Sticks ×1, Rocks ×1 | — | 2 |
 | Crude Fishing Rod | Sticks ×2 | — | 2 |
 | Flint and Stone | Flint ×1, Stone ×1 | — | 2 |
 | Campfire | Small Logs ×2 | Flint and Stone | 3 |
 | Cooked Pondfish | Raw Pondfish ×1 | Placed Campfire | 3 |
 
-Crafting recipes award 20 Crafting XP; fish cooking awards Culinary XP instead.
+Crafting awards 20 Crafting XP; cooking awards Culinary XP instead.
 
 ## Playground coverage
 
-The Willowbank section enters the real area transition, loads quest checkpoints with supplies, resets the area, replays dialogue, heals/injures/defeats the player, starts real fights/repair/fishing, previews placement and pet naming, and loops chapter animations. All new skills and items use existing arbitrary XP/level and inventory controls. Companions and crafting use the actual journal interfaces. Checkpoint controls are excluded from normal builds by `__PLAYGROUND__`.
+- **Replay bridge introduction**: revised acceptance dialogue and island camera view.
+- **bridge checkpoint → Repair bridge**: actual approach, repair stages, injury, damage, dialogue pause/resume, costs, rescue, and naming.
+- **Hammer injury** animation: repeatable recoil/hand-shake preview with no damage.
+- Later checkpoints start with the repaired bridge, owned companion, 25 health, and the injury marked consumed so cooking/eating has the proper context.
+- **Reset Willowbank**: removes combat fixtures and clears injury, repair, companion, effects, health, and quests.
+- **Load combat sandbox (deferred area 3)**: explicitly spawns existing goblins and enables combat recipes/skill; fight, pursuit, defeat, equipment, splat, wander, and model controls remain available. This does not add combat objectives to Willowbank.
 
 ## Shared presentation and map layout
 
 The clearing, title garden, and Willowbank use `world-models.js` for complete grass tiles, exposed-edge rounding, seams, trees, flowers, and water construction. Ground bundles use `ground-item-models.js`; all slimes use `slime-model.js`. Water hides internal and top block faces beneath the animated surface. Resource highlights follow nested animated meshes. Add future shared assets here rather than recreating them per map.
 
-Willowbank occupies an irregular 24 × 18 footprint. Reed and the crystal are in the safe northwest meadow; a terraced woodland (1, 1.5 and 2 block elevations) separates arrival from the two encounters. The bridge crosses three water tiles to the eastern island. Fishing and Flint are on the southern shore with nearby campfire space. `WILLOWBANK` holds the principal landmark coordinates.
+Willowbank occupies an irregular 24 × 18 footprint. Reed and the crystal are in the safe northwest meadow; a terraced woodland (1, 1.5 and 2 block elevations) separates arrival from the bridge and island. The bridge crosses three water tiles to the eastern island. Fishing and Flint are on the southern shore with nearby campfire space. `WILLOWBANK` holds the principal landmark coordinates.
 
 The first visit uses four narrator lines, focuses smoothly on Reed, holds until dismissed, and returns smoothly to the player. Destination camera setup happens under the teleport fade. No area-title overlay is displayed. Return visits retain quest progress and skip the introduction.
 
 Willowbank tips use the clearing's actual tutorial component and handlers, including item emphasis, completion colors, help, dismissal and mobile journal placement. Ground pickups in both areas use the same cardinal-adjacency route selection and Gathering timing. No reachable neighboring tile means the interaction is rejected.
 
-Conversation text and actions retain fixed positions when speakers change. One close-up animated portrait appears at a time, angled inward, with the speaker's name underneath. Mobile places the portrait above the reading/action area. The portrait copies live equipment and facial state and uses the shared slime idle motion.
+Dialogue uses a short fixed-height card. Advance a question to reveal standalone centered responses without a model or card. Consecutive lines from one speaker keep their portrait in place. Conversation text and actions retain fixed positions when speakers change. One close-up animated portrait appears at a time, angled inward, with an overlapping speaker nameplate. Mobile places the portrait above the reading/action area. The portrait copies live equipment and facial state and uses the shared slime idle motion.
 
-Goblins have articulated shoulders and legs, rounded tunics, idle/blink, patrol steps, attack windup/contact/recovery and hit reactions. Each goblin independently checks every 2–4 seconds, with a 25% chance to choose any reachable destination in its designated patrol area. Routes can span multiple tiles, stay inside the area, and avoid occupied tiles and player routes. Dialogue, combat and approaching the goblin interrupt wandering. The playground’s “Wander goblins now” button exercises the same route planner immediately; Reset Willowbank restores independent timers. The corgi has a long plump body, short cream paws, a cream blaze and muzzle, oversized upright ears, and a short wagging tail. Its trapped expression lowers its ears, head, and tail; after rescue it smiles and trots with alternating diagonal paws.
+The corgi uses the same shared model and walk cycle for rescue, following, previews, and its journal portrait. Its trapped expression lowers its ears, head, and tail; after rescue it trots across the repaired bridge, approaches the player, and becomes their first companion.
 
-The dev menu includes Shared model preview (real factories and animation functions), first-arrival replay, goblin and corgi animation loops, and the existing encounter/bridge/fishing checkpoints. Crafting uses a two-column browser on desktop and list/detail navigation on mobile, with inset selection borders and separate ingredient/time/output sections.
+Combat models, equipment, damage rules, pursuit, defeat, hit splats, and animation previews remain available through the explicit dev combat sandbox. No goblin actors are created for ordinary Willowbank play. These mechanics are reserved for area three; see the implementation handoff in [DESIGN.md](DESIGN.md#area-three-combat-tutorial-outline).
 
+## Presentation polish
 
-### Combat, portraits, and companion polish
+The quest journal calls this chapter **Broken Bridge Rescue**. Reed's acceptance cutscene focuses on the stranded animal itself. The player's first conversation uses a concerned expression (wide eyes and an open mouth), then switches to a happy smile for ‘I’ll help.’ This transition is replayable through the playground’s meet checkpoint and talk action.
 
-Dialogue panels size to their content instead of reserving a full page for a short reply. Portraits turn inward by 30 degrees and use 28% of the world idle squash, retaining live facial expressions and equipment.
+The shared Campfire factory uses three crossed logs with flames at their center. Fishing spots use three pale expanding rings contained within the fishable tile, rather than a floating bobber. Fishing holds the rod centrally with both hands and leans it forward over the water; the supporting hand follows the actual shaft transform. Hammer heads face the work rather than sideways.
 
-Unarmed attacks draw back briefly, snap forward into the damage-clock impact, and recover. Goblins share the continuous wind-up/strike/recovery envelope rather than jumping between poses. Sword and shield grips are rotated a quarter turn. Floating hit splats show actual health lost (`3!`), a successful zero-damage hit (`0!`), or a failed accuracy roll (`Miss!`), including enemy attacks while retreating. They clear on reset/area changes.
-
-The corgi trots with alternating diagonal paws during rescue and following. Following chooses reachable unoccupied tiles next to the player, finishes each tile segment, and turns toward its own travel direction. It avoids the player's current and incoming tile and yields from planned destinations. The player waits briefly for the companion to clear an occupied segment; an impossible yield reports that the companion needs room. Teleports place the follower on a separate valid tile. The companion is an original tan-and-cream corgi inspired by the proportions of the selected reference.
-
-Playground coverage: **Unarmed**, **Sword and shield**, and **Goblin attack** loop the gameplay motions; **Damage splat (3)**, **Blocked splat (0)**, and **Miss splat** call the real combat feedback. **Test follower** enables the companion beside the player for movement tests. **bridge** checkpoint + **Repair bridge** replay the rescue; **talk** replays dialogue choices and short replies. **Reset Willowbank** clears effects, follower state, encounters, and equipment state. Shared model preview's corgi Walk and goblin Attack use the same rigs/motion as the world.
-
-Corgi proportion reference: [Low Poly Corgi by SeberdrA](https://sketchfab.com/3d-models/low-poly-corgi-stl-for-3d-print-2bde102b996c483a9e17a5d00cc40ddd). The game uses original Three.js geometry, shared by the island, follower, companion journal, and playground. **Shared model preview → Corgi → Idle / Walk / Sad** and the **Corgi happy / sad / walk** chapter loops cover its expressions and animation; bridge repair replays rescue, and Test follower exercises its movement.
+Playground coverage: Concerned in animation controls; Repairing and Fishing in chapter animation loops; Replay bridge introduction for the animal camera focus; talk at the meet checkpoint for the actual concerned portrait; fish/cook checkpoints for real interactions. Campfire and Fishing spot are also available in the shared rotating model preview. Reset Willowbank restores these interactions.

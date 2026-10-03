@@ -9,7 +9,7 @@ export function tool(kind){
  if(kind==='swords'){part(g,new THREE.BoxGeometry(.13,.65,.07),'#b1c4cd',0,.35,0);part(g,new THREE.BoxGeometry(.34,.07,.09),'#957145',0,.05);part(g,new THREE.CylinderGeometry(.035,.035,.23,6),'#674933',0,-.08);}
  if(kind==='shields'){part(g,new THREE.CylinderGeometry(.27,.27,.09,8),'#ae8056').rotation.x=Math.PI/2;part(g,new THREE.BoxGeometry(.07,.45,.11),'#cdb281');}
  if(kind==='hammers'){part(g,new THREE.CylinderGeometry(.035,.04,.6,6),'#98704e',0,.2);part(g,new THREE.BoxGeometry(.32,.18,.18),'#a1aaa5',0,.5);}
- if(kind==='rods'){const rod=part(g,new THREE.CylinderGeometry(.014,.035,1.7,6),'#a48556',0,.65);rod.rotation.z=-.18;const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(.15,1.48,0),new THREE.Vector3(.28,.35,.1)]),new THREE.LineBasicMaterial({color:'#ece6c8'}));g.add(line);}
+ if(kind==='rods'){const rod=part(g,new THREE.CylinderGeometry(.014,.035,1.7,6),'#a48556',0,.65);rod.rotation.z=0;const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,1.5,0),new THREE.Vector3(0,.75,.9)]),new THREE.LineBasicMaterial({color:'#ece6c8'}));g.add(line);}
  return g;
 }
 export function fisher(){
@@ -100,4 +100,14 @@ export function animateCompanion(group,time,{sad=false,moving=false,gait=time*4}
  head.position.y=.53+Math.sin(gait*2)*.01*weight;
  group.getObjectByName('sad-mouth').visible=sad;group.getObjectByName('happy-mouth').visible=!sad;group.getObjectByName('companion-tongue').visible=!sad;
 }
-export function campfire(ghost=false){const g=new THREE.Group();for(let i=0;i<4;i++){const log=part(g,new THREE.CylinderGeometry(.07,.07,.7,6),'#94704d',0,.1,0);log.rotation.set(Math.PI/2,i*Math.PI/2,0);}for(let i=0;i<3;i++)part(g,new THREE.ConeGeometry(.17-i*.035,.46-i*.07,5),i%2?'#ffe09a':'#ef9851',(i-1)*.1,.28+i*.04);if(ghost)g.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=.45;}});return g;}
+export function campfire(ghost=false){const g=new THREE.Group();for(let i=0;i<3;i++){const log=part(g,new THREE.CylinderGeometry(.085,.085,.85,7),'#94704d',0,.09+i*.015,0);log.name='campfire-log';log.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(Math.cos(i*Math.PI/3),0,Math.sin(i*Math.PI/3)));}for(let i=0;i<3;i++)part(g,new THREE.ConeGeometry(.17-i*.035,.46-i*.07,5),i%2?'#ffe09a':'#ef9851',(i-1)*.1,.28+i*.04);if(ghost)g.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=.45;}});return g;}
+
+// A portable fishing-tile marker, independent of a map's water shader.
+export function fishingSpot(){
+ const group=new THREE.Group();
+ for(let i=0;i<3;i++){const ring=part(group,new THREE.RingGeometry(.27,.30,48),new THREE.MeshBasicMaterial({color:'#d6f6ef',transparent:true,opacity:.6,toneMapped:false,depthWrite:false,side:THREE.DoubleSide}),0,.07+i*.001,0);ring.rotation.x=-Math.PI/2;ring.renderOrder=3;ring.castShadow=false;ring.name='fishing-ripple';ring.userData.phase=i/3;}
+ return group;
+}
+export function animateFishingSpot(group,time){
+ for(const ring of group.children){if(ring.name!=='fishing-ripple')continue;const phase=(time*.38+ring.userData.phase)%1;ring.scale.setScalar(.35+phase*1.15);ring.material.opacity=Math.sin(phase*Math.PI)*.8;}
+}
