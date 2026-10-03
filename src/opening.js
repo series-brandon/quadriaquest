@@ -104,7 +104,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   });
   const transition=to=>{phase=to;age=0;};
   function show(text,kind='line',advance=null){
-    dialogue.hidden=false;line.textContent=text;mode=kind;next=advance;
+    dialogue.dataset.presentation='conversation';dialogue.dataset.input=String(kind!=='line');dialogue.hidden=false;line.textContent=text;mode=kind;next=advance;
     controls.replaceChildren();prompt.hidden=kind!=='line';
     dialogue.setAttribute('aria-label',text);
     dialogue.tabIndex=kind==='line'?0:-1;
@@ -119,12 +119,12 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     else chooseColor();
   }
   function chooseColor(){
-    show('What do you look like?','color');
+    show('What do you look like?','color');dialogue.dataset.presentation='customize';
     const label=document.createElement('label');label.className='color-choice';label.textContent='Your slime color';
     const input=document.createElement('input');input.type='color';input.value=color;input.setAttribute('aria-label','Slime color');
     input.addEventListener('input',()=>{color=input.value;setColor(color);});label.append(input);controls.append(label);
     button('This is me',()=>{
-      show('So this is what you look like?','confirm');
+      show('So this is what you look like?','confirm');dialogue.dataset.presentation='customize';
       button('Yes',()=>{reaction={kind:'Happy hop',time:0};show("Brilliant! You're a dashing little one!",'line',chooseName);});
       button('No, try another color',chooseColor,true);
     });

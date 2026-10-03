@@ -97,3 +97,11 @@ Compact journal navigation (desktop and mobile) uses list → detail → Back fo
 Expanded desktop journals are anchored 24px from the top, so taller tabs grow downward without moving the header.
 
 Resource reactions and depletion use `src/resource-depletion.js` in both areas. In the playground, enter Willowbank and run **Chop a tree** or **Mine a boulder** to exercise the real approach, impact, completion, reward, and respawn flow. **Cancel** interrupts a strike; **Reset Willowbank** restores resources for another pass.
+
+Dialogue presentation uses a shared twilight scrim and bottom card, with an overlapping speaker nameplate and one animated model above the card. Playground → Willowbank → **talk** exercises choices and speaker transitions; **arrival** exercises narrator-only dialogue. Preview the splash and opening for narrator customization controls. Check these at desktop and mobile sizes.
+
+Character dialogue uses a fixed short reading card. Advance a question to reveal its standalone centered responses; choosing a response restores the speaker card. Repeated lines from the same speaker do not replay the entrance. The Willowbank **talk** playground action covers this entire flow; **arrival** covers the smaller cutscene card.
+
+NPC conversation facing uses `createConversationFacing` on the world model, independently of portrait framing. In the playground, enter Willowbank, move to different sides of Reed, and use **talk** (or interact with Reed) to exercise the smooth turn; **Reset Willowbank** clears it.
+
+Willowbank → **Replay first fight introduction** resets the chapter and replays Reed’s thank-you and the camera focus on the weaker goblin. Advance the instruction to return the camera and open the combat tutorial. This uses the same sequence as accepting Reed’s request.
