@@ -13,7 +13,16 @@ export function playerActionMotion(kind,time,idleTime=time){
  if(kind==='Defeated'){pose={...idlePose(time),squash:.2,lean:0,twist:0};handWork=null;expression='struggle';}
  if(kind==='Combat'){const punch=punchMotion(time);pose=idlePose(idleTime);pose.lean=punch.lean;handWork=null;hands=[punch.right,punch.left];}
  if(kind==='Hammer injury'){pose=hammerInjuryPose(time);hands=pose.hands;handWork=null;expression='struggle';}
- if(kind==='Repairing'){const swing=(Math.sin(time*8)+1)/2;hands=[[-.32,.4+swing*.5,.4,-swing*.9,0],[.3,.3,.4,0,0]];}
+ if(kind==='Repairing'){
+  // Work in front of the face: brace the board and tap forward with a short wrist arc.
+  const phase=(time%.86)/.86,smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
+  const raised=phase<.4?smooth(phase/.4):1-smooth((phase-.52)/.16);
+  const impact=phase>=.68?Math.sin(Math.PI*Math.min(1,(phase-.68)/.18)):0;
+  handWork=null;
+  pose={squash:1-impact*.012,stretch:1,lean:.045,twist:0};
+  hands=[[-.20,.49+raised*.025,.55-raised*.025,.85-raised*.60,0],[.13,.57-impact*.004,.76,.12,0]];
+ }
+
  if(kind==='Chopping'||kind==='Mining'){const motion=kind==='Mining'?miningMotion(time):chopMotion(time);pose=motion.body;hands=[motion.right,motion.left];}
  if(kind==='Fishing'){const bob=Math.sin(time*2)*.015;handWork=null;hands=[[0,.35+bob,.48,.9,0],[0,.5+bob,.67,.9,0]];pose=idlePose(time);}
  return {pose,handWork,hands,expression};

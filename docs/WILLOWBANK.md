@@ -92,3 +92,5 @@ Every character dialogue line must explicitly specify a supported expression, in
 | “I need a moment.” / acknowledgement | Idle | Idle |
 
 Later lines also carry authored expressions: happy for celebrations, idle for instruction, struggle for the hammer injury. Playground animation previews include Shocked, Distraught, Sad, and Frown; the meet checkpoint and talk action replay all dialogue branches through the real renderer.
+
+Carpentry uses a steady, forward-centered off hand to brace an imaginary board near eye level, with short wrist-led hammer taps forward beside it. Both hands remain in front of the body; the shared Crude Hammer has a compact head and short handle. The hammer winds up gently, pauses, strikes quickly, and settles briefly. This shared Repairing pose is exposed as Slime → Carpentry in the model viewer and Repairing in the chapter animation controls.

@@ -8,7 +8,7 @@ export function tool(kind){
  const g=new THREE.Group();
  if(kind==='swords'){part(g,new THREE.BoxGeometry(.13,.65,.07),'#b1c4cd',0,.35,0);part(g,new THREE.BoxGeometry(.34,.07,.09),'#957145',0,.05);part(g,new THREE.CylinderGeometry(.035,.035,.23,6),'#674933',0,-.08);}
  if(kind==='shields'){part(g,new THREE.CylinderGeometry(.27,.27,.09,8),'#ae8056').rotation.x=Math.PI/2;part(g,new THREE.BoxGeometry(.07,.45,.11),'#cdb281');}
- if(kind==='hammers'){part(g,new THREE.CylinderGeometry(.035,.04,.6,6),'#98704e',0,.2);part(g,new THREE.BoxGeometry(.32,.18,.18),'#a1aaa5',0,.5);}
+ if(kind==='hammers'){part(g,new THREE.CylinderGeometry(.03,.035,.38,6),'#98704e',0,.11);part(g,new THREE.BoxGeometry(.26,.15,.15),'#a1aaa5',0,.30);}
  if(kind==='rods'){const rod=part(g,new THREE.CylinderGeometry(.014,.035,1.7,6),'#a48556',0,.65);rod.rotation.z=0;const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,1.5,0),new THREE.Vector3(0,.75,.9)]),new THREE.LineBasicMaterial({color:'#ece6c8'}));g.add(line);}
  return g;
 }
