@@ -1,3 +1,4 @@
+import {holdUpMotion} from './catch-motion.js';
 import {updateObjective,finishObjective} from './quests.js';
 import {portalSpawn} from './portal-spawn.js';
 import * as THREE from 'three';
@@ -120,7 +121,7 @@ export function createTutorialFinale(api){
       if(stage==='resetting'&&!drops.length){practice=true;stage='practice';}
       for(const a of actors){const here=a.kind==='return'?inPlaceholder:!inPlaceholder;a.highlight.update(here&&a.ready&&!a.opened,time,here&&hover===a&&a.ready&&!a.opened);if(a.kind!=='chest'&&a.ready)a.group.position.y=a.tile.h+.12+Math.sin(time*1.8)*.10;}
       if(practice&&!inPlaceholder&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
-      if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;heldHat.visible=t>.55&&t<3.5;heldHat.position.set(0,.72+Math.min(1,Math.max(0,(t-.55)/.6))*.20,.56);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}
+      if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;const prop=holdUpMotion(t,'hat').prop;heldHat.visible=prop.visible;heldHat.position.set(0,prop.y,prop.z);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}
       if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';if(inPlaceholder)finishObjective('portal');api.switchArea(inPlaceholder,placeholder,tiles,transition.landing);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)api.arrived();}}
       refresh();$('game-menus').inert=busy();
     }

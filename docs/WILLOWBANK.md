@@ -26,7 +26,7 @@ Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. 
 - Health starts at 30. Carpentry, Fishing, and Culinary use 120 XP per level; skill levels reduce activity duration.
 - All required materials can be replenished locally through respawning ground bundles, trees, boulders, and Flint. Axes and pickaxes remain craftable.
 - Repair requires a Crude Hammer in inventory and consumes Small Logs ×3 on completion; six seconds with three construction stages and 40 Carpentry XP.
-- Fishing repeats four-second catches until interrupted: one Raw Pondfish and 20 Fishing XP each. The lesson requires two fish.
+- Fishing waits four seconds (skill-adjusted), then plays a hook pull followed by the shared acquire celebration before returning to idle. Each completed catch awards one Raw Pondfish and 20 Fishing XP; click the spot again for another. Movement can interrupt the wait, but the catch celebration completes before control returns. The lesson requires two fish.
 - Cooking is guaranteed, takes three seconds per fish, and grants 20 Culinary XP.
 - Campfires use clear buildable tiles, explicit placement confirmation, and can be packed up. Flint and Stone is reusable; no fuel/bait system yet.
 - Companion name defaults to Pebble (1–20 characters). Rename and Follow/Rest use the Companions tab. The follower is cosmetic and cannot take damage.
@@ -96,3 +96,23 @@ Later lines also carry authored expressions: happy for celebrations, idle for in
 Carpentry uses a steady, forward-centered off hand to brace an imaginary board near eye level, with short wrist-led hammer taps forward beside it. Both hands remain in front of the body; the shared Crude Hammer has a compact head and short handle. The hammer winds up gently, pauses, strikes quickly, and settles briefly. This shared Repairing pose is exposed as Slime → Carpentry in the model viewer and Repairing in the chapter animation controls.
 
 Defeat uses the shared Fainted expression (spiral eyes) and a 2.4-second brief teeter and quick 0.52-second backward flop ending face-up, followed by a slower squish starting at 0.72 seconds and ending at 65% vertical thickness. A small landing bob precedes the lopsided squish. During deflation, three small, quicker side-to-side sways taper away into the resting pose, giving the face side a balloon-like wobble. Hands stay with the body through the fall, then drop in 0.18 seconds as the squish starts. The body stays uncompressed during the fall, and hands remain round, tucked close beside the body on the ground. A brief resting beat precedes the respawn fade, with return to the Iter Crystal at 3.6 seconds. The model viewer exposes Defeated plus an independent Fainted expression; chapter animation controls loop the same defeat sequence.
+
+The shared model viewer includes Fishing catch, Celebration, Jump up, and Jump down, all using gameplay motion functions. Raw Pondfish is a portable model in the catalogue. The Willowbank Fishing catch loop previews without rewards; the fish checkpoint exercises the real one-catch interaction, rewards, and tutorial continuation.
+
+The rod flexes under tension and its line is rebuilt from the bent tip to a fixed world-space water anchor after player transforms update. Fishing catch is only the sideways hook pull; gameplay chains it into Celebration with Raw Pondfish. Celebration accepts any held model; the viewer offers Generic item, Raw Pondfish, and Top Hat. Model, animation, and expression lists are alphabetized, with Default first for expressions.
+
+Fishing catch swings the rod tip outward from the slime while keeping the line anchored. Celebration uses one lift curve for hands and item, with hands closer together and the item just above them.
+
+The hook pull pivots close to the bottom of the rod, with only a small outward grip shift. Celebration props stay visible throughout the full animation; the owning sequence hides them only when it ends.
+
+Fishing catch defaults to Struggle, raises the rod closer to vertical with a restrained outward tilt, and adds extra flex at full line tension.
+
+The catch now pairs a stronger backward body lean with a nearly upright rod and minimal sideways tilt, keeping the lower-end pivot steady while the slime pulls against the line.
+
+At full catch pull, the lower shaft is parallel to the slime’s face (sharing its backward lean), while the upper shaft bows markedly toward the fixed water anchor under full tension.
+
+Fishing catch preserves the rod tip’s pre-catch world position while the grip pulls back. Cubic flex weighting keeps the thick lower shaft stiff and concentrates bending toward the thin tip; the line still connects that tip to its fixed water anchor. Each new cast or preview loop captures a fresh tip position.
+
+Rod flex preserves the 1.7-unit shaft length using equal-length sections. During the catch it favors the pre-catch tip height while allowing horizontal retreat toward the player, avoiding stretch from a fully pinned tip. Curvature increases toward the thin upper section.
+
+Celebration placement accounts for each prop origin: the top hat rests by its brim, while centered fish and generic models use smaller clearances above the hands.

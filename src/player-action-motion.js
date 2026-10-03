@@ -1,3 +1,4 @@
+import {catchMotion,holdUpMotion} from './catch-motion.js';
 import {faintPose} from './faint-motion.js';
 import {idlePose,workPose,chopMotion} from './slime-motion.js';
 import {miningMotion,MINING_GRIP_SPACING} from './mining.js';
@@ -10,6 +11,8 @@ export function gatheringHand(time,index){
 }
 // The game and model viewer consume the same action poses, including expressions.
 export function playerActionMotion(kind,time,idleTime=time){
+ if(kind==='Fishing catch')return catchMotion(time);
+ if(kind==='Celebration')return holdUpMotion(time);
  let pose=workPose('gather',time),handWork=time,hands=null,expression='focused';
  if(kind==='Defeated'){pose=faintPose(time);hands=pose.hands;handWork=null;expression='fainted';}
  if(kind==='Combat'){const punch=punchMotion(time);pose=idlePose(idleTime);pose.lean=punch.lean;handWork=null;hands=[punch.right,punch.left];}
@@ -29,6 +32,6 @@ export function playerActionMotion(kind,time,idleTime=time){
  return {pose,handWork,hands,expression};
 }
 export function alignSupportingHand(hands,kind){
- if(kind!=='Mining'&&kind!=='Fishing')return;
+ if(kind!=='Mining'&&kind!=='Fishing'&&kind!=='Fish hook')return;
  hands[0].updateMatrix();hands[1].position.set(0,kind==='Mining'?MINING_GRIP_SPACING:.24,0).applyMatrix4(hands[0].matrix);hands[1].quaternion.copy(hands[0].quaternion);
 }

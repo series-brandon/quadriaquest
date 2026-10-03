@@ -1,3 +1,4 @@
+import {holdUpMotion} from './catch-motion.js';
 import {placeFaintedHands} from './faint-motion.js';
 import {playerActionMotion,gatheringHand,alignSupportingHand} from './player-action-motion.js';
 import {makeAxe} from './axe-model.js';
@@ -328,7 +329,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   pose=motion.pose;expression=motion.expression;handWork=motion.handWork;socialHands=motion.hands;sleeping=false;
  }
  const celebration=finale.celebration;
- if(celebration){expression='happy';handWork=null;facing=celebration.angle;pose=idlePose(elapsed);pose.squash=1+Math.sin(celebration.age*9)*.07;}
+ if(celebration){const motion=holdUpMotion(celebration.age);expression=motion.expression;handWork=null;facing=celebration.angle;pose=motion.pose;socialHands=motion.hands;}
  bendSlime(pose.bend||0);finale.bendHat(pose.bend||0);
  expressionFace.set(willow?.expression||expression);
  const blend=1-Math.exp(-dt*24),width=1/Math.sqrt(pose.squash);
@@ -356,7 +357,6 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   if(handWork!==null&&!chopping)[x,y,z,curl,roll,yaw]=gatheringHand(handWork,i);
   if(chopping)[x,y,z,curl,roll,yaw=0]=i===0?chopping.right:chopping.left;
   if(socialHands)[x,y,z,curl,roll,yaw=0]=socialHands[i];
-  if(celebration){const lift=THREE.MathUtils.smoothstep(celebration.age,.55,1.15);x=side*.31;y=.55+lift*.34;z=.55;curl=0;roll=0;yaw=0;}
   hand.position.lerp(new THREE.Vector3(x,y,z),1-Math.exp(-dt*(chapterMotion?.kind==='Combat'?48:22)));
   hand.rotation.x=THREE.MathUtils.lerp(hand.rotation.x,curl,blend);
   hand.rotation.z=THREE.MathUtils.lerp(hand.rotation.z,roll,blend);
@@ -364,7 +364,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
  }
  if(pose.handDrop!==undefined)placeFaintedHands(visual,hands,pose.handDrop);
- alignSupportingHand(hands,pickaxeTool.visible?'Mining':chapterMotion?.kind);
+ alignSupportingHand(hands,pickaxeTool.visible?'Mining':chapterMotion?.kind==='Fishing catch'?'Fish hook':chapterMotion?.kind);
+ willow.updateFishingRig();
  for(let i=fallingTrees.length-1;i>=0;i--){
   const fall=fallingTrees[i];fall.age+=dt;
   if(animateResourceDepletion(fall.tree,fall.age,fall.axis)){

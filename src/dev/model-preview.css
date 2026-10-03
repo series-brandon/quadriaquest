@@ -21,3 +21,5 @@
  #dev-model-preview .preview-hint{padding:10px 12px;font-size:12px}
 }
 @media(max-height:500px){#dev-model-preview .preview-controls{padding:8px 12px;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}#dev-model-preview .preview-controls label:first-child{grid-column:auto}#dev-model-preview .preview-playback{grid-column:auto}#dev-model-preview .preview-header{padding:8px 12px}#dev-model-preview .preview-hint{display:none}}
+
+@media(min-width:701px) and (min-height:501px){#dev-model-preview .preview-controls:has([data-prop-label]:not([hidden])){grid-template-columns:repeat(4,minmax(0,1fr)) auto}}

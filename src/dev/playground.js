@@ -25,8 +25,8 @@ export function createGrassPaletteControls(getMaterials){
   return {defaultColor:GRASS_BASE_COLOR,set,reset:()=>set(GRASS_BASE_COLOR)};
 }
 
-const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Hat celebration','Happy','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted'];
-const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
+const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Celebration','Happy','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted'];
+const durations={...SOCIAL_DURATIONS,'Celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   let modelPreview;
   const panel=document.createElement('details');panel.id='quadriaquest-dev-playground';panel.open=false;
@@ -50,7 +50,7 @@ export function mountPlayground(api){
       <div>${['arrival','talk','heal','hurt','lose','cancel','name','placement','tip'].map(s=>`<button data-willow="${s}">${s}</button>`).join('')}</div>
       <button data-willow="hit">Damage splat (3)</button><button data-willow="zero">Blocked splat (0)</button><button data-willow="miss">Miss splat</button><button data-willow="follow">Test follower</button>
       <button data-willow="bridgeIntro">Replay bridge introduction</button><button data-willow="combatPractice">Load combat sandbox (deferred area 3)</button><button data-willow="scrapper">Fight Scrapper</button><button data-willow="bruiser">Fight Bruiser</button><button data-willow="chop">Chop a tree</button><button data-willow="mine">Mine a boulder</button><button data-willow="repair">Repair bridge</button><button data-willow="fish">Fish</button>
-      <label>Animation<select id="dev-willow-animation">${['Unarmed','Sword and shield','Defeated','Repairing','Hammer injury','Fishing','Cooking','Goblin idle','Goblin walk','Goblin attack','Goblin hit','Corgi happy','Corgi sad','Corgi walk','Reed idle'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="preview">Loop chapter animation</button>
+      <label>Animation<select id="dev-willow-animation">${['Unarmed','Sword and shield','Defeated','Repairing','Hammer injury','Fishing','Fishing catch','Cooking','Goblin idle','Goblin walk','Goblin attack','Goblin hit','Corgi happy','Corgi sad','Corgi walk','Reed idle'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="preview">Loop chapter animation</button>
       <p class="dev-note">Enter first, then choose a checkpoint. Checkpoints supply materials and replay the real quest. Inventory/skill controls include all new items and skills. Cancel stops previews. Reset restores encounters, bridge, follower, resources, and health.</p>
     </fieldset>
     <fieldset><legend>Terrain colors</legend>
@@ -89,7 +89,7 @@ export function mountPlayground(api){
     </div></fieldset>
     <fieldset><legend>Gathering tutorial prompt</legend><button data-dev="level-lesson">Replay first level tips</button><button data-dev="gathering-lesson">Replay gathering tutorial</button><div><button data-prompt="0">Before first pickup</button><button data-prompt="1">After first XP</button><button data-prompt="hide">Hide prompt</button></div></fieldset>
     <fieldset><legend>Tutorial finale</legend><p class="dev-note">Replay the real sequence or test its parts. Practice reset arms the hidden goal; Complete practice clears those objects without granting loot.</p><div>
-      ${['Closing dialogue','Drop portal','Use portal','Practice reset','Complete practice','Reward dialogue','Drop chest','Open chest','Hat celebration','Wear/remove hat','Enter Willowbank','Return to clearing','Reset finale'].map(a=>`<button data-finale="${a}">${a}</button>`).join('')}
+      ${['Closing dialogue','Drop portal','Use portal','Practice reset','Complete practice','Reward dialogue','Drop chest','Open chest','Celebration','Wear/remove hat','Enter Willowbank','Return to clearing','Reset finale'].map(a=>`<button data-finale="${a}">${a}</button>`).join('')}
     </div></fieldset>
     <fieldset><legend>Mining</legend><div><button data-dev="mining-lesson">Replay Mining tutorial</button><button data-dev="mining-stop">Stop Mining tutorial</button><button data-dev="mine-nearest">Mine nearest boulder</button></div><p class="dev-note">Replay restores boulders, gives Sticks ×3 / Rocks ×3, removes the pickaxe, and offers optional guidance. Use Mining animation to loop the real swing.</p></fieldset>
     <fieldset><legend>Resource picking</legend><label><input id="dev-hitboxes" type="checkbox"> Show half-tile hitboxes</label></fieldset>
@@ -149,7 +149,7 @@ export function mountPlayground(api){
         if(action==='themes'){stop();compareThemes();}
         if(action==='splash'){stop();api.showSplash();}
         if(action==='splash-randomize'){stop();api.randomizeSplash();}
-        if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}
+        if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}
         if(action==='stop'){stop();status('Preview stopped. Normal play enabled.');}
         if(action==='face')api.faceTowardCamera();
         if(action==='doze'){stop();api.doze();status('Dozing naturally. Orbit or zoom without waking; click to wake.');}
@@ -189,7 +189,7 @@ export function mountPlayground(api){
         else {
           if(api.finale.busy)throw Error('Finish the current dialogue or drop first, or use Reset finale.');
           if(api.finale.inPlaceholder)throw Error('Return to the clearing first.');
-          const actions={'Closing dialogue':()=>api.finale.begin(),'Drop portal':()=>api.finale.dropPortal(),'Practice reset':()=>api.finale.resetPractice(),'Complete practice':()=>api.completePractice(),'Reward dialogue':()=>api.finale.revealReward(),'Drop chest':()=>api.finale.dropChest(),'Open chest':()=>api.finale.openChest(),'Hat celebration':()=>api.finale.celebrate(),'Wear/remove hat':()=>api.finale.equip()};
+          const actions={'Closing dialogue':()=>api.finale.begin(),'Drop portal':()=>api.finale.dropPortal(),'Practice reset':()=>api.finale.resetPractice(),'Complete practice':()=>api.completePractice(),'Reward dialogue':()=>api.finale.revealReward(),'Drop chest':()=>api.finale.dropChest(),'Open chest':()=>api.finale.openChest(),'Celebration':()=>api.finale.celebrate(),'Wear/remove hat':()=>api.finale.equip()};
           actions[action]();
         }
         status(action+'.');
@@ -222,8 +222,8 @@ export function mountPlayground(api){
       if(!preview)return null;
       time+=dt*Number($('speed').value);
       const duration=durations[preview]||2;
-      if(time>=duration){if($('loop').checked){if(preview!=='Sleeping')time%=duration;if(preview==='Hat celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});}else{stop();status('Preview finished.');return null;}}
-      if(preview==='Hat celebration')return null;
+      if(time>=duration){if($('loop').checked){if(preview!=='Sleeping')time%=duration;if(preview==='Celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});}else{stop();status('Preview finished.');return null;}}
+      if(preview==='Celebration')return null;
       if(SOCIAL_DURATIONS[preview])return socialMotion(preview,time);
       let pose=idlePose(time),expression='idle',handWork=null,lift=0;
       if(preview==='Sliding'){pose=slideMotion(time/duration);expression='focused';}
