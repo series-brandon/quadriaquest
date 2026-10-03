@@ -25,7 +25,7 @@ export function createGrassPaletteControls(getMaterials){
   return {defaultColor:GRASS_BASE_COLOR,set,reset:()=>set(GRASS_BASE_COLOR)};
 }
 
-const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Hat celebration','Happy','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown'];
+const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Hat celebration','Happy','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted'];
 const durations={...SOCIAL_DURATIONS,'Hat celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   let modelPreview;
@@ -231,7 +231,7 @@ export function mountPlayground(api){
       if(preview==='Mining'){handWork=time;expression='focused';pose=miningMotion(time).body;}
       if(['Gathering','Crafting','Chopping'].includes(preview)){handWork=time;expression='focused';pose=workPose(preview==='Chopping'?'chop':'gather',time);}
       if(preview==='Spawn landing'){pose=spawnMotion(time);lift=pose.lift;expression=time<.68?'struggle':'idle';}
-      if(['Happy','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown'].includes(preview))expression=preview.toLowerCase();
+      if(['Happy','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted'].includes(preview))expression=preview.toLowerCase();
       return {pose,expression,handWork,lift};
     }
   };

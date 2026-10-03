@@ -1,3 +1,5 @@
+import {placeFaintedHands,groundFaintedBody} from '../faint-motion.js';
+import {FAINT_PREVIEW_DURATION} from '../faint-motion.js';
 import {playerActionMotion,gatheringHand,alignSupportingHand} from '../player-action-motion.js';
 import * as THREE from 'three';
 import {makeTree,makeFlowers,makeTerrainTile,addWaterTile} from '../world-models.js';
@@ -30,15 +32,16 @@ function slimePreview(factory,reed=false){
   let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null;
   const actionKind=!reed?SLIME_ACTIONS[motion]:null;
   for(const model of Object.values(tools))model.visible=false;
-  if(actionKind){const actionTime=actionKind==='Hammer injury'?time%2:time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime));const active=motion==='Sword and shield'?['swords','shields']:({Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;}
+  if(actionKind){const actionTime=actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime));const active=motion==='Sword and shield'?['swords','shields']:({Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;}
   else if(SOCIAL_DURATIONS[motion]){const social=socialMotion(motion,motion==='Sleeping'?time:time%(SOCIAL_DURATIONS[motion]+.7));({pose,hands,lift,expression}=social);}
   else if(motion==='Sliding'){pose=slideMotion(time%1);expression='focused';}
   if(expressionOverride&&expressionOverride!=='default')expression=expressionOverride.toLowerCase();
   rig.face.set(expression);bend(pose.bend||0);
   const width=1/Math.sqrt(pose.squash),stretch=pose.stretch||1;
-  rig.group.scale.set(width/Math.sqrt(stretch),pose.squash,width*Math.sqrt(stretch));
+  rig.group.scale.set(...(pose.scale||[width/Math.sqrt(stretch),pose.squash,width*Math.sqrt(stretch)]));
   rig.group.rotation.set(pose.lean||0,pose.twist||0,pose.roll||0);rig.group.position.y=lift;
   rig.hands.forEach((hand,i)=>{hand.position.copy(rest[i]);hand.rotation.set(0,0,0);hand.scale.set(1,handWork!==null?.88:1,handWork!==null?1.15:1);const values=hands?.[i]||(handWork!==null?gatheringHand(handWork,i):null);if(values){const [x,y,z,curl,roll,yaw=0]=values;hand.position.set(x,y,z);hand.rotation.set(curl,yaw,roll);}else if(!reed)hand.position.z+=(pose.armDrive||0);});
+  if(pose.handDrop!==undefined){groundFaintedBody(rig.group,rig.body);placeFaintedHands(rig.group,rig.hands,pose.handDrop);}
   alignSupportingHand(rig.hands,actionKind);
  }};
 }

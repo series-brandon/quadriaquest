@@ -1,3 +1,4 @@
+import {faintPose} from './faint-motion.js';
 import {idlePose,workPose,chopMotion} from './slime-motion.js';
 import {miningMotion,MINING_GRIP_SPACING} from './mining.js';
 import {punchMotion} from './combat-motion.js';
@@ -10,7 +11,7 @@ export function gatheringHand(time,index){
 // The game and model viewer consume the same action poses, including expressions.
 export function playerActionMotion(kind,time,idleTime=time){
  let pose=workPose('gather',time),handWork=time,hands=null,expression='focused';
- if(kind==='Defeated'){pose={...idlePose(time),squash:.2,lean:0,twist:0};handWork=null;expression='struggle';}
+ if(kind==='Defeated'){pose=faintPose(time);hands=pose.hands;handWork=null;expression='fainted';}
  if(kind==='Combat'){const punch=punchMotion(time);pose=idlePose(idleTime);pose.lean=punch.lean;handWork=null;hands=[punch.right,punch.left];}
  if(kind==='Hammer injury'){pose=hammerInjuryPose(time);hands=pose.hands;handWork=null;expression='struggle';}
  if(kind==='Repairing'){

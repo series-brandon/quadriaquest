@@ -1,3 +1,4 @@
+import {placeFaintedHands} from './faint-motion.js';
 import {playerActionMotion,gatheringHand,alignSupportingHand} from './player-action-motion.js';
 import {makeAxe} from './axe-model.js';
 import {animateResourceDepletion,animateResourceHit} from './resource-depletion.js';
@@ -331,7 +332,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  bendSlime(pose.bend||0);finale.bendHat(pose.bend||0);
  expressionFace.set(willow?.expression||expression);
  const blend=1-Math.exp(-dt*24),width=1/Math.sqrt(pose.squash);
- visual.scale.lerp(new THREE.Vector3(width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)),blend);
+ visual.scale.lerp(new THREE.Vector3(...(pose.scale||[width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)])),blend);
  visual.rotation.x=THREE.MathUtils.lerp(visual.rotation.x,pose.lean,blend);
  visual.rotation.y=THREE.MathUtils.lerp(visual.rotation.y,pose.twist,blend);
  visual.rotation.z=THREE.MathUtils.lerp(visual.rotation.z,pose.roll||0,blend);
@@ -362,6 +363,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   hand.rotation.y=THREE.MathUtils.lerp(hand.rotation.y,yaw,blend);
   hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
  }
+ if(pose.handDrop!==undefined)placeFaintedHands(visual,hands,pose.handDrop);
  alignSupportingHand(hands,pickaxeTool.visible?'Mining':chapterMotion?.kind);
  for(let i=fallingTrees.length-1;i>=0;i--){
   const fall=fallingTrees[i];fall.age+=dt;
