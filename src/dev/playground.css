@@ -14,7 +14,7 @@
 #quadra-dev-playground output{display:block;color:#d2ee8d;}
 #quadra-dev-playground pre{white-space:pre-wrap;font:11px/1.6 monospace;}
 
-body:has(#splash:not([hidden])) #quadra-dev-playground{visibility:hidden}
+
 /* Use the selected game's palette for the playground chrome too. */
 #quadra-dev-playground{background:#302638f5;color:#faf1e7;border-color:#c7abc1}
 #quadra-dev-playground summary,#quadra-dev-playground legend,#quadra-dev-playground output{color:#edbdad}
@@ -26,3 +26,15 @@ body:has(#splash:not([hidden])) #quadra-dev-playground{visibility:hidden}
 #quadra-dev-playground :focus-visible{outline-color:#edbdad}
 .dev-icons{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 0}.dev-icons span{display:flex;align-items:center;gap:7px;font-size:11px}.dev-icons .game-icon{width:28px;height:28px}
 #quadra-dev-playground:not([open]){display:none}
+
+#quadra-dev-playground{width:340px;padding:0 12px 12px}
+#quadra-dev-playground>summary{position:sticky;top:0;z-index:2;padding:14px 0;background:#302638}
+#quadra-dev-playground .dev-section{border-top:1px solid #806a8866;margin-top:8px}
+#quadra-dev-playground .dev-section>summary{padding:12px 0;font-size:13px;letter-spacing:0}
+#quadra-dev-playground .dev-section fieldset{margin:4px 0 12px;border:0;border-top:1px solid #806a8855;border-radius:0;padding:10px 0}
+#quadra-dev-playground .dev-section legend{font-size:11px;font-weight:500;color:#d0bfd4}
+#quadra-dev-playground .dev-command{display:flex;gap:8px;align-items:end;margin:10px 0}
+#quadra-dev-playground .dev-command label{display:flex;flex:1;min-width:0;align-items:stretch;flex-direction:column;gap:6px;margin:0;font-size:12px}
+#quadra-dev-playground .dev-command select{width:100%;max-width:none;box-sizing:border-box;min-height:36px}
+#quadra-dev-playground .dev-command button{margin:0;min-height:36px}
+#quadra-dev-playground #dev-status{position:sticky;bottom:-12px;background:#302638;border-top:1px solid #806a88;padding:10px 0;margin-top:12px;font-size:12px}

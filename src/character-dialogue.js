@@ -21,6 +21,6 @@ export function createCharacterDialogue(){
  }
  box.querySelector('.speaker-next').onclick=()=>{if(!queue)next?.();};
  return {get active(){return !box.hidden;},show(line){box.hidden=false;if(speaker!==null&&speaker!==line.side){queue=line;age=0;box.classList.add('exiting');box.querySelector('.speaker-next').disabled=true;}else install(line);},hide(){box.hidden=true;queue=null;next=null;speaker=null;box.querySelector('.speaker-next').disabled=false;},update(dt){if(box.hidden)return;age+=dt;life+=dt;if(queue&&age>=.22){const line=queue;queue=null;install(line);box.querySelector('.speaker-next').disabled=false;}if(!model)return;
-  for(const [a,b] of pairs)if(b!==model){b.position.copy(a.position);b.quaternion.copy(a.quaternion);b.scale.copy(a.scale);b.visible=a.visible;}const pose=idlePose(life);model.rotation.y=(speaker==='left'?.32:-.32)+pose.twist*.5;model.scale.set(1/Math.sqrt(pose.squash),pose.squash,1/Math.sqrt(pose.squash));model.position.y=-.035;render.render(scene,camera);
+  for(const [a,b] of pairs)if(b!==model){b.position.copy(a.position);b.quaternion.copy(a.quaternion);b.scale.copy(a.scale);b.visible=a.visible;}const pose=idlePose(life),squash=1+(pose.squash-1)*.28;model.rotation.y=(speaker==='left'?.52:-.52)+pose.twist*.18;model.scale.set(1/Math.sqrt(squash),squash,1/Math.sqrt(squash));model.position.y=-.035;render.render(scene,camera);
  }};
 }

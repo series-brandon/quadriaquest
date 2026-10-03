@@ -132,11 +132,11 @@ body #game-menus{top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-
 @keyframes menu-guide-bob{0%,100%{transform:translate(-7px,-50%) rotate(-90deg)}50%{transform:translate(3px,-50%) rotate(-90deg)}}
 @media(prefers-reduced-motion:reduce){#game-menu-toggle.gold-guide::before{animation:none}}
 #game-settings{width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:24px;border:1px solid var(--ui-border);border-radius:18px;background:var(--ui-paper);color:var(--ui-ink);box-shadow:0 18px 65px #382b4933;overflow:auto}
-#game-settings::backdrop{background:#241b36aa;backdrop-filter:blur(3px)}.settings-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.settings-heading h2{font:24px Georgia,serif;margin:0}.settings-heading button{width:44px;height:44px;font-size:26px}#game-settings h3{font-size:14px;margin:24px 0 12px}#game-settings label{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0;min-height:36px;font-size:15px}#game-settings input[type=range]{width:160px;accent-color:var(--ui-button)}#game-settings .mute-setting{justify-content:flex-start}#game-settings input[type=checkbox]{width:20px;height:20px;accent-color:var(--ui-button)}
+#game-settings::backdrop{background:#241b36aa;backdrop-filter:blur(3px)}.settings-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.settings-heading h2{font:24px Georgia,serif;margin:0}.settings-heading button{width:44px;height:44px;font-size:26px}.settings-content h3{font-size:14px;margin:24px 0 12px}.settings-content label{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0;min-height:36px;font-size:15px}.settings-content input[type=range]{width:160px;accent-color:var(--ui-button)}.settings-content .mute-setting{justify-content:flex-start}.settings-content input[type=checkbox]{width:20px;height:20px;accent-color:var(--ui-button)}
 .splash-actions{--splash-button-size:62px;display:flex;align-items:center;justify-content:center;gap:14px}
 .splash-actions button{box-sizing:border-box;height:var(--splash-button-size);padding-top:0;padding-bottom:0}
 #splash-settings{position:static;flex:0 0 var(--splash-button-size);width:var(--splash-button-size);height:var(--splash-button-size);padding:0;display:grid;place-items:center;background:var(--ui-paper);border:1px solid var(--ui-border);border-radius:14px;color:var(--ui-button);pointer-events:auto}
-@media(max-width:700px){#journal:not(.expanded){inset:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-height:none}#journal #game-menu-bar button{flex-direction:column;font-size:11px;gap:5px;padding:8px 4px}#journal #game-menu-bar .game-icon{width:21px;height:21px}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:80px;max-height:35dvh}#game-settings{padding:20px}#game-settings label{min-height:44px}#item-feed{bottom:20px}}
+@media(max-width:700px){#journal:not(.expanded){inset:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-height:none}#journal #game-menu-bar button{flex-direction:column;font-size:11px;gap:5px;padding:8px 4px}#journal #game-menu-bar .game-icon{width:21px;height:21px}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:80px;max-height:35dvh}#game-settings{padding:20px}.settings-content label{min-height:44px}#item-feed{bottom:20px}}
 /* Tips share the dialogue area; objective updates are brief, independent receipts. */
 body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:auto;bottom:24px;left:50%;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));max-height:38dvh;overflow:auto;z-index:45;pointer-events:auto}
 #gather-tutorial .progress-track,#gather-tutorial #tutorial-count{display:none}
@@ -203,4 +203,66 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
  #journal .recipe-detail{min-height:340px}
 }
 
-@media(min-width:701px){#journal:has(#crafting-panel:not([hidden])){width:min(680px,calc(100vw - 48px))}#journal.expanded:has(#crafting-panel:not([hidden])){width:min(840px,calc(100vw - 48px))}}
+
+
+/* One shared close control; each selected tab already names its page. */
+#journal{container-type:inline-size}
+#journal .crafting-heading{display:none}
+#journal #journal-close{display:flex;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px;padding:0;border-radius:8px}
+#journal #game-menu-bar{gap:4px;padding:8px;overflow:visible}
+#journal #game-menu-bar button{min-width:0;min-height:44px;flex:1 1 0;padding:8px 4px}
+#journal #game-menu-bar button span{white-space:nowrap}
+@container(max-width:560px){#journal #game-menu-bar button span{display:none}#journal #game-menu-bar button{min-height:44px}#journal #game-menu-bar .game-icon{width:22px;height:22px;flex-shrink:0}}
+@media(min-width:701px){
+ #journal #inventory-panel,#journal.expanded #inventory-panel,#journal:not(.expanded) #inventory-panel:not(.viewing-item){grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-rows:auto minmax(0,1fr);gap:16px;}
+ #journal #inventory-panel>.journal-search{grid-column:1/-1;grid-row:1}
+ #journal #inventory-panel>.inventory-grid,#journal #inventory-panel>.inventory-empty{grid-column:1;grid-row:2;padding:4px;max-height:none;min-width:0}
+ #journal #inventory-panel>.inventory-detail,#journal.expanded #inventory-panel>.inventory-detail{display:block;grid-column:2;grid-row:2;margin:0;border:0;border-left:1px solid var(--ui-border);padding:8px 0 8px 20px;min-width:0;overflow:auto}
+ #journal #inventory-panel>.inventory-detail[hidden]{display:none}
+ #journal #inventory-panel>.inventory-detail h3{font-size:21px;margin:0 0 14px}
+ #journal #inventory-panel>.inventory-detail p{font-size:14px;line-height:1.6}
+}
+#journal #companions-panel{min-height:180px;padding:18px 22px}
+@media(max-width:700px){#journal #game-menu-bar button{min-width:0;flex:1 1 0}#journal #inventory-panel>.inventory-detail[hidden]{display:none}}
+
+
+/* Compact always drills into one page; only expanded desktop splits the browser. */
+#journal .journal-header{justify-content:flex-start;gap:6px}
+#journal .journal-header>span{flex:1;min-width:0}
+#journal #journal-size,#journal #journal-close{flex:0 0 36px;margin:0}
+@media(min-width:701px){#journal:not(.expanded){width:min(390px,calc(100vw - 48px))}}
+#journal:not(.expanded) #inventory-panel,#journal:not(.expanded) #inventory-panel:not(.viewing-item){grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:12px}
+#journal:not(.expanded) #inventory-panel>.journal-search{grid-column:1;grid-row:1}
+#journal:not(.expanded) #inventory-panel>.inventory-grid,#journal:not(.expanded) #inventory-panel>.inventory-empty{grid-column:1;grid-row:2}
+#journal:not(.expanded) #inventory-panel>.inventory-detail{display:none}
+#journal:not(.expanded) #inventory-panel.viewing-item{grid-template-rows:minmax(0,1fr)}
+#journal:not(.expanded) #inventory-panel.viewing-item>.inventory-grid,#journal:not(.expanded) #inventory-panel.viewing-item>.journal-search,#journal:not(.expanded) #inventory-panel.viewing-item>.inventory-empty{display:none}
+#journal:not(.expanded) #inventory-panel.viewing-item>.inventory-detail{display:block;grid-column:1;grid-row:1;padding:0;border:0;margin:0}
+#journal:not(.expanded) .inventory-back{display:block}
+#journal:not(.expanded) .recipe-browser{display:block;min-height:0}
+#journal:not(.expanded) .recipe-choices{max-height:none}
+#journal:not(.expanded) .recipe-details{display:none}
+#journal:not(.expanded) .viewing-recipe .recipe-choices{display:none}
+#journal:not(.expanded) .viewing-recipe .recipe-details{display:flex}
+#journal:not(.expanded) .recipe-back{display:block;align-self:flex-start;margin-bottom:16px}
+#journal .journal-browser{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:20px}
+#journal .journal-list{display:flex;flex-direction:column;gap:8px;min-width:0}
+#journal .journal-entry{font:inherit;font-size:14px;min-height:48px;text-align:left;padding:12px;border:1px solid transparent;border-radius:8px;background:#eee3e8;color:var(--ui-ink);cursor:pointer;margin:0}
+#journal .journal-entry[aria-pressed=true]{border-color:var(--ui-accent);box-shadow:inset 0 0 0 1px var(--ui-accent)}
+#journal .journal-detail{min-width:0;border-left:1px solid var(--ui-border);padding-left:20px}
+#journal .journal-detail h3{margin-top:8px}
+#journal .journal-back,#journal .recipe-back,#journal .inventory-back{font:inherit;font-size:14px;min-height:44px;padding:8px 12px;border:1px solid var(--ui-border);border-radius:8px;background:#eee3e8;color:var(--ui-ink);cursor:pointer}
+#journal .journal-back{display:none}
+#journal:not(.expanded) .journal-browser{display:block}
+#journal:not(.expanded) .journal-detail{display:none;border:0;padding:0}
+#journal:not(.expanded) .viewing-detail .journal-list{display:none}
+#journal:not(.expanded) .viewing-detail .journal-detail{display:block}
+#journal:not(.expanded) .journal-back{display:block;margin:0 0 16px}
+#journal.expanded .inventory-back,#journal.expanded .recipe-back{display:none}
+#journal #inventory-panel>.inventory-detail[hidden]{display:none}
+@media(min-width:701px){#journal.expanded{top:max(24px,env(safe-area-inset-top));bottom:auto;max-height:calc(100dvh - 48px)}}
+
+#journal #settings-panel{min-height:0;overflow:auto;padding:16px 20px 20px}
+#journal #settings-panel>.crafting-heading{display:none}
+.settings-content{max-width:480px;width:100%;margin:0 auto}
+.settings-content input[type=range]{max-width:55%}

@@ -24,7 +24,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,equipm
   const host=document.createElement('div');host.id='game-menus';host.hidden=!freePlay;
   host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false"><span aria-hidden="true">☰</span></button>
     <nav id="game-menu-bar" hidden aria-label="Game menu"><button id="open-skills">Skills</button><button id="open-inventory" hidden>Inventory</button><button id="open-crafting" hidden>Crafting</button></nav>
-    <section id="crafting-panel" hidden aria-label="Crafting"><div class="crafting-heading"><h2>Crafting</h2><button id="close-crafting" aria-label="Close crafting menu">×</button></div><p class="crafting-intro">Something useful from something simple.</p>
+    <section id="crafting-panel" hidden aria-label="Crafting"><div class="crafting-heading"><h2>Crafting</h2><button id="close-crafting" aria-label="Close crafting menu">×</button></div>
       <div class="recipe-choices"><button class="recipe-choice" id="choose-axe" aria-pressed="true">${icon('axes')} Crude Axe</button><button class="recipe-choice" id="choose-pickaxe" aria-pressed="false" hidden>${icon('pickaxes')} Crude Pickaxe</button></div>
       <article class="recipe-detail" id="axe-detail"><h3>Crude Axe</h3><p>A simple tool for chopping trees.</p><div class="ingredient-counts" id="axe-ingredients"></div><div class="recipe-facts"><span>Time · 2 seconds</span><span>Produces · Crude Axe ×1</span></div><button id="craft-axe" class="recipe">Craft Crude Axe</button></article>
       <article class="recipe-detail" id="pickaxe-detail" hidden><h3>Crude Pickaxe</h3><p>A simple tool for mining boulders.</p><div class="ingredient-counts" id="pickaxe-ingredients"></div><div class="recipe-facts"><span>Time · 2 seconds</span><span>Produces · Crude Pickaxe ×1</span></div><button id="craft-pickaxe" class="recipe" hidden>Craft Crude Pickaxe</button></article>
@@ -139,7 +139,7 @@ export function createCraftingTutorial({getInventory,getSkills,startCraft,equipm
   }
 
   function guide(id){for(const node of host.querySelectorAll('.gold-guide'))node.classList.remove('gold-guide');if(id)$(id).classList.add('gold-guide');}
-  function closeMenus(){if($('companions-panel'))$('companions-panel').hidden=true; if($('quests-panel'))$('quests-panel').hidden=true;$('game-menu-bar').hidden=true;$('crafting-panel').hidden=true;skillsPanel.hidden=true;inventoryMenu.close();$('game-menu-toggle').setAttribute('aria-expanded','false');}
+  function closeMenus(){if($('settings-panel'))$('settings-panel').hidden=true;if($('companions-panel'))$('companions-panel').hidden=true; if($('quests-panel'))$('quests-panel').hidden=true;$('game-menu-bar').hidden=true;$('crafting-panel').hidden=true;skillsPanel.hidden=true;inventoryMenu.close();$('game-menu-toggle').setAttribute('aria-expanded','false');}
   function writeItems(element,text){
     element.replaceChildren();
     for(const part of text.split(/(Crude Pickaxe|Crude Axe|Small Logs|Sticks|Rocks|Stone|Boulder)/g)){

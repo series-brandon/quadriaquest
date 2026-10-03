@@ -1,0 +1,37 @@
+import {Vector3} from 'three';
+import {key} from './world.js';
+const same=(a,b)=>!!(a&&b&&a.x===b.x&&a.z===b.z);
+// Search once at tile boundaries; never route through the player's occupied tile.
+export function companionRoute(world,start,player,reserved=()=>false,occupied=()=>false){
+ if(Math.abs(start.x-player.x)+Math.abs(start.z-player.z)===1&&!reserved(start)&&!start.blocked&&!start.water)return [];
+ const queue=[start],previous=new Map([[key(start.x,start.z),null]]),candidates=[];
+ for(let i=0;i<queue.length;i++){
+  const tile=queue[i],k=key(tile.x,tile.z);
+  if(!same(tile,player)&&!reserved(tile)&&!tile.blocked&&!tile.water)candidates.push(tile);
+  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=world.get(key(tile.x+dx,tile.z+dz));if(!n||n.blocked||n.water||(same(n,player)||occupied(n))||Math.abs(n.h-tile.h)>.5||previous.has(key(n.x,n.z)))continue;previous.set(key(n.x,n.z),tile);queue.push(n);}
+ }
+ candidates.sort((a,b)=>Math.abs(a.x-player.x)+Math.abs(a.z-player.z)-(Math.abs(b.x-player.x)+Math.abs(b.z-player.z)));
+ const destination=candidates[0];if(!destination)return [];
+ const route=[];for(let t=destination;!same(t,start);t=previous.get(key(t.x,t.z)))route.unshift(t);
+ return route;
+}
+export function createCompanionFollower(model){
+ let tile=null,step=null,lastPlayer=null,gait=0,yieldBlocked=false;
+ const target=new Vector3();
+ function reset(at=null){tile=at;step=null;lastPlayer=null;yieldBlocked=false;}
+ function spawn(world,player,reserved){
+  const nearby=[...world.values()].filter(t=>!t.blocked&&!t.water&&!same(t,player)&&!reserved(t)&&Math.abs(t.h-player.h)<=.5).sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
+  tile=nearby[0]||null;step=null;if(tile)model.position.set(tile.x-6,tile.h,tile.z-6);
+ }
+ return {reset,get gait(){return gait;},get yieldBlocked(){return yieldBlocked;},occupies(t){return same(t,tile)||same(t,step);},update(dt,world,player,reserved=()=>false,occupied=()=>false){
+  if(!tile||world.get(key(tile.x,tile.z))!==tile||lastPlayer&&Math.hypot(lastPlayer.x-player.x,lastPlayer.z-player.z)>3)spawn(world,player,reserved);
+  lastPlayer=player;if(!tile){model.visible=false;return false;}
+  if(!step){const route=companionRoute(world,tile,player,reserved,occupied);step=route[0]||null;yieldBlocked=reserved(tile)&&!step;}
+  if(!step)return false;
+  if(step.blocked||step.water||same(step,player)||occupied(step)){step=null;return false;}
+  target.set(step.x-6,step.h,step.z-6);const distance=model.position.distanceTo(target),travel=Math.min(distance,dt*3.3);
+  if(distance>.001){const yaw=Math.atan2(target.x-model.position.x,target.z-model.position.z);model.rotation.y+=Math.atan2(Math.sin(yaw-model.rotation.y),Math.cos(yaw-model.rotation.y))*(1-Math.exp(-dt*14));model.position.lerp(target,travel/distance);gait+=travel*4;}
+  if(distance<=travel+.001){model.position.copy(target);tile=step;step=null;}
+  return travel>.001;
+ }};
+}

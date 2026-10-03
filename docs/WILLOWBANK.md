@@ -1,6 +1,6 @@
 # Willowbank: A Friend Across the Water
 
-The second tutorial replaces the Iter Crystal's placeholder destination. Reed, a fisher slime, asks the player to drive away two goblins and repair a bridge to a stranded cat-like companion. Dialogue choices add flavor and allow refusal/re-entry without losing progress. Only the active speaker's live animated model appears, sliding in from their side; player colors and cosmetics are shared with the world model.
+The second tutorial replaces the Iter Crystal's placeholder destination. Reed, a fisher slime, asks the player to drive away two goblins and repair a bridge to a stranded corgi companion. Dialogue choices add flavor and allow refusal/re-entry without losing progress. Only the active speaker's live animated model appears, sliding in from their side; player colors and cosmetics are shared with the world model.
 
 ## Flow
 
@@ -55,6 +55,19 @@ Willowbank tips use the clearing's actual tutorial component and handlers, inclu
 
 Conversation text and actions retain fixed positions when speakers change. One close-up animated portrait appears at a time, angled inward, with the speaker's name underneath. Mobile places the portrait above the reading/action area. The portrait copies live equipment and facial state and uses the shared slime idle motion.
 
-Goblins have articulated shoulders and legs, rounded tunics, idle/blink, patrol steps, attack windup/contact/recovery and hit reactions. Each goblin independently checks every 2–4 seconds, with a 25% chance to choose any reachable destination in its designated patrol area. Routes can span multiple tiles, stay inside the area, and avoid occupied tiles and player routes. Dialogue, combat and approaching the goblin interrupt wandering. The playground’s “Wander goblins now” button exercises the same route planner immediately; Reset Willowbank restores independent timers. The cat has a rounded oversized head, grounded paws, blinking, ear/tail motion, sad trapped posture and bounding follow movement.
+Goblins have articulated shoulders and legs, rounded tunics, idle/blink, patrol steps, attack windup/contact/recovery and hit reactions. Each goblin independently checks every 2–4 seconds, with a 25% chance to choose any reachable destination in its designated patrol area. Routes can span multiple tiles, stay inside the area, and avoid occupied tiles and player routes. Dialogue, combat and approaching the goblin interrupt wandering. The playground’s “Wander goblins now” button exercises the same route planner immediately; Reset Willowbank restores independent timers. The corgi has a long plump body, short cream paws, a cream blaze and muzzle, oversized upright ears, and a short wagging tail. Its trapped expression lowers its ears, head, and tail; after rescue it smiles and trots with alternating diagonal paws.
 
-The dev menu includes Shared model preview (real factories and animation functions), first-arrival replay, goblin and cat animation loops, and the existing encounter/bridge/fishing checkpoints. Crafting uses a two-column browser on desktop and list/detail navigation on mobile, with inset selection borders and separate ingredient/time/output sections.
+The dev menu includes Shared model preview (real factories and animation functions), first-arrival replay, goblin and corgi animation loops, and the existing encounter/bridge/fishing checkpoints. Crafting uses a two-column browser on desktop and list/detail navigation on mobile, with inset selection borders and separate ingredient/time/output sections.
+
+
+### Combat, portraits, and companion polish
+
+Dialogue panels size to their content instead of reserving a full page for a short reply. Portraits turn inward by 30 degrees and use 28% of the world idle squash, retaining live facial expressions and equipment.
+
+Unarmed attacks draw back briefly, snap forward into the damage-clock impact, and recover. Goblins share the continuous wind-up/strike/recovery envelope rather than jumping between poses. Sword and shield grips are rotated a quarter turn. Floating hit splats show actual health lost (`3!`), a successful zero-damage hit (`0!`), or a failed accuracy roll (`Miss!`), including enemy attacks while retreating. They clear on reset/area changes.
+
+The corgi trots with alternating diagonal paws during rescue and following. Following chooses reachable unoccupied tiles next to the player, finishes each tile segment, and turns toward its own travel direction. It avoids the player's current and incoming tile and yields from planned destinations. The player waits briefly for the companion to clear an occupied segment; an impossible yield reports that the companion needs room. Teleports place the follower on a separate valid tile. The companion is an original tan-and-cream corgi inspired by the proportions of the selected reference.
+
+Playground coverage: **Unarmed**, **Sword and shield**, and **Goblin attack** loop the gameplay motions; **Damage splat (3)**, **Blocked splat (0)**, and **Miss splat** call the real combat feedback. **Test follower** enables the companion beside the player for movement tests. **bridge** checkpoint + **Repair bridge** replay the rescue; **talk** replays dialogue choices and short replies. **Reset Willowbank** clears effects, follower state, encounters, and equipment state. Shared model preview's corgi Walk and goblin Attack use the same rigs/motion as the world.
+
+Corgi proportion reference: [Low Poly Corgi by SeberdrA](https://sketchfab.com/3d-models/low-poly-corgi-stl-for-3d-print-2bde102b996c483a9e17a5d00cc40ddd). The game uses original Three.js geometry, shared by the island, follower, companion journal, and playground. **Shared model preview → Corgi → Idle / Walk / Sad** and the **Corgi happy / sad / walk** chapter loops cover its expressions and animation; bridge repair replays rescue, and Test follower exercises its movement.

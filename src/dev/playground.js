@@ -1,3 +1,4 @@
+import {organizePlayground} from './playground-layout.js';
 import {createModelPreview} from './model-preview.js';
 import {GRASS_BASE_COLOR,createGrassColors} from '../grass-palette.js';
 import {icon,ICON_NAMES} from '../icons.js';
@@ -47,8 +48,9 @@ export function mountPlayground(api){
       <button data-willow="enter">Enter Willowbank</button><button data-willow="reset">Reset Willowbank</button><button data-willow="wander">Wander goblins now</button>
       <label>Quest checkpoint<select id="dev-willow-stage">${['meet','scrapper','equipment','bruiser','bridge','fish','flint','fire','place','cook','eat'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="stage">Load checkpoint + supplies</button>
       <div>${['arrival','talk','heal','hurt','lose','cancel','name','placement','tip'].map(s=>`<button data-willow="${s}">${s}</button>`).join('')}</div>
+      <button data-willow="hit">Damage splat (3)</button><button data-willow="zero">Blocked splat (0)</button><button data-willow="miss">Miss splat</button><button data-willow="follow">Test follower</button>
       <button data-willow="scrapper">Fight Scrapper</button><button data-willow="bruiser">Fight Bruiser</button><button data-willow="repair">Repair bridge</button><button data-willow="fish">Fish</button>
-      <label>Animation<select id="dev-willow-animation">${['Combat','Defeated','Repairing','Fishing','Cooking','Goblin idle','Goblin walk','Goblin attack','Goblin hit','Cat happy','Cat sad','Cat walk','Reed idle'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="preview">Loop chapter animation</button>
+      <label>Animation<select id="dev-willow-animation">${['Unarmed','Sword and shield','Defeated','Repairing','Fishing','Cooking','Goblin idle','Goblin walk','Goblin attack','Goblin hit','Corgi happy','Corgi sad','Corgi walk','Reed idle'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="preview">Loop chapter animation</button>
       <p class="dev-note">Enter first, then choose a checkpoint. Checkpoints supply materials and replay the real quest. Inventory/skill controls include all new items and skills. Cancel stops previews. Reset restores encounters, bridge, follower, resources, and health.</p>
     </fieldset>
     <fieldset><legend>Terrain colors</legend>
@@ -94,8 +96,9 @@ export function mountPlayground(api){
     <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="boulders">Boulders</button><button data-reset="all">Full test area</button></div></fieldset>
     <output id="dev-status" aria-live="polite">Ready. Starter kit: Sticks ×10, Rocks ×10, Crude Axe ×1, Crude Pickaxe ×1.</output>
     <pre id="dev-state"></pre>`;
+  const commands=organizePlayground(panel);
   document.body.append(panel);
-  const launcher=document.createElement('button');launcher.id='show-debug-menu';launcher.type='button';launcher.setAttribute('aria-label','Show debug menu');launcher.setAttribute('aria-controls',panel.id);launcher.setAttribute('aria-expanded','false');launcher.innerHTML=icon('settings')+'<span>Debug</span>';
+  const launcher=document.createElement('button');launcher.id='show-debug-menu';launcher.dataset.journalLast='';launcher.type='button';launcher.setAttribute('aria-label','Show debug menu');launcher.setAttribute('aria-controls',panel.id);launcher.setAttribute('aria-expanded','false');launcher.innerHTML='<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-14-2 16"/></svg><span>Debug</span>';
   document.getElementById('game-menu-bar').append(launcher);
   launcher.onclick=()=>{panel.open=true;panel.querySelector('summary').focus();};
   panel.addEventListener('toggle',()=>{launcher.setAttribute('aria-expanded',String(panel.open));if(!panel.open&&panel.contains(document.activeElement))launcher.focus();});
@@ -109,9 +112,9 @@ export function mountPlayground(api){
   function stop(force=true){if(!force&&!preview&&!holdingFeedback)return;preview=null;time=0;holdingFeedback=false;api.finale.stopPreview();api.stop();}
   function refresh(){api.refresh();$('state').textContent=Object.entries(api.skills).map(([name,s])=>`${name}: Lv ${s.level} · ${s.xp} XP`).join('\n')+'\n'+Object.entries(api.inventory).map(([name,n])=>itemStack(name,n)).join(' · ');}
   panel.addEventListener('click',e=>{
-    const b=e.target.closest('button');if(!b)return;
+    let b=e.target.closest('button');if(!b)return;if(b.dataset.command){const command=commands.get(b.dataset.command);b={dataset:command.actions[command.select.value]};}
     try{
-      if(b.dataset.willow){const name=b.dataset.willow;if(name==='enter')api.enterWillow();else if(!api.willow.active)throw Error('Enter Willowbank first.');else if(name==='stage')api.willow.debug.stage($('willow-stage').value);else if(name==='preview')api.willow.debug.preview($('willow-animation').value);else if(['scrapper','bruiser'].includes(name))api.willow.debug.fight(name);else api.willow.debug[name]();status('Willowbank: '+name);if(['enter','stage','arrival','talk','lose','name','placement','tip','scrapper','bruiser','repair','fish','preview'].includes(name))panel.open=false;}
+      if(b.dataset.willow){const name=b.dataset.willow;if(name==='enter')api.enterWillow();else if(!api.willow.active)throw Error('Enter Willowbank first.');else if(name==='stage')api.willow.debug.stage($('willow-stage').value);else if(name==='preview')api.willow.debug.preview($('willow-animation').value);else if(['scrapper','bruiser'].includes(name))api.willow.debug.fight(name);else api.willow.debug[name]();status('Willowbank: '+name);}
       if(b.dataset.objective)api.objectives[b.dataset.objective]();
       if(b.dataset.sound){api.audio.unlock();api.audio.play(b.dataset.sound);}
       if(b.dataset.prompt){

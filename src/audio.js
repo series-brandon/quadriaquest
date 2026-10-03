@@ -37,8 +37,11 @@ export function createGameAudio(){
 }
 export function mountAudioControls(audio){
  const host=document.createElement('dialog');host.id='game-settings';host.setAttribute('aria-labelledby','settings-title');
- host.innerHTML='<div class="settings-heading"><h2 id="settings-title">Settings</h2><button id="close-settings" aria-label="Close settings">×</button></div><p>Make yourself comfortable.</p><h3>Sound</h3>'+['music','effects','ambience'].map(key=>`<label>${key[0].toUpperCase()+key.slice(1)}<input type="range" min="0" max="1" step="0.05" value="${audio.settings[key]}" data-audio="${key}" aria-label="${key} volume"></label>`).join('')+`<label class="mute-setting"><input type="checkbox" id="audio-muted" ${audio.settings.muted?'checked':''}> Mute all</label>`;document.body.append(host);
- host.querySelectorAll('[data-audio]').forEach(input=>input.oninput=()=>{audio.unlock();audio.set(input.dataset.audio,Number(input.value));});host.querySelector('#audio-muted').onchange=e=>audio.set('muted',e.target.checked);
+ host.innerHTML='<div class="settings-heading"><h2 id="settings-title">Settings</h2><button id="close-settings" aria-label="Close settings">×</button></div>';document.body.append(host);
+ const content=document.createElement('div');content.className='settings-content';
+ content.innerHTML='<h3>Sound</h3>'+['music','effects','ambience'].map(key=>`<label>${key[0].toUpperCase()+key.slice(1)}<input type="range" min="0" max="1" step="0.05" value="${audio.settings[key]}" data-audio="${key}" aria-label="${key} volume"></label>`).join('')+`<label class="mute-setting"><input type="checkbox" id="audio-muted" ${audio.settings.muted?'checked':''}> Mute all</label>`;host.append(content);
+ content.querySelectorAll('[data-audio]').forEach(input=>input.oninput=()=>{audio.unlock();audio.set(input.dataset.audio,Number(input.value));});content.querySelector('#audio-muted').onchange=e=>audio.set('muted',e.target.checked);
  host.querySelector('#close-settings').onclick=()=>host.close();
- return {open(){for(const input of host.querySelectorAll('[data-audio]'))input.value=audio.settings[input.dataset.audio];host.querySelector('#audio-muted').checked=audio.settings.muted;host.showModal();},close(){host.close();}};
+ function refresh(){for(const input of content.querySelectorAll('[data-audio]'))input.value=audio.settings[input.dataset.audio];content.querySelector('#audio-muted').checked=audio.settings.muted;}
+ return {open(){host.append(content);refresh();host.showModal();},mount(panel){host.close();panel.append(content);refresh();},close(){host.close();}};
 }

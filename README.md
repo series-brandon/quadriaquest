@@ -83,4 +83,15 @@ The splash slime receives a random body/hand color on each page load, with adapt
 
 Willowbank is the second playable tutorial area. See [the chapter design](docs/WILLOWBANK.md) for its quest flow and rules. The playground’s **Willowbank chapter** controls provide direct entry, checkpoints, encounters, health, repair/fishing/placement, naming, and animation previews.
 
-The playground's **Shared model preview** opens the real terrain, foliage, resource and character models with repeatable animation controls. Willowbank's **arrival** button replays the narrator/camera introduction; chapter animation options include goblin idle/walk/attack/hit, cat happy/sad/walk, and Reed idle. Existing area/reset controls exercise the shared water and adjacent resource gathering.
+The playground's **Shared model preview** opens the real terrain, foliage, resource and character models with repeatable animation controls. Willowbank's **arrival** button replays the narrator/camera introduction; chapter animation options include goblin idle/walk/attack/hit, corgi happy/sad/walk, and Reed idle. Existing area/reset controls exercise the shared water and adjacent resource gathering.
+
+Willowbank polish controls also include **Unarmed / Sword and shield** animation loops, **Damage splat (3) / Blocked splat (0) / Miss splat**, and **Test follower**. Use **bridge → Load checkpoint + supplies → Repair bridge** to replay the corgi’s rescue trot, or **talk** to check adaptive dialogue height and quieter portraits.
+
+In **Shared model preview**, drag with a mouse or one finger to orbit horizontally and vertically while animations play. **Reset view** restores the default angle; selecting a different model also resets and centers the view.
+
+Journal layout checks: compact journals use icon tabs (with accessible names and hover labels), wide journals keep text labels, and Debug stays last. Inventory uses the same desktop list/detail pattern as crafting, selects the first available item automatically, and keeps mobile list → detail → back navigation. Use playground Inventory, Crafting, Skills and Quests buttons plus Willowbank entry to check every tab, including the empty Companions page. The shared journal close button replaces individual page headers.
+
+The playground stays open after actions (close it explicitly with its header). Controls are grouped into collapsible Models & animation, Inventory & skills, Tutorials & objectives, Willowbank, World & water, Interface & audio, Visual feedback, and Session state sections. Tutorial/chapter actions, sound effects, and feedback use selectors with repeatable Run buttons. Inventory/skill edits, Play/Stop, checkpoints, and resets remain direct controls.
+
+Compact journal navigation (desktop and mobile) uses list → detail → Back for inventory, recipes, quests, and companions. Only expanded desktop journals show lists and details together; the desktop expand control sits beside Close. Resize to mobile to exercise compact navigation even when the desktop expanded preference is saved. Playground menu launchers, quest controls, and Test follower expose all four browsers.
+Expanded desktop journals are anchored 24px from the top, so taller tabs grow downward without moving the header.

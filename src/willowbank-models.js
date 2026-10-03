@@ -58,32 +58,46 @@ export function animateGoblin(group,time,{walk=0,attack=0,hit=0}={}){
   group.getObjectByName('eye'+side).scale.y=.82*blink;
  }
 }
+// Original corgi built for the shared companion rig: +Z is forward.
 export function companion(){
- const g=new THREE.Group(),body=new THREE.Group();body.name='cat-body';g.add(body);
- part(body,new RoundedBoxGeometry(.38,.30,.50,4,.12),'#d9af80',0,.22,-.04);
- const head=new THREE.Group();head.name='cat-head';head.position.set(0,.52,.15);body.add(head);
- part(head,new THREE.SphereGeometry(.27,20,16),'#edcba1').scale.set(1.05,.94,.9);
+ const g=new THREE.Group(),body=new THREE.Group();body.name='companion-body';g.add(body);
+ const tan=mat('#c78a49'),cream=mat('#fff0d1'),dark=mat('#343338');
+ const coat=tan.clone();coat.flatShading=true;
+ part(body,new THREE.IcosahedronGeometry(1,2),coat,0,.29,-.08).scale.set(.25,.205,.40);
+ part(body,new RoundedBoxGeometry(.29,.31,.14,2,.06),cream,0,.29,.20);
+ const head=new THREE.Group();head.name='companion-head';head.position.set(0,.53,.24);body.add(head);
+ part(head,new RoundedBoxGeometry(.45,.36,.36,2,.09),tan);
+ // A cream blaze and muzzle make the face readable even from the game camera.
+ part(head,new RoundedBoxGeometry(.075,.22,.012,2,.006),cream,0,.018,.181);
+ part(head,new RoundedBoxGeometry(.29,.14,.20,2,.055),cream,0,-.09,.22);
+ part(head,new RoundedBoxGeometry(.085,.055,.05,2,.018),dark,0,-.045,.327);
  for(const side of [-1,1]){
-  const ear=new THREE.Group();ear.name='cat-ear'+side;ear.position.set(side*.18,.18,-.025);head.add(ear);
-  part(ear,new THREE.ConeGeometry(.105,.22,3),'#d9af80',0,.065).rotation.y=Math.PI;
-  part(ear,new THREE.ConeGeometry(.064,.13,3),'#e8a99b',0,.063,.044).rotation.y=Math.PI;
-  const eye=namedPart(head,'cat-eye'+side,new THREE.SphereGeometry(.052,16,12),'#39443e',side*.105,.012,.22);eye.scale.set(1,1.15,.48);
-  part(head,new THREE.SphereGeometry(.015,10,8),'#fff9ed',side*.105-.013,.03,.246);
-  const muzzle=part(head,new THREE.SphereGeometry(.065,12,8),'#fff0d9',side*.048,-.079,.212);muzzle.scale.set(1,.65,.5);
-  for(const z of [-.18,.16]){part(body,new THREE.CapsuleGeometry(.047,.09,4,8),'#d9af80',side*.14,.13,z);namedPart(body,'paw'+side+z,new RoundedBoxGeometry(.12,.12,.17,3,.045),'#f7dfbd',side*.14,.06,z);}
+  const ear=new THREE.Group();ear.name='companion-ear'+side;ear.position.set(side*.15,.14,.015);head.add(ear);
+  const shape=new THREE.Shape();shape.moveTo(-.095,0);shape.lineTo(.095,0);shape.lineTo(side*.045,.28);shape.closePath();
+  const geo=new THREE.ExtrudeGeometry(shape,{depth:.07,bevelEnabled:true,bevelSize:.012,bevelThickness:.012,bevelSegments:1,steps:1});
+  part(ear,geo,tan,0,0,-.04);
+  const inner=part(ear,geo,mat('#d99c85'),0,.035,.044);inner.scale.set(.62,.66,.18);
+  const eye=namedPart(head,'companion-eye'+side,new THREE.SphereGeometry(.044,12,8),dark,side*.13,.025,.176);eye.scale.set(.9,1.08,.5);
+  part(head,new THREE.SphereGeometry(.012,8,6),'#ffffff',side*.13-.01,.04,.199);
+  const brow=namedPart(head,'companion-brow'+side,new RoundedBoxGeometry(.07,.015,.018,1,.005),'#92603b',side*.13,.09,.18);brow.rotation.z=side*.08;
+  for(const z of [-.31,.19]){const leg=new THREE.Group();leg.name='companion-leg'+side+z;leg.position.set(side*.165,.19,z);body.add(leg);part(leg,new THREE.CapsuleGeometry(.061,.075,3,8),tan,0,-.055);namedPart(leg,'paw'+side+z,new RoundedBoxGeometry(.14,.105,.18,2,.032),cream,0,-.1375,.015);}
  }
- part(head,new THREE.SphereGeometry(.024,10,8),'#ba7d79',0,-.06,.254).scale.set(1,.65,.6);
- const mouth=part(head,new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(new THREE.Vector3(-.035,-.119,.242),new THREE.Vector3(0,-.092,.25),new THREE.Vector3(.035,-.119,.242)),10,.007,5,false),'#765950');mouth.name='sad-mouth';
- const tail=new THREE.Group();tail.name='cat-tail';tail.position.set(0,.29,-.27);body.add(tail);
- part(tail,new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(),new THREE.Vector3(.03,.14,-.15),new THREE.Vector3(.12,.32,-.18),new THREE.Vector3(.18,.36,-.10)]),16,.045,8,false),'#d9af80');
+ for(const sad of [false,true]){const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(-.065,-.10,.327),new THREE.Vector3(0,sad?-.065:-.16,.339),new THREE.Vector3(.065,-.10,.327));const mouth=part(head,new THREE.TubeGeometry(curve,12,.009,5,false),dark);mouth.name=sad?'sad-mouth':'happy-mouth';mouth.visible=!sad;}
+ namedPart(head,'companion-tongue',new RoundedBoxGeometry(.046,.055,.024,2,.012),'#df9290',0,-.145,.331);
+ const tail=new THREE.Group();tail.name='companion-tail';tail.position.set(0,.34,-.43);body.add(tail);
+ part(tail,new THREE.CapsuleGeometry(.065,.105,3,8),tan,0,.055,-.05).rotation.x=-.65;
+ part(tail,new THREE.SphereGeometry(.059,8,6),cream,0,.115,-.092);
  return g;
 }
-export function animateCompanion(group,time,{sad=false,moving=false}={}){
- const body=group.getObjectByName('cat-body'),head=group.getObjectByName('cat-head');
- const bounce=moving?Math.abs(Math.sin(time*8))*.055:0;body.position.y=bounce;body.scale.y=1+Math.sin(time*2.2)*.018;
- head.rotation.z=Math.sin(time*.9)*.045;head.rotation.x=sad?.12:Math.sin(time*1.4)*.025;
- group.getObjectByName('cat-tail').rotation.z=Math.sin(time*(sad?1.2:3))*(sad?.08:.22);
- for(const side of [-1,1]){group.getObjectByName('cat-ear'+side).rotation.z=side*(sad?.38:.02)+Math.sin(time*1.7+side)*.025;group.getObjectByName('cat-eye'+side).scale.y=time%4.7>4.55?.12:1.15;}
- group.getObjectByName('sad-mouth').visible=sad;
+export function animateCompanion(group,time,{sad=false,moving=false,gait=time*4}={}){
+ const body=group.getObjectByName('companion-body'),head=group.getObjectByName('companion-head');
+ const weight=body.userData.walkWeight=(body.userData.walkWeight||0)+(Number(moving)-(body.userData.walkWeight||0))*.22;
+ body.position.y=Math.abs(Math.sin(gait*2))*.018*weight;body.scale.y=1+Math.sin(time*2.2)*.012;body.rotation.y=Math.sin(gait*2)*.035*weight;
+ head.rotation.z=Math.sin(time*1.4)*(sad?.025:.045);head.rotation.x=sad?.16:Math.sin(time*2)*.025;
+ const tail=group.getObjectByName('companion-tail');tail.rotation.y=Math.sin(time*(sad?2:11))*(sad?.07:.5);tail.rotation.x=sad?.7:0;
+ for(const side of [-1,1]){group.getObjectByName('companion-ear'+side).rotation.z=side*(sad?.48:.04)+Math.sin(time*2+side)*.025;group.getObjectByName('companion-eye'+side).scale.y=time%4.7>4.55?.12:sad?.85:1.08;group.getObjectByName('companion-brow'+side).rotation.z=side*(sad?-.3:.08);}
+ for(const side of [-1,1])for(const z of [-.31,.19]){const leg=group.getObjectByName('companion-leg'+side+z),stride=weight*Math.sin(gait*2+(side*(z>0?1:-1)>0?0:Math.PI));leg.rotation.x=stride*.5;leg.position.y=.19+Math.max(0,stride)*.035;}
+ head.position.y=.53+Math.sin(gait*2)*.01*weight;
+ group.getObjectByName('sad-mouth').visible=sad;group.getObjectByName('happy-mouth').visible=!sad;group.getObjectByName('companion-tongue').visible=!sad;
 }
 export function campfire(ghost=false){const g=new THREE.Group();for(let i=0;i<4;i++){const log=part(g,new THREE.CylinderGeometry(.07,.07,.7,6),'#94704d',0,.1,0);log.rotation.set(Math.PI/2,i*Math.PI/2,0);}for(let i=0;i<3;i++)part(g,new THREE.ConeGeometry(.17-i*.035,.46-i*.07,5),i%2?'#ffe09a':'#ef9851',(i-1)*.1,.28+i*.04);if(ghost)g.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=.45;}});return g;}
