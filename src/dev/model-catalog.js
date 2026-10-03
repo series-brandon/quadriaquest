@@ -1,6 +1,6 @@
-import {updateFishingRodMotion,resetFishingRodMotion} from '../fishing-rod.js';
+import {updateFishingCast,updateFishingRodMotion,resetFishingRodMotion} from '../fishing-rod.js';
 import {makePondfish} from '../fish-model.js';
-import {catchMotion,holdUpMotion,CELEBRATION_DURATION,HOOK_DURATION} from '../catch-motion.js';
+import {catchMotion,holdUpMotion,CELEBRATION_DURATION,HOOK_DURATION,CAST_DURATION} from '../catch-motion.js';
 import {placeFaintedHands,groundFaintedBody} from '../faint-motion.js';
 import {FAINT_PREVIEW_DURATION} from '../faint-motion.js';
 import {playerActionMotion,gatheringHand,alignSupportingHand} from '../player-action-motion.js';
@@ -13,7 +13,7 @@ import {SLIME_EXPRESSIONS} from '../slime-face.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION} from '../slime-motion.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {createSlimeBend} from '../slime-bend.js';
-import {fisher,goblin,companion,campfire,animateCampfire,fishingSpot,animateFishingSpot,tool,heldTool,animateGoblin,animateCompanion,makeBridge,makeBridgeMarker} from '../willowbank-models.js';
+import {fisher,goblin,companion,campfire,animateCampfire,fishingSpot,animateFishingSpot,tool,heldTool,animateGoblin,animateCompanion,makeBridge} from '../willowbank-models.js';
 import {attackPose} from '../combat-motion.js';
 import {makeBoulder,makePickaxe} from '../mining.js';
 import {makeAxe} from '../axe-model.js';
@@ -22,7 +22,7 @@ import {createWaterEffects} from '../water-effects.js';
 import {animateResourceHit,animateResourceDepletion} from '../resource-depletion.js';
 import {key} from '../world.js';
 
-export const SLIME_ACTIONS={'Punching':'Combat','Sword and shield':'Combat','Gathering':'Gathering','Crafting':'Crafting','Chopping':'Chopping','Mining':'Mining','Carpentry':'Repairing','Ouch / hammer injury':'Hammer injury','Fishing catch':'Fishing catch','Celebration':'Celebration','Fishing':'Fishing','Cooking':'Cooking','Defeated':'Defeated'};
+export const SLIME_ACTIONS={'Punching':'Combat','Sword and shield':'Combat','Gathering':'Gathering','Crafting':'Crafting','Chopping':'Chopping','Mining':'Mining','Carpentry':'Repairing','Ouch / hammer injury':'Hammer injury','Fishing cast':'Fishing cast','Fishing catch':'Fishing catch','Celebration':'Celebration','Fishing':'Fishing','Cooking':'Cooking','Defeated':'Defeated'};
 const staticModel=(name,factory)=>({name,motions:['Static'],create:()=>({group:factory()})});
 const expressions=SLIME_EXPRESSIONS.filter(x=>x!=='concerned').map(x=>x[0].toUpperCase()+x.slice(1));
 function slimePreview(factory,reed=false){
@@ -38,8 +38,8 @@ function slimePreview(factory,reed=false){
   let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null;
   const actionKind=!reed?SLIME_ACTIONS[motion]:null;
   for(const model of Object.values(tools))model.visible=false;
-  if(actionKind){const actionTime=actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime));const active=motion==='Sword and shield'?['swords','shields']:({Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;
-   if(actionKind==='Fishing catch')tools.rods.visible=true;
+  if(actionKind){const actionTime=actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime));const active=motion==='Sword and shield'?['swords','shields']:({Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;
+   if(actionKind==='Fishing catch'||actionKind==='Fishing cast')tools.rods.visible=true;
    if(actionKind==='Celebration'){const result=holdUpMotion(actionTime,heldItem==='Raw Pondfish'?'fish':heldItem==='Top Hat'?'hat':'generic'),prop=heldItem==='Raw Pondfish'?trophyFish:heldItem==='Top Hat'?trophyHat:trophyGeneric;prop.visible=result.prop.visible;prop.position.set(0,result.prop.y,result.prop.z);}
 
   }
@@ -54,7 +54,7 @@ function slimePreview(factory,reed=false){
   rig.hands.forEach((hand,i)=>{hand.position.copy(rest[i]);hand.rotation.set(0,0,0);hand.scale.set(1,handWork!==null?.88:1,handWork!==null?1.15:1);const values=hands?.[i]||(handWork!==null?gatheringHand(handWork,i):null);if(values){const [x,y,z,curl,roll,yaw=0]=values;hand.position.set(x,y,z);hand.rotation.set(curl,yaw,roll);}else if(!reed)hand.position.z+=(pose.armDrive||0);});
   if(pose.handDrop!==undefined){groundFaintedBody(rig.group,rig.body);placeFaintedHands(rig.group,rig.hands,pose.handDrop);}
   alignSupportingHand(rig.hands,actionKind==='Fishing catch'?'Fish hook':actionKind);
-  if(tools.rods?.visible)updateFishingRodMotion(tools.rods,group.localToWorld(new THREE.Vector3(0,.02,1.7)),actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):null);else if(tools.rods)resetFishingRodMotion(tools.rods);
+  if(tools.rods?.visible&&actionKind==='Fishing cast')updateFishingCast(tools.rods,group.localToWorld(new THREE.Vector3(0,.02,1.7)),Math.min(time%(CAST_DURATION+.5),CAST_DURATION));else if(tools.rods?.visible)updateFishingRodMotion(tools.rods,group.localToWorld(new THREE.Vector3(0,.02,1.7)),actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):null);else if(tools.rods)resetFishingRodMotion(tools.rods);
  }};
 }
 function resource(name,factory,kind){return {name,motions:['Static','Hit','Deplete'],create(){const group=factory(),resource={group,kind},state={};return {group,update(time,motion){group.rotation.set(0,0,0);group.scale.setScalar(1);if(motion==='Hit')animateResourceHit(resource,time,state,()=>{});if(motion==='Deplete')animateResourceDepletion(resource,time%1.8,new THREE.Vector3(0,0,1));}};}};}
@@ -77,7 +77,6 @@ export const MODEL_CATALOG=[
  {name:'Iter Crystal',motions:['Floating','Static'],create(){const group=makeCrystal();return {group,update(time,motion){group.position.y=motion==='Floating'?.12+Math.sin(time*1.8)*.1:0;}};}},
  {name:'Wooden chest',motions:['Closed','Open'],create(){const {group,lid}=makeChest();return {group,update(time,motion){lid.rotation.x=motion==='Open'?-1:0;lid.position.set(0,motion==='Open'?.64:.49,motion==='Open'?-.18:0);}};}},
  {name:'Bridge',motions:['Broken','Repair stages','Repaired'],create(){const bridge=makeBridge();return {group:bridge.group,update(time,motion){bridge.setProgress(motion==='Broken'?0:motion==='Repaired'?1:Math.floor((time%6)/1.5)/3);}};}},
- staticModel('Bridge repair marker',makeBridgeMarker),
  staticModel('Grass tile',()=>terrain([1])),staticModel('Half-height ledge',()=>terrain([1,1.5])),staticModel('Joined grass tiles',()=>terrain([1,1,1.5])),
  {name:'Water tiles',motions:['Waves'],create(renderer){const group=new THREE.Group(),effects=createWaterEffects(group,renderer),tiles=[{x:0,z:0,water:true},{x:1,z:0,water:true}],map=new Map(tiles.map(t=>[key(t.x,t.z),t]));for(const tile of tiles)addWaterTile(group,tile,map,effects,0);return {group,update(time,motion,dt){if(time===0)effects.restart();effects.update(dt);}};}}
 ];

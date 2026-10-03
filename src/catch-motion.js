@@ -1,5 +1,5 @@
 import {idlePose} from './slime-motion.js';
-export const HOOK_DURATION=.65;
+export const HOOK_DURATION=1.15;
 export const CELEBRATION_DURATION=3.5;
 export const CATCH_DURATION=HOOK_DURATION+CELEBRATION_DURATION;
 const smooth=(a,b,t)=>{const x=Math.max(0,Math.min(1,(t-a)/(b-a)));return x*x*(3-2*x);};
@@ -13,17 +13,26 @@ export function holdUpMotion(time,item='generic'){
 }
 export function catchMotion(time){
  const pull=smooth(.05,.30,time),settle=smooth(.38,HOOK_DURATION,time);
- const pitch=.9*(1-pull),roll=.18*pull;
+ const wobble=time>.30?Math.sin((time-.30)*Math.PI*9)*.07*(1-smooth(.30,HOOK_DURATION,time)):0;
+ const pitch=.9*(1-pull)+wobble,roll=.18*pull+wobble*.35;
  // The shaft extends .2 below the grip. Rotate about that lower end,
  // Keep the lower shaft parallel to the face at full pull; the tip bends toward the water.
  // A small forward/outward shift keeps the hands clear of the face.
  const bottom=[-.09*pull,.35-.2*Math.cos(.9),.48-.2*Math.sin(.9)+.14*pull];
  const grip=[bottom[0]-.2*Math.sin(roll),bottom[1]+.2*Math.cos(roll)*Math.cos(pitch),bottom[2]+.2*Math.cos(roll)*Math.sin(pitch)];
- return {pose:{squash:1+.07*pull-.08*settle,stretch:1,lean:-.24*pull,twist:.08*pull},expression:'struggle',handWork:null,
+ return {pose:{squash:1+.07*pull-.08*settle,stretch:1,lean:-.24*pull+wobble*.45,twist:.08*pull+wobble*.3},expression:'struggle',handWork:null,
   hands:[[...grip,pitch,roll],[0,.5,.67,0,0]],rod:true,tension:.25+.75*pull};
 }
 export function catchSequence(time){
  if(time<HOOK_DURATION)return {kind:'Fishing catch',time};
  if(time<CATCH_DURATION)return {kind:'Celebration',time:time-HOOK_DURATION};
  return null;
+}
+
+export const CAST_DURATION=1.2;
+export function castMotion(time){
+ const rear=smooth(0,.4,time),throwForward=smooth(.43,.72,time),settle=smooth(.72,CAST_DURATION,time);
+ const lift=rear*(1-settle),pitch=.9-1.55*rear+1.55*throwForward;
+ return {pose:{squash:1-.035*lift,stretch:1,lean:-.10*rear+.14*throwForward-.04*settle,twist:-.06*lift},expression:'struggle',handWork:null,
+ hands:[[-.12*lift,.35+.30*lift,.48+.10*lift,pitch,.10*lift],[0,.5,.67,0,0]],rod:true};
 }

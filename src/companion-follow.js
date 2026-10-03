@@ -1,5 +1,5 @@
 import {Vector3} from 'three';
-import {key} from './world.js';
+import {findPath,key} from './world.js';
 const same=(a,b)=>!!(a&&b&&a.x===b.x&&a.z===b.z);
 // Search once at tile boundaries; never route through the player's occupied tile.
 export function companionRoute(world,start,player,reserved=()=>false,occupied=()=>false){
@@ -34,4 +34,10 @@ export function createCompanionFollower(model){
   if(distance<=travel+.001){model.position.copy(target);tile=step;step=null;}
   return travel>.001;
  }};
+}
+
+// Keep the arrival tile and the crossing lane clear while greeting a rescued pet.
+export function rescueStandAsideRoute(world,start,landing){
+ const candidates=[[0,-1],[0,1],[-1,0]].map(([dx,dz])=>world.get(key(landing.x+dx,landing.z+dz))).filter(t=>t&&!t.water&&!t.blocked&&Math.abs(t.h-landing.h)<=.5);
+ return candidates.map(tile=>({tile,route:findPath(world,start,tile)})).filter(choice=>choice.route!==null&&!choice.route.some(t=>t.z===landing.z&&t.x>landing.x)).sort((a,b)=>a.route.length-b.route.length)[0]||null;
 }

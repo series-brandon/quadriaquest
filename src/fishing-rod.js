@@ -78,3 +78,16 @@ export function updateFishingRodMotion(group,anchor,catchTime=null){
 export function resetFishingRodMotion(group){
  const rig=group.userData.fishingRig;rig.restTip=null;rig.catchTip=null;rig.lastCatchTime=null;
 }
+
+// Before release the line trails the tip; then its endpoint arcs into the fishing spot.
+export function updateFishingCast(group,anchor,time){
+ const rig=group.userData.fishingRig;
+ resetFishingRodMotion(group);
+ const release=.56,flight=Math.max(0,Math.min(1,(time-release)/.42));
+ updateFishingRod(group,null,.08);
+ const tip=new THREE.Vector3().fromBufferAttribute(rig.line.geometry.attributes.position,0).applyMatrix4(group.matrixWorld);
+ if(time<release||!rig.castOrigin||time<rig.lastCastTime)rig.castOrigin=tip.clone().add(new THREE.Vector3(0,-.35,0));
+ rig.lastCastTime=time;
+ const endpoint=rig.castOrigin.clone().lerp(anchor,flight);endpoint.y+=Math.sin(flight*Math.PI)*.65;
+ updateFishingRodMotion(group,endpoint);
+}

@@ -118,3 +118,9 @@ Rod flex preserves the 1.7-unit shaft length using equal-length sections. During
 Celebration placement accounts for each prop origin: the top hat rests by its brim, while centered fish and generic models use smaller clearances above the hands.
 
 The shared bridge has mirrored support posts on both sides (six for the three-tile bridge). Boards use uniform spacing across tile boundaries. Repair fills half the deck, completes the deck, then adds side railings; invisible picking surfaces preserve completed-bridge navigation without a solid block beneath the boards. Broken/Repair stages/Repaired previews use the same factory.
+
+Bridge repair starts by clicking any broken bridge tile. All boards/posts provide hover and tutorial highlighting, with a picking target on every tile covering gaps. Every tile selects the same repair interaction; the player approaches from safe land at the mainland end. Completion converts it back into walkable bridge decking; reset restores repair interaction. The separate bridge repair marker model has been removed from gameplay and the catalogue. The Repair bridge debug action uses this same target.
+
+After bridge repair, the player slides to a clear tile beside the mainland landing and turns toward the companion. The dog waits for that move to finish before crossing, then arrives on the empty landing. The playground bridge checkpoint and Repair bridge action replay this same sequence; Reset Willowbank clears it.
+
+Fishing begins with a shared 1.2-second Fishing cast (backswing, forward toss, line flight and settle), using the struggle expression by default like Fishing catch. Catch holds the full pull for a short damped wobble before celebration. Both motions are available independently in the shared Slime preview and chapter animation controls; the fishing checkpoint plays the complete sequence.

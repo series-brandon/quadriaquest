@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {catchMotion,catchSequence,holdUpMotion,HOOK_DURATION,CATCH_DURATION} from './catch-motion.js';
+import {castMotion,CAST_DURATION,catchMotion,catchSequence,holdUpMotion,HOOK_DURATION,CATCH_DURATION} from './catch-motion.js';
 import {MODEL_CATALOG} from './dev/model-catalog.js';
 test('catch hooks to the side then chains into the generic celebration and ends',()=>{
  const hook=catchMotion(.3);assert.ok(hook.hands[0][0]<-.12);assert.ok(hook.hands[0][2]>.45);assert.equal(hook.rod,true);assert.equal(hook.expression,'struggle');assert.equal(hook.hands[0][3],0);
@@ -11,7 +11,7 @@ test('catch hooks to the side then chains into the generic celebration and ends'
 });
 test('shared preview exposes catch, trophy celebration, both ledge jumps and the fish model',()=>{
  const slime=MODEL_CATALOG.find(m=>m.name==='Slime');
- for(const motion of ['Fishing catch','Celebration','Jump up','Jump down'])assert.ok(slime.motions.includes(motion));
+ for(const motion of ['Fishing cast','Fishing catch','Celebration','Jump up','Jump down'])assert.ok(slime.motions.includes(motion));
  assert.ok(MODEL_CATALOG.some(m=>m.name==='Raw Pondfish'));
 });
 
@@ -33,4 +33,16 @@ test('celebration uses the model base to keep fish and hat close to the hands',(
  const generic=holdUpMotion(1,'generic'),fish=holdUpMotion(1,'fish'),hat=holdUpMotion(1,'hat');
  assert.ok(hat.prop.y<fish.prop.y&&fish.prop.y<generic.prop.y);
  assert.ok(Math.abs(hat.prop.y-hat.hands[0][1]-.105)<1e-10);
+});
+
+test('cast winds back, throws forward and settles into the fishing grip',()=>{
+ assert.ok(castMotion(.4).hands[0][3]<0);
+ assert.ok(castMotion(.72).hands[0][3]>.8);
+ for(const [i,v] of [0,.35,.48,.9,0].entries())assert.ok(Math.abs(castMotion(CAST_DURATION).hands[0][i]-v)<1e-9);
+ assert.equal(castMotion(0).expression,catchMotion(0).expression);
+});
+test('catch holds its pull with a damped settling wobble',()=>{
+ assert.ok(HOOK_DURATION>1);
+ assert.notEqual(catchMotion(.46).hands[0][3],catchMotion(.57).hands[0][3]);
+ assert.equal(catchMotion(HOOK_DURATION).hands[0][3],0);
 });
