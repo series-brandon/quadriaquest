@@ -1,7 +1,6 @@
+import {playerActionMotion,gatheringHand,alignSupportingHand} from './player-action-motion.js';
 import {makeAxe} from './axe-model.js';
-import {hammerInjuryPose} from './bridge-injury.js';
 import {animateResourceDepletion,animateResourceHit} from './resource-depletion.js';
-import {punchMotion} from './combat-motion.js';
 import {interactionRoute} from './interaction-route.js';
 import {makeSlime} from './slime-model.js';
 import {makeTree,makeFlowers,makeTerrainTile,addWaterTile} from './world-models.js';
@@ -12,7 +11,7 @@ import {updateObjective,finishObjective,resetObjectives} from './quests.js';
 import {icon} from './icons.js';
 import {createGameAudio,mountAudioControls} from './audio.js';
 import {mountJournal} from './journal.js';
-import {BOULDER_TILES,makeBoulder,makePickaxe,miningMotion,MINING_GRIP_SPACING} from './mining.js';
+import {BOULDER_TILES,makeBoulder,makePickaxe,miningMotion} from './mining.js';
 import {ITEMS} from './items.js';
 import {createWaterEffects,waterSettings} from './water-effects.js';
 import {createResourceHitbox} from './resource-hitbox.js';
@@ -324,14 +323,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  }
  if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  if(chapterMotion){
-  const t=chapterMotion.time,kind=chapterMotion.kind;
-  expression=kind==='Defeated'?'struggle':'focused';handWork=t;sleeping=false;pose=workPose('gather',t);
-  if(kind==='Defeated'){pose={...idlePose(t),squash:.2,lean:0,twist:0};handWork=null;}
-  if(kind==='Combat'){const punch=punchMotion(t);pose=idlePose(elapsed);pose.lean=punch.lean;handWork=null;socialHands=[punch.right,punch.left];}
-  if(kind==='Hammer injury'){pose=hammerInjuryPose(t);socialHands=pose.hands;handWork=null;expression='struggle';}
-  if(kind==='Repairing'){const swing=(Math.sin(t*8)+1)/2;socialHands=[[-.32,.4+swing*.5,.4,-swing*.9,0],[.3,.3,.4,0,0]];}
-  if(kind==='Chopping'||kind==='Mining')pose=(kind==='Mining'?miningMotion(t):chopMotion(t)).body;
-  if(kind==='Fishing'){const bob=Math.sin(t*2)*.015;handWork=null;socialHands=[[0,.35+bob,.48,.9,0],[0,.5+bob,.67,.9,0]];pose=idlePose(t);}
+  const motion=playerActionMotion(chapterMotion.kind,chapterMotion.time,elapsed);
+  pose=motion.pose;expression=motion.expression;handWork=motion.handWork;socialHands=motion.hands;sleeping=false;
  }
  const celebration=finale.celebration;
  if(celebration){expression='happy';handWork=null;facing=celebration.angle;pose=idlePose(elapsed);pose.squash=1+Math.sin(celebration.age*9)*.07;}
@@ -359,16 +352,9 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  for(let i=0;i<hands.length;i++){
   const hand=hands[i],side=i===0?-1:1;
   let x=side*.46,y=.33,z=.08+(pose.armDrive||0),curl=0,roll=0,yaw=0;
-  if(handWork!==null&&!chopping){
-    const phase=handWork*Math.PI*5+i*Math.PI;
-    const reach=(Math.sin(phase)+1)/2;
-    x=side*(.22+.09*(1-reach));
-    y=.26+.1*Math.cos(phase);
-    z=.43+.2*reach;
-    curl=Math.sin(phase)*.35;
-  }
+  if(handWork!==null&&!chopping)[x,y,z,curl,roll,yaw]=gatheringHand(handWork,i);
   if(chopping)[x,y,z,curl,roll,yaw=0]=i===0?chopping.right:chopping.left;
-  if(socialHands)[x,y,z,curl,roll]=socialHands[i];
+  if(socialHands)[x,y,z,curl,roll,yaw=0]=socialHands[i];
   if(celebration){const lift=THREE.MathUtils.smoothstep(celebration.age,.55,1.15);x=side*.31;y=.55+lift*.34;z=.55;curl=0;roll=0;yaw=0;}
   hand.position.lerp(new THREE.Vector3(x,y,z),1-Math.exp(-dt*(chapterMotion?.kind==='Combat'?48:22)));
   hand.rotation.x=THREE.MathUtils.lerp(hand.rotation.x,curl,blend);
@@ -376,16 +362,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   hand.rotation.y=THREE.MathUtils.lerp(hand.rotation.y,yaw,blend);
   hand.scale.lerp(new THREE.Vector3(1,handWork!==null?.88:1,handWork!==null?1.15:1),blend);
  }
- if(chapterMotion?.kind==='Fishing'){
-  // Place the supporting hand on the same shaft after smoothing the main grip.
-  hands[0].updateMatrix();hands[1].position.set(0,.24,0).applyMatrix4(hands[0].matrix);hands[1].quaternion.copy(hands[0].quaternion);
- }
- if(pickaxeTool.visible){
-  // Follow the actual smoothed tool transform so the upper grip never slips.
-  hands[0].updateMatrix();
-  hands[1].position.set(0,MINING_GRIP_SPACING,0).applyMatrix4(hands[0].matrix);
-  hands[1].quaternion.copy(hands[0].quaternion);
- }
+ alignSupportingHand(hands,pickaxeTool.visible?'Mining':chapterMotion?.kind);
  for(let i=fallingTrees.length-1;i>=0;i--){
   const fall=fallingTrees[i];fall.age+=dt;
   if(animateResourceDepletion(fall.tree,fall.age,fall.axis)){

@@ -14,7 +14,7 @@ import {makeCrystal} from './finale-models.js';
 import {makeBoulder} from './mining.js';
 import {highlightResource} from './resource-highlight.js';
 import {createCharacterDialogue} from './character-dialogue.js';
-import {part,fisher,goblin,companion,campfire,animateCampfire,makeBridge,makeBridgeMarker,fishingSpot,animateFishingSpot,tool,animateGoblin,animateCompanion} from './willowbank-models.js';
+import {part,fisher,goblin,companion,campfire,animateCampfire,makeBridge,makeBridgeMarker,fishingSpot,animateFishingSpot,heldTool,animateGoblin,animateCompanion} from './willowbank-models.js';
 import {WILLOWBANK,RECIPES,NEW_SKILLS,ENEMIES,canMake,finishRecipe,durationFor,damageRoll,incomingHealth,validCampTile,makeWillowbankTiles} from './willowbank-rules.js';
 import {createGatheringSkill,showSkillReward,gatheringDuration} from './skills.js';
 import {updateObjective,finishObjective,setObjectiveHelp,resetObjectives} from './quests.js';
@@ -70,7 +70,7 @@ export function createWillowbank(api){
  const spot=actor(fishingSpot(),16,14,'fish','Fish for Pondfish');spot.group.position.y=.85;
  for(const tile of tiles)if(!tile.water&&!tile.blocked&&(tile.x*17+tile.z*13)%7===0){const flowers=makeFlowers();flowers.position.set(tile.x-6,tile.h,tile.z-6);group.add(flowers);}
 
- const held={};for(const id of ['swords','shields','hammers','rods']){held[id]=tool(id);if(id==='swords'||id==='shields'||id==='hammers')held[id].rotation.y=Math.PI/2;api.hands[id==='shields'?1:0].add(held[id]);held[id].visible=false;}
+ const held={};for(const id of ['swords','shields','hammers','rods']){held[id]=heldTool(id);api.hands[id==='shields'?1:0].add(held[id]);held[id].visible=false;}
  const petPortrait=pet.clone(true);petPortrait.position.set(0,0,0);petScene.add(petPortrait);
  const enemyProjection=new THREE.Vector3();
  function reward(name,n=20){const s=skills[name]||api.skills[name],old=s.level;s.xp+=n;s.level=1+Math.floor(s.xp/120);showSkillReward({skillName:name,xp:n,level:s.level,leveledUp:s.level>old},api.player.position);}

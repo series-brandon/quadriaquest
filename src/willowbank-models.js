@@ -126,3 +126,5 @@ export function makeBridge(length=3){
  setProgress(0);return {group,surfaces,setProgress};
 }
 export function makeBridgeMarker(){const group=new THREE.Group();part(group,new THREE.BoxGeometry(.35,.2,.6),'#8d6848',0,.1);return group;}
+
+export function heldTool(kind){const group=tool(kind);if(['swords','shields','hammers'].includes(kind))group.rotation.y=Math.PI/2;return group;}

@@ -1,3 +1,4 @@
+import {playerActionMotion,gatheringHand,alignSupportingHand} from '../player-action-motion.js';
 import * as THREE from 'three';
 import {makeTree,makeFlowers,makeTerrainTile,addWaterTile} from '../world-models.js';
 import {createGrassColors} from '../grass-palette.js';
@@ -7,7 +8,7 @@ import {SLIME_EXPRESSIONS} from '../slime-face.js';
 import {idlePose,slideMotion} from '../slime-motion.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {createSlimeBend} from '../slime-bend.js';
-import {fisher,goblin,companion,campfire,animateCampfire,fishingSpot,animateFishingSpot,tool,animateGoblin,animateCompanion,makeBridge,makeBridgeMarker} from '../willowbank-models.js';
+import {fisher,goblin,companion,campfire,animateCampfire,fishingSpot,animateFishingSpot,tool,heldTool,animateGoblin,animateCompanion,makeBridge,makeBridgeMarker} from '../willowbank-models.js';
 import {attackPose} from '../combat-motion.js';
 import {makeBoulder,makePickaxe} from '../mining.js';
 import {makeAxe} from '../axe-model.js';
@@ -16,32 +17,39 @@ import {createWaterEffects} from '../water-effects.js';
 import {animateResourceHit,animateResourceDepletion} from '../resource-depletion.js';
 import {key} from '../world.js';
 
+export const SLIME_ACTIONS={'Punching':'Combat','Sword and shield':'Combat','Gathering':'Gathering','Crafting':'Crafting','Chopping':'Chopping','Mining':'Mining','Carpentry':'Repairing','Ouch / hammer injury':'Hammer injury','Fishing':'Fishing','Cooking':'Cooking','Defeated':'Defeated'};
 const staticModel=(name,factory)=>({name,motions:['Static'],create:()=>({group:factory()})});
-const expressions=SLIME_EXPRESSIONS.filter(x=>!['idle','sleeping','concerned'].includes(x)).map(x=>x[0].toUpperCase()+x.slice(1));
+const expressions=SLIME_EXPRESSIONS.filter(x=>x!=='concerned').map(x=>x[0].toUpperCase()+x.slice(1));
 function slimePreview(factory,reed=false){
  const rig=factory(),group=new THREE.Group();group.add(rig.group);
  const bend=createSlimeBend(rig.group,[rig.body,rig.face.group]);
  const rest=rig.hands.map(h=>h.position.clone());
- return {group,update(time,motion){
-  let pose=idlePose(time),hands=null,lift=0,expression='idle';
-  if(SOCIAL_DURATIONS[motion]){const social=socialMotion(motion,motion==='Sleeping'?time:time%(SOCIAL_DURATIONS[motion]+.7));({pose,hands,lift,expression}=social);}
-  else if(motion==='Sliding')pose=slideMotion(time%1);
-  else if(expressions.includes(motion))expression=motion.toLowerCase();
+ const tools={};if(!reed){for(const id of ['swords','shields','hammers','rods']){tools[id]=heldTool(id);rig.hands[id==='shields'?1:0].add(tools[id]);}tools.axes=makeAxe();tools.pickaxes=makePickaxe();rig.hands[0].add(tools.axes,tools.pickaxes);for(const [id,model] of Object.entries(tools)){model.name=`preview-tool-${id}`;model.visible=false;}}
+
+ return {group,update(time,motion,dt,expressionOverride){
+  let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null;
+  const actionKind=!reed?SLIME_ACTIONS[motion]:null;
+  for(const model of Object.values(tools))model.visible=false;
+  if(actionKind){const actionTime=actionKind==='Hammer injury'?time%2:time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime));const active=motion==='Sword and shield'?['swords','shields']:({Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;}
+  else if(SOCIAL_DURATIONS[motion]){const social=socialMotion(motion,motion==='Sleeping'?time:time%(SOCIAL_DURATIONS[motion]+.7));({pose,hands,lift,expression}=social);}
+  else if(motion==='Sliding'){pose=slideMotion(time%1);expression='focused';}
+  if(expressionOverride&&expressionOverride!=='default')expression=expressionOverride.toLowerCase();
   rig.face.set(expression);bend(pose.bend||0);
   const width=1/Math.sqrt(pose.squash),stretch=pose.stretch||1;
   rig.group.scale.set(width/Math.sqrt(stretch),pose.squash,width*Math.sqrt(stretch));
   rig.group.rotation.set(pose.lean||0,pose.twist||0,pose.roll||0);rig.group.position.y=lift;
-  rig.hands.forEach((hand,i)=>{hand.position.copy(rest[i]);hand.rotation.set(0,0,0);if(hands){const [x,y,z,curl,roll]=hands[i];hand.position.set(x,y,z);hand.rotation.set(curl,0,roll);}else if(!reed)hand.position.z+=(pose.armDrive||0);});
+  rig.hands.forEach((hand,i)=>{hand.position.copy(rest[i]);hand.rotation.set(0,0,0);hand.scale.set(1,handWork!==null?.88:1,handWork!==null?1.15:1);const values=hands?.[i]||(handWork!==null?gatheringHand(handWork,i):null);if(values){const [x,y,z,curl,roll,yaw=0]=values;hand.position.set(x,y,z);hand.rotation.set(curl,yaw,roll);}else if(!reed)hand.position.z+=(pose.armDrive||0);});
+  alignSupportingHand(rig.hands,actionKind);
  }};
 }
 function resource(name,factory,kind){return {name,motions:['Static','Hit','Deplete'],create(){const group=factory(),resource={group,kind},state={};return {group,update(time,motion){group.rotation.set(0,0,0);group.scale.setScalar(1);if(motion==='Hit')animateResourceHit(resource,time,state,()=>{});if(motion==='Deplete')animateResourceDepletion(resource,time%1.8,new THREE.Vector3(0,0,1));}};}};}
 function terrain(heights){const group=new THREE.Group(),tiles=heights.map((h,x)=>({x,z:0,h})),map=new Map(tiles.map(t=>[key(t.x,t.z),t])),colors=createGrassColors();for(const tile of tiles){const mesh=makeTerrainTile(tile,map,new THREE.MeshStandardMaterial({color:colors[tile.x%colors.length]}));mesh.position.x=tile.x;group.add(mesh);}return group;}
 
 export const MODEL_CATALOG=[
- {name:'Slime',motions:['Idle','Sliding','Wave','Happy hop','Sleeping',...expressions],create:()=>slimePreview(makeSlime)},
- {name:'Reed',motions:['Idle',...expressions],create:()=>slimePreview(fisher,true)},
+ {name:'Slime',motions:['Idle','Sliding','Wave','Happy hop','Sleeping',...Object.keys(SLIME_ACTIONS)],expressions,create:()=>slimePreview(makeSlime)},
+ {name:'Reed',motions:['Idle'],expressions,create:()=>slimePreview(fisher,true)},
  ...[false,true].map(big=>({name:big?'Goblin Bruiser':'Goblin',motions:['Idle','Walk','Attack','Hit'],create(){const group=goblin(big);return {group,update(time,motion){animateGoblin(group,time,{walk:motion==='Walk'?1:0,attack:motion==='Attack'?attackPose(time):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}})),
- {name:'Corgi',motions:['Idle','Walk','Sad'],create(){const group=companion();return {group,update(time,motion){animateCompanion(group,time,{moving:motion==='Walk',sad:motion==='Sad'});}};}},
+ {name:'Corgi',motions:['Idle','Walk'],expressions:['Happy','Sad'],create(){const group=companion();return {group,update(time,motion,dt,expressionOverride){animateCompanion(group,time,{moving:motion==='Walk',sad:expressionOverride==='Sad'});}};}},
  resource('Tree',makeTree,'tree'),resource('Boulder',makeBoulder,'boulder'),staticModel('Flowers',makeFlowers),
  ...['sticks','stones','flint'].map((id,i)=>staticModel(['Sticks','Rocks','Flint'][i],()=>createGroundItemModel(id))),
  staticModel('Crude Axe',makeAxe),staticModel('Crude Pickaxe',makePickaxe),
