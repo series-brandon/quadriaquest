@@ -111,3 +111,18 @@ export function fishingSpot(){
 export function animateFishingSpot(group,time){
  for(const ring of group.children){if(ring.name!=='fishing-ripple')continue;const phase=(time*.38+ring.userData.phase)%1;ring.scale.setScalar(.35+phase*1.15);ring.material.opacity=Math.sin(phase*Math.PI)*.8;}
 }
+
+export function animateCampfire(group,time){
+ for(const [i,flame] of group.children.filter(m=>m.geometry?.type==='ConeGeometry').entries())flame.scale.y=1+Math.sin(time*9+i)*.12;
+}
+export function makeBridge(length=3){
+ const group=new THREE.Group(),planks=[],surfaces=[];
+ for(let x=0;x<length;x++){
+  for(let j=0;j<3;j++){const plank=part(group,new THREE.BoxGeometry(.31,.12,.85),'#a98155',x+(j-1)*.32,1,0);planks.push(plank);}
+  part(group,new THREE.CylinderGeometry(.07,.07,.7,6),'#886747',x,.68,-.38);
+  surfaces.push(part(group,new THREE.BoxGeometry(1,.12,1),'#ab8559',x,.95,0));
+ }
+ function setProgress(progress){surfaces.forEach(m=>m.visible=progress===1);planks.forEach((p,i)=>{p.visible=progress===0?i%3!==1:i<Math.ceil(progress*planks.length);p.rotation.z=progress===0?(i%2?1:-1)*.2:0;});}
+ setProgress(0);return {group,surfaces,setProgress};
+}
+export function makeBridgeMarker(){const group=new THREE.Group();part(group,new THREE.BoxGeometry(.35,.2,.6),'#8d6848',0,.1);return group;}

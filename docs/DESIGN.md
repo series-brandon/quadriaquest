@@ -236,3 +236,15 @@ Provide a safe crystal/NPC/crafting space, an isolated first encounter, and a se
 ### Playground and acceptance checklist
 
 Current combat is retained behind explicit Willowbank dev sandbox controls while no third map exists. On implementation, relocate those fixtures to the actual third area and keep shared controls calling real gameplay. Add direct entry/reset and checkpoints for unarmed, recipes, equip, stronger fight and completion. Verify both enemies, random wander, retreat/pursuit/leash, repeated defeat/respawn, food healing, inventory preservation, companion travel, recipe visibility, camera return and journal history. Retest the clearing and peaceful Willowbank to ensure no combat actors or objectives leak into them. Build both variants and verify debug isolation.
+
+## Small-screen menus and model previews
+
+Menus and modal utility windows should fill the screen edge to edge at widths of 700px or less, with safe-area padding. Dialogue, tutorial tips, and transient feedback remain overlays. Use 44px minimum controls and 16px input/select text. Preview canvases must measure their actual layout bounds and update the renderer resolution and camera aspect together; never stretch a fixed camera render to fit a different display ratio.
+
+The development model viewer uses a catalogue of shared factories and supported motions. Static objects expose only Static; characters expose their actual expressions/animations. Switching models resets animation selection and playback; view rotation is independent of animation. Close disposes instance geometry/materials and stops rendering. New world model factories must be registered here in the same change.
+
+### Model catalogue audit
+
+Included: Slime and Reed (single active expression), both goblins, corgi, tree, boulder, flowers, Sticks, Rocks, Flint, Crude Axe, Crude Pickaxe, Stone Sword, Wooden Shield, Crude Hammer, Crude Fishing Rod, Top Hat, Campfire and placement ghost, fishing ripples, Iter Crystal, wooden chest, broken/repaired bridge and repair marker, single/joined grass tiles, half-height ledge, water tiles. The bridge and axe now use the same factories in gameplay and previews. Campfire motion also uses the shared gameplay animation.
+
+Small Logs, Stone inventory stacks, Flint and Stone, Raw Pondfish, and Cooked Pondfish currently have inventory icons, not standalone 3D model factories. They are not represented by invented substitutes in the model viewer. Character body parts/cosmetics belonging to a rig (for example Reed's cap) are previewed with that rig. Temporary click markers, highlights, and hit splats remain in the playground's visual-feedback controls.

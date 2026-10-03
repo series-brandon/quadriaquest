@@ -107,3 +107,9 @@ NPC conversation facing uses `createConversationFacing` on the world model, inde
 Willowbank → **Replay bridge introduction** resets the chapter and replays Reed’s thank-you and the camera focus on the broken bridge and island. Advance the instruction to return the camera and open the carpentry tutorial. This uses the same sequence as accepting Reed’s request.
 
 Willowbank is now a peaceful rescue tutorial. **bridge → Load checkpoint + supplies → Repair bridge** exercises the one-time injury and resumed repair; **Hammer injury** previews the motion. Later checkpoints preserve the 25-health healing setup. **Load combat sandbox (deferred area 3)** explicitly enables legacy enemies/equipment for testing without combat quests. See the [area-three handoff outline](docs/DESIGN.md#area-three-combat-tutorial-outline).
+
+### Testing on a phone on your local network
+
+Connect the phone and development computer to the same Wi-Fi. Run `npm run dev:debug -- --host 0.0.0.0` (or `npm run dev -- --host 0.0.0.0` for regular play), then open the **Network** URL printed by Vite on the phone. The debug port is 5174; normal play defaults to 5173. Use the computer's LAN address, not `localhost` on the phone. Allow your terminal/Node app through the local firewall if prompted; VPNs or guest Wi-Fi client isolation may prevent the connection. This exposes the dev server on the local network while it runs; stop it with Ctrl+C when finished. No router port forwarding is needed.
+
+The model viewer is under **Debug → Models & animation → Shared model preview**. Model-specific motions, pause/restart, view reset, drag rotation and pinch zoom are available. On mobile the viewer fills the screen and keeps the camera aspect matched to the canvas.

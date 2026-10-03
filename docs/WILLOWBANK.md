@@ -72,8 +72,23 @@ Combat models, equipment, damage rules, pursuit, defeat, hit splats, and animati
 
 ## Presentation polish
 
-The quest journal calls this chapter **Broken Bridge Rescue**. Reed's acceptance cutscene focuses on the stranded animal itself. The player's first conversation uses a concerned expression (wide eyes and an open mouth), then switches to a happy smile for ‘I’ll help.’ This transition is replayable through the playground’s meet checkpoint and talk action.
+The quest journal calls this chapter **Broken Bridge Rescue**. Reed's acceptance cutscene focuses on the stranded animal itself. The player's first conversation uses branch-specific expressions, then switches to a happy smile for ‘I’ll help.’ This transition is replayable through the playground’s meet checkpoint and talk action.
 
 The shared Campfire factory uses three crossed logs with flames at their center. Fishing spots use three pale expanding rings contained within the fishable tile, rather than a floating bobber. Fishing holds the rod centrally with both hands and leans it forward over the water; the supporting hand follows the actual shaft transform. Hammer heads face the work rather than sideways.
 
 Playground coverage: Concerned in animation controls; Repairing and Fishing in chapter animation loops; Replay bridge introduction for the animal camera focus; talk at the meet checkpoint for the actual concerned portrait; fish/cook checkpoints for real interactions. Campfire and Fishing spot are also available in the shared rotating model preview. Reset Willowbank restores these interactions.
+
+## Dialogue expression rules
+
+Every character dialogue line must explicitly specify a supported expression, including neutral `idle`. The shared dialogue renderer rejects missing/unknown expressions. Expressions belong to lines, never inferred from quest phase. A speaker keeps their last expression while listening; closing/resetting the conversation clears these overrides. Switching expression on the same speaker must not restart the portrait entrance animation. The unseen narrator has no character portrait to animate.
+
+| Moment | Player | Reed |
+| --- | --- | --- |
+| Initial plea | — | Distraught |
+| “What’s wrong??” and explanation | Shocked | Distraught throughout explanation |
+| “Calm down, tell me what’s going on.” and explanation | Idle (slight smile) | Idle throughout deep-breath explanation |
+| “I don’t have time for this” / “Oh… okay…” | Slight frown | Sad |
+| “I’ll help.” / thanks | Happy | Happy |
+| “I need a moment.” / acknowledgement | Idle | Idle |
+
+Later lines also carry authored expressions: happy for celebrations, idle for instruction, struggle for the hammer injury. Playground animation previews include Shocked, Distraught, Sad, and Frown; the meet checkpoint and talk action replay all dialogue branches through the real renderer.

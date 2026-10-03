@@ -266,3 +266,10 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 #journal #settings-panel>.crafting-heading{display:none}
 .settings-content{max-width:480px;width:100%;margin:0 auto}
 .settings-content input[type=range]{max-width:55%}
+
+/* Small screens use edge-to-edge menus; dialogue/tips/toasts remain overlays. */
+@media(max-width:700px){
+ body dialog,body #game-settings,body #cooking-menu,body .willow-modal{box-sizing:border-box;position:fixed;inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;border:0;padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow:auto}
+ body #journal,body #journal.expanded,body #journal:not(.expanded){inset:0;width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;border:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box}
+ body dialog input,body dialog select{font-size:16px;min-height:44px;box-sizing:border-box}
+}

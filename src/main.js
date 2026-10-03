@@ -1,3 +1,4 @@
+import {makeAxe} from './axe-model.js';
 import {hammerInjuryPose} from './bridge-injury.js';
 import {animateResourceDepletion,animateResourceHit} from './resource-depletion.js';
 import {punchMotion} from './combat-motion.js';
@@ -77,9 +78,7 @@ for(const object of clearingObjects)object.visible=false;
 const introTile=new THREE.Group();scene.add(introTile);introTile.position.set(0,0,-2);
 introTile.add(makeTerrainTile({x:0,z:0,h:1},new Map(),grass[0]));
 const playerModel=makeSlime(),player=playerModel.group,body=playerModel.body,expressionFace=playerModel.face,hands=playerModel.hands;scene.add(player);
-const axeTool=new THREE.Group();hands[0].add(axeTool);axeTool.visible=false;axeTool.rotation.y=-Math.PI/2;
-const axeHandle=mesh(new THREE.CylinderGeometry(.023,.028,.43,6),wood,axeTool);axeHandle.position.y=.17;
-const axeHead=mesh(new RoundedBoxGeometry(.2,.14,.075,2,.025),rock,axeTool);axeHead.position.set(.065,.35,0);
+const axeTool=makeAxe({wood,rock});hands[0].add(axeTool);axeTool.visible=false;
 const pickaxeTool=makePickaxe();hands[0].add(pickaxeTool);pickaxeTool.visible=false;
 const visual=new THREE.Group();visual.add(...[...player.children]);player.add(visual);
 const bendSlime=createSlimeBend(visual,[body,expressionFace.group]);
