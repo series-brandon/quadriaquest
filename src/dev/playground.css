@@ -1,40 +1,40 @@
-#quadra-dev-playground{position:fixed;z-index:100;top:12px;right:12px;width:310px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;box-sizing:border-box;padding:12px;color:#e8f0eb;background:#17271ff2;border:1px solid #b3ce6e;border-radius:12px;box-shadow:0 8px 30px #0004;font:13px/1.4 system-ui;}
-#quadra-dev-playground summary{cursor:pointer;font-weight:800;letter-spacing:.05em;color:#d2ee8d;}
-#quadra-dev-playground summary small{float:right;font-weight:400;font-size:10px;}
-#quadra-dev-playground fieldset{border:1px solid #5b7165;border-radius:7px;margin:12px 0;padding:8px;}
-#quadra-dev-playground legend{color:#d2ee8d;font-weight:650;}
-#quadra-dev-playground label{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:6px 0;}
-#quadra-dev-playground input,#quadra-dev-playground select{max-width:155px;min-width:0;background:#e8f0eb;color:#17271f;border:0;border-radius:4px;padding:5px;}
-#quadra-dev-playground input[type=checkbox]{margin-right:auto;}
-#quadra-dev-playground input[type=color]{padding:0;width:65px;}
-#quadra-dev-playground button{font:inherit;cursor:pointer;background:#385344;color:#fff;border:1px solid #7d9a88;border-radius:5px;padding:6px 8px;margin:3px 2px;}
-#quadra-dev-playground button:hover{background:#52745e;}
-#quadra-dev-playground :focus-visible{outline:2px solid #d2ee8d;outline-offset:2px;}
-#quadra-dev-playground .dev-note{font-size:11px;color:#bbcbbf;}
-#quadra-dev-playground output{display:block;color:#d2ee8d;}
-#quadra-dev-playground pre{white-space:pre-wrap;font:11px/1.6 monospace;}
+#quadriaquest-dev-playground{position:fixed;z-index:100;top:12px;right:12px;width:310px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;box-sizing:border-box;padding:12px;color:#e8f0eb;background:#17271ff2;border:1px solid #b3ce6e;border-radius:12px;box-shadow:0 8px 30px #0004;font:13px/1.4 system-ui;}
+#quadriaquest-dev-playground summary{cursor:pointer;font-weight:800;letter-spacing:.05em;color:#d2ee8d;}
+#quadriaquest-dev-playground summary small{float:right;font-weight:400;font-size:10px;}
+#quadriaquest-dev-playground fieldset{border:1px solid #5b7165;border-radius:7px;margin:12px 0;padding:8px;}
+#quadriaquest-dev-playground legend{color:#d2ee8d;font-weight:650;}
+#quadriaquest-dev-playground label{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:6px 0;}
+#quadriaquest-dev-playground input,#quadriaquest-dev-playground select{max-width:155px;min-width:0;background:#e8f0eb;color:#17271f;border:0;border-radius:4px;padding:5px;}
+#quadriaquest-dev-playground input[type=checkbox]{margin-right:auto;}
+#quadriaquest-dev-playground input[type=color]{padding:0;width:65px;}
+#quadriaquest-dev-playground button{font:inherit;cursor:pointer;background:#385344;color:#fff;border:1px solid #7d9a88;border-radius:5px;padding:6px 8px;margin:3px 2px;}
+#quadriaquest-dev-playground button:hover{background:#52745e;}
+#quadriaquest-dev-playground :focus-visible{outline:2px solid #d2ee8d;outline-offset:2px;}
+#quadriaquest-dev-playground .dev-note{font-size:11px;color:#bbcbbf;}
+#quadriaquest-dev-playground output{display:block;color:#d2ee8d;}
+#quadriaquest-dev-playground pre{white-space:pre-wrap;font:11px/1.6 monospace;}
 
 
 /* Use the selected game's palette for the playground chrome too. */
-#quadra-dev-playground{background:#302638f5;color:#faf1e7;border-color:#c7abc1}
-#quadra-dev-playground summary,#quadra-dev-playground legend,#quadra-dev-playground output{color:#edbdad}
-#quadra-dev-playground fieldset{border-color:#806a88}
-#quadra-dev-playground input,#quadra-dev-playground select{background:#faf1e7;color:#382b49}
-#quadra-dev-playground button{background:#594361;color:#fff0db;border-color:#a88fae}
-#quadra-dev-playground button:hover{background:#71537b}
-#quadra-dev-playground .dev-note{color:#d0bfd4}
-#quadra-dev-playground :focus-visible{outline-color:#edbdad}
+#quadriaquest-dev-playground{background:#302638f5;color:#faf1e7;border-color:#c7abc1}
+#quadriaquest-dev-playground summary,#quadriaquest-dev-playground legend,#quadriaquest-dev-playground output{color:#edbdad}
+#quadriaquest-dev-playground fieldset{border-color:#806a88}
+#quadriaquest-dev-playground input,#quadriaquest-dev-playground select{background:#faf1e7;color:#382b49}
+#quadriaquest-dev-playground button{background:#594361;color:#fff0db;border-color:#a88fae}
+#quadriaquest-dev-playground button:hover{background:#71537b}
+#quadriaquest-dev-playground .dev-note{color:#d0bfd4}
+#quadriaquest-dev-playground :focus-visible{outline-color:#edbdad}
 .dev-icons{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 0}.dev-icons span{display:flex;align-items:center;gap:7px;font-size:11px}.dev-icons .game-icon{width:28px;height:28px}
-#quadra-dev-playground:not([open]){display:none}
+#quadriaquest-dev-playground:not([open]){display:none}
 
-#quadra-dev-playground{width:340px;padding:0 12px 12px}
-#quadra-dev-playground>summary{position:sticky;top:0;z-index:2;padding:14px 0;background:#302638}
-#quadra-dev-playground .dev-section{border-top:1px solid #806a8866;margin-top:8px}
-#quadra-dev-playground .dev-section>summary{padding:12px 0;font-size:13px;letter-spacing:0}
-#quadra-dev-playground .dev-section fieldset{margin:4px 0 12px;border:0;border-top:1px solid #806a8855;border-radius:0;padding:10px 0}
-#quadra-dev-playground .dev-section legend{font-size:11px;font-weight:500;color:#d0bfd4}
-#quadra-dev-playground .dev-command{display:flex;gap:8px;align-items:end;margin:10px 0}
-#quadra-dev-playground .dev-command label{display:flex;flex:1;min-width:0;align-items:stretch;flex-direction:column;gap:6px;margin:0;font-size:12px}
-#quadra-dev-playground .dev-command select{width:100%;max-width:none;box-sizing:border-box;min-height:36px}
-#quadra-dev-playground .dev-command button{margin:0;min-height:36px}
-#quadra-dev-playground #dev-status{position:sticky;bottom:-12px;background:#302638;border-top:1px solid #806a88;padding:10px 0;margin-top:12px;font-size:12px}
+#quadriaquest-dev-playground{width:340px;padding:0 12px 12px}
+#quadriaquest-dev-playground>summary{position:sticky;top:0;z-index:2;padding:14px 0;background:#302638}
+#quadriaquest-dev-playground .dev-section{border-top:1px solid #806a8866;margin-top:8px}
+#quadriaquest-dev-playground .dev-section>summary{padding:12px 0;font-size:13px;letter-spacing:0}
+#quadriaquest-dev-playground .dev-section fieldset{margin:4px 0 12px;border:0;border-top:1px solid #806a8855;border-radius:0;padding:10px 0}
+#quadriaquest-dev-playground .dev-section legend{font-size:11px;font-weight:500;color:#d0bfd4}
+#quadriaquest-dev-playground .dev-command{display:flex;gap:8px;align-items:end;margin:10px 0}
+#quadriaquest-dev-playground .dev-command label{display:flex;flex:1;min-width:0;align-items:stretch;flex-direction:column;gap:6px;margin:0;font-size:12px}
+#quadriaquest-dev-playground .dev-command select{width:100%;max-width:none;box-sizing:border-box;min-height:36px}
+#quadriaquest-dev-playground .dev-command button{margin:0;min-height:36px}
+#quadriaquest-dev-playground #dev-status{position:sticky;bottom:-12px;background:#302638;border-top:1px solid #806a88;padding:10px 0;margin-top:12px;font-size:12px}

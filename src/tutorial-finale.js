@@ -56,7 +56,7 @@ export function createTutorialFinale(api){
     stage='resetting';
   }
   function begin(){
-    say('Well done! This is just the start of what you will do here in Quadra!',()=>
+    say('Well done! This is just the start of what you will do here in Quadria!',()=>
       say(portalInstruction,()=>{
         dropPortal(()=>say("Here, I'll reset this area so you can practice some more if you want!",resetPractice));
       }));stage='closing';

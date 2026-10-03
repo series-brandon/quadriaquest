@@ -1,4 +1,4 @@
-# Project Clime
+# QuadriaQuest
 
 A small browser RPG prototype built with JavaScript, Three.js, HTML, and CSS. The agreed design is recorded in [DESIGN.md](docs/DESIGN.md).
 
@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. The opening introduces Quadra on a single floating tile: the slime drops in, dialogue advances by clicking/tapping the box (or Enter/Space when focused), and color and name choices each have a confirmation/retry step. Color previews update live. After a fade into the clearing and another landing, four ordered lessons teach rotation, zoom, movement, and gathering. Each lesson keeps its success message visible until the player clicks Click to continue; the final gathering confirmation begins the crafting introduction. Movement requires arrival at a different reachable tile; resource clicks only move until gathering unlocks. The old HUD remains hidden; a small tutorial card tracks all six resources. Refresh to replay the opening; profile and progress currently last only for the session.
+Open the local URL printed by Vite. The opening introduces Quadria on a single floating tile: the slime drops in, dialogue advances by clicking/tapping the box (or Enter/Space when focused), and color and name choices each have a confirmation/retry step. Color previews update live. After a fade into the clearing and another landing, four ordered lessons teach rotation, zoom, movement, and gathering. Each lesson keeps its success message visible until the player clicks Click to continue; the final gathering confirmation begins the crafting introduction. Movement requires arrival at a different reachable tile; resource clicks only move until gathering unlocks. The old HUD remains hidden; a small tutorial card tracks all six resources. Refresh to replay the opening; profile and progress currently last only for the session.
 
 Once the tutorial unlocks play, click terrain to move and materials to gather. Hold the left/right arrow keys to rotate smoothly and up/down to raise/lower the viewing angle. Drag with either mouse button or one finger to orbit; scroll or use a two-finger pinch to zoom. Dragging and pinching never issue movement clicks. Keyboard rotation stops on release or when the window loses focus. The perspective camera follows the slime. Its vertical angle is limited to 20–75 degrees; zoom changes the camera distance from 3 to 34 world units, with finer adjustments up close for inspecting the character.
 
@@ -57,7 +57,7 @@ npm run check:debug-isolation
 
 `dist/` is the normal distributable. `dist-playground/` is explicitly debug-only. `npm run preview` serves the normal build on port 4173; `npm run preview:debug` serves the debug build on port 4174. Never deploy `dist-playground/` as the normal game.
 
-`vite.config.js` defines the compile-time `__PLAYGROUND__` flag **only** for the `playground` mode. The panel and CSS live in `src/dev/`, dynamically imported inside that flag. Normal builds eliminate the import, mutation adapter, preview hooks, and `window.clime` inspection API. The isolation check scans both outputs to confirm the debug panel/control/style markers are absent from the normal build and present in the debug build. To remove the tooling entirely, remove `src/dev/`, the guarded hooks in `src/main.js`, the debug scripts, and the flag/config; the production gameplay modules remain independent of the debug module.
+`vite.config.js` defines the compile-time `__PLAYGROUND__` flag **only** for the `playground` mode. The panel and CSS live in `src/dev/`, dynamically imported inside that flag. Normal builds eliminate the import, mutation adapter, preview hooks, and `window.quadriaquest` inspection API. The isolation check scans both outputs to confirm the debug panel/control/style markers are absent from the normal build and present in the debug build. To remove the tooling entirely, remove `src/dev/`, the guarded hooks in `src/main.js`, the debug scripts, and the flag/config; the production gameplay modules remain independent of the debug module.
 
 After the first woodcutting success is dismissed, the tutorial closes with dialogue and drops an uneven floating crystal—the Iter Portal—into a free tile. Trees and all six ground items then fall back into place for optional practice, preserving inventory and skills. Clicking the crystal walks to it and fades into a small placeholder island; its return crystal brings you back with the clearing's state and your rewards preserved.
 

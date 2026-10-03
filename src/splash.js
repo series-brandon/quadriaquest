@@ -11,7 +11,7 @@ import {createSlimeBend} from './slime-bend.js';
 
 export function createSplash(renderer,enabled,settings){
   const overlay=document.createElement('section');overlay.id='splash';overlay.hidden=!enabled;
-  overlay.innerHTML='<div class="splash-heading"><p>A LITTLE SLIME. A BIG ADVENTURE.</p><h1>Quadra <span>Quest</span></h1><p class="splash-subtitle">A world of small wonders awaits.</p></div><div class="splash-start"><div class="splash-actions"><button id="splash-play" type="button">Play</button></div><small>AN EARLY PLAYABLE PROTOTYPE</small></div>';
+  overlay.innerHTML='<div class="splash-heading"><p>A LITTLE SLIME. A BIG ADVENTURE.</p><h1>Quadria<span>Quest</span></h1><p class="splash-subtitle">A world of small wonders awaits.</p></div><div class="splash-start"><div class="splash-actions"><button id="splash-play" type="button">Play</button></div><small>AN EARLY PLAYABLE PROTOTYPE</small></div>';
   const settingsButton=document.createElement('button');settingsButton.id='splash-settings';settingsButton.setAttribute('aria-label','Open settings');settingsButton.innerHTML=icon('settings');settingsButton.onclick=()=>settings.open();overlay.querySelector('.splash-actions').append(settingsButton);
   document.body.append(overlay);
   const scene=new THREE.Scene();scene.background=new THREE.Color('#dce5dc');

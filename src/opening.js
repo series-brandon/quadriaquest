@@ -3,13 +3,13 @@ import {SOCIAL_DURATIONS} from './slime-social.js';
 import {spawnMotion} from './slime-motion.js';
 const openingLines = [
   'Hello there!',
-  'Welcome to the world of Quadra!',
+  'Welcome to the world of Quadria!',
   "Me? I'm not important, but you! You will be more important to this world than you could ever know.",
   "First off, let's get to know a little about you."
 ];
 const clearingLines = [
   'Here we are!',
-  'A small part of Quadra, specifically built for you to learn the ropes!',
+  'A small part of Quadria, specifically built for you to learn the ropes!',
   "Let's get started by learning how to gather some resources.",
   "In this area, you'll see some sticks and rocks. Try picking them up!"
 ];
@@ -62,7 +62,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     tutorial.classList.add('complete');tutorial.querySelector('.progress-track').hidden=true;
     document.getElementById('tutorial-title').textContent=kind==='xp'?'Experience points · 1/2':kind==='xp-benefits'?'Experience points · 2/2':kind==='level'?'Your first level · 1/2':'Your first level · 2/2';
     document.getElementById('tutorial-copy').textContent=kind==='xp'
-      ? 'You just gained your first experience points! Most activities in Quadra reward experience in a specific skill.'
+      ? 'You just gained your first experience points! Most activities in Quadria reward experience in a specific skill.'
       : kind==='xp-benefits' ? 'Earn enough experience to level up. Higher skill levels improve your abilities!'
       : kind==='level' ? "You just gained your first level! Your Gathering ability just got a little bit better!"
       : "It’s just a start. Keep going! Soon you’ll be a master of many skills!";

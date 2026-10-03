@@ -14,10 +14,10 @@ export function mountJournal(controller,settings){
  const settingsButton=document.createElement('button');settingsButton.id='open-settings';settingsButton.innerHTML=icon('settings')+'<span>Settings</span>';settingsButton.onclick=()=>{controller.closeMenus();settings.mount(settingsPanel);settingsPanel.hidden=false;};nav.append(settingsButton);
  const settingsPanel=document.createElement('section');settingsPanel.id='settings-panel';settingsPanel.hidden=true;settingsPanel.setAttribute('aria-label','Settings');settingsPanel.innerHTML='<div class="crafting-heading"><button aria-label="Close settings">×</button></div>';settingsPanel.querySelector('button').onclick=()=>controller.closeMenus();
  host.append(shell);shell.append(nav,questPanel,settingsPanel,$('inventory-panel'),$('skills-panel'),$('crafting-panel'));
- let expanded=false;try{expanded=localStorage.getItem('quadra-journal-expanded')==='true';}catch{}
+ let expanded=false;try{expanded=(localStorage.getItem('quadriaquest-journal-expanded')??localStorage.getItem('quadra-journal-expanded'))==='true';}catch{}
  const desktop=matchMedia('(min-width:701px)');
  function resize(){shell.classList.toggle('expanded',expanded&&desktop.matches);$('journal-size').setAttribute('aria-label',expanded?'Minimize journal':'Expand journal');}
- desktop.addEventListener('change',resize);resize();$('journal-size').onclick=()=>{expanded=!expanded;resize();try{localStorage.setItem('quadra-journal-expanded',expanded);}catch{}};
+ desktop.addEventListener('change',resize);resize();$('journal-size').onclick=()=>{expanded=!expanded;resize();try{localStorage.setItem('quadriaquest-journal-expanded',expanded);}catch{}};
  $('game-menu-toggle').innerHTML=icon('inventory');$('game-menu-toggle').setAttribute('aria-label','Open adventurer’s journal');
  for(const name of ['skills','inventory','crafting'])$('open-'+name).innerHTML=icon(name)+`<span>${name[0].toUpperCase()+name.slice(1)}</span>`;
  const activeClose=()=>['inventory','skills','crafting','quests','companions','settings'].map(name=>$(name+'-panel')).find(panel=>panel&&!panel.hidden)?.querySelector('.crafting-heading button');

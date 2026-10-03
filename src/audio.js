@@ -2,7 +2,7 @@
 export function createGameAudio(){
  let previewMode=null;let context,buses={},mode='clearing',note=0,nextMusic=0,nextAmbient=0;
  const settings={music:.22,effects:.45,ambience:.25,muted:false};
- try{Object.assign(settings,JSON.parse(localStorage.getItem('quadra-audio')||'{}'));}catch{}
+ try{Object.assign(settings,JSON.parse(localStorage.getItem('quadriaquest-audio')??localStorage.getItem('quadra-audio')??'{}'));}catch{}
  for(const key of ['music','effects','ambience'])settings[key]=Math.max(0,Math.min(1,Number(settings[key])||0));
  function volume(){if(!context)return;for(const [key,bus]of Object.entries(buses))bus.gain.setTargetAtTime(settings.muted?0:Math.max(0,Math.min(1,Number(settings[key])||0)),context.currentTime,.1);}
  function unlock(){if(!(window.AudioContext||window.webkitAudioContext))return;if(!context){context=new (window.AudioContext||window.webkitAudioContext)();for(const key of ['music','effects','ambience']){const bus=context.createGain();bus.connect(context.destination);buses[key]=bus;}volume();}if(context.state==='suspended')context.resume().catch(()=>{});}
@@ -29,7 +29,7 @@ export function createGameAudio(){
   if(nextMusic<=0){const melody=[0,7,12,9,7,4,2,7,0,4,9,7];const n=melody[note%melody.length],freq=220*2**(n/12);tone(freq,mode==='intro'?2.8:2,'music',.1,'sine');if(note%4===0)tone(110,3,'music',.065,'triangle');note++;nextMusic=note%12===0?10:mode==='splash'?2.5:mode==='intro'?3.5:1.8;}
   if(nextAmbient<=0){play(['wind','bird','insect'][Math.floor(Math.random()*3)]);nextAmbient=5+Math.random()*8;}
  }
- function set(key,value){settings[key]=key==='muted'?!!value:Math.max(0,Math.min(1,Number(value)||0));volume();try{localStorage.setItem('quadra-audio',JSON.stringify(settings));}catch{}}
+ function set(key,value){settings[key]=key==='muted'?!!value:Math.max(0,Math.min(1,Number(value)||0));volume();try{localStorage.setItem('quadriaquest-audio',JSON.stringify(settings));}catch{}}
  document.addEventListener('visibilitychange',()=>{if(context){if(document.hidden)context.suspend();else context.resume().catch(()=>{});}});
  document.addEventListener('pointerdown',unlock,{once:true});document.addEventListener('keydown',unlock,{once:true});
  document.addEventListener('click',e=>{if(e.target.closest('button'))play('ui');});

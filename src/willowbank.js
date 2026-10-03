@@ -134,7 +134,7 @@ export function createWillowbank(api){
  function arrival(){
   api.stop();dialogue.hide();introSeen=true;introActive=true;introFocus=null;
   api.say('Good work! You just made your first Iter Crystal teleportation!',()=>
-   api.say('These crystals are going to be invaluable during your time here in Quadra.',()=>{
+   api.say('These crystals are going to be invaluable during your time here in Quadria.',()=>{
     introFocus={position:reed.group.position.clone(),blend:0,returning:false};
     api.say('What’s this? It appears someone is having a bad day.',()=>
      api.say('Perhaps you should go talk to them!',()=>{document.getElementById('dialogue').hidden=true;introFocus.returning=true;}));
