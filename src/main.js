@@ -1,3 +1,4 @@
+import {animateResourceDepletion,animateResourceHit} from './resource-depletion.js';
 import {punchMotion} from './combat-motion.js';
 import {interactionRoute} from './interaction-route.js';
 import {makeSlime} from './slime-model.js';
@@ -297,8 +298,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     }else{
       feedback.interacting(action.kind==='mine'?'Mining':'Chopping');action.elapsed+=dt;
       facing=Math.atan2(action.tree.x-tile.x,action.tree.z-tile.z);
-      const chop=action.kind==='mine'?miningMotion(action.elapsed):chopMotion(action.elapsed);pose=chop.body;
-      action.tree.group.rotation.z=chop.impact;if(chop.impact>0&&!action.sounding)gameAudio.play(action.kind==='mine'?'mine':'chop');action.sounding=chop.impact>0;
+      const chop=animateResourceHit(action.tree,action.elapsed,action,name=>gameAudio.play(name));pose=chop.body;
       if(action.elapsed>=action.duration){
         gameAudio.play('fall');action.status='complete';action.tree.felled=true;chopTarget=null;activeAction=null;
         const direction=new THREE.Vector3(action.tree.x-tile.x,0,action.tree.z-tile.z).normalize();
@@ -381,9 +381,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   hands[1].quaternion.copy(hands[0].quaternion);
  }
  for(let i=fallingTrees.length-1;i>=0;i--){
-  const fall=fallingTrees[i];fall.age+=dt;const p=Math.min(1,fall.age/.85);
-  if(fall.tree.kind==='boulder'){fall.tree.group.scale.setScalar(Math.max(.001,1-p));fall.tree.group.rotation.y=p*.2;}else fall.tree.group.quaternion.setFromAxisAngle(fall.axis,p*p*Math.PI/2);
-  if(p===1){
+  const fall=fallingTrees[i];fall.age+=dt;
+  if(animateResourceDepletion(fall.tree,fall.age,fall.axis)){
     fall.tree.group.visible=false;fall.tree.tile.blocked=false;const mining=fall.tree.kind==='boulder',item=mining?'stone':'logs';inventory[item]+=fall.logs;
     showSkillReward(awardSkillXp(mining?miningSkill:lumberjackSkill,mining?'Mining':'Lumberjack'),player.position);showItemChanges({[item]:fall.logs});
     happyUntil=elapsed+1.2;if(mining)craftingTutorial.mined();else craftingTutorial.chopped(fall.logs);fallingTrees.splice(i,1);

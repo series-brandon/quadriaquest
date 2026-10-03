@@ -95,3 +95,5 @@ The playground stays open after actions (close it explicitly with its header). C
 
 Compact journal navigation (desktop and mobile) uses list → detail → Back for inventory, recipes, quests, and companions. Only expanded desktop journals show lists and details together; the desktop expand control sits beside Close. Resize to mobile to exercise compact navigation even when the desktop expanded preference is saved. Playground menu launchers, quest controls, and Test follower expose all four browsers.
 Expanded desktop journals are anchored 24px from the top, so taller tabs grow downward without moving the header.
+
+Resource reactions and depletion use `src/resource-depletion.js` in both areas. In the playground, enter Willowbank and run **Chop a tree** or **Mine a boulder** to exercise the real approach, impact, completion, reward, and respawn flow. **Cancel** interrupts a strike; **Reset Willowbank** restores resources for another pass.
