@@ -116,3 +116,5 @@ Fishing catch preserves the rod tip’s pre-catch world position while the grip 
 Rod flex preserves the 1.7-unit shaft length using equal-length sections. During the catch it favors the pre-catch tip height while allowing horizontal retreat toward the player, avoiding stretch from a fully pinned tip. Curvature increases toward the thin upper section.
 
 Celebration placement accounts for each prop origin: the top hat rests by its brim, while centered fish and generic models use smaller clearances above the hands.
+
+The shared bridge has mirrored support posts on both sides (six for the three-tile bridge). Boards use uniform spacing across tile boundaries. Repair fills half the deck, completes the deck, then adds side railings; invisible picking surfaces preserve completed-bridge navigation without a solid block beneath the boards. Broken/Repair stages/Repaired previews use the same factory.
