@@ -14,3 +14,6 @@ body:has(#willow-health:not([hidden])) #objective-update{top:110px}
 @media(prefers-reduced-motion:reduce){#character-dialogue .speaker-portrait{animation:none!important}}
 .combat-hit{position:fixed;z-index:24;pointer-events:none;min-width:32px;min-height:32px;padding:4px 7px;display:grid;place-items:center;box-sizing:border-box;border:2px solid #fff3de;border-radius:11px 6px 12px 5px;background:#a34453;color:#fff9e9;box-shadow:0 2px 0 #452b49,0 3px 10px #231b4544;font-size:18px;font-weight:800;text-shadow:0 1px 2px #381a35;}
 .combat-hit[data-kind=blocked]{background:#506d9d}.combat-hit[data-kind=miss]{background:#665a78;font-size:14px}.combat-hit[hidden]{display:none}
+
+/* Name dice and input share one aligned row in companion dialogs. */
+.willow-modal .name-entry{margin-top:8px}.willow-modal .name-entry input{height:44px;max-width:none}.willow-modal .name-entry .name-dice{margin:0;box-sizing:border-box}

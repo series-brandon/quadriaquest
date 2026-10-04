@@ -64,7 +64,7 @@ const COMPANION_PAW_Z=[-.18,.10];
 export function companion(){
  const g=new THREE.Group(),body=new THREE.Group();g.scale.setScalar(.78);body.name='companion-body';g.add(body);
  const tan=mat('#c78a49'),cream=mat('#fff0d1'),dark=mat('#343338');
- part(body,new RoundedBoxGeometry(.30,.22,.42,3,.065),tan,0,.175,-.045);
+ namedPart(body,'companion-torso',new RoundedBoxGeometry(.30,.22,.42,3,.065),tan,0,.175,-.045);
  part(body,new RoundedBoxGeometry(.20,.17,.055,2,.025),cream,0,.175,.15);
  const head=new THREE.Group();head.name='companion-head';head.position.set(0,.35,.16);body.add(head);
  part(head,new RoundedBoxGeometry(.45,.36,.36,2,.09),tan);
@@ -79,7 +79,7 @@ export function companion(){
   part(ear,geo,tan,0,0,-.04);
   const inner=part(ear,geo,mat('#d99c85'),0,.035,.044);inner.scale.set(.62,.66,.18);
   const eye=namedPart(head,'companion-eye'+side,new THREE.SphereGeometry(.044,12,8),dark,side*.13,.025,.176);eye.scale.set(.9,1.08,.5);
-  part(head,new THREE.SphereGeometry(.012,8,6),'#ffffff',side*.13-.01,.04,.199);
+  namedPart(head,'companion-eye-shine'+side,new THREE.SphereGeometry(.012,8,6),'#ffffff',side*.13-.01,.04,.199);
   const brow=namedPart(head,'companion-brow'+side,new RoundedBoxGeometry(.07,.015,.018,1,.005),'#92603b',side*.13,.09,.18);brow.rotation.z=side*.08;
   for(const z of COMPANION_PAW_Z){const paw=namedPart(body,'companion-leg'+side+z,new THREE.SphereGeometry(.065,12,8),cream,side*.12,.065,z);paw.userData.restZ=z;}
  }
@@ -87,17 +87,51 @@ export function companion(){
  namedPart(head,'companion-tongue',new RoundedBoxGeometry(.046,.055,.024,2,.012),'#df9290',0,-.145,.331);
  for(const side of [-1,1])namedPart(body,'companion-rump'+side,new RoundedBoxGeometry(.105,.13,.045,3,.022),cream,side*.067,.16,-.25);
  namedPart(body,'companion-tail',new THREE.SphereGeometry(.065,12,8),tan,0,.235,-.285);
+ const heart=new THREE.Shape();heart.moveTo(0,-.08);heart.bezierCurveTo(-.18,.04,-.07,.16,0,.08);heart.bezierCurveTo(.07,.16,.18,.04,0,-.08);
+ for(let i=0;i<3;i++){const h=new THREE.Mesh(new THREE.ExtrudeGeometry(heart,{depth:.045,bevelEnabled:true,bevelSize:.012,bevelThickness:.012,bevelSegments:3,steps:1,curveSegments:12}),new THREE.MeshStandardMaterial({color:'#ee7799',roughness:.35,transparent:true,depthWrite:false}));h.name='pet-heart-'+i;h.visible=false;g.add(h);}
+
  return g;
 }
-export function animateCompanion(group,time,{sad=false,moving=false,gait=time*4}={}){
+export function animateCompanion(group,time,{sad=false,expression='Default',moving=false,gait=time*4,motion='Idle',age=time,sit=motion==='Sit'||motion==='Scratch'?1:0,jump=null,camera=null}={}){
+ const mood=(!expression||expression.toLowerCase()==='default')?(sad?'Sad':motion==='Petting'?'Happy':'Idle'):expression;
+ sad=mood==='Sad';const happy=mood==='Happy';
  const body=group.getObjectByName('companion-body'),head=group.getObjectByName('companion-head');
  const weight=body.userData.walkWeight=(body.userData.walkWeight||0)+(Number(moving)-(body.userData.walkWeight||0))*.22;
- body.position.y=Math.abs(Math.sin(gait*2))*.018*weight;body.scale.y=1+Math.sin(time*2.2)*.012;body.rotation.y=Math.sin(gait*2)*.035*weight;
- head.rotation.z=Math.sin(time*1.4)*(sad?.025:.045);head.rotation.x=sad?.16:Math.sin(time*2)*.025;
- const tail=group.getObjectByName('companion-tail');tail.position.x=Math.sin(time*(sad?2:11))*(sad?.008:.035);tail.position.y=sad?.20:.235+Math.sin(time*11)*.008;
- for(const side of [-1,1]){group.getObjectByName('companion-ear'+side).rotation.z=side*(sad?-.95:.04)+Math.sin(time*2+side)*.025;group.getObjectByName('companion-eye'+side).scale.y=time%4.7>4.55?.12:sad?.85:1.08;group.getObjectByName('companion-brow'+side).rotation.z=side*(sad?-.3:.08);}
- for(const side of [-1,1])for(const z of COMPANION_PAW_Z){const paw=group.getObjectByName('companion-leg'+side+z),stride=weight*Math.sin(gait*2+(side*(z>0?1:-1)>0?0:Math.PI));paw.position.z=z+stride*.035;paw.position.y=.065+Math.max(0,stride)*.035;}
+ body.rotation.x=-.22*sit;body.rotation.z=0;
+ body.position.y=-.025*sit+Math.abs(Math.sin(gait*2))*.018*weight;body.scale.y=1+Math.sin(time*2.2)*.012*(1-sit);body.rotation.y=Math.sin(gait*2)*.035*weight;
+ // Compress only the torso; the oversized head and spherical paws keep their shape.
+ const torso=group.getObjectByName('companion-torso');torso.scale.z=1-.32*sit;torso.position.z=-.045+.06*sit;
+ for(const side of [-1,1])group.getObjectByName('companion-rump'+side).position.z=-.25+.127*sit;
+ head.rotation.y=0;head.rotation.z=Math.sin(time*1.4)*(sad?.025:.045)*(1-sit);head.rotation.x=.22*sit+(sad?.16:Math.sin(time*2)*.025)*(1-sit);
+ const eyesClosed=happy||time%4.7>4.55;
+ const tail=group.getObjectByName('companion-tail');tail.position.z=-.285+.127*sit;tail.position.x=Math.sin(time*(sad?2:11))*(sad?.008:.035);tail.position.y=sad?.20:.235+Math.sin(time*11)*.008;
+ for(const side of [-1,1]){group.getObjectByName('companion-ear'+side).rotation.z=side*(sad?-.95:.04)+Math.sin(time*2+side)*.025;group.getObjectByName('companion-eye'+side).scale.y=happy?.35:eyesClosed?.12:sad?.85:1.08;group.getObjectByName('companion-eye-shine'+side).visible=!eyesClosed;group.getObjectByName('companion-brow'+side).rotation.z=side*(sad?-.3:.08);}
+ for(const side of [-1,1])for(const z of COMPANION_PAW_Z){const paw=group.getObjectByName('companion-leg'+side+z),stride=weight*Math.sin(gait*2+(side*(z>0?1:-1)>0?0:Math.PI));paw.position.x=side*(.12+(z<0?.035:0)*sit);paw.position.z=z+(z<0?.075:0)*sit+stride*.035;
+  // Lower the front paws against the tilted chest while keeping all four soles grounded.
+  const groundedY=(.065-body.position.y+Math.sin(body.rotation.x)*paw.position.z)/(Math.cos(body.rotation.x)*body.scale.y);
+  paw.position.y=THREE.MathUtils.lerp(.065,groundedY,sit)+Math.max(0,stride)*.035;}
  head.position.y=.35+Math.sin(gait*2)*.01*weight;
+ if(motion==='Scratch'){
+  const t=Math.max(0,age%2.6),reach=THREE.MathUtils.smoothstep(t,0,.35)*(1-THREE.MathUtils.smoothstep(t,2,2.4));
+  const paw=group.getObjectByName('companion-leg1'+COMPANION_PAW_Z[0]);
+  // Lean toward the paw while preserving the seated body and grounding.
+  head.rotation.z-=.35*reach;head.rotation.y=.12*reach;
+  head.rotation.x=THREE.MathUtils.lerp(head.rotation.x,.10,reach);
+  // Follow the moving lower head corner, then return to the seated paw position.
+  const stroke=Math.sin(t*32)*.014*THREE.MathUtils.smoothstep(t,.35,.5);
+  const target=new THREE.Vector3(.25,-.14+stroke,-.10).applyEuler(head.rotation).add(head.position);
+  paw.position.lerp(target,reach);
+ }
+ if(motion==='Petting'){head.rotation.x=-.1;head.rotation.z=Math.sin(age*5)*.09;}
+ if(motion==='Jump up'||motion==='Jump down'){
+  const progress=Math.min(1,(age%1.4)/.65);body.position.y+=Math.sin(progress*Math.PI)*.24;jump={progress,height:motion==='Jump up'?.5:-.5};
+ }
+ if(jump){body.rotation.x=(jump.height>0?-.16:.16)*Math.sin(jump.progress*Math.PI);body.scale.y=1+Math.sin(jump.progress*Math.PI*2)*.08;}
+ for(let i=0;i<3;i++){
+  const heart=group.getObjectByName('pet-heart-'+i),t=(age-i*.35)/1.9;
+  heart.visible=motion==='Petting'&&t>=0&&t<1;
+  if(heart.visible){heart.position.set((i-1)*.13+Math.sin(t*Math.PI*3+i)*.075,.7+t*.42,.18);heart.material.opacity=Math.sin(t*Math.PI);heart.scale.setScalar(.7+t*.3);if(camera){group.getWorldQuaternion(heart.quaternion).invert();heart.quaternion.multiply(camera.quaternion);}else heart.rotation.set(0,0,0);heart.rotateY(Math.sin(t*4+i)*.3);}
+ }
  group.getObjectByName('sad-mouth').visible=sad;group.getObjectByName('happy-mouth').visible=!sad;group.getObjectByName('companion-tongue').visible=!sad;
 }
 export function campfire(ghost=false){const g=new THREE.Group();for(let i=0;i<3;i++){const log=part(g,new THREE.CylinderGeometry(.085,.085,.85,7),'#94704d',0,.09+i*.015,0);log.name='campfire-log';log.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(Math.cos(i*Math.PI/3),0,Math.sin(i*Math.PI/3)));}for(let i=0;i<3;i++)part(g,new THREE.ConeGeometry(.17-i*.035,.46-i*.07,5),i%2?'#ffe09a':'#ef9851',(i-1)*.1,.28+i*.04);if(ghost)g.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=.45;}});return g;}

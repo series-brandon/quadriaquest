@@ -72,7 +72,7 @@ export function createFeedback(scene) {
     });
   }
   const pendingTexture=statusTexture('Going','dots');
-  const workingTextures={Repairing:statusTexture('Repairing'),Fishing:statusTexture('Fishing'),Cooking:statusTexture('Cooking'),Fighting:statusTexture('Fighting'),Mining:statusTexture('Mining'),Opening:statusTexture('Opening'),Traveling:statusTexture('Traveling'),Gathering:statusTexture('Gathering'),Crafting:statusTexture('Crafting'),Chopping:statusTexture('Chopping')};
+  const workingTextures={Petting:statusTexture('Petting'),Eating:statusTexture('Eating'),Repairing:statusTexture('Repairing'),Fishing:statusTexture('Fishing'),Cooking:statusTexture('Cooking'),Fighting:statusTexture('Fighting'),Mining:statusTexture('Mining'),Opening:statusTexture('Opening'),Traveling:statusTexture('Traveling'),Gathering:statusTexture('Gathering'),Crafting:statusTexture('Crafting'),Chopping:statusTexture('Chopping')};
   const arrivedTexture=statusTexture('Arrived!','check');
   const doneTexture=statusTexture('Done!','check');
   const spinnerTexture=texture(ctx=>{

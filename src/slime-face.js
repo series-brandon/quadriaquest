@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export const SLIME_EXPRESSIONS=Object.freeze(['idle','focused','struggle','preparing','happy','sleeping','concerned','shocked','distraught','sad','frown','fainted']);
+export const SLIME_EXPRESSIONS=Object.freeze(['idle','focused','struggle','preparing','happy','pleased','sleeping','concerned','shocked','distraught','sad','frown','fainted']);
 const DARK_INK='#20332d', LIGHT_INK='#fff6df';
 const luminance=c=>.2126*c.r+.7152*c.g+.0722*c.b;
 export function faceInkFor(bodyColor) {
@@ -18,8 +18,8 @@ export function createSlimeFace() {
   const cream=new THREE.MeshBasicMaterial({color:LIGHT_INK,toneMapped:false});
   const pink=new THREE.MeshStandardMaterial({color:'#eea8a0'});
   function part(geometry,material,parent=group){const m=new THREE.Mesh(geometry,material);parent.add(m);return m;}
-  const normal=new THREE.Group(),focused=new THREE.Group(),struggle=new THREE.Group(),happy=new THREE.Group(),sleeping=new THREE.Group(),concerned=new THREE.Group(),distraught=new THREE.Group(),sad=new THREE.Group(),frown=new THREE.Group(),fainted=new THREE.Group();
-  group.add(normal,focused,struggle,happy,sleeping,concerned,distraught,sad,frown,fainted);
+  const normal=new THREE.Group(),focused=new THREE.Group(),struggle=new THREE.Group(),happy=new THREE.Group(),pleased=new THREE.Group(),sleeping=new THREE.Group(),concerned=new THREE.Group(),distraught=new THREE.Group(),sad=new THREE.Group(),frown=new THREE.Group(),fainted=new THREE.Group();
+  group.add(normal,focused,struggle,happy,pleased,sleeping,concerned,distraught,sad,frown,fainted);
   function line(points,parent,r=.009){
     const curve=new THREE.CatmullRomCurve3(points.map(([x,y])=>new THREE.Vector3(x,y,.382)));
     return part(new THREE.TubeGeometry(curve,12,r,6,false),ink,parent);
@@ -34,10 +34,10 @@ export function createSlimeFace() {
     const sign=Math.sign(x);
     line([[x-sign*.06,.55],[x+sign*.055,.59]],focused,.013);
     line([[x+sign*.045,.55],[x-sign*.025,.51],[x+sign*.045,.475]],struggle,.012);
-    line([[x-.047,.49],[x,.535],[x+.047,.49]],happy,.012);
+    for(const parent of [happy,pleased])line([[x-.047,.49],[x,.535],[x+.047,.49]],parent,.012);
     const cheek=part(new THREE.SphereGeometry(.035,10,6),pink);cheek.scale.set(1,.55,.3);cheek.position.set(x*1.5,.4,.363);
   }
-  line([[-.04,.415],[0,.38],[.04,.415]],normal);
+  for(const parent of [normal,pleased])line([[-.04,.415],[0,.38],[.04,.415]],parent);
   line([[-.045,.397],[.01,.405],[.047,.397]],focused,.011);
   const effortMouth=part(new THREE.SphereGeometry(.032,12,8),ink,struggle);effortMouth.position.set(0,.395,.375);effortMouth.scale.set(.8,1.25,.25);
   const tenseMouth=line([[-.055,.397],[-.028,.411],[0,.385],[.028,.411],[.055,.397]],struggle,.009);
@@ -55,7 +55,7 @@ export function createSlimeFace() {
     part(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),64,.007,6,false),ink,fainted);
   }
   line([[-.045,.39],[-.02,.40],[.005,.385],[.03,.395],[.05,.385]],fainted,.008);
-  const expressions={idle:normal,focused,struggle,happy,sleeping,concerned,distraught,sad,frown,fainted};
+  const expressions={idle:normal,focused,struggle,happy,pleased,sleeping,concerned,distraught,sad,frown,fainted};
   return {group,setBodyColor(color){
     const chosen=faceInkFor(color);
     ink.color.set(chosen);

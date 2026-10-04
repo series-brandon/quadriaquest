@@ -21,3 +21,13 @@ test('rescue steps aside without occupying the dog landing or crossing lane',asy
  assert.equal(Math.abs(aside.tile.x-landing.x)+Math.abs(aside.tile.z-landing.z),1);
  aside.tile.blocked=true;assert.ok(rescueStandAsideRoute(map,landing,landing));
 });
+
+test('follower hops across half-height ledges and settles precisely on landing',()=>{
+ const map=world(),start=map.get('0,2'),player=map.get('3,2');
+ for(const tile of map.values())tile.blocked=tile.z!==2;
+ map.get('1,2').h=1.5;map.get('2,2').h=1;
+ const model=new Group();model.position.set(-6,1,-4);const follower=createCompanionFollower(model);follower.reset(start);
+ let up=false,down=false,airborne=false;
+ for(let i=0;i<150;i++){follower.update(.016,map,player);if(follower.jump){up||=follower.jump.height>0;down||=follower.jump.height<0;airborne||=model.position.y>1.5;}}
+ assert.ok(up&&down&&airborne);assert.equal(model.position.y,1);assert.equal(follower.jump,null);
+});

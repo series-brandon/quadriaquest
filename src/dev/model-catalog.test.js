@@ -17,7 +17,7 @@ test('every preview model and advertised motion produces finite transforms',()=>
 test('slime starts with exactly one expression, and preview emotions select one face',()=>{
  const slime=makeSlime();const expressionGroups=slime.face.group.children.filter(c=>c.isGroup);
  assert.equal(expressionGroups.filter(c=>c.visible).length,1);
- for(const expression of ['idle','happy','shocked','sad','distraught','frown','sleeping']){
+ for(const expression of ['idle','happy','pleased','shocked','sad','distraught','frown','sleeping']){
   slime.face.set(expression);assert.equal(expressionGroups.filter(c=>c.visible).length,1,expression);
  }
  assert.deepEqual(MODEL_CATALOG.find(m=>m.name==='Campfire').motions,['Burning','Static']);
