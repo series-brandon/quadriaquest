@@ -1,3 +1,4 @@
+export const WATER_WAVE_MAX_HEIGHT=.012+.006;
 // Distance to the actual pond boundary, including concave corners.
 export function shoreWeight(x,z,edges){
  let distance=Infinity;
