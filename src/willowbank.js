@@ -72,7 +72,7 @@ export function createWillowbank(api){
   for(const a of [scrapper,bruiser]){a.patrolClock=wanderDelay();a.patrolPhase=Math.random()*10;a.patrolRoute=[];a.hitAge=0;a.attackAge=0;a.home=a.tile;a.hp=ENEMIES[a.kind].health;const label=document.createElement('div');label.className='enemy-health';label.hidden=true;document.body.append(label);a.healthLabel=label;enemies.push(a);}
  }
  const pet=companion();pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);group.add(pet);const follower=createCompanionFollower(pet),petBehavior=createCompanionBehavior();let rescueGait=0,rescueWaiting=false;
- const petActor={group:pet,x:0,z:0,tile:null,kind:'pet',label:'Pet your companion',ready:false,opened:false,duration:0,willow:true};
+ const petActor={group:pet,x:0,z:0,tile:null,kind:'pet',get label(){return `Pet ${petName}`;},ready:false,opened:false,duration:0,willow:true};
  pet.traverse(m=>{if(m.isMesh&&!m.userData.nonInteractive&&!m.name.startsWith('pet-heart')){m.userData.actor=petActor;api.pickables.push(m);}});
  function petCompanion(){if(!petOwned)return;startAction('Petting',PETTING_DURATION,()=>{},petActor);api.face(Math.round(pet.position.x+6),Math.round(pet.position.z+6));petBehavior.pet();pet.rotation.y=Math.atan2(api.player.position.x-pet.position.x,api.player.position.z-pet.position.z);}
  const bridgeModel=makeBridge(WILLOWBANK.bridgeEnd-WILLOWBANK.bridgeStart+1);bridgeModel.group.position.set(WILLOWBANK.bridgeStart-6,0,WILLOWBANK.bridgeZ-6);group.add(bridgeModel.group);
