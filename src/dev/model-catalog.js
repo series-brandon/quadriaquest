@@ -65,7 +65,7 @@ export const MODEL_CATALOG=[
  {name:'Slime',motions:['Idle','Sliding','Jump up','Jump down','Wave','Happy hop','Sleeping',...Object.keys(SLIME_ACTIONS)],expressions,create:()=>slimePreview(makeSlime)},
  {name:'Reed',motions:['Idle'],expressions,create:()=>slimePreview(fisher,true)},
  ...[false,true].map(big=>({name:big?'Goblin Bruiser':'Goblin',motions:['Idle','Walk','Attack','Hit'],create(){const group=goblin(big);return {group,update(time,motion){animateGoblin(group,time,{walk:motion==='Walk'?1:0,attack:motion==='Attack'?attackPose(time):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}})),
- {name:'Corgi',motions:['Idle','Walk','Jump up','Jump down','Sit','Scratch','Petting'],expressions:['Idle','Happy','Sad'],create(){const group=companion();return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item'){animateCompanion(group,time,{moving:motion==='Walk',expression:expressionOverride||'Default',motion,age:time%2.6});}};}},
+ {name:'Corgi',motions:['Idle','Walk','Jump up','Jump down','Sit','Scratch','Petting','Sleeping'],expressions:['Idle','Happy','Sad','Sleeping'],create(){const group=companion();return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item'){animateCompanion(group,time,{moving:motion==='Walk',expression:expressionOverride||'Default',motion,age:motion==='Sleeping'?time:time%2.6});}};}},
  resource('Tree',makeTree,'tree'),resource('Boulder',makeBoulder,'boulder'),staticModel('Flowers',makeFlowers),
  ...['sticks','stones','flint'].map((id,i)=>staticModel(['Sticks','Rocks','Flint'][i],()=>createGroundItemModel(id))),
  staticModel('Crude Axe',makeAxe),staticModel('Crude Pickaxe',makePickaxe),

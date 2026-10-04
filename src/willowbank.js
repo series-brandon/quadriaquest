@@ -73,7 +73,7 @@ export function createWillowbank(api){
  }
  const pet=companion();pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);group.add(pet);const follower=createCompanionFollower(pet),petBehavior=createCompanionBehavior();let rescueGait=0,rescueWaiting=false;
  const petActor={group:pet,x:0,z:0,tile:null,kind:'pet',label:'Pet your companion',ready:false,opened:false,duration:0,willow:true};
- pet.traverse(m=>{if(m.isMesh&&!m.name.startsWith('pet-heart')){m.userData.actor=petActor;api.pickables.push(m);}});
+ pet.traverse(m=>{if(m.isMesh&&!m.userData.nonInteractive&&!m.name.startsWith('pet-heart')){m.userData.actor=petActor;api.pickables.push(m);}});
  function petCompanion(){if(!petOwned)return;startAction('Petting',PETTING_DURATION,()=>{},petActor);api.face(Math.round(pet.position.x+6),Math.round(pet.position.z+6));petBehavior.pet();pet.rotation.y=Math.atan2(api.player.position.x-pet.position.x,api.player.position.z-pet.position.z);}
  const bridgeModel=makeBridge(WILLOWBANK.bridgeEnd-WILLOWBANK.bridgeStart+1);bridgeModel.group.position.set(WILLOWBANK.bridgeStart-6,0,WILLOWBANK.bridgeZ-6);group.add(bridgeModel.group);
  bridgeModel.surfaces.forEach((hit,i)=>{hit.userData.tile=t(WILLOWBANK.bridgeStart+i,WILLOWBANK.bridgeZ);api.pickables.push(hit);});
@@ -224,7 +224,7 @@ export function createWillowbank(api){
   if(petOwned){pet.visible=true;if(!active&&pet.parent!==api.scene)api.scene.attach(pet);else if(active&&pet.parent!==group)group.attach(pet);if((petFollowing||!petActor.tile||api.world.get(key(petActor.x,petActor.z))!==petActor.tile||api.routeContains(petActor.tile))&&(api.approaching()!==petActor||follower.moving)&&!petBehavior.petting)petMoving=follower.update(dt,api.world,api.tile(),tile=>tile===selectedCampTile||api.routeContains(tile),api.occupied);}else pet.visible=!petOwned&&active;
   if(rescueAge!==null&&rescueWaiting&&!api.moving()&&!api.occupied(t(WILLOWBANK.bridgeStart-1,WILLOWBANK.bridgeZ))){rescueWaiting=false;api.face(WILLOWBANK.bridgeStart,WILLOWBANK.bridgeZ);}
   if(rescueAge!==null&&!rescueWaiting){const target=new THREE.Vector3(WILLOWBANK.bridgeStart-7,1,WILLOWBANK.bridgeZ-6),distance=pet.position.distanceTo(target),travel=Math.min(distance,dt*1.4);if(distance>.01){pet.rotation.y+=Math.atan2(Math.sin(-Math.PI/2-pet.rotation.y),Math.cos(-Math.PI/2-pet.rotation.y))*(1-Math.exp(-dt*12));pet.position.lerp(target,travel/distance);rescueGait+=travel*4;petMoving=true;}}
-  const petMood=petBehavior.update(dt,petMoving);animateCompanion(pet,time,{...petMood,sad:!petOwned&&rescueAge===null,moving:petMoving,gait:rescueAge!==null?rescueGait:follower.gait,jump:follower.jump,camera});petActor.x=Math.round(pet.position.x+6);petActor.z=Math.round(pet.position.z+6);petActor.tile=api.world.get(key(petActor.x,petActor.z));petActor.ready=petOwned&&!!petActor.tile;pet.traverse(m=>{if(m.userData.actor===petActor)m.userData.tile=petActor.tile;});if(!active){if(action?.kind==='Eating'||action?.kind==='Petting'){const a=action;a.age+=dt;api.feedback.interacting(a.kind);if(a.age>=a.duration){action=null;api.feedback.complete();a.complete();}return {kind:a.kind,time:a.age};}return null;}
+  const petMood=petBehavior.update(dt,petMoving,petOwned?(api.playerSleepTime?.()||0):0);animateCompanion(pet,time,{...petMood,sad:!petOwned&&rescueAge===null,moving:petMoving,gait:rescueAge!==null?rescueGait:follower.gait,jump:follower.jump,camera});petActor.x=Math.round(pet.position.x+6);petActor.z=Math.round(pet.position.z+6);petActor.tile=api.world.get(key(petActor.x,petActor.z));petActor.ready=petOwned&&!!petActor.tile;pet.traverse(m=>{if(m.userData.actor===petActor)m.userData.tile=petActor.tile;});if(!active){if(action?.kind==='Eating'||action?.kind==='Petting'){const a=action;a.age+=dt;api.feedback.interacting(a.kind);if(a.age>=a.duration){action=null;api.feedback.complete();a.complete();}return {kind:a.kind,time:a.age};}return null;}
   if(fishingFollowup&&phase!=='flint')fishingFollowup=false;
   if(fishingFollowup&&!action&&!api.moving()&&!busy()&&document.getElementById('journal')?.hidden&&!cookUI.open){
    fishingFollowup=false;
@@ -262,7 +262,7 @@ reedFacing.update(dt);reed.group.scale.set(1,1+Math.sin(time*2.8)*.025,1);reed.h
   }
   if(modelPreview){modelPreview.age+=dt;const p=modelPreview;
    if(p.kind.startsWith('Goblin'))animateGoblin(scrapper.group,p.age,{walk:p.kind==='Goblin walk'?1:0,attack:p.kind==='Goblin attack'&&p.age>.9?attackPose(p.age,1.5):0,hit:p.kind==='Goblin hit'?Math.max(0,Math.sin(p.age*4)):0});
-   else if(p.kind.startsWith('Corgi')){pet.visible=true;animateCompanion(pet,p.age,{sad:p.kind==='Corgi sad',moving:p.kind==='Corgi walk',motion:({'Corgi sit':'Sit','Corgi scratch':'Scratch','Corgi petting':'Petting','Corgi jump up':'Jump up','Corgi jump down':'Jump down'})[p.kind],age:p.age%2.6,camera});}
+   else if(p.kind.startsWith('Corgi')){pet.visible=true;animateCompanion(pet,p.age,{sad:p.kind==='Corgi sad',moving:p.kind==='Corgi walk',motion:({'Corgi sleeping':'Sleeping','Corgi sit':'Sit','Corgi scratch':'Scratch','Corgi petting':'Petting','Corgi jump up':'Jump up','Corgi jump down':'Jump down'})[p.kind],age:p.kind==='Corgi sleeping'?p.age:p.age%2.6,camera});}
   }
 
   hud.querySelector('progress').value=health;hud.querySelector('span').textContent=`${health} / 30`;

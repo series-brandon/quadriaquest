@@ -114,3 +114,40 @@ test('slime petting uses the shared generic interaction animation',()=>{
   assert.deepEqual({...petting,expression:gathering.expression},gathering);
  }
 });
+
+test('companion sleeps after the player, wakes with them, and movement/petting interrupt sleep',()=>{
+ const b=createCompanionBehavior(()=>0);b.update(30,false);
+ assert.notEqual(b.update(.1,false,2).motion,'Sleeping');
+ const sleep=b.update(.1,false,3);assert.equal(sleep.motion,'Sleeping');assert.equal(sleep.age,.5);
+ assert.equal(b.update(.1,false,7).age,4.5);
+ assert.notEqual(b.update(.1,false,0).motion,'Sleeping');
+ assert.equal(b.update(.1,true,7).motion,'Walk');
+ b.pet();assert.equal(b.update(.1,false,7).motion,'Petting');
+});
+test('sleep settles from sit into a grounded sploot and fully resets when waking',()=>{
+ const model=companion(),seated=companion();animateCompanion(seated,0,{motion:'Sit'});animateCompanion(model,0,{motion:'Sleeping',age:0});
+ for(const name of ['companion-head','companion-body','companion-torso']){
+  assert.deepEqual(model.getObjectByName(name).position.toArray(),seated.getObjectByName(name).position.toArray());
+ }
+ animateCompanion(model,4,{motion:'Sleeping',age:4});
+ const head=model.getObjectByName('companion-head');assert.ok(head.position.y<.3&&head.rotation.y>.5&&head.rotation.z>.3&&head.position.x>0);
+ assert.ok(model.getObjectByName('companion-leg1-0.18').position.z<-.25);
+ assert.equal(model.getObjectByName('companion-eye-shine1').visible,false);
+ assert.equal(model.getObjectByName('companion-tongue'),undefined);
+ assert.ok(model.getObjectByName('companion-sleep-z0').visible);
+ animateCompanion(model,5,{motion:'Sit'});animateCompanion(seated,5,{motion:'Sit'});
+ seated.traverse(part=>{if(!part.name||part.name.startsWith('companion-sleep-z'))return;const actual=model.getObjectByName(part.name);assert.deepEqual(actual.position.toArray(),part.position.toArray(),part.name);assert.deepEqual(actual.scale.toArray(),part.scale.toArray(),part.name);assert.deepEqual(actual.rotation.toArray(),part.rotation.toArray(),part.name);});
+ assert.equal(model.getObjectByName('companion-sleep-z0').visible,false);
+});
+
+test('rump patches sit higher and compress with the torso while sleeping',()=>{
+ const model=companion(),torso=model.getObjectByName('companion-torso');
+ for(const motion of ['Idle','Sit','Sleeping','Walk']){
+  animateCompanion(model,4,{motion,age:4});
+  for(const side of [-1,1]){
+   const rump=model.getObjectByName('companion-rump'+side);
+   assert.equal(rump.scale.y,torso.scale.y);
+   assert.ok(Math.abs(rump.position.y-(torso.position.y+.015*torso.scale.y))<1e-9);
+  }
+ }
+});
