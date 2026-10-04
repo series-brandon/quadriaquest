@@ -1,3 +1,4 @@
+import {setWorldOccupancy} from './world-occupancy.js';
 import {holdUpMotion} from './catch-motion.js';
 import {placeFaintedHands} from './faint-motion.js';
 import {playerActionMotion,gatheringHand,alignSupportingHand} from './player-action-motion.js';
@@ -69,7 +70,7 @@ const trees=[],fallingTrees=[];
 for(const t of world.values())if(t.blocked&&!t.water){const isBoulder=BOULDER_TILES.has(key(t.x,t.z)),tree=isBoulder?makeBoulder():makeTree();tree.position.set(t.x-6,t.h,t.z-6);scene.add(tree);const treeData={x:t.x,z:t.z,tile:t,group:tree,kind:isBoulder?'boulder':'tree',felled:false};trees.push(treeData);tree.traverse(m=>{if(m.isMesh){m.userData.tile=t;m.userData.tree=treeData;pickables.push(m);}});treeData.highlight=highlightResource(tree,{height:isBoulder?1.6:2.9});}
 for(const t of world.values())if(!t.blocked&&!t.water&&(t.x*17+t.z*13)%7===0){const flowers=makeFlowers();flowers.position.set(t.x-6,t.h,t.z-6);scene.add(flowers);}
 const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[];
-resourceSpecs.forEach(([x,z,type],id)=>{const t=world.get(key(x,z)),group=createGroundItemModel(type);group.position.set(x-6,t.h,z-6);scene.add(group);const resource={id,x,z,type,tile:t,group,collected:false};resources.push(resource);
+resourceSpecs.forEach(([x,z,type],id)=>{const t=world.get(key(x,z)),group=createGroundItemModel(type);group.position.set(x-6,t.h,z-6);scene.add(group);const resource={id,x,z,type,tile:t,group,collected:false};setWorldOccupancy(resource,true);resources.push(resource);
  group.traverse(obj=>{if(obj.isMesh){obj.userData.resource=resource;obj.userData.tile=t;pickables.push(obj);}});
  resource.highlight=highlightResource(group);
  resource.hitbox=createResourceHitbox(resource,t);pickables.push(resource.hitbox);
