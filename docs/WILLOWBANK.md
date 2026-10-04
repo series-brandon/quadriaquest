@@ -132,3 +132,7 @@ The shared corgi now uses a much smaller rounded rectangular torso and an overal
 Corgi ear refinement: smaller ears sit deeper inside the rounded head so their lower edges remain hidden when upright; curved tips and smoother bevels soften the silhouette. The spherical tail shares the tan coat material. Shared Idle/Walk and Happy/Sad previews cover these changes.
 
 Sad corgi ears now rotate outward into a sideways droop. The tail nub sits slightly higher, above two softly rounded cream rectangles on the rump. These details remain part of the shared model and Happy/Sad animation previews.
+
+Player and companion naming share a dice button with separate pools: the original 58 player names and the 33 corgi names use title case (each word starts uppercase, with its remaining letters lowercase) (such as Sass Potato and Sir Nubsalot). Rolls avoid the current name. Opening input dialogues use the same compact height as other dialogue; the introductory island supports drag/arrow rotation and scroll/pinch zoom without unlocking movement. Playground → Tutorials & objectives → Replay color & name setup replays the real opening customization, and the Willowbank name action covers companion naming.
+
+Opening camera framing follows the area, not dialogue presentation: the single-tile island keeps its customization framing from before the drop through naming, and the clearing switches to its normal framing during the fully obscured transition. Showing the first dialogue no longer changes the camera aim. The customization replay uses the same camera path.

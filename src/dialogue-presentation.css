@@ -45,7 +45,7 @@ body.dialogue-cutscene #character-dialogue .speaker-portrait{opacity:0;animation
 
 /* Short, stable reading cards; responses get their own centered presentation. */
 body #character-dialogue,body #dialogue{height:min(155px,calc(100dvh - 70px));padding-top:26px;padding-bottom:12px}
-body #dialogue[data-input=true]{height:min(250px,calc(100dvh - 70px))}
+body #dialogue[data-input=true]{height:min(155px,calc(100dvh - 70px))}
 body #character-dialogue .speaker-content p{min-height:0;overflow:auto;margin-bottom:4px}
 body #dialogue-line{min-height:0;flex-shrink:1;overflow:auto;margin-bottom:4px}
 body #character-dialogue .speaker-choices{display:none}
@@ -58,3 +58,13 @@ body #character-dialogue[data-mode=choices] .speaker-choices{display:grid;margin
 body #character-dialogue[data-mode=choices] .speaker-choices button{min-height:54px;padding:14px 18px;box-shadow:0 4px 12px #21172b33}
 @keyframes choices-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){body #character-dialogue{transition:none}body #character-dialogue .speaker-choices{animation:none!important}}
+
+.name-entry{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.name-entry input{flex:1;min-width:0;width:100%;box-sizing:border-box}
+body .name-entry .name-dice{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:10px;border-radius:14px}
+body #dialogue[data-input=true] #dialogue-controls{flex-wrap:nowrap;gap:8px;margin-top:8px;flex-shrink:0;overflow:visible}
+body #dialogue[data-input=true] #dialogue-controls>button{padding:10px 12px;min-height:44px}
+body #dialogue[data-input=true] #dialogue-line{flex-shrink:0}
+@media(max-width:400px){body #dialogue[data-input=true] #dialogue-controls>button{font-size:12px;padding:10px 8px}.color-choice{gap:6px}}
+body #dialogue-controls .name-dice{padding:0;box-sizing:border-box}
+.name-dice .game-icon{width:22px;height:22px}

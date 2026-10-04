@@ -7,7 +7,8 @@ import {createOpening} from './opening.js';
 // Minimal DOM for exercising lesson transitions without timing browser animations.
 class Element {
   constructor(){this.children=[];this.dataset={};this.handlers={};this.style={};this.classList={add(){},remove(){},toggle(){}};this.hidden=false;this.textContent='';}
-  append(...nodes){this.children.push(...nodes);}
+  append(...nodes){for(const node of nodes)node.parentElement=this;this.children.push(...nodes);}
+  replaceWith(node){const parent=this.parentElement;parent.children.splice(parent.children.indexOf(this),1,node);node.parentElement=parent;}
   replaceChildren(){this.children=[];}
   setAttribute(){}
   addEventListener(name,fn){this.handlers[name]=fn;}
@@ -26,7 +27,7 @@ test('XP and level explanations return to gathering and final success only after
     const button=label=>{const b=get('dialogue-controls').children.find(n=>n.textContent===label);assert.ok(b,label);b.click();};
     opening.update(1);opening.update(1.4);
     for(let i=0;i<4;i++)dialogue();
-    assert.equal(get('dialogue').dataset.presentation,'customize');button('This is me');assert.equal(get('dialogue').dataset.presentation,'customize');button('Yes');assert.equal(get('dialogue').dataset.presentation,'conversation');assert.equal(opening.reaction.kind,'Happy hop');dialogue();assert.equal(opening.reaction.kind,'Happy hop');opening.update(1.2);dialogue();button('That’s my name');button('Yes');assert.equal(opening.reaction.kind,'Wave');opening.update(2.3);dialogue();
+    assert.equal(get('dialogue').dataset.presentation,'customize');button('This is me');assert.equal(get('dialogue').dataset.presentation,'customize');button('Yes');assert.equal(get('dialogue').dataset.presentation,'customize');assert.equal(opening.canOrbit,true);assert.equal(opening.reaction.kind,'Happy hop');dialogue();assert.equal(opening.reaction.kind,'Happy hop');opening.update(1.2);dialogue();button('That’s my name');button('Yes');assert.equal(opening.reaction.kind,'Wave');opening.update(2.3);dialogue();
     for(const dt of [1.3,.4,1.3,.9,1.4])opening.update(dt);
     for(let i=0;i<4;i++)dialogue();
     assert.equal(typeof finishQuests,'function');assert.equal(opening.playable,false);finishQuests();assert.equal(opening.playable,true);

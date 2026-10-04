@@ -1,3 +1,4 @@
+import {addNameDice} from './random-names.js';
 import {updateObjective,finishObjective} from './quests.js';
 import {SOCIAL_DURATIONS} from './slime-social.js';
 import {spawnMotion} from './slime-motion.js';
@@ -104,7 +105,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   });
   const transition=to=>{phase=to;age=0;};
   function show(text,kind='line',advance=null){
-    dialogue.dataset.presentation='conversation';dialogue.dataset.input=String(kind!=='line');dialogue.hidden=false;line.textContent=text;mode=kind;next=advance;
+    dialogue.dataset.presentation=inClearing?'conversation':'customize';dialogue.dataset.input=String(kind!=='line');dialogue.hidden=false;line.textContent=text;mode=kind;next=advance;
     controls.replaceChildren();prompt.hidden=kind!=='line';
     dialogue.setAttribute('aria-label',text);
     dialogue.tabIndex=kind==='line'?0:-1;
@@ -132,7 +133,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   function chooseName(){
     show("What's your name?",'name');
     const input=document.createElement('input');input.type='text';input.maxLength=24;
-    input.placeholder='Your name';input.value=name;input.autocomplete='off';input.setAttribute('aria-label','Your name');controls.append(input);
+    input.placeholder='Your name';input.value=name;input.autocomplete='off';input.setAttribute('aria-label','Your name');controls.append(input);addNameDice(input);
     const submit=()=>{
       const proposed=input.value.trim();
       if(!proposed){input.setCustomValidity('Please enter a name.');input.reportValidity();return;}
@@ -177,6 +178,8 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     get quiet(){return phase==='dialogue'&&!reaction;},
     get finished(){return finished;},
     get playable(){return playable;},
+    get canOrbit(){return playable||(!inClearing&&phase==='dialogue');},
+    startCustomization(){finished=false;playable=false;inClearing=false;reaction=null;tutorial.hidden=true;transition('dialogue');chooseColor();},
     get canMove(){return playable&&lesson>=2&&!awaitingContinue&&!skillsPending;},
     get canGather(){return playable&&lesson===3&&!awaitingContinue&&!skillsPending;},
     rotated(amount){if(playable&&!briefing&&lesson===0){rotationAmount+=Math.abs(amount);if(rotationAmount>=.08)succeed();}},

@@ -1,5 +1,6 @@
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
+ dice:'<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/>',
  swords:'<path d="m4 20 4-4m-3-3 6 6m-3-5L18 3l3 0 0 3-10 11"/>',
  shields:'<path d="M4 4q8 3 16 0v9q-1 5-8 9-7-4-8-9zM12 6v13"/>',
  hammers:'<path d="M10 21V9m-6 0V3h16v6z"/>',
