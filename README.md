@@ -20,6 +20,8 @@ npm test
 npm run build
 ```
 
+The game deploys to RUN.world with `rundot deploy` (configured by `game.config.prod.json`). `src/main.js` imports `@series-inc/rundot-game-sdk/api` first; the import initializes the SDK, which signals the RUN host that the game is ready; keep it as the first import. Outside the RUN host (local dev and preview) the SDK falls back to a local mock.
+
 The prototype has no saved progress or multiplayer yet. It includes the clearing and Willowbank; combat remains in an explicit dev sandbox while its third area is planned. Inventory is held in memory and resets on refresh. Character and world assets are generated in JavaScript. The optional Google Fonts stylesheet falls back to system fonts when offline.
 
 During the gathering lesson, gold outlines, soft gold edges, and floating arrows identify the six resources. All gold highlighting and arrows disappear immediately after the first successful pickup. Only the item under the cursor receives a white hover outline; other items remain unmarked.

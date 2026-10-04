@@ -1,3 +1,5 @@
+// Importing the RUN SDK initializes it and tells the RUN host the game is ready.
+import '@series-inc/rundot-game-sdk/api';
 import {createCompanionSystem} from './companions.js';
 import {createCompanionMenu} from './companion-menu.js';
 import {setWorldOccupancy} from './world-occupancy.js';
