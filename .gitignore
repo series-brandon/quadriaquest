@@ -3,3 +3,8 @@ dist/
 .DS_Store
 .idea
 dist-playground/
+
+# Local dev-log articles, media, and standalone deployment output.
+/public/dev-logs/
+/dist-dev-logs/
+/scripts/build-dev-logs.js
