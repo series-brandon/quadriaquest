@@ -78,3 +78,28 @@ test('first quest introduces the hidden menu, guides Quests, then resumes openin
   get('skills-search').value='';get('skills-search').oninput();assert.equal(row.hidden,false);assert.equal(get('skills-list').children[0],row);
  }finally{globalThis.document=previous;}
 });
+
+ test('dialogue-only transitions notify journal locks before the required menu click',async()=>{
+ const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
+ try{
+  const {mountJournalTutorialLock}=await import('./journal-tutorial-lock.js');
+  const tutorial=createCraftingTutorial({getInventory:()=>({sticks:3,stones:3}),getSkills:()=>({}),startCraft:()=>true});
+  const attrs=new Map();
+  const toggle={inert:false,matches:s=>s==='#game-menu-toggle',closest:()=>null,getAttribute:k=>attrs.get(k),hasAttribute:k=>attrs.has(k),setAttribute:(k,v)=>attrs.set(k,v),removeAttribute:k=>attrs.delete(k)};
+  // Deliberately no MutationObserver: the real regression happens when only
+  // dialogue outside the journal changes between reveal and menu instructions.
+  const host={querySelectorAll:s=>s==='.gold-guide[id]'?[]:[toggle],addEventListener(){}};
+  const lock=mountJournalTutorialLock(host,tutorial);
+  tutorial.startQuests();get('tutorial-continue').click();await Promise.resolve();
+  assert.equal(tutorial.stage,'quests-reveal');assert.equal(toggle.inert,true);
+  get('dialogue').click();await Promise.resolve();
+  assert.equal(tutorial.stage,'quests-toggle');assert.equal(toggle.inert,false);
+  assert.equal(attrs.has('aria-disabled'),false);
+  get('game-menu-toggle').click();await Promise.resolve();assert.equal(toggle.inert,true);
+  tutorial.questsOpened();get('tutorial-continue').click();await Promise.resolve();assert.equal(lock.locked,false);
+  tutorial.startSkills();await Promise.resolve();assert.equal(toggle.inert,true);
+  get('dialogue').click();await Promise.resolve();assert.equal(toggle.inert,false);
+  tutorial.startInventory();await Promise.resolve();assert.equal(toggle.inert,true);
+  for(let i=0;i<3;i++)get('dialogue').click();await Promise.resolve();assert.equal(toggle.inert,false);
+ }finally{globalThis.document=previous;}
+});

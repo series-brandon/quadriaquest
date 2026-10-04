@@ -1,9 +1,11 @@
 import {createQuestPanel} from './quests.js';
 import {icon} from './icons.js';
+import {mountJournalTutorialLock} from './journal-tutorial-lock.js';
 export function mountJournal(controller,settings){
  const $=id=>document.getElementById(id),host=$('game-menus'),nav=$('game-menu-bar');
  const shell=document.createElement('section');shell.id='journal';shell.hidden=true;shell.setAttribute('aria-label','Adventurer’s journal');
  shell.innerHTML=`<header class="journal-header"><span>Adventurer’s journal</span><button id="journal-size" aria-label="Expand journal">${icon('expand')}</button><button id="journal-close" aria-label="Close journal">${icon('close')}</button></header>`;
+ const tutorialLock=mountJournalTutorialLock(host,controller);
  let suspendedPanels=[],suspendedNav=true;
  function closeQuests(){if(controller.stage==='quests-detail')return;questPanel.hidden=true;for(const node of suspendedPanels)node.hidden=false;nav.hidden=suspendedPanels.length?suspendedNav:true;suspendedPanels=[];}
  const questPanel=createQuestPanel(host,closeQuests);
@@ -22,7 +24,7 @@ export function mountJournal(controller,settings){
  for(const name of ['skills','inventory','crafting'])$('open-'+name).innerHTML=icon(name)+`<span>${name[0].toUpperCase()+name.slice(1)}</span>`;
  const activeClose=()=>['inventory','skills','crafting','quests','companions','settings'].map(name=>$(name+'-panel')).find(panel=>panel&&!panel.hidden)?.querySelector('.crafting-heading button');
  const mobile=matchMedia('(max-width:700px)'),tip=$('gather-tutorial'),tipParent=tip.parentElement;
- function closePage(){const close=activeClose();if(close&&!close.disabled)close.click();else if(!close)controller.closeMenus();}
+ function closePage(){if(tutorialLock.locked)return;const close=activeClose();if(close&&!close.disabled)close.click();else if(!close)controller.closeMenus();}
  $('journal-close').onclick=closePage;
  let last='quests';
  const sync=()=>{
@@ -40,8 +42,9 @@ export function mountJournal(controller,settings){
   const close=activeClose();if($('journal-close').disabled!==!!close?.disabled)$('journal-close').disabled=!!close?.disabled;
   for(const name of ['inventory','skills','crafting','quests','companions','settings'])$('open-'+name)?.setAttribute('aria-current',String(active===name));
   $('game-menu-toggle').setAttribute('aria-expanded',String(!shell.hidden));
+  tutorialLock.sync();
  };
- new MutationObserver(sync).observe(host,{subtree:true,attributes:true,attributeFilter:['hidden','disabled'],childList:true});mobile.addEventListener('change',sync);sync();
+ new MutationObserver(sync).observe(host,{subtree:true,attributes:true,attributeFilter:['hidden','disabled','class'],childList:true});mobile.addEventListener('change',sync);sync();
  // Keep the tutorial's explicit tab-selection steps, but skip the extra menu in free play.
  $('game-menu-toggle').addEventListener('click',()=>{
   if(['done','inactive','chop','mine'].includes(controller.stage)&&!nav.hidden){
@@ -49,6 +52,6 @@ export function mountJournal(controller,settings){
   }
  });
  $('game-menu-toggle').addEventListener('click',e=>{if(!shell.hidden&&['done','inactive','chop','mine'].includes(controller.stage)){e.stopImmediatePropagation();controller.closeMenus();}},{capture:true});
- document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('game-settings')?.open&&!shell.hidden){const close=activeClose();if(close&&!close.disabled)close.click();else if(!close)controller.closeMenus();}});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('game-settings')?.open&&!shell.hidden){e.preventDefault();closePage();}});
  return {open:()=>{$('game-menu-toggle').click();},expand(){expanded=true;resize();}};
 }
