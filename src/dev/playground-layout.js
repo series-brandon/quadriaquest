@@ -6,6 +6,7 @@ export function organizePlayground(panel){
  for(const button of [...panel.querySelectorAll(':scope > button')])previews.append(button);
  section('Inventory & skills',['Inventory','Skills']);
  const tutorials=section('Tutorials & objectives',['Tips & objectives','Gathering tutorial prompt','Mining','Tutorial finale']);
+ section('Companions',['Companions']);
  const willow=section('Willowbank',['Willowbank chapter']);
  section('World & water',['Terrain colors','Water animation','Resource picking','Reset']);
  const ui=section('Interface & audio',['UI & audio polish']);

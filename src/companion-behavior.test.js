@@ -3,7 +3,7 @@ import {playerActionMotion} from './player-action-motion.js';
 import {Vector3} from 'three';
 import assert from 'node:assert/strict';
 import {createCompanionBehavior} from './companion-behavior.js';
-import {companion,animateCompanion} from './willowbank-models.js';
+import {companion,animateCompanion} from './companion-model.js';
 import {eatingMotion,EATING_DURATION} from './eating-motion.js';
 test('follower settles, scratches only after a delay, and movement interrupts rest/petting',()=>{
  const b=createCompanionBehavior(()=>0);

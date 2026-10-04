@@ -15,13 +15,13 @@ export function companionRoute(world,start,player,reserved=()=>false,occupied=()
  const route=[];for(let t=destination;!same(t,start);t=previous.get(key(t.x,t.z)))route.unshift(t);
  return route;
 }
-export function createCompanionFollower(model){
+export function createCompanionFollower(model,{toPosition=t=>new Vector3(t.x-6,t.h,t.z-6)}={}){
  let tile=null,step=null,lastPlayer=null,gait=0,yieldBlocked=false,jump=null;
  const target=new Vector3();
  function reset(at=null){tile=at;step=null;lastPlayer=null;yieldBlocked=false;jump=null;}
  function spawn(world,player,reserved){
   const nearby=[...world.values()].filter(t=>!t.blocked&&!t.water&&!same(t,player)&&!reserved(t)&&Math.abs(t.h-player.h)<=.5).sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
-  tile=nearby[0]||null;step=null;jump=null;if(tile)model.position.set(tile.x-6,tile.h,tile.z-6);
+  tile=nearby[0]||null;step=null;jump=null;if(tile)model.position.copy(toPosition(tile));
  }
  return {reset,get moving(){return !!step;},get jump(){return jump&&{height:jump.height,progress:Math.min(1,jump.age/.65)};},get gait(){return gait;},get yieldBlocked(){return yieldBlocked;},occupies(t){return same(t,tile)||same(t,step);},update(dt,world,player,reserved=()=>false,occupied=()=>false){
   if(!tile||world.get(key(tile.x,tile.z))!==tile||lastPlayer&&Math.hypot(lastPlayer.x-player.x,lastPlayer.z-player.z)>3)spawn(world,player,reserved);
@@ -29,7 +29,7 @@ export function createCompanionFollower(model){
   if(!step){const route=companionRoute(world,tile,player,reserved,occupied);step=route[0]||null;if(step&&step.h!==tile.h)jump={from:model.position.clone(),height:step.h-tile.h,age:0};yieldBlocked=reserved(tile)&&!step;}
   if(!step)return false;
   if(step.blocked||step.water||same(step,player)||occupied(step)){step=null;jump=null;return false;}
-  target.set(step.x-6,step.h,step.z-6);
+  target.copy(toPosition(step));
   if(jump){jump.age+=dt;const progress=Math.min(1,jump.age/.65),smooth=progress*progress*(3-2*progress);model.position.lerpVectors(jump.from,target,smooth);model.position.y+=Math.sin(progress*Math.PI)*.22;const yaw=Math.atan2(target.x-jump.from.x,target.z-jump.from.z);model.rotation.y+=Math.atan2(Math.sin(yaw-model.rotation.y),Math.cos(yaw-model.rotation.y))*(1-Math.exp(-dt*14));gait+=dt*4;if(progress===1){model.position.copy(target);tile=step;step=null;jump=null;}return true;}
   const distance=model.position.distanceTo(target),travel=Math.min(distance,dt*3.3);
   if(distance>.001){const yaw=Math.atan2(target.x-model.position.x,target.z-model.position.z);model.rotation.y+=Math.atan2(Math.sin(yaw-model.rotation.y),Math.cos(yaw-model.rotation.y))*(1-Math.exp(-dt*14));model.position.lerp(target,travel/distance);gait+=travel*4;}

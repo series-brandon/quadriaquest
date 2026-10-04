@@ -1,3 +1,4 @@
+import {companion,animateCompanion} from '../companion-model.js';
 import {EATING_DURATION} from '../eating-motion.js';
 import {updateFishingCast,updateFishingRodMotion,resetFishingRodMotion} from '../fishing-rod.js';
 import {makePondfish} from '../fish-model.js';
@@ -14,7 +15,7 @@ import {SLIME_EXPRESSIONS} from '../slime-face.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION} from '../slime-motion.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {createSlimeBend} from '../slime-bend.js';
-import {fisher,goblin,companion,campfire,animateCampfire,fishingSpot,animateFishingSpot,tool,heldTool,animateGoblin,animateCompanion,makeBridge} from '../willowbank-models.js';
+import {fisher,goblin,campfire,animateCampfire,fishingSpot,animateFishingSpot,tool,heldTool,animateGoblin,makeBridge} from '../willowbank-models.js';
 import {attackPose} from '../combat-motion.js';
 import {makeBoulder,makePickaxe} from '../mining.js';
 import {makeAxe} from '../axe-model.js';
