@@ -80,12 +80,19 @@ test('one-handed attacks counterbalance with the off hand and settle their torso
   assert.ok(Math.abs(rest.pose.twist)<1e-9);assert.ok(Math.abs(rest.hands[1][2]-ready.hands[1][2])<1e-9);
  }
 });
-test('left-side bow stays near the aiming axis while the torso turns right and the string hand meets the cheek',()=>{
- const pose=attackAnimation({item:'bows',style:'ranged',interval:1.7},1.69),hand=pose.hands[0];
- assert.equal(hand[1],.55);assert.ok(pose.pose.twist<-.6);
- const worldGrip=new Vector3(...pose.hands[1].slice(0,3)).applyAxisAngle(new Vector3(0,1,0),pose.pose.twist);
- assert.ok(worldGrip.x>.1&&worldGrip.x<.2); // Keep the bow on its holding side, near the aiming axis.
- const q=[Math.abs(hand[0])-.2,Math.abs(hand[1]-.43)-.2,Math.abs(hand[2])-.2];
- const clearance=Math.hypot(...q.map(v=>Math.max(v,0)))+Math.min(Math.max(...q),0)-.16;
- assert.ok(clearance>=.095&&clearance<=.115); // Rounded cheek surface plus the .105 hand radius.
+test('bow sweeps across the body as the torso turns right and the drawing hand meets the face',()=>{
+ const profile={item:'bows',style:'ranged',interval:1.7},ready=attackAnimation(profile,.9),drawn=attackAnimation(profile,1.69);
+ const worldHand=(pose,index)=>new Vector3(...pose.hands[index].slice(0,3)).applyAxisAngle(new Vector3(0,1,0),pose.pose.twist);
+ assert.ok(drawn.pose.twist<-.6);
+ for(const index of [0,1])assert.ok(worldHand(drawn,index).x<worldHand(ready,index).x-.5);
+ assert.ok(worldHand(drawn,0).z<worldHand(ready,0).z-.25);
+ assert.ok(drawn.hands[1][0]>.18&&drawn.hands[1][0]<.3); // Bow remains on the torso's left.
+ const hand=drawn.hands[0];assert.ok(Math.abs(hand[0])<.2);assert.equal(hand[1],.55);assert.ok(hand[2]>.455&&hand[2]<.47);
+});
+test('shield blocks preserve the main-hand carry orientation through the whole block',()=>{
+ for(const item of [null,'swords','copperDagger'])for(const offHand of ['shields','copperShield']){
+  const profile={item,offHand},rest=equipmentIdleHands(profile);
+  for(const age of [0,.035,.1,.25,.35,.42])assert.deepEqual(blockAnimation(profile,age).hands[0].slice(3),rest[0].slice(3));
+  assert.equal(blockAnimation(profile,.1).hands[1][5],-Math.PI/2);
+ }
 });

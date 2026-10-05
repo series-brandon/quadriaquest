@@ -30,8 +30,8 @@ export function attackAnimation(profile={},time=0){
   const turn=-.65*(after?recover:draw),c=Math.cos(turn),s=Math.sin(turn);
   const local=(x,y,z)=>[c*x-s*z,y,s*x+c*z,0,0,-turn];
   const raise=after?1-smooth(clock/.28):smooth((clock-(interval-1.15))/.35);
-  const stance=after?recover:draw,x=.18-.04*stance,y=.55,gripZ=.795+.335*stance;
-  const stringZ=after?.53+.045*smooth(clock/.28):gripZ-.22-.38*draw;
+  const stance=after?recover:draw,x=.18-.545*stance,y=.55,gripZ=.795+.113*stance+.4*stance*(1-stance);
+  const stringZ=after?.308+.267*smooth(clock/.28):gripZ-.22-.38*draw;
   const aimed=[local(x,y,stringZ),local(x,y,gripZ)];
   hands=ready.map((h,i)=>{const result=mix(h,aimed[i],raise);result.splice(0,3,...arc(h.slice(0,3),i===0?[-.60,.55,.65]:[.65,.55,1.0],aimed[i].slice(0,3),raise));return result;});
   pose={squash:1,stretch:1,twist:turn,lean:0};
@@ -66,7 +66,7 @@ export function blockAnimation(profile={},age=0){
  const rest=equipmentIdleHands(profile);
  let guard=[[-.22,.57,.43,.12,0,0],[.22,.57,.43,.12,0,0]];
  const motion=resolveBlockMotion(profile);
- if(motion==='shield')guard=[[-.47,.34,.05,0,0,0],[.08,.49,.54,.08,-.12,-Math.PI/2]];
+ if(motion==='shield')guard=[[-.47,.34,.05,...rest[0].slice(3)],[.08,.49,.54,.08,-.12,-Math.PI/2]];
  else if(motion==='blade')guard=[[-.22,.40,.48,.30,-.8,0],[.40,.43,.18,0,0,0]];
  else if(motion==='bow')guard=[[-.22,.54,.40,0,0,0],[.10,.50,.60,0,0,.7]];
  return {pose:{squash:1-weight*.025,stretch:1,twist:0,lean:-weight*.04},hands:rest.map((h,i)=>mix(h,guard[i],weight)),handWork:null,expression:'focused',bowDraw:0,nocked:false};
