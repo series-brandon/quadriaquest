@@ -7,7 +7,7 @@ export function createCookingSystem(api){
  function cancel(){action=null;}
  function start(id,station){
   const recipe=RECIPES[id];
-  if(recipe?.station!=='fire'||!station?.available()||!canMake(api.inventory,recipe))return false;
+  if(api.busy?.()||recipe?.station!=='fire'||!station?.available()||!canMake(api.inventory,recipe))return false;
   api.stop();action={id,station,age:0,duration:durationFor(recipe.duration,skill.level)};
   api.started?.();return true;
  }

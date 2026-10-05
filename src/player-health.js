@@ -13,6 +13,7 @@ export function createFoodSystem(api){
  function start(id,confirmed=false){
   const food=FOODS[id];
   if(!food||!api.inventory[id]||api.busy?.()||action)return false;
+  if(api.defer?.(()=>start(id,confirmed),'Eating'))return true;
   if(api.health.value===api.health.max&&!confirmed){
    confirmation?.();confirmation=api.confirm?.(()=>{confirmation=null;start(id,true);});return false;
   }

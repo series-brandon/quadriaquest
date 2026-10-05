@@ -13,7 +13,7 @@ export function createCompanionSystem(api){
  function locate(){const tile=api.tileAtPosition(model.position);actor.tile=tile;actor.x=tile?.x??0;actor.z=tile?.z??0;actor.ready=state.owned&&!!tile;for(const m of meshes)m.userData.tile=tile;}
  function cancel(){if(actionAge!==null){behavior.reset();api.feedback.clearDestination();}actionAge=null;preview=null;}
  function acquire({name=state.name,at=null}={}){state.owned=true;state.following=true;state.name=name;api.scene.attach(model);model.visible=true;follower.reset(at);behavior.reset();locate();notify();}
- function pet(){if(!state.owned||api.blocked?.())return false;api.stop();actionAge=0;behavior.pet();locate();api.face(actor.x,actor.z);model.rotation.y=Math.atan2(api.player.position.x-model.position.x,api.player.position.z-model.position.z);api.feedback.destination(api.tile());api.feedback.interacting('Petting');return true;}
+ function pet(){if(!state.owned||api.blocked?.()||api.busy?.())return false;api.stop();actionAge=0;behavior.pet();locate();api.face(actor.x,actor.z);model.rotation.y=Math.atan2(api.player.position.x-model.position.x,api.player.position.z-model.position.z);api.feedback.destination(api.tile());api.feedback.interacting('Petting');return true;}
  function reset(){cancel();behavior.reset();follower.reset();Object.assign(state,{owned:false,following:true,name:'Pebble'});model.visible=false;actor.ready=false;menu?.close();notify();}
  function update(dt,time,camera){
   menu?.update(time);

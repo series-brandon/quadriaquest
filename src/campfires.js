@@ -25,6 +25,7 @@ export function createCampfires(api){
  function begin(){
   if(api.busy()||!api.inventory.campfires)return;
   if(fire()){api.toast('Pack up your existing Campfire first.');return;}
+  if(api.defer?.(begin,'Place Campfire'))return;
   api.stop();api.closeMenus();placing=true;controls.hidden=false;
  }
  function hoverPlacement(tile){if(!placing)return null;const result=status(tile);showGhost(tile,result.valid);return result;}

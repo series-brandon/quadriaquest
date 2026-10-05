@@ -7,6 +7,7 @@ export function createRecipeCrafting(api){
  return {
   get working(){return !!action;},get state(){return action&&{...action};},cancel(){if(!action)return;const id=action.id;action=null;api.cancelled?.(id);},
   start(id){const recipe=RECIPES[id];if(action||!recipe||recipe.station||!canMake(api.inventory,recipe)||api.busy())return false;
+   if(api.defer?.(()=>this.start(id),'Crafting'))return true;
    api.stop();action={id,age:0,duration:durationFor(recipe.duration,api.skill.level)};api.started?.(id);return true;
   },
   update(dt){if(!action)return null;const current=action;current.age+=dt;api.progressed?.(current.age,dt);

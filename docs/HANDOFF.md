@@ -20,6 +20,23 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Combat interruption, retaliation and awareness — 2026-10-05
+
+- Shared combat provokes passive creatures only when a melee hit splat resolves or a ranged/magic projectile arrives. Damage, zero damage and misses all provoke; selecting, approaching, winding up and releasing do not. Inert practice targets remain non-retaliating.
+- Shared enemy definitions/configuration now carry `aggressive` and `aggroRange`: Scrappers default passive, Bruisers aggressive within four tiles. Awareness respects range, height, sight obstruction, reachability and safe zones. Pursuit and leash return retain continuous walking. Maps can override these properties through the portable enemy factory.
+- Auto-Retaliate defaults On in the real Combat menu, responds to incoming attacks including misses, and can be changed during combat. Off does not cancel a manually chosen fight. Preference survives travel; the full playground reset restores On.
+- The shared cancellation policy interrupts skilling/utility actions while preserving combat and eating. Food retains the fight target, pauses outgoing attack progress while enemies keep attacking, consumes/heals at normal completion and resumes attacking afterward. Defeat, movement and explicit reset still cancel food. A food request buffered behind the current walking step survives combat interruption.
+- Playground Combat offers separate passive/aggressive fixture spawns (three-tile awareness), real fight/reset/remove/defeat commands, and instructions for the existing inventory food and health controls. The real Combat menu exercises retaliation, and inspection exposes aggression/radius/preference. No location-specific combat logic was added.
+- Validation: 194 tests, both build variants and debug isolation passed. Regression coverage includes all three attack styles × damage/miss/zero outcomes; passive proximity; aggressive radius/height/walls/safe zones; multiple-enemy reset; retaliation; real food completion during combat and defeat cancellation; real crafting interruption and the shared cancellation policy. Browser checks passed food during combat in the clearing before visiting later maps and in Cinderhold, plus aggressive proximity, toggling retaliation during incoming attacks, food surviving damage received while eating with retaliation Off, preference persistence through real travel, and full playground reset. The 390×844 Combat menu fills the screen without overflow and has a 47px retaliation button. Existing bundle-size warnings remain. These are focused checks, not a full tutorial replay.
+
+
+### Finish the current step before inventory actions — 2026-10-05
+
+- Shared `after-step.js` buffers one stationary action while the current movement segment finishes. Food, inventory crafting, and campfire placement use it through their production start functions. The remaining route and old interaction target are cleared, but the active step and player position remain intact. Requirements are rechecked at arrival; consumption and action timers do not start while queued.
+- The latest valid action replaces the pending request. New movement/interactions, travel, defeat, and resets clear it through shared cancellation. Full-health food confirmation is shown after arrival. Station/resource interactions already approach their targets before starting and retain their existing flow.
+- Playground coverage: normal Eat/Craft/Place buttons during movement, inventory and health controls, and area resets exercise the real implementation. The debug-only inspection state exposes player position, current step, queued action, and eating state. Instructions are included in the playground UI.
+- Verification: 178 tests, normal/debug builds, and debug isolation passed. Browser checks confirmed no immediate position jump or backwards travel, arrival at the current step destination before food/crafting/placement, both upward and downward steps, and food/crafting in the clearing before visiting Cinderhold and again in Cinderhold. New movement and area-reset checks cancelled pending food without consumption; no browser runtime errors were reported.
+
 ### Attack momentum and bow face anchor — 2026-10-05
 
 - Shared punch/stab/slash poses pull the off hand slightly backward and turn the torso about seven degrees in the user-corrected positive-yaw direction at impact, then settle during recovery. This also carries an equipped shield; blade rotation keys and combat timing remain unchanged.
@@ -234,7 +251,7 @@ Widened the shared smith apron from .46 to .66 units (body width .72), shortened
 
 ## Combat presentation and pursuit in progress — 2026-10-05
 
-Shared weapon-specific attacks and equipment-aware blocks are implemented in `combat-animation.js`, used by gameplay and all slime previews. Bow strings/nocked arrows animate with release. Attack windup/follow-through takes priority over a hit reaction. Ranged targeting and misses no longer aggro; impact does. Pursuit and leash return walk continuously through reserved destinations, with health restored on arriving home. Explicit reset/travel may reset entities; ordinary retreat does not teleport them. Playground pointer actions no longer force-stop combat when no animation preview is active.
+Shared weapon-specific attacks and equipment-aware blocks are implemented in `combat-animation.js`, used by gameplay and all slime previews. Bow strings/nocked arrows animate with release. Attack windup/follow-through takes priority over a hit reaction. Targeting does not aggro; resolved impact does (including misses and zero damage, as refined below). Pursuit and leash return walk continuously through reserved destinations, with health restored on arriving home. Explicit reset/travel may reset entities; ordinary retreat does not teleport them. Playground pointer actions no longer force-stop combat when no animation preview is active.
 
 164 tests and both builds/debug isolation passed. Browser checks passed attack/block previews on all six slimes, live equipped previews, ranged passivity until damage and smooth pursuit in the clearing, and equipped Cinderhold victory plus retreat/walk-home (maximum observed displacement .10 units/frame). Spark check setup needed selecting the learned spell through the normal Combat menu. Full fresh-game replay has not been performed.
 
