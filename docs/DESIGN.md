@@ -23,7 +23,7 @@ Clicking a resource or enemy initiates a continuing interaction until it finishe
 
 Characters automatically climb or hop up and down half-height ledges. Uninterrupted rises or drops of one full block or more require a safe route, such as stairs or ladders. Characters cannot jump off tall ledges. Stairs should respect the half-height terrain rule.
 
-**World structure.** Distinct maps form an interconnected world linked by transportation. The final transportation mechanism and its fiction remain undecided; teleportation is the working tutorial concept. The opening uses a linear series of tutorial maps. After the tutorial, players freely select destinations, and all non-tutorial maps remain accessible for return visits.
+**World structure.** Tutorial destinations are connected by Iter Crystals and grow in scale: The Clearing → Willowbank → Cinderhold. This is the recommended teaching order; the third-area draft specifies the proposed destination-menu availability. Beyond the tutorial, the intended game world is a massive continuous open world, streamed in nearby chunks to keep runtime work and memory bounded. Players can return to earlier destinations. See [World scale and streaming direction](#world-scale-and-streaming-direction) for the architecture direction; streaming is not implemented yet.
 
 Character level does not gate map entry. A level 5 player may visit a level 100 area and face its danger. Any difficulty guidance should inform the player rather than prevent entry.
 
@@ -195,47 +195,40 @@ The playground exposes tip preview and objective add/update/complete/reset contr
 
 The Rotate, Zoom, and Move tips remain visible while performing their actions. Continue stays disabled until success (movement requires arrival at a different tile). The playground can replay these three lessons using the real opening controller. Quests show task bullets, followed by completed tasks with a checkmark and Completed label.
 
+## World scale and streaming direction
+
+Confirmed direction, 2026-10-05: each tutorial area expands the player's sense of scale, leading into a **massive open world loaded in nearby chunks**. The clearing is the intimate starting space (13 × 13 bounding grid); Willowbank expands to a 24 × 18 footprint; Cinderhold must be the largest tutorial so far. Its draft targets roughly 40 × 32 with at least twice Willowbank's reachable floor area, connected chambers and optional exploration. Exact dimensions are tuning proposals, not a reason to pad required tasks or walking time.
+
+The open world should feel continuous as the player moves. Chunks are a shared loading/simulation boundary, not separate tutorial areas, gameplay variants or visible teleport steps. Keep nearby terrain/entities resident, preload ahead of movement, and release distant runtime objects within a bounded budget. The game must not need the entire world's meshes, actors, collision grid or pathfinding graph in memory. Actual chunk dimensions, preload/unload distances, simulation radius, device budgets and storage format require profiling and a dedicated implementation plan.
+
+### Shared infrastructure requirements for streaming
+
+- **Content ownership stays unchanged:** regions/chunks declare terrain, entity placements and story context. Shared systems own gameplay, models, animation, interaction, rewards and lifecycle. Crossing a chunk boundary cannot change how a furnace, goblin, spell or ore vein works.
+- **Stable identity and state:** use durable world/entity identities independent of render objects and loaded tile instances. Store logical changes such as depletion, defeated/respawning encounters, placed objects and quest progress outside disposable chunk render state. Reattachment must not recreate rewards, gifts or actors as fresh. Persistence across application restarts is a separate save-system decision.
+- **Bounded lifecycle:** a shared streaming service owns load/preload/activate/deactivate/dispose. Detaching a chunk is not a gameplay reset. Define shared suspend/resume or safe completion/cancellation policies for actions, projectiles, AI and respawn clocks; retain any required active footprint until those policies can be honored. Never unload occupied player/follower space or an in-use station out from under an unresolved action.
+- **Spatial queries:** navigation, range/sightline, collision, safe arrival and entity lookup work through shared spatial services. Plan for routes and projectiles crossing chunk edges; missing/unloaded terrain cannot be treated as walkable or transparent. Loading failure stops traversal safely and exposes a retry; it does not drop the player into missing geometry.
+- **Simulation policy:** define what sleeps, pauses or advances outside the active radius once for shared systems. Existing off-map paused resource timers are current behavior, not a finalized open-world simulation policy. Chunk borders cannot become a way to reset health, farm duplicate rewards or bypass pursuit rules.
+- **Travel:** Iter Crystal destinations resolve a logical arrival anchor; future travel ensures the destination neighborhood is ready before safe-landing validation and player activation. Keep that behind shared travel/loading APIs, without special transitions per named destination.
+- **Verification and tooling:** when streaming is implemented, add playground chunk-boundary overlays, resident entity/chunk counts, repeatable load/unload travel, slow/failed loading simulation and reset controls using production streaming. Test walking, followers, combat, resources, station work and projectiles across boundaries, then leave/return repeatedly to check state, duplicate rewards and bounded memory. Keep debug tooling compile-time isolated.
+
+Cinderhold can initially use the existing bounded-area runtime. Its larger layout warrants desktop/mobile performance checks, but does not expand this chapter into implementing the entire open-world streamer. New shared APIs should avoid fixed map dimensions/origins and assumptions of universal residency. Existing tile identity, pathfinding and whole-area activation need a deliberate migration before they can support chunk streaming; no documentation change establishes that migration as complete.
+
 ## Second tutorial area: Willowbank
 
-The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Carpentry, companions, Fishing, placement, and Culinary skills. Combat and equipment instruction belong to the planned third area. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. The prototype ending appears after cooking and eating, rather than on arrival.
+The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Carpentry, companions, Fishing, placement, and Culinary skills. Combat and equipment instruction belong to the planned third area. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. Willowbank completion leaves the area explorable; no prototype-ending message is currently shown there. The Cinderhold draft proposes a completion notice after its required combat lesson.
 
 
 ## Area three: combat tutorial outline
 
-Status: planned, not implemented. Willowbank now teaches the rescue/carpentry/follower/fishing/cooking/eating sequence; area three owns combat. Final location name, NPC, premise, map, and exact dialogue need design approval before implementation.
+Status: design draft, not implemented. See [CINDERHOLD.md](CINDERHOLD.md) for the third-area proposal, **Cinderhold: Basic Training**, including dialogue, layout, recipes, shared-system work, playground coverage, and acceptance checks. This replaces the earlier Stone Sword/Wooden Shield tutorial outline; those existing recipes remain available as shared gameplay.
 
-### Proposed sequence
+The requested route is: angry drill-sergeant slime → forgiving unarmed fight → dwarf-like smith slime → mine copper with a pickaxe → smelt ingots at a furnace → smith a Copper Dagger and Copper Shield at an anvil with a hammer → equip → return to Sarge → defeat one tougher enemy. Ranged combat with bow/arrows and magic combat with spells are independent optional mentor lessons after the required route. Players can leave without talking to either mentor.
 
-1. Arrive beside the destination Iter Crystal with inventory, skills, equipment, health, and follower retained. Introduce a safe staging area and point out the first enemy using the shared camera/dialogue presentation.
-2. Fight the forgiving Goblin Scrapper unarmed. Teach click-to-approach, continuous attacks, timing/range, damage/miss feedback, and clicking away to disengage. Preserve its existing protection against lethal damage.
-3. Craft a Stone Sword (Stone ×2, Sticks ×1) and Wooden Shield (Small Logs ×2, Sticks ×1). Reveal their recipes here; use optional “Show me how” guidance instead of repeating mandatory crafting instruction.
-4. Equip both through the shared inventory detail actions and equipped badges. Equipment possession and equipment use remain distinct.
-5. Fight the stronger Goblin Bruiser. Preserve real defeat, animation, and respawn at a valid adjacent tile beside the destination crystal; keep all inventory. Explain using food already learned in Willowbank.
-6. Mark combat objectives complete and show the prototype-ending message here. Keep the area and earlier maps revisitable.
+The map introduces a rocky cavern/ruined training-hall appearance and must be the largest tutorial area yet, leading toward the future streamed open world. The draft proposes roughly 40 × 32 tiles with at least twice Willowbank’s reachable floor area. The draft proposes Cinderhold as the location, Sergeant Bristle and Borin Copperbelly as the main guides, and a four-ore production chain. Names, quantities, skill assignments, optional-style resource rules, and balance are proposals pending review.
 
-### Reuse and extraction handoff
+All three areas will use a shared Iter Crystal destination menu. The draft proposes listing The Clearing, Willowbank, and Cinderhold after the first crystal reveal, marking the current area and recommending the next lesson without locking destinations. This soft ordering guides the tutorial sequence; it remains a design proposal, not current behavior. Selection followed by Travel uses the existing shared transition and safe-arrival validation.
 
-| Existing implementation | Reuse in area three |
-|---|---|
-| `enemy-model.js` and `tool-models.js`: goblin/tool factories and `animateGoblin` | Identical goblin rigs, equipment orientation, idle, walk, attack and hit reactions; no map-specific model copies. |
-| `combat-motion.js` and player combat motion in `main.js` | Same punch windup/contact/recovery, sword/shield presentation and attack clocks. |
-| `combat-feedback.js` | Damage, block and miss splats; clear on defeat, travel and reset. |
-| `combat-rules.js`: `ENEMIES`, `damageRoll`, `incomingHealth`; `recipes.js`: sword/shield recipes | Preserve current balance as an initial baseline. Reuse the shared combat/recipe modules. |
-| `combat.js`, `enemy-entity.js`, `equipment.js`, `equipment-presentation.js`, `player-health.js` | Reuse the app-owned combat, enemy lifecycle, worn gear (including top hat), and health state. Areas configure placement/patrol/respawn context and narrative; travel must not create a second health pool. |
-| `wander.js` | Independent randomized patrols; supply area-three patrol bounds instead of reusing Willowbank coordinates. |
-| `character-dialogue.js`, `conversation-facing.js`, shared camera focus | Same NPC turning, live portraits, standalone choices, quiet cutscene presentation and held focus until Continue. |
-| Crafting, inventory, skills, quests, item feedback | Reuse real menus, skill rewards, recipe availability and objective history. New area owns only its quest sequence. |
-| `portal-spawn.js`, shared terrain/resources/water/follower | Place crystals and reusable entities; ensure four-neighbor arrival selection and follower travel. |
-
-Existing combat baseline: player 30 health; unarmed 1–3 damage / 1.5 s, sword 3–5, shield reduces incoming damage by 1 (minimum 1). Scrapper has 8 health, 1 damage / 2.5 s, and cannot reduce the player below 1. Bruiser has 24 health and 3–5 damage / 2 s. Hits, pursuit/leashing, enemy health reset, and defeat already exist. Preserve or deliberately rebalance them, not reimplement them independently.
-
-### Map and progression requirements
-
-Provide a safe crystal/NPC/crafting space, an isolated first encounter, and a separate stronger encounter. Supply renewable Sticks, Rocks, Stone, and Small Logs so arriving with an empty inventory cannot block crafting. Keep food and recovery accessible without requiring a return trip. Combat may be attempted early; the stronger fight should reward preparation without making equipment an invisible gate. The follower remains cosmetic, occupies its own tile, and cannot be targeted.
-
-### Playground and acceptance checklist
-
-Combat is shared through `combat.js`, `equipment.js`, `combat-rules.js`, `enemy-entity.js`, and `enemy-model.js`. The playground Combat section explicitly places test enemies in the current map, with reset/remove and real defeat/respawn controls; normal maps contain no combat encounters yet. Individual rig animations remain in the shared model viewer. Area three should configure these same entities and systems. Add direct entry/reset and checkpoints for unarmed, recipes, equip, stronger fight and completion. Verify both enemies, random wander, retreat/pursuit/leash, repeated defeat/respawn, food healing, inventory preservation, companion travel, recipe visibility, camera return and journal history. Retest the clearing and peaceful Willowbank to ensure no combat actors or objectives leak into them. Build both variants and verify debug isolation.
+The implementation must extend the existing app-owned combat, equipment, resources, recipes, NPC presentation, area runtime and travel systems. Area code owns only layout/configuration and narrative. Copper processing, hand-slot equipment variants, ranged/spell actions and the picker need production-backed playground support in the same implementation slices. The detailed chapter document specifies coverage and cross-map verification; writing this plan does not implement those features.
 
 ## Small-screen menus and model previews
 
@@ -275,7 +268,7 @@ The playground has an independent **Companions** section available in every area
 
 ### World-independent gameplay boundary
 
-Only area layout and area narrative belong to an area module. Skills, recipes, inventory actions, stations, models, animations, UI, collision policies, and rewards must be portable shared systems. Availability comes from materials, tools, terrain, and current action state—not from having visited or currently being in a named area. Tutorial guidance may teach an action; it must not become the implementation of that action. If the intended boundary is unclear, ask before adding area-specific behavior.
+Only area layout and area story/tutorial belong to an area module. This boundary also applies to future regions and streamed chunks. Shared definitions own item/resource stats, recipes and skills; areas select definitions and supply spatial placement/configuration. Safe-zone enforcement, supply refill eligibility, spell/item grants, target behavior and lifecycle/reset execution remain shared even when a tutorial first introduces them. Skills, recipes, inventory actions, stations, models, animations, UI, collision policies, and rewards must be portable shared systems. Availability comes from materials, tools, terrain, and current action state—not from having visited or currently being in a named area. Tutorial guidance may teach an action; it must not become the implementation of that action. If the intended boundary is unclear, ask before adding area-specific behavior.
 
 Campfire placement/use/packing and inventory recipe crafting are app-owned (`campfires.js`, `recipe-crafting.js`); cooking uses `cooking.js` and `cooking-menu.js`. Stations remain attached to their original tile instances across travel. Clear reachable land accepts placement by default; water, occupied tiles, explicit non-buildable structures, and unreachable tiles reject it. Areas receive completion callbacks only for their narrative. A fire can be packed back into inventory; movement cancels pending placement/crafting without spending materials.
 

@@ -1,6 +1,6 @@
 # Willowbank: Broken Bridge Rescue
 
-The second tutorial focuses on dialogue, carpentry, followers, fishing, cooking, and eating. Reed is a worried fisher slime: the bridge collapsed unexpectedly while a local animal was playing on the island. The animal is a visitor, not Reed’s pet. Combat and sword/shield instruction belong to the planned third area.
+The second tutorial focuses on dialogue, carpentry, followers, fishing, cooking, and eating. Reed is a worried fisher slime: the bridge collapsed unexpectedly while a local animal was playing on the island. The animal is a visitor, not Reed’s pet. Combat and equipment instruction belong to the planned third area, [Cinderhold](CINDERHOLD.md).
 
 ## Flow
 
