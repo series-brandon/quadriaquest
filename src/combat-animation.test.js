@@ -56,7 +56,7 @@ test('equipped attacks and blocks start in the shared relaxed carry pose',()=>{
   assert.deepEqual(blockAnimation(profile,0).hands,equipmentIdleHands(profile));
  }
  const bow=attackAnimation({item:'bows',style:'ranged',interval:1.7},.9);
- bow.hands[1].slice(0,3).forEach((v,i)=>assert.ok(Math.abs(v-[-.24,.55,.85][i])<1e-12));
+ bow.hands[1].slice(0,3).forEach((v,i)=>assert.ok(Math.abs(v-[.18,.55,.795][i])<1e-12));
  assert.ok(bow.bowDraw<1e-12);
 });
 
@@ -71,4 +71,21 @@ test('relaxed bow has its string above the wood and drawing hand carries the arr
  apply(.56);assert.equal(presentation.arrow.parent,rig.hands[0]);assert.equal(presentation.arrow.visible,true);assert.ok(presentation.arrow.rotation.x<.1);
  for(const time of [.9,1.3,1.69]){const motion=apply(time),nock=presentation.arrow.localToWorld(new Vector3(0,-.26,0)),string=bow.localToWorld(new Vector3(0,0,-.38*motion.bowDraw));assert.ok(nock.distanceTo(string)<1e-9);assert.ok(new Vector3(0,1,0).transformDirection(presentation.arrow.matrixWorld).z>.999);assert.equal(bow.getObjectByName('nocked-arrow').visible,false);}
  apply(1.7);assert.equal(presentation.arrow.visible,false);presentation.update(null);assert.equal(presentation.arrow.visible,false);
+});
+
+test('one-handed attacks counterbalance with the off hand and settle their torso momentum',()=>{
+ for(const item of [null,'copperDagger','swords'])for(const offHand of [null,'copperShield']){
+  const profile={item,offHand,interval:1.5},ready=attackAnimation(profile,0),impact=attackAnimation(profile,1.5),rest=attackAnimation(profile,1.9);
+  assert.ok(impact.hands[1][2]<ready.hands[1][2]-.13);assert.ok(impact.pose.twist>.1&&impact.pose.twist<.15);
+  assert.ok(Math.abs(rest.pose.twist)<1e-9);assert.ok(Math.abs(rest.hands[1][2]-ready.hands[1][2])<1e-9);
+ }
+});
+test('left-side bow stays near the aiming axis while the torso turns right and the string hand meets the cheek',()=>{
+ const pose=attackAnimation({item:'bows',style:'ranged',interval:1.7},1.69),hand=pose.hands[0];
+ assert.equal(hand[1],.55);assert.ok(pose.pose.twist<-.6);
+ const worldGrip=new Vector3(...pose.hands[1].slice(0,3)).applyAxisAngle(new Vector3(0,1,0),pose.pose.twist);
+ assert.ok(worldGrip.x>.1&&worldGrip.x<.2); // Keep the bow on its holding side, near the aiming axis.
+ const q=[Math.abs(hand[0])-.2,Math.abs(hand[1]-.43)-.2,Math.abs(hand[2])-.2];
+ const clearance=Math.hypot(...q.map(v=>Math.max(v,0)))+Math.min(Math.max(...q),0)-.16;
+ assert.ok(clearance>=.095&&clearance<=.115); // Rounded cheek surface plus the .105 hand radius.
 });

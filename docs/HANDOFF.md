@@ -20,6 +20,12 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Attack momentum and bow face anchor — 2026-10-05
+
+- Shared punch/stab/slash poses pull the off hand slightly backward and turn the torso about seven degrees in the user-corrected positive-yaw direction at impact, then settle during recovery. This also carries an equipped shield; blade rotation keys and combat timing remain unchanged.
+- Bow ready/draw positions sit on the slime’s own left side, closer to its centerline. The torso turns right (negative yaw) during the draw; bow placement and torso turn are independent, not mirrored together. At full draw the string hand touches the front of the face while the held arrow remains aligned with the string and target.
+- Existing playground Attack overrides, main/off-hand equipment controls, looping/restart, and live equipped attacks fully expose these changes for all slime rigs. Validation: 174 tests, both builds, and debug isolation passed, including off-hand momentum, face contact, hand clearance, and arrow/string alignment. Browser checks inspected impact/full-draw frames and completed live bow combat in the clearing and Cinderhold with no runtime errors.
+
 ### Relaxed weapon carry and windup — 2026-10-05
 
 - `equipmentIdleHands` supplies the shared lowered sword/dagger/bow carry pose in gameplay and model previews, including attack/block starting and recovery poses. Dagger aiming is brief and angles inward once the hand clears the body; sword retains its rear/slash rotation keys; bow raises along a clear outward arc before drawing.

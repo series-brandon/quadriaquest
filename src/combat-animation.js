@@ -25,12 +25,13 @@ export function attackAnimation(profile={},time=0){
   const draw=after?0:smooth((clock-(interval-.8))/.62);bowDraw=draw;nocked=!after&&clock>=interval-1.15;
   arrowRaise=smooth((clock-(interval-1.15))/.35);
   // Off hand grips the wood; main hand follows the string. Turn the torso
-  // under an arrow that remains aimed forward, carrying the draw across the face.
+  // right under a forward-aimed arrow. The bow stays left of the torso
+  // centerline while the drawing hand comes back against the face.
   const turn=-.65*(after?recover:draw),c=Math.cos(turn),s=Math.sin(turn);
   const local=(x,y,z)=>[c*x-s*z,y,s*x+c*z,0,0,-turn];
   const raise=after?1-smooth(clock/.28):smooth((clock-(interval-1.15))/.35);
-  const stance=after?recover:draw,x=-.24-.19*stance,y=.55,gripZ=.85+.10*stance;
-  const stringZ=after?.35+.28*smooth(clock/.28):gripZ-.22-.38*draw;
+  const stance=after?recover:draw,x=.18-.04*stance,y=.55,gripZ=.795+.335*stance;
+  const stringZ=after?.53+.045*smooth(clock/.28):gripZ-.22-.38*draw;
   const aimed=[local(x,y,stringZ),local(x,y,gripZ)];
   hands=ready.map((h,i)=>{const result=mix(h,aimed[i],raise);result.splice(0,3,...arc(h.slice(0,3),i===0?[-.60,.55,.65]:[.65,.55,1.0],aimed[i].slice(0,3),raise));return result;});
   pose={squash:1,stretch:1,twist:turn,lean:0};
@@ -49,6 +50,14 @@ export function attackAnimation(profile={},time=0){
   const position=after?arc(ready[0].slice(0,3),[-.78,.34,.75],slash.slice(0,3),recover):arc(start,[-.83,.50,.70],slash.slice(0,3),thrust);
   hands[0].splice(0,3,...position);pose.lean=after?recover*.12:thrust*.12-wind*.035;
  }else{const punch=punchMotion(time/interval*1.5);hands=[punch.right,punch.left];pose.lean=punch.lean;}
+ // One-handed attacks use the free/shield arm as a counterweight. Momentum
+ // peaks at impact and settles with the existing recovery.
+ if(['stab','slash','punch'].includes(motion)){
+  const effort=motion==='punch'?Math.max(0,pose.lean/.07):(after?recover:thrust);
+  hands[1][0]+=.02*effort;hands[1][1]+=.025*effort;hands[1][2]-=.14*effort;
+  hands[1][3]-=.12*effort;
+  pose.twist=.12*effort;
+ }
  return {pose,hands,handWork:null,expression:'focused',bowDraw,nocked,arrowRaise};
 }
 // Equipment affects the pose only; receiving a block animation never changes damage rules.
