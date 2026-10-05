@@ -20,6 +20,19 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Relaxed weapon carry and windup — 2026-10-05
+
+- `equipmentIdleHands` supplies the shared lowered sword/dagger/bow carry pose in gameplay and model previews, including attack/block starting and recovery poses. Dagger aiming is brief and angles inward once the hand clears the body; sword retains its rear/slash rotation keys; bow raises along a clear outward arc before drawing.
+- Bow rests horizontally with the string above the wood. Its ready position is between center and left, nearer the face. Shared `bow-presentation.js` attaches an arrow to the drawing hand and rotates it into alignment before draw; it hides on release, cancellation, and non-archery actions. The draw retains its off-hand wooden grip, main-hand string contact, and forward arrow aim. Recovery returns smoothly to carry.
+- Playground coverage remains Idle/Sliding plus Attack/Block with independent equipment on all slime models, and live equipped combat. Validation: 172 tests, both builds, and debug isolation passed; tests cover both bow hands through lift/draw/recovery, horizontal carry orientation, and hand-held arrow alignment and release. Browser inspection covered carry, arrow pickup/rotation, full draw, and stab impact; live bow combat completed in the clearing and Cinderhold without runtime errors.
+
+### Combat pose polish — 2026-10-05
+
+- Shared stab starts at the idle hand position. Slash translation follows an outward curve around the body while preserving the blade rotation and attack timing.
+- Bows remain main-slot, two-handed equipment, but the shared held-tool attachment mounts the wooden grip in the off hand. The main hand follows the string as the torso turns through the draw; the arrow stays aimed forward. Bow blocking uses the same corrected attachment.
+- Existing playground Attack motion overrides and independent equipment selectors expose these changes on the player and every mentor; live equipped attacks use the same production functions.
+- Verification: 170 tests passed, including sampled hand clearance, preserved slash rotations, and bow grip/string alignment. Normal/debug builds and debug isolation passed. Browser checks inspected player/mentor poses and completed real bow target combat in the clearing before travel and in Cinderhold, with no runtime errors. These checks were focused combat checks, not a fresh full tutorial playthrough.
+
 - `src/cooking.js`: app-owned cooking action, Culinary XP, cancellation, station availability, and one-recipe completion. `src/recipes.js`: shared recipe catalogue and material/tool helpers.
 - `src/cooking-menu.js` / `.css`: shared recipe picker and details. The debug interface preview opens with no station and cannot cook; it must not move the player, change maps, or grant items. A real campfire provides the station context.
 - Cooking header/close-button bugs came from global `header`/`footer` styles. Those styles were scoped, and the cooking UI uses its own classes.

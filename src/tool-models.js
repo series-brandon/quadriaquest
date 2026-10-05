@@ -11,4 +11,6 @@ export function tool(kind){
  if(kind==='rods')return makeFishingRod();
  return g;
 }
-export function heldTool(kind){const group=tool(kind);if(['swords','shields','hammers','copperDagger','copperShield'].includes(kind))group.rotation.y=Math.PI/2;return group;}
+// Inventory slots and physical gripping hands differ for a two-handed bow.
+export function heldToolHand(kind){return ['shields','copperShield','bows'].includes(kind)?1:0;}
+export function heldTool(kind){const group=tool(kind);if(kind==='bows')group.position.z=-.22;if(['swords','shields','hammers','copperDagger','copperShield'].includes(kind))group.rotation.y=Math.PI/2;return group;}

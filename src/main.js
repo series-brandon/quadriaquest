@@ -1,3 +1,4 @@
+import {equipmentIdleHands} from './combat-animation.js';
 import {terrainHitData} from './terrain-batch.js';
 import {CINDERHOLD} from './cinderhold-rules.js';
 import {createCinderhold} from './cinderhold.js';
@@ -458,10 +459,11 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  axeTool.visible=actionMotion?.kind==='Chopping'||(__PLAYGROUND__&&debug?.chopping);
  pickaxeTool.visible=actionMotion?.kind==='Mining'||(__PLAYGROUND__&&debug?.mining);
  const chopping=pickaxeTool.visible?miningMotion(actionMotion?.time??debug?.time??0):axeTool.visible?chopMotion(actionMotion?.time??debug?.time??0):null;
+ const carryHands=equipmentIdleHands({item:equipment.slots.main});
  // Both hands share the chop cycle; other interactions keep their scoop gesture.
  for(let i=0;i<hands.length;i++){
-  const hand=hands[i],side=i===0?-1:1;
-  let x=side*.46,y=.33,z=.08+(pose.armDrive||0),curl=0,roll=0,yaw=0;
+  const hand=hands[i];
+  let [x,y,z,curl,roll,yaw]=carryHands[i];z+=pose.armDrive||0;
   if(handWork!==null&&!chopping)[x,y,z,curl,roll,yaw]=gatheringHand(handWork,i);
   if(chopping)[x,y,z,curl,roll,yaw=0]=i===0?chopping.right:chopping.left;
   if(socialHands)[x,y,z,curl,roll,yaw=0]=socialHands[i];
