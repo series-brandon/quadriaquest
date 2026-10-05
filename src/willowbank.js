@@ -9,11 +9,10 @@ import {makeFlowers,makeTerrainTile,addWaterTile} from './world-models.js';
 import * as THREE from 'three';
 import {createGrassColors} from './grass-palette.js';
 import {createWaterEffects} from './water-effects.js';
-import {makeCrystal} from './finale-models.js';
 import {highlightResource} from './resource-highlight.js';
 import {createCharacterDialogue} from './character-dialogue.js';
 import {part} from './model-parts.js';
-import {fisher} from './fisher-model.js';
+import {fisher,animateFisher} from './fisher-model.js';
 import {WILLOWBANK,makeWillowbankTiles} from './willowbank-rules.js';
 import {updateObjective,finishObjective,setObjectiveHelp,resetObjectives} from './quests.js';
 import {key} from './world.js';
@@ -41,7 +40,7 @@ export function createWillowbank(api){
  function t(x,z){return map.get(key(x,z));}
  function actor(model,x,z,kind,label){const tile=t(x,z),a={group:model,x,z,tile,kind,label,ready:true,opened:false,duration:0,willow:true};model.position.set(x-6,tile.h,z-6);group.add(model);setWorldOccupancy(a,true);
   const small=['sticks','stones','flint'].includes(kind);const hit=part(model,new THREE.BoxGeometry(small?.5:.65,small?.5:1,small?.5:.65),new THREE.MeshBasicMaterial({visible:false}),0,small?.25:.5);a.hitTarget=hit;hit.userData.actor=a;hit.userData.tile=tile;api.pickables.push(hit);model.traverse(o=>{if(o.isMesh&&o!==hit){o.userData.actor=a;o.userData.tile=tile;api.pickables.push(o);}});const originals=new Set(model.children);model.remove(hit);a.highlight=highlightResource(model,{height:kind==='tree'?2.8:small?.85:1.5});model.add(hit);for(const child of model.children)if(!originals.has(child)||child===hit)child.userData.portraitIgnore=true;actors.push(a);return a;}
- const crystal=actor(makeCrystal(),...WILLOWBANK.crystal,'crystal','Return to the clearing');
+ const crystal=api.crystals.add({tile:t(...WILLOWBANK.crystal),parent:group,destination:'clearing',label:'Return to the clearing'});
  const reed=fisher(),reedActor=actor(reed.group,...WILLOWBANK.reed,'reed','Talk to Reed'),reedFacing=createConversationFacing(reed.group);
  const companions=api.companions,pet=companions.model;pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);group.add(pet);let rescueGait=0,rescueWaiting=false;
 
@@ -116,7 +115,7 @@ export function createWillowbank(api){
  function foodEaten(){if(!active)return;eaten++;if(phase==='eat'){done('eat');phase='finished';api.closeMenus();lines([['You repaired a bridge, helped a stranded animal, and made yourself dinner.','happy'],['And found a friend along the way.','happy'],[`I’d call that a pretty good start, ${api.profile().name||'Pip'}.`,'happy']],()=>showTip('Broken Bridge Rescue — Complete!','You rescued a companion and learned how to recover.',()=>showTip('Willowbank complete!', 'You can keep exploring and practicing here, or use the Iter Crystal to return to the clearing. Your next adventure is still to come!')));}}
 
  function busy(){return !!injuryReaction||introActive||dialogue.active||rescueAge!==null;}
- function interact(a){if(!active||busy())return;tip.hidden=true;if(a.kind==='crystal'){api.return();return;}if(a.kind==='reed')talk();else if(a.kind==='bridge')repair();else if(a.resourceNode)api.resourceActions.start(a);}
+ function interact(a){if(!active||busy())return;tip.hidden=true;if(a.kind==='reed')talk();else if(a.kind==='bridge')repair();else if(a.resourceNode)api.resourceActions.start(a);}
  function arrival(){
   api.stop();dialogue.hide();introSeen=true;introActive=true;introFocus=null;
   api.say('Good work! You just made your first Iter Crystal teleportation!',()=>
@@ -141,7 +140,7 @@ export function createWillowbank(api){
   }
   water.update(dt);
 
-reedFacing.update(dt);reed.group.scale.set(1,1+Math.sin(time*2.8)*.025,1);reed.hands[1].position.y=.26+Math.sin(time*2.8)*.02;reed.face.set(dialogue.expressionFor('right')||(phase==='meet'?'distraught':'idle'));
+reedFacing.update(dt);animateFisher(reed,time,dialogue.expressionFor('right')||(phase==='meet'?'distraught':'idle'));
   const targets={bridge:'bridge',flint:'flint',cook:'fire'};
   for(const a of actors){const repairing=a===bridge&&api.carpentry.matches(bridge);a.highlight.update((phase==='meet'&&a===reedActor||guided&&a.kind===targets[phase])&&!a.depleted&&!a.opened&&!repairing,time,api.hover()===a&&!a.depleted&&!a.opened&&!repairing);}
   if(injuryReaction){injuryReaction.age+=dt;if(injuryReaction.age>=1.2&&!injuryReaction.spoken){injuryReaction.spoken=true;playerLine('Youch! I smashed my finger!',()=>{dialogue.hide();injuryReaction=null;},'struggle');}return {kind:'Hammer injury',time:Math.min(injuryReaction.age,1.2)};}

@@ -46,6 +46,7 @@ export function mountPlayground(api){
   let modelPreview;
   const panel=document.createElement('details');panel.id='quadriaquest-dev-playground';panel.open=false;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>close</small></summary>
+    <fieldset><legend>Travel practice</legend><p class="dev-note">Uses shared travel and real crystals. Repeat trips, cancel during the fade, or reset the current area. Inventory and skills persist across travel.</p><label>Destination<select id="dev-travel"><option value="willowbank">Willowbank</option><option value="clearing">Clearing</option></select></label><button data-dev="travel">Travel</button><button data-dev="use-crystal">Walk to crystal</button><button data-dev="cancel-travel">Cancel travel</button></fieldset>
     <fieldset><legend>Tutorial checkpoints</legend><p class="dev-note">Loads the selected area and tutorial with its prerequisites. Replaces the current test session.</p><label>Tutorial step<select id="dev-checkpoint">${TUTORIAL_CHECKPOINTS.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select></label><button data-dev="checkpoint">Load step</button><button data-dev="reset-area">Reset current area</button></fieldset>
     <fieldset><legend>Objective feedback</legend>${['tip','add','update','complete','reset'].map(id=>`<button data-objective="${id}">${({tip:'Show tutorial tip',add:'Add objective',update:'Update progress',complete:'Complete objective',reset:'Clear objectives'})[id]}</button>`).join('')}</fieldset><fieldset><legend>UI &amp; audio polish</legend><label>Interface<select id="dev-interface">${[['quests','Quests'],['inventory','Inventory'],['skills','Skills'],['crafting','Crafting'],['companions','Companions'],['companion-name','Companion naming'],['cooking','Cooking'],['settings','Settings tab'],['settings-popup','Settings popup'],['models','Model viewer'],['splash','Splash screen']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label><button data-dev="interface">Open</button><button data-dev="receipt">Crafting receipt</button><button data-dev="clear-loot">Clear item feed</button><button data-dev="audio-reset">Reset audio</button><details><summary>Icon sheet</summary><div class="dev-icons">${ICON_NAMES.map(name=>`<span>${icon(name)} ${name}</span>`).join('')}</div></details><p class="dev-note">Journal tabs, search, expand/minimize, and item controls use the real menus. Crafting includes Crude Axe and Crude Pickaxe in every area: add Sticks and Rocks, craft, move to cancel, and repeat. Crafting level changes the displayed time. Tutorial checkpoints cover their guided lessons; Full test area resets items and skills. Sound controls are in Settings (journal or splash cog).</p><label>Music preview<select id="dev-music"><option value="">Follow game</option><option value="splash">Splash</option><option value="intro">Introduction</option><option value="clearing">Clearing</option></select></label><div>${['pickup','craft','complete','chop','mine','fall','level','portal','blocked','wind','bird','insect'].map(name=>`<button data-sound="${name}">${name}</button>`).join('')}</div></fieldset>
     <p class="dev-note">Tutorial skipped · changes are session-only</p>
@@ -135,6 +136,9 @@ export function mountPlayground(api){
       }
       if(b.dataset.dev){
         const action=b.dataset.dev;
+        if(action==='travel')status(api.travelTo($('travel').value)?'Travel started.':'Travel unavailable.');
+        if(action==='use-crystal')api.usePortal();
+        if(action==='cancel-travel'){api.cancelTravel();status('Travel cancelled.');}
         if(action==='checkpoint'){stop();const checkpoint=getCheckpoint($('checkpoint').value);await api.loadCheckpoint(checkpoint);status('Loaded '+checkpoint.label+' with required resources.');}
         if(action==='reset-area'){stop();api.closeSplash();api.resetCurrentArea();status('Current area reset.');}
         if(action==='combat'){status(api.combatAction($('combat').value));}
@@ -201,13 +205,13 @@ export function mountPlayground(api){
       }
       if(b.dataset.finale){
         stop();const action=b.dataset.finale;
-        if(action==='Reset finale')api.finale.reset();
-        else if(action==='Use portal'){if(api.finale.busy)throw Error('Finish the current finale sequence first.');api.finale.usePortal();}
-        else if(action==='Enter Willowbank'){if(api.finale.busy)throw Error('Finish the current finale sequence first.');api.finale.travel('placeholder');}
-        else if(action==='Return to clearing'){if(api.finale.busy)throw Error('Finish the current finale sequence first.');api.finale.travel('clearing');}
+        if(action==='Reset finale')api.resetFinale();
+        else if(action==='Use portal'){if(api.finale.busy)throw Error('Finish the current finale sequence first.');api.usePortal();}
+        else if(action==='Enter Willowbank'){if(api.finale.busy)throw Error('Finish the current finale sequence first.');api.travelTo('willowbank');}
+        else if(action==='Return to clearing'){if(api.finale.busy)throw Error('Finish the current finale sequence first.');api.travelTo('clearing');}
         else {
           if(api.finale.busy)throw Error('Finish the current dialogue or drop first, or use Reset finale.');
-          if(api.finale.inPlaceholder)throw Error('Return to the clearing first.');
+          if(api.areaId()!=='clearing')throw Error('Return to the clearing first.');
           const actions={'Closing dialogue':()=>api.finale.begin(),'Drop portal':()=>api.finale.dropPortal(),'Practice reset':()=>api.finale.resetPractice(),'Complete practice':()=>api.completePractice(),'Reward dialogue':()=>api.finale.revealReward(),'Drop chest':()=>api.finale.dropChest(),'Open chest':()=>api.finale.openChest(),'Celebration':()=>api.finale.celebrate(),'Wear/remove hat':()=>api.equipment.toggle('hats')};
           actions[action]();
         }

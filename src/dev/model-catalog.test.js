@@ -44,3 +44,9 @@ test('default expressions follow the animation while explicit overrides leave ha
  instance.update(.4,'Sliding',0,'Happy');assert.deepEqual(visible(),happy);
  instance.update(.4,'Sliding',0,'default');assert.deepEqual(visible(),focused);
 });
+
+test('Reed preview uses the production idle motion and preserves facing',async()=>{
+ const {fisher,animateFisher}=await import('../fisher-model.js');
+ const rig=fisher(),preview=MODEL_CATALOG.find(m=>m.name==='Reed').create();rig.group.rotation.y=1.3;
+ for(const time of [0,1,3,0]){animateFisher(rig,time);preview.update(time,'Idle',.016,'default');assert.deepEqual(preview.group.scale.toArray(),rig.group.scale.toArray());assert.equal(rig.group.rotation.y,1.3);const positions=[];preview.group.traverse(o=>positions.push(o.position.toArray()));const expected=[];rig.group.traverse(o=>expected.push(o.position.toArray()));assert.deepEqual(positions,expected);}
+});

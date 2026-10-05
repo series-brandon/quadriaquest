@@ -9,7 +9,7 @@ export function organizePlayground(panel){
  const tutorials=section('Tutorials & objectives',['Tutorial checkpoints','Objective feedback','Reset']);
  section('Companions',['Companions']);
  section('Combat',['Combat practice']);
- section('World & water',['Terrain colors','Water animation','Resource picking','Fishing practice','Carpentry practice']);
+ section('World & water',['Travel practice','Terrain colors','Water animation','Resource picking','Fishing practice','Carpentry practice']);
  const ui=section('Interface & audio',['UI & audio polish']);
  const feedback=section('Visual feedback',['Visual feedback only']);
  section('Session state',[]).append(panel.querySelector('#dev-state'));
@@ -24,7 +24,7 @@ export function organizePlayground(panel){
  dropdown(ui,'[data-sound]','Sound effect','sound');
  dropdown(feedback,'[data-juice]','Feedback effect','feedback');
  // Label above the selector, action alongside it—same layout for every paired control.
- for(const [id,selector] of [['dev-checkpoint','[data-dev="checkpoint"]'],['dev-interface','[data-dev="interface"]'],['dev-health','[data-dev="health"]'],['dev-combat','[data-dev="combat"]'],['dev-companion-action','[data-companion="action"]'],['dev-companion-animation','[data-companion="preview"]']]){
+ for(const [id,selector] of [['dev-travel','[data-dev="travel"]'],['dev-checkpoint','[data-dev="checkpoint"]'],['dev-interface','[data-dev="interface"]'],['dev-health','[data-dev="health"]'],['dev-combat','[data-dev="combat"]'],['dev-companion-action','[data-companion="action"]'],['dev-companion-animation','[data-companion="preview"]']]){
   const label=panel.querySelector('#'+id).closest('label'),button=panel.querySelector(selector),row=document.createElement('div');row.className='dev-command';label.before(row);row.append(label,button);
  }
  for(const fieldset of panel.querySelectorAll('fieldset'))if(!fieldset.querySelector('button,input,select,details,p'))fieldset.remove();

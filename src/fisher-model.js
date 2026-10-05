@@ -11,3 +11,10 @@ export function fisher(){
  for(const child of group.children)child.position.y-=.07;
  return slime;
 }
+
+// Preserve facing and root placement; the area supplies only expression/narrative context.
+export function animateFisher(rig,time,expression='idle'){
+ rig.group.scale.set(1,1+Math.sin(time*2.8)*.025,1);
+ rig.hands[1].position.y=.26+Math.sin(time*2.8)*.02;
+ rig.face.set(expression);
+}
