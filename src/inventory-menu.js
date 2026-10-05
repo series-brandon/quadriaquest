@@ -19,10 +19,10 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
  const grid=panel.querySelector('.inventory-grid'),detail=panel.querySelector('.inventory-detail'),search=panel.querySelector('.journal-search');
  search.oninput=()=>{detailOpen=false;refresh(true);};
  function refresh(force=false){
-  const inventory=getInventory(),signature=JSON.stringify(inventory)+guided+selected+JSON.stringify(equipment.state?.());
+  const inventory=getInventory(),signature=JSON.stringify(inventory)+guided+selected+JSON.stringify(equipment.state?.())+JSON.stringify((equipment.actions?.(selected)||[]).map(a=>[a.label,!!a.disabled]));
   if(!force&&signature===last)return;last=signature;
   const visible=Object.entries(ITEMS).filter(([id,item])=>inventory[id]>0&&item.name.toLowerCase().includes((search.value||'').toLowerCase()));
-  if(!visible.some(([id])=>id===selected))selected=visible[0]?.[0]||null;
+  if(!visible.some(([id])=>id===selected)&&(!selected||search.value))selected=visible[0]?.[0]||null;
   const scrollTop=grid.scrollTop;
   grid.replaceChildren();
   for(const [id,item]of visible){
@@ -42,5 +42,5 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
   }
 
  }
- return {panel,refresh,open(){selected=null;detailOpen=false;last='';search.value='';panel.hidden=false;refresh();},close(){panel.hidden=true;},guide(value){guided=value;if(guideFrame!==undefined)cancelAnimationFrame(guideFrame);guideOverlay.hidden=true;if(value){search.value='';selected=null;detailOpen=false;}refresh(true);if(value){grid.scrollTop=0;guideFrame=requestAnimationFrame(positionGuide);}},lock(value){panel.querySelector('button').disabled=value;}};
+ return {panel,refresh,open(){panel.hidden=false;refresh(true);},close(){panel.hidden=true;},guide(value){guided=value;if(guideFrame!==undefined)cancelAnimationFrame(guideFrame);guideOverlay.hidden=true;if(value){search.value='';selected=null;detailOpen=false;}refresh(true);if(value){grid.scrollTop=0;guideFrame=requestAnimationFrame(positionGuide);}},lock(value){panel.querySelector('button').disabled=value;}};
 }

@@ -1,5 +1,10 @@
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
+ quickRestore:'<path d="M9 3h6M10 3v5l-5 9q-2 4 3 4h8q5 0 3-4l-5-9V3M7 15h10"/>',
+ sprint:'<path d="M7 3h9v9l5 3v5H3v-4l4-4zM7 7h4m-4 3h4M3 17h18"/>',
+ collapseSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-6-11 3 3-3 3"/>',
+ expandSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-4-11-3 3 3 3"/>',
+ quickEat:'<path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v18M17 3c-3 3-3 7 0 9h3V3zM20 12v9"/>',
  copperOre:'<path d="m3 17 3-11 10-3 6 9-5 9H7zM7 8l4 3-2 4m6-9 1 5 4 2"/>',
  copperIngots:'<path d="m3 16 4-9h10l4 9-3 4H6zM3 16h18M7 7l2 9m8-9-2 9"/>',
  copperDagger:'<path d="m5 21 4-5m-4-3 7 7m-4-6 7-10 5-2-2 6-8 8"/>',

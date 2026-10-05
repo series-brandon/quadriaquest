@@ -10,15 +10,15 @@ import {createRecipeCrafting} from './recipe-crafting.js';
 import {ENEMIES} from './combat-rules.js';
 function fixture(kind='bruiser'){
  const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
- const home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,food,craft;
+ const home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,food,craft;
  const equipment=createEquipment({inventory,busy:()=>system.working||system.busy});
  const styles=createCombatStyles({equipment,busy:()=>system.working});
  const interrupt=()=>{interrupts++;cancelPlayerActions({food,craft},{keepCombat:true,keepFood:true});};
- const system=createCombatSystem({world,health,equipment,inventory,attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(){},sound(){},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
+ const system=createCombatSystem({world,health,equipment,inventory,attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,attacked(){attacks++;},eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(){},sound(){},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
  food=createFoodSystem({inventory,health,stop:interrupt,busy:()=>system.busy});
  craft=createRecipeCrafting({inventory,skill:{level:1,xp:0},stop(){},busy:()=>system.working,completed(){}});
  const a=system.add({kind,aggressive:false,rules:ENEMIES[kind],group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
- return {system,a,food,craft,get interrupts(){return interrupts;},health,equipment,styles,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
+ return {system,a,food,craft,get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
 }
 test('equipment is available without an area, guards stale actions, and clears missing items',()=>{
  const inventory={swords:1,shields:1};let busy=false;const e=createEquipment({inventory,busy:()=>busy});
@@ -130,4 +130,8 @@ test('awareness cannot cross walls or safe zones and reset clears multiple aggre
  f.safe=true;frames(f,.1);assert.equal(f.a.aggro,false);f.safe=false;frames(f,.1);assert.equal(f.a.aggro,true);
  const home=f.world.get('4,5');const other=f.system.add({kind:'scrapper',aggressive:true,aggroRange:3,rules:ENEMIES.scrapper,group:new Group(),tile:home,home,x:4,z:5,scale:1});
  frames(f,.1);assert.equal(other.aggro,true);f.system.clear();assert.equal(other.aggro,false);assert.equal(f.a.aggro,false);assert.equal(f.system.working,false);
+});
+
+test('incoming misses notify responsive UI just like damaging attacks',()=>{
+ for(const roll of [.5,.99]){const f=fixture();f.roll=roll;f.a.aggressive=true;f.system.setAutoRetaliate(false);frames(f,2.1);assert.equal(f.attacks,1);assert.equal(f.health.value===30,roll===.99);}
 });

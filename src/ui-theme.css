@@ -267,11 +267,17 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 .settings-content{max-width:480px;width:100%;margin:0 auto}
 .settings-content input[type=range]{max-width:55%}
 
-/* Small screens use edge-to-edge menus; dialogue/tips/toasts remain overlays. */
+/* Small screens use edge-to-edge menus; tiny confirmations remain compact overlays. */
 @media(max-width:700px){
  body dialog,body #game-settings,body #cooking-menu,body .willow-modal{box-sizing:border-box;position:fixed;inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;border:0;padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow:auto}
  body #journal,body #journal.expanded,body #journal:not(.expanded){inset:0;width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;border:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box}
  body dialog input,body dialog select{font-size:16px;min-height:44px;box-sizing:border-box}
+}
+
+/* Opt-in for short confirmations: one message and a small set of actions. */
+@media(max-width:700px){
+ body dialog.compact-confirm{inset:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));margin:auto;width:calc(100% - max(16px,env(safe-area-inset-left)) - max(16px,env(safe-area-inset-right)));max-width:360px;height:fit-content;max-height:calc(100dvh - max(16px,env(safe-area-inset-top)) - max(16px,env(safe-area-inset-bottom)));padding:20px;border:1px solid var(--ui-border);border-radius:18px;overflow:auto;overscroll-behavior:contain}
+ body dialog.compact-confirm button{min-width:44px;min-height:44px}
 }
 
 /* Guided journal steps expose only their required action. */

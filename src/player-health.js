@@ -29,11 +29,13 @@ export function createFoodSystem(api){
   }
   return motion;
  }
- return {start,update,cancel,get working(){return !!action;},inventoryActions(id){return FOODS[id]?[{label:'Eat',disabled:!!action||!!api.busy?.(),run:()=>start(id)}]:[];}};
+ return {start,update,cancel,get working(){return !!action;},inventoryActions(id){return FOODS[id]?[{label:'Eat',disabled:!api.inventory[id]||!!action||!!api.busy?.(),run:()=>start(id)}]:[];}};
 }
 
 export function createHealthUI(health){
- const hud=document.createElement('aside');hud.id='player-health';hud.hidden=true;
- hud.innerHTML='<strong>Your health</strong><progress></progress><span></span>';document.body.append(hud);
- return {update(visible){hud.hidden=!visible;hud.querySelector('progress').max=health.max;hud.querySelector('progress').value=health.value;hud.querySelector('span').textContent=`${health.value} / ${health.max}`;}};
+ const hud=document.createElement('aside');hud.id='player-health';hud.className='resource-orb';hud.hidden=true;
+ hud.setAttribute('role','meter');hud.setAttribute('aria-label','Health');hud.setAttribute('aria-valuemin','0');
+ hud.innerHTML='<span class="health-orb-fill" aria-hidden="true"></span><strong class="health-orb-value" aria-hidden="true"></strong>';document.body.append(hud);
+ const number=hud.querySelector('.health-orb-value');
+ return {update(visible){hud.hidden=!visible;hud.style.setProperty('--health-fill',`${100*health.value/health.max}%`);hud.setAttribute('aria-valuemax',String(health.max));hud.setAttribute('aria-valuenow',String(health.value));hud.setAttribute('aria-valuetext',`${health.value} of ${health.max} health`);hud.title=`Health: ${health.value} / ${health.max}`;number.textContent=health.value;}};
 }

@@ -1,3 +1,4 @@
+import {gameViewport} from './game-viewport.js';
 import {Vector3} from 'three';
 import {findPath,key} from './world.js';
 import {withinAttackRange} from './combat-range.js';
@@ -54,7 +55,7 @@ export function createCombatSystem(api){
   a.aggro=true;a.patrolRoute=[];if(!fight&&!chase)chase={enemy:a,age:0};api.interrupt?.();
  }
  function hitPlayer(a){
-  api.interrupt?.();
+  api.attacked?.(a);api.interrupt?.();
   const before=api.health.value,hit=random()<.85;
   if(hit){api.health.value=incomingHealth(before,damageRoll(a.rules.min,a.rules.max,random),api.equipment.mitigation??0,a.rules.protected);defense={age:0,profile:profile()};}
   api.hit(api.player.position,hit?before-api.health.value:null);api.sound('blocked');
@@ -119,7 +120,7 @@ export function createCombatSystem(api){
    if(a.aggro&&adjacent(a)&&!defeated){a.enemyClock+=dt;if(a.enemyClock>=a.rules.interval){a.enemyClock-=a.rules.interval;a.attackAge=.28;hitPlayer(a);}}
    else a.enemyClock=0;
    animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,a.rules.interval):0,hit:Math.sin(Math.PI*a.hitAge/.25)});
-   if(a.healthLabel&&fight?.enemy===a&&camera){a.healthLabel.hidden=false;projected.copy(a.group.position).add(new Vector3(0,1.7,0)).project(camera);a.healthLabel.style.left=(projected.x+1)*innerWidth/2+'px';a.healthLabel.style.top=(1-projected.y)*innerHeight/2+'px';a.healthLabel.textContent=`${a.rules.name} · ${a.hp}/${a.rules.health}`;}
+   if(a.healthLabel&&fight?.enemy===a&&camera){a.healthLabel.hidden=false;projected.copy(a.group.position).add(new Vector3(0,1.7,0)).project(camera);const view=gameViewport();a.healthLabel.style.left=view.left+(projected.x+1)*view.width/2+'px';a.healthLabel.style.top=view.top+(1-projected.y)*view.height/2+'px';a.healthLabel.textContent=`${a.rules.name} · ${a.hp}/${a.rules.health}`;}
   }
   for(const [a,f] of fleeing)if(current(a)){f.age+=dt;animate(a,time,{walk:1});if(f.destination){a.group.rotation.y=Math.atan2(f.destination.x-a.group.position.x,f.destination.z-a.group.position.z);a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}a.group.scale.setScalar(a.scale*Math.max(.01,1-Math.max(0,(f.age-.8)/.4)));if(f.age>=1.2){a.group.visible=false;fleeing.delete(a);}}
   if(defeated){defeated+=dt;api.fade?.(Math.max(0,Math.min(1,(defeated-FAINT_FADE_START)/(FAINT_RESPAWN_TIME-FAINT_FADE_START))));if(defeated>=FAINT_RESPAWN_TIME&&api.respawn()){defeated=0;api.health.restore();api.fade?.(0);api.respawned?.();return null;}return {kind:'Defeated',time:Math.min(defeated,FAINT_RESPAWN_TIME)};}

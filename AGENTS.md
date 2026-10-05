@@ -18,7 +18,7 @@ Treat tiles, ground items, resources, NPCs, enemies, companions, and other world
 
 ## Mobile UI and model previews
 
-Default menus and utility modal windows to fullscreen, edge-to-edge layouts on small screens, with safe-area padding. Dialogue, tutorial tips, toasts, and other transient gameplay overlays are exceptions. Keep controls touch-sized and preview camera aspects synchronized with actual canvas dimensions. Every new shared 3D model belongs in the dev model catalogue; list only motions it actually supports and reuse production animation functions.
+Default menus and utility modal windows to fullscreen, edge-to-edge layouts on small screens, with safe-area padding. Dialogue, tutorial tips, toasts, and other transient gameplay overlays are exceptions. Tiny confirmations with a short message and a few buttons (such as eating at full health) should also remain compact, centered dialogs with touch-sized actions; use the shared compact-confirm styling. Keep controls touch-sized and preview camera aspects synchronized with actual canvas dimensions. Every new shared 3D model belongs in the dev model catalogue; list only motions it actually supports and reuse production animation functions.
 
 ## Fresh-context entry point
 
