@@ -20,6 +20,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### CPU investigation and bounded verification — 2026-10-05
+
+- Previous automated checks explicitly forced SwiftShader, moving graphics rendering onto the CPU; a short comparison got ~8 FPS versus ~60 FPS with ANGLE Metal on the M1 Max. No old verification browsers/servers were running when this investigation started; the user's port-5174 server was preserved. Routine checks must use hardware rendering, one browser, bounded lifetime and finally cleanup (see AGENTS/README).
+- Removed unchanged per-frame health DOM writes, redundant sidebar layout/navigation/status writes, recipe markup rebuilds and combat-option reconstruction. Recipe caches include inventory, skill levels, busy state and active recipe; combat cache includes learned/selected styles, busy state and retaliation. Cached fixed game viewport bounds refresh through the existing resize/ResizeObserver path, avoiding repeated layout measurements during rendering.
+- Four four-second idle samples (Quests, Inventory, Skills, Combat), same 1200×850 GPU-backed clearing setup: sidebar mutations fell from 8,304–8,506 per sample to zero; summed main-thread task duration fell 6.007s → 5.277s (~12%). ~60 FPS retained; layout duration fell to zero during those idle samples. These are short local main-thread measurements, not total-machine CPU guarantees; 3D rendering/shadow/scene traversal work remains.
+- `node scripts/profile-ui.mjs` profiles the running playground, reports actual renderer/timings/mutations and saves Chrome CPU profiles under a printed temporary directory. It launches one disposable browser with a 65-second watchdog and cleans up automatically; optional --software runs one explicit comparison. Existing health/inventory/crafting/combat/travel/reset and resize/collapse controls exercise production behavior; playground instructions updated.
+- Live regression checks passed health damage/eating completion, crafting busy/completion labels, retaliation toggling, viewport cache updates through desktop/mobile/collapse/restore, Cinderhold and reset. 198 tests and both build variants/debug isolation passed. No frame-rate cap, visual-quality reduction or gameplay timing change was introduced.
+
 ### Sidebar persistence and overview refinements — 2026-10-05
 
 - Docked desktop journal now always stays open, restoring its last page when necessary and ignoring dismissal/Escape. Its close control is hidden. Collapse/expand belongs to the player overview; collapsing moves the overview to the upper right with an integrated expand icon and restores the full game viewport. Mobile retains explicit journal dismissal. Guided tutorial controls still use the shared tutorial lock.

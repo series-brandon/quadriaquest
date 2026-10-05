@@ -29,7 +29,7 @@ export function mountJournal(menus,controller,settings){
  let last='quests',docked=false;
  const sync=()=>{
   const lastTab=nav.querySelector('[data-journal-last]');if(lastTab?.nextElementSibling)nav.append(lastTab);
-  for(const button of nav.querySelectorAll('button')){const label=button.querySelector('span')?.textContent;if(label){if(!button.hasAttribute('aria-label'))button.setAttribute('aria-label',label);button.title=label;}}
+  for(const button of nav.querySelectorAll('button')){const label=button.querySelector('span')?.textContent;if(label){if(!button.hasAttribute('aria-label'))button.setAttribute('aria-label',label);if(button.title!==label)button.title=label;}}
   const active=['inventory','skills','crafting','quests','companions','settings','combat','equipment'].find(name=>$(name+'-panel')&&!$(name+'-panel').hidden);
   if(docked&&desktop.matches&&!tutorialLock.locked&&nav.hidden)nav.hidden=false;
   if(docked&&desktop.matches&&!active&&!tutorialLock.locked){const button=$(last==='combat'?'open-combat-styles':'open-'+last);if(button&&!button.hidden)button.click();}
@@ -42,8 +42,8 @@ export function mountJournal(menus,controller,settings){
 
   const questClose=questPanel.querySelector('.crafting-heading button');const locked=controller.stage==='quests-detail';if(questClose.disabled!==locked)questClose.disabled=locked;
   const close=activeClose();if($('journal-close').disabled!==!!close?.disabled)$('journal-close').disabled=!!close?.disabled;
-  for(const name of ['inventory','skills','crafting','quests','companions','settings','combat','equipment'])$(name==='combat'?'open-combat-styles':'open-'+name)?.setAttribute('aria-current',String(active===name));
-  $('game-menu-toggle').setAttribute('aria-expanded',String(!shell.hidden));
+  for(const name of ['inventory','skills','crafting','quests','companions','settings','combat','equipment']){const button=$(name==='combat'?'open-combat-styles':'open-'+name),current=String(active===name);if(button&&button.getAttribute('aria-current')!==current)button.setAttribute('aria-current',current);}
+  const expanded=String(!shell.hidden);if($('game-menu-toggle').getAttribute('aria-expanded')!==expanded)$('game-menu-toggle').setAttribute('aria-expanded',expanded);
   tutorialLock.sync();
  };
  new MutationObserver(sync).observe(host,{subtree:true,attributes:true,attributeFilter:['hidden','disabled','class'],childList:true});mobile.addEventListener('change',sync);sync();

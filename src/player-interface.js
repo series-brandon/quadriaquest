@@ -25,13 +25,14 @@ export function createPlayerInterface({menus,journal,health,food,inventory,equip
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!more.hidden){e.preventDefault();closeMore(true);}});
  document.addEventListener('pointerdown',e=>{if(!more.hidden&&!more.contains(e.target)&&!mobileNav.contains(e.target))closeMore();});
  const mobileButtons=new Map();
- let hidden=false,visible=false,quickFood='cookedFish',clock=0,gearSignature='',navSignature='',lastMessage='',messageUntil=0;
+ let hidden=false,visible=false,quickFood='cookedFish',clock=0,gearSignature='',navSignature='',lastMessage='',messageUntil=0,layoutSignature='',foodSignature='';
  const gear=document.createElement('section');gear.id='equipment-panel';gear.hidden=true;gear.innerHTML='<div class="crafting-heading"><h2>Equipment</h2><button aria-label="Close equipment">×</button></div><div class="equipment-list"></div>';$('journal').append(gear);gear.querySelector('button').onclick=()=>menus.closeMenus('dismiss');
  const gearTab=document.createElement('button');gearTab.id='open-equipment';gearTab.innerHTML=icon('shields')+'<span>Equipment</span>';$('game-menu-bar').append(gearTab);gearTab.onclick=()=>{menus.closeMenus('switch');gear.hidden=false;renderGear();};
  $('journal').append($('combat-panel'));$('open-combat-styles').innerHTML=icon('Combat')+'<span>Combat</span>';
  // Journal tab identity is deliberately independent of the old menu's DOM id.
  
  function layout(){
+  const signature=[visible,mobile.matches,hidden,journal.locked].join(':');if(signature===layoutSignature)return;layoutSignature=signature;
   document.body.classList.toggle('player-ui-active',visible);document.body.classList.toggle('journal-guided',journal.locked);
   document.body.classList.toggle('player-sidebar-open',visible&&!mobile.matches&&!hidden);
   sidebar.hidden=!visible||mobile.matches||hidden;hud.hidden=!visible||(!mobile.matches&&!hidden);
@@ -78,17 +79,17 @@ export function createPlayerInterface({menus,journal,health,food,inventory,equip
    for(const b of tabs){const proxy=document.createElement('button');proxy.innerHTML=b.innerHTML;proxy.setAttribute('aria-label',b.getAttribute('aria-label')||b.textContent);proxy.onclick=()=>{closeMore();b.click();};(primary.includes(b)?mobileNav:more.querySelector('.more-tabs')).append(proxy);mobileButtons.set(b,proxy);}
    if(secondary.length)mobileNav.append(moreButton);else closeMore();
   }
-  for(const [b,proxy] of mobileButtons){proxy.inert=b.inert;proxy.disabled=b.disabled;proxy.setAttribute('aria-current',b.getAttribute('aria-current')||'false');}
-  moreButton.setAttribute('aria-current',String([...more.querySelectorAll('[aria-current="true"]')].length>0));
+  for(const [b,proxy] of mobileButtons){if(proxy.inert!==b.inert)proxy.inert=b.inert;if(proxy.disabled!==b.disabled)proxy.disabled=b.disabled;const current=b.getAttribute('aria-current')||'false';if(proxy.getAttribute('aria-current')!==current)proxy.setAttribute('aria-current',current);}
+  const moreActive=String(!!more.querySelector('[aria-current="true"]'));if(moreButton.getAttribute('aria-current')!==moreActive)moreButton.setAttribute('aria-current',moreActive);
  }
  mobile.addEventListener('change',layout);
  return {
   reaction,assignFood(id){if(FOODS[id])quickFood=id;},get quickFood(){return quickFood;},
   attacked(){reaction('attacked');lastMessage='Under attack!';messageUntil=performance.now()+2000;},
   reset(){hidden=false;quickFood='cookedFish';journal.compact();menus.closeMenus();layout();},
-  update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();
-   const action=food.inventoryActions(quickFood)[0];const button=$('quick-food');button.disabled=!inventory[quickFood]||!!action?.disabled;button.querySelector('span').textContent=food.working?'Eating…':'Eat';button.title=`${ITEMS[quickFood].name} ×${inventory[quickFood]||0}`;button.setAttribute('aria-label',`${food.working?'Eating':'Quick eat'} ${button.title}`);
-   $('player-combat-status').textContent=performance.now()<messageUntil?lastMessage:combat.working?'In combat · Auto-Retaliate '+(combat.autoRetaliate?'On':'Off'):'';
+  update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();if(!visible)return;
+   const action=food.inventoryActions(quickFood)[0];const button=$('quick-food'),signature=[quickFood,inventory[quickFood],food.working,!!action?.disabled].join(':');if(signature!==foodSignature){foodSignature=signature;button.disabled=!inventory[quickFood]||!!action?.disabled;button.querySelector('span').textContent=food.working?'Eating…':'Eat';button.title=`${ITEMS[quickFood].name} ×${inventory[quickFood]||0}`;button.setAttribute('aria-label',`${food.working?'Eating':'Quick eat'} ${button.title}`);}
+   const status=performance.now()<messageUntil?lastMessage:combat.working?'In combat · Auto-Retaliate '+(combat.autoRetaliate?'On':'Off'):'';if($('player-combat-status').textContent!==status)$('player-combat-status').textContent=status;
    drawMap();refreshNav();if(!gear.hidden)renderGear();if(!$('combat-panel').hidden)styleMenu.refresh();if(!$('journal').hidden)menus.refresh();
   },
   get state(){return {mobile:mobile.matches,moreOpen:!more.hidden,hidden,quickFood,expanded:journal.expanded,menuOpen:!$('journal').hidden};}

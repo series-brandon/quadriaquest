@@ -31,3 +31,7 @@ Only area layout and area narrative are location-specific. Skilling actions, rec
 For example, Willowbank owns its broken bridge story, placement, rescue sequence, quest progression, and scripted injury moment. Shared carpentry owns tool/material checks, action timing, hammer animation, cancellation, consumption, and XP. An area configures a work target and reacts to progress/completion; it does not own the skill itself. The same distinction applies to fishing, gathering, cooking, and other skills.
 
 Validate shared changes in the clearing before visiting Willowbank and in a second area. Exercise cancellation, completion, repeated use, travel, and reset where applicable. Merely moving a model or UI into a shared file does not prove its underlying gameplay is portable. Keep remaining coupling explicitly tracked; do not claim an extraction is complete while area gates or duplicate behavior remain.
+
+## Bounded browser verification
+
+Use GPU-backed browser rendering for routine game checks. Do not force SwiftShader/software rendering unless explicitly investigating that path; report it as a different rendering setup, not representative gameplay performance. Run one verification browser at a time, bound its lifetime, and close your browser/processes in a finally block. Do not leave preview servers or animation-heavy tabs running after verification. Preserve the user's own browsers and servers. `node scripts/profile-ui.mjs` profiles a running playground with automatic cleanup.

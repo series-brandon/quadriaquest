@@ -31,7 +31,7 @@ export function createGameMenus({getInventory,getSkills,startCraft,craftState=()
  $('skills-search').oninput=()=>renderSkills();
   const skillRows=new Map();
   function renderSkills(){
-    $('close-skills').disabled=skillGuidance.locked;
+    if($('close-skills').disabled!==!!skillGuidance.locked)$('close-skills').disabled=!!skillGuidance.locked;
     const skills=getSkills(),search=($('skills-search').value||'').toLowerCase();
     for(const [name,row] of skillRows)if(!skills[name]){row.remove();skillRows.delete(name);}
     for(const [name,skill] of Object.entries(skills)){
@@ -41,7 +41,7 @@ export function createGameMenus({getInventory,getSkills,startCraft,craftState=()
         row.innerHTML=`<summary>${icon(name)}<strong>${name}</strong><b></b><progress max="${GATHERING_XP_PER_LEVEL}" aria-label="${name} progress"></progress></summary><p></p><progress max="${GATHERING_XP_PER_LEVEL}"></progress><small></small><small></small>`;
         skillRows.set(name,row);$('skills-list').append(row);
       }
-      row.hidden=!name.toLowerCase().includes(search);
+      const hide=!name.toLowerCase().includes(search);if(row.hidden!==hide)row.hidden=hide;
       const focus=name===skillGuidance.focus;
       // Open once on entering the lesson, without overriding subsequent clicks.
       if(focus&&!row.tutorialFocused)row.open=true;
@@ -63,13 +63,17 @@ export function createGameMenus({getInventory,getSkills,startCraft,craftState=()
   function action(){if(events.action)events.action();else closeMenus();}
  function closeMenus(reason='automatic'){if(events.beforeClose?.(reason)===false)return;for(const id of ['combat-panel','equipment-panel'])if($(id))$(id).hidden=true;if($('settings-panel'))$('settings-panel').hidden=true;if($('companions-panel'))$('companions-panel').hidden=true; if($('quests-panel'))$('quests-panel').hidden=true;$('game-menu-bar').hidden=true;$('crafting-panel').hidden=true;skillsPanel.hidden=true;inventoryMenu.close();$('game-menu-toggle').setAttribute('aria-expanded','false');}
 
+ let recipeSignature='';
  function refresh(){
-  const inventory=getInventory(),level=getSkills().Crafting?.level||1;
-  for(const id of recipeKinds){const recipe=RECIPES[id],available=!recipe.station&&canMake(inventory,recipe);$('craft-'+id).textContent=recipe.station?'Requires '+recipe.station:'Craft '+recipe.name;$('craft-'+id).disabled=!available||craftBusy();if(craftState()?.id===id)$('craft-'+id).textContent='Crafting…';$('craft-'+id).title=available?'':'Missing the ingredients or tool listed above';
+  const inventory=getInventory(),skills=getSkills(),level=skills.Crafting?.level||1,busy=craftBusy(),active=craftState()?.id;
+  const signature=JSON.stringify([inventory,Object.entries(skills).map(([id,s])=>[id,s.level]),busy,active]);
+  if(signature!==recipeSignature){recipeSignature=signature;
+  for(const id of recipeKinds){const recipe=RECIPES[id],available=!recipe.station&&canMake(inventory,recipe);$('craft-'+id).textContent=recipe.station?'Requires '+recipe.station:'Craft '+recipe.name;$('craft-'+id).disabled=!available||busy;if(active===id)$('craft-'+id).textContent='Crafting…';$('craft-'+id).title=available?'':'Missing the ingredients or tool listed above';
    $(id+'-ingredients').innerHTML=Object.entries({...recipe.cost,...recipe.tools}).map(([item,n])=>`<span class="ingredient ${inventory[item]>=n?'enough':'missing'}">${icon(item)} ${ITEMS[item].name} · ${n} required / ${inventory[item]||0} owned${recipe.tools?.[item]?' · Reusable tool':''}</span>`).join('');
-   $(id+'-duration').textContent=`Time · ${Number(durationFor(recipe.duration,getSkills()[recipe.skill]?.level||level).toFixed(2))} seconds`;
+   $(id+'-duration').textContent=`Time · ${Number(durationFor(recipe.duration,skills[recipe.skill]?.level||level).toFixed(2))} seconds`;
   }
-  $('recipe-error').textContent='';if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();
+  if($('recipe-error').textContent)$('recipe-error').textContent='';}
+  if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();
  }
  $('open-inventory').onclick=()=>{if(!events.openInventory?.())openInventory();};
  $('open-skills').onclick=()=>{if(!events.openSkills?.())openSkills();};
