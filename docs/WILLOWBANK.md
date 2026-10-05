@@ -19,6 +19,8 @@ After the rescue and companion naming, Reed says:
 - “Here—let me teach you how to catch yourself a meal. A little food should help you feel better.”
 - “First, you’ll need a fishing rod. A simple one will do.”
 
+The shared Campfire recipe picker lists all recipes tagged with the fire station, with search, ingredient availability, and selected recipe details. Desktop uses a split pane; mobile uses a full-screen list/detail flow. Cook one consumes the selected recipe’s ingredients and produces one item; batch cooking is deferred.
+
 Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. Full-health eating still requires confirmation.
 
 ## Rules and materials
@@ -26,7 +28,7 @@ Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. 
 - Health starts at 30. Carpentry, Fishing, and Culinary use 120 XP per level; skill levels reduce activity duration.
 - All required materials can be replenished locally through respawning ground bundles, trees, boulders, and Flint. Axes and pickaxes remain craftable.
 - Repair requires a Crude Hammer in inventory and consumes Small Logs ×3 on completion; six seconds with three construction stages and 40 Carpentry XP.
-- Fishing waits four seconds (skill-adjusted), then plays a hook pull followed by the shared acquire celebration before returning to idle. Each completed catch awards one Raw Pondfish and 20 Fishing XP; click the spot again for another. Movement can interrupt the wait, but the catch celebration completes before control returns. The lesson requires two fish.
+- Fishing waits four seconds (skill-adjusted), then plays a hook pull followed by the shared acquire celebration before returning to idle. Each bite commits one Raw Pondfish and 20 Fishing XP exactly once; click the spot again for another. Movement can interrupt the wait for no reward, or skip the flourish after the catch while retaining its fish and XP. The lesson requires one Raw Pondfish.
 - Cooking is guaranteed, takes three seconds per fish, and grants 20 Culinary XP.
 - Campfires use clear buildable tiles, explicit placement confirmation, and can be packed up. Flint and Stone is reusable; no fuel/bait system yet.
 - Companion name defaults to Pebble (1–20 characters). Rename and Follow/Rest use the Companions tab. The follower is cosmetic and cannot take damage.
@@ -136,3 +138,7 @@ Sad corgi ears now rotate outward into a sideways droop. The tail nub sits sligh
 Player and companion naming share a dice button with separate pools: the original 58 player names and the 33 corgi names use title case (each word starts uppercase, with its remaining letters lowercase) (such as Sass Potato and Sir Nubsalot). Rolls avoid the current name. Opening input dialogues use the same compact height as other dialogue; the introductory island supports drag/arrow rotation and scroll/pinch zoom without unlocking movement. Playground → Tutorials & objectives → Replay color & name setup replays the real opening customization, and the Willowbank name action covers companion naming.
 
 Opening camera framing follows the area, not dialogue presentation: the single-tile island keeps its customization framing from before the drop through naming, and the clearing switches to its normal framing during the fully obscured transition. Showing the first dialogue no longer changes the camera aim. The customization replay uses the same camera path.
+
+Cooking execution is app-owned in `src/cooking.js`, with shared recipes in `src/recipes.js`. Willowbank supplies a campfire availability/pack adapter and a quest-completion callback; it does not own the cooking timer, item conversion, or Culinary XP. Debug UI preview opens the shared menu without teleporting, granting items, or attaching a fake station.
+
+Fishing is app-owned in `fishing.js`, with portable spots in `fishing-spots.js`, the shared ripple model in `fishing-spot-model.js`, and rod/fish presentation in `fishing-presentation.js`. Willowbank configures its pond placement, hides its lesson tip when work starts, and observes the first catch for quest progression. Reed waits until shared actions, movement, and journal use finish before giving his follow-up.

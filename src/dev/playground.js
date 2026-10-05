@@ -1,3 +1,5 @@
+import {createCarpentryBridge} from '../carpentry-bridge.js';
+import {Group} from 'three';
 import {organizePlayground} from './playground-layout.js';
 import {createModelPreview} from './model-preview.js';
 import {GRASS_BASE_COLOR,createGrassColors} from '../grass-palette.js';
@@ -6,7 +8,7 @@ import {miningMotion,MINING_DURATION} from '../mining.js';
 import {ITEMS,itemStack} from '../items.js';
 import {WATER_DEFAULTS} from '../water-effects.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
-import {mountThemeComparison} from './theme-comparison.js';
+import {TUTORIAL_CHECKPOINTS,getCheckpoint} from './tutorial-checkpoints.js';
 import {createOpening,showGatheringPrompt} from '../opening.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion,CHOP_DURATION} from '../slime-motion.js';
 import {showSkillReward} from '../skills.js';
@@ -25,35 +27,41 @@ export function createGrassPaletteControls(getMaterials){
   return {defaultColor:GRASS_BASE_COLOR,set,reset:()=>set(GRASS_BASE_COLOR)};
 }
 
+// This fixture lives only in playground builds; all behavior comes from production fishing.
+export function addFishingFixture({world,scene,fishingSpots,clearingObjects}){
+ const parent=new Group();scene.add(parent);clearingObjects.push(parent);
+ return fishingSpots.add({tile:world.get('4,4'),parent});
+}
+
+export function addCarpentryFixture({world,currentWorld,scene,pickables,clearingObjects}){
+ const parent=new Group();scene.add(parent);clearingObjects.push(parent);
+ const bridge=createCarpentryBridge({tiles:[world.get('2,4')],parent,world:currentWorld,pickables});
+ return bridge;
+}
+
 const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Celebration','Happy','Pleased','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted'];
 const durations={...SOCIAL_DURATIONS,'Celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   let modelPreview;
   const panel=document.createElement('details');panel.id='quadriaquest-dev-playground';panel.open=false;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>close</small></summary>
-    <fieldset><legend>Tips &amp; objectives</legend><button data-dev="customization">Replay color &amp; name setup</button><button data-dev="controls-lesson">Replay camera &amp; movement tips</button><button data-dev="quests-lesson">Replay Quests tutorial</button><button data-objective="tip">Show tutorial tip</button><button data-objective="add">Add objective</button><button data-objective="update">Update objective</button><button data-objective="complete">Complete objective</button><button data-objective="reset">Reset objectives</button><button data-dev="quests">Open Quests</button></fieldset><fieldset><legend>UI &amp; audio polish</legend><button data-dev="crafting-menu">Open Crafting menu</button><button data-dev="receipt">Crafting receipt</button><button data-dev="clear-loot">Clear item feed</button><button data-dev="audio-reset">Reset audio</button><button data-dev="settings">Open Settings</button><details><summary>Icon sheet</summary><div class="dev-icons">${ICON_NAMES.map(name=>`<span>${icon(name)} ${name}</span>`).join('')}</div></details><p class="dev-note">Journal tabs, search, expand/minimize, and item controls use the real menus. Sound controls are in Settings (journal or splash cog).</p><label>Music preview<select id="dev-music"><option value="">Follow game</option><option value="splash">Splash</option><option value="intro">Introduction</option><option value="clearing">Clearing</option></select></label><div>${['pickup','craft','complete','chop','mine','fall','level','portal','blocked','wind','bird','insect'].map(name=>`<button data-sound="${name}">${name}</button>`).join('')}</div></fieldset>
+    <fieldset><legend>Tutorial checkpoints</legend><p class="dev-note">Loads the selected area and tutorial with its prerequisites. Replaces the current test session.</p><label>Tutorial step<select id="dev-checkpoint">${TUTORIAL_CHECKPOINTS.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select></label><button data-dev="checkpoint">Load step</button><button data-dev="reset-area">Reset current area</button></fieldset>
+    <fieldset><legend>Objective feedback</legend>${['tip','add','update','complete','reset'].map(id=>`<button data-objective="${id}">${({tip:'Show tutorial tip',add:'Add objective',update:'Update progress',complete:'Complete objective',reset:'Clear objectives'})[id]}</button>`).join('')}</fieldset><fieldset><legend>UI &amp; audio polish</legend><label>Interface<select id="dev-interface">${[['quests','Quests'],['inventory','Inventory'],['skills','Skills'],['crafting','Crafting'],['companions','Companions'],['companion-name','Companion naming'],['cooking','Cooking'],['settings','Settings tab'],['settings-popup','Settings popup'],['models','Model viewer'],['splash','Splash screen']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label><button data-dev="interface">Open</button><button data-dev="receipt">Crafting receipt</button><button data-dev="clear-loot">Clear item feed</button><button data-dev="audio-reset">Reset audio</button><details><summary>Icon sheet</summary><div class="dev-icons">${ICON_NAMES.map(name=>`<span>${icon(name)} ${name}</span>`).join('')}</div></details><p class="dev-note">Journal tabs, search, expand/minimize, and item controls use the real menus. Sound controls are in Settings (journal or splash cog).</p><label>Music preview<select id="dev-music"><option value="">Follow game</option><option value="splash">Splash</option><option value="intro">Introduction</option><option value="clearing">Clearing</option></select></label><div>${['pickup','craft','complete','chop','mine','fall','level','portal','blocked','wind','bird','insect'].map(name=>`<button data-sound="${name}">${name}</button>`).join('')}</div></fieldset>
     <p class="dev-note">Tutorial skipped · changes are session-only</p>
     <button data-dev="splash">Preview splash screen</button>
     <button data-dev="splash-randomize">Randomize splash slime</button>
-    <button data-dev="themes">Compare UI styles</button><button data-dev="models">Shared model preview</button>
+    <button data-dev="splash-close">Exit splash preview</button><button data-dev="models">Shared model preview</button>
     <fieldset><legend>Animation preview</legend>
-      <label>Animation <select id="dev-animation">${animations.map(a=>`<option>${a}</option>`).join('')}</select></label>
-      <label><input id="dev-loop" type="checkbox" checked> Loop</label>
-      <label>Speed <select id="dev-speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
+      <div class="dev-animation-options">
+        <label>Animation <select id="dev-animation">${animations.map(a=>`<option>${a}</option>`).join('')}</select></label>
+        <label>Speed <select id="dev-speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label>
+      </div>
+      <label class="dev-loop-control"><input id="dev-loop" type="checkbox" checked> Loop</label>
       <div><button data-dev="play">Play / restart</button><button data-dev="stop">Stop</button><button data-dev="face">Face camera</button><button data-dev="doze">Doze off</button><button data-dev="wake">Wake up</button></div>
       <label>Slime color <input id="dev-color" type="color" value="#a4ce77"></label>
       <p class="dev-note">Previews run in place without consuming items or earning XP. Stop to play normally.</p>
     </fieldset>
-    <fieldset><legend>Companions</legend><p class="dev-note">Shared follower controls work in every area. Doze off / Wake up tests sleep with the player.</p><label>Action<select id="dev-companion-action"><option value="spawn">Add follower here</option><option value="pet">Pet follower</option><option value="name">Rename follower</option><option value="rest">Rest here</option><option value="follow">Follow player</option><option value="stop">Stop animation</option><option value="reset">Reset companion</option></select></label><button data-companion="action">Run companion action</button><label>Animation<select id="dev-companion-animation">${['Idle','Walk','Sit','Scratch','Petting','Sleeping','Jump up','Jump down'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-companion="preview">Loop companion animation</button></fieldset>
-    <fieldset><legend>Willowbank chapter</legend>
-      <button data-willow="enter">Enter Willowbank</button><button data-willow="reset">Reset Willowbank</button><button data-willow="wander">Wander goblins now</button>
-      <label>Quest checkpoint<select id="dev-willow-stage">${['meet','bridge','fish','flint','fire','place','cook','eat'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="stage">Load checkpoint + supplies</button>
-      <div>${['arrival','talk','heal','hurt','lose','cancel','eat','placement','tip'].map(s=>`<button data-willow="${s}">${s}</button>`).join('')}</div>
-      <button data-willow="hit">Damage splat (3)</button><button data-willow="zero">Blocked splat (0)</button><button data-willow="miss">Miss splat</button>
-      <button data-willow="bridgeIntro">Replay bridge introduction</button><button data-willow="combatPractice">Load combat sandbox (deferred area 3)</button><button data-willow="scrapper">Fight Scrapper</button><button data-willow="bruiser">Fight Bruiser</button><button data-willow="chop">Chop a tree</button><button data-willow="mine">Mine a boulder</button><button data-willow="repair">Repair bridge</button><button data-willow="fish">Fish</button>
-      <label>Animation<select id="dev-willow-animation">${['Unarmed','Sword and shield','Defeated','Repairing','Hammer injury','Fishing','Fishing cast','Fishing catch','Cooking','Eating','Petting','Goblin idle','Goblin walk','Goblin attack','Goblin hit','Reed idle'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-willow="preview">Loop chapter animation</button>
-      <p class="dev-note">Enter first, then choose a checkpoint. Checkpoints supply materials and replay the real quest. Inventory/skill controls include all new items and skills. Cancel stops previews. Reset restores encounters, bridge, follower, resources, and health.</p>
-    </fieldset>
+    <fieldset><legend>Companions</legend><p class="dev-note">Shared follower controls work in every area. Doze off / Wake up tests sleep with the player.</p><label>Action<select id="dev-companion-action"><option value="spawn">Add follower here</option><option value="pet">Pet follower</option><option value="name">Rename follower</option><option value="rest">Rest here</option><option value="follow">Follow player</option><option value="stop">Stop animation</option><option value="reset">Reset companion</option></select></label><button data-companion="action" aria-label="Run companion action">Run</button><label>Animation<select id="dev-companion-animation">${['Idle','Walk','Sit','Scratch','Petting','Sleeping','Jump up','Jump down'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-companion="preview" aria-label="Loop companion animation">Loop</button></fieldset>
     <fieldset><legend>Terrain colors</legend>
       <label>Grass color <input id="dev-grass-color" type="color" value="${api.grassPalette.defaultColor}"></label>
       <button data-dev="grass-reset">Reset grass color</button>
@@ -75,24 +83,22 @@ export function mountPlayground(api){
       <div><button data-dev="water-restart">Replay water</button><button data-dev="water-reset">Reset water</button></div>
       <p class="dev-note">Short drifting shimmer lines in the clearing and splash ponds. Compare surface waves and faceted lighting independently. Wave strength 4 is the default. Uncheck Fixed shoreline to let waves lap against banks. Lower roughness gives sharper highlights; reflection strength 0 removes sky reflections. Opacity 1 is opaque; lower it to reveal the shallow bed and pebbles. Speed 0 pauses; Water intensity controls only the shimmer strips and has no effect while they are off.</p>
     </fieldset>
-    <fieldset><legend>Skills</legend><div><button data-dev="skills-menu">Open Skills menu</button><button data-dev="skills-lesson">Replay Skills tutorial</button></div><p class="dev-note">Replay sets Gathering to level 2 (120 XP) for the first-level lesson.</p>
+    <fieldset><legend>Skills</legend>
       <label>Skill <select id="dev-skill">${Object.keys(api.skills).map(a=>`<option>${a}</option>`).join('')}</select></label>
       <label>Amount <input id="dev-skill-amount" type="number" min="0" max="1000000" step="1" value="20"></label>
       <div><button data-dev="xp">Add XP</button><button data-dev="levels">Add levels</button></div>
     </fieldset>
-    <fieldset><legend>Inventory</legend><div><button data-dev="inventory-menu">Open Inventory menu</button><button data-dev="inventory-lesson">Replay Inventory tutorial</button></div><p class="dev-note">Tutorial replay sets Sticks ×3 and Rocks ×3.</p>
+    <fieldset><legend>Inventory</legend>
       <label>Item <select id="dev-item">${Object.entries(ITEMS).map(([id,item])=>`<option value="${id}">${item.name}</option>`).join('')}</select></label>
       <label>Quantity <input id="dev-quantity" type="number" min="0" max="1000000" step="1" value="1"></label>
       <div><button data-dev="add">Add item</button><button data-dev="remove">Remove item</button></div>
     </fieldset>
     <fieldset><legend>Visual feedback only</legend><p class="dev-note">Item gain/loss uses the selected inventory item and quantity without changing your inventory.</p><div>
-      ${['Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
+      ${['Damage splat','Blocked splat','Miss splat','Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
-    <fieldset><legend>Gathering tutorial prompt</legend><button data-dev="level-lesson">Replay first level tips</button><button data-dev="gathering-lesson">Replay gathering tutorial</button><div><button data-prompt="0">Before first pickup</button><button data-prompt="1">After first XP</button><button data-prompt="hide">Hide prompt</button></div></fieldset>
-    <fieldset><legend>Tutorial finale</legend><p class="dev-note">Replay the real sequence or test its parts. Practice reset arms the hidden goal; Complete practice clears those objects without granting loot.</p><div>
-      ${['Closing dialogue','Drop portal','Use portal','Practice reset','Complete practice','Reward dialogue','Drop chest','Open chest','Celebration','Wear/remove hat','Enter Willowbank','Return to clearing','Reset finale'].map(a=>`<button data-finale="${a}">${a}</button>`).join('')}
-    </div></fieldset>
-    <fieldset><legend>Mining</legend><div><button data-dev="mining-lesson">Replay Mining tutorial</button><button data-dev="mining-stop">Stop Mining tutorial</button><button data-dev="mine-nearest">Mine nearest boulder</button></div><p class="dev-note">Replay restores boulders, gives Sticks ×3 / Rocks ×3, removes the pickaxe, and offers optional guidance. Use Mining animation to loop the real swing.</p></fieldset>
+    <fieldset><legend>Player health</legend><label>Action<select id="dev-health"><option value="heal">Restore health</option><option value="hurt">Lose 10 health</option></select></label><button data-dev="health">Apply</button></fieldset>
+    <fieldset><legend>Carpentry practice</legend><p class="dev-note">The clearing pond has a practice bridge at (2, 4). Add a Crude Hammer and Small Logs ×3 with Inventory controls, then click the broken bridge. Move to cancel; Full test area resets the bridge and rewards. The Willowbank bridge checkpoint exercises the same action with its injury and rescue story. Carpentry XP is available in Skills; hammering and bridge stages are in the model viewer.</p></fieldset>
+    <fieldset><legend>Fishing practice</legend><p class="dev-note">The clearing pond has a Pondfish spot at (4, 4). Add a Crude Fishing Rod with Inventory controls, then click its ripples. Repeat catches, cancel by moving, and reset with Full test area. Willowbank · Catch Pondfish uses the same action. Fishing XP and levels use the Skills controls; cast, wait, and catch motions are in the shared model viewer.</p></fieldset>
     <fieldset><legend>Resource picking</legend><label><input id="dev-hitboxes" type="checkbox"> Show half-tile hitboxes</label></fieldset>
     <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="boulders">Boulders</button><button data-reset="all">Full test area</button></div></fieldset>
     <output id="dev-status" aria-live="polite">Ready. Starter kit: Sticks ×10, Rocks ×10, Crude Axe ×1, Crude Pickaxe ×1.</output>
@@ -103,7 +109,7 @@ export function mountPlayground(api){
   document.getElementById('game-menu-bar').append(launcher);
   launcher.onclick=()=>{panel.open=true;panel.querySelector('summary').focus();};
   panel.addEventListener('toggle',()=>{launcher.setAttribute('aria-expanded',String(panel.open));if(!panel.open&&panel.contains(document.activeElement))launcher.focus();});
-  const compareThemes=mountThemeComparison(api);
+
   const $=id=>panel.querySelector('#dev-'+id);
   const waterControls={"enabled": "enabled", "shimmers": "shimmers", "waves": "waves", "shoreline": "fixedShoreline", "color": "color", "faceted": "faceted", "strength": "waveStrength", "roughness": "roughness", "reflection": "reflectionStrength", "opacity": "opacity", "speed": "speed", "intensity": "intensity"};
   let preview=null,time=0,holdingFeedback=false,snapshotAge=0;
@@ -112,11 +118,11 @@ export function mountPlayground(api){
   panel.querySelector('#dev-music').onchange=e=>{api.audio.unlock();api.audio.preview(e.target.value||null);};
   function stop(force=true){if(!force&&!preview&&!holdingFeedback)return;preview=null;time=0;holdingFeedback=false;api.finale.stopPreview();api.stop();}
   function refresh(){api.refresh();$('state').textContent=Object.entries(api.skills).map(([name,s])=>`${name}: Lv ${s.level} · ${s.xp} XP`).join('\n')+'\n'+Object.entries(api.inventory).map(([name,n])=>itemStack(name,n)).join(' · ');}
-  panel.addEventListener('click',e=>{
+  panel.addEventListener('click',async e=>{
     let b=e.target.closest('button');if(!b)return;if(b.dataset.command){const command=commands.get(b.dataset.command);b={dataset:command.actions[command.select.value]};}
     try{
       if(b.dataset.companion){stop();const c=api.companions;if(b.dataset.companion==='preview'){c.preview($('companion-animation').value);status('Companion preview: '+$('companion-animation').value);}else{const action=$('companion-action').value;if(action==='reset')c.reset();else if(action==='stop')c.cancel();else{if(!c.state.owned){c.acquire();c.update(0,0,null);}if(action==='pet')c.pet();if(action==='name')c.name();if(action==='rest')c.setFollowing(false);if(action==='follow')c.setFollowing(true);}status('Companion: '+action);}}
-      if(b.dataset.willow){const name=b.dataset.willow;if(name==='enter')api.enterWillow();else if(!api.willow.active)throw Error('Enter Willowbank first.');else if(name==='stage')api.willow.debug.stage($('willow-stage').value);else if(name==='preview')api.willow.debug.preview($('willow-animation').value);else if(['scrapper','bruiser'].includes(name))api.willow.debug.fight(name);else api.willow.debug[name]();status('Willowbank: '+name);}
+
       if(b.dataset.objective)api.objectives[b.dataset.objective]();
       if(b.dataset.sound){api.audio.unlock();api.audio.play(b.dataset.sound);}
       if(b.dataset.prompt){
@@ -127,6 +133,12 @@ export function mountPlayground(api){
       }
       if(b.dataset.dev){
         const action=b.dataset.dev;
+        if(action==='checkpoint'){stop();const checkpoint=getCheckpoint($('checkpoint').value);await api.loadCheckpoint(checkpoint);status('Loaded '+checkpoint.label+' with required resources.');}
+        if(action==='reset-area'){stop();api.closeSplash();api.resetCurrentArea();status('Current area reset.');}
+        if(action==='health'){status(`Health: ${api.sharedAction($('health').value)} / 30`);}
+        if(action==='splash-close')api.closeSplash();
+        if(action==='interface'){stop();const name=$('interface').value;if(name==='models'){modelPreview??=createModelPreview();modelPreview.show();}else if(name==='splash')api.showSplash();else api.openInterface(name);status('Opened '+name+'.');}
+
         if(action==='crafting-menu'){stop();api.showCrafting();}
         if(action==='receipt')api.itemFeed.show({sticks:-1,stones:-1,axes:1});
         if(action==='clear-loot')api.itemFeed.clear();
@@ -149,7 +161,7 @@ export function mountPlayground(api){
         if(action==='controls-lesson'){stop();api.controlsLesson();}
         if(action==='quests-lesson'){stop();api.questsLesson();}
         if(action==='skills-lesson'){stop();api.skillsLesson();}
-        if(action==='themes'){stop();compareThemes();}
+
         if(action==='splash'){stop();api.showSplash();}
         if(action==='splash-randomize'){stop();api.randomizeSplash();}
         if(action==='play'){stop();if(api.finale.busy)throw Error('Finish the finale sequence or use Reset finale first.');preview=$('animation').value;api.faceTowardCamera();if(preview==='Celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});status(`Previewing ${preview}.`);}
@@ -172,12 +184,13 @@ export function mountPlayground(api){
       }
       if(b.dataset.juice){
         stop();const kind=b.dataset.juice;holdingFeedback=true;
-        if(['Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done'].includes(kind)){
+        if(['Damage splat','Blocked splat','Miss splat','Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done'].includes(kind)){
           api.feedback.destination(api.getTile());
           if(['Gathering','Crafting','Chopping','Mining','Opening','Traveling','Done'].includes(kind))api.feedback.interacting(kind==='Done'?'Gathering':kind);
           if(['Arrived','Done'].includes(kind))api.feedback.complete();
         }
         if(kind==='Item gain'||kind==='Item loss')api.showItemChanges({[$('item').value]:amount('quantity')*(kind==='Item gain'?1:-1)});
+        if(['Damage splat','Blocked splat','Miss splat'].includes(kind))api.sharedAction({'Damage splat':'hit','Blocked splat':'zero','Miss splat':'miss'}[kind]);
         if(kind==='Blocked')api.feedback.pulse(api.player.position,false);
         if(kind==='XP gain'||kind==='Level gain')showSkillReward({skillName:$('skill').value,xp:20,level:api.skills[$('skill').value].level+1,leveledUp:kind==='Level gain'},api.player.position);
         if(kind==='Clear'){holdingFeedback=false;api.feedback.clearDestination();}

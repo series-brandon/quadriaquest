@@ -19,3 +19,15 @@ Treat tiles, ground items, resources, NPCs, enemies, companions, and other world
 ## Mobile UI and model previews
 
 Default menus and utility modal windows to fullscreen, edge-to-edge layouts on small screens, with safe-area padding. Dialogue, tutorial tips, toasts, and other transient gameplay overlays are exceptions. Keep controls touch-sized and preview camera aspects synchronized with actual canvas dimensions. Every new shared 3D model belongs in the dev model catalogue; list only motions it actually supports and reuse production animation functions.
+
+## Fresh-context entry point
+
+Read [docs/HANDOFF.md](docs/HANDOFF.md) for the current implementation state, remaining architecture work, and verification notes. Treat its status as a dated snapshot and check the code before relying on it. Keep enduring rules here and implementation status in the handoff/design docs.
+
+## Shared gameplay, area-owned narrative
+
+Only area layout and area narrative are location-specific. Skilling actions, recipes, skill state, equipment, health, inventory actions, UI, models, animations, feedback, and standard entity lifecycles belong to shared systems. Availability must not depend on a named area being active or having been visited. Tutorial guidance and narrative sequencing may be local; they must call shared gameplay rather than implement it. Ask if a boundary or intended behavior is unclear.
+
+For example, Willowbank owns its broken bridge story, placement, rescue sequence, quest progression, and scripted injury moment. Shared carpentry owns tool/material checks, action timing, hammer animation, cancellation, consumption, and XP. An area configures a work target and reacts to progress/completion; it does not own the skill itself. The same distinction applies to fishing, gathering, cooking, and other skills.
+
+Validate shared changes in the clearing before visiting Willowbank and in a second area. Exercise cancellation, completion, repeated use, travel, and reset where applicable. Merely moving a model or UI into a shared file does not prove its underlying gameplay is portable. Keep remaining coupling explicitly tracked; do not claim an extraction is complete while area gates or duplicate behavior remain.

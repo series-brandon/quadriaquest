@@ -1,3 +1,16 @@
+import {createCarpentrySystem} from './carpentry.js';
+import {heldTool} from './tool-models.js';
+import {createFishingSystem} from './fishing.js';
+import {createFishingSpots} from './fishing-spots.js';
+import {createFishingPresentation} from './fishing-presentation.js';
+import {createPlayerHealth,createFoodSystem,createHealthUI} from './player-health.js';
+import './player-health.css';
+import './campfires.css';
+import {createRecipeCrafting} from './recipe-crafting.js';
+import {createCampfires} from './campfires.js';
+import {createCookingSystem} from './cooking.js';
+import {createCookingMenu} from './cooking-menu.js';
+import {RECIPES as COOKING_RECIPES,canMake as canCookRecipe,durationFor as cookingDuration} from './recipes.js';
 import {createCompanionSystem} from './companions.js';
 import {createCompanionMenu} from './companion-menu.js';
 import {setWorldOccupancy} from './world-occupancy.js';
@@ -108,17 +121,57 @@ const opening=(playground?.createFreeOpening||createOpening)({player,visual,face
  setColor(color){body.material.color.set(color);expressionFace.setBodyColor(color);},
  showClearing(){for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
-let finale,willow,companions;
-const craftingTutorial=createCraftingTutorial({equipment:{state:()=>({...finale?.state,...willow?.equipmentState()}),toggle:()=>finale.equip(),isEquipped:id=>willow?.isEquipped(id),actions:id=>willow?.inventoryActions(id)},chapter:{unlocked:()=>willow?.unlocked,recipeAvailable:id=>willow?.recipeAvailable(id),craft:id=>willow?.craft(id)},getSkills:()=>({Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,...willow?.visibleSkills}),getInventory:()=>inventory,startCraft,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
+let finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture;
+const hammerTool=heldTool('hammers');hands[0].add(hammerTool);hammerTool.visible=false;
+const fishingPresentation=createFishingPresentation({player,hands});
+const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
+const health=createPlayerHealth(),healthUI=createHealthUI(health);
+const craftingTutorial=createCraftingTutorial({equipment:{state:()=>({...finale?.state,...willow?.equipmentState()}),toggle:()=>finale.equip(),isEquipped:id=>willow?.isEquipped(id),actions:id=>[...(food?.inventoryActions(id)||[]),...(campfires?.inventoryActions(id)||[]),...(willow?.inventoryActions(id)||[])]},chapter:{unlocked:()=>true,recipeAvailable:id=>!['swords','shields'].includes(id),craft:id=>recipeCrafting.start(id)},getSkills:()=>({Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,...(fishing?{Fishing:fishing.skill,Carpentry:carpentry.skill}:{}),...willow?.visibleSkills}),getInventory:()=>inventory,startCraft,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
 const clearingTiles=new Map(world);let clearingVisibility=null;
 function stopAll(){cancelWork();path=[];segment=null;target=null;gatherTime=0;player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();craftingTutorial.closeMenus();}
 companions=createCompanionSystem({scene,world,player,pickables,feedback,
  toPosition:t=>new THREE.Vector3(t.x-6,t.h,t.z-6),tileAtPosition:p=>world.get(key(Math.round(p.x+6),Math.round(p.z+6))),
- tile:()=>tile,approaching:()=>actorTarget,occupied:t=>t===tile||t===segment?.to,reserved:t=>!!t&&(segment?.to===t||path.includes(t)||willow?.placementTile===t),
+ tile:()=>tile,approaching:()=>actorTarget,occupied:t=>t===tile||t===segment?.to,reserved:t=>!!t&&(segment?.to===t||path.includes(t)||campfires?.placementTile===t),
  moving:()=>!!segment||path.length>0,playerSleepTime:()=>idleClock.sleepTime,blocked:()=>finale?.busy||willow?.busy,
  stop:stopAll,face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);}
 });
-willow=createWillowbank({scene,world,renderer,player,visual,hands,pickables,inventory,feedback,companions,
+carpentry=createCarpentrySystem({inventory,stop:stopAll,busy:()=>!canMove(),
+ inReach:target=>!segment&&!path.length&&interactionRoute(world,tile,target)?.route.length===0,
+ face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},toast,
+ started(){feedback.destination(tile);feedback.interacting('Repairing');},
+ completed(changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();},cancelled(){feedback.clearDestination();}
+});
+fishing=createFishingSystem({inventory,stop:stopAll,busy:()=>!canMove(),
+ inReach:spot=>!segment&&!path.length&&interactionRoute(world,tile,spot)?.route.length===0,
+ face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},toast,
+ started(){feedback.destination(tile);feedback.interacting('Fishing');},
+ caught(changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);},
+ completed(){feedback.complete();},cancelled(){fishingPresentation.clear();feedback.clearDestination();}
+});
+food=createFoodSystem({inventory,health,busy:()=>!canMove()||willow?.working,stop:stopAll,
+ started(){feedback.destination(tile);feedback.interacting('Eating');},
+ completed(changes){showItemChanges(changes);feedback.complete();willow?.foodEaten();},
+ confirm:confirmFood});
+function confirmFood(proceed){const d=document.createElement('dialog');d.className='food-confirm';d.innerHTML='<p>Your health is already full. Eat this anyway?</p><button>Eat anyway</button><button>Cancel</button>';document.body.append(d);d.showModal();const close=()=>{d.close();d.remove();};d.querySelectorAll('button')[0].onclick=()=>{close();proceed();};d.querySelectorAll('button')[1].onclick=close;d.addEventListener('cancel',()=>d.remove());return close;}
+cooking=createCookingSystem({inventory,stop:stopAll,
+ started(){feedback.destination(tile);feedback.interacting('Cooking');},
+ completed(changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();},
+ cancelled(){feedback.clearDestination();}
+});
+cookingMenu=createCookingMenu({recipes:COOKING_RECIPES,items:ITEMS,inventory,canMake:canCookRecipe,duration:seconds=>cookingDuration(seconds,cooking.skill.level),onCook:(id,station)=>cooking.start(id,station)});
+recipeCrafting=createRecipeCrafting({inventory,skill:craftingSkill,
+ busy:()=>finale?.busy||willow?.busy||!!segment||path.length>0,
+ stop:stopAll,started(){willow?.craftStarted();feedback.destination(tile);feedback.interacting('Crafting');},
+ completed(id,changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();willow?.crafted(id);},cancelled(){feedback.clearDestination();}
+});
+campfires=createCampfires({scene,world,pickables,inventory,cookingMenu,feedback,tile:()=>tile,
+ busy:()=>!canMove(),stop:stopAll,closeMenus:()=>craftingTutorial.closeMenus(),approach:selectActor,toast,showItems:showItemChanges,
+ occupied:t=>!!t&&(t===tile||t===segment?.to||companions.occupies(t)||pickables.some(m=>{const a=m.userData.actor||m.userData.resource||m.userData.tree;return a&&m.userData.tile===t&&isVisible(m)&&!a.opened&&!a.collected&&!a.felled;})),
+ hover:()=>hover?.actor,guide:()=>willow?.campfireGuide,
+ onPlaced:a=>willow?.campfirePlaced(a),onCooked:(id,a)=>willow?.campfireCooked(id,a)
+});
+willow=createWillowbank({scene,world,renderer,player,visual,hands,pickables,inventory,feedback,companions,cooking,cookingMenu,campfires,health,food,fishing,fishingSpots,carpentry,
+ playerWorking:()=>!!activeAction||!!actorTarget||companions.working||carpentry.working||fishing.working||food.working||cooking.working||recipeCrafting.working,
  skills:{Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill},
  playerSleepTime:()=>idleClock.sleepTime,approaching:()=>actorTarget,occupied:t=>t===tile||t===segment?.to,routeContains:t=>segment?.to===t||path.includes(t),tile:()=>tile,hover:()=>hover?.actor,moving:()=>!!segment||path.length>0,profile:()=>opening.profile,
  walkRoute(route){path=[...route];},
@@ -144,6 +197,7 @@ finale=createTutorialFinale({destination:willow,arrived:()=>{willow.enter(true);
 });
 function canMove(){return opening.canMove&&!craftingTutorial.blocksMovement&&!finale.busy&&!willow?.busy;}
 function cancelWork(){
+ carpentry?.cancel();fishing?.cancel();food?.cancel();cooking?.cancel();recipeCrafting?.cancel();campfires?.cancel();
  companions?.cancel();willow?.cancel();
  if(activeAction?.status==='active'){
   const crafting=activeAction.kind==='craft';
@@ -155,7 +209,7 @@ function cancelWork(){
 }
 function startCraft(output='axes'){
  if(__PLAYGROUND__)debug?.stop();
- if(finale.busy||willow?.busy||willow?.working||companions?.working||segment||path.length||activeAction)return false;
+ if(finale.busy||willow?.busy||willow?.working||companions?.working||carpentry?.working||fishing?.working||food?.working||cooking?.working||recipeCrafting?.working||segment||path.length||activeAction)return false;
  const action=output==='pickaxes'?craftPickaxe(inventory):craftAxe(inventory);if(!action)return false;
  target=null;gatherTime=0;chopTarget=null;activeAction=action;
  feedback.destination(tile);feedback.interacting('Crafting');return true;
@@ -171,9 +225,10 @@ function selectTree(tree){
  feedback.destination(result.at);
 }
 function selectActor(actor){
- if(willow?.placing){willow.selectPlacement(actor.tile);return;}
- if(!canMove()||!actor.ready||actor.opened)return;if(__PLAYGROUND__)debug?.stop();
- if(actorTarget===actor||companions.matches(actor)||willow?.matches(actor))return;
+ if(campfires?.placing){campfires.selectPlacement(actor.tile);return;}
+ if(!canMove()||!actor.ready||actor.opened)return;
+ if(actorTarget===actor||companions.matches(actor)||carpentry.matches(actor)||fishing.matches(actor)||willow?.matches(actor))return;
+ if(__PLAYGROUND__)debug?.stop();
  const result=routeToTree(actor);if(!result){toast('There is no safe route there.');return;}
  cancelWork();target=null;gatherTime=0;actorTarget=actor;actorTime=0;path=result.route;feedback.destination(result.at);
 }
@@ -181,7 +236,7 @@ function isVisible(object){for(let o=object;o;o=o.parent)if(!o.visible)return fa
 let toastTimer;function toast(s){gameAudio.play('blocked');$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
 function showItemChanges(changes){craftingTutorial.refresh();itemFeed.show(changes);gameAudio.play(Object.values(changes).some(n=>n<0)?'complete':'pickup');}
 function updateUI(reward){const count=inventory.sticks+inventory.stones;opening.collected(count,reward);$('sticks').textContent='×'+inventory.sticks;$('stones').textContent='×'+inventory.stones;$('bag-total').textContent=`${count} ITEMS`;$('quest-count').textContent=`${count} / 6 materials collected`;$('quest-progress').style.width=`${count/6*100}%`;$('quest-check').textContent=count===6?'✓':'◇';}
-function moveTo(t,resource){if(!canMove())return;if(willow?.placing){willow.selectPlacement(t);return;}if(__PLAYGROUND__)debug?.stop();if(!opening.canGather)resource=null;const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&resource===target){return;}const start=segment?segment.to:tile;const adjacent=resource?routeToTree(resource):null;const destination=resource?adjacent?.at:t;const route=resource?(adjacent?.route??null):findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}$('toast').classList.remove('visible');clearTimeout(toastTimer);if(activeAction&&route.length===0&&!segment&&!resource)return;willow?.disengage();cancelWork();opening.moving(tile,destination);target=resource||null;gatherTime=0;path=route;feedback.destination(destination);$('activity').textContent=resource?'On the way to gather':'Exploring the clearing';}
+function moveTo(t,resource){if(!canMove())return;if(campfires?.placing){campfires.selectPlacement(t);return;}if(__PLAYGROUND__)debug?.stop();if(!opening.canGather)resource=null;const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&resource===target){return;}const start=segment?segment.to:tile;const adjacent=resource?routeToTree(resource):null;const destination=resource?adjacent?.at:t;const route=resource?(adjacent?.route??null):findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}$('toast').classList.remove('visible');clearTimeout(toastTimer);if(activeAction&&route.length===0&&!segment&&!resource)return;willow?.disengage();cancelWork();opening.moving(tile,destination);target=resource||null;gatherTime=0;path=route;feedback.destination(destination);$('activity').textContent=resource?'On the way to gather':'Exploring the clearing';}
 function pick(event){const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObjects(pickables.filter(m=>isVisible(m)&&!m.userData.resource?.collected&&!m.userData.tree?.felled),false)[0];}
 let down=null,dragged=false,pinchDistance=null;
 const activePointers=new Map();
@@ -216,7 +271,7 @@ canvas.addEventListener('pointerup',e=>{
  if(activePointers.size===1&&down?.button===0&&!dragged)idleClock.wake();
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=hit?.object.userData;
-  if(willow.placing)willow.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
+  if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
   else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the clearing.');}
  }
  activePointers.delete(e.pointerId);pinchDistance=null;
@@ -225,11 +280,11 @@ canvas.addEventListener('pointerup',e=>{
 });
 function cancelGesture(){activePointers.clear();down=null;pinchDistance=null;dragged=true;}
 canvas.addEventListener('pointercancel',cancelGesture);addEventListener('blur',cancelGesture);
-canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;willow.hoverPlacement(null);$('tooltip').style.display='none';feedback.hover(null);});
+canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;campfires.hoverPlacement(null);$('tooltip').style.display='none';feedback.hover(null);});
 function updateHover(){
- if(!pointerOnCanvas||!canMove()){willow.hoverPlacement(null);feedback.hover(null);$('tooltip').style.display='none';return;}
+ if(!pointerOnCanvas||!canMove()){campfires.hoverPlacement(null);feedback.hover(null);$('tooltip').style.display='none';return;}
  const hit=pick({clientX:pointerClient.x,clientY:pointerClient.y});hover=hit?.object.userData;
- const t=hover?.tile,tree=hover?.tree,actor=hover?.actor,placementStatus=willow.hoverPlacement(t),valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&!!routeToTree(actor):tree?(tree.kind==='boulder'?craftingTutorial.canMine&&inventory.pickaxes>0:craftingTutorial.canChop&&inventory.axes>0)&&!!routeToTree(tree):hover?.resource&&opening.canGather?!!routeToTree(hover.resource):!!t&&findPath(world,segment?segment.to:tile,t)!==null;
+ const t=hover?.tile,tree=hover?.tree,actor=hover?.actor,placementStatus=campfires.hoverPlacement(t),valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&!!routeToTree(actor):tree?(tree.kind==='boulder'?craftingTutorial.canMine&&inventory.pickaxes>0:craftingTutorial.canChop&&inventory.axes>0)&&!!routeToTree(tree):hover?.resource&&opening.canGather?!!routeToTree(hover.resource):!!t&&findPath(world,segment?segment.to:tile,t)!==null;
  feedback.hover(t,valid);
  renderer.domElement.style.cursor=t?(valid?'pointer':'not-allowed'):'default';
  $('tooltip').style.display=t?'block':'none';
@@ -240,7 +295,7 @@ $('reset').onclick=()=>{gatheringSkill=createGatheringSkill();happyUntil=0;path=
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',!$('dialogue').hidden);if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;waterEffects.update(dt);opening.update(dt);document.body.classList.toggle('dialogue-cutscene',!!(finale.cameraFocus||willow.cameraFocus||finale.celebration));
- const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!activeAction&&!actorTarget&&!finale.busy&&!debug?.previewing&&!willow.working&&!companions.working&&!willow.busy):opening.quiet);
+ const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!activeAction&&!actorTarget&&!finale.busy&&!debug?.previewing&&!willow.working&&!companions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!willow.busy):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
  if(!opening.playable){if(opening.canOrbit){angle+=(Number(rotationKeys.has('ArrowRight'))-Number(rotationKeys.has('ArrowLeft')))*keyboardRotationSpeed*dt;elevation=THREE.MathUtils.clamp(elevation+(Number(rotationKeys.has('ArrowUp'))-Number(rotationKeys.has('ArrowDown')))*Math.PI/3*dt,THREE.MathUtils.degToRad(20),THREE.MathUtils.degToRad(75));}else rotationKeys.clear();
   if(opening.quiet||opening.reaction){
@@ -257,8 +312,17 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   camera.lookAt(focus.clone().add(new THREE.Vector3(0,opening.inClearing?0:-distance*.09,0)));camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);return;
  }
  finale.update(dt,elapsed,hover?.actor);
+ campfires.update(elapsed);
+ fishingSpots.update(elapsed);
+ if(__PLAYGROUND__)carpentryFixture?.highlight.update(false,elapsed,hover?.actor===carpentryFixture&&!carpentryFixture.opened&&!carpentry.matches(carpentryFixture));
  const worldMotion=willow.update(dt,elapsed,camera);
- const chapterMotion=companions.update(dt,elapsed,camera)||worldMotion;
+ healthUI.update(opening.playable);
+ const carpentryMotion=carpentry.update(dt);
+ const fishingMotion=fishing.update(dt);
+ const foodMotion=food.update(dt);
+ const cookingMotion=cooking.update(dt);
+ const recipeMotion=recipeCrafting.update(dt);
+ const chapterMotion=companions.update(dt,elapsed,camera)||carpentryMotion||fishingMotion||foodMotion||cookingMotion||recipeMotion||worldMotion;
  if(willow.busy)document.getElementById('game-menus').inert=true;
  if(finale.cameraFocus||willow.cameraFocus)rotationKeys.clear();
  const oldAngle=angle,oldElevation=elevation;
@@ -297,7 +361,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
     const actor=actorTarget;facing=Math.atan2(actor.x-tile.x,actor.z-tile.z);
     actorTime+=dt;handWork=actor.duration?actorTime:null;expression=actor.duration?'focused':'idle';
     feedback.interacting(actor.duration?'Opening':'Traveling');
-    if(actorTime>=actor.duration){actorTarget=null;actorTime=0;feedback.complete();if(actor===companions.actor)companions.pet();else if(actor.willow)willow.interact(actor);else{if(!actor.duration)gameAudio.play('portal');finale.interact(actor);}}
+    if(actorTime>=actor.duration){actorTarget=null;actorTime=0;feedback.complete();if(actor===companions.actor)companions.pet();else if(actor.carpentry){if(actor.available())carpentry.start(actor);else if(actor.willow)willow.interact(actor);}else if(actor.fishing)fishing.start(actor);else if(actor.campfire)campfires.interact(actor);else if(actor.willow)willow.interact(actor);else{if(!actor.duration)gameAudio.play('portal');finale.interact(actor);}}
   }else if(activeAction?.status==='active'){
     const action=activeAction;handWork=action.elapsed;expression='focused';
     pose=workPose('gather',gatherTime);
@@ -332,7 +396,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
       feedback.complete();$('tooltip').style.display='none';updateUI(reward);
       if(inventory.sticks+inventory.stones===6){$('activity').textContent='Clearing explored';}
     }
-  }else{if(!willow.working&&!companions.working&&!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.complete();$('activity').textContent=inventory.sticks+inventory.stones===6?'Clearing explored':'Taking it all in';}
+  }else{if(!willow.working&&!companions.working&&!carpentry.working&&!fishing.working&&!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.complete();$('activity').textContent=inventory.sticks+inventory.stones===6?'Clearing explored':'Taking it all in';}
  }
  if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  if(chapterMotion){
@@ -376,7 +440,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  }
  if(pose.handDrop!==undefined)placeFaintedHands(visual,hands,pose.handDrop);
  alignSupportingHand(hands,pickaxeTool.visible?'Mining':chapterMotion?.kind==='Fishing catch'?'Fish hook':chapterMotion?.kind);
- willow.updateFishingRig();
+ hammerTool.visible=chapterMotion?.kind==='Repairing';
+ fishingPresentation.update(chapterMotion);
  for(let i=fallingTrees.length-1;i>=0;i--){
   const fall=fallingTrees[i];fall.age+=dt;
   if(animateResourceDepletion(fall.tree,fall.age,fall.axis)){
@@ -396,8 +461,44 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.collected,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.collected);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,innerWidth,innerHeight);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);
 }
 if(__PLAYGROUND__){
+ carpentryFixture=playground.addCarpentryFixture({world:clearingTiles,currentWorld:world,scene,pickables,clearingObjects});
+ playground.addFishingFixture({world:clearingTiles,scene,fishingSpots,clearingObjects});
  debug=playground.mountPlayground({
   companions,
+  async loadCheckpoint(checkpoint){
+   splash.close();stopAll();companions.cancel();craftingTutorial.reset();opening.enterFreePlay();this.reset('all');
+   for(const object of clearingObjects)object.visible=true;introTile.visible=false;player.visible=true;
+   $('scene-fade').hidden=true;$('game-menus').hidden=false;$('game-menus').inert=false;
+   if(checkpoint.area==='willowbank'){
+    finale.debugTravel(true);willow.enter(true,true);willow.debug.stage(checkpoint.step);return;
+   }
+   const step=checkpoint.step;
+   Object.assign(inventory,{sticks:3,stones:3,axes:1,pickaxes:1,logs:3,stone:1});
+   if(['color','name'].includes(step)){this.customization();opening.debugCheckpoint(step);return;}
+   if(['rotate','zoom','move','gather','gather-resume','xp','xp-benefits','level','level-encouragement','gather-complete'].includes(step)){
+    if(['gather','gather-resume','xp','xp-benefits'].includes(step)){
+     inventory.sticks=inventory.stones=0;
+     if(step!=='gather'){resources[0].collected=true;resources[0].group.visible=false;inventory[resources[0].type]=1;Object.assign(gatheringSkill,{xp:20,level:1});}
+    }else if(step.startsWith('level')||step==='gather-complete'){for(const r of resources){r.collected=true;r.group.visible=false;}Object.assign(gatheringSkill,{xp:120,level:2});}
+    opening.debugCheckpoint(step);return;
+   }
+   const finaleSteps={closing:()=>finale.begin(),portal:()=>finale.dropPortal(),practice:()=>finale.resetPractice(),reward:()=>finale.revealReward(),chest:()=>finale.dropChest()};
+   if(finaleSteps[step]){finaleSteps[step]();return;}
+   Object.assign(gatheringSkill,{xp:120,level:2});
+   if(['intro','menu','craft-menu','recipe','crafting'].includes(step))inventory.axes=0;
+   if(['mining-intro','pickaxe','mining-craft'].includes(step))inventory.pickaxes=0;
+   await craftingTutorial.debugCheckpoint(step);
+  },
+  resetCurrentArea(){if(willow.active){willow.debug.stage('meet');}else this.reset('all');},
+  openInterface(name){
+   splash.close();stopAll();finale.debugCancel();craftingTutorial.reset();opening.enterFreePlay();willow.debug.clearUI();$('game-menus').hidden=false;$('game-menus').inert=false;
+   if(name==='cooking'){cookingMenu.open();return;}
+   if(name==='companion-name'){if(!companions.state.owned)companions.acquire();companions.name();return;}
+   if(name==='settings-popup'){settingsUI.open();return;}
+   const button=$('open-'+name);if(button){button.hidden=false;button.disabled=false;button.click();}
+  },
+  sharedAction(name){splash.close();if(name==='heal')health.restore();else if(name==='hurt')health.value=Math.max(1,health.value-10);else if(name==='eat'){inventory.cookedFish=Math.max(1,inventory.cookedFish||0);food.start('cookedFish',true);}else willow.debug[name]();return health.value;},
+  closeSplash(){splash.close();},
   grassPalette:playground.createGrassPaletteControls(()=>[...grass,...splash.grassMaterials,...willow.grassMaterials]),
   objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip()},audio:gameAudio,itemFeed,openSettings:()=>document.getElementById('open-settings').click(),showCrafting(){document.getElementById('open-crafting').click();},waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},
   miningLesson(){stopAll();finale.reset();Object.assign(inventory,{sticks:3,stones:3,pickaxes:0});for(const tree of trees)if(tree.kind==='boulder'){tree.felled=false;tree.group.visible=true;tree.group.scale.setScalar(1);tree.group.rotation.set(0,0,0);tree.tile.blocked=true;}if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}craftingTutorial.startMining();},
@@ -415,7 +516,7 @@ if(__PLAYGROUND__){
   controlsLesson(){stopAll();craftingTutorial.reset();opening.startControls(()=>opening.enterFreePlay());},
   questsLesson(){stopAll();craftingTutorial.reset();craftingTutorial.startQuests();},
   skillsLesson(){stopAll();Object.assign(gatheringSkill,{xp:120,level:2});Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startSkills();},
-  skills:{Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,...willow.skills},
+  skills:{Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,Fishing:fishing.skill,Carpentry:carpentry.skill,...willow.skills},
   willow,enterWillow(){craftingTutorial.reset();opening.enterFreePlay();finale.travel('placeholder');},
   inventory,player,feedback,getTile:()=>tile,finale,
   doze(){idleClock.update(30,true);},
@@ -423,11 +524,12 @@ if(__PLAYGROUND__){
   completePractice(){for(const r of resources){r.collected=true;r.group.visible=false;}for(const t of trees){t.felled=true;t.group.visible=false;t.tile.blocked=false;}fallingTrees.length=0;},
   stop(){cancelWork();path=[];segment=null;target=null;gatherTime=0;player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();},
   reset(kind){
-   if(finale.inPlaceholder||kind==='all')finale.reset();if(kind==='all'){craftingTutorial.reset();opening.enterFreePlay();resetObjectives();}
+   campfires.reset(kind==='all'?undefined:world);
+   if(finale.inPlaceholder||kind==='all')finale.reset();if(kind==='all'){craftingTutorial.reset();opening.enterFreePlay();resetObjectives();for(const object of clearingObjects)object.visible=true;introTile.visible=false;player.visible=true;}
    clearSkillRewards();itemFeed.clear();clearTimeout(toastTimer);$('toast').classList.remove('visible');
    if(['all','trees','boulders'].includes(kind)){for(let i=fallingTrees.length-1;i>=0;i--)if(kind==='all'||((kind==='boulders')===(fallingTrees[i].tree.kind==='boulder')))fallingTrees.splice(i,1);for(const tree of trees){if(kind!=='all'&&((kind==='boulders')!==(tree.kind==='boulder')))continue;tree.group.scale.setScalar(1);tree.felled=false;tree.group.visible=true;tree.group.rotation.set(0,0,0);tree.tile.blocked=true;}}
    if(kind==='all'||kind==='items')for(const r of resources){r.collected=false;r.group.visible=true;}
-   if(kind==='all'){willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of [gatheringSkill,craftingSkill,lumberjackSkill,miningSkill,...Object.values(willow.skills)])Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
+   if(kind==='all'){carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of [gatheringSkill,craftingSkill,lumberjackSkill,miningSkill,fishing.skill,carpentry.skill,...Object.values(willow.skills)])Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
    if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}
    craftingTutorial.refresh();
   },
@@ -442,4 +544,4 @@ createCompanionMenu(companions,{closeMenus:()=>craftingTutorial.closeMenus()});
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
-if(__PLAYGROUND__)window.quadriaquest={getState:()=>({tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},tutorialStage:craftingTutorial.stage,finale:finale.state,willow:willow.state,companion:{...companions.state},action:activeAction?.kind??null,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);return{x:(p.x+1)*innerWidth/2,y:(1-p.y)*innerHeight/2};}};
+if(__PLAYGROUND__)window.quadriaquest={getState:()=>({tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,finale:finale.state,willow:willow.state,companion:{...companions.state},action:activeAction?.kind??null,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);return{x:(p.x+1)*innerWidth/2,y:(1-p.y)*innerHeight/2};}};

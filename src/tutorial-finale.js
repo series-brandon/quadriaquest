@@ -88,6 +88,13 @@ export function createTutorialFinale(api){
   function refresh(){if(!(api.inventory.hats>0))equipped=false;hat.visible=equipped&&!celebration;}
   return {
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,travel,
+    debugCancel:__PLAYGROUND__?function(){hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;celebration=crystalFocus=transition=null;practice=false;heldHat.visible=false;stage='inactive';$('scene-fade').style.opacity='0';$('scene-fade').hidden=true;}:undefined,
+    debugTravel:__PLAYGROUND__?function(away){
+      this.reset();if(!away)return;
+      const landing=portalSpawn(new Map(tiles.map(t=>[key(t.x,t.z),t])),returnPortal.tile);
+      if(!landing)throw Error('No safe arrival tile.');
+      inPlaceholder=true;api.switchArea(true,placeholder,tiles,landing);
+    }:undefined,
     get busy(){return busy();},get celebration(){return celebration;},get cameraFocus(){return crystalFocus;},get inPlaceholder(){return inPlaceholder;},get stage(){return stage;},
     get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped,canEquip:!busy()};},
     refresh,

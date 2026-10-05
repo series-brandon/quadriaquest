@@ -166,11 +166,21 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     visual.scale.set(1/Math.sqrt(squash),squash,1/Math.sqrt(squash));
     visual.position.y=-.07*squash;
   }
-  function enterFreePlay(){finished=true;playable=true;inClearing=true;lesson=3;briefing=awaitingContinue=skillsPending=false;controlsDone=null;continueButton.disabled=false;tutorial.hidden=true;dialogue.hidden=true;transition('play');}
+  function enterFreePlay(){next=null;reaction=null;interruption=null;finished=true;playable=true;inClearing=true;lesson=3;briefing=awaitingContinue=skillsPending=false;controlsDone=null;continueButton.disabled=false;tutorial.hidden=true;dialogue.hidden=true;transition('play');}
   player.visible=false;player.position.copy(introSpawn);player.position.y+=14;
   player.rotation.y=Math.PI/4;
   return {
     enterFreePlay,
+    debugCheckpoint:typeof __PLAYGROUND__!=='undefined'&&__PLAYGROUND__?function(step){
+      enterFreePlay();interruption=null;reaction=null;collectedCount=0;xpExplained=levelExplained=false;
+      if(step==='color'||step==='name'){this.startCustomization();if(step==='name')chooseName();return;}
+      finished=false;
+      if(['rotate','zoom','move'].includes(step)){this.startControls(null);lesson=['rotate','zoom','move'].indexOf(step);showLesson();return;}
+      if(step==='gather'){this.startGathering();return;}
+      if(step==='gather-resume'){lesson=3;collectedCount=1;xpExplained=true;showLesson();return;}
+      if(step==='gather-complete'){collectedCount=6;showGatherSuccess();return;}
+      collectedCount=step.startsWith('level')?6:1;xpExplained=true;levelExplained=step.startsWith('level');explainSkill(step);
+    }:undefined,
     startLevelExplanation(){enterFreePlay();finished=false;collectedCount=6;xpExplained=levelExplained=true;showGatheringPrompt(6);explainSkill('level');},
     startGathering(){enterFreePlay();finished=false;collectedCount=0;xpExplained=levelExplained=false;interruption=null;showLesson();},
     startControls(done){finished=false;playable=true;inClearing=true;lesson=0;awaitingContinue=false;rotationAmount=zoomAmount=0;moveGoal=null;controlsDone=done;dialogue.hidden=true;transition('play');showLesson();},

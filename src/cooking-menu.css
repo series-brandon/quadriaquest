@@ -1,0 +1,51 @@
+#cooking-menu button{min-height:44px;padding:10px 14px;border:1px solid var(--ui-border);border-radius:10px;background:var(--ui-button);color:var(--ui-button-ink)}
+/* Keep station UI independent of generic chapter button/layout styles. */
+body dialog#cooking-menu{font:inherit;box-sizing:border-box;width:min(680px,calc(100vw - 48px));max-width:none;height:min(520px,calc(100dvh - 48px));max-height:none;padding:0;overflow:hidden;border:1px solid var(--ui-border);border-radius:20px;background:var(--ui-paper);color:var(--ui-ink);box-shadow:0 24px 80px #241b3940}
+#cooking-menu *,#cooking-menu *::before,#cooking-menu *::after{box-sizing:border-box}
+#cooking-menu[open]{display:flex;flex-direction:column}
+#cooking-menu .cooking-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;border-bottom:1px solid #b4a1bd55;flex-shrink:0}
+#cooking-menu h2{margin:3px 0 0;font-size:22px;line-height:1.2}
+#cooking-menu .cooking-eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ui-muted)}
+#cooking-menu button{font:inherit;cursor:pointer;transition:background .15s,box-shadow .15s}
+#cooking-menu button:focus-visible,#cooking-menu input:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px}
+#cooking-menu button[data-close]{display:grid;place-items:center;width:40px;min-height:40px;padding:0;flex-shrink:0;border:1px solid #b4a1bd66;border-radius:12px;background:transparent;color:var(--ui-ink);font-size:24px;line-height:1}
+#cooking-menu button[data-close]:hover{background:#b4a1bd22}
+#cooking-menu .cooking-search{display:grid;gap:6px;font-size:12px;padding:14px 22px 0;color:var(--ui-muted)}
+#cooking-menu .cooking-search[hidden]{display:none}
+#cooking-menu .cooking-search input{width:100%;max-width:none;min-height:42px;padding:10px 12px;border:1px solid var(--ui-border);border-radius:10px;background:#ffffff66;color:var(--ui-ink);font:inherit;font-size:16px}
+#cooking-menu .cooking-browser{display:grid;grid-template-columns:minmax(0, .9fr) minmax(0,1.2fr);gap:0;min-height:0;flex:1}
+#cooking-menu nav{overflow:auto;min-width:0;min-height:0;padding:16px 12px;background:#b4a1bd0d;border-right:1px solid #b4a1bd55}
+#cooking-menu .cooking-recipe{display:flex;align-items:center;gap:10px;text-align:left;width:100%;margin:0 0 8px;padding:12px;min-height:70px;background:transparent;color:var(--ui-ink);border:1px solid transparent;border-radius:12px}
+#cooking-menu .cooking-recipe:hover{background:#b4a1bd18}
+#cooking-menu .cooking-recipe[aria-pressed=true]{background:#eee0e5;border-color:var(--ui-border);box-shadow:inset 3px 0 var(--ui-accent)}
+#cooking-menu .cooking-item-icon{display:grid;place-items:center;flex:0 0 36px;height:36px;background:#fff9f277;border-radius:10px}
+#cooking-menu .cooking-item-icon svg{width:25px;height:25px}
+#cooking-menu .cooking-recipe-copy{display:grid;gap:5px;min-width:0;overflow-wrap:anywhere}
+#cooking-menu .cooking-recipe strong{font-size:14px;line-height:1.3}
+#cooking-menu .cooking-recipe small{font-size:11px;color:var(--ui-muted);line-height:1.4}
+#cooking-menu .cooking-detail{display:flex;flex-direction:column;min-height:0;min-width:0}
+#cooking-menu .cooking-detail-body{padding:18px 22px;overflow:auto;flex:1;min-height:0}
+#cooking-menu .cooking-hero{display:grid;place-items:center;width:56px;height:56px;margin-bottom:12px;border:1px solid #b4a1bd55;border-radius:16px;background:#eee0e566;color:var(--ui-button)}
+#cooking-menu .cooking-hero svg{width:34px;height:34px}
+#cooking-menu h3{margin:0;font-size:19px;line-height:1.3}
+#cooking-menu .cooking-detail p{margin:10px 0 16px;font-size:13px;line-height:1.6}
+#cooking-menu .cooking-detail .cooking-meta{font-size:11px;color:var(--ui-muted);margin:6px 0 12px}
+#cooking-menu .cooking-ingredients-heading{margin:16px 0 8px;font-size:12px;color:var(--ui-muted);font-weight:600}
+#cooking-menu .cooking-detail ul{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+#cooking-menu .cooking-detail li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #b4a1bd33;font-size:13px}
+#cooking-menu .cooking-detail li strong{font-size:12px;white-space:nowrap;padding:4px 8px;border-radius:6px}
+#cooking-menu .available strong{color:#376a46;background:#376a4610}#cooking-menu .missing strong{color:#a23b4a;background:#a23b4a10}
+#cooking-menu .cooking-detail-actions{padding:12px 22px 18px;flex-shrink:0;display:grid;gap:8px;border-top:1px solid #b4a1bd33}
+#cooking-menu .cooking-submit{width:100%;min-height:44px;border-radius:12px;background:var(--ui-button);color:var(--ui-button-ink);border:1px solid var(--ui-border);font-weight:600;box-shadow:0 2px 0 var(--ui-border)}
+#cooking-menu .cooking-submit:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+#cooking-menu .cooking-detail-actions small{font-size:11px;color:var(--ui-muted);text-align:center;line-height:1.4}
+#cooking-menu .cooking-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 22px;border-top:1px solid #b4a1bd55;flex-shrink:0}
+#cooking-menu button[data-pack]{background:transparent;color:var(--ui-muted);border:1px solid #b4a1bd66;border-radius:10px;padding:8px 12px;min-height:40px;font-size:12px}
+#cooking-menu button[data-pack]:hover{background:#b4a1bd18;color:var(--ui-ink)}
+#cooking-menu .cooking-footer span{font-size:11px;color:var(--ui-muted)}
+#cooking-menu .cooking-back{display:none}#cooking-menu .cooking-empty{padding:12px;color:var(--ui-muted);font-size:13px}
+@media(max-width:700px){body dialog#cooking-menu{inset:0;margin:0;width:100%;height:100dvh;max-height:none;border:0;border-radius:0;padding:0}#cooking-menu .cooking-header{padding-top:max(18px,env(safe-area-inset-top))}#cooking-menu .cooking-footer{padding-bottom:max(12px,env(safe-area-inset-bottom))}#cooking-menu .cooking-footer span{display:none}#cooking-menu .cooking-browser{display:flex;flex-direction:column}#cooking-menu nav{flex:1;border-right:0}#cooking-menu .cooking-detail{height:100%}#cooking-menu:not(.viewing-recipe) .cooking-detail,#cooking-menu.viewing-recipe nav{display:none}#cooking-menu .cooking-back{display:block;margin:0 0 16px;padding:0;min-height:36px;background:transparent;color:var(--ui-muted);border:0;font-size:13px}#cooking-menu .cooking-recipe{min-height:76px}#cooking-menu .cooking-detail-body{padding:18px 22px}#cooking-menu .cooking-detail-actions{padding-bottom:18px}}
+
+#cooking-menu .cooking-header,#cooking-menu .cooking-footer{position:static;inset:auto;transform:none;pointer-events:auto;width:auto;opacity:1;visibility:visible}
+#cooking-menu button[hidden]{display:none}
+#cooking-menu::backdrop{background:#29203177}

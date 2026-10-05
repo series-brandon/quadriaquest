@@ -1,18 +1,11 @@
-import {makeFishingRod} from './fishing-rod.js';
+import {tool} from './tool-models.js';
 import {makeSlime} from './slime-model.js';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {createSlimeFace} from './slime-face.js';
 import {part,namedPart} from './model-parts.js';
 export {part} from './model-parts.js';
-export function tool(kind){
- const g=new THREE.Group();
- if(kind==='swords'){part(g,new THREE.BoxGeometry(.13,.65,.07),'#b1c4cd',0,.35,0);part(g,new THREE.BoxGeometry(.34,.07,.09),'#957145',0,.05);part(g,new THREE.CylinderGeometry(.035,.035,.23,6),'#674933',0,-.08);}
- if(kind==='shields'){part(g,new THREE.CylinderGeometry(.27,.27,.09,8),'#ae8056').rotation.x=Math.PI/2;part(g,new THREE.BoxGeometry(.07,.45,.11),'#cdb281');}
- if(kind==='hammers'){part(g,new THREE.CylinderGeometry(.03,.035,.38,6),'#98704e',0,.11);part(g,new THREE.BoxGeometry(.26,.15,.15),'#a1aaa5',0,.30);}
- if(kind==='rods')return makeFishingRod();
- return g;
-}
+export {tool,heldTool} from './tool-models.js';
 export function fisher(){
  const slime=makeSlime('#66a6ad'),{group,hands}=slime;
  part(group,new THREE.SphereGeometry(.37,16,8,0,Math.PI*2,0,Math.PI/2),'#cbb58a',0,.78);
@@ -58,41 +51,7 @@ export function animateGoblin(group,time,{walk=0,attack=0,hit=0}={}){
   group.getObjectByName('eye'+side).scale.y=.82*blink;
  }
 }
-export function campfire(ghost=false){const g=new THREE.Group();for(let i=0;i<3;i++){const log=part(g,new THREE.CylinderGeometry(.085,.085,.85,7),'#94704d',0,.09+i*.015,0);log.name='campfire-log';log.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(Math.cos(i*Math.PI/3),0,Math.sin(i*Math.PI/3)));}for(let i=0;i<3;i++)part(g,new THREE.ConeGeometry(.17-i*.035,.46-i*.07,5),i%2?'#ffe09a':'#ef9851',(i-1)*.1,.28+i*.04);if(ghost)g.traverse(m=>{if(m.isMesh){m.material.transparent=true;m.material.opacity=.45;}});return g;}
+export {campfire} from './campfire-model.js';
 
-// A portable fishing-tile marker, independent of a map's water shader.
-export function fishingSpot(){
- const group=new THREE.Group();
- for(let i=0;i<3;i++){const ring=part(group,new THREE.RingGeometry(.27,.30,48),new THREE.MeshBasicMaterial({color:'#d6f6ef',transparent:true,opacity:.6,toneMapped:false,depthWrite:false,side:THREE.DoubleSide}),0,.07+i*.001,0);ring.rotation.x=-Math.PI/2;ring.renderOrder=3;ring.castShadow=false;ring.name='fishing-ripple';ring.userData.phase=i/3;}
- return group;
-}
-export function animateFishingSpot(group,time){
- for(const ring of group.children){if(ring.name!=='fishing-ripple')continue;const phase=(time*.38+ring.userData.phase)%1;ring.scale.setScalar(.35+phase*1.15);ring.material.opacity=Math.sin(phase*Math.PI)*.8;}
-}
-
-export function animateCampfire(group,time){
- for(const [i,flame] of group.children.filter(m=>m.geometry?.type==='ConeGeometry').entries())flame.scale.y=1+Math.sin(time*9+i)*.12;
-}
-export function makeBridge(length=3){
- const group=new THREE.Group(),repairTarget=new THREE.Group(),planks=[],surfaces=[],posts=[],railings=[];group.add(repairTarget);
- const pitch=1/3,gap=.015;
- for(let x=0;x<length;x++){
-  for(let j=0;j<3;j++){const plank=part(group,new THREE.BoxGeometry(pitch-gap,.12,.85),'#a98155',x+(j-1)*pitch,1,0);plank.name='bridge-plank';planks.push(plank);repairTarget.add(plank);}
-  for(const side of [-1,1]){
-   const post=part(group,new THREE.CylinderGeometry(.07,.07,1.12,6),'#886747',x,.92,side*.43);post.name='bridge-post';posts.push(post);repairTarget.add(post);
-   if(x<length-1){const rail=part(group,new THREE.BoxGeometry(1.08,.10,.09),'#967049',x+.5,1.43,side*.43);rail.name='bridge-railing';railings.push(rail);}
-  }
-  // Invisible completed-deck picking surface; visible geometry is only the boards.
-  const hit=part(group,new THREE.BoxGeometry(1,.02,.85),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,colorWrite:false}),x,1.05,0);
-  hit.name='bridge-walk-surface';hit.castShadow=hit.receiveShadow=false;surfaces.push(hit);
- }
- function setProgress(progress){
-  surfaces.forEach(m=>m.visible=progress===1);railings.forEach(m=>m.visible=progress===1);
-  const repaired=Math.ceil(Math.min(1,progress*1.5)*planks.length);
-  planks.forEach((p,i)=>{p.visible=progress===0?i%3!==1:i<repaired;p.rotation.z=progress===0?(i%2?1:-1)*.2:0;});
- }
- setProgress(0);return {group,repairTarget,surfaces,planks,posts,railings,setProgress};
-}
-
-
-export function heldTool(kind){const group=tool(kind);if(['swords','shields','hammers'].includes(kind))group.rotation.y=Math.PI/2;return group;}
+export {animateCampfire} from './campfire-model.js';
+export {makeBridge} from './bridge-model.js';

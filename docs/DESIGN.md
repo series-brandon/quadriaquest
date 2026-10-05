@@ -197,7 +197,7 @@ The Rotate, Zoom, and Move tips remain visible while performing their actions. C
 
 ## Second tutorial area: Willowbank
 
-The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Combat, equipment, Carpentry, companions, Fishing, placement, and Culinary skills. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. The prototype ending appears after cooking and eating, rather than on arrival.
+The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Carpentry, companions, Fishing, placement, and Culinary skills. Combat and equipment instruction belong to the planned third area. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. The prototype ending appears after cooking and eating, rather than on arrival.
 
 
 ## Area three: combat tutorial outline
@@ -235,7 +235,7 @@ Provide a safe crystal/NPC/crafting space, an isolated first encounter, and a se
 
 ### Playground and acceptance checklist
 
-Current combat is retained behind explicit Willowbank dev sandbox controls while no third map exists. On implementation, relocate those fixtures to the actual third area and keep shared controls calling real gameplay. Add direct entry/reset and checkpoints for unarmed, recipes, equip, stronger fight and completion. Verify both enemies, random wander, retreat/pursuit/leash, repeated defeat/respawn, food healing, inventory preservation, companion travel, recipe visibility, camera return and journal history. Retest the clearing and peaceful Willowbank to ensure no combat actors or objectives leak into them. Build both variants and verify debug isolation.
+Combat implementation is retained for area three, but obsolete encounter actions are removed from the playground; individual rig animations remain available through the shared model viewer. On implementation, relocate those fixtures to the actual third area and keep shared controls calling real gameplay. Add direct entry/reset and checkpoints for unarmed, recipes, equip, stronger fight and completion. Verify both enemies, random wander, retreat/pursuit/leash, repeated defeat/respawn, food healing, inventory preservation, companion travel, recipe visibility, camera return and journal history. Retest the clearing and peaceful Willowbank to ensure no combat actors or objectives leak into them. Build both variants and verify debug isolation.
 
 ## Small-screen menus and model previews
 
@@ -269,3 +269,16 @@ Companions are an app-level system, not a Willowbank subsystem. `companions.js` 
 Worlds supply terrain, placement, and quest context. Willowbank places the stranded animal and scripts its bridge crossing, then calls the shared acquisition API. Reed's initial name acknowledgement remains quest dialogue supplied as a callback; later renaming works anywhere without Reed or Willowbank. The app updates and dispatches companion interactions directly, including when the current area is not Willowbank. Area changes preserve the follower's name and follow/rest preference.
 
 The playground has an independent **Companions** section available in every area: add a follower, pet, rename, rest/follow, reset, and loop shared animations. Model/expression inspection remains in the shared model viewer. Doze off/Wake up tests delayed companion sleeping. Chapter checkpoints call the same acquisition/reset APIs and do not contain copies of companion behavior.
+
+
+**Playground organization.** A unified tutorial checkpoint catalogue in `src/dev/tutorial-checkpoints.js` covers both worlds and individual tutorial/menu steps. Loading a step automatically prepares its world and prerequisites, clears stale UI state, and uses production tutorial transitions. Interface previews use one selector, including cooking. Companion actions use a label above a selector/action row. Shared health and hit-feedback controls have no world prerequisite. The playground stays interactive over splash previews and uses an opaque, edge-to-edge mobile takeover.
+
+### World-independent gameplay boundary
+
+Only area layout and area narrative belong to an area module. Skills, recipes, inventory actions, stations, models, animations, UI, collision policies, and rewards must be portable shared systems. Availability comes from materials, tools, terrain, and current action state—not from having visited or currently being in a named area. Tutorial guidance may teach an action; it must not become the implementation of that action. If the intended boundary is unclear, ask before adding area-specific behavior.
+
+Campfire placement/use/packing and inventory recipe crafting are app-owned (`campfires.js`, `recipe-crafting.js`); cooking uses `cooking.js` and `cooking-menu.js`. Stations remain attached to their original tile instances across travel. Clear reachable land accepts placement by default; water, occupied tiles, explicit non-buildable structures, and unreachable tiles reject it. Areas receive completion callbacks only for their narrative. A fire can be packed back into inventory; movement cancels pending placement/crafting without spending materials.
+
+Every added shared capability must also be exercisable in the development playground without first entering its tutorial area. Regression checks must exercise the behavior in more than one world, including the clearing before visiting Willowbank. For campfires, add supplies through Inventory & skills, then use the normal crafting and inventory menus to craft, place, cook, cancel, and pack. The Cooking interface preview remains a non-mutating preview, without teleportation.
+
+**Existing architecture debt, not an exception to this rule:** Willowbank still contains combat/equipment state and a separate gathering/depletion action loop. Fishing, carpentry, eating/health, cooking, and campfire placement now use app-owned systems. These need extraction into shared systems; the existing file placement does not authorize copying those implementations into another world. The bridge collapse and repair/rescue story, scripted injury moment, stranded-animal sequence, Reed's lines, tutorial objectives, and map coordinates remain legitimate Willowbank narrative/layout. Shared carpentry owns tool/material checks, timing, hammering, cancellation, consumption, and XP; the chapter configures the target and reacts to its progress/completion. See [HANDOFF.md](HANDOFF.md) for the actionable backlog and current verification status.

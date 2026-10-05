@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as THREE from 'three';
+import {createFishingSystem} from './fishing.js';
+import {interactionRoute} from './interaction-route.js';
+const context=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]||(()=>{})});
+globalThis.document={createElement:()=>({getContext:()=>context})};
+const {createFishingSpots}=await import('./fishing-spots.js');
+test('portable spots retain map identity, work before a chapter visit, and survive return travel',()=>{
+ const map=()=>new Map(Array.from({length:9},(_,i)=>{const t={x:i%3,z:Math.floor(i/3),h:1,water:i===4,blocked:i===4};return [`${t.x},${t.z}`,t];}));
+ const first=map(),second=map(),world=new Map(first),scene=new THREE.Scene(),pickables=[],inventory={rods:1,rawFish:0};
+ const spots=createFishingSpots({world,scene,pickables,hover:()=>null});
+ const a=spots.add({tile:first.get('1,1')}),b=spots.add({tile:second.get('1,1')});let fishing;
+ fishing=createFishingSystem({inventory,stop:()=>fishing.cancel(),face(){},inReach:s=>interactionRoute(world,world.get('1,0'),s)?.route.length===0});
+ spots.update(1);assert.equal(a.group.visible,true);assert.equal(b.group.visible,false);assert.equal(first.get('1,1').blocked,true);
+ assert.ok(fishing.start(a));fishing.update(30);assert.equal(inventory.rawFish,1);
+ fishing.start(a);fishing.update(.4);world.clear();for(const [k,t]of second)world.set(k,t);spots.update(2);fishing.update(30);
+ assert.equal(inventory.rawFish,1);assert.equal(a.available(),false);assert.equal(a.group.visible,false);assert.equal(b.available(),true);
+ assert.ok(fishing.start(b));fishing.update(30);assert.equal(inventory.rawFish,2);
+ world.clear();for(const [k,t]of first)world.set(k,t);spots.update(3);assert.equal(a.available(),true);assert.equal(b.group.visible,false);
+ fishing.start(a);spots.remove(a);fishing.update(30);assert.equal(inventory.rawFish,2);assert.equal(pickables.includes(a.hitTarget),false);assert.equal(a.tile.blocked,true);
+ const replacement=spots.add({tile:first.get('1,1')});assert.ok(fishing.start(replacement));fishing.update(30);assert.equal(inventory.rawFish,3);
+});
