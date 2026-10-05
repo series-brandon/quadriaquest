@@ -27,7 +27,7 @@ test('slime starts with exactly one expression, and preview emotions select one 
 test('slime action previews attach only their tools and clear them on switching',()=>{
  const entry=MODEL_CATALOG.find(m=>m.name==='Slime'),instance=entry.create();
  const visibleTools=()=>{const result=[];instance.group.traverse(o=>{if(o.name.startsWith('preview-tool-')&&o.visible)result.push(o.name.replace('preview-tool-',''));});return result.sort();};
- for(const [motion,tools] of [['Sword and shield',['shields','swords']],['Fishing',['rods']],['Carpentry',['hammers']],['Mining',['pickaxes']],['Chopping',['axes']],['Punching',[]],['Gathering',[]],['Crafting',[]],['Ouch / hammer injury',[]],['Idle',[]]]){
+ for(const [motion,tools] of [['Attack',[]],['Fishing',['rods']],['Carpentry',['hammers']],['Mining',['pickaxes']],['Chopping',['axes']],['Block',[]],['Gathering',[]],['Crafting',[]],['Ouch / hammer injury',[]],['Idle',[]]]){
   assert.ok(entry.motions.includes(motion),motion);instance.update(.6,motion,.016);assert.deepEqual(visibleTools(),tools,motion);
  }
 });
@@ -60,5 +60,19 @@ test('every slime exposes the same motions and clears action tools when returnin
   instance.group.traverse(o=>{if(o.name.startsWith('preview-tool-'))assert.equal(o.visible,false,name);});
   const rig=instance.group.children[0],hands=rig.children.filter(o=>o.isMesh&&o.geometry.type==='SphereGeometry'&&o.geometry.parameters.radius===.105);assert.deepEqual(hands[0].position.toArray(),[-.38,.53,.55],name);
   instance.update(.4,'Idle',.016);assert.equal(hands[0].position.x,-.46,name);
+ }
+});
+
+
+test('slime loadout stays visible for casting and motion overrides, hides for tools, then returns',()=>{
+ for(const entry of MODEL_CATALOG.filter(m=>m.loadout)){
+  const instance=entry.create(),options={mainHand:'copperDagger',offHand:'copperShield',style:'magic'};
+  const visible=()=>{const names=[];instance.group.traverse(o=>{if(o.visible&&o.name.startsWith('preview-tool-'))names.push(o.name.slice(13));});return names.sort();};
+  instance.update(1.8,'Attack',0,'default','Generic item',options);assert.deepEqual(visible(),['copperDagger','copperShield'],entry.name);
+  instance.update(1.5,'Attack',0,'default','Generic item',{...options,attackMotion:'slash'});assert.deepEqual(visible(),['copperDagger','copperShield']);
+  instance.update(.1,'Block',0,'default','Generic item',{...options,blockMotion:'fists'});assert.deepEqual(visible(),['copperDagger','copperShield']);
+  instance.update(.3,'Fishing',0,'default','Generic item',options);assert.deepEqual(visible(),['rods']);
+  instance.update(.3,'Mining',0,'default','Generic item',options);assert.deepEqual(visible(),['pickaxes']);
+  instance.update(.3,'Idle',0,'default','Generic item',options);assert.deepEqual(visible(),['copperDagger','copperShield']);
  }
 });

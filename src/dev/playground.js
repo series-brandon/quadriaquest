@@ -42,7 +42,7 @@ export function addCarpentryFixture({world,currentWorld,scene,pickables,clearing
  return bridge;
 }
 
-const animations=['Point','Stomp','Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Celebration','Happy','Pleased','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted','Angry'];
+const animations=['Attack (equipped)','Block (equipped)','Point','Stomp','Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Celebration','Happy','Pleased','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted','Angry'];
 const durations={...SOCIAL_DURATIONS,'Celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   let modelPreview;
@@ -242,6 +242,7 @@ export function mountPlayground(api){
   api.reset('all');refresh();
   return {
     stop:()=>stop(false),
+    get combatMotion(){if(!['Attack (equipped)','Block (equipped)'].includes(preview))return null;const profile=api.combatProfile();return {kind:preview==='Block (equipped)'?'Block':profile.style==='ranged'?'Archery':profile.style==='magic'?'Casting':'Combat',time:preview==='Block (equipped)'?time%1.2:time,profile};},
     get previewing(){return !!preview;},
     get mining(){return preview==='Mining';},
     get chopping(){return preview==='Chopping';},get time(){return time;},get holdingFeedback(){return holdingFeedback;},
@@ -249,9 +250,10 @@ export function mountPlayground(api){
       snapshotAge+=dt;if(snapshotAge>.25){snapshotAge=0;refresh();}
       if(!preview)return null;
       time+=dt*Number($('speed').value);
-      const duration=durations[preview]||2;
+      const duration=preview==='Attack (equipped)'?api.combatProfile().interval*2:preview==='Block (equipped)'?1.2:durations[preview]||2;
       if(time>=duration){if($('loop').checked){if(preview!=='Sleeping')time%=duration;if(preview==='Celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});}else{stop();status('Preview finished.');return null;}}
       if(preview==='Celebration')return null;
+      if(this.combatMotion){const m=this.combatMotion;return {...playerActionMotion(m.kind,m.time,m.time,m.profile),lift:0};}
       if(preview==='Point'||preview==='Stomp')return {...playerActionMotion(preview,time),lift:0};
       if(SOCIAL_DURATIONS[preview])return socialMotion(preview,time);
       let pose=idlePose(time),expression='idle',handWork=null,lift=0;

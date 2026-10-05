@@ -1,4 +1,6 @@
-import {mentorModel,animateMentor,MENTORS,copperOutcrop,furnace,animateFurnace,anvil,supplyShelf,stoneArch,stoneTile,ingot,trainingTarget,animateTarget} from '../training-models.js';
+import {previewCombat,previewLoadout} from './preview-loadout.js';
+import {combatEquipmentVisible} from '../combat-animation.js';
+import {mentorModel,animateMentor,animateBow,MENTORS,copperOutcrop,furnace,animateFurnace,anvil,supplyShelf,stoneArch,stoneTile,ingot,trainingTarget,animateTarget} from '../training-models.js';
 import {projectileModel} from '../projectile-effects.js';
 import {makeCrystal,animateCrystal} from '../crystal-model.js';
 import {goblin,animateGoblin} from '../enemy-model.js';
@@ -32,7 +34,7 @@ import {createWaterEffects} from '../water-effects.js';
 import {animateResourceHit,animateResourceDepletion} from '../resource-depletion.js';
 import {key} from '../world.js';
 
-export const SLIME_ACTIONS={'Point':'Point','Stomp':'Stomp','Copper dagger and shield':'Combat','Archery':'Archery','Casting':'Casting','Smithing':'Smithing','Smelting':'Smelting','Punching':'Combat','Sword and shield':'Combat','Petting':'Petting','Gathering':'Gathering','Crafting':'Crafting','Chopping':'Chopping','Mining':'Mining','Carpentry':'Repairing','Ouch / hammer injury':'Hammer injury','Fishing cast':'Fishing cast','Fishing catch':'Fishing catch','Celebration':'Celebration','Fishing':'Fishing','Eating':'Eating','Cooking':'Cooking','Defeated':'Defeated'};
+export const SLIME_ACTIONS={'Attack':'Combat','Block':'Block','Point':'Point','Stomp':'Stomp','Smithing':'Smithing','Smelting':'Smelting','Petting':'Petting','Gathering':'Gathering','Crafting':'Crafting','Chopping':'Chopping','Mining':'Mining','Carpentry':'Repairing','Ouch / hammer injury':'Hammer injury','Fishing cast':'Fishing cast','Fishing catch':'Fishing catch','Celebration':'Celebration','Fishing':'Fishing','Eating':'Eating','Cooking':'Cooking','Defeated':'Defeated'};
 export const SLIME_MOTIONS=['Idle','Sliding','Jump up','Jump down','Spawn landing',...Object.keys(SOCIAL_DURATIONS),...Object.keys(SLIME_ACTIONS)];
 const staticModel=(name,factory)=>({name,motions:['Static'],create:()=>({group:factory()})});
 const expressions=SLIME_EXPRESSIONS.filter(x=>x!=='concerned').map(x=>x[0].toUpperCase()+x.slice(1));
@@ -44,13 +46,14 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
  const trophyGeneric=new THREE.Mesh(new THREE.BoxGeometry(.38,.25,.25),new THREE.MeshStandardMaterial({color:'#d9b777'}));rig.group.add(trophyGeneric);trophyGeneric.visible=false;
  const tools={};{for(const id of ['swords','shields','hammers','rods','copperDagger','copperShield','bows']){tools[id]=heldTool(id);rig.hands[['shields','copperShield'].includes(id)?1:0].add(tools[id]);}tools.axes=makeAxe();tools.pickaxes=makePickaxe();rig.hands[0].add(tools.axes,tools.pickaxes);for(const [id,model] of Object.entries(tools)){model.name=`preview-tool-${id}`;model.visible=false;}}
 
- return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item'){
+ return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){
   trophyGeneric.visible=trophyFish.visible=trophyHat.visible=false;
   let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null;
-  const actionKind=SLIME_ACTIONS[motion];
-  for(const prop of rig.idleProps||[])prop.visible=motion==='Idle';
+  const combat=['Attack','Block'].includes(motion)?previewCombat(motion,options):null,actionKind=combat?.kind||SLIME_ACTIONS[motion],loadout=previewLoadout(options);
+  for(const prop of rig.idleProps||[])prop.visible=motion==='Idle'&&!loadout.mainHand&&!loadout.offHand;
   for(const model of Object.values(tools))model.visible=false;
-  if(actionKind){const actionTime=actionKind==='Eating'?time%(EATING_DURATION+.5):actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime));const active=motion==='Copper dagger and shield'?['copperDagger','copperShield']:motion==='Sword and shield'?['swords','shields']:({Smithing:['hammers'],Archery:['bows'],Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;
+  if(actionKind){const actionTime=actionKind==='Block'?time%1.2:actionKind==='Eating'?time%(EATING_DURATION+.5):actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime,actionTime,combat?.profile));const active=({Smithing:['hammers'],Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;
+   const bow=playerActionMotion(actionKind,actionTime,actionTime,combat?.profile);animateBow(tools.bows,bow.bowDraw||0,!!bow.nocked);
    if(actionKind==='Fishing catch'||actionKind==='Fishing cast')tools.rods.visible=true;
    if(actionKind==='Celebration'){trophyFish.scale.setScalar(1);const result=holdUpMotion(actionTime,heldItem==='Raw Pondfish'?'fish':heldItem==='Top Hat'?'hat':'generic'),prop=heldItem==='Raw Pondfish'?trophyFish:heldItem==='Top Hat'?trophyHat:trophyGeneric;prop.visible=result.prop.visible;prop.position.set(0,result.prop.y,result.prop.z);}
 
@@ -59,6 +62,8 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
   else if(motion==='Jump up'||motion==='Jump down'){const t=time%(STEP_DURATION+.5);pose=stepMotion(Math.min(t,STEP_DURATION),motion==='Jump up'?.5:-.5);lift=pose.lift+(motion==='Jump down'?.5:0);expression=t<.32?'preparing':t<STEP_DURATION?'struggle':'idle';}
   else if(motion==='Spawn landing'){pose=spawnMotion(time%1.8);lift=pose.lift;expression=time%1.8<.68?'struggle':'idle';}
   else if(motion==='Sliding'){pose=slideMotion(time%1);expression='focused';}
+  if(combatEquipmentVisible(actionKind))for(const id of [loadout.mainHand,loadout.offHand].filter(Boolean))tools[id].visible=true;
+  if(!combat)animateBow(tools.bows);
   if(motion==='Idle')expression=defaultExpression;
   if(expressionOverride&&expressionOverride.toLowerCase()!=='default')expression=expressionOverride.toLowerCase();
   rig.face.set(expression);bend(pose.bend||0);
@@ -76,7 +81,7 @@ function resource(name,factory,kind){return {name,motions:['Static','Hit','Deple
 function terrain(heights){const group=new THREE.Group(),tiles=heights.map((h,x)=>({x,z:0,h})),map=new Map(tiles.map(t=>[key(t.x,t.z),t])),colors=createGrassColors();for(const tile of tiles){const mesh=makeTerrainTile(tile,map,new THREE.MeshStandardMaterial({color:colors[tile.x%colors.length]}));mesh.position.x=tile.x;group.add(mesh);}return group;}
 
 export const MODEL_CATALOG=[
- ...Object.entries(MENTORS).map(([kind,def])=>({name:def.name,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(()=>mentorModel(kind),{idle:(rig,time,expression)=>animateMentor(rig,time,'Idle',expression),defaultExpression:def.expression})})),
+ ...Object.entries(MENTORS).map(([kind,def])=>({name:def.name,loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(()=>mentorModel(kind),{idle:(rig,time,expression)=>animateMentor(rig,time,'Idle',expression),defaultExpression:def.expression})})),
  resource('Copper outcrop',copperOutcrop,'copper'),staticModel('Copper Ingot',ingot),
  ...[['copperDagger','Copper Dagger'],['copperShield','Copper Shield'],['bows','Training Bow'],['arrows','Training Arrow']].map(([id,name])=>staticModel(name,()=>tool(id))),
  {name:'Furnace',motions:['Burning','Static'],create(){const group=furnace();return {group,update:(time,motion)=>animateFurnace(group,motion==='Static'?0:time)};}},
@@ -85,8 +90,8 @@ export const MODEL_CATALOG=[
  {name:'Practice target',motions:['Static','Hit'],create(){const group=trainingTarget();return {group,update:(time,motion)=>animateTarget(group,time,motion==='Hit'?1:0)};}},
  staticModel('Spark projectile',()=>projectileModel('magic')),
 
- {name:'Slime',motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(makeSlime)},
- {name:'Reed',motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{idle:animateFisher})},
+ {name:'Slime',loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(makeSlime)},
+ {name:'Reed',loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{idle:animateFisher})},
  ...[false,true].map(big=>({name:big?'Goblin Bruiser':'Goblin',motions:['Idle','Walk','Attack','Hit'],create(){const group=goblin(big);return {group,update(time,motion){animateGoblin(group,time,{walk:motion==='Walk'?1:0,attack:motion==='Attack'?attackPose(time):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}})),
  {name:'Corgi',motions:['Idle','Walk','Jump up','Jump down','Sit','Scratch','Petting','Sleeping'],expressions:['Idle','Happy','Sad','Sleeping'],create(){const group=companion();return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item'){animateCompanion(group,time,{moving:motion==='Walk',expression:expressionOverride||'Default',motion,age:motion==='Sleeping'?time:time%2.6});}};}},
  resource('Tree',makeTree,'tree'),resource('Boulder',makeBoulder,'boulder'),staticModel('Flowers',makeFlowers),

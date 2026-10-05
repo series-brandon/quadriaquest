@@ -10,7 +10,7 @@ export function ingot(){const g=new THREE.Group();box(g,.48,.19,.24,'#cb8955',0,
 export function trainingTool(kind){const g=new THREE.Group();
  if(kind==='copperDagger'){box(g,.11,.38,.06,'#e0a06b',0,.22);part(g,new THREE.ConeGeometry(.07,.17,4),'#ffd1a0',0,.49);box(g,.27,.05,.10,'#816149',0,.035);box(g,.075,.19,.075,'#694437',0,-.075);}
  if(kind==='copperShield'){const plate=part(g,new THREE.CylinderGeometry(.28,.28,.08,6),'#c88a58');plate.rotation.x=Math.PI/2;part(g,new THREE.SphereGeometry(.09,10,8),'#f3bd83',0,0,.07);}
- if(kind==='bows'){const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(0,-.48,0),new THREE.Vector3(0,0,.22),new THREE.Vector3(0,.48,0)]);part(g,new THREE.TubeGeometry(curve,16,.035,6,false),'#a97c53');box(g,.012,.96,.012,'#e8dbc1');}
+ if(kind==='bows'){const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(0,-.48,0),new THREE.Vector3(0,0,.22),new THREE.Vector3(0,.48,0)]);part(g,new THREE.TubeGeometry(curve,16,.035,6,false),'#a97c53');const string=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,-.48,0),new THREE.Vector3(),new THREE.Vector3(0,.48,0)]),new THREE.LineBasicMaterial({color:'#e8dbc1'}));string.name='bow-string';g.add(string);const arrow=trainingTool('arrows');arrow.name='nocked-arrow';arrow.rotation.x=Math.PI/2;arrow.visible=false;g.add(arrow);}
  if(kind==='arrows'){box(g,.025,.65,.025,'#d5b786',0,.05);part(g,new THREE.ConeGeometry(.045,.12,4),'#a2bbc0',0,.435);box(g,.10,.13,.018,'#efe2c2',0,-.24);}
  return g;
 }
@@ -38,3 +38,9 @@ export function mentorModel(kind){const def=MENTORS[kind],rig=makeSlime(def.colo
  rig.kind=kind;rig.face.set(def.expression);return rig;
 }
 export function animateMentor(rig,time,motion='Idle',expression){const angry=rig.kind==='sarge';rig.group.scale.set(1,1+Math.sin(time*(angry?5:2.8))*.025,1);rig.hands.forEach((h,i)=>{h.position.set(i===0?-.46:.46,.33+Math.sin(time*2.8+i)*.015,.08);h.rotation.set(0,0,0);});if(motion==='Point'||motion==='Stomp'){const {pose,hands}=playerActionMotion(motion,time);rig.group.scale.set(1/Math.sqrt(pose.squash),pose.squash,1/Math.sqrt(pose.squash));rig.hands.forEach((hand,i)=>{const [x,y,z,pitch,roll,yaw=0]=hands[i];hand.position.set(x,y,z);hand.rotation.set(pitch,yaw,roll);});}rig.face.set(expression||MENTORS[rig.kind].expression);}
+
+export function animateBow(group,draw=0,nocked=false){
+ const string=group.getObjectByName('bow-string'),arrow=group.getObjectByName('nocked-arrow');
+ if(string){string.geometry.attributes.position.setXYZ(1,0,0,-.38*draw);string.geometry.attributes.position.needsUpdate=true;string.geometry.computeBoundingSphere();}
+ if(arrow){arrow.visible=nocked;arrow.position.z=.26-.38*draw;}
+}

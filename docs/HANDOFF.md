@@ -211,3 +211,21 @@ Verification limits and follow-up: the normal build passed opening/customization
 ## Copperbelly apron proportions — 2026-10-05
 
 Widened the shared smith apron from .46 to .66 units (body width .72), shortened it from .38 to .24, and lowered its top to .33, below the mouth. Existing Borin catalogue and smith landmark cover the change. Visually verified the model preview and live dialogue portrait; no runtime errors. Both builds and debug isolation passed.
+
+
+## Combat presentation and pursuit in progress — 2026-10-05
+
+Shared weapon-specific attacks and equipment-aware blocks are implemented in `combat-animation.js`, used by gameplay and all slime previews. Bow strings/nocked arrows animate with release. Attack windup/follow-through takes priority over a hit reaction. Ranged targeting and misses no longer aggro; impact does. Pursuit and leash return walk continuously through reserved destinations, with health restored on arriving home. Explicit reset/travel may reset entities; ordinary retreat does not teleport them. Playground pointer actions no longer force-stop combat when no animation preview is active.
+
+164 tests and both builds/debug isolation passed. Browser checks passed attack/block previews on all six slimes, live equipped previews, ranged passivity until damage and smooth pursuit in the clearing, and equipped Cinderhold victory plus retreat/walk-home (maximum observed displacement .10 units/frame). Spark check setup needed selecting the learned spell through the normal Combat menu. Full fresh-game replay has not been performed.
+
+The subsequent design discussion selected independent motion and equipment controls with automatic gameplay resolution and explicit overrides; see the completed viewer section below.
+
+
+## Combat viewer and equipped casting completed — 2026-10-05
+
+- All six slime models now expose one **Attack** and one **Block** animation, replacing equipment-permutation entries. Contextual Attack motion (Automatic/Punch/Stab/Slash/Bow draw-release/Cast) and Block motion (Automatic/Fists/Blade/Shield/Bow guard) select the pose independently of Main hand, Off hand and Weapon/Magic combat style. Automatic uses the shared gameplay motion resolver. Explicit overrides never change gear; bow loadouts clear/disable the off hand. Selections persist when comparing slime models; Reset loadout restores empty hands, Weapon style and automatic motions. Non-slime models hide these controls.
+- Casting retains equipped combat gear in both gameplay and previews; spell damage remains separate from weapon damage. Fishing/mining and other actions needing their own props temporarily hide combat gear, restoring it afterward through the same shared visibility policy. Casting hands sit together just in front of the body to keep equipment from clipping inside it. Shared bow string/arrow presentation and every attack/block pose remain production-backed.
+- Mobile model viewer remains edge-to-edge with safe-area padding, touch-sized controls and a scrollable controls section so the actual-size camera canvas retains usable space. Existing live-player Attack (equipped)/Block (equipped), combat fixtures, inventory, spell controls and tutorial checkpoints remain the production test paths.
+- Final validation: **167 tests passed**, normal and playground builds passed, debug isolation and whitespace checks passed. Existing Vite bundle-size warning remains. Regression coverage includes automatic/explicit motion selection, independent gear, legal bow slots, casting visibility, temporary skilling-tool substitution/restoration on all six slime rigs, and production equipment presentation.
+- Browser checks passed independent selectors, six slime models, override persistence, off-hand restrictions, resets, non-slime hiding and fullscreen 390 × 844 layout without horizontal overflow (306px of model canvas). Inspected corrected equipped casting in the viewer and live gameplay. Spark target victories with dagger/shield equipped passed in the clearing before later-area visits and in Cinderhold. The earlier Cinderhold test's pointer coordinates missed the target; clicking its visible model completed the check without a code change. No runtime errors were recorded. Earlier pursuit/return and melee browser checks remain recorded above; these are focused checkpoint/fixture checks, not a full fresh-game replay.

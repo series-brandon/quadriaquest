@@ -3,7 +3,7 @@ import {castMotion,catchMotion,holdUpMotion} from './catch-motion.js';
 import {faintPose} from './faint-motion.js';
 import {idlePose,workPose,chopMotion} from './slime-motion.js';
 import {miningMotion,MINING_GRIP_SPACING} from './mining.js';
-import {punchMotion} from './combat-motion.js';
+import {attackAnimation,blockAnimation} from './combat-animation.js';
 import {hammerInjuryPose} from './bridge-injury.js';
 
 export function gatheringHand(time,index){
@@ -11,7 +11,9 @@ export function gatheringHand(time,index){
  return [side*(.22+.09*(1-reach)),.26+.1*Math.cos(phase),.43+.2*reach,Math.sin(phase)*.35,0,0];
 }
 // The game and model viewer consume the same action poses, including expressions.
-export function playerActionMotion(kind,time,idleTime=time){
+export function playerActionMotion(kind,time,idleTime=time,profile={}){
+ if(kind==='Block')return blockAnimation(profile,time);
+ if(['Combat','Archery','Casting'].includes(kind))return attackAnimation({style:kind==='Archery'?'ranged':kind==='Casting'?'magic':'unarmed',...profile},time);
  if(kind==='Point'||kind==='Stomp'){
   const pose={squash:kind==='Stomp'?1-Math.max(0,Math.sin(time*7))*.09:1,stretch:1,twist:0,lean:0};
   const hands=[[-.46,.33,.08,0,0],[.46,.33,.08,0,0]];
@@ -24,10 +26,7 @@ export function playerActionMotion(kind,time,idleTime=time){
  if(kind==='Celebration')return holdUpMotion(time);
  let pose=workPose('gather',time),handWork=time,hands=null,expression=kind==='Petting'?'happy':'focused';
  if(kind==='Defeated'){pose=faintPose(time);hands=pose.hands;handWork=null;expression='fainted';}
- if(kind==='Combat'){const punch=punchMotion(time);pose=idlePose(idleTime);pose.lean=punch.lean;handWork=null;hands=[punch.right,punch.left];}
  if(kind==='Hammer injury'){pose=hammerInjuryPose(time);hands=pose.hands;handWork=null;expression='struggle';}
- if(kind==='Archery'){const pull=(Math.sin(time*Math.PI*2/1.7)+1)/2;pose=idlePose(time);handWork=null;hands=[[-.22,.53,.63,.3,0],[.12,.53,.58-pull*.36,.2,0]];}
- if(kind==='Casting'){pose=idlePose(time);handWork=null;const pulse=(Math.sin(time*3.5)+1)/2;hands=[[-.24,.40+pulse*.15,.4+pulse*.18,.3,0],[.24,.4+pulse*.15,.4+pulse*.18,.3,0]];}
  if(kind==='Repairing'||kind==='Smithing'){
   // Work in front of the face: brace the board and tap forward with a short wrist arc.
   const phase=(time%.86)/.86,smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};

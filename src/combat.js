@@ -4,105 +4,129 @@ import {createGatheringSkill,awardSkillXp} from './skills.js';
 import {damageRoll,incomingHealth} from './combat-rules.js';
 import {wanderDelay,shouldWander,wanderRoute} from './wander.js';
 import {attackPose} from './combat-motion.js';
+import {attackWindow,BLOCK_DURATION,PROJECTILE_FLIGHT} from './combat-animation.js';
 import {animateTarget} from './training-models.js';
 import {animateGoblin} from './enemy-model.js';
 import {FAINT_FADE_START,FAINT_RESPAWN_TIME} from './faint-motion.js';
 
-// Area-independent combat and enemy lifecycle. Maps supply entities and safe respawn context.
+// Shared targeting, aggression, walking and recovery; maps provide encounter configuration.
 export function createCombatSystem(api){
- const skill=createGatheringSkill(),enemies=new Set(),fleeing=new Map(),projected=new Vector3();
- let fight=null,chase=null,defeated=0;const returningAfterWin=new Map(),shots=[];const random=api.random||Math.random;
- const attack=()=>api.attack?.()||api.equipment.attack||{min:api.equipment.isEquipped('swords')?3:1,max:api.equipment.isEquipped('swords')?5:3,interval:1.5,style:'unarmed'};
+ const skill=createGatheringSkill(),enemies=new Set(),fleeing=new Map(),projected=new Vector3(),returningAfterWin=new Map(),shots=[];
+ let fight=null,chase=null,defeated=0,defense=null;const random=api.random||Math.random;
+ const attack=()=>api.attack?.()||api.equipment.attack||{min:1,max:3,interval:1.5,style:'unarmed'};
+ const profile=()=>({...attack(),mainHand:api.equipment.slots?.main||null,offHand:api.equipment.slots?.off||null});
  const animate=(a,time,options)=>a.rules.inert?animateTarget(a.group,time,options.hit):animateGoblin(a.group,time,options);
  const current=a=>api.world.get(key(a.home.x,a.home.z))===a.home;
  const position=t=>new Vector3(t.x-6,t.h,t.z-6);
  const reserved=t=>t===api.tile()||api.reserved(t);
+ const settled=a=>a.group.position.distanceTo(position(a.tile))<.001;
+ const adjacent=a=>settled(a)&&Math.abs(a.x-api.tile().x)+Math.abs(a.z-api.tile().z)===1&&Math.abs(a.tile.h-api.tile().h)<=.5;
  function move(a,t){if(a.occupying)a.tile.blocked=false;a.tile=t;a.x=t.x;a.z=t.z;t.blocked=true;a.occupying=true;a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=t;});}
  function resetEnemy(a){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);
   returningAfterWin.delete(a);fleeing.delete(a);if(a.occupying){a.tile.blocked=false;a.occupying=false;}
-  a.patrolRoute=[];a.patrolClock=wanderDelay(random);a.hitAge=a.attackAge=0;a.hp=a.rules.health;a.opened=false;
+  a.patrolRoute=[];a.patrolClock=wanderDelay(random);a.hitAge=a.attackAge=a.enemyClock=0;a.hp=a.rules.health;a.opened=false;a.aggro=false;
   a.group.scale.setScalar(a.scale);a.group.rotation.set(0,0,0);
-  // Defer return if its home is occupied. Never place an enemy over another entity.
-  a.returning=a.home.blocked||reserved(a.home);a.group.visible=current(a)&&!a.returning;
-  if(!a.returning){move(a,a.home);a.group.position.copy(position(a.home));}
+  a.waitingRespawn=!!(a.home.blocked||reserved(a.home));a.returning=a.waitingRespawn;a.group.visible=current(a)&&!a.waitingRespawn;
+  if(!a.waitingRespawn){move(a,a.home);a.group.position.copy(position(a.home));}
  }
- function cancel(){if(fight){const a=fight.enemy;fight=null;resetEnemy(a);}api.complete?.();}
- function clearChase(){if(chase){const a=chase.enemy;chase=null;resetEnemy(a);}}
- function clear(){shots.length=0;cancel();clearChase();if(defeated)api.fade?.(0);defeated=0;api.clearFeedback?.();api.clearProjectiles?.();}
- function disengage(){if(fight?.enemy.rules.inert){cancel();return;}if(fight){chase={enemy:fight.enemy,origin:fight.enemy.tile,age:0,stepClock:0,attackClock:0};fight=null;}}
+ function returnHome(a){
+  if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;
+  a.aggro=false;a.returning=true;a.enemyClock=a.attackAge=0;a.patrolRoute=[];
+  if(settled(a)&&a.tile===a.home&&!reserved(a.home)){a.returning=false;a.hp=a.rules.health;}
+ }
+ function cancel(){if(fight){const a=fight.enemy;fight=null;if(a.rules.inert)resetEnemy(a);else if(a.aggro)returnHome(a);}api.complete?.();}
+ function clearChase(){if(chase)returnHome(chase.enemy);}
+ function clear(){const affected=new Set(shots.map(s=>s.enemy));if(fight)affected.add(fight.enemy);if(chase)affected.add(chase.enemy);for(const a of enemies)if(a.returning)affected.add(a);shots.length=0;fight=chase=null;defense=null;for(const a of affected)resetEnemy(a);if(defeated)api.fade?.(0);defeated=0;api.clearFeedback?.();api.clearProjectiles?.();}
+ function disengage(){if(!fight)return;const a=fight.enemy;fight=null;if(a.rules.inert){resetEnemy(a);return;}if(a.aggro)chase={enemy:a,age:0};}
  function start(a){
   if(fight?.enemy===a||!enemies.has(a)||!current(a)||a.opened||a.returning||defeated||api.health.value<=0||api.blocked()||!api.inReach(a))return false;
+  const next=profile();if(next.ammo&&!(api.inventory?.[next.ammo]>0)){api.toast?.('You need Training Arrows.');return false;}
   const reengaging=chase?.enemy===a;if(chase&&!reengaging)clearChase();if(reengaging)chase=null;
-  const profile={...attack(),offHand:api.equipment.slots?.off||null};if(profile.ammo&&!(api.inventory?.[profile.ammo]>0)){api.toast?.('You need Training Arrows.');return false;}
-  api.stop();fight={enemy:a,age:0,playerClock:0,enemyClock:0,stepClock:0,profile,unarmed:profile.style==='unarmed'};a.patrolRoute=[];api.face(a.x,a.z);return true;
+  api.stop();fight={enemy:a,age:0,playerClock:0,profile:next};a.patrolRoute=[];
+  // Aiming and missed projectiles never aggro an enemy. Melee engages immediately.
+  if(!a.rules.inert&&!['ranged','magic'].includes(next.style))a.aggro=true;
+  api.face(a.x,a.z);return true;
  }
- function lose(){api.stop();clearChase();api.health.value=0;defeated=.001;}
- function hitPlayer(a){const before=api.health.value,hit=random()<.85;if(hit)api.health.value=incomingHealth(before,damageRoll(a.rules.min,a.rules.max,random),api.equipment.mitigation??(api.equipment.isEquipped('shields')?1:0),a.rules.protected);api.hit(api.player.position,hit?before-api.health.value:null);api.sound('blocked');if(api.health.value===0)lose();}
- function win(a,profile){
-  fight=null;if(chase?.enemy===a)chase=null;a.opened=true;if(a.occupying){a.tile.blocked=false;a.occupying=false;}
+ function lose(){api.stop();clearChase();api.health.value=0;defense=null;defeated=.001;}
+ function hitPlayer(a){const before=api.health.value,hit=random()<.85;if(hit){api.health.value=incomingHealth(before,damageRoll(a.rules.min,a.rules.max,random),api.equipment.mitigation??0,a.rules.protected);defense={age:0,profile:profile()};}api.hit(api.player.position,hit?before-api.health.value:null);api.sound('blocked');if(api.health.value===0)lose();}
+ function win(a,weapon){
+  if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;a.aggro=false;a.opened=true;if(a.occupying){a.tile.blocked=false;a.occupying=false;}
   const at=api.tile(),escape=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>api.world.get(key(a.x+dx,a.z+dz))).filter(t=>t&&!t.water&&!t.blocked&&!reserved(t)&&Math.abs(t.h-a.tile.h)<=.5).sort((x,y)=>Math.hypot(y.x-at.x,y.z-at.z)-Math.hypot(x.x-at.x,x.z-at.z))[0];
-  fleeing.set(a,{age:0,destination:!a.rules.inert&&escape&&position(escape)});if(!a.rules.inert)api.reward(awardSkillXp(skill,'Combat'));api.won?.(a,profile);if(a.respawn!=null)returningAfterWin.set(a,a.respawn+1.2);api.complete?.();
+  fleeing.set(a,{age:0,destination:!a.rules.inert&&escape&&position(escape)});if(!a.rules.inert)api.reward(awardSkillXp(skill,'Combat'));api.won?.(a,weapon);if(a.respawn!=null)returningAfterWin.set(a,a.respawn+1.2);api.complete?.();
  }
- function strike(a,profile){
+ function strike(a,weapon){
   if(!current(a)||a.opened||a.returning)return;
-  if(random()<Math.min(.98,.9+(skill.level-1)*.005)){const before=a.hp;a.hp=Math.max(0,a.hp-damageRoll(profile.min,profile.max,random));a.hitAge=.25;api.hit(a.group.position,before-a.hp);api.sound('chop');api.struck?.(a,profile);}else api.hit(a.group.position,null);
-  if(!a.hp)win(a,profile);
+  if(random()<Math.min(.98,.9+(skill.level-1)*.005)){
+   const before=a.hp;a.hp=Math.max(0,a.hp-damageRoll(weapon.min,weapon.max,random));a.hitAge=.25;api.hit(a.group.position,before-a.hp);api.sound('chop');api.struck?.(a,weapon);
+   if(!a.rules.inert){a.aggro=true;if(!fight&&!chase)chase={enemy:a,age:0};}
+  }else api.hit(a.group.position,null);
+  if(!a.hp)win(a,weapon);
+ }
+ function walkHome(a){
+  if(!settled(a))return;
+  if(a.tile===a.home){if(reserved(a.home))return;a.returning=false;a.hp=a.rules.health;a.patrolClock=wanderDelay(random);return;}
+  if(a.home.blocked||reserved(a.home))return;
+  const route=findPath(api.world,a.tile,a.home),next=route?.[0];if(next&&!reserved(next))move(a,next);
+ }
+ function pursue(a){
+  const p=api.tile();
+  if(Math.abs(p.x-a.home.x)+Math.abs(p.z-a.home.z)>(a.leash??6)||api.safe?.(p)||api.blocked()){returnHome(a);return;}
+  if(!settled(a)||adjacent(a))return;
+  const route=findPath(api.world,a.tile,p),next=route?.[0];
+  if(!route){returnHome(a);return;}
+  if(route.length>1&&next&&!next.blocked&&!reserved(next)&&!api.safe?.(next))move(a,next);
  }
  function update(dt,time,camera){
+  if(defense){defense.age+=dt;if(defense.age>=BLOCK_DURATION)defense=null;}
   for(let i=shots.length-1;i>=0;i--){const shot=shots[i];shot.left-=dt;if(shot.left<=0){shots.splice(i,1);strike(shot.enemy,shot.profile);}}
-  if(fight&&(!current(fight.enemy)||api.blocked()))cancel();
-  if(chase&&!current(chase.enemy))clearChase();
+  if(fight&&(!current(fight.enemy)||api.blocked())){const a=fight.enemy;fight=null;resetEnemy(a);}
+  if(chase&&!current(chase.enemy)){const a=chase.enemy;chase=null;resetEnemy(a);}
   if(fight&&!api.inReach(fight.enemy))disengage();
-  if(chase){const c=chase,a=c.enemy,p=api.tile();c.age+=dt;c.stepClock+=dt;c.attackClock+=dt;
-   if(c.age>3||Math.abs(p.x-c.origin.x)+Math.abs(p.z-c.origin.z)>3||api.safe?.(p)||api.blocked())clearChase();
-   else {const route=findPath(api.world,a.tile,p);if(!route)clearChase();else if(route.length>1&&c.stepClock>=.55){const next=route[0];if(!reserved(next)){move(a,next);c.stepClock=0;}}else if(route.length===1&&c.attackClock>=a.rules.interval){c.attackClock=0;a.attackAge=.35;hitPlayer(a);}}
-  }
+  if(chase){chase.age+=dt;if(chase.age>6)clearChase();}
   for(const a of enemies){
    const visible=current(a);if(visible&&returningAfterWin.has(a)){const remaining=returningAfterWin.get(a)-dt;returningAfterWin.set(a,remaining);if(remaining<=0)resetEnemy(a);}
    if(a.healthLabel)a.healthLabel.hidden=true;
    if(!visible){a.group.visible=false;continue;}
-   if(a.returning){resetEnemy(a);if(a.returning)continue;}
+   if(a.waitingRespawn){resetEnemy(a);if(a.waitingRespawn)continue;}
    a.group.visible=!a.opened||fleeing.has(a);a.highlight?.update(!!a.guided&&!a.opened,time,api.hover?.()===a&&!a.opened);
    if(a.opened)continue;a.hitAge=Math.max(0,a.hitAge-dt);a.attackAge=Math.max(0,a.attackAge-dt);
-   const fighting=fight?.enemy===a||chase?.enemy===a,settled=a.group.position.distanceTo(position(a.tile))<.025;
-   if(a.rules.inert||fighting||api.blocked()||defeated||api.approaching?.()===a)a.patrolRoute=[];
-   else if(settled){if(!a.patrolRoute.length){a.patrolClock-=dt;if(a.patrolClock<=0){a.patrolClock=wanderDelay(random);if(shouldWander(random))a.patrolRoute=wanderRoute(api.world,a.tile,a.patrol,reserved,random);}}
-    const next=a.patrolRoute[0];if(next){if(next.blocked||next.water||reserved(next)){a.patrolRoute=[];}else {a.patrolRoute.shift();move(a,next);}}
+   if(a.returning)walkHome(a);
+   else if(a.aggro)pursue(a);
+   const targeted=fight?.enemy===a||chase?.enemy===a;
+   if(a.rules.inert||targeted||a.returning||api.blocked()||defeated||api.approaching?.()===a)a.patrolRoute=[];
+   else if(settled(a)){if(!a.patrolRoute.length){a.patrolClock-=dt;if(a.patrolClock<=0){a.patrolClock=wanderDelay(random);if(shouldWander(random))a.patrolRoute=wanderRoute(api.world,a.tile,a.patrol,reserved,random);}}
+    const next=a.patrolRoute[0];if(next){if(next.blocked||next.water||reserved(next))a.patrolRoute=[];else{a.patrolRoute.shift();move(a,next);}}
    }
-   const destination=position(a.tile),distance=a.group.position.distanceTo(destination),moving=distance>.025;
-   if(fighting)a.group.rotation.y=Math.atan2(api.player.position.x-a.group.position.x,api.player.position.z-a.group.position.z);
-   else if(moving)a.group.rotation.y=Math.atan2(destination.x-a.group.position.x,destination.z-a.group.position.z);
-   if(distance)a.group.position.lerp(destination,Math.min(1,dt*(chase?.enemy===a?3:1.6)/distance));
-   const clock=fight?.enemy===a?fight.enemyClock:chase?.enemy===a?chase.attackClock:0;
-   animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:fighting&&(clock>=.28||a.attackAge>0)?attackPose(clock,a.rules.interval):0,hit:Math.sin(Math.PI*a.hitAge/.25)});
+   const destination=position(a.tile),distance=a.group.position.distanceTo(destination),moving=distance>.001;
+   if(moving)a.group.rotation.y=Math.atan2(destination.x-a.group.position.x,destination.z-a.group.position.z);
+   else if(a.aggro)a.group.rotation.y=Math.atan2(api.player.position.x-a.group.position.x,api.player.position.z-a.group.position.z);
+   // Every path mode reserves one destination and physically finishes it before taking another.
+   if(distance)a.group.position.lerp(destination,Math.min(1,dt*(a.aggro||a.returning?2:1.6)/distance));
+   if(a.aggro&&adjacent(a)&&!defeated){a.enemyClock+=dt;if(a.enemyClock>=a.rules.interval){a.enemyClock-=a.rules.interval;a.attackAge=.28;hitPlayer(a);}}
+   else a.enemyClock=0;
+   animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,a.rules.interval):0,hit:Math.sin(Math.PI*a.hitAge/.25)});
    if(a.healthLabel&&fight?.enemy===a&&camera){a.healthLabel.hidden=false;projected.copy(a.group.position).add(new Vector3(0,1.7,0)).project(camera);a.healthLabel.style.left=(projected.x+1)*innerWidth/2+'px';a.healthLabel.style.top=(1-projected.y)*innerHeight/2+'px';a.healthLabel.textContent=`${a.rules.name} · ${a.hp}/${a.rules.health}`;}
   }
   for(const [a,f] of fleeing)if(current(a)){f.age+=dt;animate(a,time,{walk:1});if(f.destination){a.group.rotation.y=Math.atan2(f.destination.x-a.group.position.x,f.destination.z-a.group.position.z);a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}a.group.scale.setScalar(a.scale*Math.max(.01,1-Math.max(0,(f.age-.8)/.4)));if(f.age>=1.2){a.group.visible=false;fleeing.delete(a);}}
   if(defeated){defeated+=dt;api.fade?.(Math.max(0,Math.min(1,(defeated-FAINT_FADE_START)/(FAINT_RESPAWN_TIME-FAINT_FADE_START))));if(defeated>=FAINT_RESPAWN_TIME&&api.respawn()){defeated=0;api.health.restore();api.fade?.(0);api.respawned?.();return null;}return {kind:'Defeated',time:Math.min(defeated,FAINT_RESPAWN_TIME)};}
-  if(!fight)return null;const c=fight,a=c.enemy;c.age+=dt;c.playerClock+=dt;c.enemyClock+=dt;api.face(a.x,a.z);
-  const profile=c.profile;
-  if(c.playerClock>=profile.interval){
-   if(profile.ammo&&!(api.inventory?.[profile.ammo]>0)){cancel();api.toast?.('Out of arrows. Visit a supply offer to refill.');return null;}
-   c.playerClock-=profile.interval;
-   if(profile.ammo){api.inventory[profile.ammo]--;api.items?.({[profile.ammo]:-1});}
-   if(profile.style==='ranged'||profile.style==='magic'){
-    api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),profile.style);
-    shots.push({enemy:a,profile,left:.22});
-   }else strike(a,profile);
-   if(!fight)return null;
+  if(fight){const c=fight,a=c.enemy;c.age+=dt;c.playerClock+=dt;api.face(a.x,a.z);const weapon=c.profile;
+   if(c.playerClock>=weapon.interval){
+    if(weapon.ammo&&!(api.inventory?.[weapon.ammo]>0)){disengage();api.toast?.('Out of arrows. Visit a supply offer to refill.');}
+    else{c.playerClock-=weapon.interval;if(weapon.ammo){api.inventory[weapon.ammo]--;api.items?.({[weapon.ammo]:-1});}
+     if(['ranged','magic'].includes(weapon.style)){api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),weapon.style);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
+    }
+   }
+   if(fight){api.interacting?.();if(!defense||attackWindow(weapon,c.age))return {kind:weapon.style==='ranged'?'Archery':weapon.style==='magic'?'Casting':'Combat',time:c.age,profile:weapon};}
   }
-  const adjacent=Math.abs(a.x-api.tile().x)+Math.abs(a.z-api.tile().z)<=1;
-  if(!a.rules.inert&&!adjacent){c.stepClock+=dt;if(c.stepClock>=.55){c.stepClock=0;const route=findPath(api.world,a.tile,api.tile()),next=route?.[0];if(route?.length>1&&next&&!reserved(next)&&!api.safe?.(next)){move(a,next);a.group.position.copy(position(next));}}}
-  if(!a.rules.inert&&adjacent&&c.enemyClock>=a.rules.interval){c.enemyClock-=a.rules.interval;a.attackAge=.35;hitPlayer(a);if(defeated)return {kind:'Defeated',time:0};}
-  api.interacting?.();return {kind:profile.style==='ranged'?'Archery':profile.style==='magic'?'Casting':'Combat',time:c.age};
+  return defense?{kind:'Block',time:defense.age,profile:defense.profile}:null;
  }
  return {skill,start,update,cancel,clear,disengage,lose,
   add(a){enemies.add(a);a.patrolPhase=random()*10;resetEnemy(a);return a;},
   remove(a){if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;fleeing.delete(a);returningAfterWin.delete(a);for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);enemies.delete(a);if(a.occupying)a.tile.blocked=false;a.dispose?.();},
-  resetWhere(predicate=()=>true){if(fight&&predicate(fight.enemy))cancel();if(chase&&predicate(chase.enemy))clearChase();for(const a of enemies)if(predicate(a))resetEnemy(a);},
+  resetWhere(predicate=()=>true){if(fight&&predicate(fight.enemy))fight=null;if(chase&&predicate(chase.enemy))chase=null;defense=null;for(const a of enemies)if(predicate(a))resetEnemy(a);},
   reset(){clear();for(const a of enemies)resetEnemy(a);},
   matches:a=>fight?.enemy===a,get working(){return !!fight||!!chase;},get busy(){return defeated>0;},
-  get state(){return {fight:fight?.enemy.kind||null,chase:chase?.enemy.kind||null,defeated:!!defeated,enemies:[...enemies].filter(current).map(a=>({kind:a.kind,x:a.x,z:a.z,hp:a.hp,opened:a.opened,returning:!!a.returning}))};}
+  get state(){return {fight:fight?.enemy.kind||null,chase:chase?.enemy.kind||null,defeated:!!defeated,blocking:!!defense,enemies:[...enemies].filter(current).map(a=>({kind:a.kind,x:a.x,z:a.z,hp:a.hp,opened:a.opened,aggro:!!a.aggro,returning:!!a.returning,moving:!settled(a),position:a.group.position.toArray()}))};}
  };
 }
