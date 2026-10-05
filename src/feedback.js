@@ -101,6 +101,8 @@ export function createFeedback(scene) {
       if(state!=='approaching')return;
       state='interacting';pin.material.map=workingTextures[label]||workingTextures.Gathering;spinner.visible=true;
     },
+    // Ending a walk must never finish a still-running gameplay action.
+    arrived(){if(state==='approaching')this.complete();},
     complete(){
       if(state!=='approaching'&&state!=='interacting')return;
       pin.material.map=state==='interacting'?doneTexture:arrivedTexture;

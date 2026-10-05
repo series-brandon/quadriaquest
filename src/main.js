@@ -402,7 +402,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
       }else if(action.status==='cancelled'){activeAction=null;feedback.clearDestination();craftingTutorial.craftCancelled();}
     }
   }else if(target&&!target.collected){const node=target;target=null;resourceActions.start(node);
-  }else{if(!willow.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.complete();$('activity').textContent=inventory.sticks+inventory.stones===6?'Clearing explored':'Taking it all in';}
+  }else{if(!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.arrived();$('activity').textContent=inventory.sticks+inventory.stones===6?'Clearing explored':'Taking it all in';}
  }
  if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  if(chapterMotion){
