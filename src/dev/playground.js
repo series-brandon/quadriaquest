@@ -3,6 +3,7 @@ export {createCombatFixtures} from './combat-fixtures.js';
 import {createCarpentryBridge} from '../carpentry-bridge.js';
 import {Group} from 'three';
 import {organizePlayground} from './playground-layout.js';
+import {playerActionMotion} from '../player-action-motion.js';
 import {createModelPreview} from './model-preview.js';
 import {GRASS_BASE_COLOR,createGrassColors} from '../grass-palette.js';
 import {icon,ICON_NAMES} from '../icons.js';
@@ -41,7 +42,7 @@ export function addCarpentryFixture({world,currentWorld,scene,pickables,clearing
  return bridge;
 }
 
-const animations=['Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Celebration','Happy','Pleased','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted','Angry'];
+const animations=['Point','Stomp','Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Celebration','Happy','Pleased','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted','Angry'];
 const durations={...SOCIAL_DURATIONS,'Celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
   let modelPreview;
@@ -251,6 +252,7 @@ export function mountPlayground(api){
       const duration=durations[preview]||2;
       if(time>=duration){if($('loop').checked){if(preview!=='Sleeping')time%=duration;if(preview==='Celebration')api.finale.celebrate({preview:true,rate:()=>Number($('speed').value)});}else{stop();status('Preview finished.');return null;}}
       if(preview==='Celebration')return null;
+      if(preview==='Point'||preview==='Stomp')return {...playerActionMotion(preview,time),lift:0};
       if(SOCIAL_DURATIONS[preview])return socialMotion(preview,time);
       let pose=idlePose(time),expression='idle',handWork=null,lift=0;
       if(preview==='Sliding'){pose=slideMotion(time/duration);expression='focused';}

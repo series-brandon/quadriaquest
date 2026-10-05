@@ -1,3 +1,4 @@
+import {playerActionMotion} from './player-action-motion.js';
 import * as THREE from 'three';
 import {part} from './model-parts.js';
 import {makeSlime} from './slime-model.js';
@@ -23,11 +24,17 @@ export function stoneArch(){const g=new THREE.Group();for(const x of [-1.5,1.5])
 export function stoneTile(t,world){const material=new THREE.MeshStandardMaterial({color:new THREE.Color(['#64606f','#676271','#615e6b','#686471'][(t.x*17+t.z*13+t.x*t.z)%4]),roughness:.95});return makeTerrainTile(t,world,material,{sideColor:'#464151',seamColor:'#a199ad'});}
 export const MENTORS={sarge:{name:'Sergeant Bristle',color:'#c85745',expression:'angry'},smith:{name:'Borin Copperbelly',color:'#c9904f',expression:'idle'},ranger:{name:'Fletch',color:'#74996a',expression:'idle'},mage:{name:'Wisp',color:'#ad8acb',expression:'idle'}};
 export function mentorModel(kind){const def=MENTORS[kind],rig=makeSlime(def.color),g=rig.group;
- if(kind==='sarge'||kind==='smith'){part(g,new THREE.SphereGeometry(.36,16,8,0,Math.PI*2,0,Math.PI/2),kind==='sarge'?'#5b606b':'#807458',0,.77);box(g,.75,.07,.7,kind==='sarge'?'#69707c':'#998462',0,.77,.03);}
- if(kind==='sarge'){box(g,.16,.1,.04,'#e2bc73',0,.88,.35);for(const x of [-.34,.34])box(g,.17,.06,.22,'#d6b676',x,.63,.06);}
- if(kind==='smith'){box(g,.46,.38,.04,'#6a4b39',0,.28,.37);for(let i=0;i<5;i++){const b=part(g,new THREE.SphereGeometry(.075,10,8),'#e2c7a1',(i-2)*.065,.39-Math.abs(2-i)*.02,.40);b.scale.y=1.6;}for(let i=0;i<3;i++)part(g,new THREE.SphereGeometry(.067,10,8),'#d9b88d',0,.25-i*.065,.43);part(g,new THREE.SphereGeometry(.075,12,8),'#f9d885',0,.9,.32);}
+ if(kind==='smith'){part(g,new THREE.SphereGeometry(.36,16,8,0,Math.PI*2,0,Math.PI/2),'#807458',0,.77);box(g,.75,.07,.7,'#998462',0,.77,.03);}
+ if(kind==='sarge'){
+  // Brimless iron skullcap, raised central ridge and cheek guards: a fantasy guard captain.
+  part(g,new THREE.SphereGeometry(.37,12,6,0,Math.PI*2,0,Math.PI/2),'#657180',0,.77);
+  box(g,.065,.20,.55,'#adb4ba',0,1.025,-.01);
+  box(g,.065,.20,.045,'#adb4ba',0,.75,.365);
+  for(const x of [-.33,.33]){const cheek=box(g,.075,.28,.22,'#657180',x,.68,.08);cheek.rotation.z=x<0?-.14:.14;box(g,.17,.06,.22,'#a3abb2',x,.50,.02);}
+ }
+ if(kind==='smith'){box(g,.66,.24,.04,'#6a4b39',0,.21,.37);for(let i=0;i<5;i++){const b=part(g,new THREE.SphereGeometry(.075,10,8),'#e2c7a1',(i-2)*.065,.39-Math.abs(2-i)*.02,.40);b.scale.y=1.6;}for(let i=0;i<3;i++)part(g,new THREE.SphereGeometry(.067,10,8),'#d9b88d',0,.25-i*.065,.43);part(g,new THREE.SphereGeometry(.075,12,8),'#f9d885',0,.9,.32);}
  if(kind==='ranger'){part(g,new THREE.ConeGeometry(.4,.4,8),'#405f46',0,.87);const feather=box(g,.08,.4,.025,'#e0cf9e',.23,1.12,0);feather.rotation.z=-.4;}
  if(kind==='mage'){part(g,new THREE.ConeGeometry(.32,.65,10),'#5b477e',0,1.02);part(g,new THREE.CylinderGeometry(.44,.44,.04,16),'#6e558d',0,.75);part(g,new THREE.OctahedronGeometry(.06),'#ffe0a0',0,1.02,.22);}
  rig.kind=kind;rig.face.set(def.expression);return rig;
 }
-export function animateMentor(rig,time,motion='Idle',expression){const angry=rig.kind==='sarge';rig.group.scale.set(1,1+Math.sin(time*(angry?5:2.8))*.025,1);rig.hands.forEach((h,i)=>{h.position.set(i===0?-.46:.46,.33+Math.sin(time*2.8+i)*.015,.08);h.rotation.set(0,0,0);});if(motion==='Point'){rig.hands[0].position.set(-.38,.53,.55);rig.hands[0].rotation.x=.4;}if(motion==='Stomp'){rig.group.scale.y=1-Math.max(0,Math.sin(time*7))*.09;}rig.face.set(expression||MENTORS[rig.kind].expression);}
+export function animateMentor(rig,time,motion='Idle',expression){const angry=rig.kind==='sarge';rig.group.scale.set(1,1+Math.sin(time*(angry?5:2.8))*.025,1);rig.hands.forEach((h,i)=>{h.position.set(i===0?-.46:.46,.33+Math.sin(time*2.8+i)*.015,.08);h.rotation.set(0,0,0);});if(motion==='Point'||motion==='Stomp'){const {pose,hands}=playerActionMotion(motion,time);rig.group.scale.set(1/Math.sqrt(pose.squash),pose.squash,1/Math.sqrt(pose.squash));rig.hands.forEach((hand,i)=>{const [x,y,z,pitch,roll,yaw=0]=hands[i];hand.position.set(x,y,z);hand.rotation.set(pitch,yaw,roll);});}rig.face.set(expression||MENTORS[rig.kind].expression);}

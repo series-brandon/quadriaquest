@@ -8,6 +8,7 @@ export function fisher(){
  part(group,new THREE.CylinderGeometry(.47,.47,.045,16),'#bba074',0,.78,.06);
  // Grip is the pivot: the shaft rises backward across the same shoulder.
  const rod=tool('rods');rod.rotation.set(-.95,0,-.12);rod.position.set(0,-.1,0);hands[0].add(rod);
+ slime.idleProps=[rod];
  for(const child of group.children)child.position.y-=.07;
  return slime;
 }

@@ -166,3 +166,5 @@ Playground entry points (run `npm run dev:debug`):
 - **Shared model preview** contains all four mentors, Angry expression, copper outcrop/gear/ingot, bow/arrow, furnace/anvil/shelf, stone terrain/arch, practice target and Spark projectile. Slime motions include copper gear, Archery, Casting, Smithing and Smelting using production motion functions.
 
 Validate portability by using the fixtures before visiting Willowbank, repeating in another map, cancelling work, depleting/respawning resources, retreating, using supplies, and resetting. Checkpoints prepare scenarios; they do not replace a complete tutorial playthrough. Desktop/mobile station and destination menus use the same implementations. New developer fixtures and controls remain compile-time isolated.
+
+All slime entries in **Shared model preview** (player, Reed and all four Cinderhold mentors) share the complete animation menu. **Animation preview → Point / Stomp** also runs those shared gestures on the live player; speed, loop, restart and Stop work in any area. Character-specific idle poses and default expressions remain available.

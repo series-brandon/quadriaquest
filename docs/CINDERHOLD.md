@@ -4,7 +4,7 @@ First playable implementation · 2026-10-05.
 
 The initial implementation now includes the 40 × 32 training complex, required melee/metalwork quest, optional ranged and Spark lessons, shared destination picker, and production-backed playground controls. The sections below retain the design intent and tuning proposals. See [HANDOFF.md](HANDOFF.md#cinderhold-first-playable-implementation--2026-10-05) for implementation ownership and verification limits.
 
-The first visual pass uses connected slate halls, arches, copper terraces, a lit furnace, and the four mentor rigs. Detailed environmental dressing, longer authored camera sequences, and device-specific performance/balance tuning remain polish work. The terrain renderer batches static geometry while retaining individual tile picking; this does **not** implement open-world streaming.
+The first visual pass uses connected slate halls, arches, copper terraces, a lit furnace, and the four mentor rigs. Perimeter walls now enclose all four corners and rise three blocks above their local floor; Bristle wears a brimless iron guard helmet. Detailed environmental dressing, longer authored camera sequences, and device-specific performance/balance tuning remain polish work. The terrain renderer batches static geometry while retaining individual tile picking; this does **not** implement open-world streaming.
 
 The third tutorial turns preparation into confidence: win a small fight with bare hands, turn copper ore into useful equipment, then feel the difference in a tougher fight. The required lesson ends there. Bow-and-arrow and spell lessons are optional invitations that can be taken now, later, or never.
 

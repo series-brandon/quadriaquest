@@ -26,3 +26,13 @@ test('batched terrain ray hits resolve the original logical tile across batch bo
  createTerrainBatch({tiles,map,factory:stoneTile,parent,pickables});parent.updateMatrixWorld(true);
  for(const t of tiles){const ray=new Raycaster(new Vector3(t.x-6,8,t.z-6),new Vector3(0,-1,0)),hit=ray.intersectObjects(pickables)[0];assert.equal(terrainHitData(hit).tile,t);assert.equal(hit.point.y,t.h);}
 });
+
+test('Cinderhold has a continuous tall perimeter including every corner',()=>{
+ const tiles=makeCinderholdTiles(),world=new Map(tiles.map(t=>[`${t.x},${t.z}`,t]));
+ for(let z=1;z<=32;z++)for(let x=1;x<=40;x++)if(x===1||x===40||z===1||z===32){
+  const wall=world.get(`${x},${z}`);assert.ok(wall?.blocked&&wall.blocksSight,`sealed boundary ${x},${z}`);
+ }
+ for(const wall of tiles.filter(t=>t.blocksSight))for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+  const floor=world.get(`${wall.x+dx},${wall.z+dz}`);if(floor&&!floor.blocked)assert.ok(wall.h-floor.h>=2.5,`wall height at ${wall.x},${wall.z}`);
+ }
+});

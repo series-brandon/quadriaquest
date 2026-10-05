@@ -2,10 +2,9 @@ export const CINDERHOLD={crystal:[7,27],sarge:[12,25],smith:[12,14],ranger:[31,2
 export function makeCinderholdTiles(){
  const tiles=[];
  for(let z=1;z<=32;z++)for(let x=1;x<=40;x++){
-  if((x<4||x>37)&&(z<4||z>29))continue;
   const wall=x===1||x===40||z===1||z===32||x===22&&![7,8,9,16,17,18,25,26,27].includes(z)||z===19&&x<22&&![7,8,9,15,16,17].includes(x);
   const terrace=(x<=8&&z<=15||z<=4&&x>=24)?1.5:1;
-  tiles.push({x,z,h:wall?terrace+1:terrace,blocked:wall,blocksSight:wall,water:false,buildable:!wall,safe:!wall&&(x<15&&z>20||x<20&&z<18)});
+  tiles.push({x,z,h:wall?terrace+3:terrace,blocked:wall,blocksSight:wall,water:false,buildable:!wall,safe:!wall&&(x<15&&z>20||x<20&&z<18)});
  }return tiles;
 }
 export const TRAINING_STEPS=['meet','unarmed','report','smith','mine','smelt','dagger','shield','equip','return','bruiser','graduate','finished'];

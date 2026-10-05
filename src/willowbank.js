@@ -10,7 +10,6 @@ import * as THREE from 'three';
 import {createGrassColors} from './grass-palette.js';
 import {createWaterEffects} from './water-effects.js';
 import {highlightResource} from './resource-highlight.js';
-import {createCharacterDialogue} from './character-dialogue.js';
 import {part} from './model-parts.js';
 import {fisher,animateFisher} from './fisher-model.js';
 import {WILLOWBANK,makeWillowbankTiles} from './willowbank-rules.js';
@@ -32,7 +31,7 @@ export function createWillowbank(api){
  let introSeen=false,introActive=false,introFocus=null,modelPreview=null;
  let fishingFollowup=false;
  let active=false,phase='meet',preview=null,bridgeDone=false,rescueAge=null,caught=0,flintCollected=0,cooked=0,eaten=0,guided=false;
- const dialogue=api.dialogue||createCharacterDialogue(),hitFeedback=createCombatFeedback(),bridgeInjury=createBridgeInjury();
+ const dialogue=api.dialogue,hitFeedback=createCombatFeedback(),bridgeInjury=createBridgeInjury();
  let injuryReaction=null;
 
  const tip=document.getElementById('gather-tutorial');
@@ -66,8 +65,8 @@ export function createWillowbank(api){
  function playerLine(text,next,expression){dialogue.show({side:'left',name:api.profile().name||'Pip',model:api.visual,text,expression,next});}
  function talk(){reedFacing.face(api.player);tip.hidden=true;
   if(phase!=='meet'){lines([[phase==='finished'?`Enjoy your adventures with ${companions.state.name}!`:'You can do this! Your quest journal will remind you what comes next.','happy']],()=>prompt());return;}
-  api.stop();const exposition=calm=>lines([[calm?'Right. Deep breaths. The bridge collapsed all of a sudden!':'The bridge collapsed all of a sudden!',calm?'idle':'distraught'],["A little animal likes to come here and play. They were on the island when it happened.",calm?'idle':'distraught'],["Now they’re stranded over there, and I can’t reach them!",calm?'idle':'distraught']],()=>dialogue.show({side:'right',name:'Reed',model:reed.group,expression:calm?'idle':'distraught',text:'Could you help me repair the bridge and get them back safely?',choices:[["I’ll help.",()=>playerLine('I’ll help.',acceptHelp,'happy')],['I need a moment.',()=>playerLine('I need a moment.',()=>lines([['Of course. I’ll be right here.','idle']]),'idle')]]}));
-  dialogue.show({side:'right',name:'Reed',model:reed.group,expression:'distraught',text:'Oh! You there! Please—can you help?',choices:[['What’s wrong??',()=>playerLine('What’s wrong??',()=>exposition(false),'shocked')],['Calm down, tell me what’s going on.',()=>playerLine('Calm down, tell me what’s going on.',()=>exposition(true),'idle')],["I don’t have time for this",()=>playerLine('I don’t have time for this',()=>lines([['Oh… okay…','sad']]),'frown')]]});
+  api.stop();const exposition=calm=>lines([[calm?'Right. Deep breaths. The bridge collapsed all of a sudden!':'The bridge collapsed all of a sudden!',calm?'idle':'distraught'],["A little animal likes to come here and play. They were on the island when it happened.",calm?'idle':'distraught'],["Now they’re stranded over there, and I can’t reach them!",calm?'idle':'distraught']],()=>dialogue.show({side:'right',name:'Reed',model:reed.group,expression:calm?'idle':'distraught',text:'Could you help me repair the bridge and get them back safely?',choices:[["I’ll help.",acceptHelp,'happy'],['I need a moment.',()=>lines([['Of course. I’ll be right here.','idle']]),'idle']]}));
+  dialogue.show({side:'right',name:'Reed',model:reed.group,expression:'distraught',text:'Oh! You there! Please—can you help?',choices:[['What’s wrong??',()=>exposition(false),'shocked'],['Calm down, tell me what’s going on.',()=>exposition(true),'idle'],["I don’t have time for this",()=>lines([['Oh… okay…','sad']]),'frown']]});
  }
  function acceptHelp(){
   phase='bridge';done('meet');
@@ -127,7 +126,7 @@ export function createWillowbank(api){
  }
  function meetGoal(){goal('meet','Talk to Reed','Speak to the worried fisher near the arrival crystal.',phase==='meet'?0:1);}
  function enter(value,skipIntro=false){hitFeedback.clear();companions.resetRoute();active=value;group.visible=value;cancel();cancelPlacement();dialogue.hide();tip.hidden=true;cookUI.close();introActive=false;introFocus=null;if(value){companions.showMenuTab();document.getElementById('open-inventory').hidden=false;document.getElementById('open-crafting').hidden=false;if(skipIntro)introSeen=true;if(!introSeen)arrival();else if(phase==='meet')meetGoal();}}
- function update(dt,time,camera){hitFeedback.update(dt,camera);if(introFocus){introFocus.blend=THREE.MathUtils.clamp(introFocus.blend+(introFocus.returning?-1:1)*dt/.9,0,1);if(introFocus.returning&&introFocus.blend===0){const after=introFocus.after||meetGoal;introFocus=null;introActive=false;after();}}dialogue.update(dt);
+ function update(dt,time,camera){hitFeedback.update(dt,camera);if(introFocus){introFocus.blend=THREE.MathUtils.clamp(introFocus.blend+(introFocus.returning?-1:1)*dt/.9,0,1);if(introFocus.returning&&introFocus.blend===0){const after=introFocus.after||meetGoal;introFocus=null;introActive=false;after();}}
 
   let petMoving=false;if(!companions.state.owned)pet.visible=active;
   if(rescueAge!==null&&rescueWaiting&&!api.moving()&&!api.occupied(t(WILLOWBANK.bridgeStart-1,WILLOWBANK.bridgeZ))){rescueWaiting=false;api.face(WILLOWBANK.bridgeStart,WILLOWBANK.bridgeZ);}

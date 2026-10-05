@@ -232,7 +232,7 @@ smithing=createStationCrafting({inventory,stop:stopAll,busy:()=>!canMove()||comb
 const stationOptions={recipes:COOKING_RECIPES,items:ITEMS,inventory,canMake:canCookRecipe,duration:seconds=>cookingDuration(seconds,smithing.skill.level),onCook:(id,station)=>smithing.start(id,station)};
 furnaceMenu=createCookingMenu({...stationOptions,kind:'furnace'});anvilMenu=createCookingMenu({...stationOptions,kind:'anvil'});
 const openStation=a=>(a.kind==='furnace'?furnaceMenu:anvilMenu).open(a);
-const characterDialogue=createCharacterDialogue();
+const characterDialogue=createCharacterDialogue({player:()=>({name:opening.profile.name||'Pip',model:visual})});
 willow=createWillowbank({dialogue:characterDialogue,scene,world,crystals,renderer,player,visual,hands,pickables,inventory,feedback,companions,cookingMenu,campfires,health,food,fishing,fishingSpots,carpentry,resourceActions,
  playerWorking:()=>!!actorTarget||companions.working||resourceActions.working||carpentry.working||fishing.working||food.working||cooking.working||recipeCrafting.working,
  playerSleepTime:()=>idleClock.sleepTime,approaching:()=>actorTarget,occupied:t=>t===tile||t===segment?.to,routeContains:t=>segment?.to===t||path.includes(t),tile:()=>tile,hover:()=>hover?.actor||hover?.tree||hover?.resource,moving:()=>!!segment||path.length>0,profile:()=>opening.profile,
@@ -358,7 +358,7 @@ function changeZoom(delta){if(!areas.canOrbit||travel.busy)return;if(!opening.pl
 $('reset').onclick=()=>{resourceActions.cancel();Object.assign(gatheringSkill,{xp:0,level:1});happyUntil=0;path=[];segment=null;target=null;gatherTime=0;Object.assign(inventory,{sticks:0,stones:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);for(const r of resources)resourceActions.reset(r);feedback.clearDestination();updateUI();$('activity').textContent='Taking it all in';toast('A fresh little beginning.');};
 function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}addEventListener('resize',resize);resize();
 const clock=new THREE.Clock();let elapsed=0;
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',!$('dialogue').hidden);if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('dialogue-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',!$('dialogue').hidden);if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('dialogue-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
  if(!opening.playable){if(opening.canOrbit){angle+=(Number(rotationKeys.has('ArrowRight'))-Number(rotationKeys.has('ArrowLeft')))*keyboardRotationSpeed*dt;elevation=THREE.MathUtils.clamp(elevation+(Number(rotationKeys.has('ArrowUp'))-Number(rotationKeys.has('ArrowDown')))*Math.PI/3*dt,THREE.MathUtils.degToRad(20),THREE.MathUtils.degToRad(75));}else rotationKeys.clear();
@@ -439,7 +439,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const celebration=areas.celebration;
  if(celebration){const motion=holdUpMotion(celebration.age);expression=motion.expression;handWork=null;facing=celebration.angle;pose=motion.pose;socialHands=motion.hands;}
  bendSlime(pose.bend||0);equipmentPresentation.bend(pose.bend||0);
- expressionFace.set(areas.expression||expression);
+ expressionFace.set(characterDialogue.expressionFor('left')||areas.expression||expression);
  const blend=1-Math.exp(-dt*24),width=1/Math.sqrt(pose.squash);
  visual.scale.lerp(new THREE.Vector3(...(pose.scale||[width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)])),blend);
  visual.rotation.x=THREE.MathUtils.lerp(visual.rotation.x,pose.lean,blend);

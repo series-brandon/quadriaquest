@@ -12,6 +12,12 @@ export function gatheringHand(time,index){
 }
 // The game and model viewer consume the same action poses, including expressions.
 export function playerActionMotion(kind,time,idleTime=time){
+ if(kind==='Point'||kind==='Stomp'){
+  const pose={squash:kind==='Stomp'?1-Math.max(0,Math.sin(time*7))*.09:1,stretch:1,twist:0,lean:0};
+  const hands=[[-.46,.33,.08,0,0],[.46,.33,.08,0,0]];
+  if(kind==='Point')hands[0]=[-.38,.53,.55,.4,0];
+  return {pose,hands,handWork:null,expression:kind==='Stomp'?'angry':'idle'};
+ }
  if(kind==='Eating')return eatingMotion(time);
  if(kind==='Fishing cast')return castMotion(time);
  if(kind==='Fishing catch')return catchMotion(time);
