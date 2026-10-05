@@ -2,6 +2,9 @@ import {icon} from './icons.js';
 
 // One source of truth for both the journal and brief on-screen updates.
 export const objectives=new Map();
+const chaptersByPrefix=new Map([['willow-','Broken Bridge Rescue']]);
+export function registerQuestChapter(prefix,title){chaptersByPrefix.set(prefix,title);}
+const chapterFor=g=>[...chaptersByPrefix].find(([prefix])=>g.id.startsWith(prefix))?.[1]||'A Small Beginning';
 let notification,timer,panel,selectedChapter=null,detailOpen=false;
 const helpActions=new Map();
 export function setObjectiveHelp(id,action){if(action)helpActions.set(id,action);else helpActions.delete(id);render();}
@@ -22,13 +25,13 @@ function render(){
  if(!panel)return;const root=panel.querySelector('.quest-list');root.replaceChildren();
  panel.classList.toggle('viewing-detail',detailOpen);
  if(!objectives.size){root.textContent='Your next adventure will appear here.';return;}
- const chapters=['A Small Beginning','Broken Bridge Rescue'].filter(chapter=>[...objectives.values()].some(g=>(g.id.startsWith('willow-')?'Broken Bridge Rescue':'A Small Beginning')===chapter));
+ const chapters=[...new Set([...objectives.values()].map(chapterFor))];
  if(!chapters.includes(selectedChapter))selectedChapter=chapters[0];
  const choices=document.createElement('div'),list=document.createElement('section');choices.className='journal-list';list.className='journal-detail';root.className='quest-list journal-browser';root.append(choices,list);
  for(const chapter of chapters){const button=document.createElement('button');button.className='journal-entry';button.textContent=chapter;button.setAttribute('aria-pressed',String(chapter===selectedChapter));button.onclick=()=>{selectedChapter=chapter;detailOpen=true;render();};choices.append(button);}
  const back=document.createElement('button');back.className='journal-back';back.textContent='Back to quests';back.onclick=()=>{detailOpen=false;render();};list.append(back);
- for(const chapter of ['A Small Beginning','Broken Bridge Rescue']){
- const goals=[...objectives.values()].filter(g=>(g.id.startsWith('willow-')?'Broken Bridge Rescue':'A Small Beginning')===chapter);if(!goals.length||chapter!==selectedChapter)continue;
+ for(const chapter of chapters){
+ const goals=[...objectives.values()].filter(g=>chapterFor(g)===chapter);if(!goals.length||chapter!==selectedChapter)continue;
  const heading=document.createElement('h3');heading.textContent=chapter;list.append(heading);
  for(const done of [false,true]){
   const section=document.createElement('ul');section.className=done?'quest-tasks completed-tasks':'quest-tasks';

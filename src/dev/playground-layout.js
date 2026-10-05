@@ -8,7 +8,7 @@ export function organizePlayground(panel){
  section('Inventory & skills',['Inventory','Skills','Player health']);
  const tutorials=section('Tutorials & objectives',['Tutorial checkpoints','Objective feedback','Reset']);
  section('Companions',['Companions']);
- section('Combat',['Combat practice']);
+ section('Combat',['Combat practice','Training systems']);
  section('World & water',['Travel practice','Terrain colors','Water animation','Resource picking','Fishing practice','Carpentry practice']);
  const ui=section('Interface & audio',['UI & audio polish']);
  const feedback=section('Visual feedback',['Visual feedback only']);

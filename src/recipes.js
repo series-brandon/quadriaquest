@@ -1,4 +1,7 @@
 export const RECIPES={
+ copperIngots:{name:'Copper Ingot',cost:{copperOre:1},duration:3,station:'furnace',skill:'Smithing'},
+ copperDagger:{name:'Copper Dagger',cost:{copperIngots:1},tools:{hammers:1},duration:3,station:'anvil',skill:'Smithing'},
+ copperShield:{name:'Copper Shield',cost:{copperIngots:3},tools:{hammers:1},duration:4,station:'anvil',skill:'Smithing'},
  axes:{name:'Crude Axe',cost:{sticks:1,stones:1},duration:2},
  pickaxes:{name:'Crude Pickaxe',cost:{sticks:1,stones:1},duration:2},
  swords:{name:'Stone Sword',cost:{stone:2,sticks:1},duration:3},

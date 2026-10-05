@@ -150,3 +150,19 @@ Resource practice: World & water → Resource picking describes the shared gathe
 
 
 Shared crafting checks in the playground: use Inventory controls to grant Sticks and Rocks, then open the normal Crafting page to craft a Crude Axe or Crude Pickaxe. Move while crafting to cancel, retry, and adjust Crafting through Skills controls to verify the displayed duration. Both recipes work in the clearing and Willowbank before their quests. Tutorial checkpoints cover the guided axe/pickaxe lessons; Full test area resets the shared items, skills, and resource lifecycle. The normal Skills page includes Culinary before visiting Willowbank.
+
+
+### Cinderhold: combat and equipment
+
+The Iter Crystal now opens **Where to?**, with The Clearing, Willowbank, and Cinderhold available after the clearing's crystal reveal. Cinderhold is the largest tutorial map: a 40 × 32 stone training complex. Talk to Sergeant Bristle, win an unarmed fight, learn copper mining/smelting/smithing from Borin, equip a Copper Dagger and Copper Shield, and defeat a Bruiser. Fletch's bow lesson and Wisp's Spark lesson are independent optional quests. **Combat** in the journal selects your equipped weapon/bare hands or a learned spell. See [the chapter design](docs/CINDERHOLD.md).
+
+Playground entry points (run `npm run dev:debug`):
+
+- **Tutorials & objectives → Tutorial checkpoints → Cinderhold · arrival** starts the chapter. Individual checkpoints cover every required step and both optional lessons. **Reset current area** restarts chapter state and placed resources/encounters; **Full test area** also resets shared items, skills, gear, spells and supply grants.
+- **Combat → Training systems → Visit landmark** jumps to a Cinderhold guide, encounter or station. **Spawn portable fixtures** places production copper, furnace, anvil, provision shelf, inert target and live enemy in the current map, including the clearing before any chapter visit. Use its approach actions or click the actual models. Reset/remove controls make these repeatable.
+- **Inventory & skills** includes ore, ingots, copper equipment, bow/arrows, and Smithing. Keep a pickaxe/hammer in inventory for mining/smithing. One ore makes one ingot; dagger uses one ingot and shield uses three. Tools are reusable. Movement cancels unfinished station work without consuming inputs.
+- **Training systems** also exposes production bow/ammo supply offers and learn/reset Spark. Use the ordinary Combat menu and inventory equip actions to test styles, two-handed equipment conflicts, ammunition exhaustion, range and wall obstruction. Targets award no XP; live enemy victories do.
+- **Interface & audio** previews Furnace, Anvil, Destinations, and Combat styles. Station/destination previews cannot craft or teleport. Real crystal approach and three-way trips are under **Travel practice**.
+- **Shared model preview** contains all four mentors, Angry expression, copper outcrop/gear/ingot, bow/arrow, furnace/anvil/shelf, stone terrain/arch, practice target and Spark projectile. Slime motions include copper gear, Archery, Casting, Smithing and Smelting using production motion functions.
+
+Validate portability by using the fixtures before visiting Willowbank, repeating in another map, cancelling work, depleting/respawning resources, retreating, using supplies, and resetting. Checkpoints prepare scenarios; they do not replace a complete tutorial playthrough. Desktop/mobile station and destination menus use the same implementations. New developer fixtures and controls remain compile-time isolated.

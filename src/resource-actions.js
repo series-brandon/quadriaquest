@@ -6,6 +6,7 @@ import {animateResourceHit,animateResourceDepletion} from './resource-depletion.
 import {blocksMovement,setWorldOccupancy} from './world-occupancy.js';
 
 export const RESOURCE_RULES={
+ copper:{tool:'pickaxes',skill:'Mining',motion:'Mining',item:'copperOre',quantity:1},
  tree:{tool:'axes',skill:'Lumberjack',motion:'Chopping',item:'logs'},
  boulder:{tool:'pickaxes',skill:'Mining',motion:'Mining',item:'stone'},
  sticks:{skill:'Gathering',motion:'Gathering',item:'sticks'},
@@ -17,11 +18,11 @@ export function createResourceActions(api){
  const current=node=>api.world.get(`${node.x},${node.z}`)===node.tile;
  function cancel(){if(!action)return;action.node.group.rotation.z=0;action=null;api.cancelled?.();}
  function start(node){
-  if(action?.node===node||node.depleted||!current(node)||!api.inReach(node)||api.busy?.())return false;
+  if(!nodes.has(node)||action?.node===node||node.depleted||!current(node)||!api.inReach(node)||api.busy?.())return false;
   const rules=RESOURCE_RULES[node.kind];if(!rules)return false;
   if(rules.tool&&!(api.inventory[rules.tool]>0)){api.toast?.('Missing the required tool!');return false;}
   api.stop();api.face(node.x,node.z);const roll=rules.tool?rollToolWork(api.random):null;
-  action={node,rules,age:0,duration:rules.tool?durationFor(roll.duration,api.skills[rules.skill].level):gatheringDuration(api.skills.Gathering),quantity:roll?.quantity||1};
+  action={node,rules,age:0,duration:rules.tool?durationFor(roll.duration,api.skills[rules.skill].level):gatheringDuration(api.skills.Gathering),quantity:rules.quantity??roll?.quantity??1};
   api.started?.(node,rules);node.onStart?.();return true;
  }
  function reward(node,rules,quantity){
@@ -54,5 +55,5 @@ export function createResourceActions(api){
  }
  function reset(node,{depleted=false}={}){if(action?.node===node)cancel();depleting.delete(node);respawning.delete(node);node.depleted=depleted;node.group.visible=!depleted;node.group.scale.setScalar(1);node.group.rotation.set(0,0,0);setWorldOccupancy(node,!depleted);}
  function resetWhere(predicate=()=>true){for(const node of nodes)if(predicate(node))reset(node);}
- return {add(node){nodes.add(node);return node;},start,cancel,update,reset,resetWhere,matches:node=>action?.node===node,get working(){return !!action;},get state(){return action?{kind:action.rules.motion,age:action.age,duration:action.duration}:null;}};
+ return {remove(node){if(action?.node===node)cancel();depleting.delete(node);respawning.delete(node);nodes.delete(node);node.dispose?.();},add(node){nodes.add(node);return node;},start,cancel,update,reset,resetWhere,matches:node=>action?.node===node,get working(){return !!action;},get state(){return action?{kind:action.rules.motion,age:action.age,duration:action.duration}:null;}};
 }

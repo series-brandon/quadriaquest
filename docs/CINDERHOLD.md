@@ -1,6 +1,10 @@
 # Cinderhold: Basic Training
 
-Design draft · 2026-10-05 · Not implemented.
+First playable implementation · 2026-10-05.
+
+The initial implementation now includes the 40 × 32 training complex, required melee/metalwork quest, optional ranged and Spark lessons, shared destination picker, and production-backed playground controls. The sections below retain the design intent and tuning proposals. See [HANDOFF.md](HANDOFF.md#cinderhold-first-playable-implementation--2026-10-05) for implementation ownership and verification limits.
+
+The first visual pass uses connected slate halls, arches, copper terraces, a lit furnace, and the four mentor rigs. Detailed environmental dressing, longer authored camera sequences, and device-specific performance/balance tuning remain polish work. The terrain renderer batches static geometry while retaining individual tile picking; this does **not** implement open-world streaming.
 
 The third tutorial turns preparation into confidence: win a small fight with bare hands, turn copper ore into useful equipment, then feel the difference in a tougher fight. The required lesson ends there. Bow-and-arrow and spell lessons are optional invitations that can be taken now, later, or never.
 
@@ -120,7 +124,7 @@ The current shared baseline is 30 player health; unarmed 1–3 damage every 1.5 
 
 Start Copper Dagger at the sword's 3–5 damage / 1.5-second cadence and Copper Shield at the existing one-point mitigation. The improvement is over bare hands; there is no promised copper-versus-stone upgrade tier yet. Tune only after playing the complete sequence. With full health and both items equipped, the Bruiser should usually be comfortably winnable at starting Combat level; unarmed attempts should be visibly harder. Random rolls must not make the introductory lesson feel arbitrary.
 
-Refactor equipment from `swords`/`shields` booleans into item definitions and explicit hand slots before adding variants. One main-hand weapon at a time; dagger plus shield is legal, a bow occupies both hands, cosmetics remain separate. Equipping a bow returns a shield to inventory, with clear feedback. Removing the last owned copy clears its equipped slot. Prevent equipment changes during working/combat as the current system does. Damage, reach, cadence, held models, and animation come from equipped definitions, not area checks or “has sword” special cases.
+Equipment now uses item definitions and explicit hand slots instead of `swords`/`shields` boolean slot ownership. One main-hand weapon at a time; dagger plus shield is legal, a bow occupies both hands, cosmetics remain separate. Equipping a bow returns a shield to inventory, with clear feedback. Removing the last owned copy clears its equipped slot. Prevent equipment changes during working/combat as the current system does. Damage, reach, cadence, held models, and animation come from equipped definitions, not area checks or “has sword” special cases.
 
 Defeat reuses the shared animation and safe crystal-adjacent recovery, restores health, and retains items, skills, equipment, companion, and quest progress. Reset the encounter through its shared lifecycle so retries cannot duplicate victory rewards. Sarge's recovery line is contextual and does not replay the introduction. Companions remain cosmetic and untargetable; NPCs, stations and the arrival court remain outside enemy pursuit.
 
@@ -150,7 +154,7 @@ Use the existing Combat skill for all three styles in this draft. Separate Range
 
 Replace fixed two-way crystal interactions with one shared destination picker. All ready crystals use the same menu and travel system; only placement, initial reveal, and narrative recommendations belong to an area.
 
-**Proposed availability:** once the clearing's existing crystal reveal finishes, all three tutorial destinations are listed and usable. Recommend Willowbank before Cinderhold, but do not require a visit, completion, or level. This preserves the intended teaching order through guidance while keeping shared gameplay available independently. Cinderhold therefore supplies its own tools and recovery food. This soft recommendation is a proposed refinement of the older linear-tutorial wording in DESIGN.md.
+**Proposed availability:** once the clearing's existing crystal reveal finishes, all three tutorial destinations are listed and usable. Recommend Willowbank before Cinderhold, but do not require a visit, completion, or level. This preserves the intended teaching order through guidance while keeping shared gameplay available independently. Cinderhold therefore supplies its own tools and recovery food. This soft recommendation is implemented for the first playable chapter; the story teaches the intended order without an area-unlock gate.
 
 1. Click a crystal and walk to a valid adjacent interaction tile.
 2. Open **Where to?** with three rows, in stable order: **The Clearing** — Resources & crafting; **Willowbank** — Fishing, cooking & healing; **Cinderhold** — Combat & equipment. Willowbank's details can also mention carpentry and companions.
@@ -187,7 +191,7 @@ Shared world services must accept coordinates and spatial/entity context without
 
 ## Implementation boundaries and order
 
-Verified starting points: `area-runtime.js` already registers arbitrary areas; `travel.js` handles shared transition/landing validation; `crystals.js` creates portable crystal actors but currently binds each to one destination. `combat.js`, `combat-rules.js`, and `enemy-entity.js` supply melee and encounter lifecycle; `equipment.js` still exposes item-specific boolean slots. `recipes.js` has inventory recipes and campfire cooking, with no copper/furnace/anvil definitions. Ranged weapons, spells, and the new area are new work.
+Implementation: `area-runtime.js` registers destinations and broadcasts gameplay facts; `destination-menu.js` and `crystals.js` use the shared travel system. `combat.js`, `combat-range.js`, `combat-styles.js`, and portable enemy/target entities cover the three attack styles. `equipment.js` defines main/off/head slots and gear stats. `recipes.js` plus `station-crafting.js` own the copper chain and Smithing, using the generalized station recipe picker. `supply-offers.js`, `world-actors.js`, and shared models own supplies and NPC/prop interactions. `cinderhold.js` supplies layout and narrative; `cinderhold-rules.js` holds layout/story progression. The following order records the implementation slices rather than a remaining-work list.
 
 1. **Destination UI and area shell:** shared picker plus registration of the larger rocky map, safe arrival, round-trip travel, terrain models, safe-zone configuration and map/reset controls. Validate reachable area, route length and representative desktop/mobile performance before filling the map; remove fixed small-map assumptions in shared consumers as needed. In partial development builds, never list an unregistered destination as usable.
 2. **Sarge and unarmed lesson:** portable NPC model/motions/expressions, existing enemy prefab, initial quest and safe recovery.
@@ -199,7 +203,7 @@ Each slice includes its playground support and validation before moving to the n
 
 ## Playground coverage required with implementation
 
-This document adds no runtime features. The following is required coverage for the implementation, not a claim that these controls exist today.
+The first implementation provides these entry points through Tutorial checkpoints, Training systems, Travel practice, Inventory/Skills, interface previews, and the shared model catalogue. Read the handoff for the exercised checks; the table remains the coverage requirement for subsequent changes.
 
 | Addition | Reach, exercise, repeat and reset |
 | --- | --- |

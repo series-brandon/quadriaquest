@@ -220,15 +220,15 @@ The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches bra
 
 ## Area three: combat tutorial outline
 
-Status: design draft, not implemented. See [CINDERHOLD.md](CINDERHOLD.md) for the third-area proposal, **Cinderhold: Basic Training**, including dialogue, layout, recipes, shared-system work, playground coverage, and acceptance checks. This replaces the earlier Stone Sword/Wooden Shield tutorial outline; those existing recipes remain available as shared gameplay.
+Status: first playable implementation, 2026-10-05. See [CINDERHOLD.md](CINDERHOLD.md) for **Cinderhold: Basic Training**, including dialogue, layout, recipes, shared-system work, playground coverage, and acceptance checks. This replaces the earlier Stone Sword/Wooden Shield tutorial outline; those existing recipes remain available as shared gameplay.
 
 The requested route is: angry drill-sergeant slime → forgiving unarmed fight → dwarf-like smith slime → mine copper with a pickaxe → smelt ingots at a furnace → smith a Copper Dagger and Copper Shield at an anvil with a hammer → equip → return to Sarge → defeat one tougher enemy. Ranged combat with bow/arrows and magic combat with spells are independent optional mentor lessons after the required route. Players can leave without talking to either mentor.
 
 The map introduces a rocky cavern/ruined training-hall appearance and must be the largest tutorial area yet, leading toward the future streamed open world. The draft proposes roughly 40 × 32 tiles with at least twice Willowbank’s reachable floor area. The draft proposes Cinderhold as the location, Sergeant Bristle and Borin Copperbelly as the main guides, and a four-ore production chain. Names, quantities, skill assignments, optional-style resource rules, and balance are proposals pending review.
 
-All three areas will use a shared Iter Crystal destination menu. The draft proposes listing The Clearing, Willowbank, and Cinderhold after the first crystal reveal, marking the current area and recommending the next lesson without locking destinations. This soft ordering guides the tutorial sequence; it remains a design proposal, not current behavior. Selection followed by Travel uses the existing shared transition and safe-arrival validation.
+All three areas use a shared Iter Crystal destination menu listing The Clearing, Willowbank, and Cinderhold after the first crystal reveal, marking the current area and recommending the next lesson without locking destinations. This soft ordering guides the tutorial sequence without locking gameplay behind an area visit. Selection followed by Travel uses the existing shared transition and safe-arrival validation.
 
-The implementation must extend the existing app-owned combat, equipment, resources, recipes, NPC presentation, area runtime and travel systems. Area code owns only layout/configuration and narrative. Copper processing, hand-slot equipment variants, ranged/spell actions and the picker need production-backed playground support in the same implementation slices. The detailed chapter document specifies coverage and cross-map verification; writing this plan does not implement those features.
+The implementation extends the app-owned combat, equipment, resources, recipes, NPC presentation, area runtime and travel systems. Area code owns layout/configuration and narrative. Copper processing, hand-slot equipment, ranged/Spark actions, supply offers and the picker have production-backed playground fixtures/previews and chapter checkpoints. Static terrain batching reduces draw calls while retaining logical tile picking; it is not chunk streaming. See the handoff for tested interactions and remaining polish.
 
 ## Small-screen menus and model previews
 

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Group} from 'three';
 import {createCombatSystem} from './combat.js';
+import {createCombatStyles} from './combat-styles.js';
 import {createEquipment} from './equipment.js';
 import {createPlayerHealth} from './player-health.js';
 import {ENEMIES} from './combat-rules.js';
@@ -9,13 +10,14 @@ function fixture(kind='bruiser'){
  const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
  const home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(),skills={};let tile=world.get('3,4'),reach=true,blocked=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5;
  const equipment=createEquipment({inventory,busy:()=>system.working||system.busy});
- const system=createCombatSystem({world,health,equipment,player:new Group(),random:()=>roll,stop:()=>system.cancel(),blocked:()=>blocked,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(){},sound(){},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
+ const styles=createCombatStyles({equipment,busy:()=>system.working});
+ const system=createCombatSystem({world,health,equipment,inventory,attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:()=>system.cancel(),blocked:()=>blocked,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(){},sound(){},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
  const a=system.add({kind,rules:ENEMIES[kind],group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
- return {system,a,health,equipment,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
+ return {system,a,health,equipment,styles,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
 }
 test('equipment is available without an area, guards stale actions, and clears missing items',()=>{
  const inventory={swords:1,shields:1};let busy=false;const e=createEquipment({inventory,busy:()=>busy});
- assert.ok(e.toggle('swords'));assert.ok(e.isEquipped('swords'));const action=e.inventoryActions('shields')[0];busy=true;assert.equal(action.run(),false);assert.equal(e.isEquipped('shields'),false);busy=false;assert.ok(action.run());inventory.swords=0;assert.equal(e.isEquipped('swords'),false);e.reset();assert.deepEqual(e.state,{swords:false,shields:false,hats:false});
+ assert.ok(e.toggle('swords'));assert.ok(e.isEquipped('swords'));const action=e.inventoryActions('shields')[0];busy=true;assert.equal(action.run(),false);assert.equal(e.isEquipped('shields'),false);busy=false;assert.ok(action.run());inventory.swords=0;assert.equal(e.isEquipped('swords'),false);e.reset();assert.ok(Object.values(e.state).every(value=>value===false));
 });
 test('unarmed and equipped fights reward once, retain equipment, and reset for repeated combat',()=>{
  const f=fixture('scrapper');assert.ok(f.system.start(f.a));assert.equal(f.system.start(f.a),false);for(let i=0;i<10;i++)f.system.update(1.5,i);assert.equal(f.rewards,1);assert.equal(f.system.skill.xp,20);assert.equal(f.a.opened,true);assert.equal(f.home.blocked,false);
@@ -40,4 +42,14 @@ test('wandering uses configured bounds and reserves its destination instead of t
 });
 test('hat equipment uses the same inventory-backed state as weapons',()=>{
  const inventory={hats:1};const e=createEquipment({inventory});assert.equal(e.inventoryActions('hats')[0].label,'Equip');assert.ok(e.toggle('hats'));assert.ok(e.isEquipped('hats'));assert.equal(e.inventoryActions('hats')[0].label,'Unequip');inventory.hats=0;assert.equal(e.isEquipped('hats'),false);
+});
+
+test('ranged shots consume ammo once at release, hit on impact and exhaust without negative ammo',()=>{
+ const f=fixture('scrapper');f.inventory.bows=1;f.inventory.arrows=1;f.equipment.toggle('bows');f.system.start(f.a);f.system.update(1.7,1.7);assert.equal(f.inventory.arrows,0);assert.equal(f.a.hp,8);f.system.update(.23,1.93);assert.equal(f.a.hp,5);f.system.update(2,4);assert.equal(f.system.working,false);assert.equal(f.inventory.arrows,0);assert.equal(f.system.start(f.a),false);
+});
+test('committed projectile survives retreat once, while travel/reset discards pending impacts without refund',()=>{
+ const f=fixture('scrapper');f.inventory.bows=1;f.inventory.arrows=5;f.equipment.toggle('bows');f.system.start(f.a);f.system.update(1.7,2);f.system.disengage();f.system.update(.23,3);assert.equal(f.a.hp,5);assert.equal(f.inventory.arrows,4);f.system.clear();f.system.start(f.a);f.system.update(1.7,4);f.system.clear();f.system.update(5,9);assert.equal(f.a.hp,8);assert.equal(f.rewards,0);assert.equal(f.inventory.arrows,3);
+});
+test('inert targets do not attack or award Combat XP and can respawn using the shared lifecycle',()=>{
+ const f=fixture('target');f.a.respawn=1;f.styles.learn('spark');f.styles.select('spark');f.system.start(f.a);for(let i=0;i<4;i++)f.system.update(1,i);assert.equal(f.a.hp,1);f.system.update(.23,5);assert.equal(f.a.opened,true);assert.equal(f.rewards,0);assert.equal(f.health.value,30);f.system.update(3,8);assert.equal(f.a.opened,false);assert.equal(f.a.hp,4);assert.ok(f.system.start(f.a));f.system.disengage();assert.equal(f.system.state.chase,null);
 });

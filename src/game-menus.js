@@ -12,7 +12,7 @@ export function createGameMenus({getInventory,getSkills,startCraft,equipment={}}
  <nav id="game-menu-bar" hidden aria-label="Game menu"><button id="open-skills">Skills</button><button id="open-inventory">Inventory</button><button id="open-crafting">Crafting</button></nav>
  <section id="crafting-panel" hidden aria-label="Crafting"><div class="crafting-heading"><h2>Crafting</h2><button id="close-crafting" aria-label="Close crafting menu">×</button></div><div class="recipe-browser"><div class="recipe-choices"></div><div class="recipe-details"></div></div><p id="recipe-error" role="status"></p></section>`;
  document.body.append(host);
- const panel=$('crafting-panel'),recipeKinds=Object.keys(RECIPES).filter(id=>!RECIPES[id].station);
+ const panel=$('crafting-panel'),recipeKinds=Object.keys(RECIPES);
  const back=document.createElement('button');back.className='recipe-back';back.textContent='← All recipes';back.onclick=()=>panel.classList.remove('viewing-recipe');panel.querySelector('.recipe-details').append(back);
  for(const id of recipeKinds){
   const recipe=RECIPES[id],choice=document.createElement('button');choice.className='recipe-choice';choice.id='choose-'+id;choice.innerHTML=icon(id)+' '+recipe.name;choice.onclick=()=>selectRecipe(id);panel.querySelector('.recipe-choices').append(choice);
@@ -63,9 +63,9 @@ export function createGameMenus({getInventory,getSkills,startCraft,equipment={}}
 
  function refresh(){
   const inventory=getInventory(),level=getSkills().Crafting?.level||1;
-  for(const id of recipeKinds){const recipe=RECIPES[id],available=canMake(inventory,recipe);$('craft-'+id).disabled=!available;$('craft-'+id).title=available?'':'Missing the ingredients or tool listed above';
+  for(const id of recipeKinds){const recipe=RECIPES[id],available=!recipe.station&&canMake(inventory,recipe);$('craft-'+id).textContent=recipe.station?'Requires '+recipe.station:'Craft '+recipe.name;$('craft-'+id).disabled=!available;$('craft-'+id).title=available?'':'Missing the ingredients or tool listed above';
    $(id+'-ingredients').innerHTML=Object.entries({...recipe.cost,...recipe.tools}).map(([item,n])=>`<span class="ingredient ${inventory[item]>=n?'enough':'missing'}">${icon(item)} ${ITEMS[item].name} · ${n} required / ${inventory[item]||0} owned${recipe.tools?.[item]?' · Reusable tool':''}</span>`).join('');
-   $(id+'-duration').textContent=`Time · ${Number(durationFor(recipe.duration,level).toFixed(2))} seconds`;
+   $(id+'-duration').textContent=`Time · ${Number(durationFor(recipe.duration,getSkills()[recipe.skill]?.level||level).toFixed(2))} seconds`;
   }
   $('recipe-error').textContent='';if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();
  }

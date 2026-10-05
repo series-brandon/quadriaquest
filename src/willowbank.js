@@ -32,7 +32,7 @@ export function createWillowbank(api){
  let introSeen=false,introActive=false,introFocus=null,modelPreview=null;
  let fishingFollowup=false;
  let active=false,phase='meet',preview=null,bridgeDone=false,rescueAge=null,caught=0,flintCollected=0,cooked=0,eaten=0,guided=false;
- const dialogue=createCharacterDialogue(),hitFeedback=createCombatFeedback(),bridgeInjury=createBridgeInjury();
+ const dialogue=api.dialogue||createCharacterDialogue(),hitFeedback=createCombatFeedback(),bridgeInjury=createBridgeInjury();
  let injuryReaction=null;
 
  const tip=document.getElementById('gather-tutorial');
@@ -112,7 +112,7 @@ export function createWillowbank(api){
  function campfireCooked(id){if(!active)return;cooked++;if(phase==='cook'&&id==='cookedFish'){done('cook');phase='eat';lines([['Now for the best part!','happy']],prompt);}}
  const beginPlacement=()=>api.campfires.begin(),cancelPlacement=()=>api.campfires.cancel(),placeFire=tile=>api.campfires.place(tile),openCooking=()=>api.campfires.open();
 
- function foodEaten(){if(!active)return;eaten++;if(phase==='eat'){done('eat');phase='finished';api.closeMenus();lines([['You repaired a bridge, helped a stranded animal, and made yourself dinner.','happy'],['And found a friend along the way.','happy'],[`I’d call that a pretty good start, ${api.profile().name||'Pip'}.`,'happy']],()=>showTip('Broken Bridge Rescue — Complete!','You rescued a companion and learned how to recover.',()=>showTip('Willowbank complete!', 'You can keep exploring and practicing here, or use the Iter Crystal to return to the clearing. Your next adventure is still to come!')));}}
+ function foodEaten(){if(!active)return;eaten++;if(phase==='eat'){done('eat');phase='finished';api.closeMenus();lines([['You repaired a bridge, helped a stranded animal, and made yourself dinner.','happy'],['And found a friend along the way.','happy'],[`I’d call that a pretty good start, ${api.profile().name||'Pip'}.`,'happy']],()=>showTip('Broken Bridge Rescue — Complete!','You rescued a companion and learned how to recover.',()=>showTip('Willowbank complete!', 'You can keep exploring and practicing here, or use the Iter Crystal to visit Cinderhold for combat training!')));}}
 
  function busy(){return !!injuryReaction||introActive||dialogue.active||rescueAge!==null;}
  function interact(a){if(!active||busy())return;tip.hidden=true;if(a.kind==='reed')talk();else if(a.kind==='bridge')repair();else if(a.resourceNode)api.resourceActions.start(a);}
@@ -166,7 +166,7 @@ reedFacing.update(dt);animateFisher(reed,time,dialogue.expressionFor('right')||(
  if(value==='arrival'){arrival();return;}
  if(value==='dialogue'){talk();return;}
  if(value==='meet'){meetGoal();return;}
- if(value==='finished'){showTip('Willowbank complete!','You can keep exploring and practicing here, or use the Iter Crystal to return to the clearing. Your next adventure is still to come!');return;}
+ if(value==='finished'){showTip('Willowbank complete!','You can keep exploring and practicing here, or use the Iter Crystal to visit Cinderhold for combat training!');return;}
  prompt();},repair(){api.approach(bridge);},fish(){api.approach(spot);},placement:beginPlacement,tip:prompt}:undefined
  };
 }

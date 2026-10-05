@@ -1,5 +1,12 @@
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
+ copperOre:'<path d="m3 17 3-11 10-3 6 9-5 9H7zM7 8l4 3-2 4m6-9 1 5 4 2"/>',
+ copperIngots:'<path d="m3 16 4-9h10l4 9-3 4H6zM3 16h18M7 7l2 9m8-9-2 9"/>',
+ copperDagger:'<path d="m5 21 4-5m-4-3 7 7m-4-6 7-10 5-2-2 6-8 8"/>',
+ copperShield:'<path d="m4 5 8-3 8 3v8l-8 9-8-9z"/><circle cx="12" cy="11" r="3"/>',
+ bows:'<path d="M6 3q19 9 0 18L6 3m-3 9h18m-4-3 4 3-4 3"/>',
+ arrows:'<path d="m4 20 15-15m-7 0h7v7M4 14v6h6"/>',
+
  dice:'<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/>',
  swords:'<path d="m4 20 4-4m-3-3 6 6m-3-5L18 3l3 0 0 3-10 11"/>',
  shields:'<path d="M4 4q8 3 16 0v9q-1 5-8 9-7-4-8-9zM12 6v13"/>',
@@ -34,6 +41,6 @@ const paths={
  expand:'<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
  check:'<path d="m4 12 5 5L20 6"/>',
 };
-const aliases={Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes'};
+const aliases={Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes'};
 export function icon(name){return `<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[aliases[name]||name]||paths.skills}</svg>`;}
 export const ICON_NAMES=Object.keys(paths);

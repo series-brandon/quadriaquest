@@ -2,7 +2,7 @@ import {makeCrystal,animateCrystal} from './crystal-model.js';
 import {highlightResource} from './resource-highlight.js';
 
 
-export function createCrystals({world,pickables,travel,hover=()=>null}){
+export function createCrystals({world,pickables,travel,choose,hover=()=>null}){
  const crystals=new Set();
  function remove(actor){if(!crystals.delete(actor))return;travel.cancelFrom(actor);actor.ready=false;actor.tile.blocked=false;actor.group.removeFromParent();
   for(let i=pickables.length-1;i>=0;i--)if(pickables[i].userData.actor===actor)pickables.splice(i,1);
@@ -14,7 +14,7 @@ export function createCrystals({world,pickables,travel,hover=()=>null}){
   group.traverse(m=>{if(m.isMesh){m.userData.actor=actor;m.userData.tile=tile;pickables.push(m);}});
   actor.highlight=highlightResource(group,{height:2.75});
   actor.available=()=>crystals.has(actor)&&actor.ready&&world.get(`${tile.x},${tile.z}`)===tile;
-  actor.interact=()=>actor.available()&&travel.request(destination,{source:actor,onArrive});return actor;
+  actor.interact=()=>actor.available()&&(choose?choose(actor,onArrive):travel.request(destination,{source:actor,onArrive}));return actor;
  },remove,
  update(time){for(const actor of crystals){const available=actor.available();actor.highlight.update(available,time,available&&hover()===actor);if(available)animateCrystal(actor.group,time,actor.tile.h);}},
  current(){return [...crystals].filter(a=>a.available());}

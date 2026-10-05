@@ -1,4 +1,10 @@
 export const ITEMS={
+ copperOre:{name:'Copper Ore',description:'Orange-veined ore. Smelt it into a Copper Ingot at a furnace.'},
+ copperIngots:{name:'Copper Ingot',description:'Refined copper. Work it at an anvil with a Crude Hammer.'},
+ copperDagger:{name:'Copper Dagger',description:'A copper blade you can smith yourself. Main hand · 3–5 damage every 1.5 seconds.'},
+ copperShield:{name:'Copper Shield',description:'Off hand · reduces incoming damage by 1. Cannot be held with a bow.'},
+ bows:{name:'Training Bow',description:'Two hands · 2–4 damage · range 4 tiles. Uses one Training Arrow per shot, including misses.'},
+ arrows:{name:'Training Arrows',description:'Ammunition for the Training Bow. Fletch offers more when you run out.'},
  swords:{name:'Stone Sword',description:'A sturdy stone blade. Equip it to deal 3–5 damage in melee combat.'},
  shields:{name:'Wooden Shield',description:'Equip it to reduce incoming damage by 1.'},
  hammers:{name:'Crude Hammer',description:'A reusable tool for carpentry and bridge repairs.'},

@@ -20,7 +20,9 @@ export function playerActionMotion(kind,time,idleTime=time){
  if(kind==='Defeated'){pose=faintPose(time);hands=pose.hands;handWork=null;expression='fainted';}
  if(kind==='Combat'){const punch=punchMotion(time);pose=idlePose(idleTime);pose.lean=punch.lean;handWork=null;hands=[punch.right,punch.left];}
  if(kind==='Hammer injury'){pose=hammerInjuryPose(time);hands=pose.hands;handWork=null;expression='struggle';}
- if(kind==='Repairing'){
+ if(kind==='Archery'){const pull=(Math.sin(time*Math.PI*2/1.7)+1)/2;pose=idlePose(time);handWork=null;hands=[[-.22,.53,.63,.3,0],[.12,.53,.58-pull*.36,.2,0]];}
+ if(kind==='Casting'){pose=idlePose(time);handWork=null;const pulse=(Math.sin(time*3.5)+1)/2;hands=[[-.24,.40+pulse*.15,.4+pulse*.18,.3,0],[.24,.4+pulse*.15,.4+pulse*.18,.3,0]];}
+ if(kind==='Repairing'||kind==='Smithing'){
   // Work in front of the face: brace the board and tap forward with a short wrist arc.
   const phase=(time%.86)/.86,smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
   const raised=phase<.4?smooth(phase/.4):1-smooth((phase-.52)/.16);
