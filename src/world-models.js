@@ -19,10 +19,13 @@ export function makeTerrainTile(tile,map,grass,{sideColor='#a5a084',seamColor='#
  group.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:seamColor,transparent:true,opacity:.16})));
  return group;
 }
+const hidden=new THREE.MeshBasicMaterial({visible:false});
 export function addWaterTile(parent,tile,map,effects,offset=6){
- const side=new THREE.MeshStandardMaterial({color:'#8dbdb3',roughness:.3,metalness:.08});
- const hidden=new THREE.MeshBasicMaterial({visible:false});
- const faces=[[1,0],[-1,0],null,null,[0,1],[0,-1]].map((d,i)=>i===2||(d&&map.get(key(tile.x+d[0],tile.z+d[1]))?.water)?hidden:side);
- const block=new THREE.Mesh(new THREE.BoxGeometry(1,.85,1),faces);block.position.set(tile.x-offset,.425,tile.z-offset);block.receiveShadow=true;parent.add(block);
+ const side=effects.sideMaterial;
+ // Only exposed shoreline sides render; they join the water body's merged static layer. The box stays as a pick proxy.
+ const shown=[[1,0],[-1,0],null,null,[0,1],[0,-1]].map((d,i)=>!!d&&!map.get(key(tile.x+d[0],tile.z+d[1]))?.water);
+ const geometry=new THREE.BoxGeometry(1,.85,1),block=new THREE.Mesh(geometry,hidden);block.position.set(tile.x-offset,.425,tile.z-offset);parent.add(block);
+ const index=[];for(const g of geometry.groups)if(shown[g.materialIndex])index.push(...geometry.index.array.slice(g.start,g.start+g.count));
+ if(index.length){const faces=geometry.clone();faces.setIndex(index);faces.clearGroups();const mesh=new THREE.Mesh(faces,side);mesh.position.copy(block.position);effects.addStatic(mesh);}
  const surface=effects.add(tile.x-offset,.85,tile.z-offset,side);return [block,surface];
 }

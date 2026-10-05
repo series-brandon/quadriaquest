@@ -1,3 +1,4 @@
+import {findPart} from './named-parts.js';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {part,namedPart} from './model-parts.js';
@@ -26,14 +27,14 @@ export function goblin(big=false){
  return g;
 }
 export function animateGoblin(group,time,{walk=0,attack=0,hit=0}={}){
- const rig=group.getObjectByName('goblin-rig');if(!rig)return;
- const head=group.getObjectByName('head'),stride=Math.sin(time*9)*walk;
+ const rig=findPart(group,'goblin-rig');if(!rig)return;
+ const head=findPart(group,'head'),stride=Math.sin(time*9)*walk;
  rig.position.y=Math.abs(stride)*.025;rig.rotation.x=attack*.16;rig.rotation.z=hit*.13;
  head.rotation.y=Math.sin(time*1.2)*.07;head.rotation.z=Math.sin(time*1.8)*.025;
  const blink=time%4.3>4.15?.12:1;
- for(const side of [-1,1]){const arm=group.getObjectByName('arm'+side),leg=group.getObjectByName('leg'+side);
+ for(const side of [-1,1]){const arm=findPart(group,'arm'+side),leg=findPart(group,'leg'+side);
   arm.rotation.x=stride*side*.5+Math.sin(time*2+side)*.045+(side===-1?-attack*1.8:attack*.4);
   arm.rotation.z=side*(.08+attack*.15);leg.rotation.x=-stride*side*.6;leg.position.y=.16+Math.max(0,stride*side)*.055;
-  group.getObjectByName('eye'+side).scale.y=.82*blink;
+  findPart(group,'eye'+side).scale.y=.82*blink;
  }
 }

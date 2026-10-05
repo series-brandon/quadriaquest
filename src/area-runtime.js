@@ -1,17 +1,20 @@
 // Areas provide content and narrative hooks; this runtime owns activation and routing.
 export function createAreaRuntime({world,beforeSwitch=()=>{},placePlayer=()=>{},applyCamera=()=>{}}){
- const registry=new Map();let active=null,entered=false;
+ const registry=new Map(),homes=new Map();let active=null,entered=false;
+ // Inactive areas leave the scene graph so the renderer skips their per-frame matrix updates.
+ function park(area){area.group.visible=false;const parent=area.group.parent;if(parent){homes.set(area,parent);parent.remove(area.group);}}
+ function unpark(area){const parent=homes.get(area);if(parent&&!area.group.parent)parent.add(area.group);area.group.visible=true;area.group.updateMatrixWorld?.(true);}
  function enter(options={}){if(!active||entered)return;entered=true;active.enter?.(options);}
  return {
-  register(area){if(registry.has(area.id))throw Error('Duplicate area: '+area.id);registry.set(area.id,area);area.group.visible=false;return area;},
+  register(area){if(registry.has(area.id))throw Error('Duplicate area: '+area.id);registry.set(area.id,area);if(area!==active)park(area);return area;},
   list:()=>[...registry.values()],broadcast:(event,...args)=>{for(const area of registry.values())area[event]?.(...args);},
   get: id=>registry.get(id),get active(){return active;},get id(){return active?.id;},
   activate(id,{landing,announce=true,arrival=true}={}){
    const next=registry.get(id);if(!next)return false;
    if(landing&&next.tiles.get(`${landing.x},${landing.z}`)!==landing)return false;
-   beforeSwitch();if(active){active.leave?.();active.group.visible=false;}
+   beforeSwitch();if(active){active.leave?.();park(active);}
    world.clear();for(const [key,tile] of next.tiles)world.set(key,tile);
-   active=next;entered=false;next.group.visible=true;
+   active=next;entered=false;unpark(next);
    if(landing)placePlayer(landing);if(next.camera)applyCamera(next.camera);
    if(announce)enter({arrival});return true;
   },

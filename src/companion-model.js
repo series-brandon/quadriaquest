@@ -1,3 +1,4 @@
+import {findPart} from './named-parts.js';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mat,part,namedPart} from './model-parts.js';
@@ -38,18 +39,18 @@ export function companion(){
 export function animateCompanion(group,time,{sad=false,expression='Default',moving=false,gait=time*4,motion='Idle',age=time,sit=['Sit','Scratch','Sleeping'].includes(motion)?1:0,jump=null,camera=null}={}){
  const mood=(!expression||expression.toLowerCase()==='default')?(sad?'Sad':motion==='Petting'?'Happy':motion==='Sleeping'?'Sleeping':'Idle'):expression;
  sad=mood==='Sad';const happy=mood==='Happy';
- const body=group.getObjectByName('companion-body'),head=group.getObjectByName('companion-head');
+ const body=findPart(group,'companion-body'),head=findPart(group,'companion-head');
  const weight=body.userData.walkWeight=(body.userData.walkWeight||0)+(Number(moving)-(body.userData.walkWeight||0))*.22;
  body.rotation.x=-.22*sit;body.rotation.z=0;
  body.position.y=-.025*sit+Math.abs(Math.sin(gait*2))*.018*weight;body.scale.y=1+Math.sin(time*2.2)*.012*(1-sit);body.rotation.y=Math.sin(gait*2)*.035*weight;
  // Compress only the torso; the oversized head and spherical paws keep their shape.
- const torso=group.getObjectByName('companion-torso');torso.scale.y=1;torso.position.y=.175;group.getObjectByName('companion-chest').position.y=.175;torso.scale.z=1-.32*sit;torso.position.z=-.045+.06*sit;
- for(const side of [-1,1])group.getObjectByName('companion-rump'+side).position.z=-.25+.127*sit;
+ const torso=findPart(group,'companion-torso');torso.scale.y=1;torso.position.y=.175;findPart(group,'companion-chest').position.y=.175;torso.scale.z=1-.32*sit;torso.position.z=-.045+.06*sit;
+ for(const side of [-1,1])findPart(group,'companion-rump'+side).position.z=-.25+.127*sit;
  head.rotation.y=0;head.rotation.z=Math.sin(time*1.4)*(sad?.025:.045)*(1-sit);head.rotation.x=.22*sit+(sad?.16:Math.sin(time*2)*.025)*(1-sit);
  const eyesClosed=happy||mood==='Sleeping'||time%4.7>4.55;
- const tail=group.getObjectByName('companion-tail');tail.position.z=-.285+.127*sit;tail.position.x=Math.sin(time*(sad?2:11))*(sad?.008:.035);tail.position.y=sad?.20:.235+Math.sin(time*11)*.008;
- for(const side of [-1,1]){group.getObjectByName('companion-ear'+side).rotation.z=side*(sad?-.95:.04)+Math.sin(time*2+side)*.025;group.getObjectByName('companion-eye'+side).scale.y=happy?.35:eyesClosed?.12:sad?.85:1.08;group.getObjectByName('companion-eye-shine'+side).visible=!eyesClosed;group.getObjectByName('companion-brow'+side).rotation.z=side*(sad?-.3:.08);}
- for(const side of [-1,1])for(const z of COMPANION_PAW_Z){const paw=group.getObjectByName('companion-leg'+side+z),stride=weight*Math.sin(gait*2+(side*(z>0?1:-1)>0?0:Math.PI));paw.position.x=side*(.12+(z<0?.035:0)*sit);paw.position.z=z+(z<0?.075:0)*sit+stride*.035;
+ const tail=findPart(group,'companion-tail');tail.position.z=-.285+.127*sit;tail.position.x=Math.sin(time*(sad?2:11))*(sad?.008:.035);tail.position.y=sad?.20:.235+Math.sin(time*11)*.008;
+ for(const side of [-1,1]){findPart(group,'companion-ear'+side).rotation.z=side*(sad?-.95:.04)+Math.sin(time*2+side)*.025;findPart(group,'companion-eye'+side).scale.y=happy?.35:eyesClosed?.12:sad?.85:1.08;findPart(group,'companion-eye-shine'+side).visible=!eyesClosed;findPart(group,'companion-brow'+side).rotation.z=side*(sad?-.3:.08);}
+ for(const side of [-1,1])for(const z of COMPANION_PAW_Z){const paw=findPart(group,'companion-leg'+side+z),stride=weight*Math.sin(gait*2+(side*(z>0?1:-1)>0?0:Math.PI));paw.position.x=side*(.12+(z<0?.035:0)*sit);paw.position.z=z+(z<0?.075:0)*sit+stride*.035;
   // Lower the front paws against the tilted chest while keeping all four soles grounded.
   const groundedY=(.065-body.position.y+Math.sin(body.rotation.x)*paw.position.z)/(Math.cos(body.rotation.x)*body.scale.y);
   paw.position.y=THREE.MathUtils.lerp(.065,groundedY,sit)+Math.max(0,stride)*.035;}
@@ -58,19 +59,19 @@ export function animateCompanion(group,time,{sad=false,expression='Default',movi
   const settle=THREE.MathUtils.smoothstep(age,0,1.8),breath=Math.sin(time*1.7)*.004*settle;
   body.rotation.x*=1-settle;body.position.y*=1-settle;body.scale.y=1;
   torso.scale.set(1,1-.14*settle+breath,.68+.37*settle);torso.position.y=THREE.MathUtils.lerp(.175,.145,settle);torso.position.z=THREE.MathUtils.lerp(.015,-.06,settle);
-  group.getObjectByName('companion-chest').position.y=.175-.04*settle;
+  findPart(group,'companion-chest').position.y=.175-.04*settle;
   head.rotation.set(.22*(1-settle),.55*settle,.32*settle);head.position.x=.075*settle;head.position.y=THREE.MathUtils.lerp(.35,.27,settle);head.position.z=.16+.055*settle;
   for(const side of [-1,1]){
-   const rear=group.getObjectByName('companion-leg'+side+COMPANION_PAW_Z[0]),front=group.getObjectByName('companion-leg'+side+COMPANION_PAW_Z[1]);
+   const rear=findPart(group,'companion-leg'+side+COMPANION_PAW_Z[0]),front=findPart(group,'companion-leg'+side+COMPANION_PAW_Z[1]);
    rear.position.lerp(new THREE.Vector3(side*.135,.065,-.27),settle);front.position.lerp(new THREE.Vector3(side*.16,.065,.27),settle);
-   const rump=group.getObjectByName('companion-rump'+side);rump.scale.y=torso.scale.y;rump.position.y=torso.position.y+.015*torso.scale.y;rump.position.z=THREE.MathUtils.lerp(-.123,-.275,settle);
+   const rump=findPart(group,'companion-rump'+side);rump.scale.y=torso.scale.y;rump.position.y=torso.position.y+.015*torso.scale.y;rump.position.z=THREE.MathUtils.lerp(-.123,-.275,settle);
   }
   tail.position.set(0,THREE.MathUtils.lerp(.235,.16,settle),THREE.MathUtils.lerp(-.158,-.30,settle));
- }else for(const side of [-1,1]){const rump=group.getObjectByName('companion-rump'+side);rump.position.y=.19;rump.scale.y=1;}
- updateSleepParticles([0,1,2].map(i=>group.getObjectByName('companion-sleep-z'+i)),age-1.8,motion==='Sleeping',new THREE.Vector3(head.position.x,0,head.position.z),camera,{height:.48,offset:.08});
+ }else for(const side of [-1,1]){const rump=findPart(group,'companion-rump'+side);rump.position.y=.19;rump.scale.y=1;}
+ updateSleepParticles([0,1,2].map(i=>findPart(group,'companion-sleep-z'+i)),age-1.8,motion==='Sleeping',new THREE.Vector3(head.position.x,0,head.position.z),camera,{height:.48,offset:.08});
  if(motion==='Scratch'){
   const t=Math.max(0,age%2.6),reach=THREE.MathUtils.smoothstep(t,0,.35)*(1-THREE.MathUtils.smoothstep(t,2,2.4));
-  const paw=group.getObjectByName('companion-leg1'+COMPANION_PAW_Z[0]);
+  const paw=findPart(group,'companion-leg1'+COMPANION_PAW_Z[0]);
   // Lean toward the paw while preserving the seated body and grounding.
   head.rotation.z-=.35*reach;head.rotation.y=.12*reach;
   head.rotation.x=THREE.MathUtils.lerp(head.rotation.x,.10,reach);
@@ -85,9 +86,9 @@ export function animateCompanion(group,time,{sad=false,expression='Default',movi
  }
  if(jump){body.rotation.x=(jump.height>0?-.16:.16)*Math.sin(jump.progress*Math.PI);body.scale.y=1+Math.sin(jump.progress*Math.PI*2)*.08;}
  for(let i=0;i<3;i++){
-  const heart=group.getObjectByName('pet-heart-'+i),t=(age-i*.35)/1.9;
+  const heart=findPart(group,'pet-heart-'+i),t=(age-i*.35)/1.9;
   heart.visible=motion==='Petting'&&t>=0&&t<1;
   if(heart.visible){heart.position.set((i-1)*.13+Math.sin(t*Math.PI*3+i)*.075,.7+t*.42,.18);heart.material.opacity=Math.sin(t*Math.PI);heart.scale.setScalar(.7+t*.3);if(camera){group.getWorldQuaternion(heart.quaternion).invert();heart.quaternion.multiply(camera.quaternion);}else heart.rotation.set(0,0,0);heart.rotateY(Math.sin(t*4+i)*.3);}
  }
- group.getObjectByName('sad-mouth').visible=sad;group.getObjectByName('happy-mouth').visible=!sad;
+ findPart(group,'sad-mouth').visible=sad;findPart(group,'happy-mouth').visible=!sad;
 }

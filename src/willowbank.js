@@ -6,6 +6,7 @@ import {createConversationFacing} from './conversation-facing.js';
 import {createCombatFeedback} from './combat-feedback.js';
 import {rescueStandAsideRoute} from './companion-follow.js';
 import {makeFlowers,makeTerrainTile,addWaterTile} from './world-models.js';
+import {createTerrainBatch} from './terrain-batch.js';
 import * as THREE from 'three';
 import {createGrassColors} from './grass-palette.js';
 import {createWaterEffects} from './water-effects.js';
@@ -26,7 +27,6 @@ export function createWillowbank(api){
  const water=createWaterEffects(group,api.renderer);
  for(const t of tiles){
   if(t.water){for(const m of addWaterTile(group,t,map,water)){m.userData.tile=t;api.pickables.push(m);}}
-  else {const land=makeTerrainTile(t,map,grassMaterials[(t.x*7+t.z)%4]);land.position.set(t.x-6,0,t.z-6);group.add(land);land.traverse(m=>{if(m.isMesh){m.userData.tile=t;api.pickables.push(m);}});}
  }
  let introSeen=false,introActive=false,introFocus=null,modelPreview=null;
  let fishingFollowup=false;
@@ -52,7 +52,8 @@ export function createWillowbank(api){
  for(const [x,z]of [[2,5],[6,11],[10,4],[14,12]])resource('boulder',x,z);
  for(const [x,z,kind]of [[3,6,'sticks'],[5,10,'sticks'],[11,6,'sticks'],[14,10,'sticks'],[4,8,'stones'],[15,13,'flint']])resource(kind,x,z);
  const spot=api.fishingSpots.add({tile:t(16,14),parent:group,guide:()=>active&&guided&&phase==='fish',onStart:()=>{tip.hidden=true;},onCatch:fishCaught});
- for(const tile of tiles)if(!tile.water&&!tile.blocked&&!actors.some(a=>a.tile===tile)&&(tile.x*17+tile.z*13)%7===0){const flowers=makeFlowers();flowers.position.set(tile.x-6,tile.h,tile.z-6);group.add(flowers);}
+ createTerrainBatch({tiles:tiles.filter(t=>!t.water),map,factory:t=>makeTerrainTile(t,map,grassMaterials[(t.x*7+t.z)%4]),parent:group,pickables:api.pickables,preserve:grassMaterials,roughness:.9,
+  decorate(tile,model){if(!tile.blocked&&!actors.some(a=>a.tile===tile)&&(tile.x*17+tile.z*13)%7===0){const flowers=makeFlowers();flowers.position.y=tile.h;model.add(flowers);}}});
 
  function resource(kind,x,z){const node=api.resourceActions.add(createResourceEntity({kind,tile:t(x,z),parent:group,pickables:api.pickables,respawn:8,onStart:()=>{tip.hidden=true;},onReward(){if(kind==='flint'&&active){flintCollected++;if(phase==='flint'){done('flint');phase='fire';lines([['Make yourself a Flint and Stone, then put together a Campfire.','idle']],prompt);}}}}));actors.push(node);return node;}
  function goal(id,title,description,current=0,total=1){updateObjective('willow-'+id,title,description,current,total);}

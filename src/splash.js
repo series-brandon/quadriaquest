@@ -2,6 +2,7 @@ import {makeSlime} from './slime-model.js';
 import {makeTree,makeFlowers,makeTerrainTile,addWaterTile} from './world-models.js';
 import {key} from './world.js';
 import {createGrassColors} from './grass-palette.js';
+import {createTerrainBatch} from './terrain-batch.js';
 import {icon} from './icons.js';
 import {createWaterEffects} from './water-effects.js';
 import * as THREE from 'three';
@@ -27,9 +28,12 @@ export function createSplash(renderer,enabled,settings){
   for(let x=-3;x<=3;x++)for(let z=-2;z<=2;z++)if(!(Math.abs(x)===3&&Math.abs(z)===2))tiles.set(key(x,z),{x,z,h:z===-2&&Math.abs(x)>=2?1.5:1,water:pond.has(`${x},${z}`)});
   // The title garden shares terrain, foliage and water with the playable maps.
   const gardenWater=createWaterEffects(garden,renderer);
-  for(const t of tiles.values())if(t.water)addWaterTile(garden,t,tiles,gardenWater,0);else{const tile=makeTerrainTile(t,tiles,grassMaterials[grassIndex++%4]);tile.position.set(t.x,0,t.z);garden.add(tile);}
+  const land=[],flowerTiles=new Set([[-3,0],[-1,2],[1,1],[2,1],[0,-1]].map(([x,z])=>key(x,z)));
+  for(const t of tiles.values())if(t.water)addWaterTile(garden,t,tiles,gardenWater,0);else land.push(t);
+  const grassFor=new Map(land.map(t=>[t,grassMaterials[grassIndex++%4]]));
+  createTerrainBatch({tiles:land,map:tiles,factory:t=>makeTerrainTile(t,tiles,grassFor.get(t)),parent:garden,pickables:[],offset:0,batchSize:16,preserve:grassMaterials,roughness:.9,
+   decorate(t,model){if(flowerTiles.has(key(t.x,t.z))){const flowers=makeFlowers();flowers.position.y=t.h;model.add(flowers);}}});
   for(const [x,z]of [[-2,-2],[2,-2],[3,0]]){const tree=makeTree();tree.position.set(x,tiles.get(key(x,z)).h,z);garden.add(tree);}
-  for(const [x,z]of [[-3,0],[-1,2],[1,1],[2,1],[0,-1]]){const flowers=makeFlowers();flowers.position.set(x,tiles.get(key(x,z)).h,z);garden.add(flowers);}
   const {group:slime,body,face,hands}=makeSlime();scene.add(slime);slime.rotation.y=.35;face.set('sleeping');for(const hand of hands)hand.position.y=.2;
   // Splash appearance is independent of the player's chosen character.
   // Future cosmetic randomization belongs in this same entry point.

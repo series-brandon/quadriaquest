@@ -20,6 +20,23 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### 3D render/scene CPU pass — 2026-10-05
+
+- Inactive areas are detached from the scene graph by `area-runtime.js` (not just hidden), so three.js no longer updates ~4,000 off-screen matrices every frame. Activation re-attaches and refreshes world matrices before use.
+- `terrain-batch.js` is now the shared static terrain path for the clearing, Willowbank, Cinderhold and the splash garden. `preserve` keeps live-editable materials (the playground grass picker's grass materials) as their own merged meshes; other solid colors are vertex-baked; seams merge per material. `decorate` merges static per-tile dressing (flowers). Ray hits still resolve logical tiles through `terrainHitData`.
+- Water bodies render one merged surface, one glint layer and one merged static bed/pebble/shoreline layer. Per-tile animated surfaces and water boxes remain as invisible pick proxies. The 131 always-drawn hidden water box faces in Willowbank are gone. Each water body shares one side material, and colors re-apply only when `waterSettings.color` changes.
+- Hover picking happens immediately after pointer movement and otherwise at 10 Hz. It uses the cached game viewport rect and writes tooltip/cursor DOM only when picking. The companion portrait resizes only when its canvas size changes. Companion/goblin rigs cache named-part lookups (`named-parts.js`). Music gain is scheduled only when its target changes. Several per-frame `Vector3` allocations and unchanged idle/progress DOM writes were removed.
+- Measured idle in the playground, GPU-backed (M1 Max, same session), main-thread rAF time per frame:
+  - clearing: ~4.6 → ~1.3–2.0 ms; WebGL draws ~957 → ~180 per frame;
+  - Willowbank: ~3.1 ms (after the area detach) → ~1.9 ms, ~300 draws;
+  - Cinderhold: ~2.0 ms;
+  - scene objects in the clearing: 5,291 → 419.
+- Checks: 198 tests; both builds and debug isolation; click-to-move in all three areas; repeated travel; grass picker on batched terrain; splash garden; normal-build splash/intro smoke check; no runtime errors.
+- Not done (optional follow-ups):
+  - shadow map still refreshes every frame, now cheap with merged casters;
+  - the main scene still renders under fullscreen mobile menus;
+  - trees and resources are still per-entity meshes, because they animate and respawn individually.
+
 ### CPU investigation and bounded verification — 2026-10-05
 
 - Previous automated checks explicitly forced SwiftShader, moving graphics rendering onto the CPU; a short comparison got ~8 FPS versus ~60 FPS with ANGLE Metal on the M1 Max. No old verification browsers/servers were running when this investigation started; the user's port-5174 server was preserved. Routine checks must use hardware rendering, one browser, bounded lifetime and finally cleanup (see AGENTS/README).
