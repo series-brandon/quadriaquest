@@ -1,7 +1,9 @@
+import {finishRecipe} from './recipes.js';
+import {validCampTile} from './placement-rules.js';
 import {incomingHealth} from './combat-rules.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {WILLOWBANK,RECIPES,finishRecipe,makeWillowbankTiles,validCampTile} from './willowbank-rules.js';
+import {WILLOWBANK,makeWillowbankTiles} from './willowbank-rules.js';
 import {findPath,key} from './world.js';
 import {portalSpawn} from './portal-spawn.js';
 test('recipes consume materials only on completion and retain reusable tools',()=>{const inventory={logs:2,firestarters:1};assert.deepEqual(finishRecipe(inventory,'campfires'),{logs:-2,campfires:1});assert.equal(inventory.firestarters,1);assert.equal(finishRecipe(inventory,'campfires'),null);assert.equal(inventory.campfires,1);});

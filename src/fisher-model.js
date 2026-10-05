@@ -2,8 +2,6 @@ import {tool} from './tool-models.js';
 import {makeSlime} from './slime-model.js';
 import * as THREE from 'three';
 import {part} from './model-parts.js';
-export {part} from './model-parts.js';
-export {tool,heldTool} from './tool-models.js';
 export function fisher(){
  const slime=makeSlime('#66a6ad'),{group,hands}=slime;
  part(group,new THREE.SphereGeometry(.37,16,8,0,Math.PI*2,0,Math.PI/2),'#cbb58a',0,.78);
@@ -13,8 +11,3 @@ export function fisher(){
  for(const child of group.children)child.position.y-=.07;
  return slime;
 }
-export {goblin,animateGoblin} from './enemy-model.js';
-export {campfire} from './campfire-model.js';
-
-export {animateCampfire} from './campfire-model.js';
-export {makeBridge} from './bridge-model.js';

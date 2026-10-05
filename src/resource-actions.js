@@ -17,7 +17,7 @@ export function createResourceActions(api){
  const current=node=>api.world.get(`${node.x},${node.z}`)===node.tile;
  function cancel(){if(!action)return;action.node.group.rotation.z=0;action=null;api.cancelled?.();}
  function start(node){
-  if(action?.node===node||node.collected||!current(node)||!api.inReach(node)||api.busy?.())return false;
+  if(action?.node===node||node.depleted||!current(node)||!api.inReach(node)||api.busy?.())return false;
   const rules=RESOURCE_RULES[node.kind];if(!rules)return false;
   if(rules.tool&&!(api.inventory[rules.tool]>0)){api.toast?.('Missing the required tool!');return false;}
   api.stop();api.face(node.x,node.z);const roll=rules.tool?rollToolWork(api.random):null;
@@ -42,17 +42,17 @@ export function createResourceActions(api){
    if(remaining<=0&&(!blocksMovement(node)||(!node.tile.blocked&&!api.reserved(node.tile))))reset(node);
   }
   if(!action)return null;const a=action,{node,rules}=a;
-  if(node.collected||!current(node)||!api.inReach(node)||(rules.tool&&!(api.inventory[rules.tool]>0))){cancel();return null;}
+  if(node.depleted||!current(node)||!api.inReach(node)||(rules.tool&&!(api.inventory[rules.tool]>0))){cancel();return null;}
   a.age+=dt;api.interacting?.(rules.motion);if(rules.tool)animateResourceHit(node,a.age,a,api.sound);
   if(a.age>=a.duration){
-   action=null;node.collected=true;node.highlight?.update(false,0);api.completed?.();
+   action=null;node.depleted=true;node.highlight?.update(false,0);api.completed?.();
    if(rules.tool){api.sound('fall');const at=api.tile(),direction=new Vector3(node.x-at.x,0,node.z-at.z).normalize();depleting.set(node,{...a,age:0,axis:new Vector3(direction.z,0,-direction.x)});}
    else reward(node,rules,a.quantity);
    return null;
   }
   return {kind:rules.motion,time:a.age};
  }
- function reset(node){if(action?.node===node)cancel();depleting.delete(node);respawning.delete(node);node.collected=false;node.group.visible=true;node.group.scale.setScalar(1);node.group.rotation.set(0,0,0);setWorldOccupancy(node,true);}
+ function reset(node,{depleted=false}={}){if(action?.node===node)cancel();depleting.delete(node);respawning.delete(node);node.depleted=depleted;node.group.visible=!depleted;node.group.scale.setScalar(1);node.group.rotation.set(0,0,0);setWorldOccupancy(node,!depleted);}
  function resetWhere(predicate=()=>true){for(const node of nodes)if(predicate(node))reset(node);}
  return {add(node){nodes.add(node);return node;},start,cancel,update,reset,resetWhere,matches:node=>action?.node===node,get working(){return !!action;},get state(){return action?{kind:action.rules.motion,age:action.age,duration:action.duration}:null;}};
 }

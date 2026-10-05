@@ -52,8 +52,8 @@ export function createTutorialFinale(api){
   function resetPractice(){
     hideDialogue();api.stop();api.clearFalling();practice=false;rewardTriggered=false;removeActor(chest);chest=null;
     api.ensureClearSpawn();
-    api.trees.forEach((tree,i)=>{tree.felled=false;tree.tile.blocked=true;tree.group.rotation.set(0,0,0);drop(tree.group,tree.tile.h,i*.06);});
-    api.resources.forEach((resource,i)=>{resource.collected=false;drop(resource.group,api.world.get(key(resource.x,resource.z)).h,i*.045);});
+    api.trees.forEach((tree,i)=>{drop(tree.group,tree.tile.h,i*.06);});
+    api.resources.forEach((resource,i)=>{drop(resource.group,api.world.get(key(resource.x,resource.z)).h,i*.045);});
     stage='resetting';
   }
   function begin(){
@@ -86,7 +86,6 @@ export function createTutorialFinale(api){
     if(!landing){api.travelBlocked();return;}
     api.stop();hideDialogue();transition={age:0,destination,landing,switched:false};$('scene-fade').hidden=false;
   }
-  function refresh(){api.equipment.refresh();}
   return {
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,travel,
     debugCancel:__PLAYGROUND__?function(){hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;celebration=crystalFocus=transition=null;practice=false;heldHat.visible=false;stage='inactive';$('scene-fade').style.opacity='0';$('scene-fade').hidden=true;}:undefined,
@@ -97,11 +96,10 @@ export function createTutorialFinale(api){
       inPlaceholder=true;api.switchArea(true,placeholder,tiles,landing);
     }:undefined,
     get busy(){return busy();},get celebration(){return celebration;},get cameraFocus(){return crystalFocus;},get inPlaceholder(){return inPlaceholder;},get stage(){return stage;},
-    get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped:api.equipment.isEquipped('hats'),canEquip:!busy()};},
-    refresh,
+    get state(){return {stage,practice,rewardTriggered,inPlaceholder};},
     usePortal(){const actor=inPlaceholder?returnPortal:portal;if(actor)api.approach(actor);},
     openChest(){if(chest)api.approach(chest);},
-    stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;refresh();}},
+    stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;}},
     interact(actor){
       if(!actor.ready||actor.opened||busy())return;
       if(actor.kind==='chest'){actor.opened=true;actor.lid.rotation.x=-1;actor.lid.position.set(0,.64,-.18);api.inventory.hats=(api.inventory.hats||0)+1;api.showItemChanges({hats:1});celebrate();}
@@ -111,7 +109,7 @@ export function createTutorialFinale(api){
       hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;
       celebration=null;crystalFocus=null;transition=null;heldHat.visible=false;practice=false;rewardTriggered=false;stage='inactive';
       if(inPlaceholder){api.switchArea(false,placeholder,tiles);inPlaceholder=false;}
-      removeActor(portal);removeActor(chest);portal=chest=null;$('scene-fade').style.opacity='0';refresh();
+      removeActor(portal);removeActor(chest);portal=chest=null;$('scene-fade').style.opacity='0';
     },
     update(dt,time,hover){
       for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.age+=dt;if(d.age<d.delay)continue;const motion=spawnMotion(d.age-d.delay);d.group.position.y=d.y+motion.lift;d.group.scale.set(1/Math.sqrt(motion.squash),motion.squash,1/Math.sqrt(motion.squash));if(d.age-d.delay>=1.2){d.group.position.y=d.y;d.group.scale.setScalar(1);drops.splice(i,1);d.complete();}}
@@ -129,7 +127,7 @@ export function createTutorialFinale(api){
       if(practice&&!inPlaceholder&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
       if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;const prop=holdUpMotion(t,'hat').prop;heldHat.visible=prop.visible;heldHat.position.set(0,prop.y,prop.z);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}
       if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';if(inPlaceholder)finishObjective('portal');api.switchArea(inPlaceholder,placeholder,tiles,transition.landing);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)api.arrived();}}
-      refresh();$('game-menus').inert=busy();
+      $('game-menus').inert=busy();
     }
   };
 }

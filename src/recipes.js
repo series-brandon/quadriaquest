@@ -1,4 +1,6 @@
 export const RECIPES={
+ axes:{name:'Crude Axe',cost:{sticks:1,stones:1},duration:2},
+ pickaxes:{name:'Crude Pickaxe',cost:{sticks:1,stones:1},duration:2},
  swords:{name:'Stone Sword',cost:{stone:2,sticks:1},duration:3},
  shields:{name:'Wooden Shield',cost:{logs:2,sticks:1},duration:3},
  hammers:{name:'Crude Hammer',cost:{sticks:1,stones:1},duration:2},

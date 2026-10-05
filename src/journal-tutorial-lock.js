@@ -8,7 +8,7 @@ export function journalTutorialActions(stage, guidedTarget = null) {
   }
   if (stage === 'menu' || stage === 'retry') return ['#game-menu-toggle'];
   if (stage === 'craft-menu') return ['#open-crafting'];
-  if (stage === 'recipe') return ['#craft-axe'];
+  if (stage === 'recipe') return ['#craft-axes'];
   return guidedTarget ? ['#' + guidedTarget] : null;
 }
 

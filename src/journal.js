@@ -1,7 +1,7 @@
 import {createQuestPanel} from './quests.js';
 import {icon} from './icons.js';
 import {mountJournalTutorialLock} from './journal-tutorial-lock.js';
-export function mountJournal(controller,settings){
+export function mountJournal(menus,controller,settings){
  const $=id=>document.getElementById(id),host=$('game-menus'),nav=$('game-menu-bar');
  const shell=document.createElement('section');shell.id='journal';shell.hidden=true;shell.setAttribute('aria-label','Adventurer’s journal');
  shell.innerHTML=`<header class="journal-header"><span>Adventurer’s journal</span><button id="journal-size" aria-label="Expand journal">${icon('expand')}</button><button id="journal-close" aria-label="Close journal">${icon('close')}</button></header>`;
@@ -13,8 +13,8 @@ export function mountJournal(controller,settings){
  questButton.onclick=()=>{if(controller.stage.startsWith('quests-')&&controller.stage!=='quests-menu')return;if(!questPanel.hidden)return;suspendedNav=nav.hidden;suspendedPanels=['inventory','skills','crafting','companions','settings'].map(name=>$(name+'-panel')).filter(node=>node&&!node.hidden);for(const node of suspendedPanels)node.hidden=true;questPanel.resetView();questPanel.hidden=false;controller.questsOpened();};
  nav.addEventListener('click',e=>{if(!questPanel.hidden&&e.target.closest('button')!==questButton)closeQuests();},{capture:true});
  $('game-menu-toggle').addEventListener('click',e=>{if(!questPanel.hidden){e.stopImmediatePropagation();closeQuests();}},{capture:true});
- const settingsButton=document.createElement('button');settingsButton.id='open-settings';settingsButton.innerHTML=icon('settings')+'<span>Settings</span>';settingsButton.onclick=()=>{controller.closeMenus();settings.mount(settingsPanel);settingsPanel.hidden=false;};nav.append(settingsButton);
- const settingsPanel=document.createElement('section');settingsPanel.id='settings-panel';settingsPanel.hidden=true;settingsPanel.setAttribute('aria-label','Settings');settingsPanel.innerHTML='<div class="crafting-heading"><button aria-label="Close settings">×</button></div>';settingsPanel.querySelector('button').onclick=()=>controller.closeMenus();
+ const settingsButton=document.createElement('button');settingsButton.id='open-settings';settingsButton.innerHTML=icon('settings')+'<span>Settings</span>';settingsButton.onclick=()=>{menus.closeMenus();settings.mount(settingsPanel);settingsPanel.hidden=false;};nav.append(settingsButton);
+ const settingsPanel=document.createElement('section');settingsPanel.id='settings-panel';settingsPanel.hidden=true;settingsPanel.setAttribute('aria-label','Settings');settingsPanel.innerHTML='<div class="crafting-heading"><button aria-label="Close settings">×</button></div>';settingsPanel.querySelector('button').onclick=()=>menus.closeMenus();
  host.append(shell);shell.append(nav,questPanel,settingsPanel,$('inventory-panel'),$('skills-panel'),$('crafting-panel'));
  let expanded=false;try{expanded=(localStorage.getItem('quadriaquest-journal-expanded')??localStorage.getItem('quadra-journal-expanded'))==='true';}catch{}
  const desktop=matchMedia('(min-width:701px)');
@@ -24,7 +24,7 @@ export function mountJournal(controller,settings){
  for(const name of ['skills','inventory','crafting'])$('open-'+name).innerHTML=icon(name)+`<span>${name[0].toUpperCase()+name.slice(1)}</span>`;
  const activeClose=()=>['inventory','skills','crafting','quests','companions','settings'].map(name=>$(name+'-panel')).find(panel=>panel&&!panel.hidden)?.querySelector('.crafting-heading button');
  const mobile=matchMedia('(max-width:700px)'),tip=$('gather-tutorial'),tipParent=tip.parentElement;
- function closePage(){if(tutorialLock.locked)return;const close=activeClose();if(close&&!close.disabled)close.click();else if(!close)controller.closeMenus();}
+ function closePage(){if(tutorialLock.locked)return;const close=activeClose();if(close&&!close.disabled)close.click();else if(!close)menus.closeMenus();}
  $('journal-close').onclick=closePage;
  let last='quests';
  const sync=()=>{
@@ -51,7 +51,7 @@ export function mountJournal(controller,settings){
    const next=$('open-'+last)?.hidden?'skills':last;$('open-'+next).click();
   }
  });
- $('game-menu-toggle').addEventListener('click',e=>{if(!shell.hidden&&['done','inactive','chop','mine'].includes(controller.stage)){e.stopImmediatePropagation();controller.closeMenus();}},{capture:true});
+ $('game-menu-toggle').addEventListener('click',e=>{if(!shell.hidden&&['done','inactive','chop','mine'].includes(controller.stage)){e.stopImmediatePropagation();menus.closeMenus();}},{capture:true});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('game-settings')?.open&&!shell.hidden){e.preventDefault();closePage();}});
  return {open:()=>{$('game-menu-toggle').click();},expand(){expanded=true;resize();}};
 }

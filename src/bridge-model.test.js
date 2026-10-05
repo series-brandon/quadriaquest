@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {makeBridge} from './willowbank-models.js';
+import {makeBridge} from './bridge-model.js';
 test('bridge repair preserves mirrored supports, evenly spaced decking and usable invisible hit surfaces',()=>{
  const bridge=makeBridge();assert.equal(bridge.posts.length,6);
  for(const post of bridge.posts)assert.ok(bridge.posts.some(other=>other.position.x===post.position.x&&other.position.z===-post.position.z));
