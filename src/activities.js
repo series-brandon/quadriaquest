@@ -12,13 +12,4 @@ export function tickCraft(action,dt,inventory){
   if(!canCraftAxe(inventory)){action.status='cancelled';return false;}
   inventory.sticks--;inventory.stones--;inventory[action.output||'axes']=(inventory[action.output||'axes']||0)+1;action.status='complete';return true;
 }
-export function chopTree(inventory,tree,random=Math.random){
-  if(!(inventory.axes>0)||tree.felled)return null;
-  return {kind:'chop',tree,elapsed:0,duration:3+random()*3,logs:1+Math.floor(Math.min(.999999,random())*3),status:'active'};
-}
-
 export function craftPickaxe(inventory){const action=craftAxe(inventory);if(action)action.output='pickaxes';return action;}
-export function mineBoulder(inventory,boulder,random=Math.random){
- if(!(inventory.pickaxes>0)||boulder.felled)return null;
- return {kind:'mine',tree:boulder,elapsed:0,duration:3+random()*3,logs:1+Math.floor(Math.min(.999999,random())*3),status:'active'};
-}

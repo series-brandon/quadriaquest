@@ -76,10 +76,11 @@ export function createTutorialFinale(api){
     const cameraAngle=chest?Math.atan2(p.x-chest.group.position.x,p.z-chest.group.position.z):api.getAngle();
     celebration={age:0,angle:cameraAngle,...options};stage='celebration';
   }
+  function ensurePortal(){if(!portal){const t=chooseTile({x:8,z:8});if(t){portal=createActor(makeCrystal(),t,'portal','Enter Iter Portal',0);portal.ready=true;}}}
   function travel(destination){
     if(busy()||((destination==='placeholder')===inPlaceholder))return;
     // Direct playground travel still needs a real return crystal in the clearing.
-    if(!portal&&!inPlaceholder){const t=chooseTile({x:8,z:8});if(t){portal=createActor(makeCrystal(),t,'portal','Enter Iter Portal',0);portal.ready=true;}}
+    if(!inPlaceholder)ensurePortal();
     const destinationMap=destination==='placeholder'?new Map(tiles.map(t=>[key(t.x,t.z),t])):clearingTiles;
     const landing=portalSpawn(destinationMap,(destination==='placeholder'?returnPortal:portal)?.tile);
     if(!landing){api.travelBlocked();return;}
@@ -90,7 +91,7 @@ export function createTutorialFinale(api){
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,travel,
     debugCancel:__PLAYGROUND__?function(){hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;celebration=crystalFocus=transition=null;practice=false;heldHat.visible=false;stage='inactive';$('scene-fade').style.opacity='0';$('scene-fade').hidden=true;}:undefined,
     debugTravel:__PLAYGROUND__?function(away){
-      this.reset();if(!away)return;
+      this.reset();if(!away)return;ensurePortal();
       const landing=portalSpawn(new Map(tiles.map(t=>[key(t.x,t.z),t])),returnPortal.tile);
       if(!landing)throw Error('No safe arrival tile.');
       inPlaceholder=true;api.switchArea(true,placeholder,tiles,landing);

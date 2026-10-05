@@ -1,30 +1,26 @@
+import {createResourceEntity} from './resource-entities.js';
 import {createCarpentryBridge} from './carpentry-bridge.js';
-import {blocksMovement,setWorldOccupancy} from './world-occupancy.js';
+import {setWorldOccupancy} from './world-occupancy.js';
 import {FAINT_FADE_START,FAINT_RESPAWN_TIME,FAINT_PREVIEW_DURATION} from './faint-motion.js';
 import {createBridgeInjury} from './bridge-injury.js';
 import {createConversationFacing} from './conversation-facing.js';
-import {animateResourceDepletion,animateResourceHit} from './resource-depletion.js';
 import {attackPose} from './combat-motion.js';
 import {createCombatFeedback} from './combat-feedback.js';
 import {rescueStandAsideRoute} from './companion-follow.js';
 import {PATROL_AREAS,wanderDelay,shouldWander,wanderRoute} from './wander.js';
-import {makeTree,makeFlowers,makeTerrainTile,addWaterTile} from './world-models.js';
-import {createGroundItemModel} from './ground-item-models.js';
+import {makeFlowers,makeTerrainTile,addWaterTile} from './world-models.js';
 import * as THREE from 'three';
 import {createGrassColors} from './grass-palette.js';
 import {createWaterEffects} from './water-effects.js';
 import {makeCrystal} from './finale-models.js';
-import {makeBoulder} from './mining.js';
 import {highlightResource} from './resource-highlight.js';
 import {createCharacterDialogue} from './character-dialogue.js';
 import {part,fisher,goblin,heldTool,animateGoblin} from './willowbank-models.js';
-import {WILLOWBANK,NEW_SKILLS,ENEMIES,durationFor,damageRoll,incomingHealth,makeWillowbankTiles} from './willowbank-rules.js';
-import {createGatheringSkill,showSkillReward,gatheringDuration} from './skills.js';
+import {WILLOWBANK,NEW_SKILLS,ENEMIES,damageRoll,incomingHealth,makeWillowbankTiles} from './willowbank-rules.js';
+import {createGatheringSkill,showSkillReward} from './skills.js';
 import {updateObjective,finishObjective,setObjectiveHelp,resetObjectives} from './quests.js';
-import {interactionRoute} from './interaction-route.js';
 import {findPath,key} from './world.js';
 import {portalSpawn} from './portal-spawn.js';
-import {ITEMS} from './items.js';
 import './willowbank.css';
 
 export function createWillowbank(api){
@@ -39,7 +35,7 @@ export function createWillowbank(api){
  }
  let introSeen=false,introActive=false,introFocus=null,modelPreview=null;
  let fishingFollowup=false;
- let entered=false,active=false,phase='meet',action=null,combat=null,chase=null,defeated=0,preview=null,bridgeDone=false,rescueAge=null,caught=0,flintCollected=0,cooked=0,eaten=0,guided=false,respawns=[],depleting=[],fleeing=[];
+ let entered=false,active=false,phase='meet',combat=null,chase=null,defeated=0,preview=null,bridgeDone=false,rescueAge=null,caught=0,flintCollected=0,cooked=0,eaten=0,guided=false,fleeing=[];
  const equipment={swords:false,shields:false};
  const dialogue=createCharacterDialogue(),hitFeedback=createCombatFeedback(),bridgeInjury=createBridgeInjury();
  let injuryReaction=null,combatSandbox=false;
@@ -66,16 +62,17 @@ export function createWillowbank(api){
  onProgress(progress){const injury=bridgeInjury.atProgress(progress,api.health.value);if(injury){api.health.value=injury.health;hitFeedback.show(api.player.position,injury.damage);api.sound('blocked');injuryReaction={age:0,spoken:false};}},onComplete:bridgeCompleted});
  bridge.willow=true;actors.push(bridge);
  function setBridgeRepairTarget(enabled){if(enabled)bridge.reset();else bridge.complete();}
- for(const [x,z]of [[2,8],[4,12],[7,10],[9,3],[12,3],[13,12],[16,6],[2,14],[9,15]])actor(makeTree(),x,z,'tree','Chop tree');
- for(const [x,z]of [[2,5],[6,11],[10,4],[14,12]])actor(makeBoulder(),x,z,'boulder','Mine boulder');
- for(const [x,z,kind]of [[3,6,'sticks'],[5,10,'sticks'],[11,6,'sticks'],[14,10,'sticks'],[4,8,'stones'],[15,13,'flint']])actor(createGroundItemModel(kind),x,z,kind,'Gather '+ITEMS[kind].name);
+ for(const [x,z]of [[2,8],[4,12],[7,10],[9,3],[12,3],[13,12],[16,6],[2,14],[9,15]])resource('tree',x,z);
+ for(const [x,z]of [[2,5],[6,11],[10,4],[14,12]])resource('boulder',x,z);
+ for(const [x,z,kind]of [[3,6,'sticks'],[5,10,'sticks'],[11,6,'sticks'],[14,10,'sticks'],[4,8,'stones'],[15,13,'flint']])resource(kind,x,z);
  const spot=api.fishingSpots.add({tile:t(16,14),parent:group,guide:()=>active&&guided&&phase==='fish',onStart:()=>{tip.hidden=true;},onCatch:fishCaught});
  for(const tile of tiles)if(!tile.water&&!tile.blocked&&!actors.some(a=>a.tile===tile)&&(tile.x*17+tile.z*13)%7===0){const flowers=makeFlowers();flowers.position.set(tile.x-6,tile.h,tile.z-6);group.add(flowers);}
 
+ function resource(kind,x,z){const node=api.resourceActions.add(createResourceEntity({kind,tile:t(x,z),parent:group,pickables:api.pickables,respawn:8,onStart:()=>{tip.hidden=true;},onReward(){if(kind==='flint'&&active){flintCollected++;if(phase==='flint'){done('flint');phase='fire';lines([['Make yourself a Flint and Stone, then put together a Campfire.','idle']],prompt);}}}}));actors.push(node);return node;}
  const held={};for(const id of ['swords','shields']){held[id]=heldTool(id);api.hands[id==='shields'?1:0].add(held[id]);held[id].visible=false;}
  const enemyProjection=new THREE.Vector3();
  function reward(name,n=20){const s=skills[name]||api.skills[name],old=s.level;s.xp+=n;s.level=1+Math.floor(s.xp/120);showSkillReward({skillName:name,xp:n,level:s.level,leveledUp:s.level>old},api.player.position);}
- function change(values){for(const [id,n]of Object.entries(values))api.inventory[id]=(api.inventory[id]||0)+n;api.showItems(values);}
+
  function goal(id,title,description,current=0,total=1){updateObjective('willow-'+id,title,description,current,total);}
  function done(id){finishObjective('willow-'+id);setObjectiveHelp('willow-'+id,null);}
  function showTip(...args){api.showTip(...args);}
@@ -108,13 +105,13 @@ export function createWillowbank(api){
   if(phase==='eat'){goal('eat','Eat a Cooked Pondfish','Select Cooked Pondfish in your inventory and choose Eat. It restores 10 health.',eaten,1);showTip('Time to recover','Select the Cooked Pondfish in your inventory and choose Eat. Food restores health. Eat your cooked fish to soothe that sore hand!',null,()=>api.openInventory());}
  }
  function nextAfterFight(){api.toast('Combat practice complete.');}
- function startAction(kind,seconds,complete,target=null){api.stop();action={kind,age:0,duration:seconds,complete,target};tip.hidden=true;api.feedback.destination(api.tile());api.feedback.interacting(kind);}
+
  function checkProgress(){
   if(phase==='fire'&&(api.inventory.campfires||api.campfires.current)){done('fire');phase=api.campfires.current?'cook':'place';prompt();}
  }
  function planWander(a){return wanderRoute(map,a.tile,PATROL_AREAS[a.kind],tile=>tile===api.tile()||api.routeContains(tile));}
  function resetEnemy(a){a.patrolRoute=[];a.patrolClock=wanderDelay();a.attackAge=0;a.hitAge=0;a.tile.blocked=false;a.x=a.home.x;a.z=a.home.z;a.tile=a.home;a.home.blocked=!a.opened;a.hp=ENEMIES[a.kind].health;a.group.position.set(a.x-6,a.tile.h,a.z-6);a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=a.tile;});}
- function cancel(){cancelPlacement();injuryReaction=null;if(action?.target&&(action.kind==='Chopping'||action.kind==='Mining'))action.target.group.rotation.z=0;preview=null;modelPreview=null;if(api.carpentry.matches(bridge))api.carpentry.cancel();action=null;if(combat){resetEnemy(combat.enemy);combat=null;}api.feedback.clearDestination();}
+ function cancel(){cancelPlacement();injuryReaction=null;preview=null;modelPreview=null;if(api.carpentry.matches(bridge))api.carpentry.cancel();if(combat){resetEnemy(combat.enemy);combat=null;}api.feedback.clearDestination();}
  function disengage(){if(combat){chase={enemy:combat.enemy,origin:combat.enemy.tile,age:0,attackClock:0,stepClock:0};combat=null;}}
  function clearChase(){if(chase){resetEnemy(chase.enemy);chase=null;}}
 
@@ -136,18 +133,6 @@ export function createWillowbank(api){
   if(phase==='fish'){goal('fish','Catch Raw Pondfish','Catch one Raw Pondfish at the pond.',caught,1);done('fish');phase='flint';fishingFollowup=true;}
  }
 
- function gather(a){
-  const mining=a.kind==='boulder',wood=a.kind==='tree',required=mining?'pickaxes':wood?'axes':null;
-  if(required&&!api.inventory[required]){api.toast('Missing the required tool!');return;}
-  const skill=mining?'Mining':wood?'Lumberjack':'Gathering',kind=mining?'Mining':wood?'Chopping':'Gathering',item=mining?'stone':wood?'logs':a.kind;
-  api.face(a.x,a.z);
-  startAction(kind,required?durationFor(4,(skills[skill]||api.skills[skill]).level):gatheringDuration(api.skills.Gathering),()=>{
-   const finish=()=>{change({[item]:required?2:1});reward(skill);a.group.visible=false;setWorldOccupancy(a,false);respawns.push({a,time:8});if(item==='flint'){flintCollected++;if(phase==='flint'){done('flint');phase='fire';lines([['Make yourself a Flint and Stone, then put together a Campfire.','idle']],prompt);}}};
-   a.opened=true;
-   if(required){const direction=a.group.position.clone().sub(api.player.position);direction.y=0;direction.normalize();api.sound('fall');depleting.push({a,age:0,axis:new THREE.Vector3(direction.z,0,-direction.x),finish});}
-   else finish();
-  },a);
- }
  function campfirePlaced(){if(!active)return;if(phase==='place'||phase==='fire'){done('fire');done('place');phase='cook';lines([['There we go. Much better than chewing on a cold fish.','idle']],prompt);}}
  function campfireCooked(id){if(!active)return;cooked++;if(phase==='cook'&&id==='cookedFish'){done('cook');phase='eat';lines([['Now for the best part!','happy']],prompt);}}
  const beginPlacement=()=>api.campfires.begin(),cancelPlacement=()=>api.campfires.cancel(),placeFire=tile=>api.campfires.place(tile),openCooking=()=>api.campfires.open();
@@ -156,7 +141,7 @@ export function createWillowbank(api){
 
  function busy(){return !!injuryReaction||introActive||dialogue.active||defeated>0||rescueAge!==null;}
  function refreshEquipment(){for(const id of ['swords','shields'])if(!api.inventory[id])equipment[id]=false;}
- function interact(a){if(!active||busy())return;if(chase&&!ENEMIES[a.kind]){api.toast('Get clear of the goblin before interacting.');return;}tip.hidden=true;if(a.kind==='crystal'){api.return();return;}if(a.kind==='reed')talk();else if(ENEMIES[a.kind])startFight(a);else if(a.kind==='bridge')repair();else gather(a);}
+ function interact(a){if(!active||busy())return;if(chase&&!ENEMIES[a.kind]){api.toast('Get clear of the goblin before interacting.');return;}tip.hidden=true;if(a.kind==='crystal'){api.return();return;}if(a.kind==='reed')talk();else if(ENEMIES[a.kind])startFight(a);else if(a.kind==='bridge')repair();else if(a.resourceNode)api.resourceActions.start(a);}
  function arrival(){
   api.stop();dialogue.hide();introSeen=true;introActive=true;introFocus=null;
   api.say('Good work! You just made your first Iter Crystal teleportation!',()=>
@@ -169,13 +154,13 @@ export function createWillowbank(api){
  function meetGoal(){goal('meet','Talk to Reed','Speak to the worried fisher near the arrival crystal.',phase==='meet'?0:1);}
  function enter(value,skipIntro=false){hitFeedback.clear();companions.resetRoute();active=value;group.visible=value;clearChase();cancel();cancelPlacement();dialogue.hide();tip.hidden=true;cookUI.close();introActive=false;introFocus=null;if(value){entered=true;companions.showMenuTab();document.getElementById('open-inventory').hidden=false;document.getElementById('open-crafting').hidden=false;if(skipIntro)introSeen=true;if(!introSeen)arrival();else if(phase==='meet')meetGoal();}else for(const a of enemies)a.healthLabel.hidden=true;}
  function update(dt,time,camera){hitFeedback.update(dt,camera);if(introFocus){introFocus.blend=THREE.MathUtils.clamp(introFocus.blend+(introFocus.returning?-1:1)*dt/.9,0,1);if(introFocus.returning&&introFocus.blend===0){const after=introFocus.after||meetGoal;introFocus=null;introActive=false;after();}}dialogue.update(dt);refreshEquipment();
- for(const id of Object.keys(held))held[id].visible=active&&equipment[id]&&!action&&!api.carpentry.working&&!api.fishing.working&&!defeated;
+ for(const id of Object.keys(held))held[id].visible=active&&equipment[id]&&!api.resourceActions.working&&!api.carpentry.working&&!api.fishing.working&&!defeated;
   let petMoving=false;if(!companions.state.owned)pet.visible=active;
   if(rescueAge!==null&&rescueWaiting&&!api.moving()&&!api.occupied(t(WILLOWBANK.bridgeStart-1,WILLOWBANK.bridgeZ))){rescueWaiting=false;api.face(WILLOWBANK.bridgeStart,WILLOWBANK.bridgeZ);}
   if(rescueAge!==null&&!rescueWaiting){const target=new THREE.Vector3(WILLOWBANK.bridgeStart-7,1,WILLOWBANK.bridgeZ-6),distance=pet.position.distanceTo(target),travel=Math.min(distance,dt*1.4);if(distance>.01){pet.rotation.y+=Math.atan2(Math.sin(-Math.PI/2-pet.rotation.y),Math.cos(-Math.PI/2-pet.rotation.y))*(1-Math.exp(-dt*12));pet.position.lerp(target,travel/distance);rescueGait+=travel*4;petMoving=true;}}
   companions.scripted(time,{sad:rescueAge===null,moving:petMoving,gait:rescueGait,camera});if(!active)return null;
   if(fishingFollowup&&phase!=='flint')fishingFollowup=false;
-  if(fishingFollowup&&!action&&!api.playerWorking()&&!api.moving()&&!busy()&&document.getElementById('journal')?.hidden&&!cookUI.isOpen){
+  if(fishingFollowup&&!api.resourceActions.working&&!api.playerWorking()&&!api.moving()&&!busy()&&document.getElementById('journal')?.hidden&&!cookUI.isOpen){
    fishingFollowup=false;
    lines([['A fine catch! Now let’s make those fit for dinner.','happy'],['Look near the water for Flint. We can use it with Stone to start a fire.','idle']],prompt);
   }
@@ -215,8 +200,6 @@ reedFacing.update(dt);reed.group.scale.set(1,1+Math.sin(time*2.8)*.025,1);reed.h
 
   const targets={scrapper:'scrapper',bruiser:'bruiser',bridge:'bridge',flint:'flint',cook:'fire'};
   for(const a of actors){const repairing=a===bridge&&api.carpentry.matches(bridge);a.highlight.update((phase==='meet'&&a===reedActor||guided&&a.kind===targets[phase])&&!a.opened&&!repairing,time,api.hover()===a&&!a.opened&&!repairing);}
-  for(const fall of [...depleting]){fall.age+=dt;if(animateResourceDepletion(fall.a,fall.age,fall.axis)){fall.finish();depleting.splice(depleting.indexOf(fall),1);}}
-  for(const r of [...respawns]){r.time-=dt;if(r.time<=0&&(!blocksMovement(r.a)||api.tile()!==r.a.tile)){r.a.opened=false;r.a.group.scale.setScalar(1);r.a.group.rotation.set(0,0,0);r.a.group.visible=true;setWorldOccupancy(r.a,true);respawns.splice(respawns.indexOf(r),1);}}
   for(const f of [...fleeing]){f.age+=dt;animateGoblin(f.a.group,time,{walk:1});if(f.destination){f.a.group.rotation.y=Math.atan2(f.destination.x-f.a.group.position.x,f.destination.z-f.a.group.position.z);f.a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}f.a.group.scale.setScalar((f.a.kind==='bruiser'?1.18:1)*Math.max(.01,1-THREE.MathUtils.smoothstep(f.age,.8,1.2)));if(f.age>=1.2){f.a.group.visible=false;fleeing.splice(fleeing.indexOf(f),1);}}
   for(const a of enemies){a.healthLabel.hidden=a.opened||!combat||combat.enemy!==a;if(!a.healthLabel.hidden){enemyProjection.copy(a.group.position).add(new THREE.Vector3(0,1.7,0)).project(camera);a.healthLabel.style.left=(enemyProjection.x+1)*innerWidth/2+'px';a.healthLabel.style.top=(1-enemyProjection.y)*innerHeight/2+'px';a.healthLabel.textContent=`${ENEMIES[a.kind].name} · ${a.hp}/${ENEMIES[a.kind].health}`;}}
   if(injuryReaction){injuryReaction.age+=dt;if(injuryReaction.age>=1.2&&!injuryReaction.spoken){injuryReaction.spoken=true;playerLine('Youch! I smashed my finger!',()=>{dialogue.hide();injuryReaction=null;},'struggle');}return {kind:'Hammer injury',time:Math.min(injuryReaction.age,1.2)};}
@@ -226,19 +209,18 @@ reedFacing.update(dt);reed.group.scale.set(1,1+Math.sin(time*2.8)*.025,1);reed.h
    if(c.enemyClock>=e.interval){c.enemyClock-=e.interval;c.enemy.attackAge=.35;enemyHit(c.enemy,e);if(api.health.value===0){lose();return {kind:'Defeated',time:0};}}
    c.enemy.group.rotation.y=Math.atan2(api.player.position.x-c.enemy.group.position.x,api.player.position.z-c.enemy.group.position.z);c.enemy.group.position.y=c.enemy.tile.h;api.feedback.interacting('Fighting');return {kind:'Combat',time:c.age};
   }
-  if(action){const a=action;a.age+=dt;if(a.target&&(a.kind==='Chopping'||a.kind==='Mining')){animateResourceHit(a.target,a.age,a,api.sound);}api.feedback.interacting(a.kind);if(a.age>=a.duration){if(a.target&&(a.kind==='Chopping'||a.kind==='Mining'))a.target.group.rotation.z=0;action=null;api.feedback.complete();a.complete();}return {kind:a.kind,time:a.age};}
   if(preview){preview.time=(preview.time+dt)%(preview.kind==='Defeated'?FAINT_PREVIEW_DURATION:6);return preview;}
   return null;
  }
  function enemyHit(enemy,rules){const before=api.health.value,hit=Math.random()<.85;if(hit)api.health.value=incomingHealth(api.health.value,damageRoll(rules.min,rules.max),equipment.shields,rules.protected);hitFeedback.show(api.player.position,hit?before-api.health.value:null);}
- function reset(){api.fishing.cancel();companions.reset();fishingFollowup=false;setBridgeRepairTarget(true);bridgeInjury.reset();injuryReaction=null;combatSandbox=false;reedFacing.reset();hitFeedback.clear();companions.resetRoute();rescueGait=0;rescueWaiting=false;modelPreview=null;introActive=false;introFocus=null;document.getElementById('dialogue').hidden=true;resetObjectives('willow-');clearChase();cancel();dialogue.hide();tip.hidden=true;phase='meet';api.health.value=30;defeated=0;rescueAge=null;bridgeDone=false;caught=flintCollected=cooked=eaten=0;equipment.swords=equipment.shields=false;fleeing=[];respawns=[];depleting=[];preview=null;cancelPlacement();api.campfires.reset(map);for(const a of actors){a.opened=false;a.group.visible=true;a.group.scale.setScalar(a.kind==='bruiser'?1.18:1);a.group.rotation.set(0,0,0);setWorldOccupancy(a,true);if(ENEMIES[a.kind]){a.opened=true;a.group.visible=false;resetEnemy(a);}}for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).water=true;t(x,WILLOWBANK.bridgeZ).blocked=true;}showBridge(0);group.attach(pet);pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);if(active)api.teleport(portalSpawn(map,crystal.tile));companions.renderMenu();}
- return {restartWater:()=>water.restart(),group,tiles,crystal,grassMaterials,skills,enter,interact,update,cancel,disengage,craftStarted:hideGuide,crafted(){if(active)checkProgress();},get active(){return active;},get visibleSkills(){return Object.fromEntries(Object.entries(skills).filter(([name])=>name!=='Combat'||combatSandbox));},get unlocked(){return entered;},get cameraFocus(){return modelPreview?{position:(modelPreview.kind==='Reed idle'?reed.group:scrapper.group).position.clone(),blend:1}:introFocus?{position:introFocus.position,blend:THREE.MathUtils.smoothstep(introFocus.blend,0,1)}:rescueAge===null?null:{position:pet.position.clone(),blend:Math.min(THREE.MathUtils.smoothstep(rescueAge,0,.6),1-THREE.MathUtils.smoothstep(rescueAge,3,4))};},get busy(){return busy();},matches:a=>combat?.enemy===a||action?.target===a,
+ function reset(){api.fishing.cancel();companions.reset();fishingFollowup=false;setBridgeRepairTarget(true);bridgeInjury.reset();injuryReaction=null;combatSandbox=false;reedFacing.reset();hitFeedback.clear();companions.resetRoute();rescueGait=0;rescueWaiting=false;modelPreview=null;introActive=false;introFocus=null;document.getElementById('dialogue').hidden=true;resetObjectives('willow-');clearChase();cancel();dialogue.hide();tip.hidden=true;phase='meet';api.health.value=30;defeated=0;rescueAge=null;bridgeDone=false;caught=flintCollected=cooked=eaten=0;equipment.swords=equipment.shields=false;fleeing=[];api.resourceActions.resetWhere(n=>map.get(key(n.x,n.z))===n.tile);preview=null;cancelPlacement();api.campfires.reset(map);for(const a of actors){a.opened=false;a.group.visible=true;a.group.scale.setScalar(a.kind==='bruiser'?1.18:1);a.group.rotation.set(0,0,0);setWorldOccupancy(a,true);if(ENEMIES[a.kind]){a.opened=true;a.group.visible=false;resetEnemy(a);}}for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).water=true;t(x,WILLOWBANK.bridgeZ).blocked=true;}showBridge(0);group.attach(pet);pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);if(active)api.teleport(portalSpawn(map,crystal.tile));companions.renderMenu();}
+ return {restartWater:()=>water.restart(),group,tiles,crystal,grassMaterials,skills,enter,interact,update,cancel,disengage,craftStarted:hideGuide,crafted(){if(active)checkProgress();},get active(){return active;},get visibleSkills(){return Object.fromEntries(Object.entries(skills).filter(([name])=>name!=='Combat'||combatSandbox));},get unlocked(){return entered;},get cameraFocus(){return modelPreview?{position:(modelPreview.kind==='Reed idle'?reed.group:scrapper.group).position.clone(),blend:1}:introFocus?{position:introFocus.position,blend:THREE.MathUtils.smoothstep(introFocus.blend,0,1)}:rescueAge===null?null:{position:pet.position.clone(),blend:Math.min(THREE.MathUtils.smoothstep(rescueAge,0,.6),1-THREE.MathUtils.smoothstep(rescueAge,3,4))};},get busy(){return busy();},matches:a=>combat?.enemy===a||api.resourceActions.matches(a),
 
- foodEaten,get working(){return !!action||!!combat||!!chase||!!preview;},campfirePlaced,campfireCooked,get campfireGuide(){return active&&guided&&phase==='cook';},
+ foodEaten,get working(){return !!combat||!!chase||!!preview;},campfirePlaced,campfireCooked,get campfireGuide(){return active&&guided&&phase==='cook';},
   isEquipped:id=>!!equipment[id],equipmentState:()=>({...equipment,health:api.health.value,petOwned:companions.state.owned,petFollowing:companions.state.following}),
-  inventoryActions(id){if(!entered)return [];if(id==='swords'||id==='shields')return [{label:equipment[id]?'Unequip':'Equip',disabled:busy()||!!combat||!!chase||!!action||api.carpentry.working||api.fishing.working,run(){equipment[id]=!equipment[id];checkProgress();}}];return [];},
+  inventoryActions(id){if(!entered)return [];if(id==='swords'||id==='shields')return [{label:equipment[id]?'Unequip':'Equip',disabled:busy()||!!combat||!!chase||api.resourceActions.working||api.carpentry.working||api.fishing.working,run(){equipment[id]=!equipment[id];checkProgress();}}];return [];},
   get expression(){return dialogue.expressionFor('left');},
-  get state(){return {active,phase,health:api.health.value,injuryApplied:bridgeInjury.applied,injuryPaused:!!injuryReaction,combatSandbox,equipment:{...equipment},bridgeDone,petOwned:companions.state.owned,petName:companions.state.name,petFollowing:companions.state.following,caught,cooked,eaten,action:api.carpentry.matches(bridge)?'Repairing':action?.kind,combat:combat?.enemy.kind};},
+  get state(){return {active,phase,health:api.health.value,injuryApplied:bridgeInjury.applied,injuryPaused:!!injuryReaction,combatSandbox,equipment:{...equipment},bridgeDone,petOwned:companions.state.owned,petName:companions.state.name,petFollowing:companions.state.following,caught,cooked,eaten,action:api.carpentry.matches(bridge)?'Repairing':api.resourceActions.state?.kind,combat:combat?.enemy.kind};},
   debug:__PLAYGROUND__?{bridgeIntro(){reset();acceptHelp();},combatPractice(){reset();enableCombatSandbox();for(const a of enemies){a.opened=false;a.group.visible=true;resetEnemy(a);}},chop(){const a=actors.find(a=>a.kind==='tree'&&!a.opened);if(a){api.inventory.axes=Math.max(1,api.inventory.axes||0);api.approach(a);}},mine(){const a=actors.find(a=>a.kind==='boulder'&&!a.opened);if(a){api.inventory.pickaxes=Math.max(1,api.inventory.pickaxes||0);api.approach(a);}},eat(){api.inventory.cookedFish=Math.max(1,api.inventory.cookedFish||0);api.food.start('cookedFish',true);},reset,talk,lose,arrival,openCooking,clearUI(){dialogue.hide();introActive=false;introFocus=null;tip.hidden=true;cookUI.close();},hit(){hitFeedback.show(api.player.position,3);},miss(){hitFeedback.show(api.player.position,null);},zero(){hitFeedback.show(api.player.position,0);},wander(){enableCombatSandbox();for(const a of enemies){if(a.opened){a.opened=false;a.group.visible=true;resetEnemy(a);}if(combat?.enemy!==a&&chase?.enemy!==a)a.patrolRoute=planWander(a);}},heal(){api.health.value=30;},hurt(){api.health.value=Math.max(1,api.health.value-10);},cancel(){cancel();preview=null;},preview(kind){cancel();if(kind==='Unarmed'||kind==='Sword and shield'){equipment.swords=equipment.shields=kind==='Sword and shield';if(equipment.swords){api.inventory.swords=Math.max(1,api.inventory.swords||0);api.inventory.shields=Math.max(1,api.inventory.shields||0);}preview={kind:'Combat',time:0};return;}if(kind.startsWith('Goblin')){enableCombatSandbox();scrapper.group.visible=true;}if(kind.startsWith('Goblin')||kind==='Reed idle'){modelPreview={kind,age:0};}else preview={kind,time:0};},stage(value){reset();introSeen=true;phase=({hammer:'bridge',rod:'fish',firestarter:'fire',rescue:'fish',arrival:'meet',dialogue:'meet'})[value]||value;
  if(['rescue','rod','fish','flint','firestarter','fire','place','cook','eat','finished'].includes(value)){bridgeInjury.atProgress(1,api.health.value);api.health.value=25;bridgeDone=true;showBridge(1);setBridgeRepairTarget(false);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).blocked=false;t(x,WILLOWBANK.bridgeZ).water=false;}companions.acquire();}
  for(const [id,n] of Object.entries({sticks:20,stones:20,stone:20,logs:20,axes:1,pickaxes:1,hammers:1,rods:1,flint:3,firestarters:1,campfires:1,rawFish:5,cookedFish:2}))api.inventory[id]=Math.max(api.inventory[id]||0,n);if(['cook','eat','finished'].includes(value)){placeFire(t(5,8));phase=value;}

@@ -26,7 +26,7 @@ Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. 
 ## Rules and materials
 
 - Health starts at 30. Carpentry, Fishing, and Culinary use 120 XP per level; skill levels reduce activity duration.
-- All required materials can be replenished locally through respawning ground bundles, trees, boulders, and Flint. Axes and pickaxes remain craftable.
+- All required materials can be replenished locally through respawning ground bundles, trees, boulders, and Flint. Axes and pickaxes remain craftable. These are shared resource prefabs/actions: trees and boulders use a 3–6 second base duration (reduced by skill level), yield 1–3 materials and 20 XP, and respawn after eight seconds when their tile is free. Ground bundles remain walkable.
 - Repair requires a Crude Hammer in inventory and consumes Small Logs ×3 on completion; six seconds with three construction stages and 40 Carpentry XP.
 - Fishing waits four seconds (skill-adjusted), then plays a hook pull followed by the shared acquire celebration before returning to idle. Each bite commits one Raw Pondfish and 20 Fishing XP exactly once; click the spot again for another. Movement can interrupt the wait for no reward, or skip the flourish after the catch while retaining its fish and XP. The lesson requires one Raw Pondfish.
 - Cooking is guaranteed, takes three seconds per fish, and grants 20 Culinary XP.
