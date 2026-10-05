@@ -32,7 +32,7 @@ Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. 
 - Cooking is guaranteed, takes three seconds per fish, and grants 20 Culinary XP.
 - Campfires use clear buildable tiles, explicit placement confirmation, and can be packed up. Flint and Stone is reusable; no fuel/bait system yet.
 - Companion name defaults to Pebble (1–20 characters). Rename and Follow/Rest use the Companions tab. The follower is cosmetic and cannot take damage.
-- Sword/shield recipes and Combat skill are not exposed by the Willowbank lesson. The explicit dev combat sandbox enables them for testing.
+- Sword/shield recipes, equipment actions, and Combat skill are shared and available without an area prerequisite. Willowbank does not teach or require combat.
 - Completion leaves the area explorable and the return crystal usable. There is no third destination or prototype-ending message here while area three awaits design.
 
 ## Recipes
@@ -54,7 +54,7 @@ Crafting awards 20 Crafting XP; cooking awards Culinary XP instead.
 - **Hammer injury** animation: repeatable recoil/hand-shake preview with no damage.
 - Later checkpoints start with the repaired bridge, owned companion, 25 health, and the injury marked consumed so cooking/eating has the proper context.
 - **Reset Willowbank**: removes combat fixtures and clears injury, repair, companion, effects, health, and quests.
-- **Load combat sandbox (deferred area 3)**: explicitly spawns existing goblins and enables combat recipes/skill; fight, pursuit, defeat, equipment, splat, wander, and model controls remain available. This does not add combat objectives to Willowbank.
+- **Combat → Combat practice**: explicitly spawns portable goblins in the current area; provides approach/fight, reset, remove, and actual defeat/respawn controls. Use normal recipe/inventory actions for equipment and the shared model viewer for animations. This adds no combat objectives to Willowbank.
 
 ## Shared presentation and map layout
 
@@ -70,7 +70,7 @@ Dialogue uses a short fixed-height card. Advance a question to reveal standalone
 
 The corgi uses the same shared model and walk cycle for rescue, following, previews, and its journal portrait. Its trapped expression lowers its ears, head, and tail; after rescue it trots across the repaired bridge, approaches the player, and becomes their first companion.
 
-Combat models, equipment, damage rules, pursuit, defeat, hit splats, and animation previews remain available through the explicit dev combat sandbox. No goblin actors are created for ordinary Willowbank play. These mechanics are reserved for area three; see the implementation handoff in [DESIGN.md](DESIGN.md#area-three-combat-tutorial-outline).
+Combat models, equipment, damage rules, pursuit, defeat, hit splats, and animation previews remain available through the explicit dev combat sandbox. No goblin actors are created for ordinary Willowbank play. The combat narrative is reserved for area three; see the implementation handoff in [DESIGN.md](DESIGN.md#area-three-combat-tutorial-outline).
 
 ## Presentation polish
 

@@ -112,7 +112,7 @@ NPC conversation facing uses `createConversationFacing` on the world model, inde
 
 Willowbank → **Replay bridge introduction** resets the chapter and replays Reed’s thank-you and the camera focus on the broken bridge and island. Advance the instruction to return the camera and open the carpentry tutorial. This uses the same sequence as accepting Reed’s request.
 
-Willowbank is now a peaceful rescue tutorial. **bridge → Load checkpoint + supplies → Repair bridge** exercises the one-time injury and resumed repair; **Hammer injury** previews the motion. Later checkpoints preserve the 25-health healing setup. **Load combat sandbox (deferred area 3)** explicitly enables legacy enemies/equipment for testing without combat quests. See the [area-three handoff outline](docs/DESIGN.md#area-three-combat-tutorial-outline).
+Willowbank is now a peaceful rescue tutorial. **bridge → Load checkpoint + supplies → Repair bridge** exercises the one-time injury and resumed repair; **Hammer injury** previews the motion. Later checkpoints preserve the 25-health healing setup. **Combat → Combat practice** spawns portable enemies in the current map and provides fight/reset/remove and real defeat/respawn controls. Inventory/Skills controls, normal crafting/equipping, and model previews exercise the same shared systems without combat quests. See the [area-three handoff outline](docs/DESIGN.md#area-three-combat-tutorial-outline).
 
 ### Testing on a phone on your local network
 

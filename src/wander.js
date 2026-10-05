@@ -1,5 +1,4 @@
 import {key} from './world.js';
-export const PATROL_AREAS={scrapper:{minX:8,maxX:13,minZ:5,maxZ:11},bruiser:{minX:13,maxX:16,minZ:7,maxZ:12}};
 export const wanderDelay=(random=Math.random)=>2+random()*2;
 export const shouldWander=(random=Math.random)=>random()<.25;
 // Sample uniformly from reachable destinations, not just immediate neighbors.

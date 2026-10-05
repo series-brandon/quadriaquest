@@ -1,3 +1,4 @@
+import {goblin,animateGoblin} from '../enemy-model.js';
 import {tool,heldTool} from '../tool-models.js';
 import {makeBridge} from '../bridge-model.js';
 import {fishingSpot,animateFishingSpot} from '../fishing-spot-model.js';
@@ -19,7 +20,7 @@ import {SLIME_EXPRESSIONS} from '../slime-face.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION} from '../slime-motion.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {createSlimeBend} from '../slime-bend.js';
-import {fisher,goblin,animateGoblin} from '../willowbank-models.js';
+import {fisher} from '../willowbank-models.js';
 import {attackPose} from '../combat-motion.js';
 import {makeBoulder,makePickaxe} from '../mining.js';
 import {makeAxe} from '../axe-model.js';

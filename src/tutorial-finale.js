@@ -12,8 +12,8 @@ const portalInstruction="I've taught you all I can here in this area, when you'r
 
 export function createTutorialFinale(api){
   const $=id=>document.getElementById(id),actors=[],drops=[],clearingTiles=new Map(api.world);
-  let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null,transition=null,inPlaceholder=false,equipped=false;
-  const hat=makeTopHat(),heldHat=makeTopHat();api.visual.add(hat,heldHat);hat.position.y=.79;hat.visible=false;heldHat.visible=false;
+  let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null,transition=null,inPlaceholder=false;
+  const heldHat=makeTopHat();api.visual.add(heldHat);heldHat.visible=false;
   const placeholder=api.destination.group,tiles=api.destination.tiles,returnPortal=api.destination.crystal;
   function busy(){return !!next||drops.length>0||!!celebration||!!crystalFocus||!!transition;}
   function hideDialogue(){next=null;$('dialogue').hidden=true;}
@@ -86,7 +86,7 @@ export function createTutorialFinale(api){
     if(!landing){api.travelBlocked();return;}
     api.stop();hideDialogue();transition={age:0,destination,landing,switched:false};$('scene-fade').hidden=false;
   }
-  function refresh(){if(!(api.inventory.hats>0))equipped=false;hat.visible=equipped&&!celebration;}
+  function refresh(){api.equipment.refresh();}
   return {
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,travel,
     debugCancel:__PLAYGROUND__?function(){hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;celebration=crystalFocus=transition=null;practice=false;heldHat.visible=false;stage='inactive';$('scene-fade').style.opacity='0';$('scene-fade').hidden=true;}:undefined,
@@ -97,13 +97,11 @@ export function createTutorialFinale(api){
       inPlaceholder=true;api.switchArea(true,placeholder,tiles,landing);
     }:undefined,
     get busy(){return busy();},get celebration(){return celebration;},get cameraFocus(){return crystalFocus;},get inPlaceholder(){return inPlaceholder;},get stage(){return stage;},
-    get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped,canEquip:!busy()};},
+    get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped:api.equipment.isEquipped('hats'),canEquip:!busy()};},
     refresh,
-    bendHat(amount){hat.position.x=amount;},
     usePortal(){const actor=inPlaceholder?returnPortal:portal;if(actor)api.approach(actor);},
     openChest(){if(chest)api.approach(chest);},
     stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;refresh();}},
-    equip(){if(api.inventory.hats>0&&!busy())equipped=!equipped;refresh();},
     interact(actor){
       if(!actor.ready||actor.opened||busy())return;
       if(actor.kind==='chest'){actor.opened=true;actor.lid.rotation.x=-1;actor.lid.position.set(0,.64,-.18);api.inventory.hats=(api.inventory.hats||0)+1;api.showItemChanges({hats:1});celebrate();}
@@ -111,7 +109,7 @@ export function createTutorialFinale(api){
     },
     reset(){
       hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;
-      celebration=null;crystalFocus=null;transition=null;heldHat.visible=false;equipped=false;practice=false;rewardTriggered=false;stage='inactive';
+      celebration=null;crystalFocus=null;transition=null;heldHat.visible=false;practice=false;rewardTriggered=false;stage='inactive';
       if(inPlaceholder){api.switchArea(false,placeholder,tiles);inPlaceholder=false;}
       removeActor(portal);removeActor(chest);portal=chest=null;$('scene-fade').style.opacity='0';refresh();
     },

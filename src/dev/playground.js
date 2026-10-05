@@ -1,3 +1,4 @@
+export {createCombatFixtures} from './combat-fixtures.js';
 import {createCarpentryBridge} from '../carpentry-bridge.js';
 import {Group} from 'three';
 import {organizePlayground} from './playground-layout.js';
@@ -96,6 +97,7 @@ export function mountPlayground(api){
     <fieldset><legend>Visual feedback only</legend><p class="dev-note">Item gain/loss uses the selected inventory item and quantity without changing your inventory.</p><div>
       ${['Damage splat','Blocked splat','Miss splat','Going','Gathering','Crafting','Chopping','Mining','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
+    <fieldset><legend>Combat practice</legend><p class="dev-note">Spawn portable enemies in the current area. Fight unarmed or craft/equip a Stone Sword and Wooden Shield through the normal menus. Walk away to exercise pursuit and leash; use health controls and Eat after disengaging. Reset restores enemies; Full test area removes fixtures and resets equipment/XP. The model viewer has goblin, combat, and defeat motions. This fixture adds no quest.</p><label>Action<select id="dev-combat"><option value="spawn">Spawn enemies nearby</option><option value="scrapper">Fight Scrapper</option><option value="bruiser">Fight Bruiser</option><option value="reset">Reset enemies</option><option value="defeat">Defeat and respawn</option><option value="remove">Remove enemies</option></select></label><button data-dev="combat">Run</button></fieldset>
     <fieldset><legend>Player health</legend><label>Action<select id="dev-health"><option value="heal">Restore health</option><option value="hurt">Lose 10 health</option></select></label><button data-dev="health">Apply</button></fieldset>
     <fieldset><legend>Carpentry practice</legend><p class="dev-note">The clearing pond has a practice bridge at (2, 4). Add a Crude Hammer and Small Logs ×3 with Inventory controls, then click the broken bridge. Move to cancel; Full test area resets the bridge and rewards. The Willowbank bridge checkpoint exercises the same action with its injury and rescue story. Carpentry XP is available in Skills; hammering and bridge stages are in the model viewer.</p></fieldset>
     <fieldset><legend>Fishing practice</legend><p class="dev-note">The clearing pond has a Pondfish spot at (4, 4). Add a Crude Fishing Rod with Inventory controls, then click its ripples. Repeat catches, cancel by moving, and reset with Full test area. Willowbank · Catch Pondfish uses the same action. Fishing XP and levels use the Skills controls; cast, wait, and catch motions are in the shared model viewer.</p></fieldset>
@@ -135,6 +137,7 @@ export function mountPlayground(api){
         const action=b.dataset.dev;
         if(action==='checkpoint'){stop();const checkpoint=getCheckpoint($('checkpoint').value);await api.loadCheckpoint(checkpoint);status('Loaded '+checkpoint.label+' with required resources.');}
         if(action==='reset-area'){stop();api.closeSplash();api.resetCurrentArea();status('Current area reset.');}
+        if(action==='combat'){status(api.combatAction($('combat').value));}
         if(action==='health'){status(`Health: ${api.sharedAction($('health').value)} / 30`);}
         if(action==='splash-close')api.closeSplash();
         if(action==='interface'){stop();const name=$('interface').value;if(name==='models'){modelPreview??=createModelPreview();modelPreview.show();}else if(name==='splash')api.showSplash();else api.openInterface(name);status('Opened '+name+'.');}
@@ -205,7 +208,7 @@ export function mountPlayground(api){
         else {
           if(api.finale.busy)throw Error('Finish the current dialogue or drop first, or use Reset finale.');
           if(api.finale.inPlaceholder)throw Error('Return to the clearing first.');
-          const actions={'Closing dialogue':()=>api.finale.begin(),'Drop portal':()=>api.finale.dropPortal(),'Practice reset':()=>api.finale.resetPractice(),'Complete practice':()=>api.completePractice(),'Reward dialogue':()=>api.finale.revealReward(),'Drop chest':()=>api.finale.dropChest(),'Open chest':()=>api.finale.openChest(),'Celebration':()=>api.finale.celebrate(),'Wear/remove hat':()=>api.finale.equip()};
+          const actions={'Closing dialogue':()=>api.finale.begin(),'Drop portal':()=>api.finale.dropPortal(),'Practice reset':()=>api.finale.resetPractice(),'Complete practice':()=>api.completePractice(),'Reward dialogue':()=>api.finale.revealReward(),'Drop chest':()=>api.finale.dropChest(),'Open chest':()=>api.finale.openChest(),'Celebration':()=>api.finale.celebrate(),'Wear/remove hat':()=>api.equipment.toggle('hats')};
           actions[action]();
         }
         status(action+'.');
