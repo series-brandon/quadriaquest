@@ -39,9 +39,11 @@ test('slash preserves original rotation keys despite the curved translation',()=
 test('off hand grips the wooden bow center and main hand follows the string while the torso turns',async()=>{
  const {makeSlime}=await import('./slime-model.js'),{heldTool,heldToolHand}=await import('./tool-models.js');
  const rig=makeSlime(),bow=heldTool('bows');assert.equal(heldToolHand('bows'),1);rig.hands[1].add(bow);
- for(const time of [.9,1,1.3,1.5,1.69]){
+ let setMatrix;
+ for(const time of [.8,.85,.9,1,1.3,1.5,1.69]){
   const motion=attackAnimation({style:'ranged',interval:1.7},time);rig.group.rotation.y=motion.pose.twist;
   motion.hands.forEach(([x,y,z,pitch,roll,yaw],i)=>{rig.hands[i].position.set(x,y,z);rig.hands[i].rotation.set(pitch,yaw,roll);});animateBow(bow,motion.bowDraw,motion.nocked);rig.group.updateMatrixWorld(true);
+  if(!setMatrix)setMatrix=bow.matrixWorld.toArray();else assert.deepEqual(bow.matrixWorld.toArray(),setMatrix);
   const grip=bow.localToWorld(new Vector3(0,0,.22)),holding=rig.hands[1].getWorldPosition(new Vector3());assert.ok(grip.distanceTo(holding)<1e-9);
   const string=bow.localToWorld(new Vector3(0,0,-.38*motion.bowDraw)),pulling=rig.hands[0].getWorldPosition(new Vector3());assert.ok(string.distanceTo(pulling)<1e-9);
   const aim=new Vector3(0,0,1).transformDirection(bow.matrixWorld);assert.ok(aim.z>.999);
@@ -56,7 +58,7 @@ test('equipped attacks and blocks start in the shared relaxed carry pose',()=>{
   assert.deepEqual(blockAnimation(profile,0).hands,equipmentIdleHands(profile));
  }
  const bow=attackAnimation({item:'bows',style:'ranged',interval:1.7},.9);
- bow.hands[1].slice(0,3).forEach((v,i)=>assert.ok(Math.abs(v-[.18,.55,.795][i])<1e-12));
+ new Vector3(...bow.hands[1].slice(0,3)).applyAxisAngle(new Vector3(0,1,0),bow.pose.twist).toArray().forEach((v,i)=>assert.ok(Math.abs(v-[-.365,.55,.908][i])<1e-12));
  assert.ok(bow.bowDraw<1e-12);
 });
 
@@ -80,11 +82,14 @@ test('one-handed attacks counterbalance with the off hand and settle their torso
   assert.ok(Math.abs(rest.pose.twist)<1e-9);assert.ok(Math.abs(rest.hands[1][2]-ready.hands[1][2])<1e-9);
  }
 });
-test('bow sweeps across the body as the torso turns right and the drawing hand meets the face',()=>{
+test('bow sweep and body turn finish during setup before the stationary bow is drawn',()=>{
  const profile={item:'bows',style:'ranged',interval:1.7},ready=attackAnimation(profile,.9),drawn=attackAnimation(profile,1.69);
  const worldHand=(pose,index)=>new Vector3(...pose.hands[index].slice(0,3)).applyAxisAngle(new Vector3(0,1,0),pose.pose.twist);
+ assert.ok(attackAnimation(profile,.7).pose.twist<0);
+ for(const time of [.8,.85,.9,1.1,1.3,1.5,1.69]){const pose=attackAnimation(profile,time);assert.equal(pose.pose.twist,-.65);assert.deepEqual(pose.hands[1],ready.hands[1]);assert.ok(Math.abs(worldHand(pose,0).x-worldHand(ready,0).x)<1e-12);}
+ assert.ok(worldHand(attackAnimation(profile,.55),1).x>worldHand(ready,1).x+.5);
  assert.ok(drawn.pose.twist<-.6);
- for(const index of [0,1])assert.ok(worldHand(drawn,index).x<worldHand(ready,index).x-.5);
+ assert.ok(worldHand(drawn,0).z<worldHand(ready,0).z-.37);
  assert.ok(worldHand(drawn,0).z<worldHand(ready,0).z-.25);
  assert.ok(drawn.hands[1][0]>.18&&drawn.hands[1][0]<.3); // Bow remains on the torso's left.
  const hand=drawn.hands[0];assert.ok(Math.abs(hand[0])<.2);assert.equal(hand[1],.55);assert.ok(hand[2]>.455&&hand[2]<.47);

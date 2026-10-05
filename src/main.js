@@ -441,7 +441,10 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  if(celebration){const motion=holdUpMotion(celebration.age);expression=motion.expression;handWork=null;facing=celebration.angle;pose=motion.pose;socialHands=motion.hands;}
  bendSlime(pose.bend||0);equipmentPresentation.bend(pose.bend||0);
  expressionFace.set(characterDialogue.expressionFor('left')||areas.expression||expression);
- const blend=1-Math.exp(-dt*24),width=1/Math.sqrt(pose.squash);
+ // Archery already has authored easing. Extra smoothing delays the bow settling
+ // past the start of the draw and separates the grip from its string.
+ const exactArchery=(actionMotion||(__PLAYGROUND__&&debug?.combatMotion))?.kind==='Archery'&&!celebration;
+ const blend=exactArchery?1:1-Math.exp(-dt*24),width=1/Math.sqrt(pose.squash);
  visual.scale.lerp(new THREE.Vector3(...(pose.scale||[width/Math.sqrt(pose.stretch),pose.squash,width*Math.sqrt(pose.stretch)])),blend);
  visual.rotation.x=THREE.MathUtils.lerp(visual.rotation.x,pose.lean,blend);
  visual.rotation.y=THREE.MathUtils.lerp(visual.rotation.y,pose.twist,blend);
@@ -467,7 +470,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
   if(handWork!==null&&!chopping)[x,y,z,curl,roll,yaw]=gatheringHand(handWork,i);
   if(chopping)[x,y,z,curl,roll,yaw=0]=i===0?chopping.right:chopping.left;
   if(socialHands)[x,y,z,curl,roll,yaw=0]=socialHands[i];
-  hand.position.lerp(new THREE.Vector3(x,y,z),1-Math.exp(-dt*(actionMotion?.kind==='Combat'?48:22)));
+  hand.position.lerp(new THREE.Vector3(x,y,z),exactArchery?1:1-Math.exp(-dt*(actionMotion?.kind==='Combat'?48:22)));
   hand.rotation.x=THREE.MathUtils.lerp(hand.rotation.x,curl,blend);
   hand.rotation.z=THREE.MathUtils.lerp(hand.rotation.z,roll,blend);
   hand.rotation.y=THREE.MathUtils.lerp(hand.rotation.y,yaw,blend);

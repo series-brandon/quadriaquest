@@ -23,17 +23,15 @@ export function attackAnimation(profile={},time=0){
  const wind=smooth((clock-(interval-.48))/.30),thrust=smooth((clock-(interval-.18))/.18),recover=after?1-smooth(clock/.28):0;
  if(motion==='bow'){
   const draw=after?0:smooth((clock-(interval-.8))/.62);bowDraw=draw;nocked=!after&&clock>=interval-1.15;
-  arrowRaise=smooth((clock-(interval-1.15))/.35);
-  // Off hand grips the wood; main hand follows the string. Turn the torso
-  // right under a forward-aimed arrow. The bow stays left of the torso
-  // centerline while the drawing hand comes back against the face.
-  const turn=-.65*(after?recover:draw),c=Math.cos(turn),s=Math.sin(turn);
-  const local=(x,y,z)=>[c*x-s*z,y,s*x+c*z,0,0,-turn];
-  const raise=after?1-smooth(clock/.28):smooth((clock-(interval-1.15))/.35);
-  const stance=after?recover:draw,x=.18-.545*stance,y=.55,gripZ=.795+.113*stance+.4*stance*(1-stance);
-  const stringZ=after?.308+.267*smooth(clock/.28):gripZ-.22-.38*draw;
-  const aimed=[local(x,y,stringZ),local(x,y,gripZ)];
-  hands=ready.map((h,i)=>{const result=mix(h,aimed[i],raise);result.splice(0,3,...arc(h.slice(0,3),i===0?[-.60,.55,.65]:[.65,.55,1.0],aimed[i].slice(0,3),raise));return result;});
+  // Reach the exact full-draw bow transform before nocking/drawing. The brief
+  // set phase makes setup and draw distinct; neither bow nor torso drifts.
+  arrowRaise=smooth((clock-(interval-1.15))/.25);
+  const raise=after?recover:arrowRaise,finalTurn=-.65,turn=finalTurn*raise;
+  const c=Math.cos(finalTurn),s=Math.sin(finalTurn);
+  const finalHand=(z)=>[c*-.365-s*z,.55,s*-.365+c*z,0,0,-finalTurn];
+  const stringZ=after?.308+.38*smooth(clock/.28):.688-.38*draw;
+  const aimed=[finalHand(stringZ),finalHand(.908)];
+  hands=ready.map((h,i)=>{const result=mix(h,aimed[i],raise);result.splice(0,3,...arc(h.slice(0,3),i===0?[-.60,.55,1.0]:[.65,.55,1.0],aimed[i].slice(0,3),raise));return result;});
   pose={squash:1,stretch:1,twist:turn,lean:0};
  }else if(motion==='cast'){
   const push=after?recover:thrust;
