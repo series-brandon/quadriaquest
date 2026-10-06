@@ -2,6 +2,8 @@
 
 QuadriaQuest is a browser-based, 3D isometric, tile-based RPG/adventure with point-and-click controls. Exploration, mystery, adventure, progression, and questing drive the experience. This brief records the agreed direction and defines a small first playable prototype; the broader systems are a roadmap, not requirements for that first build.
 
+[Combat and progression design](COMBAT.md) is the source of truth for combat rules and the expanded progression systems. Its explicit rules take precedence over prototype descriptions below; unresolved decisions remain open.
+
 The world starts with cozy fantasy, with humor and mysterious or eerie places such as caves. Other settings may be introduced later. Detailed art direction remains open.
 
 **Core gameplay.** Players explore, talk to characters, complete quests, gather resources, obtain loot, craft equipment and supplies, and fight enemies. These activities feed a loop of discovery, improving capabilities, and venturing farther. Familiar resource locations remain useful destinations to revisit.

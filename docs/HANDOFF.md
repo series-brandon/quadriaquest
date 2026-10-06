@@ -7,7 +7,7 @@ Snapshot: 2026-10-06. This is a restart aid, not a claim that all architecture w
 - Game name: **QuadriaQuest**. Project/repository/folder references: **quadriaquest**. The actual checkout is `/Users/brandonmanning/src/poc-workspace/quadriaquest`; some session metadata still refers to the old `project-clime` path.
 - Stack: HTML, JavaScript, CSS, Three.js. No replacement game engine or other implementation language.
 - Preserve existing staged and unstaged work. This snapshot includes substantial uncommitted work from multiple iterations; do not reset/revert/stage it wholesale or assume it belongs to the current task.
-- `docs/DESIGN.md` holds the broader design. `docs/CINDERHOLD.md` holds the third-area design and first-playable status; `docs/WILLOWBANK.md` holds the second chapter. `README.md` holds run/build/debug instructions. If these disagree with newer user decisions or actual code, reconcile them explicitly.
+- `docs/DESIGN.md` holds the broader design. `docs/COMBAT.md` is the current combat/progression design source of truth; update its rules in place rather than appending history. `docs/CINDERHOLD.md` holds the third-area design and first-playable status; `docs/WILLOWBANK.md` holds the second chapter. `README.md` holds run/build/debug instructions. If these disagree with newer user decisions or actual code, reconcile them explicitly.
 - New work must be reachable, repeatable, and resettable in the dev playground in the same change. Use production implementations. Ask when coverage or scope is uncertain. Keep developer tools out of normal builds.
 
 ## Architecture boundary — settled with the user
@@ -19,6 +19,12 @@ Only layout and narrative belong to a particular area. Gameplay systems must wor
 Use shared action completion/progress callbacks for tutorial updates. Normal gameplay must not require that a tutorial objective is active. Avoid copying the same action into the next map. Do not use a debugging shortcut that teleports the player just to preview shared UI.
 
 ## Recent fixes already made
+
+### Enemy tuning and pending combat redesign — 2026-10-06
+
+- Shared Goblin Scrapper now has 50 HP and max hit 10; Goblin Bruiser has 100 HP and max hit 20. Minimum hits (1/3), intervals (2.5s/2s), aggression and Scrapper protection are unchanged. Practice targets remain inert at 4 HP.
+- Playground combat fixtures use these production definitions; their instructions show the new numbers. Verified fixture spawn/reset in the clearing and production Cinderhold enemies, maximum damage-roll bounds, 208 tests, both builds and debug isolation. No performance suite run.
+- The user supplied an older turn-based design as a basis for a real-time combat redesign. Replacement mechanics are awaiting user decisions; do not implement its formulas, XP model, attributes, resource costs, skill curve or recipe changes as settled requirements. Player damage/food have not been rebalanced for the tougher enemies yet.
 
 ### Sidebar toggle during dialogue — 2026-10-06
 
