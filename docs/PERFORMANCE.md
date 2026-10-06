@@ -84,7 +84,7 @@ Non-passing scenarios are automatically re-run once with the CPU profiler on Chr
 
 ## Workflow
 
-1. Before finishing any change to rendering, the main loop, entities, models, water, UI that updates every frame, or audio scheduling, run `npm run perf`. For anything touching fill rate or main-thread cost, also run `--env low-perf`.
+1. Batch the long performance checks once or twice per active development day, after a meaningful group of changes to rendering, the main loop, entities, models, water, frequently updated UI, or audio scheduling. Include `--env low-perf` when that batch touches fill rate or main-thread cost. Use focused tests and bounded browser checks between runs; repeat the long suite sooner only to investigate a regression.
 2. A FAIL needs either a fix or a deliberate baseline update (`--update-baseline --note`) explaining why the cost is justified. Note it in the change summary and the ledger below.
 3. To measure a small optimization, use `npm run perf:ab` (or `-- <ref>`).
    - An A/A check (identical builds) showed about ±10–20% CI on frame ms and ±9% on browser CPU with 4 rounds × 2 windows.

@@ -81,3 +81,23 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
 .resource-placeholder-action.mana{grid-column:2}.resource-placeholder-action.stamina{grid-column:3}.resource-placeholder-action .game-icon{width:22px;height:22px}
 @media(min-width:701px){body.player-sidebar-open #journal-close,body.player-sidebar-open #journal .crafting-heading>button[aria-label^="Close"]{display:none!important}}
 @media(max-width:700px){#player-mobile-hud .overview-map{max-width:172px}}
+
+/* Desktop overview: map above resources, with the panel toggle on its edge. */
+@media(min-width:701px){
+ #player-overview{grid-template-columns:1fr;justify-items:center;gap:12px}
+ .overview-map{grid-column:1;grid-row:1;justify-self:center;max-width:246px}
+ #overview-vitals{grid-column:1;grid-row:2;justify-content:center}
+ #player-combat-status{grid-row:3;min-height:0;text-align:center}
+ #player-combat-status:empty{display:none}
+ .overview-heading{position:absolute;right:100%;top:18px;min-height:44px;z-index:1}
+ .overview-heading button{border:1px solid var(--ui-border);border-right:0;border-radius:10px 0 0 10px;background:var(--ui-paper);color:var(--ui-ink)}
+ body.player-ui-active:not(.player-sidebar-open) .overview-heading{position:fixed;left:12px;right:auto;top:auto;bottom:calc(12px + env(safe-area-inset-bottom))}
+ body.player-ui-active:not(.player-sidebar-open) .overview-heading button{border:1px solid var(--ui-border);border-radius:10px}
+ #player-mobile-hud{width:274px;pointer-events:none}
+ #player-mobile-hud #player-overview{background:transparent;border:0;border-radius:0}
+ #player-mobile-hud .overview-map,#player-mobile-hud #overview-vitals{pointer-events:auto}
+}
+@media(max-width:700px){#player-sidebar>.overview-heading{display:none}}
+.overview-map canvas{max-width:100%;display:block;margin:auto}
+
+.overview-heading[hidden],body:has(#splash:not([hidden])) .overview-heading{display:none!important}

@@ -55,5 +55,5 @@ export function createResourceActions(api){
  }
  function reset(node,{depleted=false}={}){if(action?.node===node)cancel();depleting.delete(node);respawning.delete(node);node.depleted=depleted;node.group.visible=!depleted;node.group.scale.setScalar(1);node.group.rotation.set(0,0,0);setWorldOccupancy(node,!depleted);}
  function resetWhere(predicate=()=>true){for(const node of nodes)if(predicate(node))reset(node);}
- return {remove(node){if(action?.node===node)cancel();depleting.delete(node);respawning.delete(node);nodes.delete(node);node.dispose?.();},add(node){nodes.add(node);return node;},start,cancel,update,reset,resetWhere,matches:node=>action?.node===node,get working(){return !!action;},get state(){return action?{kind:action.rules.motion,age:action.age,duration:action.duration}:null;}};
+ return {remove(node){if(action?.node===node)cancel();depleting.delete(node);respawning.delete(node);nodes.delete(node);node.dispose?.();},add(node){nodes.add(node);return node;},start,cancel,update,reset,resetWhere,matches:node=>action?.node===node,get groundItems(){return [...nodes].filter(n=>RESOURCE_RULES[n.kind]&&!RESOURCE_RULES[n.kind].tool);},get working(){return !!action;},get state(){return action?{kind:action.rules.motion,age:action.age,duration:action.duration}:null;}};
 }

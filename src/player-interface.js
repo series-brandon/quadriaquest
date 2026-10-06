@@ -2,13 +2,14 @@ import {icon} from './icons.js';
 import {ITEMS} from './items.js';
 import {FOODS} from './player-health.js';
 import {GEAR} from './equipment.js';
-import {menuReaction,minimapTiles,partitionMobileTabs} from './player-interface-policy.js';
+import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems,partitionMobileTabs} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
-export function createPlayerInterface({menus,journal,health,food,inventory,equipment,world,tile,enemies,combat,styleMenu}){
+export function createPlayerInterface({menus,journal,health,food,inventory,equipment,world,tile,enemies,groundItems,combat,styleMenu}){
  const $=id=>document.getElementById(id),mobile=matchMedia('(max-width:700px)');
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
- const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player and enemies"></canvas><span>N</span></div><div id="overview-vitals"></div><button id="quick-food">${icon('quickEat')}<span></span></button><small id="player-combat-status" role="status"></small>`;
+ const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div><button id="quick-food">${icon('quickEat')}<span></span></button><small id="player-combat-status" role="status"></small>`;
+ const heading=overview.querySelector('.overview-heading');
  const hud=document.createElement('aside');hud.id='player-mobile-hud';document.body.append(hud);
  menus.host.append(sidebar);sidebar.append(overview,$('journal'));$('overview-vitals').append($('player-health'),$('quick-food'));
  for(const [kind,label,action,glyph] of [['mana','Mana','Quick restore','quickRestore'],['stamina','Stamina','Sprint toggle','sprint']]){
@@ -36,6 +37,7 @@ export function createPlayerInterface({menus,journal,health,food,inventory,equip
   document.body.classList.toggle('player-ui-active',visible);document.body.classList.toggle('journal-guided',journal.locked);
   document.body.classList.toggle('player-sidebar-open',visible&&!mobile.matches&&!hidden);
   sidebar.hidden=!visible||mobile.matches||hidden;hud.hidden=!visible||(!mobile.matches&&!hidden);
+  const headingParent=hidden?menus.host:sidebar;if(heading.parentElement!==headingParent)headingParent.prepend(heading);heading.hidden=!visible||mobile.matches;
   const parent=mobile.matches||hidden?hud:sidebar;if(overview.parentElement!==parent)parent.prepend(overview);
   // Mobile journal lives outside the hidden desktop sidebar.
   const journalParent=mobile.matches||hidden?menus.host:sidebar;if($('journal').parentElement!==journalParent)journalParent.append($('journal'));
@@ -64,11 +66,18 @@ export function createPlayerInterface({menus,journal,health,food,inventory,equip
   for(const id of Object.keys(GEAR).filter(id=>inventory[id]>0)){const b=document.createElement('button'),action=equipment.inventoryActions(id)[0];b.innerHTML=icon(id);b.append(document.createTextNode(`${ITEMS[id].name} · ${action.label}`));b.disabled=action.disabled;b.onclick=()=>{action.run();renderGear();menus.refresh();};list.append(b);}
  }
  function drawMap(){
-  const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=8,size=8;
-  ctx.fillStyle='#41394a';ctx.fillRect(0,0,136,136);
-  for(const t of minimapTiles(world,p,radius)){ctx.fillStyle=t.water?'#7a9caf':t.blocksSight?'#706679':t.blocked?'#97869a':t.safe?'#b4b59b':'#b2a39d';ctx.fillRect((t.x-p.x+radius)*size,(t.z-p.z+radius)*size,size-1,size-1);}
-  for(const a of enemies()){if(a.opened||Math.abs(a.x-p.x)>radius||Math.abs(a.z-p.z)>radius)continue;ctx.fillStyle=a.aggro?'#f3a16e':'#bd7669';ctx.beginPath();ctx.arc((a.x-p.x+radius)*size+4,(a.z-p.z+radius)*size+4,3,0,Math.PI*2);ctx.fill();}
-  ctx.fillStyle='#eff6b9';ctx.beginPath();ctx.arc(68,68,4,0,Math.PI*2);ctx.fill();
+  const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=8;
+  const grid=minimapGrid(canvas.parentElement.clientWidth-8,devicePixelRatio,radius),{size,pixels,gap}=grid;
+  if(canvas.width!==pixels){canvas.width=canvas.height=pixels;canvas.style.width=(grid.width+8)+'px';}
+  ctx.fillStyle='#41394a';ctx.fillRect(0,0,pixels,pixels);
+  for(const t of minimapTiles(world,p,radius)){ctx.fillStyle=t.water?'#7a9caf':t.blocksSight?'#706679':t.blocked?'#97869a':t.safe?'#b4b59b':'#b2a39d';ctx.fillRect((t.x-p.x+radius)*size,(t.z-p.z+radius)*size,size-gap,size-gap);}
+  for(const n of minimapGroundItems(world,groundItems(),p,radius)){
+   const marker=Math.max(3,Math.round(size*.35)),x=(n.x-p.x+radius+.5)*size,z=(n.z-p.z+radius+.5)*size;
+   ctx.fillStyle='#41394a';ctx.fillRect(Math.round(x-marker/2)-gap,Math.round(z-marker/2)-gap,marker+gap*2,marker+gap*2);
+   ctx.fillStyle='#ffd878';ctx.fillRect(Math.round(x-marker/2),Math.round(z-marker/2),marker,marker);
+  }
+  for(const a of enemies()){if(a.opened||Math.abs(a.x-p.x)>radius||Math.abs(a.z-p.z)>radius)continue;ctx.fillStyle=a.aggro?'#f3a16e':'#bd7669';ctx.beginPath();ctx.arc((a.x-p.x+radius+.5)*size,(a.z-p.z+radius+.5)*size,size*.375,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='#eff6b9';ctx.beginPath();ctx.arc(pixels/2,pixels/2,size*.5,0,Math.PI*2);ctx.fill();
  }
  function refreshNav(){
   const tabs=[...$('game-menu-bar').querySelectorAll('button')].filter(b=>!b.hidden);

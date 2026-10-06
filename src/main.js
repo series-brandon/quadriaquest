@@ -605,7 +605,7 @@ if(__PLAYGROUND__){
 }
 const journal=mountJournal(menus,craftingTutorial,settingsUI);
 createCompanionMenu(companions,{closeMenus:()=>menus.closeMenus('switch'),canClose:()=>menus.events.beforeClose?.('automatic')!==false});
-playerInterface=createPlayerInterface({menus,journal,health,food,inventory,equipment,world,tile:()=>tile,enemies:()=>combat.state.enemies,profile:()=>opening.profile,combat,styleMenu});
+playerInterface=createPlayerInterface({menus,journal,health,food,inventory,equipment,world,tile:()=>tile,enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
