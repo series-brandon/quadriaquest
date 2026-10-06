@@ -1,6 +1,6 @@
 # QuadriaQuest development handoff
 
-Snapshot: 2026-10-05. This is a restart aid, not a claim that all architecture work is finished. Read `AGENTS.md` first and verify current code/worktree state before editing. The latest cleanup status is recorded below; older dated verification sections are historical snapshots.
+Snapshot: 2026-10-06. This is a restart aid, not a claim that all architecture work is finished. Read `AGENTS.md` first and verify current code/worktree state before editing. The latest cleanup status is recorded below; older dated verification sections are historical snapshots.
 
 ## Project and working conventions
 
@@ -19,6 +19,28 @@ Only layout and narrative belong to a particular area. Gameplay systems must wor
 Use shared action completion/progress callbacks for tutorial updates. Normal gameplay must not require that a tutorial objective is active. Avoid copying the same action into the next map. Do not use a debugging shortcut that teleports the player just to preview shared UI.
 
 ## Recent fixes already made
+
+### Sidebar toggle during dialogue — 2026-10-06
+
+- The desktop collapse/expand tab is mounted directly under body, with its own layer above the dialogue dimmer. It keeps its sidebar-edge/floating placement without raising other gameplay controls above the overlay.
+- Existing playground dialogue checkpoints cover this fix; UI practice notes now describe repeated toggling. Bounded hardware-browser checks passed real collapse/expand clicks in Cinderhold and Willowbank, unchanged dialogue lines, viewport recentering and mobile toggle hiding. Both builds and debug isolation passed; no performance suite run.
+
+### Bristle branching introduction — 2026-10-06
+
+- `cinderhold-dialogue.js` owns the revised narrative: slime/backtalk banter, converging first responses, optional training, unseen `???` Threat Level explanation, and persistent refusal/reconsideration. Refusal is area story state, reset with training progress; shared combat is unchanged.
+- Shared character dialogue supports explicit player lines and speakers without portraits. Choices still speak through the existing shared response path, exactly once. Existing distraught/concerned expressions cover upset/confused and uneasy.
+- Playground arrival/meet/refused checkpoints replay each entry point without tutorial prerequisites. Meet/refused immediately open the conversation; the sarge landmark supports normal repeat interaction.
+- Verification: 208 unit tests, normal/debug builds and debug isolation. A bounded hardware-browser check passed arrival, both opening branches, player-spoken choices, unseen narrator, refusal, normal world re-interaction, reconsideration and reset, with no runtime errors; its browser/server were closed. No performance suite was run for this narrative/UI change.
+
+### Interactive minimap and player resources — 2026-10-06
+
+- Shared health, mana and stamina start at 100. `player-resources.js` owns resource pools and sprint timing; `resource-orb.js` shares rendering and white/orange/red number thresholds (>50%, 25–50%, <25%). Mana costs, quick restore and passive regeneration are not implemented.
+- The boot toggles double-speed movement, spending one stamina per 0.5 seconds of movement. Idle time does not drain it; exhaustion disables sprint and smoothly resumes walking. Partial drain time survives toggles. Full playground reset restores resources and disables sprint.
+- `minimap-controls.js` supports wheel/pinch zoom, keyboard +/- zoom and click/tap movement through the existing shared pathfinder. The minimap marks the current route destination, including an edge indicator outside the view. Clicking uses the displayed map center; pinch/drag does not issue movement.
+- Playground Inventory & skills exposes individual resource values and restore/reset controls. The shared `minimap-sprint` performance scenario exercises movement, zoom and sprint.
+- Verified: 205 unit tests, normal/debug builds and debug isolation. Bounded hardware-browser checks exercised desktop/mobile movement, destination clearing, approximately 2x sprint speed, exhaustion, exact color boundaries, wheel/pinch behavior, travel and reset without runtime errors. No full tutorial replay was performed.
+- Performance: all nine GPU scenarios PASS (~59.5–59.9 FPS). Focused low-perf menus and minimap-sprint PASS; clearing-walk has a timing WARN (-11.9% versus baseline), with no FAILs or baseline changes. See the performance ledger for reports. These measurements precede minor map hit-coordinate/edge-marker polish.
+- Performance checks are VERY slow: AGENTS.md and the performance guide now explicitly require sparse milestone runs, never a run after every edit. Existing measurements cover minor follow-up polish.
 
 ### Performance testing harness — 2026-10-05
 
@@ -342,7 +364,7 @@ The subsequent design discussion selected independent motion and equipment contr
 
 ## Minimap layout and ground pickups — 2026-10-05
 
-- Desktop overview centers a 246px minimap above the resource orbs/actions. Collapse is a tab outside the sidebar; the collapsed overview has no panel background/border and restores from a bottom-left button. Mobile retains its existing side-by-side HUD.
+- Desktop overview centers a 246px minimap above the resource orbs/actions. Collapse is a tab outside the sidebar; the collapsed overview has no panel background/border and restores from a bottom-right button. Mobile retains its existing side-by-side HUD.
 - Minimap canvas cells and gutters use whole device pixels at the actual display size, including fractional pixel densities. Gold squares represent live ground pickups from the shared resource controller; active tile identity excludes other maps, and collection/reset/respawn automatically refresh markers.
 - Existing playground Ground items/reset, real gathering, travel and sidebar controls cover the changes; instructions updated. Focused browser checks verified desktop collapse/restore, 701px layout, 320px mobile, collection removing a marker, and Willowbank. Screenshots inspected; no runtime errors. All 200 tests, both builds and debug isolation passed (existing bundle-size warning remains).
 - Per user guidance, long performance suites are batched once or twice per active development day, with focused verification between runs. This change did not rerun the long suite; today's existing results remain the latest performance evidence.

@@ -10,7 +10,7 @@ import {createRecipeCrafting} from './recipe-crafting.js';
 import {ENEMIES} from './combat-rules.js';
 function fixture(kind='bruiser'){
  const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
- const home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,food,craft;
+ const home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,food,craft;
  const equipment=createEquipment({inventory,busy:()=>system.working||system.busy});
  const styles=createCombatStyles({equipment,busy:()=>system.working});
  const interrupt=()=>{interrupts++;cancelPlayerActions({food,craft},{keepCombat:true,keepFood:true});};

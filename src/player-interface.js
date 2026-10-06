@@ -1,3 +1,5 @@
+import {createResourceOrb} from './resource-orb.js';
+import {mountMinimapControls} from './minimap-controls.js';
 import {icon} from './icons.js';
 import {ITEMS} from './items.js';
 import {FOODS} from './player-health.js';
@@ -5,18 +7,22 @@ import {GEAR} from './equipment.js';
 import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems,partitionMobileTabs} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
-export function createPlayerInterface({menus,journal,health,food,inventory,equipment,world,tile,enemies,groundItems,combat,styleMenu}){
+export function createPlayerInterface({menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styleMenu}){
  const $=id=>document.getElementById(id),mobile=matchMedia('(max-width:700px)');
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
  const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div><button id="quick-food">${icon('quickEat')}<span></span></button><small id="player-combat-status" role="status"></small>`;
  const heading=overview.querySelector('.overview-heading');
  const hud=document.createElement('aside');hud.id='player-mobile-hud';document.body.append(hud);
  menus.host.append(sidebar);sidebar.append(overview,$('journal'));$('overview-vitals').append($('player-health'),$('quick-food'));
- for(const [kind,label,action,glyph] of [['mana','Mana','Quick restore','quickRestore'],['stamina','Stamina','Sprint toggle','sprint']]){
-  const placeholder=document.createElement('div');placeholder.className=`resource-orb resource-placeholder ${kind}`;placeholder.setAttribute('aria-label',`${label} — coming soon`);placeholder.title=`${label} — coming soon`;placeholder.innerHTML='<span class="health-orb-fill" aria-hidden="true"></span><strong class="health-orb-value" aria-hidden="true">—</strong>';
-  const button=document.createElement('button');button.className=`resource-placeholder-action ${kind}`;button.disabled=true;button.setAttribute('aria-label',`${action} — coming soon`);button.title=`${action} — coming soon`;button.innerHTML=icon(glyph);
-  $('overview-vitals').append(placeholder,button);
+ const resourceOrbs=[];
+ for(const [kind,label,action,glyph] of [['mana','Mana','Quick restore','quickRestore'],['stamina','Stamina','Sprint','sprint']]){
+  const orb=createResourceOrb(label,resources[kind],'player-'+kind);orb.element.classList.add('resource-placeholder',kind);resourceOrbs.push(orb);
+  const button=document.createElement('button');button.id=kind==='stamina'?'toggle-sprint':'quick-restore';button.className=`resource-placeholder-action ${kind}`;button.disabled=kind==='mana';button.setAttribute('aria-label',kind==='mana'?'Quick restore — not yet available':action);button.title=button.getAttribute('aria-label');button.innerHTML=icon(glyph);
+  if(kind==='stamina'){button.setAttribute('aria-pressed','false');button.onclick=()=>{resources.toggle();clock=.15;};}
+  $('overview-vitals').append(orb.element,button);
  }
+ const mapCanvas=overview.querySelector('canvas');let mapCenter={x:tile().x,z:tile().z};
+ const mapControls=mountMinimapControls(mapCanvas,{center:()=>mapCenter,move,changed:()=>{clock=.15;drawMap();}});
  const mobileNav=document.createElement('nav');mobileNav.id='player-mobile-nav';mobileNav.setAttribute('aria-label','Player menu');menus.host.append(mobileNav);
  const more=document.createElement('section');more.id='player-mobile-more';more.hidden=true;more.setAttribute('aria-label','More player menus');more.innerHTML='<div class="more-heading"><strong>More</strong><button aria-label="Close more menus">×</button></div><div class="more-tabs"></div>';menus.host.append(more);
  const moreButton=document.createElement('button');moreButton.innerHTML='<b aria-hidden="true">•••</b><span>More</span>';moreButton.setAttribute('aria-controls',more.id);moreButton.setAttribute('aria-expanded','false');
@@ -37,7 +43,8 @@ export function createPlayerInterface({menus,journal,health,food,inventory,equip
   document.body.classList.toggle('player-ui-active',visible);document.body.classList.toggle('journal-guided',journal.locked);
   document.body.classList.toggle('player-sidebar-open',visible&&!mobile.matches&&!hidden);
   sidebar.hidden=!visible||mobile.matches||hidden;hud.hidden=!visible||(!mobile.matches&&!hidden);
-  const headingParent=hidden?menus.host:sidebar;if(heading.parentElement!==headingParent)headingParent.prepend(heading);heading.hidden=!visible||mobile.matches;
+  // Keep the toggle outside panel stacking contexts so dialogue cannot cover it.
+  const headingParent=document.body;if(heading.parentElement!==headingParent)headingParent.prepend(heading);heading.hidden=!visible||mobile.matches;
   const parent=mobile.matches||hidden?hud:sidebar;if(overview.parentElement!==parent)parent.prepend(overview);
   // Mobile journal lives outside the hidden desktop sidebar.
   const journalParent=mobile.matches||hidden?menus.host:sidebar;if($('journal').parentElement!==journalParent)journalParent.append($('journal'));
@@ -66,7 +73,7 @@ export function createPlayerInterface({menus,journal,health,food,inventory,equip
   for(const id of Object.keys(GEAR).filter(id=>inventory[id]>0)){const b=document.createElement('button'),action=equipment.inventoryActions(id)[0];b.innerHTML=icon(id);b.append(document.createTextNode(`${ITEMS[id].name} · ${action.label}`));b.disabled=action.disabled;b.onclick=()=>{action.run();renderGear();menus.refresh();};list.append(b);}
  }
  function drawMap(){
-  const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=8;
+  const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=mapControls.radius;mapCenter={x:p.x,z:p.z};
   const grid=minimapGrid(canvas.parentElement.clientWidth-8,devicePixelRatio,radius),{size,pixels,gap}=grid;
   if(canvas.width!==pixels){canvas.width=canvas.height=pixels;canvas.style.width=(grid.width+8)+'px';}
   ctx.fillStyle='#41394a';ctx.fillRect(0,0,pixels,pixels);
@@ -77,6 +84,7 @@ export function createPlayerInterface({menus,journal,health,food,inventory,equip
    ctx.fillStyle='#ffd878';ctx.fillRect(Math.round(x-marker/2),Math.round(z-marker/2),marker,marker);
   }
   for(const a of enemies()){if(a.opened||Math.abs(a.x-p.x)>radius||Math.abs(a.z-p.z)>radius)continue;ctx.fillStyle=a.aggro?'#f3a16e':'#bd7669';ctx.beginPath();ctx.arc((a.x-p.x+radius+.5)*size,(a.z-p.z+radius+.5)*size,size*.375,0,Math.PI*2);ctx.fill();}
+  const goal=destination();if(goal){const dx=goal.x-p.x,dz=goal.z-p.z,distance=mobile.matches?Math.hypot(dx,dz):Math.max(Math.abs(dx),Math.abs(dz)),limit=mobile.matches?radius-.5:radius,scale=distance>limit?limit/distance:1,x=(dx*scale+radius+.5)*size,y=(dz*scale+radius+.5)*size;ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(2,gap);ctx.strokeRect(x-size*.42,y-size*.42,size*.84,size*.84);ctx.beginPath();ctx.moveTo(x-size*.25,y);ctx.lineTo(x+size*.25,y);ctx.moveTo(x,y-size*.25);ctx.lineTo(x,y+size*.25);ctx.stroke();}
   ctx.fillStyle='#eff6b9';ctx.beginPath();ctx.arc(pixels/2,pixels/2,size*.5,0,Math.PI*2);ctx.fill();
  }
  function refreshNav(){
@@ -95,12 +103,13 @@ export function createPlayerInterface({menus,journal,health,food,inventory,equip
  return {
   reaction,assignFood(id){if(FOODS[id])quickFood=id;},get quickFood(){return quickFood;},
   attacked(){reaction('attacked');lastMessage='Under attack!';messageUntil=performance.now()+2000;},
-  reset(){hidden=false;quickFood='cookedFish';journal.compact();menus.closeMenus();layout();},
+  reset(){mapControls.reset();hidden=false;quickFood='cookedFish';journal.compact();menus.closeMenus();layout();},
   update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();if(!visible)return;
    const action=food.inventoryActions(quickFood)[0];const button=$('quick-food'),signature=[quickFood,inventory[quickFood],food.working,!!action?.disabled].join(':');if(signature!==foodSignature){foodSignature=signature;button.disabled=!inventory[quickFood]||!!action?.disabled;button.querySelector('span').textContent=food.working?'Eating…':'Eat';button.title=`${ITEMS[quickFood].name} ×${inventory[quickFood]||0}`;button.setAttribute('aria-label',`${food.working?'Eating':'Quick eat'} ${button.title}`);}
    const status=performance.now()<messageUntil?lastMessage:combat.working?'In combat · Auto-Retaliate '+(combat.autoRetaliate?'On':'Off'):'';if($('player-combat-status').textContent!==status)$('player-combat-status').textContent=status;
+   for(const orb of resourceOrbs)orb.update();const sprint=$('toggle-sprint'),pressed=String(resources.sprint);if(sprint.getAttribute('aria-pressed')!==pressed)sprint.setAttribute('aria-pressed',pressed);if(sprint.disabled!==(resources.stamina.value===0))sprint.disabled=resources.stamina.value===0;
    drawMap();refreshNav();if(!gear.hidden)renderGear();if(!$('combat-panel').hidden)styleMenu.refresh();if(!$('journal').hidden)menus.refresh();
   },
-  get state(){return {mobile:mobile.matches,moreOpen:!more.hidden,hidden,quickFood,expanded:journal.expanded,menuOpen:!$('journal').hidden};}
+  get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:!more.hidden,hidden,quickFood,expanded:journal.expanded,menuOpen:!$('journal').hidden};}
  };
 }

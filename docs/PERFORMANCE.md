@@ -1,5 +1,7 @@
 # Performance testing
 
+**These checks are VERY slow and expensive. Run them sparingly. Do NOT run performance tests after every change.** Batch them at meaningful milestones; use unit tests and short functional browser checks during iteration. A completed run covers minor follow-up fixes and documentation in the same batch. Repeat only for a substantial change, evidence of a regression, or an explicit request.
+
 This is how we keep QuadriaQuest fast. It covers repeatable scenarios in several environments, exact counters as hard checks, and timings with confidence intervals as warnings. Each run shows where a slowdown came from. A/B comparisons let small improvements stack.
 
 All tooling is developer-only:
@@ -28,7 +30,7 @@ Runs use one browser at a time and close it in `finally`. They never touch your 
 
 | Name | Setup | Purpose |
 |---|---|---|
-| `dev-gpu` | Chrome, hardware GPU (ANGLE Metal), 1280×800 @2× | Daily gate and A/B |
+| `dev-gpu` | Chrome, hardware GPU (ANGLE Metal), 1280×800 @2× | Milestone checks and deliberate A/B |
 | `low-perf` | Chrome, SwiftShader software WebGL, 4× CPU throttle, 1366×768 @1× | Pessimistic weak laptop / integrated GPU. Fill-rate and main-thread problems show up first here. Never representative of normal play. |
 | `mobile-emu` | Chrome, 390×844 @3×, touch, 4× CPU throttle, hardware GPU | Phone pixel density, fullscreen menus |
 | `webkit` | Playwright WebKit, 1280×800 @2× | Safari-engine behaviour. No throttling, profiles, layout metrics or whole-browser CPU, and timers have 1 ms resolution, so counters and fps matter most here. |
@@ -84,7 +86,7 @@ Non-passing scenarios are automatically re-run once with the CPU profiler on Chr
 
 ## Workflow
 
-1. Batch the long performance checks once or twice per active development day, after a meaningful group of changes to rendering, the main loop, entities, models, water, frequently updated UI, or audio scheduling. Include `--env low-perf` when that batch touches fill rate or main-thread cost. Use focused tests and bounded browser checks between runs; repeat the long suite sooner only to investigate a regression.
+1. Run the long performance checks sparingly at meaningful milestones, after a substantial group of changes to rendering, the main loop, entities, models, water, frequently updated UI, or audio scheduling. Include `--env low-perf` when that batch touches fill rate or main-thread cost. Use focused tests and bounded browser checks between runs; repeat the long suite sooner only to investigate a regression.
 2. A FAIL needs either a fix or a deliberate baseline update (`--update-baseline --note`) explaining why the cost is justified. Note it in the change summary and the ledger below.
 3. To measure a small optimization, use `npm run perf:ab` (or `-- <ref>`).
    - An A/A check (identical builds) showed about ±10–20% CI on frame ms and ±9% on browser CPU with 4 rounds × 2 windows.
@@ -116,6 +118,9 @@ Each entry: change, then measured effect (environment and scenario).
 | 2026-10-05 | DOM/UI write deduplication (earlier sweep) | Sidebar mutations ~8,400 per 4 s → 0 |
 | 2026-10-05 | Enemy health labels wrote `hidden` for every enemy every frame (found by the first perf run's mutation counter) | dev-gpu idle DOM mutations ~360/s → ~4/s in every scenario |
 | 2026-10-05 | Initial baselines recorded | dev-gpu: all scenarios 59.5+ fps at 0.6–2.3 ms main thread/frame. mobile-emu: 59.5 fps at 1.8–7.1 ms. low-perf: 9.6–46 fps, render-bound (clearing-idle 22 fps fails its 58 fps target). webkit: 59.5 fps. Travel: no leaks. |
+
+| 2026-10-06 | Interactive minimap, 100-point resources, sprint drain, shared orb UI; added minimap-sprint scenario | dev-gpu: all 9 scenarios PASS (~59.5–59.9 fps); minimap-sprint 1.81 ms/frame, 183 draws. Focused low-perf: menus and minimap-sprint PASS (~20 fps); clearing-walk WARN for −11.9% fps vs stored baseline, no FAILs. Software-rendered results are not representative of normal gameplay. Reports: `perf/results/2026-10-06T07-01-32-115Z` and `perf/results/2026-10-06T07-03-52-379Z`. No baseline changes. |
+
 
 ## Backlog (largest expected gain first)
 

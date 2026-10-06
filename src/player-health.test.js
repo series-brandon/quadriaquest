@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPlayerHealth,createFoodSystem,FOODS} from './player-health.js';
-function fixture(){const health=createPlayerHealth(),inventory={cookedFish:4};let food,completed=0,confirmation;food=createFoodSystem({inventory,health,stop:()=>food.cancel(),completed:()=>completed++,confirm:next=>{confirmation=next;return ()=>{confirmation=null;};}});return {food,health,inventory,get completed(){return completed;},confirm:()=>confirmation?.()};}
+function fixture(){const health=createPlayerHealth(30),inventory={cookedFish:4};let food,completed=0,confirmation;food=createFoodSystem({inventory,health,stop:()=>food.cancel(),completed:()=>completed++,confirm:next=>{confirmation=next;return ()=>{confirmation=null;};}});return {food,health,inventory,get completed(){return completed;},confirm:()=>confirmation?.()};}
 test('food is available before any area visit, repeats across travel, and heals only on completion',()=>{
  const f=fixture();f.health.value=5;
  for(const area of ['clearing','second-area']){assert.equal(f.food.inventoryActions('cookedFish')[0].disabled,false);assert.ok(f.food.start('cookedFish'));f.food.update(.1);assert.equal(f.inventory.cookedFish,area==='clearing'?4:3);f.food.update(FOODS.cookedFish.duration);f.food.update(20);}

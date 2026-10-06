@@ -238,3 +238,11 @@ Chapter reset requests shared cancellation and scoped entity/effect resets for i
 ## Review before implementation
 
 The draft uses Cinderhold / Bristle / Borin / Fletch / Wisp as working names; four ore for dagger and shield; one Smithing skill; Combat XP shared across styles; free introductory ammunition and a no-mana Spark; and all three crystal destinations available after the first crystal reveal. The user accepted the overall direction and confirmed escalating tutorial sizes leading to a massive chunk-streamed open world. Numerical balance, exact map coordinates, the proposed 40 × 32 footprint and remaining detailed defaults can be refined during implementation planning and playtesting. Shared gameplay ownership and Cinderhold being the largest tutorial area are requirements.
+
+### Bristle introduction revision — 2026-10-06
+
+First arrival is now “Front and center, maggot!” Talking to Bristle plays the slime/backtalk exchange, then offers “Why are you so angry?” or “Sir, yes, sir!” Both converge on the training offer. Every selected response is spoken once by the player through shared character dialogue.
+
+Accepting begins the existing unarmed tutorial. Refusing leaves Basic Training at its introduction, changes its objective to exploring freely, and leaves Bristle distraught. An unseen `???` speaker explains choice and Threat Levels. This is narrative exposition, not an implementation of threat ratings or a change to combat balance. Other mentors and travel remain available. Returning to Bristle offers leaving or changing your mind; accepting restores his usual angry expression and starts training. Reset clears the refusal. Existing `distraught` and `concerned` expressions represent Upset/Confused and Uneasy.
+
+Playground: Cinderhold `arrival` replays the greeting; `meet` opens the full introduction; `refused` opens the return conversation. All use production dialogue and story state. The sarge landmark allows repeated world interactions.

@@ -1,10 +1,9 @@
+import {createResource} from './player-resources.js';
+import {createResourceOrb} from './resource-orb.js';
 import {EATING_DURATION} from './eating-motion.js';
 
 export const FOODS={cookedFish:{healing:10,duration:EATING_DURATION}};
-export function createPlayerHealth(max=30){
- let value=max;
- return {max,get value(){return value;},set value(next){value=Math.max(0,Math.min(max,next));},heal(amount){this.value=value+amount;},restore(){value=max;}};
-}
+export const createPlayerHealth=createResource;
 
 // Food consumption is app-owned; areas observe completion for their narrative.
 export function createFoodSystem(api){
@@ -32,10 +31,4 @@ export function createFoodSystem(api){
  return {start,update,cancel,get working(){return !!action;},inventoryActions(id){return FOODS[id]?[{label:'Eat',disabled:!api.inventory[id]||!!action||!!api.busy?.(),run:()=>start(id)}]:[];}};
 }
 
-export function createHealthUI(health){
- const hud=document.createElement('aside');hud.id='player-health';hud.className='resource-orb';hud.hidden=true;
- hud.setAttribute('role','meter');hud.setAttribute('aria-label','Health');hud.setAttribute('aria-valuemin','0');
- hud.innerHTML='<span class="health-orb-fill" aria-hidden="true"></span><strong class="health-orb-value" aria-hidden="true"></strong>';document.body.append(hud);
- const number=hud.querySelector('.health-orb-value');let previous='';
- return {update(visible){const signature=`${visible}:${health.value}:${health.max}`;if(signature===previous)return;previous=signature;if(hud.hidden===visible)hud.hidden=!visible;hud.style.setProperty('--health-fill',`${100*health.value/health.max}%`);hud.setAttribute('aria-valuemax',String(health.max));hud.setAttribute('aria-valuenow',String(health.value));hud.setAttribute('aria-valuetext',`${health.value} of ${health.max} health`);hud.title=`Health: ${health.value} / ${health.max}`;number.textContent=health.value;}};
-}
+export function createHealthUI(health){const ui=createResourceOrb('Health',health,'player-health');document.body.append(ui.element);return ui;}

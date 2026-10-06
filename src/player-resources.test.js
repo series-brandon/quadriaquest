@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createResource,createPlayerResources,resourceTone} from './player-resources.js';
+import {createPlayerHealth} from './player-health.js';
+test('all starting pools are 100, clamp and restore',()=>{const r=createPlayerResources();assert.equal(createPlayerHealth().value,100);for(const p of [createResource(),r.mana,r.stamina]){assert.equal(p.value,100);p.value=-3;assert.equal(p.value,0);p.heal(999);assert.equal(p.value,100);}});
+test('resource number colors include the exact quarter and half boundaries',()=>{for(const [n,tone]of [[100,'high'],[51,'high'],[50,'medium'],[25,'medium'],[24,'low'],[0,'low']])assert.equal(resourceTone(n,100),tone);});
+test('sprint doubles movement, drains only moving time, and keeps partial drain across toggles',()=>{const r=createPlayerResources();r.toggle();assert.equal(r.advance(.25,true),.5);assert.equal(r.stamina.value,100);r.advance(10,false);assert.equal(r.stamina.value,100);r.toggle();assert.equal(r.advance(1,true),1);r.toggle();r.advance(.25,true);assert.equal(r.stamina.value,99);});
+test('exhaustion divides the last frame into sprint and walk without overdrawing',()=>{const r=createPlayerResources();r.stamina.value=1;r.toggle();assert.equal(r.advance(.75,true),1.25);assert.equal(r.stamina.value,0);assert.equal(r.sprint,false);assert.equal(r.toggle(),false);assert.equal(r.advance(1,true),1);r.reset();assert.deepEqual(r.state,{mana:100,stamina:100,sprint:false});});

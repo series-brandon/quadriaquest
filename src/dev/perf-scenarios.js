@@ -10,6 +10,7 @@ export const PERF_SCENARIOS=[
  {id:'clearing-walk',description:'Continuous walking in the clearing: movement and camera follow'},
  {id:'willowbank-river',description:'Willowbank with the river, actors and companion in view'},
  {id:'cinderhold-combat',stochastic:true,description:'Continuous melee against practice enemies in the Cinderhold recruit yard'},
+ {id:'minimap-sprint',description:'Sprint movement, destination marker, zoomed minimap and resource updates'},
  {id:'menus',description:'Inventory journal page open over the clearing'},
  {id:'dialogue',description:'Character dialogue with the portrait renderer active'},
  {id:'travel',kind:'travel',description:'Crystal travel round trips (spikes and leak check)'}
@@ -39,6 +40,7 @@ export function createPerfScenarios({api,probe,setView,walkTo,state}){
   async 'cinderhold-combat'(){await checkpoint('cinderhold:unarmed');api.landmark('scrapper');await dismiss();settle({...DEFAULT_VIEW,zoom:16});api.combatAction('spawn');
    // Fight in the recruit yard (outside the arrival court's safe zone); re-engage whenever a fight ends.
    const engage=()=>{const c=state().combat;if(!c.fight&&!c.chase&&!c.defeated&&!state().moving)api.combatAction(c.enemies.some(e=>e.kind==='scrapper'&&!e.opened)?'scrapper':'bruiser');};engage();every(1000,()=>{api.sharedAction('heal');engage();});await wait(2500);},
+  async 'minimap-sprint'(){api.reset('all');await dismiss();settle();api.resources.toggle();document.querySelector('.overview-map canvas').dispatchEvent(new WheelEvent('wheel',{deltaY:100,cancelable:true}));const ends=[[6,6],[9,8]];let next=1;every(200,()=>{if(state().moving)return;const [x,z]=ends[next];next=1-next;walkTo(x,z);});},
   async menus(){api.reset('all');await dismiss();settle();api.openInterface('inventory');},
   async dialogue(){await checkpoint('willowbank:dialogue',{keepDialogue:true});settle();},
   async travel(){api.reset('all');await dismiss();settle();}
