@@ -1,0 +1,76 @@
+{
+  "defaults": {
+    "counterTolerance": 0.05,
+    "counterSlack": 3,
+    "medianTolerance": 0.5,
+    "p95Tolerance": 0.75,
+    "cpuTolerance": 0.5,
+    "fpsTolerance": 0.05,
+    "heapGrowthMB": 2,
+    "rateTolerance": 0.25
+  },
+  "targets": {
+    "low-perf": {
+      "clearing-idle": {
+        "minFps": 58
+      }
+    },
+    "mobile-emu": {
+      "cinderhold-combat": {
+        "minFps": 30
+      }
+    }
+  },
+  "budgets": {
+    "*": {
+      "splash": {
+        "draws": 110,
+        "objects": 550,
+        "programs": 20,
+        "uploadsPerFrame": 10
+      },
+      "clearing-idle": {
+        "draws": 230,
+        "objects": 550,
+        "programs": 15,
+        "uploadsPerFrame": 10
+      },
+      "clearing-walk": {
+        "draws": 240,
+        "objects": 550,
+        "programs": 20,
+        "uploadsPerFrame": 10
+      },
+      "willowbank-river": {
+        "draws": 490,
+        "objects": 1350,
+        "programs": 20,
+        "uploadsPerFrame": 10
+      },
+      "cinderhold-combat": {
+        "draws": 780,
+        "objects": 2450,
+        "programs": 30,
+        "uploadsPerFrame": 10
+      },
+      "menus": {
+        "draws": 230,
+        "objects": 550,
+        "programs": 15,
+        "uploadsPerFrame": 10
+      },
+      "dialogue": {
+        "draws": 430,
+        "objects": 1350,
+        "programs": 20,
+        "uploadsPerFrame": 10
+      },
+      "travel": {
+        "draws": 380,
+        "objects": 550,
+        "programs": 30,
+        "uploadsPerFrame": 10
+      }
+    }
+  }
+}

@@ -34,4 +34,8 @@ Validate shared changes in the clearing before visiting Willowbank and in a seco
 
 ## Bounded browser verification
 
-Use GPU-backed browser rendering for routine game checks. Do not force SwiftShader/software rendering unless explicitly investigating that path; report it as a different rendering setup, not representative gameplay performance. Run one verification browser at a time, bound its lifetime, and close your browser/processes in a finally block. Do not leave preview servers or animation-heavy tabs running after verification. Preserve the user's own browsers and servers. `node scripts/profile-ui.mjs` profiles a running playground with automatic cleanup.
+Use GPU-backed browser rendering for routine game checks. Do not force SwiftShader/software rendering except through the `low-perf`/`ci` perf environments or an explicit investigation; never report it as representative gameplay performance. Run one verification browser at a time, bound its lifetime, and close your browser/processes in a finally block. Do not leave preview servers or animation-heavy tabs running after verification. Preserve the user's own browsers and servers.
+
+## Performance checks
+
+Changes to rendering, the main loop, shared entities/models, water, per-frame UI or audio scheduling must run `npm run perf` (and `--env low-perf` for fill-rate or main-thread work) and report the result. Fix FAILs or update the baseline deliberately with `--update-baseline --note`, and record meaningful changes in the ledger in [docs/PERFORMANCE.md](docs/PERFORMANCE.md). Measure small optimizations with `npm run perf:ab`. New scenarios belong in `src/dev/perf-scenarios.js` so the runner and playground share them. Playwright and the perf harness stay dev-only; `check:debug-isolation` enforces this.

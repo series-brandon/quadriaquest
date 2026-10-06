@@ -6,7 +6,7 @@ export function createAreaRuntime({world,beforeSwitch=()=>{},placePlayer=()=>{},
  function unpark(area){const parent=homes.get(area);if(parent&&!area.group.parent)parent.add(area.group);area.group.visible=true;area.group.updateMatrixWorld?.(true);}
  function enter(options={}){if(!active||entered)return;entered=true;active.enter?.(options);}
  return {
-  register(area){if(registry.has(area.id))throw Error('Duplicate area: '+area.id);registry.set(area.id,area);if(area!==active)park(area);return area;},
+  register(area){if(registry.has(area.id))throw Error('Duplicate area: '+area.id);registry.set(area.id,area);area.group.name||=area.id;if(area!==active)park(area);return area;},
   list:()=>[...registry.values()],broadcast:(event,...args)=>{for(const area of registry.values())area[event]?.(...args);},
   get: id=>registry.get(id),get active(){return active;},get id(){return active?.id;},
   activate(id,{landing,announce=true,arrival=true}={}){

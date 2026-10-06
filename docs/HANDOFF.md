@@ -20,6 +20,22 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Performance testing harness — 2026-10-05
+
+- Added `perf/` (Playwright, dev-only) with `npm run perf`, `perf:full`, `perf:ab` and `perf:baseline`; docs in `docs/PERFORMANCE.md`.
+  - Environments: dev-gpu, low-perf, mobile-emu, webkit, plus ci (counters only, planned for GitHub Actions).
+  - Eight scenarios are shared with the playground (`src/dev/perf-scenarios.js`).
+  - The playground-only probe (`src/dev/perf-probe.js`) times loop phases, GPU time and scene census; the main-loop laps compile away in normal builds.
+- The playground **Performance** section prepares scenarios, toggles a HUD and logs a census.
+- `scripts/profile-ui.mjs` was folded into the runner and removed.
+- `check:debug-isolation` now also asserts no perf probe in normal builds, no Playwright harness in either build, and Playwright as a devDependency only.
+- The first perf run's mutation counter found enemy health labels rewriting `hidden` for every enemy every frame (~360 DOM mutations/s while idle). `combat.js` now writes label visibility and text only on change (~4/s). The label was rechecked during real recruit-yard combat: it tracks HP and hides after defeat.
+- First data:
+  - low-perf clearing-idle misses its 58 fps target (~17 fps, fill-rate bound under SwiftShader). This is the top backlog item.
+  - mobile-emu combat holds ~59 fps against a 30 fps target.
+  - Travel round trips show no leaks.
+  - An A/A check sets the noise floor; see the PERFORMANCE doc.
+
 ### 3D render/scene CPU pass — 2026-10-05
 
 - Inactive areas are detached from the scene graph by `area-runtime.js` (not just hidden), so three.js no longer updates ~4,000 off-screen matrices every frame. Activation re-attaches and refreshes world matrices before use.

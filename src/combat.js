@@ -13,7 +13,7 @@ import {FAINT_FADE_START,FAINT_RESPAWN_TIME} from './faint-motion.js';
 
 // Shared targeting, aggression, walking and recovery; maps provide encounter configuration.
 export function createCombatSystem(api){
- const skill=createGatheringSkill(),enemies=new Set(),fleeing=new Map(),projected=new Vector3(),returningAfterWin=new Map(),shots=[];
+ const skill=createGatheringSkill(),enemies=new Set(),fleeing=new Map(),projected=new Vector3(),LABEL_LIFT=new Vector3(0,1.7,0),returningAfterWin=new Map(),shots=[];
  let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true;const random=api.random||Math.random;
  const attack=()=>api.attack?.()||api.equipment.attack||{min:1,max:3,interval:1.5,style:'unarmed'};
  const profile=()=>({...attack(),mainHand:api.equipment.slots?.main||null,offHand:api.equipment.slots?.off||null});
@@ -97,7 +97,8 @@ export function createCombatSystem(api){
   if(fight&&!api.inReach(fight.enemy))disengage();
   for(const a of enemies){
    const visible=current(a);if(visible&&returningAfterWin.has(a)){const remaining=returningAfterWin.get(a)-dt;returningAfterWin.set(a,remaining);if(remaining<=0)resetEnemy(a);}
-   if(a.healthLabel)a.healthLabel.hidden=true;
+   // Only the engaged enemy shows a label; write DOM state only when it changes.
+   const labelled=!!(a.healthLabel&&visible&&fight?.enemy===a&&camera);if(a.healthLabel&&a.healthLabel.hidden===labelled)a.healthLabel.hidden=!labelled;
    if(!visible){a.group.visible=false;continue;}
    if(a.waitingRespawn){resetEnemy(a);if(a.waitingRespawn)continue;}
    a.group.visible=!a.opened||fleeing.has(a);a.highlight?.update(!!a.guided&&!a.opened,time,api.hover?.()===a&&!a.opened);
@@ -120,7 +121,7 @@ export function createCombatSystem(api){
    if(a.aggro&&adjacent(a)&&!defeated){a.enemyClock+=dt;if(a.enemyClock>=a.rules.interval){a.enemyClock-=a.rules.interval;a.attackAge=.28;hitPlayer(a);}}
    else a.enemyClock=0;
    animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,a.rules.interval):0,hit:Math.sin(Math.PI*a.hitAge/.25)});
-   if(a.healthLabel&&fight?.enemy===a&&camera){a.healthLabel.hidden=false;projected.copy(a.group.position).add(new Vector3(0,1.7,0)).project(camera);const view=gameViewport();a.healthLabel.style.left=view.left+(projected.x+1)*view.width/2+'px';a.healthLabel.style.top=view.top+(1-projected.y)*view.height/2+'px';a.healthLabel.textContent=`${a.rules.name} · ${a.hp}/${a.rules.health}`;}
+   if(labelled){projected.copy(a.group.position).add(LABEL_LIFT).project(camera);const view=gameViewport();a.healthLabel.style.left=view.left+(projected.x+1)*view.width/2+'px';a.healthLabel.style.top=view.top+(1-projected.y)*view.height/2+'px';const text=`${a.rules.name} · ${a.hp}/${a.rules.health}`;if(a.healthLabel.textContent!==text)a.healthLabel.textContent=text;}
   }
   for(const [a,f] of fleeing)if(current(a)){f.age+=dt;animate(a,time,{walk:1});if(f.destination){a.group.rotation.y=Math.atan2(f.destination.x-a.group.position.x,f.destination.z-a.group.position.z);a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}a.group.scale.setScalar(a.scale*Math.max(.01,1-Math.max(0,(f.age-.8)/.4)));if(f.age>=1.2){a.group.visible=false;fleeing.delete(a);}}
   if(defeated){defeated+=dt;api.fade?.(Math.max(0,Math.min(1,(defeated-FAINT_FADE_START)/(FAINT_RESPAWN_TIME-FAINT_FADE_START))));if(defeated>=FAINT_RESPAWN_TIME&&api.respawn()){defeated=0;api.health.restore();api.fade?.(0);api.respawned?.();return null;}return {kind:'Defeated',time:Math.min(defeated,FAINT_RESPAWN_TIME)};}

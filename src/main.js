@@ -137,6 +137,7 @@ const introSpawn=new THREE.Vector3(0,1,-2);
 const clearingSpawn=new THREE.Vector3(tile.x-6,tile.h,tile.z-6);
 let debug=null;
 const playground=__PLAYGROUND__?await import('./dev/playground.js'):null;
+const perfProbe=__PLAYGROUND__?playground.createPerfProbe({renderer,scene}):null;let playgroundApi=null;
 const opening=(playground?.createFreeOpening||createOpening)({player,visual,face:expressionFace,introSpawn,spawn:clearingSpawn,onComplete:()=>craftingTutorial.start(),onFirstLevel:done=>craftingTutorial.startSkills(done),onFirstQuest:done=>craftingTutorial.startQuests(done),
  setColor(color){body.material.color.set(color);expressionFace.setBodyColor(color);},
  showClearing(){clearingGroup.visible=true;for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
@@ -370,7 +371,10 @@ $('reset').onclick=()=>{cancelWork();Object.assign(gatheringSkill,{xp:0,level:1}
 function resize(){const {left,width,height}=measureGameViewport();document.documentElement.style.setProperty('--game-viewport-width',`${width}px`);document.documentElement.style.setProperty('--game-viewport-center',`${left+width/2}px`);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);}addEventListener('resize',resize);new ResizeObserver(resize).observe($('game'));resize();
 const clock=new THREE.Clock();let elapsed=0,actionProgressWidth='';
 const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=new THREE.Vector3(),focusLift=new THREE.Vector3(),cameraFocus=new THREE.Vector3();
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);playerInterface?.update(dt,opening.playable&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',!$('dialogue').hidden);if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('dialogue-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();frame();perfProbe.end();}else frame();}
+// Playground builds attribute frame time to these laps; normal builds compile them away.
+function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update(dt,opening.playable&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',!$('dialogue').hidden);if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('dialogue-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+ if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
  if(!opening.playable){if(opening.canOrbit){angle+=(Number(rotationKeys.has('ArrowRight'))-Number(rotationKeys.has('ArrowLeft')))*keyboardRotationSpeed*dt;elevation=THREE.MathUtils.clamp(elevation+(Number(rotationKeys.has('ArrowUp'))-Number(rotationKeys.has('ArrowDown')))*Math.PI/3*dt,THREE.MathUtils.degToRad(20),THREE.MathUtils.degToRad(75));}else rotationKeys.clear();
@@ -405,6 +409,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const recipeMotion=recipeCrafting.update(dt);
  const smithingMotion=smithing.update(dt);
  const companionMotion=companions.update(dt,elapsed,camera);
+ if(__PLAYGROUND__)perfProbe.lap('systems');
  const actionMotion=combatMotion?.kind==='Defeated'?combatMotion:foodMotion||combatMotion||companionMotion||resourceMotion||carpentryMotion||fishingMotion||cookingMotion||recipeMotion||smithingMotion||worldMotion;
  if(!areas.canOrbit||travel.busy||document.querySelector('dialog[open]'))rotationKeys.clear();
  const oldAngle=angle,oldElevation=elevation;
@@ -500,14 +505,15 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  const areaFocus=areas.cameraFocus;
  let viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
  const focus=cameraFocus.copy(player.position).add(focusLift.set(0,.35+closeup*.3,0));if(areaFocus){focus.lerp(areaFocus.position,areaFocus.blend);viewZoom=THREE.MathUtils.lerp(viewZoom,areaFocus.zoom??viewZoom,areaFocus.blend);viewElevation=THREE.MathUtils.lerp(viewElevation,areaFocus.elevation??viewElevation,areaFocus.blend);}
- const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);
+ if(__PLAYGROUND__)perfProbe.lap('player');
+ const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);
 }
 if(__PLAYGROUND__){
  trainingFixtures=playground.createTrainingFixtures({scene,world,pickables,resources:resourceActions,combat,styles,supplies,openStation,stop:stopAll,approach:selectActor,tile:()=>tile,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.actor||m.userData.resource)),clearUI:()=>areas.notify('clearUI')});
  combatFixtures=playground.createCombatFixtures({combat,world,scene,pickables,tile:()=>tile,stop:stopAll,approach:selectActor,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  carpentryFixture=playground.addCarpentryFixture({world:clearingTiles,currentWorld:world,scene:clearingGroup,pickables,clearingObjects});
  playground.addFishingFixture({world:clearingTiles,scene:clearingGroup,fishingSpots,clearingObjects});
- debug=playground.mountPlayground({
+ playgroundApi={
   companions,
   trainingAction:action=>trainingFixtures.run(action),
   landmark(name){stopAll();areas.notify('clearUI');opening.enterFreePlay();finale.ensurePortal();if(areas.id!=='cinderhold')areas.activate('cinderhold',{landing:travel.landingFor('cinderhold'),arrival:false});cinder.clearUI();const [x,z]=CINDERHOLD[name],targetTile=cinder.tiles.get(key(x,z)),route=interactionRoute(world,tile,{tile:targetTile,x,z});if(route){tile=route.at;player.position.set(tile.x-6,tile.h,tile.z-6);}},
@@ -592,8 +598,10 @@ if(__PLAYGROUND__){
   refresh:()=>{menus.refresh();equipment.refresh();},
   showItemChanges,
   color(value){body.material.color.set(value);expressionFace.setBodyColor(value);},
-  faceTowardCamera(){facing=angle;player.rotation.y=angle;}
- });
+  faceTowardCamera(){facing=angle;player.rotation.y=angle;},
+ perf:{hud:show=>perfProbe.hud(show),census:()=>perfProbe.census()}
+ };
+ debug=playground.mountPlayground(playgroundApi);
 }
 const journal=mountJournal(menus,craftingTutorial,settingsUI);
 createCompanionMenu(companions,{closeMenus:()=>menus.closeMenus('switch'),canClose:()=>menus.events.beforeClose?.('automatic')!==false});
@@ -602,3 +610,4 @@ const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
 if(__PLAYGROUND__)window.quadriaquest={getState:()=>({playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:{...combat.state,skill:{...combat.skill}},equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
+if(__PLAYGROUND__)window.quadriaquest.perf=playground.createPerfScenarios({api:playgroundApi,probe:perfProbe,setView(view){angle=view.angle;elevation=view.elevation;zoom=view.zoom;},walkTo(x,z){const t=world.get(key(x,z));if(t)moveTo(t);},state:()=>window.quadriaquest.getState()});
