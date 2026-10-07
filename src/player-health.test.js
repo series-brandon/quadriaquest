@@ -5,7 +5,7 @@ function fixture(){const health=createPlayerHealth(30),inventory={cookedFish:4};
 test('food is available before any area visit, repeats across travel, and heals only on completion',()=>{
  const f=fixture();f.health.value=5;
  for(const area of ['clearing','second-area']){assert.equal(f.food.inventoryActions('cookedFish')[0].disabled,false);assert.ok(f.food.start('cookedFish'));f.food.update(.1);assert.equal(f.inventory.cookedFish,area==='clearing'?4:3);f.food.update(FOODS.cookedFish.duration);f.food.update(20);}
- assert.equal(f.health.value,25);assert.equal(f.inventory.cookedFish,2);assert.equal(f.completed,2);
+ assert.equal(f.health.value,Math.min(f.health.max,5+2*FOODS.cookedFish.healing));assert.equal(f.inventory.cookedFish,2);assert.equal(f.completed,2);
 });
 test('cancellation on movement/travel/reset and disappearing food cannot consume or heal',()=>{
  const f=fixture();f.health.value=10;f.food.start('cookedFish');f.food.update(.1);f.food.cancel();f.food.update(30);assert.equal(f.health.value,10);assert.equal(f.inventory.cookedFish,4);

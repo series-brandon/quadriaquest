@@ -2,7 +2,7 @@ import {createResource} from './player-resources.js';
 import {createResourceOrb} from './resource-orb.js';
 import {EATING_DURATION} from './eating-motion.js';
 
-export const FOODS={cookedFish:{healing:10,duration:EATING_DURATION}};
+export const FOODS={cookedFish:{healing:20,duration:EATING_DURATION}};
 export const createPlayerHealth=createResource;
 
 // Food consumption is app-owned; areas observe completion for their narrative.

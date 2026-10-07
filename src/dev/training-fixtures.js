@@ -11,7 +11,7 @@ export function createTrainingFixtures(api){
  function free(){const p=api.tile();return [...api.world.values()].filter(t=>!t.blocked&&!t.water&&!api.occupied(t)&&Math.abs(t.x-p.x)+Math.abs(t.z-p.z)>=2&&interactionRoute(api.world,p,{tile:t,x:t.x,z:t.z})).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];}
  return {clear,update(time){if(root)root.visible=api.world.get(`${anchor.x},${anchor.z}`)===anchor;for(const a of actors)if(a.kind==='furnace')animateFurnace(a.group,time);},run(action){
   if(action==='remove'){clear();return 'Removed portable training fixtures.';}
-  if(action==='learn'){api.styles.learn('spark');return 'Learned Spark through shared spell state. Open Combat to select it.';}
+  if(action==='learn'){api.styles.learn('energyStrike');return 'Learned Energy Strike through shared spell state. Open Combat to select it; each cast costs 4 Mana.';}
   if(action==='forget'){api.stop();api.styles.reset();return 'Reset learned spells and style.';}
   if(action==='kit'){api.supplies.claim('archerKit');api.supplies.claim('arrows');api.supplies.claim('bow');return 'Used the shared starter/refill offers.';}
   if(action==='reset'){api.stop();for(const n of nodes)api.resources.reset(n);api.combat.resetWhere(a=>enemies.includes(a));return 'Reset fixture resources and encounters.';}

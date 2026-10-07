@@ -20,6 +20,46 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Player progression and formula-driven combat — 2026-10-07
+
+- `character.js`: shared character with documented attribute bases (capacity 10, others 1), 3 creation points, 18 combat skills, Light/Medium/Heavy Armor, weapon/armor-slot/elemental proficiencies, and core XP (one /5 conversion per action with carried remainder; 3 points per core level). All tracks use the adopted curve. Session-only, like the other skills.
+- `combat-profile.js` derives each committed attack (bounds, interval, crit, XP tracks, Mana cost, requirement effectiveness) and player defenses (dodge, block, resistance) from the character. `combat.js` uses it everywhere:
+  - Player attacks: no miss; crit from Luck; per-portion resistance.
+  - Enemy attacks: 1% miss → dodge → block → damage → resistance; Scrapper protection kept.
+  - XP per resolved attack: strategy skill + weapon proficiency, or elemental proficiency for spells. Shield XP on connected or blocked hits, using a hypothetical roll on blocks. Entity multiplier and cap are applied per track. The old Combat-XP-on-win and the single Combat skill are gone.
+- Items now carry bonuses: Stone Sword +6/+6, Copper Dagger +10/+10, Training Bow +10/+10 at range 6, Wooden Shield +30, Copper Shield +50 resistance. The old Stone Sword/Wooden Shield values were chosen by the user. Practice targets: 50 HP, 0.5 XP below level 3. Cooked Pondfish heals 20.
+- Spark is replaced by **Energy Strike** (4 Mana, 3s base cast, 6 tiles, Energy proficiency). Unaffordable casts pause with the target kept and show one notice, then resume. Wisp's lines and the training fixture use it; the quest title "First Spark" is kept as flavor.
+- Regeneration: Health, Mana and Stamina regenerate (scaled by attributes; slower in combat and for 5s after). Stamina pauses only while actively sprinting. Maxima follow Constitution/Mentis/Endurance without refilling. Resource orbs write the DOM only when the rounded-up number changes.
+- UI:
+  - **Skills** shows core level, attributes with 44px **+** buttons, and all combat skills. Proficiencies appear once trained; Unarmed always.
+  - **Combat** adds the six strategies with their XP destination and a live summary of the attack the next windup would commit.
+  - Hit splats now distinguish Miss!/Dodged!/Blocked! and orange criticals.
+- Playground: the Skills select covers every track via the real award path. New **Character & combat profile** controls set attributes, grant points, print the committed attack and defenses, and reset the character. Full test area resets the character. Combat/training notes updated.
+- Not yet implemented, each tracked in COMBAT.md:
+  - Attack-hand selection, dual wielding and per-hand damage-type choice
+  - Strong Strike, Energy, Ki and auras, and the Energy/Ki orbs
+  - Food at initiation with the shared 2s cooldown
+  - Spell backfire (no current spell can backfire)
+  - Armor items and armor XP; Athletics and sprint efficiency
+  - Iter Crystal Restore/respec
+  - The 5-meal/50-arrow tutorial top-ups
+  - Manual/Auto assistance and Pacifist
+- Verification: 225 tests (new character tests), normal and debug builds, and debug isolation. Bounded hardware-browser checks:
+  - Clearing: Constitution allocation (max 110, no refill) and an unarmed Scrapper fight (2.5s cadence, 1–10 incoming, per-attack XP, level-ups at 562, core 1,220/5 = 244).
+  - Combat menu summaries (Accurate Energy Strike 6–20 every 3s) and Energy Strike vs a target (5 casts, 20 Mana, 375 half-XP each to Magic Accuracy/Energy).
+  - Cinderhold: portable fixture attack and XP.
+  - 375px Skills layout.
+  - Not checked: the Wisp dialogue path and a full tutorial replay.
+- Performance: full dev-gpu suite, 8/9 PASS. `cinderhold-combat` FAILs on draws (+8.4%) because one more goblin is visible (longer fights), not a per-object regression; frame time 2.7–2.8 ms at 59.5+ fps. Per-attack XP labels and hit splats now use one composited transform write per frame (mutations ~229 → ~123/s, layouts ~56 → ~9/s). The baseline is **not** updated; see the PERFORMANCE ledger. Run `npm run perf -- --update-baseline --note "…"` (full suite) to accept it.
+
+### Shared combat formulas and enemy stat sheets — 2026-10-07
+
+- `combat-formulas.js` implements the settled COMBAT.md math as pure functions: damage bounds, Strong Strike, chances, the attack resolution order, per-portion resistance, infusion shares, action timing, requirement effectiveness, backfire, Mana cost, XP curve/caps/pool splits/core conversion, resource maxima/regeneration/display, sprint drain, movement slows, character-sheet attack/resistance/dodge/critical bonuses, Threat and danger bands. Ten tests in `combat-formulas.test.js` reproduce the documented worked examples.
+- `combat-rules.js` now holds the Scrapper/Bruiser stat sheets. Their health, damage bounds, interval and Threat are derived through the shared formulas, not literals. Gameplay change: Bruiser attacks every 2.5s (was 2s). Existing combat tests now step 2.5s for Bruiser hits.
+- Still prototype: player offense (unarmed 1–3 etc.), the 15% enemy miss, flat shield mitigation, the single Combat skill and the 4-HP practice target. These convert together in the player-progression slice so balance doesn't break midway. The new miss, capability and resistance data is stored but not yet used by the runtime.
+- Playground Combat practice: **Show enemy stat sheets** prints production-derived values and flags which ones aren't live yet; an **Enemy stat sheets** table lists every configured input. `.claude/launch.json` adds a `playground` preview configuration.
+- Verification: 218 tests, normal and debug builds, and debug isolation passed. A bounded hardware-browser check in the clearing confirmed the derived sheet text and table, and Bruiser hits landing exactly 2.50s apart. With the aggressive fixture, Scrapper and Bruiser now share the 2.5s cadence, so simultaneous hits can appear as one health change. Cinderhold was not checked in the browser; it uses the same `ENEMIES` definitions. No performance run (no rendering or per-frame changes).
+
 ### Combat design consolidation — 2026-10-07
 
 - Design-only update: COMBAT.md holds the settled formulas and assistance rules; production remains the prototype described below. DESIGN.md now references the redesign defaults and action semantics.

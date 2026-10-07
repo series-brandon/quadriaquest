@@ -91,7 +91,7 @@ export const MODEL_CATALOG=[
  staticModel('Anvil',anvil),staticModel('Provision shelf',supplyShelf),staticModel('Stone arch',stoneArch),
  staticModel('Stone tile',()=>stoneTile({x:0,z:0,h:1},new Map())),
  {name:'Practice target',motions:['Static','Hit'],create(){const group=trainingTarget();return {group,update:(time,motion)=>animateTarget(group,time,motion==='Hit'?1:0)};}},
- staticModel('Spark projectile',()=>projectileModel('magic')),
+ staticModel('Energy Strike projectile',()=>projectileModel('magic')),
 
  {name:'Slime',loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(makeSlime)},
  {name:'Reed',loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{idle:animateFisher})},

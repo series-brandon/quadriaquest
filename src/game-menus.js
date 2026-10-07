@@ -2,10 +2,12 @@ import {RECIPES,canMake,durationFor} from './recipes.js';
 import {ITEMS} from './items.js';
 import {icon} from './icons.js';
 import {createInventoryMenu} from './inventory-menu.js';
-import {GATHERING_XP_PER_LEVEL} from './skills.js';
+import {skillProgress} from './skills.js';
+import {ATTRIBUTES,ATTRIBUTE_INFO} from './character.js';
+import {levelProgress} from './combat-formulas.js';
 
 // Shared journal pages. Tutorial guidance is optional and does not own recipes or skills.
-export function createGameMenus({getInventory,getSkills,startCraft,craftState=()=>null,craftBusy=()=>false,equipment={}}){
+export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,startCraft,craftState=()=>null,craftBusy=()=>false,equipment={}}){
  const $=id=>document.getElementById(id),events={};
  const host=document.createElement('div');host.id='game-menus';
  host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false">☰</button>
@@ -24,13 +26,24 @@ export function createGameMenus({getInventory,getSkills,startCraft,craftState=()
  let selectedRecipe='axes';
  function openCrafting(id){closeMenus('switch');if(id)selectRecipe(id);else selectRecipe(selectedRecipe);panel.hidden=false;refresh();}
  const skillsPanel=document.createElement('section');skillsPanel.id='skills-panel';skillsPanel.hidden=true;skillsPanel.setAttribute('aria-label','Skills');
- skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><input id="skills-search" class="journal-search" type="search" placeholder="Search skills…" aria-label="Search skills"><div id="skills-list"></div>';host.append(skillsPanel);
+ skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><input id="skills-search" class="journal-search" type="search" placeholder="Search skills…" aria-label="Search skills"><section id="character-summary" aria-label="Core level and attributes"></section><div id="skills-list"></div>';host.append(skillsPanel);
  const inventoryMenu=createInventoryMenu(host,getInventory,id=>events.inventorySelected?.(id),()=>{if(!events.inventoryLocked?.())closeMenus('dismiss');},equipment);
  function openInventory(){closeMenus('switch');inventoryMenu.open();}
  let skillGuidance={};
  $('skills-search').oninput=()=>renderSkills();
-  const skillRows=new Map();
+  const skillRows=new Map();let characterSignature='';
+  const whole=n=>Math.floor(n).toLocaleString();
+  // Core level and attribute allocation share the production character; +1 spends one unspent point.
+  function renderCharacter(){
+    const character=getCharacter(),root=$('character-summary');root.hidden=!character;if(!character)return;
+    const signature=JSON.stringify([character.core,character.unspent,ATTRIBUTES.map(character.attribute)]);if(signature===characterSignature)return;characterSignature=signature;
+    const core=levelProgress(character.core.xp),points=character.unspent;
+    root.innerHTML=`<div class="core-level"><strong>Core level ${core.level}</strong><span>${whole(character.core.xp)} core XP</span></div><progress max="1" value="${core.fraction}" aria-label="Core level progress"></progress><small>${whole(Math.ceil(core.remaining))} core XP to level ${core.level+1} · earned from all combat skill and proficiency XP (5 : 1)</small>
+      <details class="attribute-list"${points?' open':''}><summary>Attributes · <b>${points} unspent point${points===1?'':'s'}</b></summary><ul>${ATTRIBUTES.map(a=>`<li><span><strong>${a[0].toUpperCase()+a.slice(1)}</strong> <small>${ATTRIBUTE_INFO[a]}</small></span><b>${character.attribute(a)}</b><button type="button" data-allocate="${a}" aria-label="Spend a point on ${a}"${character.canAllocate(a)?'':' disabled'}>+</button></li>`).join('')}</ul><small>Points are permanent for now; redistribution will be offered at Iter Crystals.</small></details>`;
+    for(const b of root.querySelectorAll('[data-allocate]'))b.onclick=()=>{if(character.allocate(b.dataset.allocate))events.attributesChanged?.();renderSkills();};
+  }
   function renderSkills(){
+    renderCharacter();
     if($('close-skills').disabled!==!!skillGuidance.locked)$('close-skills').disabled=!!skillGuidance.locked;
     const skills=getSkills(),search=($('skills-search').value||'').toLowerCase();
     for(const [name,row] of skillRows)if(!skills[name]){row.remove();skillRows.delete(name);}
@@ -38,7 +51,7 @@ export function createGameMenus({getInventory,getSkills,startCraft,craftState=()
       let row=skillRows.get(name);
       if(!row){
         row=document.createElement('details');row.dataset.skill=name;row.className='skill-entry';
-        row.innerHTML=`<summary>${icon(name)}<strong>${name}</strong><b></b><progress max="${GATHERING_XP_PER_LEVEL}" aria-label="${name} progress"></progress></summary><p></p><progress max="${GATHERING_XP_PER_LEVEL}"></progress><small></small><small></small>`;
+        row.innerHTML=`<summary>${icon(skill.icon||name)}<strong>${name}</strong><b></b><progress aria-label="${name} progress"></progress></summary><p></p><progress></progress><small></small><small></small>`;
         skillRows.set(name,row);$('skills-list').append(row);
       }
       const hide=!name.toLowerCase().includes(search);if(row.hidden!==hide)row.hidden=hide;
@@ -49,14 +62,14 @@ export function createGameMenus({getInventory,getSkills,startCraft,craftState=()
       const signature=`${skill.level}:${skill.xp}`;
       if(row.skillSignature===signature)continue;
       row.skillSignature=signature;
-      const progress=skill.xp%GATHERING_XP_PER_LEVEL,remaining=GATHERING_XP_PER_LEVEL-progress;
-      row.querySelector('b').textContent=`Lv ${skill.level}`;
-      row.querySelector('p').textContent=`${skill.xp} total XP`;
-      const bars=row.querySelectorAll('progress');for(const bar of bars)bar.value=progress;
-      bars[1].setAttribute('aria-label',`${name} progress toward level ${skill.level+1}`);
+      const p=skillProgress(skill);
+      row.querySelector('b').textContent=`Lv ${p.level}`;
+      row.querySelector('p').textContent=`${whole(p.xp)} total XP`;
+      const bars=row.querySelectorAll('progress');for(const bar of bars){bar.max=p.span;bar.value=p.into;}
+      bars[1].setAttribute('aria-label',`${name} progress toward level ${p.level+1}`);
       const labels=row.querySelectorAll('small');
-      labels[0].textContent=`${progress} / ${GATHERING_XP_PER_LEVEL} XP toward Level ${skill.level+1}`;
-      labels[1].textContent=`${remaining} XP to next level`;
+      labels[0].textContent=`${whole(p.into)} / ${whole(p.span)} XP toward Level ${p.level+1}`;
+      labels[1].textContent=`${whole(Math.ceil(p.remaining))} XP to next level`;
     }
   }
   function openSkills(){closeMenus('switch');renderSkills();skillsPanel.hidden=false;}

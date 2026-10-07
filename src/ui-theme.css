@@ -282,3 +282,11 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 
 /* Guided journal steps expose only their required action. */
 #game-menus [data-tutorial-locked="true"] { opacity: .4; cursor: not-allowed; }
+#character-summary{display:grid;gap:4px;margin:6px 0 10px;padding:10px 12px;border-radius:8px;background:#eee3e8}
+#character-summary .core-level{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+#character-summary progress{width:100%}
+.attribute-list summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:6px}
+.attribute-list ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.attribute-list li{display:grid;grid-template-columns:1fr auto 44px;align-items:center;gap:8px;min-height:44px}
+.attribute-list li small{display:block;opacity:.75}
+.attribute-list button{width:44px;height:44px;font-size:20px;font-weight:700}

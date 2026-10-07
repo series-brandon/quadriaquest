@@ -2,8 +2,8 @@ import {gameViewport} from './game-viewport.js';
 import {Vector3} from 'three';
 import {findPath,key} from './world.js';
 import {withinAttackRange} from './combat-range.js';
-import {createGatheringSkill,awardSkillXp} from './skills.js';
-import {damageRoll,incomingHealth} from './combat-rules.js';
+import {resolveAttack,resolvePortions,rollDamage,actionXp} from './combat-formulas.js';
+import {playerAttackProfile,playerDefense} from './combat-profile.js';
 import {wanderDelay,shouldWander,wanderRoute} from './wander.js';
 import {attackPose} from './combat-motion.js';
 import {attackWindow,BLOCK_DURATION,PROJECTILE_FLIGHT} from './combat-animation.js';
@@ -13,10 +13,12 @@ import {FAINT_FADE_START,FAINT_RESPAWN_TIME} from './faint-motion.js';
 
 // Shared targeting, aggression, walking and recovery; maps provide encounter configuration.
 export function createCombatSystem(api){
- const skill=createGatheringSkill(),enemies=new Set(),fleeing=new Map(),projected=new Vector3(),LABEL_LIFT=new Vector3(0,1.7,0),returningAfterWin=new Map(),shots=[];
- let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true;const random=api.random||Math.random;
- const attack=()=>api.attack?.()||api.equipment.attack||{min:1,max:3,interval:1.5,style:'unarmed'};
- const profile=()=>({...attack(),mainHand:api.equipment.slots?.main||null,offHand:api.equipment.slots?.off||null});
+ const enemies=new Set(),fleeing=new Map(),projected=new Vector3(),LABEL_LIFT=new Vector3(0,1.7,0),returningAfterWin=new Map(),shots=[];
+ let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true,sinceActivity=Infinity;const random=api.random||Math.random,character=api.character;
+ const attack=()=>api.attack?.()||api.equipment.attack;
+ // Commit-time snapshot: later equipment, strategy or spell changes affect only the next attack.
+ const profile=()=>({...playerAttackProfile(character,attack(),api.strategy?.()||'technical'),mainHand:api.equipment.slots?.main||null,offHand:api.equipment.slots?.off||null});
+ const reward=(result,a)=>{if(result.tracks.length||result.core.xp)api.reward?.(result,a);};
  const animate=(a,time,options)=>a.rules.inert?animateTarget(a.group,time,options.hit):animateGoblin(a.group,time,options);
  const current=a=>api.world.get(key(a.home.x,a.home.z))===a.home;
  const position=t=>new Vector3(t.x-6,t.h,t.z-6);
@@ -56,23 +58,38 @@ export function createCombatSystem(api){
  }
  function hitPlayer(a){
   api.attacked?.(a);api.interrupt?.();
-  const before=api.health.value,hit=random()<.85;
-  if(hit){api.health.value=incomingHealth(before,damageRoll(a.rules.min,a.rules.max,random),api.equipment.mitigation??0,a.rules.protected);defense={age:0,profile:profile()};}
-  api.hit(api.player.position,hit?before-api.health.value:null);api.sound('blocked');
-  if(api.health.value===0){lose();return;}
+  const before=api.health.value,rules=a.rules,current=profile(),shield=api.equipment.shield||null;
+  // Defender stats are evaluated at hit time: miss → dodge → block → damage → mitigation.
+  const d=playerDefense(character,{activeStyle:current.combatStyle,strategy:current.strategy,incomingStyle:rules.style||'melee',shield});
+  const r=resolveAttack({missPercent:rules.missPercent||0,dodgePercent:d.dodgePercent,blockPercent:d.blockPercent,canCritical:!!rules.canCritical,criticalPercent:rules.criticalPercent||0,min:rules.min,max:rules.max,random,
+   mitigate:raw=>resolvePortions([{amount:raw,resistancePct:d.resistancePct}])});
+  if(r.outcome==='hit'){api.health.value=Math.max(rules.protected&&before>=1?1:0,before-r.damage);defense={age:0,profile:current};}
+  else if(r.outcome==='block')defense={age:0,profile:current};
+  // Shield XP: connected hits use pre-mitigation damage; a block rolls hypothetical noncritical damage for XP only.
+  if(shield&&(r.outcome==='hit'||r.outcome==='block'))reward(character.award([{track:'prof.shield',amount:actionXp(r.outcome==='hit'?r.raw:rollDamage(rules.min,rules.max,random))}],{multiplier:rules.xpMultiplier??1,levelCap:rules.xpLevelCap??null}),a);
+  api.hit(api.player.position,r.outcome==='hit'?before-api.health.value:null,r.outcome);api.sound('blocked');
+  if(api.health.value<=0){lose();return;}
   if(autoRetaliate&&!fight){if(api.inReach(a))start(a);else api.retaliate?.(a);}
  }
  function win(a,weapon){
   if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;a.aggro=false;a.opened=true;if(a.occupying){a.tile.blocked=false;a.occupying=false;}
   const at=api.tile(),escape=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>api.world.get(key(a.x+dx,a.z+dz))).filter(t=>t&&!t.water&&!t.blocked&&!reserved(t)&&Math.abs(t.h-a.tile.h)<=.5).sort((x,y)=>Math.hypot(y.x-at.x,y.z-at.z)-Math.hypot(x.x-at.x,x.z-at.z))[0];
-  fleeing.set(a,{age:0,destination:!a.rules.inert&&escape&&position(escape)});if(!a.rules.inert)api.reward(awardSkillXp(skill,'Combat'));api.won?.(a,weapon);if(a.respawn!=null)returningAfterWin.set(a,a.respawn+1.2);api.complete?.();
+  fleeing.set(a,{age:0,destination:!a.rules.inert&&escape&&position(escape)});api.won?.(a,weapon);if(a.respawn!=null)returningAfterWin.set(a,a.respawn+1.2);api.complete?.();
  }
  function strike(a,weapon){
   if(!current(a)||a.opened||a.returning)return;
   engage(a); // A resolved attempt provokes even on a miss or zero damage.
-  if(random()<Math.min(.98,.9+(skill.level-1)*.005)){
-   const before=a.hp;a.hp=Math.max(0,a.hp-damageRoll(weapon.min,weapon.max,random));a.hitAge=.25;api.hit(a.group.position,before-a.hp);api.sound('chop');api.struck?.(a,weapon);
-  }else api.hit(a.group.position,null);
+  const rules=a.rules,resistancePct=rules.resistancePct?.[weapon.combatStyle]||0;
+  const r=resolveAttack({dodgePercent:rules.canDodge?rules.dodgePercent||0:0,canCritical:true,criticalPercent:weapon.critPercent,min:weapon.min,max:weapon.max,random,
+   mitigate:raw=>resolvePortions([{amount:raw*(weapon.damageScale??1),resistancePct}])});
+  const before=a.hp;a.hp=Math.max(0,a.hp-r.damage);const removed=before-a.hp,xp=actionXp(removed);
+  if(r.outcome==='hit'){a.hitAge=.25;api.hit(a.group.position,removed,r.critical?'critical':'hit');api.sound('chop');api.struck?.(a,weapon);}
+  else api.hit(a.group.position,null,r.outcome);
+  // Strategy skill and weapon/elemental proficiency each receive the full base award, capped per track.
+  const awards=[{track:weapon.xpTrack,amount:xp}];
+  if(weapon.proficiencyTrack)awards.push({track:weapon.proficiencyTrack,amount:xp});
+  for(const [element,share] of Object.entries(weapon.elements||{}))awards.push({track:`prof.${element}`,amount:xp*share});
+  reward(character.award(awards,{multiplier:rules.xpMultiplier??1,levelCap:rules.xpLevelCap??null}),a);
   if(!a.hp)win(a,weapon);
  }
  function walkHome(a){
@@ -90,6 +107,7 @@ export function createCombatSystem(api){
   if(route.length>1&&next&&!next.blocked&&!reserved(next)&&!api.safe?.(next))move(a,next);
  }
  function update(dt,time,camera){
+  sinceActivity=fight||chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened)?0:sinceActivity+dt;
   if(defense){defense.age+=dt;if(defense.age>=BLOCK_DURATION)defense=null;}
   for(let i=shots.length-1;i>=0;i--){const shot=shots[i];shot.left-=dt;if(shot.left<=0){shots.splice(i,1);strike(shot.enemy,shot.profile);}}
   if(fight&&(!current(fight.enemy)||api.blocked())){const a=fight.enemy;fight=null;resetEnemy(a);}
@@ -121,22 +139,32 @@ export function createCombatSystem(api){
    if(a.aggro&&adjacent(a)&&!defeated){a.enemyClock+=dt;if(a.enemyClock>=a.rules.interval){a.enemyClock-=a.rules.interval;a.attackAge=.28;hitPlayer(a);}}
    else a.enemyClock=0;
    animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,a.rules.interval):0,hit:Math.sin(Math.PI*a.hitAge/.25)});
-   if(labelled){projected.copy(a.group.position).add(LABEL_LIFT).project(camera);const view=gameViewport();a.healthLabel.style.left=view.left+(projected.x+1)*view.width/2+'px';a.healthLabel.style.top=view.top+(1-projected.y)*view.height/2+'px';const text=`${a.rules.name} · ${a.hp}/${a.rules.health}`;if(a.healthLabel.textContent!==text)a.healthLabel.textContent=text;}
+   if(labelled){projected.copy(a.group.position).add(LABEL_LIFT).project(camera);const view=gameViewport();a.healthLabel.style.transform=`translate(${(view.left+(projected.x+1)*view.width/2).toFixed(1)}px,${(view.top+(1-projected.y)*view.height/2).toFixed(1)}px) translate(-50%,-100%)`;const text=`${a.rules.name} · ${a.hp}/${a.rules.health}`;if(a.healthLabel.textContent!==text)a.healthLabel.textContent=text;}
   }
   for(const [a,f] of fleeing)if(current(a)){f.age+=dt;animate(a,time,{walk:1});if(f.destination){a.group.rotation.y=Math.atan2(f.destination.x-a.group.position.x,f.destination.z-a.group.position.z);a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}a.group.scale.setScalar(a.scale*Math.max(.01,1-Math.max(0,(f.age-.8)/.4)));if(f.age>=1.2){a.group.visible=false;fleeing.delete(a);}}
   if(defeated){defeated+=dt;api.fade?.(Math.max(0,Math.min(1,(defeated-FAINT_FADE_START)/(FAINT_RESPAWN_TIME-FAINT_FADE_START))));if(defeated>=FAINT_RESPAWN_TIME&&api.respawn()){defeated=0;api.health.restore();api.fade?.(0);api.respawned?.();return null;}return {kind:'Defeated',time:Math.min(defeated,FAINT_RESPAWN_TIME)};}
-  if(fight&&!api.eating?.()){const c=fight,a=c.enemy;c.age+=dt;c.playerClock+=dt;api.face(a.x,a.z);const weapon=c.profile;
-   if(c.playerClock>=weapon.interval){
+  if(fight&&!api.eating?.()){const c=fight,a=c.enemy;api.face(a.x,a.z);const weapon=c.profile;
+   // Unaffordable attacks pause with their target retained; any windup progress is lost.
+   const short=weapon.manaCost&&!(api.mana?.value>=weapon.manaCost);
+   if(short){c.playerClock=0;if(!c.waiting){c.waiting=true;api.toast?.(`Not enough Mana for ${weapon.name} (${weapon.manaCost} needed).`);}}
+   else{c.waiting=false;c.playerClock+=dt;}
+   if(!short&&c.playerClock>=weapon.interval){
     if(weapon.ammo&&!(api.inventory?.[weapon.ammo]>0)){disengage();api.toast?.('Out of arrows. Visit a supply offer to refill.');}
     else{c.playerClock-=weapon.interval;if(weapon.ammo){api.inventory[weapon.ammo]--;api.items?.({[weapon.ammo]:-1});}
+     if(weapon.manaCost)api.mana.value-=weapon.manaCost;
      if(['ranged','magic'].includes(weapon.style)){api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),weapon.style);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
+     c.struck=true;if(fight===c)c.profile=profile();
     }
    }
-   if(fight){api.interacting?.();if(!defense||attackWindow(weapon,c.age))return {kind:weapon.style==='ranged'?'Archery':weapon.style==='magic'?'Casting':'Combat',time:c.age,profile:weapon};}
+   // Animation time follows the committed attack clock, including recovery after each release.
+   c.age=(c.struck?c.profile.interval:0)+c.playerClock;
+   if(fight){api.interacting?.();if(!defense||attackWindow(c.profile,c.age))return {kind:c.profile.style==='ranged'?'Archery':c.profile.style==='magic'?'Casting':'Combat',time:c.age,profile:c.profile};}
   }
   return defense?{kind:'Block',time:defense.age,profile:defense.profile}:null;
  }
- return {skill,start,update,cancel,clear,disengage,lose,
+ return {start,update,cancel,clear,disengage,lose,preview:profile,
+  // Regeneration uses the slower rate during combat activity and for 5 seconds afterwards.
+  get inCombat(){return sinceActivity<5;},
   get autoRetaliate(){return autoRetaliate;},setAutoRetaliate(value){autoRetaliate=!!value;},
   add(a){enemies.add(a);a.patrolPhase=random()*10;resetEnemy(a);return a;},
   remove(a){if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;fleeing.delete(a);returningAfterWin.delete(a);for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);enemies.delete(a);if(a.occupying)a.tile.blocked=false;a.dispose?.();},

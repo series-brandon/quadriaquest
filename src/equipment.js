@@ -1,8 +1,12 @@
+import {UNARMED} from './combat-profile.js';
+
+// Items contribute bonuses; damage comes from the shared formulas (docs/COMBAT.md).
 export const GEAR={
- swords:{slot:'main',min:3,max:5,interval:1.5,range:1,style:'melee'},
- copperDagger:{slot:'main',min:3,max:5,interval:1.5,range:1,style:'melee'},
- shields:{slot:'off',mitigation:1},copperShield:{slot:'off',mitigation:1},
- bows:{slot:'main',twoHanded:true,min:2,max:4,interval:1.7,range:4,style:'ranged',ammo:'arrows'},
+ swords:{slot:'main',name:'Stone Sword',style:'melee',power:6,accuracy:6,baseInterval:2.55,range:1,proficiency:'sword',damageTypes:['slashing'],requirements:{'melee.technique':1}},
+ copperDagger:{slot:'main',name:'Copper Dagger',style:'melee',power:10,accuracy:10,baseInterval:2.55,range:1,proficiency:'dagger',damageTypes:['piercing','slashing'],requirements:{'melee.technique':1}},
+ shields:{slot:'off',name:'Wooden Shield',shield:true,resistance:30,requirements:{'prof.shield':1}},
+ copperShield:{slot:'off',name:'Copper Shield',shield:true,resistance:50,requirements:{'prof.shield':1}},
+ bows:{slot:'main',name:'Training Bow',twoHanded:true,style:'ranged',power:10,accuracy:10,baseInterval:2.55,range:6,proficiency:'bow',ammo:'arrows',damageTypes:['piercing'],requirements:{'ranged.technique':1}},
  hats:{slot:'head'}
 };
 export function createEquipment({inventory,busy=()=>false,changed=()=>{}}){
@@ -15,8 +19,8 @@ export function createEquipment({inventory,busy=()=>false,changed=()=>{}}){
  }
  return {refresh,toggle,isEquipped(id){refresh();return Object.values(slots).includes(id);},
   get slots(){refresh();return {...slots};},
-  get attack(){refresh();return {...(GEAR[slots.main]||{min:1,max:3,interval:1.5,range:1,style:'unarmed'}),item:slots.main};},
-  get mitigation(){refresh();return GEAR[slots.off]?.mitigation||0;},
+  get attack(){refresh();return {...(GEAR[slots.main]||UNARMED),item:slots.main};},
+  get shield(){refresh();return GEAR[slots.off]?.shield?{...GEAR[slots.off],item:slots.off}:null;},
   get state(){refresh();return Object.fromEntries(Object.keys(GEAR).map(id=>[id,Object.values(slots).includes(id)]));},
   reset(){for(const slot of Object.keys(slots))slots[slot]=null;changed();},
   inventoryActions(id){return id in GEAR?[{label:this.isEquipped(id)?'Unequip':'Equip',disabled:busy()||!(inventory[id]>0),run:()=>toggle(id)}]:[];}

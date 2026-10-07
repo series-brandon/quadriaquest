@@ -2,7 +2,7 @@
 
 First playable implementation · 2026-10-05.
 
-The initial implementation now includes the 40 × 32 training complex, main melee/metalwork quest, optional ranged and Spark lessons, shared destination picker, and production-backed playground controls. The sections below retain the design intent and tuning proposals. See [HANDOFF.md](HANDOFF.md#cinderhold-first-playable-implementation--2026-10-05) for implementation ownership and verification limits.
+The initial implementation now includes the 40 × 32 training complex, main melee/metalwork quest, optional ranged and Energy Strike lessons, shared destination picker, and production-backed playground controls. The sections below retain the design intent and tuning proposals. See [HANDOFF.md](HANDOFF.md#cinderhold-first-playable-implementation--2026-10-05) for implementation ownership and verification limits.
 
 The first visual pass uses connected slate halls, arches, copper terraces, a lit furnace, and the four mentor rigs. Perimeter walls now enclose all four corners and rise three blocks above their local floor; Bristle wears a brimless iron guard helmet. Detailed environmental dressing, longer authored camera sequences, and device-specific performance/balance tuning remain polish work. The terrain renderer batches static geometry while retaining individual tile picking; this does **not** implement open-world streaming.
 
@@ -120,9 +120,9 @@ For each craft, inputs, output, and XP commit together exactly once at completio
 
 Keep combat real-time, point-and-click, and stat-driven. This chapter is not a manual combo, dodge, or parry tutorial. Clicking an enemy approaches to the chosen attack range and repeats attacks; clicking ground stops attacking and attempts retreat. Enemies may pursue until their leash ends, so make the route back to safety clear. Explain the shield's passive mitigation; do not imply a block button exists.
 
-The current shared baseline is 100 player health; unarmed 1–3 damage every 1.5 seconds; Stone Sword 3–5; Wooden Shield reduces incoming damage by one, to a minimum of one. Scrapper: 50 health, 1–10 damage every 2.5 seconds, cannot reduce the player below one health. Bruiser: 100 health, 3–20 damage every two seconds, can cause defeat. These values are verified in the current code, not final balance for new weapons.
+Combat now uses the shared COMBAT.md formulas for player and enemy attacks. At starting stats every attack takes 2.5 seconds: bare hands 1–12, Stone Sword 4–18, Copper Dagger 6–22, Training Bow 6–22, Energy Strike 1–22 (about 2.94 seconds, 4 Mana). Wooden and Copper Shields add 3% and 5% resistance. Scrapper: 50 health, 1–10 damage, cannot reduce the player below one health. Bruiser: 100 health, 3–20 damage, can cause defeat. Practice targets have 50 health and award half XP until the receiving track reaches level 3. These values are verified in the current code; tutorial balance still needs a full playthrough.
 
-Start Copper Dagger at the sword's 3–5 damage / 1.5-second cadence and Copper Shield at the existing one-point mitigation. The improvement is over bare hands; there is no promised copper-versus-stone upgrade tier yet. Tune only after playing the complete sequence. The new 50/100 HP and 10/20 max-hit enemy baselines are provisional pending the combat redesign; the old goal of a comfortably winnable equipped Bruiser is not yet rebalanced. Eventually, unarmed attempts should be visibly harder. Random rolls must not make the introductory lesson feel arbitrary.
+Copper gear (+10 Power/Accuracy dagger, +50 resistance shield) is the intended upgrade over bare hands and the weaker Stone Sword (+6/+6) and Wooden Shield (+30). Tune only after playing the complete sequence. Random rolls must not make the introductory lesson feel arbitrary.
 
 Equipment now uses item definitions and explicit hand slots instead of `swords`/`shields` boolean slot ownership. One main-hand weapon at a time; dagger plus shield is legal, a bow occupies both hands, cosmetics remain separate. Equipping a bow returns a shield to inventory, with clear feedback. Removing the last owned copy clears its equipped slot. Prevent equipment changes during working/combat as the current system does. Damage, reach, cadence, held models, and animation come from equipped definitions, not area checks or “has sword” special cases.
 
@@ -141,14 +141,14 @@ Sarge's graduation reveals two independent optional quest invitations. Neither i
 - Consume one arrow when a shot is committed, including misses. Moving before release spends nothing; moving after release cannot refund ammunition or duplicate the hit. Empty ammunition stops attacks and offers a clear instruction.
 - Fletch uses the shared supply-offer interaction to replenish Training Arrows when none remain, so a missed practice shot cannot stall the lesson. Bow acquisition is idempotent; provide replacement access if it is lost later. No fletching or arrow-crafting lesson in this chapter.
 
-### Wisp: First Spark
+### Wisp: First Spark (Energy Strike)
 
-- Accept to learn **Spark**, a permanent basic offensive spell, through the shared learn-spell API. Wisp's tutorial is one configured source of that grant; the spell system never checks whether Wisp was met or Cinderhold was visited. Select it through a shared spell UI; it remains usable away from Wisp and Cinderhold.
-- Proposed first pass: no staff, rune item, or mana system. Spell selection activates magic attacks; switching back to a weapon/unarmed style uses the same shared combat selection. Worn gear remains owned, and casting does not silently destroy or unequip it; weapon damage bonuses do not apply to Spark.
-- Cast at an inert target, then defeat one forgiving shared practice enemy with Spark. Teach range, line of sight, cast cadence, projectile impact, and cancellation using the real combat controller.
-- Start with a four-tile range and a clearly visible cast/recovery cycle. Numeric damage and cadence need balancing alongside the bow; neither optional style should trivialize the rest of the tutorial.
+- Accept to learn **Energy Strike**, a permanent basic offensive spell, through the shared learn-spell API. Wisp's tutorial is one configured source of that grant; the spell system never checks whether Wisp was met or Cinderhold was visited. Select it through a shared spell UI; it remains usable away from Wisp and Cinderhold.
+- Energy Strike costs 4 Mana per cast at the shared release-time cost rule; Mana regenerates passively and at Iter Crystals. No staff or rune item is required. Spell selection activates magic attacks; switching back to a weapon/unarmed style uses the same shared combat selection. Worn gear remains owned, and casting does not silently destroy or unequip it; weapon damage bonuses do not apply to spells.
+- Cast at an inert target, then defeat one forgiving shared practice enemy with Energy Strike. Teach range, line of sight, cast cadence, projectile impact, and cancellation using the real combat controller.
+- Six-tile range and a clearly visible cast/recovery cycle. Numeric damage and cadence need balancing alongside the bow; neither optional style should trivialize the rest of the tutorial.
 
-Use the existing Combat skill for all three styles in this draft. Separate Ranged/Magic skills, mana, runes, advanced spells, and fletching remain future design decisions. Inert targets give feedback but no kill rewards/XP. Live practice enemies use normal one-time victory rewards and repeatable respawn. Neither optional fight gets a special parallel combat simulation.
+All three styles train their own combat skills and proficiencies per attack (COMBAT.md). Runes, advanced spells and fletching remain future design decisions. Inert targets award half XP until each receiving track reaches level 3. Live practice enemies use normal one-time victory rewards and repeatable respawn. Neither optional fight gets a special parallel combat simulation.
 
 ## Iter Crystal: choose a destination
 
@@ -237,7 +237,7 @@ Chapter reset requests shared cancellation and scoped entity/effect resets for i
 
 ## Review before implementation
 
-The draft uses Cinderhold / Bristle / Borin / Fletch / Wisp as working names; four ore for dagger and shield; one Smithing skill; Combat XP shared across styles; free introductory ammunition and a no-mana Spark; and all three crystal destinations available after the first crystal reveal. The user accepted the overall direction and confirmed escalating tutorial sizes leading to a massive chunk-streamed open world. Numerical balance, exact map coordinates, the proposed 40 × 32 footprint and remaining detailed defaults can be refined during implementation planning and playtesting. Shared gameplay ownership and Cinderhold being the largest tutorial area are requirements.
+The draft uses Cinderhold / Bristle / Borin / Fletch / Wisp as working names; four ore for dagger and shield; one Smithing skill; Combat XP shared across styles; free introductory ammunition and Energy Strike (originally a no-mana Spark); and all three crystal destinations available after the first crystal reveal. The user accepted the overall direction and confirmed escalating tutorial sizes leading to a massive chunk-streamed open world. Numerical balance, exact map coordinates, the proposed 40 × 32 footprint and remaining detailed defaults can be refined during implementation planning and playtesting. Shared gameplay ownership and Cinderhold being the largest tutorial area are requirements.
 
 ### Bristle introduction revision — 2026-10-06
 

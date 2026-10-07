@@ -232,7 +232,7 @@ The map introduces a rocky cavern/ruined training-hall appearance and must be th
 
 All three areas use a shared Iter Crystal destination menu listing The Clearing, Willowbank, and Cinderhold after the first crystal reveal, marking the current area and recommending the next lesson without locking destinations. This soft ordering guides the tutorial sequence without locking gameplay behind an area visit. Selection followed by Travel uses the existing shared transition and safe-arrival validation.
 
-The implementation extends the app-owned combat, equipment, resources, recipes, NPC presentation, area runtime and travel systems. Area code owns layout/configuration and narrative. Copper processing, hand-slot equipment, ranged/Spark actions, supply offers and the picker have production-backed playground fixtures/previews and chapter checkpoints. Static terrain batching reduces draw calls while retaining logical tile picking; it is not chunk streaming. See the handoff for tested interactions and remaining polish.
+The implementation extends the app-owned combat, equipment, resources, recipes, NPC presentation, area runtime and travel systems. Area code owns layout/configuration and narrative. Copper processing, hand-slot equipment, ranged/Energy Strike actions, supply offers and the picker have production-backed playground fixtures/previews and chapter checkpoints. Static terrain batching reduces draw calls while retaining logical tile picking; it is not chunk streaming. See the handoff for tested interactions and remaining polish.
 
 ## Small-screen menus and model previews
 

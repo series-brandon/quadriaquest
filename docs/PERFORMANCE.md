@@ -121,16 +121,14 @@ Each entry: change, then measured effect (environment and scenario).
 
 | 2026-10-06 | Interactive minimap, 100-point resources, sprint drain, shared orb UI; added minimap-sprint scenario | dev-gpu: all 9 scenarios PASS (~59.5–59.9 fps); minimap-sprint 1.81 ms/frame, 183 draws. Focused low-perf: menus and minimap-sprint PASS (~20 fps); clearing-walk WARN for −11.9% fps vs stored baseline, no FAILs. Software-rendered results are not representative of normal gameplay. Reports: `perf/results/2026-10-06T07-01-32-115Z` and `perf/results/2026-10-06T07-03-52-379Z`. No baseline changes. |
 
-
-## Backlog (largest expected gain first)
+| 2026-10-07 | Player progression slice: formula-driven combat, per-attack XP labels, passive regeneration, character Skills/Combat UI | dev-gpu full suite: 8/9 PASS (59.5–59.8 fps, 0.6–2.6 ms/frame). `cinderhold-combat` FAIL on draws 584 vs 538.6 (+8.4%): its screenshot shows one more goblin on screen, because fights now last long enough for the recruit-yard Scrapper to stay alive, and a fight in progress where the baseline frame showed none. Frame time stays 2.7–2.8 ms at 59.5+ fps. Per-attack XP labels first raised mutations to ~229/s and layouts to ~56/s; floating XP and hit splats now write one composited transform per frame (no left/top), giving ~123/s and ~9/s. Enemy health labels also use transform; that did not measurably change layouts (insertion/text changes dominate). **Baseline not yet updated**: `--update-baseline` rewrites every scenario, so it needs a full run with a note. |
 
 1. **Adaptive render quality for weak GPUs.** `low-perf` clearing-idle is about 17 fps while main-thread time is about 5 ms, so it is fill-rate bound. Options: lower pixel ratio and shadow map size, cheaper shadow filter, and antialias off when frame time stays high.
 2. **Redraw the shadow map only when shadow casters move.**
 3. **Remove the per-frame `document.querySelector('dialog[open]')` in the main loop.** It shows up among the hottest functions in the low-perf profile; track open dialogs on open/close instead.
 4. **Skip or throttle the 3D render under opaque fullscreen menus** (mobile).
 5. **Instance trees, boulders and resource meshes per kind** (Willowbank ~1,000 and Cinderhold ~1,900 scene objects).
-6. **Position enemy health labels with `transform`, not `left`/`top`.** During fights it forces about one layout per frame (~40 layouts/s in `cinderhold-combat`).
-7. **Render the dialogue portrait at 30 fps.** `dialogue` spends ~0.9 ms/frame in `world` on dev-gpu versus ~0.1 ms when idle.
+6. **Render the dialogue portrait at 30 fps.** `dialogue` spends ~0.9 ms/frame in `world` on dev-gpu versus ~0.1 ms when idle.
 
 ## CI (planned)
 

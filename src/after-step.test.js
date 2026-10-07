@@ -17,7 +17,7 @@ function fixture(){
 test('food and crafting wait for the current step, then run once using production actions',()=>{
  const f=fixture();assert.ok(f.food.start('cookedFish'));assert.equal(f.queue.pending,'Eating');
  f.food.update(20);f.queue.flush();assert.equal(f.stops,0);assert.equal(f.inventory.cookedFish,3);assert.equal(f.health.value,10);
- f.land();assert.equal(f.food.working,true);assert.equal(f.queue.pending,null);f.food.update(20);f.queue.flush();assert.equal(f.health.value,20);assert.equal(f.inventory.cookedFish,2);assert.equal(f.stops,1);
+ f.land();assert.equal(f.food.working,true);assert.equal(f.queue.pending,null);f.food.update(20);f.queue.flush();assert.equal(f.health.value,30);assert.equal(f.inventory.cookedFish,2);assert.equal(f.stops,1);
  f.walk();assert.ok(f.craft.start('axes'));assert.equal(f.craft.working,false);f.craft.update(20);assert.equal(f.inventory.axes,undefined);
  f.land();assert.equal(f.craft.state.age,0);f.craft.update(20);f.queue.flush();assert.equal(f.inventory.axes,1);assert.equal(f.inventory.sticks,2);assert.equal(f.stops,2);
 });

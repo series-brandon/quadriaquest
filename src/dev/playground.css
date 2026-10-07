@@ -60,3 +60,6 @@
 #quadriaquest-dev-playground .dev-loop-control input{margin:0}
 
 #quadriaquest-perf-hud{position:fixed;left:max(8px,env(safe-area-inset-left));top:max(8px,env(safe-area-inset-top));z-index:2147483000;margin:0;padding:8px 10px;max-width:calc(100vw - 16px);background:#1d1724e6;color:#e9f5d8;font:11px/1.45 ui-monospace,Menlo,monospace;border-radius:8px;white-space:pre-wrap;pointer-events:none}
+#quadriaquest-dev-playground .dev-sheet{width:100%;border-collapse:collapse;font-size:12px}
+#quadriaquest-dev-playground .dev-sheet th,#quadriaquest-dev-playground .dev-sheet td{padding:2px 6px;text-align:left;border-bottom:1px solid rgba(255,255,255,.12)}
+#quadriaquest-dev-playground .dev-sheet td+td,#quadriaquest-dev-playground .dev-sheet th+th{text-align:right}

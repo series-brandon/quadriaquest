@@ -12,7 +12,7 @@ export function previewLoadout(options={}){
 }
 export function previewCombat(motion,options={}){
  const loadout=previewLoadout(options),magic=options.style==='magic';
- const profile={...(magic?SPELLS.spark:GEAR[loadout.mainHand]||{style:'unarmed',interval:1.5}),...loadout,item:magic?null:loadout.mainHand,attackMotion:options.attackMotion||null,blockMotion:options.blockMotion||null};
+ const profile={...(magic?SPELLS.energyStrike:GEAR[loadout.mainHand]||{style:'unarmed',interval:1.5}),...loadout,item:magic?null:loadout.mainHand,attackMotion:options.attackMotion||null,blockMotion:options.blockMotion||null};
  const attack=resolveAttackMotion(profile);profile.interval=attack==='bow'?1.7:attack==='cast'?1.8:1.5;
  return {profile,kind:motion==='Block'?'Block':attack==='bow'?'Archery':attack==='cast'?'Casting':'Combat'};
 }
