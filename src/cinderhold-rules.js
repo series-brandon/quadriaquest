@@ -1,4 +1,4 @@
-export const CINDERHOLD={crystal:[7,27],sarge:[12,25],smith:[12,14],ranger:[31,26],mage:[30,6],furnace:[14,12],anvil:[16,14],shelf:[11,16],scrapper:[18,25],bruiser:[30,15],rangedTarget:[35,25],rangedEnemy:[35,21],magicTarget:[34,6],magicEnemy:[34,10]};
+export const CINDERHOLD={crystal:[7,27],sarge:[12,25],smith:[12,14],ranger:[31,26],mage:[30,6],furnace:[14,12],anvil:[16,14],shelf:[11,16],scrapper:[18,25],bruiser:[30,15],rangedTarget:[35,25],rangedEnemy:[35,21],magicTarget:[34,6],magicEnemy:[34,10],ki:[3,4]};
 export function makeCinderholdTiles(){
  const tiles=[];
  for(let z=1;z<=32;z++)for(let x=1;x<=40;x++){
@@ -10,8 +10,8 @@ export function makeCinderholdTiles(){
 export const TRAINING_STEPS=['meet','unarmed','report','smith','mine','smelt','dagger','shield','equip','return','bruiser','graduate','finished'];
 // Story state only: facts come from shared gameplay completion events, never inventory mutation.
 export function createTrainingProgress(){
- const state={phase:'meet',refused:false,entered:false,ore:0,ingots:0,dagger:0,shield:0,unarmed:false,bruiser:false,ranged:'offer',magic:'offer'};
- return {state,reset(){Object.assign(state,{phase:'meet',refused:false,entered:false,ore:0,ingots:0,dagger:0,shield:0,unarmed:false,bruiser:false,ranged:'offer',magic:'offer'});},
+ const state={phase:'meet',refused:false,entered:false,ore:0,ingots:0,dagger:0,shield:0,unarmed:false,bruiser:false,ranged:'offer',magic:'offer',ki:'offer'};
+ return {state,reset(){Object.assign(state,{phase:'meet',refused:false,entered:false,ore:0,ingots:0,dagger:0,shield:0,unarmed:false,bruiser:false,ranged:'offer',magic:'offer',ki:'offer'});},
   event(type,data){if(!state.entered)return;
    if(type==='resource'&&data.copperOre)state.ore+=data.copperOre;
    if(type==='crafted'){if(data==='copperIngots')state.ingots++;if(data==='copperDagger')state.dagger++;if(data==='copperShield')state.shield++;}

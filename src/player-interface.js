@@ -3,11 +3,11 @@ import {mountMinimapControls} from './minimap-controls.js';
 import {icon} from './icons.js';
 import {ITEMS} from './items.js';
 import {FOODS} from './player-health.js';
-import {GEAR} from './equipment.js';
+import {GEAR,ARMOR_SLOTS} from './equipment.js';
 import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems,partitionMobileTabs} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
-export function createPlayerInterface({menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styleMenu,auras,knowsAbility=()=>false}){
+export function createPlayerInterface({menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styleMenu,auras,knowsAbility=()=>false,playerControl=null,assistance=null}){
  const $=id=>document.getElementById(id),mobile=matchMedia('(max-width:700px)');
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
  const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div><button id="quick-food">${icon('quickEat')}<span></span></button><small id="player-combat-status" role="status"></small>`;
@@ -70,10 +70,12 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  $('game-menu-toggle').addEventListener('click',()=>{if(hidden){hidden=false;layout();} });
  $('quick-food').onclick=()=>{if(food.start(quickFood))reaction('action');};
  function renderGear(){
-  const signature=JSON.stringify(equipment.state)+Object.keys(GEAR).map(id=>`${inventory[id]}:${equipment.inventoryActions(id)[0]?.disabled}`).join();if(signature===gearSignature)return;gearSignature=signature;
+  const signature=JSON.stringify(equipment.slots)+Object.keys(GEAR).map(id=>`${inventory[id]}:${equipment.inventoryActions(id).map(a=>a.label+a.disabled)}`).join();if(signature===gearSignature)return;gearSignature=signature;
   const list=gear.querySelector('.equipment-list');list.replaceChildren();
-  for(const [slot,label] of [['main','Main hand'],['off','Off hand'],['head','Head']]){const p=document.createElement('p');p.textContent=label+': '+(ITEMS[equipment.slots[slot]]?.name||'Empty');list.append(p);}
-  for(const id of Object.keys(GEAR).filter(id=>inventory[id]>0)){const b=document.createElement('button'),action=equipment.inventoryActions(id)[0];b.innerHTML=icon(id);b.append(document.createTextNode(`${ITEMS[id].name} · ${action.label}`));b.disabled=action.disabled;b.onclick=()=>{action.run();renderGear();menus.refresh();};list.append(b);}
+  // Armor slots appear once something can fill them.
+  const slots=equipment.slots,armorOwned=Object.keys(GEAR).some(id=>GEAR[id].armor&&inventory[id]>0);
+  for(const [slot,label] of [['main','Main hand'],['off','Off hand'],['head','Head'],...(armorOwned?ARMOR_SLOTS.map(s=>[s,s[0].toUpperCase()+s.slice(1)]):[])]){const p=document.createElement('p');p.textContent=label+': '+(ITEMS[slots[slot]]?.name||'Empty');list.append(p);}
+  for(const id of Object.keys(GEAR).filter(id=>inventory[id]>0))for(const action of equipment.inventoryActions(id)){const b=document.createElement('button');b.innerHTML=icon(id);b.append(document.createTextNode(`${ITEMS[id].name} · ${action.label}`));b.disabled=action.disabled;b.onclick=()=>{action.run();renderGear();menus.refresh();};list.append(b);}
  }
  function drawMap(){
   const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=mapControls.radius;mapCenter={x:p.x,z:p.z};
@@ -109,7 +111,8 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
   reset(){mapControls.reset();hidden=false;quickFood='cookedFish';journal.compact();menus.closeMenus();layout();},
   update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();if(!visible)return;
    const action=food.inventoryActions(quickFood)[0];const button=$('quick-food'),signature=[quickFood,inventory[quickFood],food.working,!!action?.disabled].join(':');if(signature!==foodSignature){foodSignature=signature;button.disabled=!inventory[quickFood]||!!action?.disabled;button.querySelector('span').textContent=food.working?'Eating…':'Eat';button.title=`${ITEMS[quickFood].name} ×${inventory[quickFood]||0}`;button.setAttribute('aria-label',`${food.working?'Eating':'Quick eat'} ${button.title}`);}
-   const status=performance.now()<messageUntil?lastMessage:combat.working?'In combat · Auto-Retaliate '+(combat.autoRetaliate?'On':'Off'):'';if($('player-combat-status').textContent!==status)$('player-combat-status').textContent=status;
+   // Control effects and their immunity windows are always shown; advisory danger comes from assistance.
+   const control=playerControl?.summary||'',advice=assistance?.warning||'',status=[performance.now()<messageUntil?lastMessage:'',advice,control].filter(Boolean).join(' · ')||(combat.working?'In combat · '+(assistance?.modeLabel||'Auto-Retaliate '+(combat.autoRetaliate?'On':'Off')):'');if($('player-combat-status').textContent!==status)$('player-combat-status').textContent=status;
    for(const orb of resourceOrbs)orb.update();
    const strike=$('quick-strong-strike'),queued=combat.pending==='strongStrike'||!!combat.committedAbility,known=knowsAbility('strongStrike'),strikeLabel=!known?'Strong Strike — not learned':queued?'Strong Strike queued for your next melee attack (press to withdraw)':'Strong Strike (50 Energy, next melee attack)';
    if(strike.disabled===known)strike.disabled=!known;if(strike.getAttribute('aria-pressed')!==String(queued))strike.setAttribute('aria-pressed',String(queued));if(strike.title!==strikeLabel){strike.title=strikeLabel;strike.setAttribute('aria-label',strikeLabel);}

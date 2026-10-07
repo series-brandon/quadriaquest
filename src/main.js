@@ -9,10 +9,12 @@ import {CINDERHOLD} from './cinderhold-rules.js';
 import {createCinderhold} from './cinderhold.js';
 import {createStationCrafting} from './station-crafting.js';
 import {createDestinationMenu} from './destination-menu.js';
-import {createCombatStyles} from './combat-styles.js';
+import {createCombatStyles,SPELLS} from './combat-styles.js';
 import {createCombatStyleMenu} from './combat-style-menu.js';
 import {createCharacter,TRACKS} from './character.js';
 import {createAuras} from './auras.js';
+import {createControlState} from './control-effects.js';
+import {createAssistance} from './assistance.js';
 import {playerDefense} from './combat-profile.js';
 import {createSupplyOffers} from './supply-offers.js';
 import {createProjectileEffects} from './projectile-effects.js';
@@ -24,7 +26,7 @@ import {createCrystals} from './crystals.js';
 import {createEquipmentPresentation} from './equipment-presentation.js';
 import {portalSpawn} from './portal-spawn.js';
 import {createCombatSystem} from './combat.js';
-import {createEquipment} from './equipment.js';
+import {createEquipment,GEAR} from './equipment.js';
 import {createCombatFeedback} from './combat-feedback.js';
 import './combat.css';
 import {createResourceActions} from './resource-actions.js';
@@ -146,7 +148,7 @@ const opening=(playground?.createFreeOpening||createOpening)({player,visual,face
  setColor(color){body.material.color.set(color);expressionFace.setBodyColor(color);},
  showClearing(){clearingGroup.visible=true;for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
-let finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
+let assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const hammerTool=heldTool('hammers');hands[0].add(hammerTool);hammerTool.visible=false;
 const fishingPresentation=createFishingPresentation({player,hands});
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
@@ -155,7 +157,9 @@ const playerResources=createPlayerResources();
 const health=createPlayerHealth(),healthUI=createHealthUI(health);
 // Resource maxima follow capacity attributes; current amounts are kept and only clamped.
 const character=createCharacter({changed(){const m=character.maxima;health.max=m.health;for(const k of ['mana','stamina','energy','ki'])playerResources[k].max=m[k];}});
-const auras=createAuras({ki:playerResources.ki,exhausted:()=>toast('Out of Ki — all auras faded. Ki recovers while they are off.')});
+// Player control effects (stun/immobilize/slow and protection) use the same shared state as enemies.
+const playerControl=createControlState();
+const auras=createAuras({ki:playerResources.ki,exhausted:()=>{assistance?.auraExhausted();toast('Out of Ki — all auras faded. Ki recovers while they are off.');}});
 const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,startCraft:id=>recipeCrafting.start(id),craftState:()=>recipeCrafting?.state,craftBusy:()=>!!recipeCrafting?.working||combat?.working||combat?.busy,equipment:{state:()=>equipment?.state,isEquipped:id=>equipment?.isEquipped(id),actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[])]}});
 const craftingTutorial=createCraftingTutorial({menus,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
 // Combat skills always list; proficiencies and armor skills appear once trained (Unarmed from the start).
@@ -187,7 +191,7 @@ styles=createCombatStyles({equipment,busy:()=>combat?.working||combat?.busy||smi
 const supplies=createSupplyOffers({inventory,changed:showItemChanges});
 const projectiles=createProjectileEffects(scene);
 const equipmentPresentation=createEquipmentPresentation({hands,visual,equipment});
-combat=createCombatSystem({world,player,health,equipment,inventory,character,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:showItemChanges,projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
+combat=createCombatSystem({world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:showItemChanges,projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
  attacked:()=>playerInterface?.attacked(),interrupt:()=>cancelWork({keepCombat:true,keepFood:true}),retaliate:a=>selectActor(a),eating:()=>food?.working,
  blocked:()=>!areas.canMove||travel.busy,
  inReach:a=>!segment&&!path.length&&withinAttackRange(world,tile,a,styles.attack.range),
@@ -201,7 +205,7 @@ combat=createCombatSystem({world,player,health,equipment,inventory,character,man
   const free=t=>t&&!t.blocked&&!t.water&&!companions.occupies(t);
   const landing=crystals.map(a=>portalSpawn(world,a.tile)).find(free)||[...world.values()].filter(free).sort((a,b)=>Math.hypot(a.x-tile.x,a.z-tile.z)-Math.hypot(b.x-tile.x,b.z-tile.z))[0];
   if(!landing)return false;tile=landing;player.position.set(tile.x-6,tile.h,tile.z-6);return true;},
- respawned(){toast('Recovered safely. Your items and progress are intact.');}
+ respawned(){playerControl.reset();toast('Recovered safely. Your items and progress are intact.');}
 });
 resourceActions=createResourceActions({world,inventory,skills:{Gathering:gatheringSkill,Lumberjack:lumberjackSkill,Mining:miningSkill},
  stop:()=>stopAll({keepMenu:true}),busy:()=>!canMove()||combat?.working,inReach:node=>!segment&&!path.length&&interactionRoute(world,tile,node)?.route.length===0,
@@ -291,12 +295,13 @@ areas.register({id:'willowbank',name:'Willowbank',recommendedDestination:'cinder
  craftStarted:()=>willow.craftStarted(),crafted:id=>willow.crafted(id),foodEaten:()=>willow.foodEaten(),campfirePlaced:a=>willow.campfirePlaced(a),campfireCooked:(id,a)=>willow.campfireCooked(id,a),get campfireGuide(){return willow.campfireGuide;},
  interact:a=>willow.interact(a),clearUI:()=>willow.debug?.clearUI(),reset:()=>willow.debug?.stage('meet')
 });
-cinder=createCinderhold({scene,world,pickables,crystals,dialogue:characterDialogue,resources:resourceActions,combat,equipment,styles,supplies,openStation,player,stop:stopAll,toast,
+cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:characterDialogue,resources:resourceActions,combat,equipment,styles,supplies,openStation,player,stop:stopAll,toast,
  hover:()=>hover?.actor||hover?.tree||hover?.resource,approach:selectActor,openInventory:()=>menus.openInventory(),tip:(...args)=>craftingTutorial.showChapterTip(...args),hideTip(){document.getElementById('gather-tutorial').hidden=true;},
  working:()=>!!actorTarget||!!segment||path.length>0||combat.working||smithing.working||resourceActions.working||food.working||recipeCrafting.working
 });
 areas.register(cinder);
-styleMenu=createCombatStyleMenu({styles,combat,auras,beforeOpen:()=>menus.closeMenus('switch'),busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
+assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0,changed:()=>styleMenu?.refresh()});
+styleMenu=createCombatStyleMenu({styles,combat,auras,assistance,equipment,character,health,beforeOpen:()=>menus.closeMenus('switch'),busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
 areas.activate('clearing',{announce:false});
 function canMove(){return areas.canMove&&!travel.busy&&!combat?.busy;}
 
@@ -315,7 +320,9 @@ function selectTree(tree){
  combat.disengage();cancelWork({keepCombat:true});target=null;gatherTime=0;chopTarget=tree;path=result.route;
  feedback.destination(result.at);
 }
-function selectActor(actor){
+// manual: a deliberate player selection (pointer). Pacifist refuses attacks; Auto records a target override.
+function selectActor(actor,manual=false){
+ if(actor.enemy&&manual){if(!assistance.canAttack(actor))return;assistance.noteManualAttack(actor);}
  if(campfires?.placing){campfires.selectPlacement(actor.tile);return;}
  if(!canMove()||!actor.ready||actor.opened||actor.depleted)return;
  if(actorTarget===actor||combat.matches(actor)||companions.matches(actor)||resourceActions.matches(actor)||carpentry.matches(actor)||fishing.matches(actor))return;
@@ -362,7 +369,7 @@ canvas.addEventListener('pointerup',e=>{
  if(activePointers.size===1&&down?.button===0&&!dragged)idleClock.wake();
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=terrainHitData(hit);
-  if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
+  if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
   else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the area.');}
  }
  activePointers.delete(e.pointerId);pinchDistance=null;
@@ -416,7 +423,8 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  equipment.refresh();
  combatFeedback.update(dt,camera);
  const combatMotion=combat.update(dt,elapsed,camera);
- auras.update(dt);
+ auras.update(dt);playerControl.update(dt);
+ assistance.update(dt);
  playerResources.regenerate(dt,{health,attribute:character.attribute,inCombat:combat.inCombat,aurasActive:auras.anyActive});
  healthUI.update(opening.playable);
  const resourceMotion=resourceActions.update(dt);
@@ -439,7 +447,8 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  let pose=idlePose(elapsed),handWork=null,expression=elapsed<happyUntil?'happy':'idle',socialHands=null;
  if(asleep){const social=socialMotion('Sleeping',idleClock.sleepTime);pose=social.pose;expression=social.expression;socialHands=social.hands;}
  if(!segment&&path.length&&companions.cannotYield(path[0])){path=[];target=null;feedback.clearDestination();toast("Your companion needs room to move aside.");}
- if(!segment&&path.length&&!companions.occupies(path[0])){
+ // Stun/immobilize let the current step finish but start no new one.
+ if(!segment&&path.length&&!companions.occupies(path[0])&&playerControl.can('move')){
   const to=path.shift();segment={from:player.position.clone(),to,age:0,height:to.h-player.position.y};
   facing=Math.atan2(to.x-tile.x,to.z-tile.z);
  }
@@ -448,7 +457,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  player.rotation.y+=turn*(1-Math.exp(-dt*16));
  if(segment){
   // Celerity (+0.2% per point) and Rush add to sprint against base walking speed.
-  segment.age+=playerResources.advance(dt,true,character.attribute('celerity')*.002+auras.movementBonus);
+  segment.age+=playerResources.advance(dt,true,character.attribute('celerity')*.002+auras.movementBonus)*(1-playerControl.slowFraction);
   const stepped=Math.abs(segment.height)>.01;
   expression=stepped?(segment.age<.32?'preparing':'struggle'):'focused';
   const duration=stepped?STEP_DURATION:1/2.4;
@@ -602,7 +611,15 @@ if(__PLAYGROUND__){
   questsLesson(){stopAll();craftingTutorial.reset();craftingTutorial.startQuests();},
   skillsLesson(){stopAll();Object.assign(gatheringSkill,{xp:120,level:2});Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startSkills();},
   // Every character track is reachable here, including proficiencies not yet shown in Skills.
-  skills:{...playerSkills(),...Object.fromEntries(TRACKS.map(d=>[d.name,character.tracks[d.id]]))},character,auras,combatPreview:()=>combat.preview(),
+  skills:{...playerSkills(),...Object.fromEntries(TRACKS.map(d=>[d.name,character.tracks[d.id]]))},character,auras,assistance,playerControl,combatPreview:()=>combat.preview(),
+  // Test-only control sources: the shared control state is real; nothing in content applies these yet.
+  controlTest(action){const enemy=combat.engagedEnemy||combat.nearestEnemy(),effects={stun:{kind:'stun',duration:3,protection:6},immobilize:{kind:'immobilize',duration:3,protection:6},slow50:{kind:'slow',id:'test-slow-50',fraction:.5,duration:5,refresh:true},slow30:{kind:'slow',id:'test-slow-30',fraction:.3,duration:10,refresh:false}};
+   if(action==='cleanse'){const ok=playerControl.cleanse({categories:['movement'],grant:10});return ok?'Cleansed movement control; 10s protection (longest window kept).':'Nothing to cleanse and protection already at least 10s.';}
+   const [who,kind]=action.split(':'),target=who==='enemy'?enemy?.control:playerControl;if(!target)return 'No enemy nearby.';
+   const r=target.apply(effects[kind]);return `${who==='enemy'?enemy.rules.name:'You'}: ${kind} ${r.applied?(r.refreshed?'refreshed':'applied'):'rejected — '+r.reason}.`;},
+  // Dev-only requirement override so the real backfire path can be exercised (Full test area restores 1).
+  spellRequirement(level){SPELLS.energyStrike.requirements['magic.technique']=Math.max(1,level);},
+  addTestArmor(){for(const id of Object.keys(GEAR))if(GEAR[id].armor)inventory[id]=Math.max(1,inventory[id]||0);menus.refresh();},
   learnCombatKit(on){if(on){styles.learnAbility('strongStrike');auras.learn('rush');auras.learn('harden');}else{auras.reset();styles.reset();}},queueStrongStrike:()=>combat.queue('strongStrike'),combatPending:()=>({pending:combat.pending,committed:combat.committedAbility,cooldown:food.cooldown}),combatDefense(){const p=combat.preview();return playerDefense(character,{activeStyle:p.combatStyle,strategy:p.strategy,shield:equipment.shield,bonusResistancePct:auras.resistancePct});},
   willow,areaId:()=>areas.id,travelTo:id=>{finale.ensurePortal();return travel.request(id);},cancelTravel:()=>travel.cancel(),usePortal(){const crystal=crystals.current()[0];if(crystal)selectActor(crystal);},resetFinale(){travel.cancel();if(areas.id!=='clearing')areas.activate('clearing',{landing:clearingTiles.get(key(SPAWN.x,SPAWN.z)),arrival:false});finale.reset();},enterWillow(){craftingTutorial.reset();opening.enterFreePlay();finale.ensurePortal();travel.request('willowbank');},
   equipment,inventory,player,feedback,getTile:()=>tile,finale,
@@ -615,7 +632,7 @@ if(__PLAYGROUND__){
    travel.cancel();if(areas.id!=='clearing'||kind==='all'){areas.activate('clearing',{landing:clearingTiles.get(key(SPAWN.x,SPAWN.z)),arrival:false});finale.reset();}if(kind==='all'){craftingTutorial.reset();opening.enterFreePlay();resetObjectives();for(const object of clearingObjects)object.visible=true;introTile.visible=false;player.visible=true;}
    clearSkillRewards();itemFeed.clear();clearTimeout(toastTimer);$('toast').classList.remove('visible');
    resourceActions.resetWhere(n=>clearingTiles.get(key(n.x,n.z))===n.tile&&(kind==='all'||kind==='items'&&!['tree','boulder'].includes(n.kind)||kind==='trees'&&n.kind==='tree'||kind==='boulders'&&n.kind==='boulder'));
-   if(kind==='all'){character.reset();auras.reset();playerResources.reset();health.restore();playerInterface?.reset();combat.setAutoRetaliate(true);trainingFixtures.clear();cinder.reset();styles.reset();supplies.reset();destinations.reset();combatFixtures.clear();combat.clear();equipment.reset();carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of Object.values(playerSkills()))Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
+   if(kind==='all'){character.reset();auras.reset();playerControl.reset();assistance.reset();if(__PLAYGROUND__)SPELLS.energyStrike.requirements['magic.technique']=1;playerResources.reset();health.restore();playerInterface?.reset();combat.setAutoRetaliate(true);trainingFixtures.clear();cinder.reset();styles.reset();supplies.reset();destinations.reset();combatFixtures.clear();combat.clear();equipment.reset();carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of Object.values(playerSkills()))Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
    if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}
    menus.refresh();
   },
@@ -629,7 +646,7 @@ if(__PLAYGROUND__){
 }
 const journal=mountJournal(menus,craftingTutorial,settingsUI);
 createCompanionMenu(companions,{closeMenus:()=>menus.closeMenus('switch'),canClose:()=>menus.events.beforeClose?.('automatic')!==false});
-playerInterface=createPlayerInterface({auras,knowsAbility:id=>styles.knowsAbility(id),menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
+playerInterface=createPlayerInterface({playerControl,assistance,auras,knowsAbility:id=>styles.knowsAbility(id),menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.

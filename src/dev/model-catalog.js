@@ -6,6 +6,7 @@ import {projectileModel} from '../projectile-effects.js';
 import {makeCrystal,animateCrystal} from '../crystal-model.js';
 import {goblin,animateGoblin} from '../enemy-model.js';
 import {tool,heldTool,heldToolHand} from '../tool-models.js';
+import {GEAR} from '../equipment.js';
 import {makeBridge} from '../bridge-model.js';
 import {fishingSpot,animateFishingSpot} from '../fishing-spot-model.js';
 import {campfire,animateCampfire} from '../campfire-model.js';
@@ -45,7 +46,7 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
  const rest=rig.hands.map(h=>h.position.clone());
  const trophyFish=makePondfish(),trophyHat=makeTopHat();rig.group.add(trophyFish,trophyHat);trophyFish.visible=trophyHat.visible=false;
  const trophyGeneric=new THREE.Mesh(new THREE.BoxGeometry(.38,.25,.25),new THREE.MeshStandardMaterial({color:'#d9b777'}));rig.group.add(trophyGeneric);trophyGeneric.visible=false;
- const tools={};{for(const id of ['swords','shields','hammers','rods','copperDagger','copperShield','bows']){tools[id]=heldTool(id);rig.hands[heldToolHand(id)].add(tools[id]);}tools.axes=makeAxe();tools.pickaxes=makePickaxe();rig.hands[0].add(tools.axes,tools.pickaxes);for(const [id,model] of Object.entries(tools)){model.name=`preview-tool-${id}`;model.visible=false;}}
+ const tools={};{for(const id of ['swords','shields','hammers','rods','copperDagger','copperShield','bows']){tools[id]=heldTool(id);rig.hands[heldToolHand(id)].add(tools[id]);}tools.copperDaggerOff=heldTool('copperDagger');rig.hands[1].add(tools.copperDaggerOff);tools.axes=makeAxe();tools.pickaxes=makePickaxe();rig.hands[0].add(tools.axes,tools.pickaxes);for(const [id,model] of Object.entries(tools)){model.name=`preview-tool-${id}`;model.visible=false;}}
 
  const bowPresentation=createBowPresentation(tools.bows,rig.hands);
  return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){
@@ -64,9 +65,10 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
   else if(motion==='Jump up'||motion==='Jump down'){const t=time%(STEP_DURATION+.5);pose=stepMotion(Math.min(t,STEP_DURATION),motion==='Jump up'?.5:-.5);lift=pose.lift+(motion==='Jump down'?.5:0);expression=t<.32?'preparing':t<STEP_DURATION?'struggle':'idle';}
   else if(motion==='Spawn landing'){pose=spawnMotion(time%1.8);lift=pose.lift;expression=time%1.8<.68?'struggle':'idle';}
   else if(motion==='Sliding'){pose=slideMotion(time%1);expression='focused';}
-  if(combatEquipmentVisible(actionKind))for(const id of [loadout.mainHand,loadout.offHand].filter(Boolean))tools[id].visible=true;
+  // Off-hand weapons use their own left-hand model, as in gameplay.
+  if(combatEquipmentVisible(actionKind)){if(loadout.mainHand)tools[loadout.mainHand].visible=true;if(loadout.offHand)tools[GEAR[loadout.offHand]?.offHand&&!GEAR[loadout.offHand]?.shield?loadout.offHand+'Off':loadout.offHand].visible=true;}
   if(!combat)bowPresentation.update(null);
-  if(loadout.mainHand&&!hands&&handWork===null&&(motion==='Idle'||motion==='Sliding'))hands=equipmentIdleHands(loadout);
+  if((loadout.mainHand||loadout.offHand)&&!hands&&handWork===null&&(motion==='Idle'||motion==='Sliding'))hands=equipmentIdleHands(loadout);
   if(motion==='Idle')expression=defaultExpression;
   if(expressionOverride&&expressionOverride.toLowerCase()!=='default')expression=expressionOverride.toLowerCase();
   rig.face.set(expression);bend(pose.bend||0);

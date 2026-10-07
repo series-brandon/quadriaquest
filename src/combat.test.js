@@ -114,8 +114,9 @@ test('incoming hits select equipment-aware blocking, but simultaneous player att
 for(const style of ['unarmed','ranged','magic'])for(const outcome of ['damage','dodge','zero'])test(`${style} provokes only at resolution, including ${outcome}`,()=>{
  const f=fixture();f.styles.learn('energyStrike');
  // Production attack definitions; enemy configuration forces dodge or full resistance deterministically.
- const attack=style==='unarmed'?{...UNARMED,item:null}:style==='ranged'?{...GEAR.bows,ammo:null,item:'bows'}:{...SPELLS.energyStrike,spell:'energyStrike',item:null};
- Object.defineProperty(f.styles,'attack',{get:()=>attack});
+ // Real equipment/spell selection: bow equipped with arrows, or Energy Strike selected.
+ if(style==='ranged'){f.inventory.bows=1;f.inventory.arrows=10;f.equipment.toggle('bows');}
+ if(style==='magic')f.styles.select('energyStrike');
  if(outcome==='dodge')f.a.rules={...f.a.rules,canDodge:true,dodgePercent:100};
  if(outcome==='zero')f.a.rules={...f.a.rules,resistancePct:{melee:100,ranged:100,magic:100}};
  const interval=style==='magic'?CAST_INTERVAL:PLAYER_INTERVAL;

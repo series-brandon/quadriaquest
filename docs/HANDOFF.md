@@ -20,6 +20,47 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Assistance, dual wield, backfire, armor, control effects and Ember — 2026-10-07
+
+- **Assistance** (`assistance.js`; Combat page rebuilt in `combat-style-menu.js`):
+  - **Mode and setup:** Manual/Auto with Pacifist in both. Defaults are Auto · Balanced · Melee · no training goal.
+  - **What Auto reads:** actual enemy stats (user decision). Danger bands use the final max hit after player defenses, and the warning shows in the HUD status line.
+  - **Retaliation:** Adaptive retaliation is withheld at 1–3 hits unless the player deliberately clicked that enemy. That override clears at the 5s combat exit. Manual uses Auto-Retaliate. Pacifist refuses manual and automatic attacks ("Cannot attack while in pacifist mode.") and stops the unreleased windup.
+  - **Auto choices:** strategy follows the training goal, otherwise as listed under "Needs review". Spells never use one with backfire risk unless allowed. Auto-eat triggers at ≤150% of the max hit, respects exclusions and manual-queue priority (unless emergency priority is enabled), and warns "Warning! Recommend fleeing!" when nothing is eligible. Auto auras follow the COMBAT.md rules (25% floor, recovery threshold, grace). Manual changes to strategy, spell or an aura stick until **Return to Auto**.
+  - **Optimize Equipment:** ranks DPS → reduction → current gear and fills armor slots; it also runs on a Class change. Advanced settings hold auto-eat, emergency priority, risky spells, food/spell exclusions, aura recovery % and grace.
+  - Settings are session-scoped like other preferences; Full test area resets them.
+- **Dual wield:**
+  - Copper Dagger is off-hand eligible; Stone Sword is not. Equipment offers main/off actions and respects owned copies. Shield hands and two-handed hands are never free fists.
+  - Attack hands: Main/Off/Alternate. The default is the weapon hand, or Alternate for two weapons or two fists. One sequential timer alternates only on release, keeps the pending hand through cancellation, and resets after the 5s exit.
+  - Each hand has its own damage type (dagger Piercing → stab, Slashing → slash). Off-hand strikes mirror the animation. The off-hand dagger has its own left-hand model in gameplay and the model viewer.
+- **Spell backfire:** resolved at release after costs, using the unclamped requirement ratio. It hits only the caster: 50% of the normal max, against magic, armor, shield and Harden resistance, with no dodge, block or crit. It never aggroes the target, grants base XP only under the target's rules, and can defeat. The Combat summary shows the chance, the damage and a lethal warning. Energy Strike (level 1) never backfires; a playground override raises its requirement.
+- **Armor:** shared slots (head = helm, chest, hands, legs, feet, back, ward). Each piece has its own armor-skill effectiveness (10% floor). Slot proficiency adds +0.02 resistance and +0.0001pp block per level. Connected hits award armor XP: the skill pool splits by class, the slot pool splits equally. Blocks give none. Only playground test pieces exist (`src/dev/test-armor.js`, excluded from normal builds).
+- **Control effects** (`control-effects.js`): one shared state for the player and every enemy.
+  - Stun blocks movement, attacks and casting; immobilize blocks movement only. They share movement protection.
+  - Slows apply the strongest one (90% cap) with per-effect timers and a refresh-or-fail setting. Cleanse keeps the longer protection window.
+  - A stun cancels the player's windup and pending action but keeps the target, then restarts with a fresh windup. The current step finishes, but no new step starts.
+  - Enemies freeze, stop attacking, and walk slower. The HUD status and enemy labels show effects and immunity. Only playground test sources exist.
+- **Ember (draft Ki mentor)** in the Cinderhold forge corner teaches Rush and Harden in the optional "Steady Breath" quest (see CINDERHOLD.md). It has a checkpoint, a landmark and a model-viewer entry.
+- **Needs review** (provisional where COMBAT.md is open):
+  - Auto never uses abilities.
+  - Auto strategy: highest expected damage per second, or Defensive at ≤6 hits when no goal is set.
+  - A second press withdraws a queued ability; movement does not clear an unassigned one.
+  - Redistribute refunds points to spend with + in Skills.
+  - Optimize treats magic setups as equal on damage per second (spells ignore weapons).
+  - Ember's name, look and placement.
+- Verification: 247 tests (new `combat-systems.test.js` covers control, dual wield, backfire, armor and assistance), both builds and debug isolation. Test armor is absent from the normal bundle. Bounded browser checks:
+  - Auto/Manual/Pacifist and Optimize (dagger+shield).
+  - Two-dagger alternation training Dagger proficiency against a Scrapper.
+  - Auto Bruiser fight from 45 HP: flee warning, Strong→Defensive strategy, auto-eat once.
+  - Player stun+slow HUD and an enemy stun label; duplicate effects rejected.
+  - Backfire risk shown at 90.25%.
+  - Ember's full lesson (rush → stack → recover → done).
+  - 375px Combat page with no overflow; no console errors.
+  - Fixed during checks: unreadable Optimize/Auto-Retaliate buttons (cream on cream), and selected states looking identical to unselected.
+  - Not done: a full tutorial replay; enemy dodge/crit content (none exists).
+- Tooling note: the dev server sometimes misses CSS edits made from the shell; restart the preview server after shell-edited stylesheets.
+- Performance: full dev-gpu suite, 8/9 PASS (0.53–2.67 ms/frame, 59.5–59.8 fps). `cinderhold-combat` now fails on draws 605, objects 2171 and visible meshes 458. The extra ~233 objects are Ember's slime rig (one more mentor in the map), on top of the earlier extra visible goblin. Every scene has +5 objects for the hidden off-hand dagger model. Frame time is unchanged. This is deliberate content, not a regression; the baseline (still from before these slices) needs a full `--update-baseline` run.
+
 ### Abilities, auras, Energy/Ki and crystal services — 2026-10-07
 
 - **Energy and Ki** pools follow Tenacity/Aura and regenerate under the shared rules (Ki only while every aura is off). The HUD shows all five orbs: a second row has Energy with a Strong Strike button and Ki with an Auras shortcut. On phones with a page open, the five orbs share one row.

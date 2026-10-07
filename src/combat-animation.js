@@ -6,13 +6,16 @@ const arc=(a,control,b,t)=>a.map((v,i)=>(1-t)*(1-t)*v+2*(1-t)*t*control[i]+t*t*b
 export const BLOCK_DURATION=.42;
 export const PROJECTILE_FLIGHT=.22;
 export function attackWindow(profile,time){const interval=profile.interval||1.5,clock=time%interval,windup=profile.style==='ranged'?.8:.48;return clock>=interval-windup||time>=interval&&clock<.28;}
-export function resolveAttackMotion(profile={}){return profile.attackMotion|| (profile.style==='magic'?'cast':profile.style==='ranged'?'bow':profile.item==='copperDagger'?'stab':profile.item==='swords'?'slash':'punch');}
-export function resolveBlockMotion(profile={}){const item=profile.mainHand??profile.item;return profile.blockMotion||(profile.offHand?'shield':item==='bows'?'bow':item==='swords'||item==='copperDagger'?'blade':'fists');}
+// Damage type chooses the blade motion: Piercing stabs, Slashing slashes.
+export function resolveAttackMotion(profile={}){return profile.attackMotion|| (profile.style==='magic'?'cast':profile.style==='ranged'?'bow':profile.item==='copperDagger'?(profile.damageType==='slashing'?'slash':'stab'):profile.item==='swords'?'slash':'punch');}
+const SHIELDS=['shields','copperShield'];
+export function resolveBlockMotion(profile={}){const item=profile.mainHand??profile.item;return profile.blockMotion||(SHIELDS.includes(profile.offHand)?'shield':item==='bows'?'bow':item==='swords'||item==='copperDagger'?'blade':'fists');}
 export function combatEquipmentVisible(kind){return !['Gathering','Crafting','Chopping','Mining','Repairing','Smithing','Smelting','Fishing','Fishing cast','Fishing catch','Celebration','Eating','Cooking','Petting','Hammer injury','Defeated'].includes(kind);}
 // Shared relaxed carry pose, independent of the selected attack style.
 export function equipmentIdleHands(profile={}){
  const hands=[[-.46,.33,.08,0,0,0],[.46,.33,.08,0,0,0]],item=profile.mainHand??profile.item;
  if(['swords','copperDagger'].includes(item))hands[0][3]=1.85;
+ if(profile.offHand==='copperDagger')hands[1][3]=1.85;
  if(item==='bows')hands[1][3]=Math.PI/2;
  return hands;
 }
@@ -56,6 +59,8 @@ export function attackAnimation(profile={},time=0){
   hands[1][3]-=.12*effort;
   pose.twist=.12*effort;
  }
+ // Off-hand strikes mirror the motion onto the left hand (position x and the y/z rotations).
+ if(profile.hand==='off'){const mirror=h=>[-h[0],h[1],h[2],h[3],-h[4],-h[5]];hands=[mirror(hands[1]),mirror(hands[0])];pose={...pose,twist:-(pose.twist||0)};}
  return {pose,hands,handWork:null,expression:'focused',bowDraw,nocked,arrowRaise};
 }
 // Equipment affects the pose only; receiving a block animation never changes damage rules.

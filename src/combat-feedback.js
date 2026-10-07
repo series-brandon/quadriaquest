@@ -3,7 +3,7 @@ import {Vector3} from 'three';
 // Outcome is the shared resolution result: miss, dodge, block, hit or critical.
 const LABELS={miss:'Miss!',dodge:'Dodged!',block:'Blocked!'};
 export const hitLabel=(damage,outcome)=>LABELS[outcome]||(damage===null?'Miss!':`${damage}!`);
-const kindOf=(damage,outcome)=>outcome==='block'?'blocked':outcome==='dodge'?'dodge':outcome==='critical'?'critical':damage===null?'miss':damage===0?'blocked':'damage';
+const kindOf=(damage,outcome)=>outcome==='backfire'?'backfire':outcome==='block'?'blocked':outcome==='dodge'?'dodge':outcome==='critical'?'critical':damage===null?'miss':damage===0?'blocked':'damage';
 export function createCombatFeedback(){
  const entries=[],point=new Vector3();
  function clear(){for(const e of entries)e.node.remove();entries.length=0;}

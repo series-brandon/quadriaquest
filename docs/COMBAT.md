@@ -1027,14 +1027,16 @@ Switching into Pacifist cancels any unreleased attack or cast windup under the s
 
 Show all five resources (Health, Mana, Stamina, Energy and Ki) as orbs from the start, using the shared resource orb presentation.
 
-### Open first-rollout details
+### Open details
 
-Resolve these before the corresponding implementation:
+The first rollout implements every rule above. These remain open; several have a provisional implementation listed in HANDOFF.md for review rather than a settled rule:
 
-- Auto: danger reevaluation timing; detailed action selection priorities; handling of telegraphed exceptional attacks; item/resource conservation preferences.
-- UI: remaining advanced settings and their presentation, danger warning presentation, and the backfire-risk override controls.
+- Auto: automatic ability use and detailed action selection priorities (Auto currently never uses abilities); handling of telegraphed exceptional attacks; item/resource conservation preferences. Provisional: 10 Hz danger reevaluation; strategy by expected damage per second, Defensive at 6 or fewer hits when no training goal is set.
+- Abilities: behaviour of a queued ability not yet assigned to an attack (provisional: pressing again withdraws it; travel, defeat, consumables and stuns clear it; movement does not) and future ability-cost efficiency.
 - Combat calculation: remaining spell/ability modifier ordering, additional spell definitions and presentation, and concrete item special-effect eligibility. Preserve the current final rounding, per-portion mitigation and commitment rules.
-- Content/rollout: Ki mentor identity/dialogue/placement, old-to-new skill mapping, non-combat rollout boundaries, and detailed production/playground verification plan.
+- Control content: no enemy or spell applies stun, immobilize or slow yet; real sources must define durations, protection windows and refresh rules. Disarm-style effects remain undesigned.
+- Armor content: real armor items, recipes and balance (only playground test pieces exist).
+- Content/rollout: review the drafted Ki mentor (Ember, see CINDERHOLD.md), old-to-new skill mapping, non-combat rollout boundaries, and a full production replay plan.
 
 Validate rather than silently redesign: combat XP pacing, attack-speed growth, rounded resistance benefits, tutorial encounter outcomes, and normal-flow/runtime ordering. Current coefficients are initial tuning, not proof of final balance.
 

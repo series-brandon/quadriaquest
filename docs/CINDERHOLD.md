@@ -148,6 +148,13 @@ Sarge's graduation reveals two independent optional quest invitations. Neither i
 - Cast at an inert target, then defeat one forgiving shared practice enemy with Energy Strike. Teach range, line of sight, cast cadence, projectile impact, and cancellation using the real combat controller.
 - Six-tile range and a clearly visible cast/recovery cycle. Numeric damage and cadence need balancing alongside the bow; neither optional style should trivialize the rest of the tutorial.
 
+### Ember: Steady Breath (draft Ki mentor, pending review)
+
+- **Ember**, a calm teal slime with a cloth headband and a floating ring of breath, sits in the quiet north-west corner of the forge terrace (3, 4), inside the safe zone. Name, look, placement and lines are a draft for the user's review.
+- Optional, never required to leave. Accepting teaches **Rush** and **Harden** through the shared aura system. Ember explains the activation fee, per-second upkeep in or out of combat, stacking, exhaustion (all auras fade at zero Ki) and Ki recovering only while every aura rests.
+- Objectives observe shared aura state and never toggle auras: light Rush by itself → add Harden so both run → turn both off. Talking again repeats the current hint. Bristle's graduation line mentions Ember.
+- Playground: the `cinderhold:ki` checkpoint starts the practice step; the `ki` landmark visits Ember; the model viewer includes Ember.
+
 All three styles train their own combat skills and proficiencies per attack (COMBAT.md). Runes, advanced spells and fletching remain future design decisions. Inert targets award half XP until each receiving track reaches level 3. Live practice enemies use normal one-time victory rewards and repeatable respawn. Neither optional fight gets a special parallel combat simulation.
 
 ## Iter Crystal: choose a destination
