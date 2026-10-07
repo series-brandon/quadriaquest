@@ -9,6 +9,8 @@ import {createControlState} from './control-effects.js';
 import {wanderDelay,shouldWander,wanderRoute} from './wander.js';
 import {attackPose} from './combat-motion.js';
 import {attackWindow,BLOCK_DURATION,PROJECTILE_FLIGHT} from './combat-animation.js';
+// Follow-through window after a release (matches the attack animation's recovery).
+const RECOVERY=.28;
 import {animateTarget} from './training-models.js';
 import {animateGoblin} from './enemy-model.js';
 import {FAINT_FADE_START,FAINT_RESPAWN_TIME} from './faint-motion.js';
@@ -218,12 +220,14 @@ export function createCombatSystem(api){
      if(weapon.backfirePercent>0&&random()*100<weapon.backfirePercent)backfire(a,weapon);
      else if(['ranged','magic'].includes(weapon.style)){api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),weapon.style);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
      if(!weapon.spell&&weapon.hand&&api.equipment.attackHands==='alternate')nextHand=weapon.hand==='main'?'off':'main';
-     c.struck=true;if(fight===c)commit(c);
+     // The follow-through belongs to the attack that just released, even though the next one is committed.
+     c.released=weapon;c.struck=true;if(fight===c)commit(c);
     }
    }
    // Animation time follows the committed attack clock, including recovery after each release.
-   c.age=(c.struck?c.profile.interval:0)+c.playerClock;
-   if(fight){api.interacting?.();if(!defense||attackWindow(c.profile,c.age))return {kind:c.profile.style==='ranged'?'Archery':c.profile.style==='magic'?'Casting':'Combat',time:c.age,profile:c.profile};}
+   const shown=c.struck&&c.released&&c.playerClock<RECOVERY?c.released:c.profile;
+   c.age=(c.struck?shown.interval:0)+c.playerClock;
+   if(fight){api.interacting?.();if(!defense||attackWindow(shown,c.age))return {kind:shown.style==='ranged'?'Archery':shown.style==='magic'?'Casting':'Combat',time:c.age,profile:shown};}
   }
   return defense?{kind:'Block',time:defense.age,profile:defense.profile}:null;
  }

@@ -20,6 +20,16 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Smooth motion transitions — 2026-10-07
+
+- **Pose blender** (`src/pose-blend.js`): a shared crossfade used by gameplay and the model viewer. When the active motion's key changes, it blends hands and body pose from the last shown pose to the new motion over `duration` (default 0.22s, smoothstep).
+  - Keys come from `motionKey(kind, profile)`: attack motion + striking hand, block style, or the action kind (punch ↔ stab, left ↔ right, attack ↔ block, eating → attacking…).
+  - Interrupted blends restart from the partially blended pose. `instant` snaps (used for Archery, so the bow string stays exact).
+  - Gameplay resets it when no action is active (idle ↔ action keeps the existing hand smoothing). The viewer snaps when you pick a different animation and blends changes within one.
+  - To tune or reuse: `createPoseBlender({duration})`, then `update(key, motion, dt, {instant})`.
+- **Follow-through ownership:** combat commits the next attack at release, so the 0.28s recovery used to be drawn with the *next* attack's motion and hand. Combat now shows the released attack through its recovery, then the next one.
+- Verification: 259 tests (blend timing, interruption, instant, reset, motion keys, and the recovery profile in an alternating dagger + fist fight). In the built playground, alternating dagger stab and off-hand punch against a target over 564 frames gave a largest per-frame hand step of 0.079, the speed of the strikes themselves, with no transition jumps.
+
 ### Skilling core XP and model viewer layout — 2026-10-07
 
 - **Boxing punch:** `punchMotion` now starts from a symmetrical "dukes up" guard (`PUNCH_GUARD`: fists at x ±0.24, y 0.40, z 0.50, clear of the 0.72 body and in front of the chin).

@@ -7,6 +7,7 @@ import {makeCrystal,animateCrystal} from '../crystal-model.js';
 import {goblin,animateGoblin} from '../enemy-model.js';
 import {tool,heldTool,heldToolHand} from '../tool-models.js';
 import {GEAR} from '../equipment.js';
+import {createPoseBlender,motionKey} from '../pose-blend.js';
 import {makeBridge} from '../bridge-model.js';
 import {fishingSpot,animateFishingSpot} from '../fishing-spot-model.js';
 import {campfire,animateCampfire} from '../campfire-model.js';
@@ -49,13 +50,17 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
  const tools={};{for(const id of ['swords','shields','hammers','rods','copperDagger','copperShield','bows']){tools[id]=heldTool(id);rig.hands[heldToolHand(id)].add(tools[id]);}tools.copperDaggerOff=heldTool('copperDagger');rig.hands[1].add(tools.copperDaggerOff);tools.axes=makeAxe();tools.pickaxes=makePickaxe();rig.hands[0].add(tools.axes,tools.pickaxes);for(const [id,model] of Object.entries(tools)){model.name=`preview-tool-${id}`;model.visible=false;}}
 
  const bowPresentation=createBowPresentation(tools.bows,rig.hands);
+ // Same crossfade as gameplay, so motion changes (e.g. alternating stab and punch) preview as they play.
+ const blender=createPoseBlender();let blendMotion=null;
  return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){
+  // Picking a different animation snaps; changes within the running animation (hand swaps, stab ↔ punch) blend.
+  const pickedNew=motion!==blendMotion;blendMotion=motion;
   trophyGeneric.visible=trophyFish.visible=trophyHat.visible=false;
   let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null;
   const combat=['Attack','Block'].includes(motion)?previewCombat(motion,options,time):null,actionKind=combat?.kind||SLIME_ACTIONS[motion],loadout=previewLoadout(options);
   for(const prop of rig.idleProps||[])prop.visible=motion==='Idle'&&!loadout.mainHand&&!loadout.offHand;
   for(const model of Object.values(tools))model.visible=false;
-  if(actionKind){const actionTime=actionKind==='Block'?time%1.2:actionKind==='Eating'?time%(EATING_DURATION+.5):actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime,actionTime,combat?.profile));const active=({Smithing:['hammers'],Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;
+  if(actionKind){const actionTime=actionKind==='Block'?time%1.2:actionKind==='Eating'?time%(EATING_DURATION+.5):actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=blender.update(motionKey(actionKind,combat?.profile),playerActionMotion(actionKind,actionTime,actionTime,combat?.profile),dt,{instant:actionKind==='Archery'||pickedNew}));const active=({Smithing:['hammers'],Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;
    const bow=playerActionMotion(actionKind,actionTime,actionTime,combat?.profile);bowPresentation.update(bow,loadout.mainHand==='bows'&&actionKind==='Archery');
    if(actionKind==='Fishing catch'||actionKind==='Fishing cast')tools.rods.visible=true;
    if(actionKind==='Celebration'){trophyFish.scale.setScalar(1);const result=holdUpMotion(actionTime,heldItem==='Raw Pondfish'?'fish':heldItem==='Top Hat'?'hat':'generic'),prop=heldItem==='Raw Pondfish'?trophyFish:heldItem==='Top Hat'?trophyHat:trophyGeneric;prop.visible=result.prop.visible;prop.position.set(0,result.prop.y,result.prop.z);}

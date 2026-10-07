@@ -175,3 +175,11 @@ test('a lethal hit at fractional health reports the visible health, as a whole n
  g.health.value=5.947837283474;g.a.aggressive=true;for(let t=0;t<3;t+=.02)g.system.update(.02,t);
  const lethal=shown.find(([,o])=>o==='hit');assert.deepEqual(lethal,[6,'hit']);assert.equal(g.health.value,0);
 });
+
+test('the follow-through after a release keeps the attack that struck; the next attack shows after recovery',()=>{
+ const f=combatFixture();f.inventory.copperDagger=1;f.equipment.toggle('copperDagger','main');f.equipment.setAttackHands('alternate');f.system.start(f.a);
+ assert.equal(f.equipment.attackHands,'alternate');
+ const struck=f.system.update(2.5,2.5);assert.equal(struck.profile.hand,'main');assert.equal(struck.profile.item,'copperDagger','recovery shows the dagger stab');
+ const windup=f.system.update(2.0,4.5);assert.equal(windup.kind,'Combat');assert.equal(windup.profile.hand,'off','the next windup is the off-hand punch');assert.equal(windup.profile.item,null);
+ assert.equal(f.system.nextHand,'off');
+});

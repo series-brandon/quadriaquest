@@ -15,6 +15,7 @@ import {createCharacter,TRACKS} from './character.js';
 import {createAuras} from './auras.js';
 import {createControlState} from './control-effects.js';
 import {createAssistance} from './assistance.js';
+import {createPoseBlender,motionKey} from './pose-blend.js';
 import {playerDefense} from './combat-profile.js';
 import {createSupplyOffers} from './supply-offers.js';
 import {createProjectileEffects} from './projectile-effects.js';
@@ -159,6 +160,7 @@ const health=createPlayerHealth(),healthUI=createHealthUI(health);
 const character=createCharacter({changed(){const m=character.maxima;health.max=m.health;for(const k of ['mana','stamina','energy','ki'])playerResources[k].max=m[k];}});
 // Player control effects (stun/immobilize/slow and protection) use the same shared state as enemies.
 const playerControl=createControlState();
+const poseBlender=createPoseBlender();
 // Non-combat skill XP joins combat XP in the one core conversion (5:1); core level-ups grant attribute points.
 onSkillXp(amount=>{const core=character.convertProgression(amount);if(core?.leveledUp)showSkillReward({skillName:'Core',level:core.level,leveledUp:true,detail:`+${core.points} attribute points`},player.position,{float:false});return core;});
 const auras=createAuras({ki:playerResources.ki,exhausted:()=>{assistance?.auraExhausted();toast('Out of Ki — all auras faded. Ki recovers while they are off.');}});
@@ -482,10 +484,12 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
   }else{if(!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.arrived();const idleText=inventory.sticks+inventory.stones===6?'Clearing explored':'Taking it all in';if($('activity').textContent!==idleText)$('activity').textContent=idleText;}
  }
  if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
+ // Crossfade between motions (punch ↔ stab, hand swaps, attack ↔ block…). Archery stays exact for the bow string.
  if(actionMotion){
-  const motion=playerActionMotion(actionMotion.kind,actionMotion.time,elapsed,actionMotion.profile);
+  const motion=poseBlender.update(motionKey(actionMotion.kind,actionMotion.profile),playerActionMotion(actionMotion.kind,actionMotion.time,elapsed,actionMotion.profile),dt,{instant:actionMotion.kind==='Archery'});
   if(actionMotion.kind!=='Block'||!segment)pose=motion.pose;expression=motion.expression;handWork=motion.handWork;socialHands=motion.hands;sleeping=false;
  }
+ else poseBlender.reset();
  const celebration=areas.celebration;
  if(celebration){const motion=holdUpMotion(celebration.age);expression=motion.expression;handWork=null;facing=celebration.angle;pose=motion.pose;socialHands=motion.hands;}
  bendSlime(pose.bend||0);equipmentPresentation.bend(pose.bend||0);
