@@ -20,6 +20,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Combat design consolidation — 2026-10-07
+
+- Design-only update: COMBAT.md holds the settled formulas and assistance rules; production remains the prototype described below. DESIGN.md now references the redesign defaults and action semantics.
+- First-rollout assistance defaults to Auto / Balanced / Melee / no training goal. Pacifist blocks manual as well as automatic attacks. Danger uses estimated maximum-hit survivability (1/2/3-hit escape warnings; 5+ potentially manageable); four-hit behavior and exact equipment ranking remain explicit open decisions.
+- Monster journal/discovery earning and multi-attacker assistance are deferred. Their future requirements remain in COMBAT.md; do not implement them as first-rollout prerequisites or use deferral to expose hidden enemy stats.
+- Consolidated stale unresolved notes and reconciled automatic ability/healing requests with the one-action queue. Remaining implementation decisions and balance validation are listed at the end of COMBAT.md.
+- Verification: documentation consistency review and `git diff --check`; no runtime, browser, build or performance checks for this documentation-only change.
+
 ### Enemy tuning and pending combat redesign — 2026-10-06
 
 - Shared Goblin Scrapper now has 50 HP and max hit 10; Goblin Bruiser has 100 HP and max hit 20. Minimum hits (1/3), intervals (2.5s/2s), aggression and Scrapper protection are unchanged. Practice targets remain inert at 4 HP.
