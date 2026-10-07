@@ -23,9 +23,10 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 ### Combat design consolidation — 2026-10-07
 
 - Design-only update: COMBAT.md holds the settled formulas and assistance rules; production remains the prototype described below. DESIGN.md now references the redesign defaults and action semantics.
-- First-rollout assistance defaults to Auto / Balanced / Melee / no training goal. Pacifist blocks manual as well as automatic attacks. Danger uses estimated maximum-hit survivability (1/2/3-hit escape warnings; 5+ potentially manageable); four-hit behavior and exact equipment ranking remain explicit open decisions.
-- Monster journal/discovery earning and multi-attacker assistance are deferred. Their future requirements remain in COMBAT.md; do not implement them as first-rollout prerequisites or use deferral to expose hidden enemy stats.
-- Consolidated stale unresolved notes and reconciled automatic ability/healing requests with the one-action queue. Remaining implementation decisions and balance validation are listed at the end of COMBAT.md.
+- First-rollout assistance defaults to Auto / Balanced / Melee / no training goal. Pacifist is available in Manual and Auto and blocks manual and automatic attacks; switching into it cancels unreleased windups. Danger bands: 1 hit (run), 2–3 (flee, retaliation withheld), 4–6 (caution, retaliates), 7+ (no warning).
+- Auto deliberately uses actual enemy data for all of its decisions, so no unknown-damage estimate or discovery system is needed. The deferred bestiary is player-facing only.
+- Decided 2026-10-07: Optimize ranks gear by damage per second, then incoming-damage reduction, then current gear. Simple Auto aura rules. Auto-heal triggers earlier for slow heals and warns when a heal is insufficient. Style changes map the training goal to the same skill in the new style. Combat preferences persist. The HUD shows all five resource orbs. XP coefficients ship as-is. Threat wording must caveat that it assumes appropriate gear. Cinderhold Basic Training is optional (its refusal branch already allows leaving).
+- The unsourced tutorial simulation figures were removed from COMBAT.md; tutorial balance must be validated in-game. Remaining open items are listed at the end of COMBAT.md; none blocks the shared formula/progression module.
 - Verification: documentation consistency review and `git diff --check`; no runtime, browser, build or performance checks for this documentation-only change.
 
 ### Enemy tuning and pending combat redesign — 2026-10-06

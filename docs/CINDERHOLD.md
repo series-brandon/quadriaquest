@@ -2,11 +2,11 @@
 
 First playable implementation · 2026-10-05.
 
-The initial implementation now includes the 40 × 32 training complex, required melee/metalwork quest, optional ranged and Spark lessons, shared destination picker, and production-backed playground controls. The sections below retain the design intent and tuning proposals. See [HANDOFF.md](HANDOFF.md#cinderhold-first-playable-implementation--2026-10-05) for implementation ownership and verification limits.
+The initial implementation now includes the 40 × 32 training complex, main melee/metalwork quest, optional ranged and Spark lessons, shared destination picker, and production-backed playground controls. The sections below retain the design intent and tuning proposals. See [HANDOFF.md](HANDOFF.md#cinderhold-first-playable-implementation--2026-10-05) for implementation ownership and verification limits.
 
 The first visual pass uses connected slate halls, arches, copper terraces, a lit furnace, and the four mentor rigs. Perimeter walls now enclose all four corners and rise three blocks above their local floor; Bristle wears a brimless iron guard helmet. Detailed environmental dressing, longer authored camera sequences, and device-specific performance/balance tuning remain polish work. The terrain renderer batches static geometry while retaining individual tile picking; this does **not** implement open-world streaming.
 
-The third tutorial turns preparation into confidence: win a small fight with bare hands, turn copper ore into useful equipment, then feel the difference in a tougher fight. The required lesson ends there. Bow-and-arrow and spell lessons are optional invitations that can be taken now, later, or never.
+The third tutorial turns preparation into confidence: win a small fight with bare hands, turn copper ore into useful equipment, then feel the difference in a tougher fight. Basic Training ends there. Like all combat tutorials it is optional: players can refuse or abandon it and still leave, travel and continue the game. Bow-and-arrow and spell lessons are optional invitations that can be taken now, later, or never.
 
 **Working name: Cinderhold.** A disused underground training hall built around an old copper forge. Slate terraces, cut-stone arches, exposed copper seams, and warm furnace light distinguish it from the clearing and Willowbank. It should feel like an expansive dungeon training complex with friendly inhabitants, while keeping the readable shapes and playful slime characters of QuadriaQuest.
 
@@ -18,7 +18,7 @@ The requested sequence, angry drill-sergeant slime, dwarf-like smith slime, copp
 
 Build connected chambers, broad galleries, half-height terraces and looping routes around a central training court. No loading screen between rooms. The entrance frames the crystal and Sarge, with the forge's warm light visible through an arch. The entire complex should not fit into the arrival view: successive rooms reveal its scale.
 
-Keep the mandatory circuit legible: court → recruit yard → forge/copper workings → court → proving ring. Place furnace and anvil together, with copper close enough that four mining trips do not become a walking chore. Put optional mentors in substantial side wings; connect those wings with a safe outer loop and overlooks so exploration rewards curiosity without creating mandatory detours. Use existing resource and encounter prefabs for repeatable side practice, with threats visibly separated from safe routes. More space should support distinct activities and discoveries, not long empty corridors or extra required grind.
+Keep the main circuit legible: court → recruit yard → forge/copper workings → court → proving ring. Place furnace and anvil together, with copper close enough that four mining trips do not become a walking chore. Put optional mentors in substantial side wings; connect those wings with a safe outer loop and overlooks so exploration rewards curiosity without creating mandatory detours. Use existing resource and encounter prefabs for repeatable side practice, with threats visibly separated from safe routes. More space should support distinct activities and discoveries, not long empty corridors or extra required grind.
 
 This size progression leads toward the much larger continuous, chunk-streamed game world described in [DESIGN.md](DESIGN.md#world-scale-and-streaming-direction). Cinderhold remains a bounded tutorial destination; its size does not require the open-world streaming system to be implemented as part of this chapter. Any spatial-loading support introduced here must belong to shared world infrastructure.
 
@@ -74,7 +74,7 @@ An amber slime with a broad braided beard, heavy brows, leather apron, and a min
 
 They are less theatrical than Sarge, but their lessons still offer useful play. Each gets a brief introduction, one practical task, and a repeatable practice option. Their names and costumes are provisional.
 
-## Required quest: Basic Training
+## Main quest: Basic Training (optional)
 
 Tips explain; the Quests page tracks objectives and completed history. Use optional “Show me how” for familiar inventory/crafting steps. Do not repeat the clearing's full menu tour. Dialogue choices offer flavor and “I'll be back”; talking again resumes the current task.
 
@@ -130,7 +130,7 @@ Defeat reuses the shared animation and safe crystal-adjacent recovery, restores 
 
 ## Optional ranged and magic lessons
 
-Sarge's graduation reveals two independent optional quest invitations. Neither is auto-accepted, neither counts against the required quest, and neither blocks the crystal, departure, or a completion message. Both mentors can also be approached early. Returning later preserves each lesson independently.
+Sarge's graduation reveals two independent optional quest invitations. Neither is auto-accepted, neither counts against Basic Training, and neither blocks the crystal, departure, or a completion message. Both mentors can also be approached early. Returning later preserves each lesson independently.
 
 ### Fletch: A Little Distance
 
@@ -222,7 +222,7 @@ Chapter reset requests shared cancellation and scoped entity/effect resets for i
 
 ## Acceptance for the playable chapter
 
-- Complete the normal clearing → Willowbank → Cinderhold route, including the entire required quest and both optional lessons. Also skip both mentors and leave immediately after graduation; return and complete either one independently.
+- Complete the normal clearing → Willowbank → Cinderhold route, including all of Basic Training and both optional lessons. Also refuse Basic Training and leave without fighting. Also skip both mentors and leave immediately after graduation; return and complete either one independently.
 - Enter Cinderhold before Willowbank with empty inventory and low health; obtain tools, food, ore and equipment locally without a quest or resource dead end.
 - Confirm the footprint exceeds both earlier maps and reachable floor meets the larger-area target; time the mandatory route, inspect the optional loops, and profile representative desktop/mobile traversal with actors and effects active. Record frame times, memory and entity counts; tune against an agreed device budget before release.
 - See a materially different rocky/cavern environment, readable targets on desktop/mobile, safe stepping, and no roof/wall occlusion that blocks play.
@@ -230,7 +230,7 @@ Chapter reset requests shared cancellation and scoped entity/effect resets for i
 - Exercise copper mining and each station recipe in the clearing before Willowbank, then in Cinderhold: missing tools/materials, repeat clicks, movement cancellation, completion, travel, station removal, depletion/respawn and reset. Rewards and consumption occur once.
 - Verify all hand-slot combinations, last-copy removal, busy-state rejection, actual dagger/shield stat changes, bow ammunition exhaustion and replacement, spell selection, and out-of-range/blocked-line behavior across maps.
 - Exercise supply eligibility/refill, idempotent item/spell grants, safe zones, protected/live encounters and target resets in the clearing before either later tutorial, then in a second area. Confirm the same definitions and controllers run, with no chapter activation required.
-- Verify early actions count across areas, interrupted dialogue resumes, completed tasks remain in history, travelling away mid-quest preserves progress, and optional branches cannot block required completion.
+- Verify early actions count across areas, interrupted dialogue resumes, completed tasks remain in history, travelling away mid-quest preserves progress, and optional branches cannot block Basic Training completion.
 - Travel every directed pair among the three maps. Verify current-location row, mobile/keyboard navigation, closing without travel, repeated clicks, invalidated source/destination, occupied landing, cancellation on either side of the switch, companion arrival and first-visit versus return dialogue.
 - Retest the clearing tutorial and peaceful Willowbank; no Cinderhold NPCs, enemies or objectives appear there except explicitly enabled debug fixtures.
 - Run relevant unit tests, `npm run build`, `npm run build:debug`, and `npm run check:debug-isolation`. Verify normal play and playground interactions separately; a loaded checkpoint is not a completed playthrough.

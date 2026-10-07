@@ -219,14 +219,14 @@ Cinderhold can initially use the existing bounded-area runtime. Its larger layou
 
 ## Second tutorial area: Willowbank
 
-The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Carpentry, companions, Fishing, placement, and Culinary skills. Combat and equipment instruction belong to the planned third area. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. Willowbank completion leaves the area explorable; no prototype-ending message is currently shown there. The Cinderhold draft proposes a completion notice after its required combat lesson.
+The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Carpentry, companions, Fishing, placement, and Culinary skills. Combat and equipment instruction belong to the planned third area. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. Willowbank completion leaves the area explorable; no prototype-ending message is currently shown there. The Cinderhold draft proposes a completion notice after its Basic Training combat lesson.
 
 
 ## Area three: combat tutorial outline
 
 Status: first playable implementation, 2026-10-05. See [CINDERHOLD.md](CINDERHOLD.md) for **Cinderhold: Basic Training**, including dialogue, layout, recipes, shared-system work, playground coverage, and acceptance checks. This replaces the earlier Stone Sword/Wooden Shield tutorial outline; those existing recipes remain available as shared gameplay.
 
-The requested route is: angry drill-sergeant slime → forgiving unarmed fight → dwarf-like smith slime → mine copper with a pickaxe → smelt ingots at a furnace → smith a Copper Dagger and Copper Shield at an anvil with a hammer → equip → return to Sarge → defeat one tougher enemy. Ranged combat with bow/arrows and magic combat with spells are independent optional mentor lessons after the required route. Players can leave without talking to either mentor.
+The requested route is: angry drill-sergeant slime → forgiving unarmed fight → dwarf-like smith slime → mine copper with a pickaxe → smelt ingots at a furnace → smith a Copper Dagger and Copper Shield at an anvil with a hammer → equip → return to Sarge → defeat one tougher enemy. Ranged combat with bow/arrows and magic combat with spells are independent optional mentor lessons after the main route. Basic Training itself is optional: players can refuse it and still leave. Players can leave without talking to either mentor.
 
 The map introduces a rocky cavern/ruined training-hall appearance and must be the largest tutorial area yet, leading toward the future streamed open world. The draft proposes roughly 40 × 32 tiles with at least twice Willowbank’s reachable floor area. The draft proposes Cinderhold as the location, Sergeant Bristle and Borin Copperbelly as the main guides, and a four-ore production chain. Names, quantities, skill assignments, optional-style resource rules, and balance are proposals pending review.
 
