@@ -108,3 +108,11 @@ test('every attack motion from either hand yields finite hand transforms (off-ha
   for(const h of hands)assert.ok(h.every(Number.isFinite),`${attackMotion}/${hand}@${time}: ${h}`);
  }
 });
+
+test('bare-hand block brings the fists together into a boxing high guard',()=>{
+ const pose=blockAnimation({},.1),[r,l]=pose.hands;
+ const gap=Math.hypot(r[0]-l[0],r[1]-l[1],r[2]-l[2])-2*.105;
+ assert.ok(gap>=0&&gap<.05,`fists nearly touch (gap ${gap.toFixed(3)})`);
+ assert.ok(r[2]>=.47&&l[2]>=.47,'in front of the body');assert.ok(r[1]>.55&&l[1]>.55,'up at the face');
+ assert.ok(Math.abs(r[0]+l[0])<1e-12&&Math.abs(r[5]+l[5])<1e-12,'symmetrical');
+});

@@ -69,7 +69,9 @@ export function attackAnimation(profile={},time=0){
 export function blockAnimation(profile={},age=0){
  const weight=age<.07?smooth(age/.07):1-smooth((age-.25)/.17);
  const rest=equipmentIdleHands(profile);
- let guard=[[-.22,.57,.43,.12,0,0],[.22,.57,.43,.12,0,0]];
+ // Bare hands: a boxing high guard, fists nearly touching in front of the face (radius .105 each),
+ // clear of the 0.72 body, wrists tilted and angled slightly inward.
+ let guard=[[-.11,.57,.50,-.35,0,.2],[.11,.57,.50,-.35,0,-.2]];
  const motion=resolveBlockMotion(profile);
  if(motion==='shield')guard=[[-.47,.34,.05,...rest[0].slice(3)],[.08,.49,.54,.08,-.12,-Math.PI/2]];
  else if(motion==='blade')guard=[[-.22,.40,.48,.30,-.8,0],[.40,.43,.18,0,0,0]];

@@ -27,6 +27,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
   - Interrupted blends restart from the partially blended pose. `instant` snaps (used for Archery, so the bow string stays exact).
   - Gameplay resets it when no action is active (idle ↔ action keeps the existing hand smoothing). The viewer snaps when you pick a different animation and blends changes within one.
   - To tune or reuse: `createPoseBlender({duration})`, then `update(key, motion, dt, {instant})`.
+- **Unarmed block:** a boxing high guard. Fists move to x ±0.11 (from ±0.22), stay at face height (y 0.57) and come forward to z 0.50, clear of the body. The wrists are tilted and angled slightly inward, nearly touching. A test checks the gap, position and symmetry. In gameplay, blocks reach the guard with about a 0.015 gap between fists.
 - **Follow-through ownership:** combat commits the next attack at release, so the 0.28s recovery used to be drawn with the *next* attack's motion and hand. Combat now shows the released attack through its recovery, then the next one.
 - Verification: 259 tests (blend timing, interruption, instant, reset, motion keys, and the recovery profile in an alternating dagger + fist fight). In the built playground, alternating dagger stab and off-hand punch against a target over 564 frames gave a largest per-frame hand step of 0.079, the speed of the strikes themselves, with no transition jumps.
 
