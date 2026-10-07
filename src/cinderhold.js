@@ -8,6 +8,9 @@ import {createResourceEntity} from './resource-entities.js';
 import {createEnemyEntity} from './enemy-entity.js';
 import {updateObjective,finishObjective,resetObjectives,registerQuestChapter,setObjectiveHelp} from './quests.js';
 import {key} from './world.js';
+// Area configuration: Cinderhold's creatures give 1.5× XP until each receiving skill reaches level 3, then
+// normal XP, so the lessons deliver early level-ups. Practice targets keep their own shared 0.5×-then-0 rule.
+const CREATURE_XP={multiplier:1.5,levelCap:3,afterCapMultiplier:1};
 export function createCinderhold(api){
  const group=new THREE.Group();group.visible=false;api.scene.add(group);
  const tiles=makeCinderholdTiles(),map=new Map(tiles.map(t=>[key(t.x,t.z),t])),t=(x,z)=>map.get(key(x,z));
@@ -24,7 +27,7 @@ export function createCinderhold(api){
  }
  for(const [kind,x,z] of [['copper',6,12],['copper',8,10],['copper',10,12],['copper',7,7],['copper',13,6],['copper',6,23],['sticks',9,15],['sticks',10,17],['stones',14,17],['stones',10,13]])nodes.push(api.resources.add(createResourceEntity({kind,tile:t(x,z),parent:group,pickables:api.pickables,respawn:8})));
  for(const [id,kind,pos] of [['recruit','scrapper',POS.scrapper],['proving','bruiser',POS.bruiser],['ranged-target','target',POS.rangedTarget],['ranged-enemy','scrapper',POS.rangedEnemy],['magic-target','target',POS.magicTarget],['magic-enemy','scrapper',POS.magicEnemy]]){
-  const [x,z]=pos;enemies.push(api.combat.add(createEnemyEntity({id,kind,tile:t(x,z),parent:group,pickables:api.pickables,respawn:8,patrol:{minX:x-1,maxX:x+1,minZ:z-1,maxZ:z+1}})));
+  const [x,z]=pos;enemies.push(api.combat.add(createEnemyEntity({id,kind,tile:t(x,z),parent:group,pickables:api.pickables,respawn:8,patrol:{minX:x-1,maxX:x+1,minZ:z-1,maxZ:z+1},xp:kind==='target'?null:CREATURE_XP})));
  }
  registerQuestChapter('cinder-','Basic Training');registerQuestChapter('ranged-','A Little Distance · Optional');registerQuestChapter('magic-','First Spark · Optional');registerQuestChapter('ki-','Steady Breath · Optional');
  const TASKS={meet:['Report to Sarge','Talk to Sergeant Bristle in the arrival court.'],unarmed:['Throw your first punch','Unequip combat gear, use Class: Melee in Combat (or Weapon / bare hands in Manual), and defeat the recruit-yard Scrapper. Click ground to retreat.'],report:['Report your victory','Return to Sarge.'],smith:['Meet Borin Copperbelly','Talk to the smith in the forge chamber north of the court.'],mine:['Mine Copper Ore','Use a Crude Pickaxe on the orange copper seams. Need a tool? Gather nearby Sticks and Rocks and craft one.',()=>state.ore,4],smelt:['Smelt four ingots','Use Copper Ore at the furnace. Complete four Copper Ingots.',()=>state.ingots,4],dagger:['Smith a Copper Dagger','Use one Copper Ingot and a reusable Crude Hammer at the anvil.',()=>state.dagger,1],shield:['Smith a Copper Shield','Use three Copper Ingots and a reusable Crude Hammer at the anvil.',()=>state.shield,1],equip:['Equip your handiwork','Equip Copper Dagger and Copper Shield through Inventory (or press Optimize Equipment in Combat).'],return:['Return to Sarge','Show Sarge that you are ready.'],bruiser:['Defeat a Goblin Bruiser','Find the proving ring through the eastern arch. Strong Strike (lightning button under Energy, or Combat) adds a heavy blow to your next melee attack. Retreat and eat if hurt; the shelf in the forge supplies recovery meals.'],graduate:['Receive your dismissal','Report to Sarge after your victory.'],finished:['Basic Training complete','You are free to explore or travel. Ranged and magic mentors are optional.']};

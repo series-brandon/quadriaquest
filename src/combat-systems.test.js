@@ -12,6 +12,7 @@ import {createCombatSystem} from './combat.js';
 import {createAssistance} from './assistance.js';
 import {playerAttackProfile,playerDefense,armorAwards} from './combat-profile.js';
 import {ENEMIES} from './combat-rules.js';
+import {XP_BASE} from './combat-formulas.js';
 const close=(a,b,eps=1e-6)=>assert.ok(Math.abs(a-b)<eps,`${a} ≈ ${b}`);
 
 test('stun and immobilize share movement control with protection; slows take the strongest, capped at 90%',()=>{
@@ -51,7 +52,7 @@ test('alternating dual-wield strikes share one sequential timer and train the st
  const f=combatFixture();f.equipment.toggle('copperDagger','main');f.equipment.toggle('copperDagger','off');f.system.start(f.a);
  assert.equal(f.system.nextHand,'main');f.system.update(2.5,2.5);assert.equal(f.system.nextHand,'off');f.system.update(2.5,5);assert.equal(f.system.nextHand,'main');
  // Two dagger hits at roll .5 (6–22 → 14 each); both train Dagger proficiency once per strike.
- assert.equal(f.a.hp,ENEMIES.target.health-28);assert.equal(f.character.tracks['prof.dagger'].xp,2*.5*(50+140));
+ assert.equal(f.a.hp,ENEMIES.target.health-28);assert.equal(f.character.tracks['prof.dagger'].xp,2*.5*(XP_BASE+14));
  f.system.update(2.5,7.5);f.system.cancel();f.system.update(6,13.5);assert.equal(f.system.nextHand,'main','sequence resets after the 5s exit');
 });
 
@@ -62,7 +63,7 @@ test('backfire replaces an under-level cast, hurts only the caster through resis
   f.roll=.005;f.system.start(f.a);f.system.update(3/1.02,3);
   // Base = 50% of the normal 22 maximum = 11; starting magic resistance 0.1% → 10.989 → 11.
   assert.equal(f.health.value,89);assert.equal(f.a.hp,ENEMIES.target.health,'no projectile or target damage');assert.equal(f.a.aggro,false);
-  assert.equal(f.mana.value,96,'costs are still paid');assert.equal(f.character.tracks['magic.technique'].xp,.5*50);assert.match(f.toasts.at(-1),/backfired/);
+  assert.equal(f.mana.value,96,'costs are still paid');assert.equal(f.character.tracks['magic.technique'].xp,.5*XP_BASE);assert.match(f.toasts.at(-1),/backfired/);
   SPELLS.energyStrike.requirements['magic.technique']=1;assert.equal(f.system.preview().backfirePercent,0,'qualified casting never backfires');
  }finally{SPELLS.energyStrike.requirements['magic.technique']=original;}
 });

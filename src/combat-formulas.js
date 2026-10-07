@@ -93,15 +93,24 @@ export function levelProgress(xp){
  const level=levelForXp(xp),floor=totalXpForLevel(level),next=level>=MAX_LEVEL?null:totalXpForLevel(level+1);
  return {level,xp,floor,next,remaining:next==null?0:Math.max(0,next-xp),fraction:next==null?1:(xp-floor)/(next-floor)};
 }
-export const actionXp=amount=>50+10*Math.max(0,amount);
+// Action XP: a flat base per resolved action plus 1 XP per HP of damage/healing. Health and damage are
+// 10× the source design's scale, so its +10 per HP becomes +1 here (same XP per original-scale hit).
+export const XP_BASE=15,XP_PER_HP=1;
+export const actionXp=amount=>XP_BASE+XP_PER_HP*Math.max(0,amount);
 
 // Entity multiplier then exclusive level cap with threshold truncation; never overflows.
-export function cappedAward(amount,trackXp,{multiplier=1,levelCap=null}={}){
- const modified=Math.max(0,amount*multiplier);
+// Entity XP modifiers: `multiplier` applies while the receiving track is below `levelCap`, then
+// `afterCapMultiplier` (0 = no further XP, e.g. practice targets; 1 = normal XP, e.g. a tutorial boost).
+// An award crossing the threshold is split: boosted up to the threshold, the remainder at the after rate.
+export function cappedAward(amount,trackXp,{multiplier=1,levelCap=null,afterCapMultiplier=0}={}){
+ const raw=Math.max(0,amount),modified=raw*multiplier;
  if(levelCap==null)return modified;
- if(levelForXp(trackXp)>=levelCap)return 0;
- return Math.min(modified,Math.max(0,totalXpForLevel(levelCap)-trackXp));
+ if(levelForXp(trackXp)>=levelCap)return raw*afterCapMultiplier;
+ const room=Math.max(0,totalXpForLevel(levelCap)-trackXp);
+ if(modified<=room)return modified;
+ return room+(multiplier>0?raw-room/multiplier:0)*afterCapMultiplier;
 }
+export const xpModifiers=rules=>({multiplier:rules?.xpMultiplier??1,levelCap:rules?.xpLevelCap??null,afterCapMultiplier:rules?.xpAfterCapMultiplier??0});
 // Split one pool by configured shares; each receiving track capped independently, no redistribution.
 export function splitPool(pool,shares,tracks,modifiers){
  const out={};for(const [k,share] of Object.entries(shares))out[k]=cappedAward(pool*share,tracks[k]??0,modifiers);

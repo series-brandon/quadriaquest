@@ -108,10 +108,16 @@ test('XP curve, caps and core conversion',()=>{
  assert.equal(f.levelForXp(0),1);assert.equal(f.levelForXp(562),2);assert.equal(f.levelForXp(561),1);
  assert.equal(f.levelForXp(1e12),500);
  const progress=f.levelProgress(0);assert.equal(progress.floor,0);close(progress.next,f.totalXpForLevel(2));
- assert.equal(f.actionXp(3),80);
+ assert.equal(f.XP_BASE,15);assert.equal(f.actionXp(3),18,'15 base + 1 per HP (health is 10× the source scale)');assert.equal(f.actionXp(0),15);assert.equal(f.actionXp(-4),15);
  assert.equal(f.cappedAward(200,0,{multiplier:.5,levelCap:3}),100);
  const near=f.totalXpForLevel(3)-10;close(f.cappedAward(80,near,{multiplier:.5,levelCap:3}),10);
  assert.equal(f.cappedAward(80,f.totalXpForLevel(3)+1,{multiplier:.5,levelCap:3}),0);
+ // A boost until a level, then normal XP (e.g. tutorial creatures 1.5× until level 3, then 1×).
+ const boost={multiplier:1.5,levelCap:3,afterCapMultiplier:1};
+ assert.equal(f.cappedAward(20,0,boost),30);assert.equal(f.cappedAward(20,f.totalXpForLevel(3)+1,boost),20);
+ // Crossing the threshold: 10 XP of room takes 10/1.5 raw XP at 1.5×; the remaining raw XP is awarded at 1×.
+ close(f.cappedAward(20,f.totalXpForLevel(3)-10,boost),10+(20-10/1.5));
+ assert.deepEqual(f.xpModifiers({xpMultiplier:1.5,xpLevelCap:3,xpAfterCapMultiplier:1}),boost);assert.deepEqual(f.xpModifiers({}),{multiplier:1,levelCap:null,afterCapMultiplier:0});
  const split=f.splitPool(100,{fire:.75,earth:.25},{fire:f.totalXpForLevel(3)},{levelCap:3});
  assert.deepEqual(split,{fire:0,earth:25});
  assert.deepEqual(f.convertCoreXp(0,[6,4]),{core:2,remainder:0});

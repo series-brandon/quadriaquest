@@ -20,6 +20,21 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### XP base 15 and until-level XP modifiers — 2026-10-07
+
+- `XP_BASE` is now **15** (was 50; user decision), with `XP_PER_HP = 1`. Level-100 pace at starting damage is about 3.2 h unarmed, 2.4 h dagger and 3.1 h Energy Strike, within the few-hours goal.
+- **Until-level XP modifiers:** `cappedAward` adds `afterCapMultiplier`. The entity `xpMultiplier` applies below `xpLevelCap`, then `xpAfterCapMultiplier` (default 0). An award crossing the threshold is split: boosted up to the threshold, the rest at the after rate. `xpModifiers(rules)` feeds every award site (attacks, defensive XP, backfire).
+  - Practice targets are unchanged (0.5× then 0×).
+  - **Cinderhold's creatures** (Scrappers and Bruiser, not targets) use 1.5× until level 3, then 1×. This is area configuration passed through the new `xp` option on `createEnemyEntity`. It restores a level-up during the melee lesson: about 585 XP over the Scrapper and Bruiser fights at base 15.
+- COMBAT.md: formulas and examples updated to base 15 (3 HP → 18; 10-damage hit → 25 Shield/armor XP; 9-damage armor slot pool 24 → 8 each; 8 HP healed → 23; backfire base 15). The entity XP modifier section now describes the until-level rule with both examples. CINDERHOLD.md notes the creature boost. Tests compare against `XP_BASE` and cover the boost, the after-cap rate and the threshold split (264 pass).
+- Verified in the built playground: a clearing fixture Scrapper gives 1× (2 damage → +17, 12 → +27); Cinderhold's recruit-yard Scrapper gives 1.5× (5 → +30, 22 → +56, 2 → +26; 111 XP to Melee Power and Unarmed).
+
+### Damage-based XP scaled to our health — 2026-10-07
+
+- Health and damage are 10× the source design's scale, so its +10 XP per HP made combat XP ~10× too fast. `actionXp` is now `XP_BASE + XP_PER_HP × amount` with `XP_BASE = 50`, `XP_PER_HP = 1` (user decision). It applies to every damage/healing-based award: attack strategy, weapon and elemental proficiency, Shield on hits and blocks, armor pools, backfire base XP (unchanged at 50) and future healing.
+- COMBAT.md: all 11 formulas and the worked examples are recomputed (3 HP removed → 53; 10-damage hit → 60 Shield/armor XP; armor slot pool 60 → 20 each; 8 HP healed → 58), with a note explaining the coefficient. Level-100 pace at starting damage is now about 74 min unarmed, 65 min dagger and 80 min Energy Strike (was 36/22/30). That is still a bit fast for the few-hours goal; tune after playtesting.
+- Tests updated to the new coefficient (264 pass). Earlier handoff entries quote XP numbers from before this change.
+
 ### Smooth motion transitions — 2026-10-07
 
 - **Pose blender** (`src/pose-blend.js`): a shared crossfade used by gameplay and the model viewer. When the active motion's key changes, it blends hands and body pose from the last shown pose to the new motion over `duration` (default 0.22s, smoothstep).

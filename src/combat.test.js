@@ -13,7 +13,7 @@ import {createResource} from './player-resources.js';
 import {GEAR} from './equipment.js';
 import {SPELLS} from './combat-styles.js';
 import {UNARMED} from './combat-profile.js';
-import {totalXpForLevel} from './combat-formulas.js';
+import {totalXpForLevel,XP_BASE} from './combat-formulas.js';
 // roll .5: ordinary hit both ways (no crit, dodge, block or 1% enemy miss). roll .005: enemy misses; player crits.
 const BRUISER_HIT=12,PLAYER_INTERVAL=2.55/1.02,CAST_INTERVAL=3/1.02;
 function fixture(kind='bruiser'){
@@ -34,15 +34,15 @@ test('equipment is available without an area, guards stale actions, and clears m
 });
 test('unarmed and equipped fights win once, award per-attack XP, retain equipment, and reset for repeated combat',()=>{
  const f=fixture('scrapper');assert.ok(f.system.start(f.a));assert.equal(f.system.start(f.a),false);for(let i=0;i<30;i++)f.system.update(1.5,i);assert.equal(f.wins,1);assert.equal(f.a.opened,true);assert.equal(f.home.blocked,false);
- // Unarmed Technical: strategy XP to Melee Technique and the same amount to Unarmed proficiency, 50 + 10 × HP removed per attack.
- const technique=f.character.tracks['melee.technique'].xp;assert.equal(technique,f.character.tracks['prof.unarmed'].xp);assert.equal(technique,8*50+10*ENEMIES.scrapper.health);assert.ok(f.character.core.xp>0);
+ // Unarmed Technical: strategy XP to Melee Technique and the same amount to Unarmed proficiency, 50 + 1 × HP removed per attack.
+ const technique=f.character.tracks['melee.technique'].xp;assert.equal(technique,f.character.tracks['prof.unarmed'].xp);assert.equal(technique,8*XP_BASE+ENEMIES.scrapper.health);assert.ok(f.character.core.xp>0);
  f.system.reset();f.equipment.toggle('swords');f.equipment.toggle('shields');assert.ok(f.system.start(f.a));assert.equal(f.equipment.toggle('swords'),false);for(let i=0;i<15;i++)f.system.update(1.5,i);assert.equal(f.wins,2);assert.ok(f.character.tracks['prof.sword'].xp>0);assert.equal(f.inventory.swords,1);assert.equal(f.equipment.isEquipped('swords'),true);
 });
 test('enemy misses, shield mitigation, shield XP and protected training health use shared rules',()=>{
  const f=fixture();f.roll=.005;f.system.start(f.a);f.system.update(PLAYER_INTERVAL,2.5);assert.ok(f.a.hp<ENEMIES.bruiser.health);f.system.update(2.5,5);assert.equal(f.health.value,30,'1% enemy miss');f.system.cancel();
  f.roll=.5;f.equipment.toggle('shields');f.system.start(f.a);f.system.update(2.5,7.5);f.system.update(2.5,10);
  // Wooden Shield +30 and starting Defense/Toughness/Shield proficiency: 3.11% of a 12 roll still rounds to 12.
- assert.equal(f.health.value,30-BRUISER_HIT);assert.equal(f.character.tracks['prof.shield'].xp,50+10*BRUISER_HIT);
+ assert.equal(f.health.value,30-BRUISER_HIT);assert.equal(f.character.tracks['prof.shield'].xp,XP_BASE+BRUISER_HIT);
  const training=fixture('scrapper');training.health.value=1;training.system.start(training.a);training.system.update(2.5,3);training.system.update(2.5,5.5);assert.equal(training.health.value,1);assert.equal(training.system.busy,false);
 });
 test('movement starts pursuit, reengagement preserves damage, leash returns safely',()=>{
@@ -73,7 +73,7 @@ test('inert targets never attack, award half XP below level 3, spend Mana per ca
  // Energy Strike at starting stats: 1–22; roll .5 → 12. Four casts leave 2 HP; the fifth removes 2.
  const f=fixture('target');f.a.respawn=1;f.styles.learn('energyStrike');f.styles.select('energyStrike');f.system.start(f.a);for(let i=0;i<20&&!f.a.opened;i++)f.system.update(1,i);
  assert.equal(f.a.opened,true);assert.equal(f.health.value,30);assert.equal(f.mana.value,100-5*4);
- const expected=.5*(4*(50+10*12)+(50+10*2));assert.equal(f.character.tracks['magic.technique'].xp,expected);assert.equal(f.character.tracks['prof.energy'].xp,expected);
+ const expected=.5*(4*(XP_BASE+12)+(XP_BASE+2));assert.equal(f.character.tracks['magic.technique'].xp,expected);assert.equal(f.character.tracks['prof.energy'].xp,expected);
  f.system.update(3,21);assert.equal(f.a.opened,false);assert.equal(f.a.hp,ENEMIES.target.health);assert.ok(f.system.start(f.a));f.system.disengage();assert.equal(f.system.state.chase,null);
 });
 test('practice target XP stops at each receiving track level 3 without overflow',()=>{
@@ -125,7 +125,7 @@ for(const style of ['unarmed','ranged','magic'])for(const outcome of ['damage','
  if(style!=='unarmed')frames(f,.24);
  assert.equal(f.a.aggro,true);assert.equal(f.a.hp<ENEMIES.bruiser.health,outcome==='damage');
  // Base XP is still earned for resolved attempts that remove no HP.
- assert.ok(f.character.tracks[`${style==='unarmed'?'melee':style}.technique`].xp>=50);
+ assert.ok(f.character.tracks[`${style==='unarmed'?'melee':style}.technique`].xp>=XP_BASE);
 });
 test('passive creatures ignore proximity; aggressive awareness respects configured radius and obstacles',()=>{
  const f=fixture();frames(f,.5);assert.equal(f.a.aggro,false);
