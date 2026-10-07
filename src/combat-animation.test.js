@@ -15,8 +15,21 @@ test('bow hand follows deforming string and release coincides with the projectil
  assert.ok(draw.bowDraw>.99);assert.ok(draw.hands[0][2]<draw.hands[1][2]-.37);assert.equal(release.bowDraw,0);assert.equal(release.nocked,false);
  animateBow(bow,draw.bowDraw,draw.nocked);assert.ok(bow.getObjectByName('bow-string').geometry.attributes.position.getZ(1)<-.37);assert.ok(bow.getObjectByName('nocked-arrow').visible);animateBow(bow);assert.equal(bow.getObjectByName('nocked-arrow').visible,false);
 });
-test('magic holds close together near the body then pushes forward rapidly',()=>{
- const profile={style:'magic',interval:1.8},ready=attackAnimation(profile,1.6),push=attackAnimation(profile,1.8);assert.equal(ready.hands[1][0]-ready.hands[0][0],.3);assert.ok(ready.hands[0][2]>=.45&&ready.hands[0][2]<.46);assert.ok(push.hands[0][2]>.65);
+test('casting gathers energy between converging hands, pulls back, then tosses it forward',()=>{
+ const interval=2.94,at=t=>attackAnimation({style:'magic',interval},t),spread=p=>p.hands[1][0]-p.hands[0][0];
+ const start=at(.05),gathering=at(1.6),pulled=at(interval-.16),thrown=at(interval);
+ assert.ok(spread(start)>.7,'hands start wide apart');assert.ok(spread(gathering)<spread(start),'and converge');
+ // Circling: the hands move around the orb (vertical offset changes) while gathering.
+ const heights=[1.2,1.3,1.4,1.5].map(t=>at(t).hands[0][1]);assert.ok(Math.max(...heights)-Math.min(...heights)>.01,'they move around the energy');
+ assert.ok(pulled.hands[0][2]<gathering.hands[0][2],'pull back toward the body');assert.ok(pulled.pose.lean<0,'leaning back to wind up');
+ assert.ok(thrown.hands[0][2]>.9,'toss forward');
+ // Hands stay clear of the body (front face .36 + hand radius .105) for the whole cast.
+ for(let t=0;t<2*interval;t+=.05)assert.ok(at(t).hands.every(h=>h[2]>=.45||Math.abs(h[0])>=.47),`clear of the body at ${t.toFixed(2)}`);assert.ok(thrown.pose.lean>.08,'leaning into the throw');
+ // The energy orb grows while gathering and is gone once thrown.
+ assert.ok(at(.05).charge<at(1.6).charge&&at(interval-.2).charge>.9);assert.equal(at(interval+.01).charge,0);
+ // Mirrored, finite and continuous through the whole cycle (including the follow-through).
+ let prev=at(0).hands;for(let t=.01;t<2*interval;t+=.01){const h=at(t).hands;assert.ok(h.every(x=>x.every(Number.isFinite)));assert.ok(Math.abs(h[0][0]+h[1][0])<1e-9,'symmetric left/right');
+  const step=Math.max(...h.map((x,i)=>Math.hypot(x[0]-prev[i][0],x[1]-prev[i][1],x[2]-prev[i][2])));assert.ok(step<.12,`no jump at ${t.toFixed(2)} (${step.toFixed(3)})`);prev=h;}
 });
 test('block poses cover bare hands, blades, bows, magic and every legal shield combination',()=>{
  for(const item of [null,'swords','copperDagger','bows'])for(const offHand of [null,'shields','copperShield']){if(item==='bows'&&offHand)continue;const pose=blockAnimation({item,offHand},.1);for(const h of pose.hands)assert.ok(h.every(Number.isFinite));if(offHand){assert.ok(pose.hands[1][2]>.5);assert.equal(pose.hands[0][0],-.47);}else if(!item)assert.ok(pose.hands.every(h=>h[1]>.55));else if(item!=='bows')assert.ok(pose.hands[0][4]<-.7);}
@@ -115,4 +128,48 @@ test('bare-hand block brings the fists together into a boxing high guard',()=>{
  assert.ok(gap>=0&&gap<.05,`fists nearly touch (gap ${gap.toFixed(3)})`);
  assert.ok(r[2]>=.47&&l[2]>=.47,'in front of the body');assert.ok(r[1]>.55&&l[1]>.55,'up at the face');
  assert.ok(Math.abs(r[0]+l[0])<1e-12&&Math.abs(r[5]+l[5])<1e-12,'symmetrical');
+});
+
+test('the gathered energy orb sits between the hands, grows with charge and disappears when thrown',async()=>{
+ const {Group}=await import('three');const {createCastPresentation}=await import('./cast-presentation.js');
+ const body=new Group(),hands=[new Group(),new Group()];body.add(...hands);hands[0].position.set(-.2,.4,.5);hands[1].position.set(.2,.5,.5);
+ const cast=createCastPresentation(hands);
+ cast.update({charge:.3},0);assert.ok(cast.orb.visible);const small=cast.orb.scale.x;assert.ok(Math.abs(cast.orb.position.x)<1e-9&&Math.abs(cast.orb.position.y-.45)<1e-9);
+ cast.update({charge:1},0);assert.ok(cast.orb.scale.x>small);
+ cast.update({charge:0},0);assert.equal(cast.orb.visible,false);cast.update(null);assert.equal(cast.orb.visible,false);
+});
+
+test('spell looks are data-driven: the cast orb and projectile follow the spell, defaulting to energy',async()=>{
+ const THREE=await import('three');const {SPELL_VISUALS,spellVisualKey}=await import('./spell-visuals.js');const {createCastPresentation}=await import('./cast-presentation.js');const {projectileModel}=await import('./projectile-effects.js');const {SPELLS}=await import('./combat-styles.js');
+ assert.equal(spellVisualKey(SPELLS.energyStrike),'energy','by element');assert.equal(spellVisualKey({visual:'energy',elements:{fire:1}}),'energy','explicit visual wins');assert.equal(spellVisualKey({elements:{fire:1}}),'energy','unknown looks fall back to the default');assert.equal(spellVisualKey(null),'energy');
+ // A new look is one registry entry; the orb swaps to it and the projectile uses it.
+ const red=()=>{const g=new THREE.Group();g.add(new THREE.Mesh(new THREE.SphereGeometry(.1),new THREE.MeshBasicMaterial({color:'#ff5a1f'})));g.name='test-fire';return g;};
+ SPELL_VISUALS.testFire={name:'Test fire',charge:red,projectile:red};
+ try{
+  const body=new THREE.Group(),hands=[new THREE.Group(),new THREE.Group()];body.add(...hands);const cast=createCastPresentation(hands);
+  cast.update({charge:.5},0,SPELLS.energyStrike);assert.equal(cast.look,'energy');
+  cast.update({charge:.5},0,{visual:'testFire'});assert.equal(cast.look,'testFire');assert.equal(cast.orb.children.filter(c=>c.visible).length,1,'only the active look shows');
+  assert.equal(projectileModel('magic',{visual:'testFire'}).name,'test-fire');
+ }finally{delete SPELL_VISUALS.testFire;}
+});
+
+test('Energy Strike is light yellow and is the default spell look',async()=>{
+ const {spellVisual,SPELL_VISUALS,DEFAULT_SPELL_VISUAL}=await import('./spell-visuals.js');const {SPELLS}=await import('./combat-styles.js');
+ const color=look=>look.charge().children[0].material.color.getHexString();
+ assert.equal(DEFAULT_SPELL_VISUAL,'energy');assert.equal(color(spellVisual(SPELLS.energyStrike)),'fff1a0');assert.equal(color(spellVisual(null)),'fff1a0');
+ assert.equal(SPELL_VISUALS.energy.projectile().children[0].material.color.getHexString(),'fff1a0','the thrown projectile matches');
+});
+
+test('cast orb surges wildly while gathering, then settles small; hands arrive level before the pull back',async()=>{
+ const {castMotion,CAST_TIMING}=await import('./combat-motion.js');const interval=2.94,gatherEnd=interval-CAST_TIMING.pull;
+ const sizes=[];for(let t=.4;t<1.4;t+=.02)sizes.push(castMotion(t,interval).orbScale);
+ const swing=Math.max(...sizes)-Math.min(...sizes);assert.ok(swing>.4,`wild size swings mid-gather (${swing.toFixed(2)})`);
+ const settled=[];for(let t=gatherEnd-.05;t<interval-.01;t+=.02)settled.push(castMotion(t,interval));
+ assert.ok(Math.max(...settled.map(m=>m.orbScale))<Math.max(...sizes),'settles smaller than its surges');
+ assert.ok(Math.max(...settled.map(m=>m.orbScale))-Math.min(...settled.map(m=>m.orbScale))<.05,'and steady');
+ assert.ok(settled.every(m=>m.instability<.05),'stable energy');
+ // Level hands from the end of the gather through pull back and toss.
+ for(const t of [gatherEnd,gatherEnd+.1,interval-.1,interval-.01]){const h=castMotion(t,interval).hands;assert.ok(Math.abs(h[0][1]-h[1][1])<1e-9,`level at ${t.toFixed(2)}`);}
+ assert.ok(Math.abs(castMotion(1.0,interval).hands[0][1]-castMotion(1.0,interval).hands[1][1])>.01,'but they do circle mid-gather');
+ assert.equal(castMotion(interval,interval).orbScale,0,'gone once thrown');
 });

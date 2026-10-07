@@ -976,6 +976,10 @@ Self-inflicted backfires grant no defensive progression: no armor-skill XP, armo
 
 Energy Strike remaining presentation details, other spell definitions and remaining casting controls still need definition; its initial base damage, timing and Mana-efficiency rules are specified above. Resource availability, consumption and paused attack intent follow the shared attack rules.
 
+### Spell visuals
+
+Each spell's look is changeable and belongs to the spell, not to casting in general. A look supplies both the energy the caster gathers between their hands while casting and the projectile thrown at release, so a spell always throws what it gathered. Choose the look per spell, defaulting by element. Examples of intended direction: a water spell is blue with drips; a fire spell is red, orange and yellow, perhaps with a little smoke. Energy Strike uses a light yellow energy orb, which is also the default look (and what the dev model viewer's magic preview shows). Looks are shared presentation (one registry used by gameplay, the dev model viewer and any future preview), may animate per frame, and never change spell rules. Every look must appear in the dev model catalogue. Concrete looks for future elements are defined with their spells.
+
 ## Abilities and auras
 
 Abilities use Energy. Bristle teaches Strong Strike during his combat lesson; it is not granted automatically at character creation. Strong Strike is the introductory ability: melee, selected supported damage type, Strong strategy, starting cost 50 EP, double maximum damage and an enhanced minimum for one attack as defined below. Ability Energy is consumed at strike/projectile release under the shared attack resource rule. Strong Strike forces Strong strategy for its one enhanced melee attack; it does not require the player to select Strong first and does not change their normal strategy selection. That attack uses Strong modifiers and awards its strategy XP to Melee Power, subject to the normal entity XP rules. Subsequent normal attacks use the player's selected strategy again. Commit the override and its XP destination with the attack at windup start.

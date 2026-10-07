@@ -16,6 +16,7 @@ import {createAuras} from './auras.js';
 import {createControlState} from './control-effects.js';
 import {createAssistance} from './assistance.js';
 import {createPoseBlender,motionKey} from './pose-blend.js';
+import {createCastPresentation} from './cast-presentation.js';
 import {playerDefense} from './combat-profile.js';
 import {createSupplyOffers} from './supply-offers.js';
 import {createProjectileEffects} from './projectile-effects.js';
@@ -161,6 +162,7 @@ const character=createCharacter({changed(){const m=character.maxima;health.max=m
 // Player control effects (stun/immobilize/slow and protection) use the same shared state as enemies.
 const playerControl=createControlState();
 const poseBlender=createPoseBlender();
+let castPresentation=null;
 // Non-combat skill XP joins combat XP in the one core conversion (5:1); core level-ups grant attribute points.
 onSkillXp(amount=>{const core=character.convertProgression(amount);if(core?.leveledUp)showSkillReward({skillName:'Core',level:core.level,leveledUp:true,detail:`+${core.points} attribute points`},player.position,{float:false});return core;});
 const auras=createAuras({ki:playerResources.ki,exhausted:()=>{assistance?.auraExhausted();toast('Out of Ki — all auras faded. Ki recovers while they are off.');}});
@@ -195,6 +197,7 @@ styles=createCombatStyles({equipment,busy:()=>combat?.working||combat?.busy||smi
 const supplies=createSupplyOffers({inventory,changed:showItemChanges});
 const projectiles=createProjectileEffects(scene);
 const equipmentPresentation=createEquipmentPresentation({hands,visual,equipment});
+castPresentation=createCastPresentation(hands);
 combat=createCombatSystem({world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:showItemChanges,projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
  attacked:()=>playerInterface?.attacked(),interrupt:()=>cancelWork({keepCombat:true,keepFood:true}),retaliate:a=>selectActor(a),eating:()=>food?.working,
  blocked:()=>!areas.canMove||travel.busy,
@@ -485,8 +488,9 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  }
  if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  // Crossfade between motions (punch ↔ stab, hand swaps, attack ↔ block…). Archery stays exact for the bow string.
+ let actionPose=null;
  if(actionMotion){
-  const motion=poseBlender.update(motionKey(actionMotion.kind,actionMotion.profile),playerActionMotion(actionMotion.kind,actionMotion.time,elapsed,actionMotion.profile),dt,{instant:actionMotion.kind==='Archery'});
+  const motion=actionPose=poseBlender.update(motionKey(actionMotion.kind,actionMotion.profile),playerActionMotion(actionMotion.kind,actionMotion.time,elapsed,actionMotion.profile),dt,{instant:actionMotion.kind==='Archery'});
   if(actionMotion.kind!=='Block'||!segment)pose=motion.pose;expression=motion.expression;handWork=motion.handWork;socialHands=motion.hands;sleeping=false;
  }
  else poseBlender.reset();
@@ -536,6 +540,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  if(pose.handDrop!==undefined)placeFaintedHands(visual,hands,pose.handDrop);
  alignSupportingHand(hands,pickaxeTool.visible?'Mining':actionMotion?.kind==='Fishing catch'?'Fish hook':actionMotion?.kind);
  equipmentPresentation.update({motion:(__PLAYGROUND__&&debug?.combatMotion)||actionMotion,working:recipeCrafting.working,celebrating:!!areas.celebration});
+ castPresentation.update(actionMotion?.kind==='Casting'?actionPose:null,elapsed,actionMotion?.profile);
  hammerTool.visible=['Repairing','Smithing'].includes(actionMotion?.kind);
  fishingPresentation.update(actionMotion);
  for(const tree of trees)tree.highlight.update((['boulder','copper'].includes(tree.kind)?craftingTutorial.highlightBoulders:craftingTutorial.highlightTrees)&&!tree.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.tree===tree&&!tree.depleted);

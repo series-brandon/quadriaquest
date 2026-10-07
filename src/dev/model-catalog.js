@@ -8,6 +8,8 @@ import {goblin,animateGoblin} from '../enemy-model.js';
 import {tool,heldTool,heldToolHand} from '../tool-models.js';
 import {GEAR} from '../equipment.js';
 import {createPoseBlender,motionKey} from '../pose-blend.js';
+import {createCastPresentation} from '../cast-presentation.js';
+import {SPELL_VISUALS} from '../spell-visuals.js';
 import {makeBridge} from '../bridge-model.js';
 import {fishingSpot,animateFishingSpot} from '../fishing-spot-model.js';
 import {campfire,animateCampfire} from '../campfire-model.js';
@@ -52,15 +54,17 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
  const bowPresentation=createBowPresentation(tools.bows,rig.hands);
  // Same crossfade as gameplay, so motion changes (e.g. alternating stab and punch) preview as they play.
  const blender=createPoseBlender();let blendMotion=null;
+ // Gathered spell energy between the hands, as in gameplay.
+ const castPresentation=createCastPresentation(rig.hands);
  return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){
   // Picking a different animation snaps; changes within the running animation (hand swaps, stab ↔ punch) blend.
-  const pickedNew=motion!==blendMotion;blendMotion=motion;
+  const pickedNew=motion!==blendMotion;blendMotion=motion;let castState=null;
   trophyGeneric.visible=trophyFish.visible=trophyHat.visible=false;
   let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null;
   const combat=['Attack','Block'].includes(motion)?previewCombat(motion,options,time):null,actionKind=combat?.kind||SLIME_ACTIONS[motion],loadout=previewLoadout(options);
   for(const prop of rig.idleProps||[])prop.visible=motion==='Idle'&&!loadout.mainHand&&!loadout.offHand;
   for(const model of Object.values(tools))model.visible=false;
-  if(actionKind){const actionTime=actionKind==='Block'?time%1.2:actionKind==='Eating'?time%(EATING_DURATION+.5):actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=blender.update(motionKey(actionKind,combat?.profile),playerActionMotion(actionKind,actionTime,actionTime,combat?.profile),dt,{instant:actionKind==='Archery'||pickedNew}));const active=({Smithing:['hammers'],Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;
+  if(actionKind){const actionTime=actionKind==='Block'?time%1.2:actionKind==='Eating'?time%(EATING_DURATION+.5):actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=castState=blender.update(motionKey(actionKind,combat?.profile),playerActionMotion(actionKind,actionTime,actionTime,combat?.profile),dt,{instant:actionKind==='Archery'||pickedNew}));const active=({Smithing:['hammers'],Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;
    const bow=playerActionMotion(actionKind,actionTime,actionTime,combat?.profile);bowPresentation.update(bow,loadout.mainHand==='bows'&&actionKind==='Archery');
    if(actionKind==='Fishing catch'||actionKind==='Fishing cast')tools.rods.visible=true;
    if(actionKind==='Celebration'){trophyFish.scale.setScalar(1);const result=holdUpMotion(actionTime,heldItem==='Raw Pondfish'?'fish':heldItem==='Top Hat'?'hat':'generic'),prop=heldItem==='Raw Pondfish'?trophyFish:heldItem==='Top Hat'?trophyHat:trophyGeneric;prop.visible=result.prop.visible;prop.position.set(0,result.prop.y,result.prop.z);}
@@ -81,6 +85,7 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
   rig.group.scale.set(...(pose.scale||[width/Math.sqrt(stretch),pose.squash,width*Math.sqrt(stretch)]));
   rig.group.rotation.set(pose.lean||0,pose.twist||0,pose.roll||0);rig.group.position.y=lift;
   rig.hands.forEach((hand,i)=>{hand.position.copy(rest[i]);hand.rotation.set(0,0,0);hand.scale.set(1,handWork!==null?.88:1,handWork!==null?1.15:1);const values=hands?.[i]||(handWork!==null?gatheringHand(handWork,i):null);if(values){const [x,y,z,curl,roll,yaw=0]=values;hand.position.set(x,y,z);hand.rotation.set(curl,yaw,roll);}else hand.position.z+=(pose.armDrive||0);});
+  castPresentation.update(actionKind==='Casting'?castState:null,time,combat?.profile);
   if(pose.handDrop!==undefined){groundFaintedBody(rig.group,rig.body);placeFaintedHands(rig.group,rig.hands,pose.handDrop);}
   if(motion==='Idle'&&idle&&!loadout.mainHand&&!loadout.offHand){rig.group.rotation.set(0,0,0);idle(rig,time,expression);}
   alignSupportingHand(rig.hands,actionKind==='Fishing catch'?'Fish hook':actionKind);
@@ -98,7 +103,8 @@ export const MODEL_CATALOG=[
  staticModel('Anvil',anvil),staticModel('Provision shelf',supplyShelf),staticModel('Stone arch',stoneArch),
  staticModel('Stone tile',()=>stoneTile({x:0,z:0,h:1},new Map())),
  {name:'Practice target',motions:['Static','Hit'],create(){const group=trainingTarget();return {group,update:(time,motion)=>animateTarget(group,time,motion==='Hit'?1:0)};}},
- staticModel('Energy Strike projectile',()=>projectileModel('magic')),
+ // Every spell look (charge orb and projectile) from the shared registry.
+ ...Object.entries(SPELL_VISUALS).map(([key,look])=>staticModel(`${look.name} spell projectile`,()=>projectileModel('magic',{visual:key}))),
 
  {name:'Slime',loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(makeSlime)},
  {name:'Reed',loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{idle:animateFisher})},

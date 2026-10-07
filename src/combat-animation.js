@@ -1,4 +1,4 @@
-import {punchMotion} from './combat-motion.js';
+import {punchMotion,castMotion} from './combat-motion.js';
 import {idlePose} from './slime-motion.js';
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
@@ -22,7 +22,7 @@ export function equipmentIdleHands(profile={}){
 export function attackAnimation(profile={},time=0){
  const motion=resolveAttackMotion(profile),interval=profile.interval||1.5,clock=time%interval,after=time>=interval&&clock<.28;
  const ready=equipmentIdleHands(profile);
- let hands=ready.map(h=>[...h]),pose=idlePose(time),bowDraw=0,nocked=false,arrowRaise=0;
+ let hands=ready.map(h=>[...h]),pose=idlePose(time),bowDraw=0,nocked=false,arrowRaise=0,charge=0,orbScale=0,instability=0;
  const wind=smooth((clock-(interval-.48))/.30),thrust=smooth((clock-(interval-.18))/.18),recover=after?1-smooth(clock/.28):0;
  if(motion==='bow'){
   const draw=after?0:smooth((clock-(interval-.8))/.62);bowDraw=draw;nocked=!after&&clock>=interval-1.15;
@@ -37,9 +37,7 @@ export function attackAnimation(profile={},time=0){
   hands=ready.map((h,i)=>{const result=mix(h,aimed[i],raise);result.splice(0,3,...arc(h.slice(0,3),i===0?[-.60,.55,1.0]:[.65,.55,1.0],aimed[i].slice(0,3),raise));return result;});
   pose={squash:1,stretch:1,twist:turn,lean:0};
  }else if(motion==='cast'){
-  const push=after?recover:thrust;
-  hands=[[-.15,.36+push*.10,.45+push*.34,.12+push*.25,0,0],[.15,.36+push*.10,.45+push*.34,.12+push*.25,0,-Math.PI/2]];
-  pose.lean=push*.07;
+  const cast=castMotion(clock,interval,after);hands=cast.hands;pose.lean=cast.lean;pose.stretch=cast.stretch;charge=cast.charge;orbScale=cast.orbScale;instability=cast.instability;
  }else if(motion==='stab'){
   const aim=after?recover:wind,push=after?recover:thrust;
   hands[0]=[-.46+.14*smooth((push-.4)/.6),.33,.08+push*.55,ready[0][3]+(Math.PI/2-ready[0][3])*aim,aim?-.22*aim:0,0];pose.lean=push*.075;
@@ -63,7 +61,7 @@ export function attackAnimation(profile={},time=0){
  // Off-hand strikes mirror the motion onto the left hand (position x and the y/z rotations).
  // Some motions (punch) omit the trailing rotations; treat missing values as 0, never undefined.
  if(profile.hand==='off'){const mirror=h=>[-h[0],h[1],h[2],h[3]||0,-(h[4]||0),-(h[5]||0)];hands=[mirror(hands[1]),mirror(hands[0])];pose={...pose,twist:-(pose.twist||0)};}
- return {pose,hands,handWork:null,expression:'focused',bowDraw,nocked,arrowRaise};
+ return {pose,hands,handWork:null,expression:'focused',bowDraw,nocked,arrowRaise,charge,orbScale,instability};
 }
 // Equipment affects the pose only; receiving a block animation never changes damage rules.
 export function blockAnimation(profile={},age=0){

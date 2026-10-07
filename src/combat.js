@@ -218,7 +218,7 @@ export function createCombatSystem(api){
      if(weapon.manaCost)api.mana.value-=weapon.manaCost;
      if(weapon.energyCost)api.energy.value-=weapon.energyCost;
      if(weapon.backfirePercent>0&&random()*100<weapon.backfirePercent)backfire(a,weapon);
-     else if(['ranged','magic'].includes(weapon.style)){api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),weapon.style);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
+     else if(['ranged','magic'].includes(weapon.style)){api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),weapon.style,weapon);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
      if(!weapon.spell&&weapon.hand&&api.equipment.attackHands==='alternate')nextHand=weapon.hand==='main'?'off':'main';
      // The follow-through belongs to the attack that just released, even though the next one is committed.
      c.released=weapon;c.struck=true;if(fight===c)commit(c);
