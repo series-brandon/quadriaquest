@@ -22,6 +22,13 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ### Skilling core XP and model viewer layout — 2026-10-07
 
+- **Boxing punch:** `punchMotion` now starts from a symmetrical "dukes up" guard (`PUNCH_GUARD`: fists at x ±0.24, y 0.40, z 0.50, clear of the 0.72 body and in front of the chin).
+  - The striking fist loads slightly back, drives forward and inward (+0.46 z) to impact, and the body twists into it.
+  - The guard fist tucks back (−0.14 z) and slightly outward, then both return exactly to guard.
+  - The punch builds its own guard-hand pull-back and twist, so it no longer stacks the generic stab/slash counterweight. Hand arrays always have six values.
+  - Because the guard is symmetrical, the off-hand mirror is an exact left jab. Tests cover the symmetry, load/strike/pull-back/return, and finite six-value poses; the existing counterweight test still passes.
+  - Checked in the built model viewer from the front and side. Feel/tuning is for user review.
+
 - **Bug: non-combat skills gave no core XP.** Only combat tracks used `character.award`; Gathering, Lumberjack, Mining, Fishing, Crafting, Culinary and Smithing used the prototype `awardSkillXp`, and Carpentry added XP inline, so none reached the core conversion. All non-combat awards now go through one shared `addSkillXp` (Carpentry included). It reports to `character.convertProgression`, which uses the same 5:1 conversion and shared remainder as combat; core level-ups from skilling show the usual banner and grant points. The Skills caption and COMBAT.md now say non-combat XP counts. A test covers the shared remainder between skilling and combat. In the built playground, one real copper ore gave 20 Mining XP and 4 core XP.
 - **Model viewer layout:** Combat style moved into the controls row, left of Attack motion. Like Attack motion, it shows only for the slime's Attack animation (the only preview it affects). The loadout is now three columns: Main hand over Main hand damage, Off hand over Off hand damage, and Attack hands alone. Positions were verified in the built viewer.
 

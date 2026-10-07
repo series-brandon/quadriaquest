@@ -50,11 +50,12 @@ export function attackAnimation(profile={},time=0){
   const start=mix(ready[0],rear,wind).slice(0,3);
   const position=after?arc(ready[0].slice(0,3),[-.78,.34,.75],slash.slice(0,3),recover):arc(start,[-.83,.50,.70],slash.slice(0,3),thrust);
   hands[0].splice(0,3,...position);pose.lean=after?recover*.12:thrust*.12-wind*.035;
- }else{const punch=punchMotion(time/interval*1.5);hands=[punch.right,punch.left];pose.lean=punch.lean;}
+ }else{const punch=punchMotion(time/interval*1.5);hands=[punch.right,punch.left];pose.lean=punch.lean;pose.twist=punch.twist;}
  // One-handed attacks use the free/shield arm as a counterweight. Momentum
  // peaks at impact and settles with the existing recovery.
- if(['stab','slash','punch'].includes(motion)){
-  const effort=motion==='punch'?Math.max(0,pose.lean/.07):(after?recover:thrust);
+ // The punch builds its own guard-hand pull-back and twist, so it skips this generic counterweight.
+ if(['stab','slash'].includes(motion)){
+  const effort=after?recover:thrust;
   hands[1][0]+=.02*effort;hands[1][1]+=.025*effort;hands[1][2]-=.14*effort;
   hands[1][3]-=.12*effort;
   pose.twist=.12*effort;
