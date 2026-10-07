@@ -4,8 +4,20 @@
     {
       "name": "playground",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:debug"],
+      "runtimeArgs": [
+        "run",
+        "dev:debug"
+      ],
       "port": 5174
+    },
+    {
+      "name": "playground-built",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "preview:debug"
+      ],
+      "port": 4174
     }
   ]
 }

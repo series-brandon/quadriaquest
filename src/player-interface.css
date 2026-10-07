@@ -4,7 +4,8 @@
 #player-overview{position:relative;padding:14px;display:grid;grid-template-columns:156px minmax(0,1fr);gap:10px;border-bottom:1px solid var(--ui-border);background:var(--ui-paper);flex-shrink:0}
 .overview-heading{grid-column:1/-1;display:flex;justify-content:flex-end;align-items:center;min-height:44px}.overview-heading strong{font-size:17px}.overview-heading button{min-width:44px;min-height:44px}
 .overview-map{position:relative;grid-column:2;grid-row:2/4;align-self:start;justify-self:end;width:100%;max-width:212px}.overview-map canvas{width:100%;height:auto;aspect-ratio:1;border:4px solid #e6d8e0;border-radius:12px;image-rendering:pixelated}.overview-map>span{position:absolute;top:5px;left:9px;color:#fff7da;font-size:11px}
-#overview-vitals{grid-column:1;grid-row:2;min-width:0;display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:48px 44px;gap:6px;align-content:start;justify-content:start}
+/* All five pools share one row, each with its action directly below. */
+#overview-vitals{grid-column:1;grid-row:2;min-width:0;display:grid;grid-template-columns:repeat(5,48px);grid-template-rows:48px 44px;gap:6px;align-content:start;justify-content:start}
 #overview-vitals #player-health{position:relative;inset:auto;grid-column:1;grid-row:1;padding:0}
 #quick-food{width:44px;min-width:44px;height:44px;padding:10px;border:1px solid var(--ui-border);background:#eee1e6;display:grid;place-items:center;justify-self:center;grid-column:1;grid-row:2}
 #quick-food .game-icon{width:22px;height:22px}#quick-food>span{display:none}#quick-food:disabled{opacity:.55;cursor:default}
@@ -93,7 +94,7 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
  .overview-heading button{border:1px solid var(--ui-border);border-right:0;border-radius:10px 0 0 10px;background:var(--ui-paper);color:var(--ui-ink)}
  body.player-ui-active:not(.player-sidebar-open) .overview-heading{position:fixed;left:auto;right:calc(12px + env(safe-area-inset-right));top:auto;bottom:calc(12px + env(safe-area-inset-bottom))}
  body.player-ui-active:not(.player-sidebar-open) .overview-heading button{border:1px solid var(--ui-border);border-radius:10px}
- #player-mobile-hud{width:274px;pointer-events:none}
+ #player-mobile-hud{width:300px;pointer-events:none}
  #player-mobile-hud #player-overview{background:transparent;border:0;border-radius:0}
  #player-mobile-hud .overview-map,#player-mobile-hud #overview-vitals{pointer-events:auto}
 }
@@ -103,17 +104,15 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
 .overview-heading[hidden],body:has(#splash:not([hidden])) .overview-heading{display:none!important}
 
 #toggle-sprint{opacity:1;cursor:pointer}#toggle-sprint:disabled{opacity:.45;cursor:default}#toggle-sprint[aria-pressed="true"]{background:#a6c69b;box-shadow:inset 0 0 0 2px #426d46}.overview-map canvas{touch-action:none;cursor:crosshair}.overview-map>span{pointer-events:none}
-#overview-vitals{grid-template-rows:48px 44px 48px 44px}
-.resource-placeholder.energy{--resource-rim:#7d6a3a;--resource-light:#d9b85a;--resource-dark:#8a6a1f;--resource-edge:#a9832c;grid-column:1;grid-row:3}
-.resource-placeholder.ki{--resource-rim:#3d6a78;--resource-light:#6fb8c9;--resource-dark:#245566;--resource-edge:#33788b;grid-column:2;grid-row:3}
-.resource-placeholder-action.energy{grid-column:1;grid-row:4}.resource-placeholder-action.ki{grid-column:2;grid-row:4}
+.resource-placeholder.energy{--resource-rim:#7d6a3a;--resource-light:#d9b85a;--resource-dark:#8a6a1f;--resource-edge:#a9832c;grid-column:4;grid-row:1}
+.resource-placeholder.ki{--resource-rim:#3d6a78;--resource-light:#6fb8c9;--resource-dark:#245566;--resource-edge:#33788b;grid-column:5;grid-row:1}
+.resource-placeholder-action.energy{grid-column:4;grid-row:2}.resource-placeholder-action.ki{grid-column:5;grid-row:2}
 #quick-strong-strike,#open-auras{opacity:1;cursor:pointer}#quick-strong-strike:disabled{opacity:.45;cursor:default}
 #quick-strong-strike[aria-pressed="true"]{background:#e6cf86;box-shadow:inset 0 0 0 2px #8a6a1f}#open-auras[aria-pressed="true"]{background:#a9d6df;box-shadow:inset 0 0 0 2px #245566}
-/* Phone pages hide the minimap, so all five pools fit one row and keep the page offset unchanged. */
+/* Phones: 44px orbs (still touch-sized) keep the five pools on one row beside a smaller minimap. */
 @media(max-width:700px){
- body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud #overview-vitals{grid-template-columns:repeat(5,48px);grid-template-rows:48px 44px}
- body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .resource-placeholder.energy{grid-column:4;grid-row:1}
- body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .resource-placeholder.ki{grid-column:5;grid-row:1}
- body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .resource-placeholder-action.energy{grid-column:4;grid-row:2}
- body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .resource-placeholder-action.ki{grid-column:5;grid-row:2}
+ #player-mobile-hud #player-overview{grid-template-columns:max-content minmax(0,1fr)}
+ #player-mobile-hud #overview-vitals{grid-template-columns:repeat(5,44px);grid-template-rows:44px 44px;gap:4px}
+ #player-mobile-hud .resource-orb{width:44px;height:44px;font-size:15px}
+ #player-mobile-hud .overview-map{max-width:124px}
 }

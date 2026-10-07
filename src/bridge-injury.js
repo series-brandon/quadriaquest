@@ -1,8 +1,9 @@
+import {displayedLoss} from './combat-formulas.js';
 export function createBridgeInjury(){
  let applied=false;
  return {get applied(){return applied;},reset(){applied=false;},atProgress(progress,health){
   if(applied||progress<.75)return null;
-  applied=true;const next=Math.max(1,health-5);return {health:next,damage:health-next};
+  applied=true;const next=Math.max(1,health-5);return {health:next,damage:displayedLoss(health,next)};
  }};
 }
 export function hammerInjuryPose(time){

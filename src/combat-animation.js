@@ -60,7 +60,8 @@ export function attackAnimation(profile={},time=0){
   pose.twist=.12*effort;
  }
  // Off-hand strikes mirror the motion onto the left hand (position x and the y/z rotations).
- if(profile.hand==='off'){const mirror=h=>[-h[0],h[1],h[2],h[3],-h[4],-h[5]];hands=[mirror(hands[1]),mirror(hands[0])];pose={...pose,twist:-(pose.twist||0)};}
+ // Some motions (punch) omit the trailing rotations; treat missing values as 0, never undefined.
+ if(profile.hand==='off'){const mirror=h=>[-h[0],h[1],h[2],h[3]||0,-(h[4]||0),-(h[5]||0)];hands=[mirror(hands[1]),mirror(hands[0])];pose={...pose,twist:-(pose.twist||0)};}
  return {pose,hands,handWork:null,expression:'focused',bowDraw,nocked,arrowRaise};
 }
 // Equipment affects the pose only; receiving a block animation never changes damage rules.

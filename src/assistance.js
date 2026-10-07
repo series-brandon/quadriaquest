@@ -1,7 +1,7 @@
 import {STRATEGIES,hitsToDefeat,dangerBand,roundFinal} from './combat-formulas.js';
 import {playerAttackProfile,playerDefense} from './combat-profile.js';
 import {GEAR,ARMOR_SLOTS} from './equipment.js';
-import {SPELLS} from './combat-styles.js';
+import {SPELLS,ABILITIES} from './combat-styles.js';
 import {AURAS} from './auras.js';
 import {FOODS} from './player-health.js';
 
@@ -97,13 +97,26 @@ export function createAssistance(api){
  function autoEat(){
   if(!advanced.autoEat||!danger||health.value>=health.max)return '';
   if(health.value>1.5*danger.maxHit)return '';
-  if(combat.pending&&!advanced.emergencyPriority)return 'Warning! Recommend fleeing!';
+  if(combat.pendingManual&&!advanced.emergencyPriority)return 'Warning! Recommend fleeing!';
   const foods=Object.keys(FOODS).filter(id=>inventory[id]>0&&!advanced.foodExclusions.includes(id));
   if(!foods.length)return 'Warning! Recommend fleeing!';
   if(food.cooldown>0||food.working)return '';
   const id=foods.sort((a,b)=>FOODS[b].healing-FOODS[a].healing)[0];
   food.start(id,true);
   return Math.min(health.max,health.value)<=danger.maxHit?'Warning! Recommend fleeing!':'';
+ }
+
+ // Auto abilities: during a fight, queue a learned ability whenever the current attack can carry it and its
+ // cost is covered, through the same single queue, costs and commit rules as a manual press. Never with a
+ // request already pending, and never one that would redirect XP away from the chosen training goal.
+ function autoAbilities(){
+  if(!combat.fighting||combat.pending||combat.committedAbility)return;
+  const attack=combat.preview();
+  for(const [id,ability] of Object.entries(ABILITIES)){
+   if(!styles.knowsAbility(id)||goal&&STRATEGIES[ability.strategy].skill!==goal)continue;
+   if(attack.spell||attack.combatStyle!==ability.style||!(resources.energy.value>=ability.energy))continue;
+   combat.queue(id,{auto:true});return;
+  }
  }
 
  // Auto auras: Rush while moving in combat or pursuit; Harden in combat at 6 or fewer hits. No automatic
@@ -131,7 +144,7 @@ export function createAssistance(api){
     const spell=chooseSpell();if(!manual.spell&&styles.state.selected!==spell&&!combat.working)styles.select(spell);
     if(!manual.strategy){const s=chooseStrategy();if(styles.strategy!==s)styles.setStrategy(s);}
    }
-   if(control==='auto'){advice=autoEat();autoAuras(dt);}
+   if(control==='auto'){advice=autoEat();autoAuras(dt);if(!pacifist)autoAbilities();}
    // Advisory only: warnings never stop a fight the player chose or move the player.
    warning=advice||danger?.message||'';
   },

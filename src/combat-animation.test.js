@@ -101,3 +101,10 @@ test('shield blocks preserve the main-hand carry orientation through the whole b
   assert.equal(blockAnimation(profile,.1).hands[1][5],-Math.PI/2);
  }
 });
+
+test('every attack motion from either hand yields finite hand transforms (off-hand mirror regression)',()=>{
+ for(const attackMotion of ['punch','stab','slash','bow','cast'])for(const hand of ['main','off'])for(const time of [0,.5,1.2,2.4,2.6,3.9]){
+  const {hands}=attackAnimation({attackMotion,hand,interval:2.5,style:attackMotion==='bow'?'ranged':attackMotion==='cast'?'magic':'melee'},time);
+  for(const h of hands)assert.ok(h.every(Number.isFinite),`${attackMotion}/${hand}@${time}: ${h}`);
+ }
+});

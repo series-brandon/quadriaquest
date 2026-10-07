@@ -134,3 +134,12 @@ test('danger bands use hits to defeat',()=>{
  assert.deepEqual([1,2,3,4,6,7,Infinity].map(h=>f.dangerBand(h).band),['imminent','flee','flee','caution','caution','manageable','manageable']);
  assert.equal(f.dangerBand(3).retaliate,false);assert.equal(f.dangerBand(4).retaliate,true);
 });
+
+test('player hit splats use the displayed health drop: whole numbers that never exceed visible health',()=>{
+ // Fractional health from regeneration: orb shows 6; a lethal hit shows 6, not 5.947… or the raw overkill.
+ assert.equal(f.displayedLoss(5.947837283474,0),6);
+ // Non-lethal hits show exactly the whole damage dealt, wherever the fraction sits.
+ for(const before of [50,50.3,50.999])assert.equal(f.displayedLoss(before,before-9),9);
+ assert.equal(f.displayedLoss(1.5,1),1,'protected floor');
+ assert.equal(f.displayedLoss(30,30),0);
+});

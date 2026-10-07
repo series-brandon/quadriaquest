@@ -52,7 +52,7 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
  return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){
   trophyGeneric.visible=trophyFish.visible=trophyHat.visible=false;
   let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null;
-  const combat=['Attack','Block'].includes(motion)?previewCombat(motion,options):null,actionKind=combat?.kind||SLIME_ACTIONS[motion],loadout=previewLoadout(options);
+  const combat=['Attack','Block'].includes(motion)?previewCombat(motion,options,time):null,actionKind=combat?.kind||SLIME_ACTIONS[motion],loadout=previewLoadout(options);
   for(const prop of rig.idleProps||[])prop.visible=motion==='Idle'&&!loadout.mainHand&&!loadout.offHand;
   for(const model of Object.values(tools))model.visible=false;
   if(actionKind){const actionTime=actionKind==='Block'?time%1.2:actionKind==='Eating'?time%(EATING_DURATION+.5):actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;({pose,hands,handWork,expression}=playerActionMotion(actionKind,actionTime,actionTime,combat?.profile));const active=({Smithing:['hammers'],Repairing:['hammers'],Fishing:['rods'],Chopping:['axes'],Mining:['pickaxes']}[actionKind]||[]);for(const id of active)tools[id].visible=true;

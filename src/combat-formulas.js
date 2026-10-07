@@ -126,6 +126,9 @@ export const REGEN_BASELINE={health:{out:1/6,in:1/12},mana:{out:1,in:.5},stamina
 export const regenRate=(resource,attribute,inCombat)=>REGEN_BASELINE[resource][inCombat?'in':'out']*regenMultiplier(attribute);
 export const clampResource=(current,maximum)=>Math.min(current,maximum);
 export const displayResource=v=>Math.ceil(v);
+// Player hit splats show the drop the player sees on the orb: whole numbers, equal to the hit's damage
+// unless it was lethal (then exactly the displayed health that remained, never more).
+export const displayedLoss=(before,after)=>Math.max(0,displayResource(before)-displayResource(after));
 export const sprintDrainPerSecond=athletics=>2*(1-Math.min(.001*athletics,.5));
 export function movementMultiplier(bonusFractions=[],slowFractions=[]){
  const slow=clamp(Math.max(0,...slowFractions),0,.9);

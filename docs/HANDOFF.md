@@ -20,6 +20,29 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### HUD single row and whole-number player splats — 2026-10-07
+
+- **Model viewer Attack hands:** the slime loadout gains an **Attack hands** select (Automatic, Main only, Off only, Alternate).
+  - The preview equips its loadout on a real `createEquipment` instance, so eligibility, defaults and fallbacks are the gameplay rules.
+  - Alternate switches hands each preview cycle, after the 0.28s follow-through, so each swing keeps its own hand.
+  - The loadout note states what actually applies, including when a choice is unavailable (e.g. Off hand only with a shield).
+  - Tests cover alternation timing, fallbacks, bare-hand alternation, a lone off-hand dagger and spells. Verified in the built viewer.
+
+- **Playground sections:** the new fieldsets sat loose at the top of the panel because `playground-layout.js` only files fieldsets whose legends it lists. They now live in a collapsible **Character & abilities** section (character & combat profile) and in **Combat** (assistance, dual wield, armor, control & backfire). Any future unlisted fieldset falls into a collapsible **More** section instead of escaping. The control-test picker uses the shared label-plus-action row. Verified in the built playground: nothing loose, the sections start collapsed, and the controls still run.
+
+- **Resource HUD:** all five orbs share one row, each with its action directly beneath (Eat, Restore, Sprint, Strong Strike, Auras).
+  - Desktop sidebar: 5 × 48px. The collapsed floating HUD widens from 274px to 300px.
+  - Phones: 44px orbs and actions with 4px gaps (236px) beside a 113px minimap during play, and the same single row above full-screen pages. The earlier two-row and phone-page special rules are removed.
+  - Verified at desktop (sidebar and collapsed) and 375px (gameplay and Skills page); no overflow.
+- **Fractional player hit splats.** Health is fractional internally (passive regeneration), but player splats showed `health before − health after`, so a lethal hit at 5.947837… HP printed the raw fraction. Player splats (enemy hits, backfire, Willowbank's scripted injury) now use `displayedLoss`: the drop in displayed (rounded-up) health. This equals the whole hit damage for every non-lethal hit and, for a lethal hit, exactly the health the orb showed (never a larger overkill number). This matches enemy splats, which already show HP actually removed.
+- Verification: 252 tests (new displayed-loss unit and lethal-hit integration tests), both builds and debug isolation. A live lethal Bruiser hit from fractional health showed a whole "7!": regeneration had raised health just past 6, so the orb showed 7. A built-preview launch config (`playground-built`, port 4174) avoids the dev server's CSS watch issue during checks.
+
+### Fixes: vanishing hands, Auto abilities — 2026-10-07
+
+- **Hands vanished permanently after unarmed combat.** Off-hand mirroring read a sixth pose value that punch poses don't have, producing `NaN`. Hand smoothing then carried the `NaN` forever. Unarmed defaults to alternating, so the first off-hand punch triggered it. Fixed the mirror (missing rotations count as 0). The main-loop hand smoothing now treats invalid targets as 0 and snaps back from non-finite transforms, so no single bad pose can stick. A regression test checks every attack motion from both hands for finite values.
+- **Auto now uses abilities when available** (user decision, recorded in COMBAT.md). During a fight, Auto queues learned abilities when the attack is eligible, Energy suffices, nothing is pending or committed, and the training goal allows it. Requests go through the same pending slot; Auto-queued requests are marked so manual requests keep priority. Auto-eat yields only to manual requests. Pressing an Auto-queued ability adopts it as manual, and a second press withdraws it.
+- Verification: 250 tests (new Auto-ability and pending-slot priority tests), both builds and debug isolation. A bounded browser check on the playground server ran an unarmed Auto fight against a Bruiser: off-hand punches in 44 of 103 samples, zero non-finite hand transforms, a mirrored punch pose, and Auto spending 50 Energy on Strong Strike (Melee Power XP) then re-queuing as Energy recovered. Inspection state now includes the player's hand transforms. No performance run: the fixes add no per-frame cost beyond a finite-check on two hands.
+
 ### Assistance, dual wield, backfire, armor, control effects and Ember — 2026-10-07
 
 - **Assistance** (`assistance.js`; Combat page rebuilt in `combat-style-menu.js`):
@@ -42,7 +65,6 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
   - Enemies freeze, stop attacking, and walk slower. The HUD status and enemy labels show effects and immunity. Only playground test sources exist.
 - **Ember (draft Ki mentor)** in the Cinderhold forge corner teaches Rush and Harden in the optional "Steady Breath" quest (see CINDERHOLD.md). It has a checkpoint, a landmark and a model-viewer entry.
 - **Needs review** (provisional where COMBAT.md is open):
-  - Auto never uses abilities.
   - Auto strategy: highest expected damage per second, or Defensive at ≤6 hits when no goal is set.
   - A second press withdraws a queued ability; movement does not clear an unassigned one.
   - Redistribute refunds points to spend with + in Skills.

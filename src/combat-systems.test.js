@@ -80,7 +80,8 @@ function assistFixture({hp=100}={}){
  const resources=createPlayerResources(),auras=createAuras({ki:resources.ki}),health=createResource(100);health.value=hp;
  const food=createFoodSystem({inventory,health,stop(){}});
  const enemy={kind:'bruiser',rules:ENEMIES.bruiser};let pending=null,stopped=0,moving=false;
- const combat={engagedEnemy:enemy,working:false,inCombat:true,autoRetaliate:true,get pending(){return pending;},set pending(v){pending=v;},stopAttacking(){stopped++;},preview:()=>playerAttackProfile(character,styles.attack,styles.strategy)};
+ // pending: {ability, auto}. Mirrors combat's single pending slot for the assistance rules under test.
+ const combat={engagedEnemy:enemy,working:false,inCombat:true,fighting:false,committedAbility:null,autoRetaliate:true,get pending(){return pending?.ability||null;},get pendingManual(){return pending&&!pending.auto?pending.ability:null;},set pending(v){pending=typeof v==='string'?{ability:v,auto:false}:v;},queue(id,{auto=false}={}){if(pending)return 'Busy';pending={ability:id,auto};return true;},stopAttacking(){stopped++;},preview:()=>playerAttackProfile(character,styles.attack,styles.strategy)};
  const toasts=[],assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources,toast:m=>toasts.push(m),moving:()=>moving});
  return {assistance,combat,character,equipment,styles,auras,resources,health,inventory,toasts,enemy,get stopped(){return stopped;},set moving(v){moving=v;}};
 }
@@ -141,4 +142,36 @@ test('a stun cancels the unreleased windup and pending action, keeps the target 
  control.apply({kind:'stun',duration:1,protection:5});f.system.update(.6,2.6);assert.equal(f.a.hp,ENEMIES.bruiser.health,'no strike while stunned');assert.equal(f.system.pending,null);assert.equal(f.system.state.fight,'bruiser');
  control.update(1);f.system.update(2.4,5);assert.equal(f.a.hp,ENEMIES.bruiser.health,'fresh full windup');f.system.update(.2,5.2);assert.ok(f.a.hp<ENEMIES.bruiser.health);
  const before=f.health.value;f.a.control.apply({kind:'stun',duration:10,protection:0});f.system.update(5,10);assert.equal(f.health.value,before,'a stunned enemy cannot attack');
+});
+
+test('Auto uses learned abilities whenever eligible and affordable, respecting goals, the queue and Pacifist',()=>{
+ const f=assistFixture({hp:100});f.styles.learnAbility('strongStrike');f.combat.fighting=true;
+ f.assistance.update(.2);assert.equal(f.combat.pending,'strongStrike');assert.equal(f.combat.pendingManual,null,'queued as an Auto request');
+ // Already queued or committed: no second request.
+ f.combat.pending=null;f.combat.committedAbility='Strong Strike';f.assistance.update(.2);assert.equal(f.combat.pending,null);f.combat.committedAbility=null;
+ f.resources.energy.value=49;f.assistance.update(.2);assert.equal(f.combat.pending,null,'needs 50 Energy');f.resources.energy.value=100;
+ f.assistance.setGoal('technique');f.assistance.update(.2);assert.equal(f.combat.pending,null,'Strong Strike would redirect XP to Power');
+ f.assistance.setGoal('power');f.assistance.update(.2);assert.equal(f.combat.pending,'strongStrike');f.combat.pending=null;
+ f.assistance.setControl('manual');f.assistance.update(.2);assert.equal(f.combat.pending,null,'Manual never acts');f.assistance.setControl('auto');
+ f.assistance.setPacifist(true);f.assistance.update(.2);assert.equal(f.combat.pending,null);f.assistance.setPacifist(false);
+ f.combat.fighting=false;f.assistance.update(.2);assert.equal(f.combat.pending,null,'only during a fight');
+ f.inventory.bows=1;f.combat.fighting=true;f.equipment.toggle('bows');f.assistance.update(.2);assert.equal(f.combat.pending,null,'Strong Strike needs a melee attack');
+});
+
+test('the pending slot keeps manual priority: Auto never displaces a manual request; pressing an Auto request adopts it',()=>{
+ const f=combatFixture();f.styles.learnAbility('strongStrike');
+ assert.equal(f.system.queue('strongStrike',{auto:true}),true);assert.equal(f.system.pendingManual,null);
+ assert.equal(f.system.queue('strongStrike'),true);assert.equal(f.system.pending,'strongStrike','the press adopts it rather than withdrawing');assert.equal(f.system.pendingManual,'strongStrike');
+ assert.equal(f.system.queue('strongStrike',{auto:true}),true);assert.equal(f.system.pendingManual,'strongStrike','Auto leaves a manual request alone');
+ f.system.queue('strongStrike');assert.equal(f.system.pending,null,'a second manual press withdraws');
+});
+
+test('a lethal hit at fractional health reports the visible health, as a whole number',()=>{
+ // Production combat system with a recording hit callback.
+ const shown=[];const g=(()=>{const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
+  const home=world.get('3,3'),inventory={},health=createResource(100),character=createCharacter(),equipment=createEquipment({inventory}),styles=createCombatStyles({equipment});
+  const system=createCombatSystem({world,health,equipment,inventory,character,mana:createResource(),energy:createResource(),strategy:()=>styles.strategy,attack:()=>styles.attack,player:new Group(),random:()=>.5,stop(){},face(){},sound(){},hit:(p,d,o)=>shown.push([d,o]),blocked:()=>false,inReach:()=>true,tile:()=>world.get('3,4'),reserved:()=>false,respawn:()=>false,defeatStop(){system.cancel();}});
+  const a=system.add({kind:'bruiser',rules:{...ENEMIES.bruiser,aggressive:true},group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});return {system,a,health};})();
+ g.health.value=5.947837283474;g.a.aggressive=true;for(let t=0;t<3;t+=.02)g.system.update(.02,t);
+ const lethal=shown.find(([,o])=>o==='hit');assert.deepEqual(lethal,[6,'hit']);assert.equal(g.health.value,0);
 });
