@@ -20,6 +20,30 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Abilities, auras, Energy/Ki and crystal services — 2026-10-07
+
+- **Energy and Ki** pools follow Tenacity/Aura and regenerate under the shared rules (Ki only while every aura is off). The HUD shows all five orbs: a second row has Energy with a Strong Strike button and Ki with an Auras shortcut. On phones with a page open, the five orbs share one row.
+- **Strong Strike**: `combat.js` has one shared pending-action slot.
+  - Queue from the HUD or Combat menu. The ability attaches when the next eligible melee windup begins; pressing again before then withdraws it.
+  - It spends 50 Energy at impact. If Energy drops below 50 before impact, the windup and ability are cancelled (no cost, no XP).
+  - It rejects ranged/spell attacks and insufficient Energy with one notice, and never repeats.
+  - It uses Strong strategy (22–44 at starting stats; its −2 Speed makes it a 2.55s swing) and trains Melee Power.
+  - Bristle teaches it in the `return` step; later checkpoints grant it.
+- **Auras** (`auras.js`): Rush (+10% movement, additive with sprint and Celerity's +0.2%/point) and Harden (+10 resistance points per incoming portion). Each has a 0.5 Ki activation fee and 0.5 Ki/s upkeep, stacking. At zero Ki every aura turns off with a notice. Toggled in Combat. The mentor is deferred (user decision), so auras are learnable only in the playground. Auto aura management belongs to the assistance slice.
+- **Food** now consumes and heals at initiation, with one shared 2s manual-consumable cooldown. An accepted meal cancels the unreleased windup and clears the pending action; attacks restart with a full windup, which may replace the eating animation. The "done" feedback fires when the animation ends; the narrative `foodEaten` fires at initiation.
+- **Iter Crystal services** in the shared destination menu, outside combat (5s buffer):
+  - **Restore** refills all five pools and keeps active auras.
+  - **Redistribute attribute points** returns every invested point to the unspent pool, to reassign with + in Skills; it turns auras off and refills.
+  - Both are preview-only without a real crystal. No cost yet (none designed).
+- Playground: **Character & combat profile** adds learn/forget for the combat kit, Queue Strong Strike, and pending/cooldown/aura readouts. Player health resources include Energy and Ki (up to 5000) for exhaustion tests.
+- Verification: 233 tests (new aura, respec, Strong Strike, Harden and food tests), both builds and debug isolation. Bounded hardware-browser checks:
+  - Clearing: Strong Strike 34 damage → Melee Power XP, 50 Energy spent, then normal attacks; Rush+Harden on in Combat (1 Ki fee, visible drain); eating mid-Bruiser fight +20 at once with the fight kept.
+  - Cinderhold: a real crystal's Restore (auras kept, Health 110 at Constitution 11) and Redistribute (2 points refunded, auras off); Bristle's `return` dialogue teaching Strong Strike and advancing to `bruiser`.
+  - Desktop and 375px HUD layouts (a phone overlap with the taller HUD was found and fixed); no console errors.
+  - Not checked: the full tutorial replay.
+- Still open per COMBAT.md: Ki mentor; unassigned-ability edge cases (repeat presses withdraw for now); attack-hand selection/dual wield; spell backfire; armor; stuns; Manual/Auto assistance and Pacifist (next slice).
+- Performance: full dev-gpu suite, 8/9 PASS (59.4–59.9 fps, 0.57–2.5 ms/frame). `cinderhold-combat` shows the same draws difference as the previous slice (584 vs 538.6, one more goblin visible); counters are otherwise unchanged (mutations ~123/s, layouts ~9/s). The baseline is still not updated.
+
 ### Player progression and formula-driven combat — 2026-10-07
 
 - `character.js`: shared character with documented attribute bases (capacity 10, others 1), 3 creation points, 18 combat skills, Light/Medium/Heavy Armor, weapon/armor-slot/elemental proficiencies, and core XP (one /5 conversion per action with carried remainder; 3 points per core level). All tracks use the adopted curve. Session-only, like the other skills.

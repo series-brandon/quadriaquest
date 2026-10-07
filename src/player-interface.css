@@ -103,3 +103,17 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
 .overview-heading[hidden],body:has(#splash:not([hidden])) .overview-heading{display:none!important}
 
 #toggle-sprint{opacity:1;cursor:pointer}#toggle-sprint:disabled{opacity:.45;cursor:default}#toggle-sprint[aria-pressed="true"]{background:#a6c69b;box-shadow:inset 0 0 0 2px #426d46}.overview-map canvas{touch-action:none;cursor:crosshair}.overview-map>span{pointer-events:none}
+#overview-vitals{grid-template-rows:48px 44px 48px 44px}
+.resource-placeholder.energy{--resource-rim:#7d6a3a;--resource-light:#d9b85a;--resource-dark:#8a6a1f;--resource-edge:#a9832c;grid-column:1;grid-row:3}
+.resource-placeholder.ki{--resource-rim:#3d6a78;--resource-light:#6fb8c9;--resource-dark:#245566;--resource-edge:#33788b;grid-column:2;grid-row:3}
+.resource-placeholder-action.energy{grid-column:1;grid-row:4}.resource-placeholder-action.ki{grid-column:2;grid-row:4}
+#quick-strong-strike,#open-auras{opacity:1;cursor:pointer}#quick-strong-strike:disabled{opacity:.45;cursor:default}
+#quick-strong-strike[aria-pressed="true"]{background:#e6cf86;box-shadow:inset 0 0 0 2px #8a6a1f}#open-auras[aria-pressed="true"]{background:#a9d6df;box-shadow:inset 0 0 0 2px #245566}
+/* Phone pages hide the minimap, so all five pools fit one row and keep the page offset unchanged. */
+@media(max-width:700px){
+ body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud #overview-vitals{grid-template-columns:repeat(5,48px);grid-template-rows:48px 44px}
+ body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .resource-placeholder.energy{grid-column:4;grid-row:1}
+ body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .resource-placeholder.ki{grid-column:5;grid-row:1}
+ body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .resource-placeholder-action.energy{grid-column:4;grid-row:2}
+ body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .resource-placeholder-action.ki{grid-column:5;grid-row:2}
+}

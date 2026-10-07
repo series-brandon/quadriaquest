@@ -1,4 +1,4 @@
-import {STRATEGIES,attackProfile,criticalBonus,playerCriticalPercent,requirementRatio,requirementEffectiveness,scaleItemBonus,manaCost,elementalPowerBonus,weightedLevel,dodgeBonus,playerDodgePercent,playerBlockPercent,resistanceBonus} from './combat-formulas.js';
+import {STRATEGIES,strongStrikeBounds,attackProfile,criticalBonus,playerCriticalPercent,requirementRatio,requirementEffectiveness,scaleItemBonus,manaCost,elementalPowerBonus,weightedLevel,dodgeBonus,playerDodgePercent,playerBlockPercent,resistanceBonus} from './combat-formulas.js';
 
 export const UNARMED={style:'unarmed',range:1,baseInterval:2.55,proficiency:'unarmed',damageTypes:['bludgeoning']};
 export const combatStyleOf=attack=>attack.spell?'magic':attack.style==='ranged'?'ranged':attack.style==='magic'?'magic':'melee';
@@ -26,11 +26,18 @@ export function playerAttackProfile(character,attack=UNARMED,strategy='technical
 }
 
 // Player defenses evaluated when an incoming hit resolves.
-export function playerDefense(character,{activeStyle='melee',strategy='technical',incomingStyle='melee',shield=null}={}){
+// bonusResistancePct: flat percentage points added once per incoming portion (Harden).
+export function playerDefense(character,{activeStyle='melee',strategy='technical',incomingStyle='melee',shield=null,bonusResistancePct=0}={}){
  const sheet=character.sheet(),shieldEff=shield?effectiveness(character,shield.requirements):0;
  return {
   dodgePercent:playerDodgePercent(dodgeBonus(sheet,activeStyle,{strategy})),
   blockPercent:playerBlockPercent({shieldProficiency:shield?character.level('prof.shield'):0}),
-  resistancePct:resistanceBonus(sheet,incomingStyle,{strategy,shield:!!shield,item:shield?scaleItemBonus(shield.resistance||0,shieldEff):0})/10,
+  resistancePct:resistanceBonus(sheet,incomingStyle,{strategy,shield:!!shield,item:shield?scaleItemBonus(shield.resistance||0,shieldEff):0})/10+bonusResistancePct,
  };
+}
+
+// Strong Strike: the next eligible melee attack with Strong strategy, doubled maximum and half-maximum floor.
+export function strongStrikeProfile(character,attack,ability){
+ const base=playerAttackProfile(character,attack,ability.strategy),bounds=strongStrikeBounds(base);
+ return {...base,min:bounds.min,max:bounds.max,ability:'strongStrike',abilityName:ability.name,energyCost:ability.energy};
 }

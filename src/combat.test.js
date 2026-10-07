@@ -18,15 +18,15 @@ import {totalXpForLevel} from './combat-formulas.js';
 const BRUISER_HIT=12,PLAYER_INTERVAL=2.55/1.02,CAST_INTERVAL=3/1.02;
 function fixture(kind='bruiser'){
  const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
- const home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,wins=0,toasts=[],food,craft;const character=createCharacter(),mana=createResource();
+ const home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,wins=0,toasts=[],food,craft;const character=createCharacter(),mana=createResource(),energy=createResource();let auraResistance=0;
  const equipment=createEquipment({inventory,busy:()=>system.working||system.busy});
  const styles=createCombatStyles({equipment,busy:()=>system.working});
  const interrupt=()=>{interrupts++;cancelPlayerActions({food,craft},{keepCombat:true,keepFood:true});};
- const system=createCombatSystem({world,health,equipment,inventory,character,mana,strategy:()=>styles.strategy,won(){wins++;},toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,attacked(){attacks++;},eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(){},sound(){},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
- food=createFoodSystem({inventory,health,stop:interrupt,busy:()=>system.busy});
+ const system=createCombatSystem({world,health,equipment,inventory,character,mana,energy,knowsAbility:id=>styles.knowsAbility(id),resistanceBonus:()=>auraResistance,strategy:()=>styles.strategy,won(){wins++;},toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,attacked(){attacks++;},eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(){},sound(){},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
+ food=createFoodSystem({inventory,health,stop:interrupt,busy:()=>system.busy,consumed:()=>system.consumableUsed()});
  craft=createRecipeCrafting({inventory,skill:{level:1,xp:0},stop(){},busy:()=>system.working,completed(){}});
  const a=system.add({kind,aggressive:false,rules:ENEMIES[kind],group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
- return {system,a,food,craft,character,mana,toasts,get wins(){return wins;},get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
+ return {system,a,food,craft,character,mana,energy,toasts,set auraResistance(v){auraResistance=v;},get wins(){return wins;},get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
 }
 test('equipment is available without an area, guards stale actions, and clears missing items',()=>{
  const inventory={swords:1,shields:1};let busy=false;const e=createEquipment({inventory,busy:()=>busy});
@@ -139,15 +139,38 @@ test('auto-retaliate responds to incoming misses, Off permits manual combat, and
  assert.ok(f.system.start(f.a));f.system.setAutoRetaliate(true);f.system.setAutoRetaliate(false);assert.equal(f.system.state.fight,'bruiser');
  f.system.clear();assert.equal(f.a.aggro,false);assert.equal(f.system.autoRetaliate,false);
 });
-test('food survives incoming combat, pauses outgoing attacks, heals once, and resumes the fight',()=>{
- const f=fixture();f.health.value=15;f.inventory.cookedFish=2;f.system.start(f.a);frames(f,2.52);const hp=f.a.hp;
- assert.ok(f.food.start('cookedFish'));frames(f,2.6);assert.ok(f.food.working);assert.equal(f.a.hp,hp);assert.ok(f.health.value<15);
- const before=f.health.value;f.food.update(10);assert.equal(f.inventory.cookedFish,1);assert.equal(f.health.value,before+20);assert.equal(f.system.state.fight,'bruiser');
- frames(f,2.52);assert.ok(f.a.hp<hp);assert.equal(f.inventory.cookedFish,1);
+test('eating mid-fight heals at once, restarts the windup, clears the pending action and keeps the fight',()=>{
+ const f=fixture();f.health.value=5;f.inventory.cookedFish=2;f.styles.learnAbility('strongStrike');f.system.start(f.a);frames(f,1.5);const hp=f.a.hp;
+ f.system.queue('strongStrike');assert.equal(f.system.pending,'strongStrike');
+ assert.ok(f.food.start('cookedFish'));assert.equal(f.health.value,25);assert.equal(f.inventory.cookedFish,1);assert.equal(f.system.pending,null,'queued ability cleared');assert.equal(f.system.state.fight,'bruiser');
+ assert.equal(f.food.start('cookedFish'),false,'shared cooldown');assert.equal(f.inventory.cookedFish,1);
+ frames(f,2.4);assert.equal(f.a.hp,hp,'fresh full windup after eating');frames(f,.2);assert.ok(f.a.hp<hp);assert.equal(f.energy.value,100,'no Strong Strike was spent');
 });
-test('combat can begin during food, but defeat cancels it without consuming food',()=>{
- const f=fixture();f.inventory.cookedFish=1;f.health.value=10;f.food.start('cookedFish');f.system.start(f.a);assert.ok(f.food.working);
- f.a.aggressive=true;f.health.value=1;frames(f,2.6);assert.equal(f.system.busy,true);assert.equal(f.food.working,false);f.food.update(10);assert.equal(f.inventory.cookedFish,1);
+test('combat can begin during the eating animation; defeat ends the animation and the meal stays eaten',()=>{
+ const f=fixture();f.inventory.cookedFish=1;f.health.value=10;f.food.start('cookedFish');assert.equal(f.inventory.cookedFish,0);f.system.start(f.a);assert.ok(f.food.working);
+ f.a.aggressive=true;f.health.value=1;frames(f,2.6);assert.equal(f.system.busy,true);assert.equal(f.food.working,false);f.food.update(10);assert.equal(f.inventory.cookedFish,0);
+});
+test('Strong Strike attaches to the next melee windup, spends 50 Energy on impact, trains Melee Power and does not repeat',()=>{
+ const f=fixture('target');assert.equal(f.system.queue('strongStrike'),'Not learned');f.styles.learnAbility('strongStrike');
+ assert.equal(f.system.queue('strongStrike'),true);f.system.start(f.a);assert.equal(f.system.committedAbility,'Strong Strike');assert.equal(f.system.pending,null);
+ // Unarmed Strong Strike at starting stats: 22–44; roll .5 → 33.
+ // Strong strategy's −2 Speed cancels the starting +2: this attack takes the full 2.55s base.
+ f.system.update(2.5,2.5);assert.equal(f.a.hp,ENEMIES.target.health);f.system.update(.06,2.56);assert.equal(f.a.hp,ENEMIES.target.health-33);assert.equal(f.energy.value,50);assert.ok(f.character.tracks['melee.power'].xp>0);assert.equal(f.character.tracks['melee.technique'].xp,0);
+ assert.equal(f.system.committedAbility,null);f.system.update(2.5,5.06);assert.equal(f.a.hp,ENEMIES.target.health-33-7);assert.equal(f.energy.value,50);
+});
+test('Strong Strike rejects ranged attacks and missing Energy, and cancels if Energy drops before impact',()=>{
+ const f=fixture('target');f.styles.learnAbility('strongStrike');f.energy.value=40;f.system.queue('strongStrike');f.system.start(f.a);
+ assert.equal(f.system.committedAbility,null);assert.match(f.toasts.at(-1),/Not enough Energy/);assert.equal(f.system.pending,null);f.system.cancel();
+ f.energy.value=100;f.system.queue('strongStrike');f.system.start(f.a);assert.equal(f.system.committedAbility,'Strong Strike');f.system.update(1,1);f.energy.value=10;f.system.update(1.6,2.6);// past the 2.55s Strong windup
+ assert.equal(f.a.hp,ENEMIES.target.health,'cancelled windup deals nothing');assert.equal(f.energy.value,10,'nothing spent');assert.equal(f.system.committedAbility,null);assert.match(f.toasts.at(-1),/cancelled/);
+ f.system.update(2.5,5.1);assert.equal(f.a.hp,ENEMIES.target.health-7,'next ordinary attack after a full interval');f.system.cancel();
+ f.inventory.bows=1;f.inventory.arrows=5;f.equipment.toggle('bows');f.system.queue('strongStrike');f.system.start(f.a);assert.equal(f.system.committedAbility,null);assert.match(f.toasts.at(-1),/needs a melee attack/);
+ f.equipment.toggle('bows');f.system.cancel();f.system.queue('strongStrike');assert.equal(f.system.queue('strongStrike'),true);assert.equal(f.system.pending,null,'second press withdraws');f.system.queue('strongStrike');f.system.clear();assert.equal(f.system.pending,null,'travel/reset clears it');
+});
+test('Harden adds its resistance once to incoming hits',()=>{
+ const f=fixture();f.auraResistance=10;f.system.start(f.a);f.system.update(2.5,2.5);f.system.update(2.5,5);
+ // 12 × (1 − 10.1%) = 10.79 → 11.
+ assert.equal(f.health.value,30-11);
 });
 test('combat interrupts real crafting before consumption and prevents restarting it',()=>{
  const f=fixture();Object.assign(f.inventory,{sticks:10,stone:10});assert.ok(f.craft.start('swords'));f.craft.update(.1);

@@ -87,7 +87,7 @@ Tips explain; the Quests page tracks objectives and completed history. Use optio
 | 5. Smelt ingots | Approach the furnace, select Copper Ingot, and complete four single-item smelts. Show consumed ore and produced ingots. | Four ingots produced through the shared station action. |
 | 6. Smith equipment | At the anvil, use ingots plus the reusable Crude Hammer to make a Copper Dagger and Copper Shield. | One successful craft of each. |
 | 7. Gear up | Equip the dagger in the main hand and shield in the off hand. Show worn models and actual stat changes. | Both items equipped; possession alone does not complete this step. |
-| 8. Prove yourself | Return to Sarge, then defeat one Bruiser. Remind the player to retreat and eat if needed. | One real Bruiser defeat; equipment is preparation, not an invisible damage/target gate. |
+| 8. Prove yourself | Return to Sarge, who teaches Strong Strike, then defeat one Bruiser. Remind the player to retreat and eat if needed. | One real Bruiser defeat; equipment is preparation, not an invisible damage/target gate. |
 | 9. Dismissed | Sarge acknowledges success and points out the two optional mentors. | Required quest complete; optional invitations do not hold it open. |
 
 Temporarily unequip combat gear for the first lesson through normal equipment actions, retaining it in inventory. Never silently delete or swap gear. If the player beats the Scrapper with gear, award normal gameplay rewards and offer a retry for the unarmed objective. The encounter can respawn; it cannot become an unrecoverable quest target.

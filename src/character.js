@@ -64,6 +64,9 @@ export function createCharacter({changed=()=>{}}={}){
   get maxima(){return resourceMaxima(sheet().attributes);},
   canAllocate:a=>unspent>0&&a in allocated&&attribute(a)<MAX_LEVEL,
   allocate(a){if(!api.canAllocate(a))return false;allocated[a]++;unspent--;changed();return true;},
+  // Respec: every invested point (creation, core-level and item) returns to the unspent pool; bases stay.
+  get invested(){return ATTRIBUTES.reduce((s,a)=>s+allocated[a],0);},
+  redistribute(){const refund=api.invested;for(const a of ATTRIBUTES)allocated[a]=0;unspent+=refund;changed();return refund;},
   // Development/test helpers use the same tracks; they do not bypass core conversion when awarding.
   addXp(id,amount){return award([{track:id,amount}]);},
   setLevel(id,target){const track=tracks[id];if(!track)return false;setXp(track,Math.ceil(totalXpForLevel(Math.max(1,Math.min(MAX_LEVEL,target)))));changed();return true;},

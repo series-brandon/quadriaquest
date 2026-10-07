@@ -3,7 +3,8 @@ import {Vector3} from 'three';
 import {findPath,key} from './world.js';
 import {withinAttackRange} from './combat-range.js';
 import {resolveAttack,resolvePortions,rollDamage,actionXp} from './combat-formulas.js';
-import {playerAttackProfile,playerDefense} from './combat-profile.js';
+import {playerAttackProfile,playerDefense,strongStrikeProfile} from './combat-profile.js';
+import {ABILITIES} from './combat-styles.js';
 import {wanderDelay,shouldWander,wanderRoute} from './wander.js';
 import {attackPose} from './combat-motion.js';
 import {attackWindow,BLOCK_DURATION,PROJECTILE_FLIGHT} from './combat-animation.js';
@@ -14,11 +15,31 @@ import {FAINT_FADE_START,FAINT_RESPAWN_TIME} from './faint-motion.js';
 // Shared targeting, aggression, walking and recovery; maps provide encounter configuration.
 export function createCombatSystem(api){
  const enemies=new Set(),fleeing=new Map(),projected=new Vector3(),LABEL_LIFT=new Vector3(0,1.7,0),returningAfterWin=new Map(),shots=[];
- let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true,sinceActivity=Infinity;const random=api.random||Math.random,character=api.character;
+ let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true,sinceActivity=Infinity,pending=null;const random=api.random||Math.random,character=api.character;
  const attack=()=>api.attack?.()||api.equipment.attack;
  // Commit-time snapshot: later equipment, strategy or spell changes affect only the next attack.
  const profile=()=>({...playerAttackProfile(character,attack(),api.strategy?.()||'technical'),mainHand:api.equipment.slots?.main||null,offHand:api.equipment.slots?.off||null});
  const reward=(result,a)=>{if(result.tracks.length||result.core.xp)api.reward?.(result,a);};
+ // One shared pending combat-action slot. An ability attaches to the next attack when its windup begins;
+ // a cancelled attack takes its ability with it (never restored).
+ function commit(c){
+  c.profile=profile();c.ability=null;
+  if(!pending)return;
+  const ability=ABILITIES[pending.ability],reason=c.profile.combatStyle!==ability.style||c.profile.spell?`${ability.name} needs a melee attack.`:!(api.energy?.value>=ability.energy)?`Not enough Energy for ${ability.name} (${ability.energy} needed).`:null;
+  pending=null;api.changed?.();
+  if(reason){api.toast?.(reason);return;}
+  c.profile={...strongStrikeProfile(character,attack(),ability),mainHand:c.profile.mainHand,offHand:c.profile.offHand};c.ability=ability;
+ }
+ function queue(id){
+  if(!ABILITIES[id]||!api.knowsAbility?.(id))return 'Not learned';
+  // Pressing again before it attaches withdraws the request.
+  if(pending?.ability===id){pending=null;api.changed?.();return true;}
+  pending={ability:id};api.changed?.();return true;
+ }
+ // An accepted consumable cancels the unreleased windup (no cost, no XP) and clears the pending slot.
+ function consumableUsed(){
+  pending=null;if(fight){fight.playerClock=0;fight.struck=false;commit(fight);}api.changed?.();
+ }
  const animate=(a,time,options)=>a.rules.inert?animateTarget(a.group,time,options.hit):animateGoblin(a.group,time,options);
  const current=a=>api.world.get(key(a.home.x,a.home.z))===a.home;
  const position=t=>new Vector3(t.x-6,t.h,t.z-6);
@@ -41,17 +62,17 @@ export function createCombatSystem(api){
  }
  function cancel(){if(fight){const a=fight.enemy;fight=null;if(a.rules.inert)resetEnemy(a);else if(a.aggro)returnHome(a);}api.complete?.();}
  function clearChase(){if(chase)returnHome(chase.enemy);}
- function clear(){const affected=new Set(shots.map(s=>s.enemy));if(fight)affected.add(fight.enemy);if(chase)affected.add(chase.enemy);for(const a of enemies)if(a.returning||a.aggro)affected.add(a);shots.length=0;fight=chase=null;defense=null;for(const a of affected)resetEnemy(a);if(defeated)api.fade?.(0);defeated=0;api.clearFeedback?.();api.clearProjectiles?.();}
+ function clear(){pending=null;const affected=new Set(shots.map(s=>s.enemy));if(fight)affected.add(fight.enemy);if(chase)affected.add(chase.enemy);for(const a of enemies)if(a.returning||a.aggro)affected.add(a);shots.length=0;fight=chase=null;defense=null;for(const a of affected)resetEnemy(a);if(defeated)api.fade?.(0);defeated=0;api.clearFeedback?.();api.clearProjectiles?.();}
  function disengage(){if(!fight)return;const a=fight.enemy;fight=null;if(a.rules.inert){resetEnemy(a);return;}if(a.aggro)chase={enemy:a,age:0};}
  function start(a){
   if(fight?.enemy===a||!enemies.has(a)||!current(a)||a.opened||a.returning||defeated||api.health.value<=0||api.blocked()||!api.inReach(a))return false;
   const next=profile();if(next.ammo&&!(api.inventory?.[next.ammo]>0)){api.toast?.('You need Training Arrows.');return false;}
   const reengaging=chase?.enemy===a;if(chase&&!reengaging)clearChase();if(reengaging)chase=null;
-  api.stop();fight={enemy:a,age:0,playerClock:0,profile:next};a.patrolRoute=[];
+  api.stop();fight={enemy:a,age:0,playerClock:0,profile:next};commit(fight);a.patrolRoute=[];
   // Selection and windup never provoke a passive enemy; strike resolves that.
   api.face(a.x,a.z);return true;
  }
- function lose(){if(api.defeatStop)api.defeatStop();else api.stop();clearChase();api.health.value=0;defense=null;defeated=.001;}
+ function lose(){pending=null;if(api.defeatStop)api.defeatStop();else api.stop();clearChase();api.health.value=0;defense=null;defeated=.001;}
  function engage(a){
   if(a.rules.inert||a.aggro||a.opened||a.returning)return;
   a.aggro=true;a.patrolRoute=[];if(!fight&&!chase)chase={enemy:a,age:0};api.interrupt?.();
@@ -60,7 +81,7 @@ export function createCombatSystem(api){
   api.attacked?.(a);api.interrupt?.();
   const before=api.health.value,rules=a.rules,current=profile(),shield=api.equipment.shield||null;
   // Defender stats are evaluated at hit time: miss → dodge → block → damage → mitigation.
-  const d=playerDefense(character,{activeStyle:current.combatStyle,strategy:current.strategy,incomingStyle:rules.style||'melee',shield});
+  const d=playerDefense(character,{activeStyle:current.combatStyle,strategy:current.strategy,incomingStyle:rules.style||'melee',shield,bonusResistancePct:api.resistanceBonus?.()||0});
   const r=resolveAttack({missPercent:rules.missPercent||0,dodgePercent:d.dodgePercent,blockPercent:d.blockPercent,canCritical:!!rules.canCritical,criticalPercent:rules.criticalPercent||0,min:rules.min,max:rules.max,random,
    mitigate:raw=>resolvePortions([{amount:raw,resistancePct:d.resistancePct}])});
   if(r.outcome==='hit'){api.health.value=Math.max(rules.protected&&before>=1?1:0,before-r.damage);defense={age:0,profile:current};}
@@ -143,17 +164,23 @@ export function createCombatSystem(api){
   }
   for(const [a,f] of fleeing)if(current(a)){f.age+=dt;animate(a,time,{walk:1});if(f.destination){a.group.rotation.y=Math.atan2(f.destination.x-a.group.position.x,f.destination.z-a.group.position.z);a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}a.group.scale.setScalar(a.scale*Math.max(.01,1-Math.max(0,(f.age-.8)/.4)));if(f.age>=1.2){a.group.visible=false;fleeing.delete(a);}}
   if(defeated){defeated+=dt;api.fade?.(Math.max(0,Math.min(1,(defeated-FAINT_FADE_START)/(FAINT_RESPAWN_TIME-FAINT_FADE_START))));if(defeated>=FAINT_RESPAWN_TIME&&api.respawn()){defeated=0;api.health.restore();api.fade?.(0);api.respawned?.();return null;}return {kind:'Defeated',time:Math.min(defeated,FAINT_RESPAWN_TIME)};}
-  if(fight&&!api.eating?.()){const c=fight,a=c.enemy;api.face(a.x,a.z);const weapon=c.profile;
+  // Eating no longer pauses attacks: an accepted consumable restarts the windup via consumableUsed().
+  if(fight){const c=fight,a=c.enemy;api.face(a.x,a.z);const weapon=c.profile;
    // Unaffordable attacks pause with their target retained; any windup progress is lost.
    const short=weapon.manaCost&&!(api.mana?.value>=weapon.manaCost);
    if(short){c.playerClock=0;if(!c.waiting){c.waiting=true;api.toast?.(`Not enough Mana for ${weapon.name} (${weapon.manaCost} needed).`);}}
    else{c.waiting=false;c.playerClock+=dt;}
    if(!short&&c.playerClock>=weapon.interval){
     if(weapon.ammo&&!(api.inventory?.[weapon.ammo]>0)){disengage();api.toast?.('Out of arrows. Visit a supply offer to refill.');}
+    else if(weapon.energyCost&&!(api.energy?.value>=weapon.energyCost)){
+     // Recheck at release: an unaffordable ability cancels this windup and the ability use (no cost, no XP).
+     api.toast?.(`Not enough Energy for ${weapon.abilityName}. It was cancelled.`);c.playerClock=0;c.struck=false;commit(c);
+    }
     else{c.playerClock-=weapon.interval;if(weapon.ammo){api.inventory[weapon.ammo]--;api.items?.({[weapon.ammo]:-1});}
      if(weapon.manaCost)api.mana.value-=weapon.manaCost;
+     if(weapon.energyCost)api.energy.value-=weapon.energyCost;
      if(['ranged','magic'].includes(weapon.style)){api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),weapon.style);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
-     c.struck=true;if(fight===c)c.profile=profile();
+     c.struck=true;if(fight===c)commit(c);
     }
    }
    // Animation time follows the committed attack clock, including recovery after each release.
@@ -162,7 +189,8 @@ export function createCombatSystem(api){
   }
   return defense?{kind:'Block',time:defense.age,profile:defense.profile}:null;
  }
- return {start,update,cancel,clear,disengage,lose,preview:profile,
+ return {start,update,cancel,clear,disengage,lose,preview:profile,queue,consumableUsed,
+  get pending(){return pending?.ability||null;},get committedAbility(){return fight?.ability?.name||null;},
   // Regeneration uses the slower rate during combat activity and for 5 seconds afterwards.
   get inCombat(){return sinceActivity<5;},
   get autoRetaliate(){return autoRetaliate;},setAutoRetaliate(value){autoRetaliate=!!value;},
@@ -171,6 +199,6 @@ export function createCombatSystem(api){
   resetWhere(predicate=()=>true){if(fight&&predicate(fight.enemy))fight=null;if(chase&&predicate(chase.enemy))chase=null;defense=null;for(const a of enemies)if(predicate(a))resetEnemy(a);},
   reset(){clear();for(const a of enemies)resetEnemy(a);},
   matches:a=>fight?.enemy===a,get working(){return !!fight||!!chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened);},get busy(){return defeated>0;},
-  get state(){return {autoRetaliate,fight:fight?.enemy.kind||null,chase:chase?.enemy.kind||null,defeated:!!defeated,blocking:!!defense,enemies:[...enemies].filter(current).map(a=>({kind:a.kind,x:a.x,z:a.z,hp:a.hp,opened:a.opened,aggressive:!!(a.aggressive??a.rules.aggressive),aggroRange:a.aggroRange??a.rules.aggroRange??3,aggro:!!a.aggro,returning:!!a.returning,moving:!settled(a),position:a.group.position.toArray()}))};}
+  get state(){return {pending:pending?.ability||null,committedAbility:fight?.ability?.name||null,autoRetaliate,fight:fight?.enemy.kind||null,chase:chase?.enemy.kind||null,defeated:!!defeated,blocking:!!defense,enemies:[...enemies].filter(current).map(a=>({kind:a.kind,x:a.x,z:a.z,hp:a.hp,opened:a.opened,aggressive:!!(a.aggressive??a.rules.aggressive),aggroRange:a.aggroRange??a.rules.aggroRange??3,aggro:!!a.aggro,returning:!!a.returning,moving:!settled(a),position:a.group.position.toArray()}))};}
  };
 }

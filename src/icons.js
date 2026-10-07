@@ -1,7 +1,7 @@
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
  quickRestore:'<path d="M9 3h6M10 3v5l-5 9q-2 4 3 4h8q5 0 3-4l-5-9V3M7 15h10"/>',
- sprint:'<path d="M7 3h9v9l5 3v5H3v-4l4-4zM7 7h4m-4 3h4M3 17h18"/>',
+ sprint:'<path d="M7 3h9v9l5 3v5H3v-4l4-4zM7 7h4m-4 3h4M3 17h18"/>',strongStrike:'<path d="M13 2 6 13h5l-1 9 7-11h-5z"/>',aura:'<circle cx="12" cy="12" r="3"/><path d="M12 3a9 9 0 0 1 0 18M12 3a9 9 0 0 0 0 18M5 7l2 1.5M19 7l-2 1.5M5 17l2-1.5M19 17l-2-1.5"/>',
  collapseSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-6-11 3 3-3 3"/>',
  expandSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-4-11-3 3 3 3"/>',
  quickEat:'<path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v18M17 3c-3 3-3 7 0 9h3V3zM20 12v9"/>',
