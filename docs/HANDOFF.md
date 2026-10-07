@@ -20,6 +20,11 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Skilling core XP and model viewer layout — 2026-10-07
+
+- **Bug: non-combat skills gave no core XP.** Only combat tracks used `character.award`; Gathering, Lumberjack, Mining, Fishing, Crafting, Culinary and Smithing used the prototype `awardSkillXp`, and Carpentry added XP inline, so none reached the core conversion. All non-combat awards now go through one shared `addSkillXp` (Carpentry included). It reports to `character.convertProgression`, which uses the same 5:1 conversion and shared remainder as combat; core level-ups from skilling show the usual banner and grant points. The Skills caption and COMBAT.md now say non-combat XP counts. A test covers the shared remainder between skilling and combat. In the built playground, one real copper ore gave 20 Mining XP and 4 core XP.
+- **Model viewer layout:** Combat style moved into the controls row, left of Attack motion. Like Attack motion, it shows only for the slime's Attack animation (the only preview it affects). The loadout is now three columns: Main hand over Main hand damage, Off hand over Off hand damage, and Attack hands alone. Positions were verified in the built viewer.
+
 ### HUD single row and whole-number player splats — 2026-10-07
 
 - **Model viewer Attack hands:** the slime loadout gains an **Attack hands** select (Automatic, Main only, Off only, Alternate).
@@ -27,6 +32,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
   - Alternate switches hands each preview cycle, after the 0.28s follow-through, so each swing keeps its own hand.
   - The loadout note states what actually applies, including when a choice is unavailable (e.g. Off hand only with a shield).
   - Tests cover alternation timing, fallbacks, bare-hand alternation, a lone off-hand dagger and spells. Verified in the built viewer.
+- **Model viewer damage types:** **Main hand damage** and **Off hand damage** selects appear only when that hand's weapon supports more than one type (Copper Dagger: Piercing/Slashing). They use the production `setDamageType`, so unsupported choices and weapon swaps fall back to the weapon default exactly as in gameplay. Automatic attack motion follows the striking hand's type (Slashing slashes, Piercing stabs). Tests and the built viewer cover dual daggers with mixed types, single-type weapons, fists, shields and fallbacks.
 
 - **Playground sections:** the new fieldsets sat loose at the top of the panel because `playground-layout.js` only files fieldsets whose legends it lists. They now live in a collapsible **Character & abilities** section (character & combat profile) and in **Combat** (assistance, dual wield, armor, control & backfire). Any future unlisted fieldset falls into a collapsible **More** section instead of escaping. The control-test picker uses the shared label-plus-action row. Verified in the built playground: nothing loose, the sections start collapsed, and the controls still run.
 

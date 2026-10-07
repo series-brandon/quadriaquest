@@ -1,4 +1,4 @@
-import {createGatheringSkill} from './skills.js';
+import {createGatheringSkill,addSkillXp} from './skills.js';
 import {canMake,durationFor} from './recipes.js';
 export const BRIDGE_REPAIR={cost:{logs:3},tools:{hammers:1},duration:6,xp:40};
 
@@ -22,8 +22,8 @@ export function createCarpentrySystem(api){
   if(action!==a||t.paused?.())return null;
   if(progress===1){
    action=null;const changes={};for(const [id,n] of Object.entries(a.recipe.cost)){api.inventory[id]-=n;changes[id]=-n;}
-   const old=skill.level;skill.xp+=a.recipe.xp;skill.level=1+Math.floor(skill.xp/120);
-   t.complete();api.completed?.(changes,{skillName:'Carpentry',xp:a.recipe.xp,level:skill.level,leveledUp:skill.level>old});t.onComplete?.();return null;
+   const reward=addSkillXp(skill,a.recipe.xp,'Carpentry');
+   t.complete();api.completed?.(changes,reward);t.onComplete?.();return null;
   }
   return {kind:'Repairing',time:a.age};
  }

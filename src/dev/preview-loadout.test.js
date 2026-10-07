@@ -27,3 +27,18 @@ test('Attack hands preview uses the production equipment rules and alternates pe
  const lone=previewCombat('Attack',{offHand:'copperDagger'},0).profile;assert.deepEqual([lone.hand,lone.item],['off','copperDagger']);
  assert.equal(previewCombat('Attack',{...dual,style:'magic'},2).profile.hand,'main','spells use no hand');
 });
+
+test('per-hand damage types follow the game: offered only for multi-type weapons, chosen per hand, and drive the motion',async()=>{
+ const {previewDamageTypes}=await import('./preview-loadout.js');
+ const dual={mainHand:'copperDagger',offHand:'copperDagger'};
+ assert.deepEqual(previewDamageTypes(dual),{main:{types:['piercing','slashing'],selected:'piercing'},off:{types:['piercing','slashing'],selected:'piercing'}});
+ assert.deepEqual(previewDamageTypes({mainHand:'swords',offHand:'copperShield'}),{main:null,off:null},'single-type weapons and shields offer no choice');
+ assert.deepEqual(previewDamageTypes({}),{main:null,off:null},'fists are always Bludgeoning');
+ const mixed={...dual,mainDamageType:'slashing',offDamageType:'piercing',attackHands:'alternate'};
+ assert.equal(previewDamageTypes(mixed).main.selected,'slashing');
+ // Automatic motion follows the striking hand's type: Slashing slashes, Piercing stabs.
+ assert.equal(resolveAttackMotion(previewCombat('Attack',mixed,.5).profile),'slash');
+ assert.equal(resolveAttackMotion(previewCombat('Attack',mixed,1.8).profile),'stab');
+ assert.equal(previewDamageTypes({mainHand:'swords',mainDamageType:'piercing'}).main,null,'unsupported choices fall back to the weapon default');
+ assert.equal(previewCombat('Attack',{mainHand:'swords',mainDamageType:'piercing'},0).profile.damageType,'slashing');
+});

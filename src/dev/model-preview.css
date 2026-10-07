@@ -30,3 +30,7 @@
 #dev-model-preview .preview-controls{max-height:48dvh;overflow:auto;grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:700px){#dev-model-preview .preview-controls,#dev-model-preview .preview-loadout{grid-template-columns:repeat(2,minmax(0,1fr))}#dev-model-preview .preview-loadout label:first-child{grid-column:auto}#dev-model-preview .preview-controls{max-height:48dvh}}
 @media(max-height:500px){#dev-model-preview .preview-controls{max-height:42dvh}#dev-model-preview .preview-loadout{grid-template-columns:repeat(3,minmax(0,1fr)) auto}}
+/* Each hand column stacks its weapon and damage type; Attack hands has its own column. */
+#dev-model-preview .preview-loadout{align-items:start}
+#dev-model-preview .preview-hand{display:grid;gap:8px;align-content:start;min-width:0}
+#dev-model-preview .preview-loadout>button{align-self:start;margin-top:22px}

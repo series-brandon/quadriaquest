@@ -67,6 +67,8 @@ export function createCharacter({changed=()=>{}}={}){
   // Respec: every invested point (creation, core-level and item) returns to the unspent pool; bases stay.
   get invested(){return ATTRIBUTES.reduce((s,a)=>s+allocated[a],0);},
   redistribute(){const refund=api.invested;for(const a of ATTRIBUTES)allocated[a]=0;unspent+=refund;changed();return refund;},
+  // Non-combat skills (prototype curve) report their actual awards here: same /5 conversion and remainder.
+  convertProgression(amount){if(!(amount>0))return null;const conversion=convertCoreXp(core.remainder,[amount]);core.remainder=conversion.remainder;const levels=addCore(conversion.core);if(conversion.core)changed();return {xp:conversion.core,level:core.level,leveledUp:levels>0,points:levels*POINTS_PER_CORE_LEVEL};},
   // Development/test helpers use the same tracks; they do not bypass core conversion when awarding.
   addXp(id,amount){return award([{track:id,amount}]);},
   setLevel(id,target){const track=tracks[id];if(!track)return false;setXp(track,Math.ceil(totalXpForLevel(Math.max(1,Math.min(MAX_LEVEL,target)))));changed();return true;},

@@ -20,7 +20,15 @@ export function previewEquipment(options={}){
  const equipment=createEquipment({inventory});
  if(loadout.mainHand)equipment.toggle(loadout.mainHand,'main');if(loadout.offHand)equipment.toggle(loadout.offHand,'off');
  equipment.setAttackHands(options.attackHands||null);
+ // Per-hand damage types use the production setter; unsupported choices keep the weapon's default.
+ for(const hand of ['main','off'])if(options[hand+'DamageType'])equipment.setDamageType(hand,options[hand+'DamageType']);
  return equipment;
+}
+// Choices per hand, only where the striking weapon supports more than one damage type.
+export function previewDamageTypes(options={}){
+ const equipment=previewEquipment(options),out={};
+ for(const hand of ['main','off']){const attack=equipment.handAttack(hand),types=attack?.damageTypes||[];out[hand]=types.length>1?{types,selected:attack.damageType}:null;}
+ return out;
 }
 const HAND_NOTE={main:'Main hand only',off:'Off hand only',alternate:'Alternating hands'};
 export function previewAttackHands(options={}){const equipment=previewEquipment(options);return {resolved:equipment.attackHands,eligible:equipment.eligibleHands(),label:HAND_NOTE[equipment.attackHands]};}

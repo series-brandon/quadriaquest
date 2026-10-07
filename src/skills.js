@@ -5,12 +5,18 @@ export const GATHERING_XP_PER_ITEM = 20;
 export const GATHERING_XP_PER_LEVEL = 120;
 
 export function createGatheringSkill(){return {xp:0,level:1};}
-export function awardSkillXp(skill,skillName){
+// Every non-combat skill award passes through here so it also feeds the character's single core-XP
+// conversion (5:1, shared remainder) alongside combat tracks. The app registers the listener once.
+let skillXpListener=null;
+export function onSkillXp(listener){skillXpListener=listener;}
+export function addSkillXp(skill,amount,skillName){
   const previousLevel=skill.level;
-  skill.xp+=GATHERING_XP_PER_ITEM;
-  skill.level=1+Math.floor(skill.xp/GATHERING_XP_PER_LEVEL);
-  return {skillName,xp:GATHERING_XP_PER_ITEM,totalXp:skill.xp,level:skill.level,leveledUp:skill.level>previousLevel};
+  skill.xp+=amount;skill.level=1+Math.floor(skill.xp/GATHERING_XP_PER_LEVEL);
+  const reward={skillName,xp:amount,totalXp:skill.xp,level:skill.level,leveledUp:skill.level>previousLevel};
+  reward.core=skillXpListener?.(amount,reward)||null;
+  return reward;
 }
+export function awardSkillXp(skill,skillName){return addSkillXp(skill,GATHERING_XP_PER_ITEM,skillName);}
 export function awardGatheringXp(skill){return awardSkillXp(skill,'Gathering');}
 export function gatheringDuration(skill){return 1.2/(1+.08*(skill.level-1));}
 
@@ -22,8 +28,7 @@ export function skillProgress(skill){
 // Development grants route character tracks through their real award path (including core XP).
 export function grantSkillXp(skill,amount){
   if(skill.curve==='adopted'&&skill.grant){const r=skill.grant(amount).tracks[0];return r||{skillName:skill.name,xp:0,level:skill.level,leveledUp:false};}
-  const before=skill.level;skill.xp+=amount;skill.level=1+Math.floor(skill.xp/GATHERING_XP_PER_LEVEL);
-  return {skillName:skill.name,xp:amount,totalXp:skill.xp,level:skill.level,leveledUp:skill.level>before};
+  return addSkillXp(skill,amount,skill.name);
 }
 export function addSkillLevels(skill,levels){
   const target=skill.level+levels;

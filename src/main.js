@@ -81,7 +81,7 @@ import {createContactShadow} from './contact-shadow.js';
 import {createOpening} from './opening.js';
 import {createCraftingTutorial} from './crafting-tutorial.js';
 import {createGameMenus} from './game-menus.js';
-import {createGatheringSkill,gatheringDuration,showSkillReward,updateSkillRewards,clearSkillRewards} from './skills.js';
+import {createGatheringSkill,gatheringDuration,showSkillReward,updateSkillRewards,clearSkillRewards,onSkillXp} from './skills.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,chopMotion} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
@@ -159,6 +159,8 @@ const health=createPlayerHealth(),healthUI=createHealthUI(health);
 const character=createCharacter({changed(){const m=character.maxima;health.max=m.health;for(const k of ['mana','stamina','energy','ki'])playerResources[k].max=m[k];}});
 // Player control effects (stun/immobilize/slow and protection) use the same shared state as enemies.
 const playerControl=createControlState();
+// Non-combat skill XP joins combat XP in the one core conversion (5:1); core level-ups grant attribute points.
+onSkillXp(amount=>{const core=character.convertProgression(amount);if(core?.leveledUp)showSkillReward({skillName:'Core',level:core.level,leveledUp:true,detail:`+${core.points} attribute points`},player.position,{float:false});return core;});
 const auras=createAuras({ki:playerResources.ki,exhausted:()=>{assistance?.auraExhausted();toast('Out of Ki — all auras faded. Ki recovers while they are off.');}});
 const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,startCraft:id=>recipeCrafting.start(id),craftState:()=>recipeCrafting?.state,craftBusy:()=>!!recipeCrafting?.working||combat?.working||combat?.busy,equipment:{state:()=>equipment?.state,isEquipped:id=>equipment?.isEquipped(id),actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[])]}});
 const craftingTutorial=createCraftingTutorial({menus,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
