@@ -20,6 +20,13 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Guided menus never drill down for the player — 2026-10-08 (user rule)
+- **Rule (user):** lessons and "Show me how" teach the path through the menus. They highlight the tab, then what to pick, then what to press; they never open a page or choose a recipe/item for the player.
+- **Shared guide:** `menus.guide({page:'crafting',recipe})` (Crafting tab → `choose-<id>` → `craft-<id>`) and `menus.guide({page:'inventory',item,action})` (Inventory tab → stack → action), `menus.guide(null)` to end; starting the guided craft ends it. A recipe guide starts from the recipe list with nothing chosen. The Crafting page starts with no recipe chosen and asks for one.
+- **Users:** the axe lesson (and its retry), the pickaxe "Show me how", Willowbank's hammer/rod/fire/eat help, and Cinderhold's equip help (next unequipped copper item). The journal lock for the axe lesson follows the highlighted step. Areas get `api.guideMenu`; `api.openCrafting`/`selectRecipe`/`guideInventory` are gone.
+- **Not changed (asked the user):** the skills lesson still opens the Skills section and the Gathering row after the Character tab click.
+- **Verified:** 382 tests (new: axe lesson three steps and retry, pickaxe help steps, inventory guide), smoke, both builds, debug isolation, UI check; browser walk of the axe lesson, hammer help and eat help on desktop and phone.
+
 ### Right/left hands and handedness — 2026-10-08 (design change)
 - **User decisions:** hands are physical (Right, Left). Every one-handed item, shields included, fits either hand. A two-handed item is held in the hand you choose and occupies the other. **Handedness** (right by default; Combat → Attack setup → Dominant hand) only decides which hand strikes first in a one-two and which takes the off-hand penalty; it never moves items. The penalty applies to the second strike of every one-two (fists included). Attack hands: Auto / Both / Right / Left. Equip actions: "Equip right hand" / "Equip left hand".
 - **Equipment (equipment.js):** slots `right`/`left`; `handedness`, `setHandedness`, `sideOf(role)`, `roleOf(side)`, `eligibleSides()`. Role APIs stay for combat: `handAttack('main'|'off'|side)` returns `{hand: role, side}`, and `slots` includes `main`/`off` role views. `setSlots` accepts sides or roles. Shields and two-handed items default to the off hand (a right-hander's bow in the left, as before). An older Attack hands `main`/`off` choice maps to a side. GEAR hand items are `slot:'hand'`; `offHand` is gone.

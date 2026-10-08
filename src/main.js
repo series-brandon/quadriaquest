@@ -325,9 +325,9 @@ willow=createWillowbank({narrator,tipBox:tip,dialogue:characterDialogue,scene,wo
  stop:stopAll,toast,showItems:showItemChanges,approach:selectActor,sound:name=>gameAudio.play(name),
  face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},
  teleport(t){if(!t)return;path=[];segment=null;tile=t;player.position.set(t.x-6,t.h,t.z-6);},
- openCrafting(){menus.panels.select('crafting');},showTabs:(...ids)=>{for(const id of ids)menus.panels.setAvailable(id,true);},menuCovering:()=>journal.covering,selectRecipe:id=>{if(id)menus.selectRecipe(id);},
+ showTabs:(...ids)=>{for(const id of ids)menus.panels.setAvailable(id,true);},menuCovering:()=>journal.covering,
  showTip:(...args)=>craftingTutorial.showChapterTip(...args),say:(...args)=>craftingTutorial.sayChapter(...args),
- openInventory:()=>menus.openInventory(),guideInventory:(item,action)=>menus.inventoryMenu.guide(item?{item,action}:false),closeMenus:()=>menus.closeMenus()
+ openInventory:()=>menus.openInventory(),guideMenu:value=>menus.guide(value),closeMenus:()=>menus.closeMenus()
 });
 finale=createTutorialFinale({narrator,tip,destination:'willowbank',parent:clearingGroup,tiles:clearingTiles,spawn:clearingTiles.get(key(SPAWN.x,SPAWN.z)),active:()=>areas.id==='clearing',crystals,player,visual,trees,resources,pickables,inventory,
  getTile:()=>tile,getAngle:()=>angle,stop:stopAll,showItemChanges,approach:selectActor,
@@ -350,7 +350,7 @@ areas.register({id:'willowbank',name:'Willowbank',recommendedDestination:'cinder
  interact:a=>willow.interact(a),clearUI:()=>willow.debug?.clearUI(),reset:()=>willow.debug?.stage('meet')
 });
 cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:characterDialogue,resources:resourceActions,combat,equipment,styles,supplies,openStation,player,stop:stopAll,toast,
- hover:()=>hover?.actor||hover?.tree||hover?.resource,approach:selectActor,openInventory:()=>menus.openInventory(),tip:(...args)=>craftingTutorial.showChapterTip(...args),hideTip(){tip.hide();},attacksPrevented:()=>!!assistance?.attacksPrevented,showCombatModes:()=>styleMenu.showModes(),
+ hover:()=>hover?.actor||hover?.tree||hover?.resource,approach:selectActor,guideMenu:value=>menus.guide(value),tip:(...args)=>craftingTutorial.showChapterTip(...args),hideTip(){tip.hide();},attacksPrevented:()=>!!assistance?.attacksPrevented,showCombatModes:()=>styleMenu.showModes(),
  working:()=>!!actorTarget||!!segment||path.length>0||combat.working||smithing.working||resourceActions.working||food.working||recipeCrafting.working
 });
 areas.register(cinder);

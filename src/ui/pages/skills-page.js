@@ -12,28 +12,29 @@ const whole = n => Math.floor(n).toLocaleString();
 // character's revision, so the list follows XP from any source without refresh calls.
 //   skills()   → {name: skill}; the set can grow (systems created later, newly trained tracks)
 //   track()    reads revisions that change that set or the combat tracks
-//   guidance   signal {focus}: the tutorial's lesson opens and highlights that skill
+//   guidance   signal {guide}: the lesson highlights that skill until the player opens it
+//   onToggle(name, open): a row opened or closed by the player
 //   noun       'skills' or 'proficiencies' (search label and empty text)
-export function skillsPage({skills, track = () => {}, guidance = signal({}), noun = 'skills', empty = 'None yet.'}) {
+export function skillsPage({skills, track = () => {}, guidance = signal({}), onToggle = () => {}, noun = 'skills', empty = 'None yet.'}) {
   const query = signal('');
   const matches = name => name.toLowerCase().includes(query.value.trim().toLowerCase());
   const all = computed(() => (track(), skills()));
   const names = computed(() => Object.keys(all.value));
-  const focus = computed(() => guidance.value.focus ?? null);
+  const guided = computed(() => guidance.value.guide ?? null);
 
   const list = keyedList(h('div', {class: 'q-skills', role: 'list'}), names, name => name, item => {
     const name = item.peek();
     const progress = computed(() => (track(), skillProgress(all.value[name] ?? {xp: 0, level: 1})));
     const icon = all.peek()[name]?.icon || name;
-    const focused = computed(() => focus.value === name);
-    // The lesson's skill opens once; later toggles are the player's.
+    // Rows open only by the player; a lesson highlights its skill until then.
+    const open = signal(false);
     return h('details', {
       class: 'q-skill',
       role: 'listitem',
       'data-skill': name,
-      'data-guide': focused,
-      open: () => focused.value || null,
+      'data-guide': () => guided.value === name && !open.value,
       hidden: () => !matches(name),
+      on: {toggle: event => { open.value = event.target.hasAttribute('open'); onToggle(name, open.value); }},
     },
     h('summary', {class: 'q-skill__summary'},
       h('span', {class: 'q-skill__icon', 'aria-hidden': 'true'}, iconNode(icon)),

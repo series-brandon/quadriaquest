@@ -59,15 +59,15 @@ export function createWillowbank(api){
  function goal(id,title,description,current=0,total=1){updateObjective('willow-'+id,title,description,current,total);}
  function done(id){finishObjective('willow-'+id);setObjectiveHelp('willow-'+id,null);}
  function showTip(...args){api.showTip(...args);}
- function hideGuide(){guided=false;api.guideInventory?.(null);for(const node of document.querySelectorAll('[data-willow-guide]')){node.classList.remove('gold-guide');node.removeAttribute('data-willow-guide');}}
- function guideElement(id){hideGuide();const el=document.getElementById(id);if(el){el.classList.add('gold-guide');el.dataset.willowGuide='true';requestAnimationFrame(()=>el.scrollIntoView({block:'center'}));}}
+ function hideGuide(){guided=false;api.guideMenu?.(null);}
  // Show me how for a world target: highlight it and briefly bring it into view, then return.
  function showTarget(x,z){guided=true;const tile=t(x,z);introFocus={position:new THREE.Vector3(tile.x-6,tile.h,tile.z-6),blend:0,returning:false,hold:1.4,after:()=>{}};}
  function bridgeHelp(){if(!api.inventory.hammers)helpCraft('hammers');else{api.closeMenus();showTarget(Math.round((WILLOWBANK.bridgeStart+WILLOWBANK.bridgeEnd)/2),WILLOWBANK.bridgeZ);}}
  function fishHelp(){if(!api.inventory.rods)helpCraft('rods');else{api.closeMenus();showTarget(16,14);}}
- // Show me how for eating: the Inventory with the Cooked Pondfish, then its Eat button, highlighted.
- function eatHelp(){api.openInventory();api.guideInventory?.('cookedFish','Eat');}
- function helpCraft(id){if(!id)return;api.openCrafting();api.selectRecipe(id);guideElement('craft-'+id);}
+ // Show me how in the menus walks the player there step by step (the shared menu guide): the
+ // Inventory tab, the Cooked Pondfish, then Eat; or the Crafting tab, the recipe, then Craft.
+ function eatHelp(){hideGuide();api.guideMenu?.({page:'inventory',item:'cookedFish',action:'Eat'});}
+ function helpCraft(id){if(!id)return;hideGuide();api.guideMenu?.({page:'crafting',recipe:id});}
  function lines(texts,after){api.stop();tip.hide();let i=0;const next=()=>{if(i===texts.length){dialogue.finish(after);return;}dialogue.show({side:'right',name:'Reed',model:reed.group,text:texts[i][0],expression:texts[i++][1],next});};next();}
  function playerLine(text,next,expression){dialogue.show({side:'left',name:api.profile().name||'Pip',model:api.visual,text,expression,next});}
  function talk(){reedFacing.face(api.player);tip.hide();

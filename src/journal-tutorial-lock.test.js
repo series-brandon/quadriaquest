@@ -12,8 +12,12 @@ test('guided journal lessons permit only the required action, never closing or r
  assert.deepEqual(journalTutorialActions('inventory-select'),['[data-item="sticks"]']);
  assert.deepEqual(journalTutorialActions('inventory-stacks'),[]);
  assert.deepEqual(journalTutorialActions('skills-summary'),[]);
- assert.deepEqual(journalTutorialActions('recipe'),['#craft-axes']);
+ // The axe lesson follows its guide step by step: the tab, the recipe, then Craft.
  for(const stage of ['craft-menu','retry'])assert.deepEqual(journalTutorialActions(stage),['#open-crafting','[data-tab="open-crafting"]']);
+ assert.deepEqual(journalTutorialActions('retry','choose-axes'),['#choose-axes','[data-tab="choose-axes"]']);
+ assert.deepEqual(journalTutorialActions('recipe'),[]);
+ assert.deepEqual(journalTutorialActions('recipe','choose-axes'),['#choose-axes','[data-tab="choose-axes"]']);
+ assert.deepEqual(journalTutorialActions('recipe','craft-axes'),['#craft-axes','[data-tab="craft-axes"]']);
 });
 test('optional guided recipes use the real highlighted action and release on completion',()=>{
  assert.deepEqual(journalTutorialActions('pickaxe','craft-pickaxes'),['#craft-pickaxes','[data-tab="craft-pickaxes"]']);

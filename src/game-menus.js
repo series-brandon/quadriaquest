@@ -1,6 +1,6 @@
 import {RECIPES} from './recipes.js';
 import {createInventoryMenu} from './inventory-menu.js';
-import {computed,signal} from './reactive.js';
+import {computed,effect,signal,untracked} from './reactive.js';
 import {createPanelHost} from './ui/panels.js';
 import {panelTabs} from './ui/panel-tabs.js';
 import {h,mount} from './ui/dom.js';
@@ -24,25 +24,26 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,tr
  const bar=$('game-menu-bar');
  mount(()=>{bind(()=>{bar.hidden=!panels.navShown.value;});return panelTabs(bar,panels,{balance:72});});
  // Crafting page (ui/pages/crafting-page.js). The chosen recipe is host state so tutorials and
- // areas can choose one (selectRecipe) and guide its stable element ids.
- const selectedRecipe=signal('axes'),viewingRecipe=signal(false);
+ // areas can follow it and guide its stable element ids. Nothing is chosen until the player picks.
+ const selectedRecipe=signal(null),viewingRecipe=signal(false);
  function selectRecipe(id){if(!(id in RECIPES))return;selectedRecipe.value=id;viewingRecipe.value=true;events.selected?.(id);}
  const panel=mount(()=>h('section',{id:'crafting-panel','aria-label':'Crafting',hidden:true},craftingPage({
-  inventory:getInventory(),skills:()=>(trackSkills(),getSkills()),active:craftActive,start:startCraft,onStarted:()=>action(),
+  inventory:getInventory(),skills:()=>(trackSkills(),getSkills()),active:craftActive,start:startCraft,onStarted:id=>{if(guided.peek()?.recipe===id)guided.value=null;action();},
   selected:selectedRecipe,viewing:viewingRecipe,onSelect:selectRecipe}))).node;
  host.append(panel);
  function openCrafting(id){if(id)selectRecipe(id);panels.open('crafting');}
  // Character page (ui/pages/character-page.js): core level over Attributes, Skills (non-combat,
  // combat and armor skills) and Proficiencies (weapon, armor-slot and element). Tutorial guidance
- // (setSkillGuidance) locks closing and opens the lesson's skill; records and the character push
- // their own changes. `section` remembers the sub-tab between visits.
+ // (setSkillGuidance {locked, section, guide}) locks closing and highlights the lesson's sub-tab and
+ // skill without choosing them; events.skillToggled(name, open) follows the player's rows. Records
+ // and the character push their own changes. `section` remembers the sub-tab between visits.
  const guidance=signal({}),section=signal('attributes'),character=getCharacter();
  const proficiency=skill=>PROFICIENCY_GROUPS.includes(skill.group);
  const pick=test=>()=>Object.fromEntries(Object.entries(getSkills()).filter(([,skill])=>test(skill)));
- const skillsList=()=>skillsPage({skills:pick(skill=>!proficiency(skill)),track:trackSkills,guidance});
+ const skillsList=()=>skillsPage({skills:pick(skill=>!proficiency(skill)),track:trackSkills,guidance,onToggle:(name,open)=>events.skillToggled?.(name,open)});
  const proficiencyList=()=>skillsPage({skills:pick(proficiency),track:trackSkills,noun:'proficiencies',empty:'Use weapons, armor and elements to train their proficiencies.'});
  const characterPanel=mount(()=>h('section',{id:'character-panel','aria-label':'Character',hidden:true},
-  characterPage({character,section,skills:skillsList,proficiencies:proficiencyList,onAllocate:()=>events.attributesChanged?.()}))).node;
+  characterPage({character,section,guide:()=>guidance.value.section??null,skills:skillsList,proficiencies:proficiencyList,onAllocate:()=>events.attributesChanged?.()}))).node;
  host.append(characterPanel);
  const unspentPoints=computed(()=>!!character&&(character.revision.value,character.unspent>0));
  const inventoryMenu=createInventoryMenu({host,inventory:getInventory(),...items,onSelect:id=>events.inventorySelected?.(id)});
@@ -57,5 +58,26 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,tr
  panels.register({id:'character',label:'Character',icon:'character',order:20,primary:true,element:characterPanel,badge:unspentPoints,select:()=>{if(!events.openSkills?.())openCharacter();},closeLocked:computed(()=>!!guidance.value.locked)});
  panels.register({id:'inventory',label:'Inventory',icon:'inventory',order:30,primary:true,element:inventoryMenu.panel,select:()=>{if(!events.openInventory?.())openInventory();},closeLocked:inventoryMenu.locked,dismiss:()=>{if(!events.inventoryLocked?.())closeMenus('dismiss');}});
  panels.register({id:'crafting',label:'Crafting',icon:'crafting',order:40,primary:true,element:panel,select:()=>{if(!events.openCrafting?.())openCrafting();},dismiss:()=>{closeMenus('dismiss');events.closeCrafting?.();}});
- return {host,panels,characterPanel,inventoryMenu,events,selectRecipe,get selectedRecipe(){return selectedRecipe.peek();},openCrafting,openInventory,openSkills,closeMenus,action,setSkillGuidance(value){guidance.value=value;}};
+ // Step-by-step guidance through the menus ("Show me how", lessons): highlight the page's tab until
+ // the player opens it, then what to pick, then what to press. It never opens or chooses for them.
+ //   guide({page:'crafting',recipe}) — the Crafting tab, the recipe, then its Craft button
+ //   guide({page:'inventory',item,action}) — the Inventory tab, the item, then its action (optional)
+ //   guide(null) ends it; starting a guided recipe's craft also ends it.
+ // A new guide starts from each page's list, with no recipe chosen.
+ const guided=signal(null);let itemStep=false;
+ function guide(value){
+  guided.value=value||null;
+  if(value?.recipe){selectedRecipe.value=null;viewingRecipe.value=false;}
+ }
+ effect(()=>{
+  const g=guided.value,page=panels.active.value;
+  for(const node of host.querySelectorAll('[data-menu-guide]')){node.classList.remove('gold-guide');node.removeAttribute('data-menu-guide');}
+  const onPage=!!g&&page===g.page;
+  let id=g&&!onPage?panels.entry(g.page)?.tab:null;
+  if(onPage&&g.recipe)id=viewingRecipe.value&&selectedRecipe.value===g.recipe?`craft-${g.recipe}`:`choose-${g.recipe}`;
+  const items=onPage&&!!g.item;
+  if(items!==itemStep||items){itemStep=items;untracked(()=>inventoryMenu.guide(items?{item:g.item,action:g.action}:false));}
+  if(id)for(const node of host.querySelectorAll(`#${id},[data-tab="${id}"]`)){node.classList.add('gold-guide');node.dataset.menuGuide='';}
+ });
+ return {host,panels,characterPanel,inventoryMenu,events,selectRecipe,guide,get guided(){return guided.peek();},get selectedRecipe(){return selectedRecipe.peek();},characterSection:computed(()=>section.value),openCrafting,openInventory,openCharacter,openSkills,closeMenus,action,setSkillGuidance(value){guidance.value=value;}};
 }

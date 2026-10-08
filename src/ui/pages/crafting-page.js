@@ -17,7 +17,8 @@ const REFUSED = 'Check the required materials and finish your current action fir
 // because tutorials guide them; every detail exists and only the chosen one shows.
 //   selected   signal: the chosen recipe (owned by the host so tutorials can choose)
 //   viewing    signal: narrow journals show the detail instead of the grid
-//   start(id)  shared crafting; false when refused. onStarted() runs after a start.
+//   start(id)  shared crafting; false when refused. onStarted(id) runs after a start.
+// With no recipe chosen, the detail area asks for one.
 export function craftingPage({inventory, skills = () => ({}), active = () => null, start, onStarted = () => {}, selected = signal(Object.keys(RECIPES)[0]), viewing = signal(false), onSelect = id => { selected.value = id; viewing.value = true; }}) {
   const status = signal(''), query = signal(''), showStations = signal(true), showMissing = signal(true);
   const all = Object.keys(RECIPES);
@@ -85,5 +86,7 @@ export function craftingPage({inventory, skills = () => ({}), active = () => nul
           filter('Missing ingredients', showMissing)),
         keyedList(h('div', {class: 'q-items', role: 'list', 'aria-label': 'Recipes'}), shown, id => id, tile),
         h('p', {class: 'q-page__help', hidden: () => shown.value.length > 0}, 'No recipes match. Clear the search or show more recipes.')),
-      h('div', {class: 'q-crafting__detail', ref: element => { detailArea = element; }}, ids.map(detail))));
+      h('div', {class: 'q-crafting__detail', ref: element => { detailArea = element; }},
+        h('p', {class: 'q-page__help q-crafting__empty', hidden: () => !!selected.value}, 'Choose a recipe to see what it needs.'),
+        ids.map(detail))));
 }

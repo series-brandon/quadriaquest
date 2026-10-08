@@ -7,6 +7,7 @@
 .q-crafting__detail { flex: 1 1 260px; min-inline-size: 0; border: 1px solid var(--q-line); border-radius: var(--q-control-radius); background: var(--q-card); }
 .q-crafting__detail .q-recipe-detail[hidden] { display: none; }
 .q-crafting__detail .q-recipe-detail__body { padding: 14px; }
+.q-crafting__empty { margin: 0; padding: 14px; }
 /* The craft button stays in view at the bottom of the scrolling journal page. */
 .q-crafting__detail .q-recipe-detail__actions { position: sticky; inset-block-end: 0; padding: 12px 14px; border-end-start-radius: var(--q-control-radius); border-end-end-radius: var(--q-control-radius); background: var(--q-card); }
 

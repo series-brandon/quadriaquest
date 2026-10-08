@@ -62,7 +62,8 @@ export function progressBar({label, value}) {
 
 // Sub-tabs inside a page: a tablist and one panel per tab. Panels are built once and kept, so
 // their scroll, search and open rows survive switching. Arrow keys move between tabs.
-//   tabs: [{id, label, badge?, build: () => node}], value: signal of the selected id
+//   tabs: [{id, label, badge?, guide?, build: () => node}], value: signal of the selected id
+//   guide: a function; while true the tab is highlighted for a lesson (data-guide)
 let tabsCount = 0;
 export function subTabs({label, tabs, value, onChange = next => { value.value = next; }}) {
   const base = `q-tabs-${++tabsCount}`;
@@ -82,6 +83,7 @@ export function subTabs({label, tabs, value, onChange = next => { value.value = 
         id: `${base}-${tab.id}`,
         class: 'q-tabs__tab',
         'aria-selected': selected,
+        'data-guide': tab.guide ?? null,
         'aria-controls': `${base}-${tab.id}-panel`,
         tabindex: () => (selected() ? '0' : '-1'),
         on: {

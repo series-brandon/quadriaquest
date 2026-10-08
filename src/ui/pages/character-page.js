@@ -10,8 +10,10 @@ const title = s => s[0].toUpperCase() + s.slice(1);
 // Character page: core level (all skill and proficiency XP feeds it) above three sub-tabs,
 // Attributes, Skills and Proficiencies. The host supplies the two progression lists; `section`
 // is the selected sub-tab, owned by the host so it can open a given one (and remembers it).
-export function characterPage({character = null, onAllocate = () => {}, section = signal('attributes'), skills, proficiencies}) {
-  const lists = [{id: 'skills', label: 'Skills', build: skills}, {id: 'proficiencies', label: 'Proficiencies', build: proficiencies}];
+// `guide` (a function giving a sub-tab id) highlights that sub-tab for a lesson until it is chosen.
+export function characterPage({character = null, onAllocate = () => {}, section = signal('attributes'), guide = () => null, skills, proficiencies}) {
+  const guided = id => () => guide() === id && section.value !== id;
+  const lists = [{id: 'skills', label: 'Skills', guide: guided('skills'), build: skills}, {id: 'proficiencies', label: 'Proficiencies', guide: guided('proficiencies'), build: proficiencies}];
   // Without a character (isolated tests and previews) only the progression lists show.
   if (!character) {
     if (section.peek() === 'attributes') section.value = 'skills';
@@ -51,7 +53,7 @@ export function characterPage({character = null, onAllocate = () => {}, section 
         h('small', null, () => `${whole(Math.ceil(state.value.core.remaining))} XP to level ${state.value.core.level + 1}`)),
       progressBar({label: 'Core level progress', value: () => state.value.core.fraction})),
     subTabs({label: 'Character', value: section, tabs: [
-      {id: 'attributes', label: 'Attributes', badge: unspent, badgeLabel: 'Points to spend', build: attributes},
+      {id: 'attributes', label: 'Attributes', badge: unspent, badgeLabel: 'Points to spend', guide: guided('attributes'), build: attributes},
       ...lists,
     ]}));
 }

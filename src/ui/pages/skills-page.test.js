@@ -15,10 +15,10 @@ function setup() {
   const gathering = createGatheringSkill(), mining = createGatheringSkill();
   const extra = signal(false);
   const skills = () => ({Gathering: gathering, Mining: mining, ...(extra.value ? {Fishing: createGatheringSkill()} : {})});
-  const guidance = signal({});
-  const {node} = mount(() => skillsPage({skills, track: () => character.revision.value, guidance}));
+  const guidance = signal({}), toggles = [];
+  const {node} = mount(() => skillsPage({skills, track: () => character.revision.value, guidance, onToggle: (name, open) => toggles.push([name, open])}));
   const row = name => node.querySelector(`[data-skill="${name}"]`);
-  return {node, character, gathering, extra, guidance, row};
+  return {node, character, gathering, extra, guidance, row, toggles};
 }
 
 test('skill rows follow their reactive records and keep their nodes', () => {
@@ -51,17 +51,18 @@ test('search hides rows without removing them', () => {
   assert.equal([...s.node.querySelectorAll('.q-page__help')].find(p => /No matching skills/.test(p.textContent)).hidden, false);
 });
 
-test('tutorial guidance opens and highlights its skill once', () => {
+test('tutorial guidance highlights its skill until the player opens it, never opening it', () => {
   const s = setup();
   const row = s.row('Gathering');
+  s.guidance.value = {locked: true, guide: 'Gathering'};
   assert.equal(row.hasAttribute('open'), false);
-  s.guidance.value = {locked: true, focus: 'Gathering'};
-  assert.equal(row.hasAttribute('open'), true);
   assert.equal(row.hasAttribute('data-guide'), true);
   assert.equal(s.row('Mining').hasAttribute('data-guide'), false);
-  s.guidance.value = {locked: true, focus: 'Gathering'};
+  row.setAttribute('open', '');row.dispatchEvent(new window.Event('toggle'));
+  assert.equal(row.hasAttribute('data-guide'), false, 'opened by the player');
+  assert.deepEqual(s.toggles, [['Gathering', true]]);
   s.guidance.value = {};
-  assert.equal(row.hasAttribute('data-guide'), false);
+  assert.equal(row.hasAttribute('open'), true, 'the player\'s row stays open');
 });
 
 test('an empty list explains how to fill it', () => {

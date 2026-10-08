@@ -9,10 +9,14 @@ export function journalTutorialActions(stage, guidedTarget = null) {
     // The skills lesson lives on the Character tab.
     if (stage.endsWith('-menu')) return target('open-' + ({skills: 'character'}[stage.split('-')[0]] ?? stage.split('-')[0]));
     if (stage === 'inventory-select') return ['[data-item="sticks"]'];
+    // The skills lesson highlights the Skills section, then the Gathering row.
+    if (stage === 'skills-section') return ['#character-panel [role="tab"][data-guide]'];
+    if (stage === 'skills-select') return ['[data-skill][data-guide] > summary'];
     return [];
   }
-  if (stage === 'craft-menu' || stage === 'retry') return target('open-crafting');
-  if (stage === 'recipe') return ['#craft-axes'];
+  // The axe lesson follows its guide: the Crafting tab, the recipe, then its Craft button.
+  if (stage === 'craft-menu' || stage === 'retry') return target(guidedTarget ?? 'open-crafting');
+  if (stage === 'recipe') return guidedTarget ? target(guidedTarget) : [];
   return guidedTarget ? target(guidedTarget) : null;
 }
 
