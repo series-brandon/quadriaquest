@@ -2,7 +2,8 @@ import {defineConfig} from 'vite';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
-// Vite's SPA fallback otherwise serves the game for public directory URLs.
+// Dev logs (public/dev-logs) are served by `npm run dev` only; they deploy as their own site
+// (dist-dev-logs). Vite's SPA fallback otherwise serves the game for their directory URLs.
 function devLogDirectories(){
   const install=server=>{server.middlewares.use((req,res,next)=>{
     const url=new URL(req.url,'http://localhost');
@@ -15,10 +16,13 @@ function devLogDirectories(){
     }
     next();
   });};
-  return {name:'dev-log-directories',configureServer:install,configurePreviewServer:install};
+  return {name:'dev-log-directories',configureServer:install};
 }
-export default defineConfig(({mode})=>({
+export default defineConfig(({command,mode})=>({
   plugins:[devLogDirectories()],
+  // public/ holds only the dev logs, so builds skip it. Serve other static assets from elsewhere
+  // (or exclude dev-logs explicitly) if public/ ever gains game files.
+  publicDir:command==='serve'?'public':false,
   define:{__PLAYGROUND__:JSON.stringify(mode==='playground')},
   build:{outDir:mode==='playground'?'dist-playground':'dist'}
 }));
