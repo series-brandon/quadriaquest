@@ -22,9 +22,10 @@ export function equipmentIdleHands(profile={}){
  return hands;
 }
 // Poses that only place the hands (waving, hopping, sleeping) keep each held weapon's grip from
-// the carry pose (curl and yaw), so blades don't swing upright.
-export function withGrip(hands,carry){
- return hands.map((h,i)=>[h[0],h[1],h[2],carry[i][3]||h[3]||0,h[4]||0,carry[i][5]||h[5]||0]);
+// the carry pose (curl and yaw), so blades don't swing upright. `grip` (per hand, 0–1) eases a hand
+// toward upright, as a waving hand brandishes its weapon.
+export function withGrip(hands,carry,grip=[1,1]){
+ return hands.map((h,i)=>{const g=grip[i]??1;return [h[0],h[1],h[2],(carry[i][3]||0)*g||h[3]||0,h[4]||0,(carry[i][5]||0)*g||h[5]||0];});
 }
 export function attackAnimation(profile={},time=0){
  const motion=resolveAttackMotion(profile),interval=profile.interval||1.5,clock=time%interval,after=time>=interval&&clock<.28;

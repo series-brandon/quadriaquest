@@ -197,3 +197,14 @@ test('blades rest tilted in either hand, and keep that grip through hand-placing
   assert.deepEqual(gripped.map(h => h[3]), [1.85, 1.85], 'the grip comes from the carry pose');
   assert.deepEqual(withGrip(sleeping, equipmentIdleHands({})).map(h => h[3]), [0, 0], 'empty hands are unchanged');
 });
+
+test('a waving hand brings its weapon upright; the other hand keeps its grip', async () => {
+  const {withGrip} = await import('./combat-animation.js');
+  const {socialMotion} = await import('./slime-social.js');
+  const carry = equipmentIdleHands({mainHand: 'copperDagger', offHand: 'copperDagger'});
+  const wave = socialMotion('Wave', 1);
+  const hands = withGrip(wave.hands, carry, wave.grip);
+  assert.ok(hands[0][3] < 0.1, 'raised hand: blade upright');
+  assert.equal(hands[1][3], 1.85, 'resting hand keeps its grip');
+  assert.equal(withGrip(socialMotion('Wave', 0).hands, carry, socialMotion('Wave', 0).grip)[0][3], 1.85, 'before raising: resting grip');
+});

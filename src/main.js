@@ -501,7 +501,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=pla
  elevation = THREE.MathUtils.clamp(elevation + (Number(rotationKeys.has('ArrowUp')) - Number(rotationKeys.has('ArrowDown'))) * Math.PI / 3 * dt, THREE.MathUtils.degToRad(20), THREE.MathUtils.degToRad(75));
  opening.rotated(Math.abs(angle-oldAngle)+Math.abs(elevation-oldElevation));
  let pose=idlePose(elapsed),handWork=null,expression=elapsed<happyUntil?'happy':'idle',socialHands=null;
- if(asleep){const social=socialMotion('Sleeping',idleClock.sleepTime);pose=social.pose;expression=social.expression;socialHands=withGrip(social.hands,equipmentIdleHands({mainHand:equipment.slots.main,offHand:equipment.slots.off}));}
+ if(asleep){const social=socialMotion('Sleeping',idleClock.sleepTime);pose=social.pose;expression=social.expression;socialHands=withGrip(social.hands,equipmentIdleHands({mainHand:equipment.slots.main,offHand:equipment.slots.off}),social.grip);}
  if(!segment&&path.length&&companions.cannotYield(path[0])){path=[];target=null;feedback.clearDestination();toast("Your companion needs room to move aside.");}
  // Stun/immobilize let the current step finish but start no new one.
  if(!segment&&path.length&&!companions.occupies(path[0])&&playerControl.can('move')){
@@ -535,7 +535,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=pla
   }else if(target&&!target.depleted){const node=target;target=null;resourceActions.start(node);
   }else{if(!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.arrived();}
  }
- if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
+ if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands&&preview.grip?withGrip(preview.hands,equipmentIdleHands({mainHand:equipment.slots.main,offHand:equipment.slots.off}),preview.grip):preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  // Crossfade between motions (punch ↔ stab, hand swaps, attack ↔ block…). Archery stays exact for the bow string.
  let actionPose=null;
  if(actionMotion){

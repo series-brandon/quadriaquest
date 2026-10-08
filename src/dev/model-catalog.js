@@ -60,7 +60,7 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
   // Picking a different animation snaps; changes within the running animation (hand swaps, stab ↔ punch) blend.
   const pickedNew=motion!==blendMotion;blendMotion=motion;let castState=null;
   trophyGeneric.visible=trophyFish.visible=trophyHat.visible=false;
-  let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null;
+  let pose=idlePose(time),hands=null,lift=0,expression='idle',handWork=null,grip=[1,1];
   const combat=['Attack','Block'].includes(motion)?previewCombat(motion,options,time):null,actionKind=combat?.kind||SLIME_ACTIONS[motion],loadout=previewLoadout(options);
   for(const prop of rig.idleProps||[])prop.visible=motion==='Idle'&&!loadout.mainHand&&!loadout.offHand;
   for(const model of Object.values(tools))model.visible=false;
@@ -70,15 +70,17 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
    if(actionKind==='Celebration'){trophyFish.scale.setScalar(1);const result=holdUpMotion(actionTime,heldItem==='Raw Pondfish'?'fish':heldItem==='Top Hat'?'hat':'generic'),prop=heldItem==='Raw Pondfish'?trophyFish:heldItem==='Top Hat'?trophyHat:trophyGeneric;prop.visible=result.prop.visible;prop.position.set(0,result.prop.y,result.prop.z);}
 
   }
-  else if(SOCIAL_DURATIONS[motion]){const social=socialMotion(motion,motion==='Sleeping'?time:time%(SOCIAL_DURATIONS[motion]+.7));({pose,hands,lift,expression}=social);}
+  else if(SOCIAL_DURATIONS[motion]){const social=socialMotion(motion,motion==='Sleeping'?time:time%(SOCIAL_DURATIONS[motion]+.7));({pose,hands,lift,expression,grip}=social);}
   else if(motion==='Jump up'||motion==='Jump down'){const t=time%(STEP_DURATION+.5);pose=stepMotion(Math.min(t,STEP_DURATION),motion==='Jump up'?.5:-.5);lift=pose.lift+(motion==='Jump down'?.5:0);expression=t<.32?'preparing':t<STEP_DURATION?'struggle':'idle';}
   else if(motion==='Spawn landing'){pose=spawnMotion(time%1.8);lift=pose.lift;expression=time%1.8<.68?'struggle':'idle';}
   else if(motion==='Sliding'){pose=slideMotion(time%1);expression='focused';}
   // Off-hand weapons use their own left-hand model, as in gameplay.
   if(combatEquipmentVisible(actionKind)){if(loadout.mainHand)tools[loadout.mainHand].visible=true;if(loadout.offHand)tools[GEAR[loadout.offHand]?.offHand&&!GEAR[loadout.offHand]?.shield?loadout.offHand+'Off':loadout.offHand].visible=true;}
   if(!combat)bowPresentation.update(null);
-  if((loadout.mainHand||loadout.offHand)&&!hands&&handWork===null&&(motion==='Idle'||motion==='Sliding'))hands=equipmentIdleHands(loadout);
-  else if((loadout.mainHand||loadout.offHand)&&hands&&SOCIAL_DURATIONS[motion])hands=withGrip(hands,equipmentIdleHands(loadout));
+  // As in gameplay: motions that don't place the hands hold weapons in their rest pose; social
+  // motions keep the grip.
+  if((loadout.mainHand||loadout.offHand)&&!hands&&handWork===null)hands=equipmentIdleHands(loadout);
+  else if((loadout.mainHand||loadout.offHand)&&hands&&SOCIAL_DURATIONS[motion])hands=withGrip(hands,equipmentIdleHands(loadout),grip);
   if(motion==='Idle')expression=defaultExpression;
   if(expressionOverride&&expressionOverride.toLowerCase()!=='default')expression=expressionOverride.toLowerCase();
   rig.face.set(expression);bend(pose.bend||0);

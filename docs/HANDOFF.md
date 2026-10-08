@@ -20,6 +20,11 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Optimize tie-break, viewer armed poses, waving with a weapon — 2026-10-08
+- **Optimize:** two daggers alternating have the same DPS as one (COMBAT.md: no dual-wield speed bonus, weapon bonuses only when striking), so setups tied. The "keep current gear" tie-break counted empty slots as kept, which picked "off hand only". Ties now go to: gear already equipped (real items only), then more hands filled, then the main hand. Two daggers without a shield give both hands; a shield still wins the off hand on defense. Tested in combat-systems.
+- **Model viewer:** every motion that doesn't place the hands (Jump up/down, Walk, …) uses the armed rest pose, as gameplay does (it was Idle and Sliding only).
+- **Waving:** `socialMotion` returns `grip` per hand (1 keeps the resting grip, 0 upright). Wave eases the raised hand to upright, so it brandishes the weapon instead of bending the wrist. `withGrip(hands, carry, grip)` applies it in gameplay sleep, playground social previews and the viewer. Tested.
+
 ### Held-weapon rest pose: off hand and sleep — 2026-10-08
 - **Off hand:** the frame built the carry pose from the main hand only (`equipmentIdleHands({item: slots.main})`), so an off-hand dagger pointed straight up. It now passes both hands; `equipmentIdleHands` tilts a blade (sword or dagger) in either hand.
 - **Sleep:** the sleep pose placed the hands with no grip, so held blades swung upright. `withGrip(hands, carry)` (combat-animation.js) keeps each held weapon's grip (curl, yaw) through hand-placing poses. Gameplay applies it to the sleep pose (attack, eating and celebration poses set their own grip), and the model viewer applies it to its social motions (Happy hop, Wave, Sleeping) with a loadout.

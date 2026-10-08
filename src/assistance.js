@@ -85,6 +85,8 @@ export function createAssistance(api){
 
  // Optimize: within the chosen style, rank owned setups by expected damage per second, then incoming
  // damage reduction, then the current gear. Armor slots take the most effective owned piece.
+ // Lexicographic score comparison; the first two (damage, defense) are real numbers.
+ const better=(a,b)=>{for(let i=0;i<a.length;i++){const d=a[i]-b[i];if(Math.abs(d)>1e-9)return d>0;}return false;};
  function optimize(forStyle=style){
   if(combat.working){optimizeReport='Optimize waits until you are out of a fight.';changed();return optimizeReport;}
   const owned=id=>(inventory[id]||0)>0,slots=equipment.slots,strategy=styles.strategy;
@@ -101,8 +103,9 @@ export function createAssistance(api){
    const profiles=forStyle==='magic'?[]:attacks.map(a=>playerAttackProfile(character,a,strategy));
    const dps=profiles.length?profiles.reduce((s,p)=>s+(p.min+p.max)/2,0)/profiles.reduce((s,p)=>s+p.interval,0):0;
    const reduction=playerDefense(character,{shield:GEAR[off]?.shield?GEAR[off]:null}).resistancePct;
-   const keep=(main===slots.main?1:0)+(off===slots.off?1:0),score=[dps,reduction,keep];
-   if(!best||score[0]>best.score[0]+1e-9||Math.abs(score[0]-best.score[0])<1e-9&&(score[1]>best.score[1]+1e-9||Math.abs(score[1]-best.score[1])<1e-9&&score[2]>best.score[2]))best={main,off,score};
+   // Ties: keep gear already equipped (empty slots don't count), then fill more hands, main hand first.
+   const keep=(main&&main===slots.main?1:0)+(off&&off===slots.off?1:0),score=[dps,reduction,keep,(main?1:0)+(off?1:0),main?1:0];
+   if(!best||better(score,best.score))best={main,off,score};
   }
   const next={main:best.main,off:best.off};
   for(const slot of ARMOR_SLOTS.concat('head')){

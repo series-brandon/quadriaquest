@@ -131,6 +131,14 @@ test('Optimize ranks owned gear by DPS, then reduction, then current gear, and r
  f.inventory.bows=1;f.assistance.setStyle('melee');assert.match(f.assistance.setStyle('ranged'),/Training Bow \(main\).*no arrows/);assert.equal(f.equipment.slots.off,null);
 });
 
+test('Optimize with two daggers and no shield fills both hands, main hand first, even from an off-hand-only setup',()=>{
+ const f=assistFixture();f.inventory.copperShield=0;f.inventory.swords=0;f.inventory.copperDagger=2;
+ f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperDagger']);
+ f.equipment.setSlots({main:null,off:'copperDagger'});
+ f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperDagger'],'empty slots are not "kept"');
+ f.inventory.copperShield=1;f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperShield','a shield still wins the off hand on defense');
+});
+
 test('Auto auras: Harden in danger, Rush while moving in combat, 25% Ki floor, exhaustion recovery threshold and grace',()=>{
  const f=assistFixture({hp:60});f.auras.learn('rush');f.auras.learn('harden');f.assistance.update(.2);assert.ok(f.auras.isActive('harden'));assert.equal(f.auras.isActive('rush'),false);
  f.moving=true;f.assistance.update(.2);assert.ok(f.auras.isActive('rush'));
