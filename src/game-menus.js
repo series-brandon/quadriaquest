@@ -2,18 +2,20 @@ import {RECIPES,canMake,durationFor} from './recipes.js';
 import {ITEMS} from './items.js';
 import {icon} from './icons.js';
 import {createInventoryMenu} from './inventory-menu.js';
-import {skillProgress} from './skills.js';
-import {ATTRIBUTES,ATTRIBUTE_INFO} from './character.js';
-import {levelProgress} from './combat-formulas.js';
 import {computed,signal} from './reactive.js';
 import {createPanelHost} from './ui/panels.js';
 import {panelTabs} from './ui/panel-tabs.js';
-import {mount} from './ui/dom.js';
+import {h,mount} from './ui/dom.js';
+import {skillsPage} from './ui/pages/skills-page.js';
+import {characterPage} from './ui/pages/character-page.js';
+
+// Character tracks shown on the Proficiencies page rather than Skills.
+const PROFICIENCY_GROUPS=['weapon','armorSlot','element'];
 import {bind} from './ui/scope.js';
 
 // Shared journal pages. Tutorial guidance is optional and does not own recipes or skills.
 // Page visibility, the tab bar and tab availability belong to the panel host (`panels`).
-export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,startCraft,craftState=()=>null,craftBusy=()=>false,items={}}){
+export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,trackSkills=()=>{},startCraft,craftState=()=>null,craftBusy=()=>false,items={}}){
  const $=id=>document.getElementById(id),events={};
  const host=document.createElement('div');host.id='game-menus';
  host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false">☰</button>
@@ -35,56 +37,23 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
  function selectRecipe(id){if(!recipeKinds.includes(id))return;selectedRecipe=id;panel.classList.add('viewing-recipe');for(const kind of recipeKinds){$(kind+'-detail').hidden=kind!==id;$('choose-'+kind).setAttribute('aria-pressed',String(kind===id));}events.selected?.(id);}
  let selectedRecipe='axes';
  function openCrafting(id){if(id)selectRecipe(id);else selectRecipe(selectedRecipe);panels.open('crafting');refresh();}
- const skillsPanel=document.createElement('section');skillsPanel.id='skills-panel';skillsPanel.hidden=true;skillsPanel.setAttribute('aria-label','Skills');
- skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><input id="skills-search" class="journal-search" type="search" placeholder="Search skills…" aria-label="Search skills"><section id="character-summary" aria-label="Core level and attributes"></section><div id="skills-list"></div>';host.append(skillsPanel);
- // items: {actions, settings, isEquipped, track} from the systems that own each item.
+ // Character page (ui/pages/character-page.js): core level over Attributes, Skills (non-combat,
+ // combat and armor skills) and Proficiencies (weapon, armor-slot and element). Tutorial guidance
+ // (setSkillGuidance) locks closing and opens the lesson's skill; records and the character push
+ // their own changes. `section` remembers the sub-tab between visits.
+ const guidance=signal({}),section=signal('attributes'),character=getCharacter();
+ const proficiency=skill=>PROFICIENCY_GROUPS.includes(skill.group);
+ const pick=test=>()=>Object.fromEntries(Object.entries(getSkills()).filter(([,skill])=>test(skill)));
+ const skillsList=()=>skillsPage({skills:pick(skill=>!proficiency(skill)),track:trackSkills,guidance});
+ const proficiencyList=()=>skillsPage({skills:pick(proficiency),track:trackSkills,noun:'proficiencies',empty:'Use weapons, armor and elements to train their proficiencies.'});
+ const characterPanel=mount(()=>h('section',{id:'character-panel','aria-label':'Character',hidden:true},
+  characterPage({character,section,skills:skillsList,proficiencies:proficiencyList,onAllocate:()=>events.attributesChanged?.()}))).node;
+ host.append(characterPanel);
+ const unspentPoints=computed(()=>!!character&&(character.revision.value,character.unspent>0));
  const inventoryMenu=createInventoryMenu({host,inventory:getInventory(),...items,onSelect:id=>events.inventorySelected?.(id)});
  function openInventory(){panels.open('inventory');}
- const guidance=signal({});
- $('skills-search').oninput=()=>renderSkills();
-  const skillRows=new Map();let characterSignature='';
-  const whole=n=>Math.floor(n).toLocaleString();
-  // Core level and attribute allocation share the production character; +1 spends one unspent point.
-  function renderCharacter(){
-    const character=getCharacter(),root=$('character-summary');root.hidden=!character;if(!character)return;
-    const signature=JSON.stringify([character.core,character.unspent,ATTRIBUTES.map(character.attribute)]);if(signature===characterSignature)return;characterSignature=signature;
-    const core=levelProgress(character.core.xp),points=character.unspent;
-    root.innerHTML=`<div class="core-level"><strong>Core level ${core.level}</strong><span>${whole(character.core.xp)} core XP</span></div><progress max="1" value="${core.fraction}" aria-label="Core level progress"></progress><small>${whole(Math.ceil(core.remaining))} core XP to level ${core.level+1} · earned from all skill and proficiency XP, combat and non-combat (5 : 1)</small>
-      <details class="attribute-list"${points?' open':''}><summary>Attributes · <b>${points} unspent point${points===1?'':'s'}</b></summary><ul>${ATTRIBUTES.map(a=>`<li><span><strong>${a[0].toUpperCase()+a.slice(1)}</strong> <small>${ATTRIBUTE_INFO[a]}</small></span><b>${character.attribute(a)}</b><button type="button" data-allocate="${a}" aria-label="Spend a point on ${a}"${character.canAllocate(a)?'':' disabled'}>+</button></li>`).join('')}</ul><small>Points are permanent for now; redistribution will be offered at Iter Crystals.</small></details>`;
-    for(const b of root.querySelectorAll('[data-allocate]'))b.onclick=()=>{if(character.allocate(b.dataset.allocate))events.attributesChanged?.();renderSkills();};
-  }
-  function renderSkills(){
-    renderCharacter();
-    const skillGuidance=guidance.peek();
-    if($('close-skills').disabled!==!!skillGuidance.locked)$('close-skills').disabled=!!skillGuidance.locked;
-    const skills=getSkills(),search=($('skills-search').value||'').toLowerCase();
-    for(const [name,row] of skillRows)if(!skills[name]){row.remove();skillRows.delete(name);}
-    for(const [name,skill] of Object.entries(skills)){
-      let row=skillRows.get(name);
-      if(!row){
-        row=document.createElement('details');row.dataset.skill=name;row.className='skill-entry';
-        row.innerHTML=`<summary>${icon(skill.icon||name)}<strong>${name}</strong><b></b><progress aria-label="${name} progress"></progress></summary><p></p><progress></progress><small></small><small></small>`;
-        skillRows.set(name,row);$('skills-list').append(row);
-      }
-      const hide=!name.toLowerCase().includes(search);if(row.hidden!==hide)row.hidden=hide;
-      const focus=name===skillGuidance.focus;
-      // Open once on entering the lesson, without overriding subsequent clicks.
-      if(focus&&!row.tutorialFocused)row.open=true;
-      row.tutorialFocused=focus;row.classList.toggle('skill-focus',focus);
-      const signature=`${skill.level}:${skill.xp}`;
-      if(row.skillSignature===signature)continue;
-      row.skillSignature=signature;
-      const p=skillProgress(skill);
-      row.querySelector('b').textContent=`Lv ${p.level}`;
-      row.querySelector('p').textContent=`${whole(p.xp)} total XP`;
-      const bars=row.querySelectorAll('progress');for(const bar of bars){bar.max=p.span;bar.value=p.into;}
-      bars[1].setAttribute('aria-label',`${name} progress toward level ${p.level+1}`);
-      const labels=row.querySelectorAll('small');
-      labels[0].textContent=`${whole(p.into)} / ${whole(p.span)} XP toward Level ${p.level+1}`;
-      labels[1].textContent=`${whole(Math.ceil(p.remaining))} XP to next level`;
-    }
-  }
-  function openSkills(){panels.open('skills');renderSkills();}
+  function openCharacter(){panels.open('character');}
+  function openSkills(){section.value='skills';openCharacter();}
   function action(){if(events.action)events.action();else closeMenus();}
  function closeMenus(reason='automatic'){if(events.beforeClose?.(reason)===false)return;panels.close();}
 
@@ -98,14 +67,13 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
    $(id+'-duration').textContent=`Time · ${Number(durationFor(recipe.duration,skills[recipe.skill]?.level||level).toFixed(2))} seconds`;
   }
   if($('recipe-error').textContent)$('recipe-error').textContent='';}
-  if(!skillsPanel.hidden)renderSkills();
  }
  // Tutorials may intercept a tab (events.open*) to run a lesson step instead.
- panels.register({id:'skills',label:'Skills',icon:'skills',order:20,primary:true,element:skillsPanel,select:()=>{if(!events.openSkills?.())openSkills();},closeLocked:computed(()=>!!guidance.value.locked)});
+ // Tutorials intercept the tab (events.openSkills) for the skills lesson.
+ panels.register({id:'character',label:'Character',icon:'character',order:20,primary:true,element:characterPanel,badge:unspentPoints,select:()=>{if(!events.openSkills?.())openCharacter();},closeLocked:computed(()=>!!guidance.value.locked)});
  panels.register({id:'inventory',label:'Inventory',icon:'inventory',order:30,primary:true,element:inventoryMenu.panel,select:()=>{if(!events.openInventory?.())openInventory();},closeLocked:inventoryMenu.locked,dismiss:()=>{if(!events.inventoryLocked?.())closeMenus('dismiss');}});
  panels.register({id:'crafting',label:'Crafting',icon:'crafting',order:40,primary:true,element:panel,select:()=>{if(!events.openCrafting?.())openCrafting();},dismiss:()=>{closeMenus('dismiss');events.closeCrafting?.();}});
- $('close-skills').addEventListener('click',()=>panels.dismiss());
  $('close-crafting').addEventListener('click',()=>panels.dismiss());
  $('game-menu-toggle').addEventListener('click',()=>{if(!events.toggle?.())panels.toggleNav();});
- return {host,panels,skillsPanel,inventoryMenu,events,selectRecipe,openCrafting,openInventory,openSkills,closeMenus,action,refresh,renderSkills,setSkillGuidance(value){guidance.value=value;renderSkills();}};
+ return {host,panels,characterPanel,inventoryMenu,events,selectRecipe,openCrafting,openInventory,openSkills,closeMenus,action,refresh,setSkillGuidance(value){guidance.value=value;}};
 }

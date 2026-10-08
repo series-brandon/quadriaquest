@@ -20,6 +20,55 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Character tab with Attributes / Skills / Proficiencies sub-tabs — 2026-10-08
+- **User decision:** the Skills page did too much. After briefly trying three separate journal tabs, we settled on **one Character tab with sub-tabs**: it saves tab-bar space, and on phones all three views sit in the primary bar instead of two hiding under More.
+- **Character tab** (`open-character`, order 20, primary, new `character` icon) replaces the Skills tab.
+  - `ui/pages/character-page.js`: a slim core-level line (level, XP to the next level, progress bar) over the new kit `subTabs` control.
+  - **Attributes:** points (accent while unspent) and + buttons.
+  - **Skills:** non-combat skills, the 18 combat-style skills and the Light/Medium/Heavy Armor skills.
+  - **Proficiencies:** weapon, armor-slot and element (`PROFICIENCY_GROUPS`); trained ones only, plus Unarmed, with an empty-state hint.
+  - The lists share `skillsPage({skills, track, guidance, noun, empty})`. Without a character (isolated tests) only the two lists show.
+- **Kit additions:**
+  - `subTabs` in `controls.js`: `role=tablist`/`tab`/`tabpanel`, panels built once and kept (search and open rows survive switching), arrow keys, an optional badge.
+  - Panel entries may set `badge` (a signal). `panelTabs` draws an `<i class="q-badge">` dot; an `<i>` rather than a span, since legacy bar CSS hides spans in icon-only layouts.
+  - The Character tab and the Attributes sub-tab badge while points are unspent.
+- **Navigation:** the sub-tab signal lives in `game-menus.js`, so the page remembers the last sub-tab. `menus.openSkills()` opens Character on Skills. `showSkills` (playground) and the journal's free-play fallback use Character.
+- **Tutorial:**
+  - The skills lesson now says "Open the Character menu to see your skills."
+  - It guides `open-character`; `journalTutorialActions('skills-menu')` maps to `#open-character`.
+  - The lesson opens the Skills sub-tab with Gathering highlighted and open; the sub-tabs are locked during it.
+- **Verification:**
+  - 333 tests pass, including sub-tab switching, aria wiring, arrow-key wrap, host-driven selection, the badge following points, the no-character mode, menus routing proficiencies, and the lock-rule mapping.
+  - Both builds, `check:ui` and `check:debug-isolation` pass.
+  - In the built playground:
+    - the docked bar has a single Character tab with a badge dot at 3 unspent points, and the dot clears after spending;
+    - a sub-tab choice is remembered across tab switches;
+    - phone bar: Character · Inventory · Crafting · Combat · More;
+    - the phone tutorial skills-toggle → menu → detail → summary → inventory-intro, with Gathering in view.
+  - No console errors.
+
+### Skills page rebuilt in the kit — 2026-10-08
+- **New page:** `ui/pages/skills-page.js`, hosted in `game-menus.js` (`trackSkills` option). It replaces the legacy signature-checked `renderSkills`/`renderCharacter`, the HTML strings and about 2.5 KB of `.skill-entry`, `#character-summary` and `.attribute-list` CSS.
+  - **Core level card:** level, core XP, a progress bar and XP to the next level, plus a collapsible **Attributes** section ("N unspent points", open while points wait) with + buttons through `character.allocate`.
+  - **Search:** hides rows rather than removing them, so open state survives.
+  - **One `<details>` per skill** (`data-skill` kept): icon, name, "Lv N" and a progress bar; opening shows total XP, progress toward the next level and XP remaining.
+  - **New kit control:** `progressBar` in `controls.js` (`role=progressbar`, the fill scales with `transform`).
+- **Reactivity at the source:**
+  - `createGatheringSkill()` now returns a `reactiveRecord`, so every non-combat skill (Gathering, Crafting, Lumberjack, Mining, Fishing, Carpentry, Culinary, Smithing) notifies on any write, including resets and dev `Object.assign`.
+  - Combat tracks and core level follow `character.revision`.
+  - The set of skills follows `systemsReady` (renamed from `itemSystems`) for systems created after the menus, plus `character.revision` for newly trained proficiencies.
+- **Tutorial:** `setSkillGuidance({locked, focus})` still drives the close lock. Focus opens and highlights the skill once (`data-guide`) and keeps Attributes collapsed so the lesson's skill is in view on phones.
+- **Verification:**
+  - 330 tests pass: `skills-page.test.js` on the real character and skill records, and the crafting tutorial's skills tests rewritten for the page.
+  - `check:ui` passes; legacy debt fell and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - all 27 skills list, including late systems;
+    - a dev XP grant updates Fishing in place while it stays open;
+    - granting Dagger levels adds its row, and core XP updates;
+    - spending a point updates the count and attribute, and Constitution raised max health to 101;
+    - phone tutorial checkpoint Skills menu → Gathering highlighted, open and in view with the close button locked → continue → the inventory introduction.
+  - No console errors.
+
 ### Inventory page rebuilt in the kit — 2026-10-08
 - **New page:** `ui/pages/inventory-page.js`, hosted by `inventory-menu.js` (`createInventoryMenu({host, inventory, actions, settings, isEquipped, track, onSelect})`). It replaces the legacy signature-diffing `refresh`, the HTML strings, the rAF tutorial overlay and about 6 KB of `#inventory-panel` CSS in `ui-theme.css` / `player-interface.css`.
   - **Search:** filters the stacks.

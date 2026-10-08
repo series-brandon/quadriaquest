@@ -5,7 +5,7 @@ import {journalTutorialActions} from './journal-tutorial-lock.js';
 test('guided journal lessons permit only the required action, never closing or resizing',()=>{
  for(const kind of ['quests','skills','inventory']){
   assert.deepEqual(journalTutorialActions(kind+'-toggle'),['#game-menu-toggle']);
-  assert.deepEqual(journalTutorialActions(kind+'-menu'),['#open-'+kind]);
+  assert.deepEqual(journalTutorialActions(kind+'-menu'),['#open-'+(kind==='skills'?'character':kind)]);
   assert.deepEqual(journalTutorialActions(kind+'-detail'),[]);
  }
  assert.deepEqual(journalTutorialActions('inventory-select'),['[data-item="sticks"]']);

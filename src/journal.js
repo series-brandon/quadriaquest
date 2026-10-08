@@ -43,7 +43,7 @@ export function mountJournal(menus,controller,settings){
   h('span',null,()=>panels.activeEntry.value?.label??'Adventurer’s journal'),
   h('button',{id:'journal-size',type:'button','aria-label':()=>expanded.value?'Minimize journal':'Expand journal',on:{click:toggleExpanded}},iconNode('expand')),
   h('button',{id:'journal-close',type:'button','aria-label':'Close journal',disabled:panels.closeLocked,on:{click:closePage}},iconNode('close'))))).node;
- host.append(shell);shell.append(nav,questPanel,settingsView.node,$('inventory-panel'),$('skills-panel'),$('crafting-panel'));
+ host.append(shell);shell.append(nav,questPanel,settingsView.node,$('inventory-panel'),menus.characterPanel,$('crafting-panel'));
 
  toggle.replaceChildren(iconNode('inventory'));toggle.setAttribute('aria-label','Open adventurer’s journal');
  const tip=$('gather-tutorial'),tipParent=tip.parentElement;
@@ -85,7 +85,7 @@ export function mountJournal(menus,controller,settings){
  // In free play the button opens the last page directly rather than the bare tab bar.
  toggle.addEventListener('click',()=>{
   if(!FREE_STAGES.includes(controller.stage)||!panels.navShown.peek())return;
-  const entry=panels.entry(last);panels.select(entry&&panels.available(entry)?last:'skills');
+  const entry=panels.entry(last);panels.select(entry&&panels.available(entry)?last:'character');
  });
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')&&!shell.hidden){e.preventDefault();closePage();}});
  return {setDocked(value){docked.value=!!value;},compact(){expanded.value=false;},get locked(){return tutorialLock.locked;},get expanded(){return expanded.peek();}};

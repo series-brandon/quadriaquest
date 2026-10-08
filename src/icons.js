@@ -39,6 +39,7 @@ const paths={
  settings:'<path d="m9 3 1-2h4l1 2 3 2 2 0 2 4-1 2v3l1 2-2 4-2 0-3 2-1 2h-4l-1-2-3-2H4l-2-4 1-2v-3L2 9l2-4h2z" transform="translate(1 0) scale(.92)"/><circle cx="12" cy="12" r="4"/>',
  inventory:'<path d="M8 9V7a4 4 0 0 1 8 0v2M5 9h14l1 11H4z"/><path d="M4 13h16M10 13v3h4v-3"/>',
  skills:'<path d="m5 18 5-12 9 5-8 8z"/><circle cx="5" cy="18" r="2"/><circle cx="10" cy="6" r="2"/><circle cx="19" cy="11" r="2"/>',
+ character:'<circle cx="12" cy="7.5" r="3.5"/><path d="M5 20.5c.6-4.2 3.4-6.5 7-6.5s6.4 2.3 7 6.5z"/>',
  crafting:'<path d="m5 20 13-14M14 4l6 6M4 5l15 15M3 3l5 1-4 4z"/>',
  Gathering:'<path d="M5 14V9a1.5 1.5 0 0 1 3 0v3-7a1.5 1.5 0 0 1 3 0v7-8a1.5 1.5 0 0 1 3 0v8-6a1.5 1.5 0 0 1 3 0v9l2-3 2 2-5 7H9z"/>',
  axes:'<path d="m7 21 8-17M14 5c3 0 6 1 7 4l-6 5-4-3"/>',

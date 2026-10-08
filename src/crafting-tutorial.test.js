@@ -4,6 +4,7 @@ import {createCraftingTutorial as createTutorialController} from './crafting-tut
 import {createGameMenus} from './game-menus.js';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
+import {createGatheringSkill} from './skills.js';
 function createCraftingTutorial(options){let tutorial;const startCraft=id=>{const started=options.startCraft(id);if(started)tutorial.craftStarted(id);return started;};const menus=createGameMenus({...options,startCraft});
  // The journal registers Quests in the game; lessons guide its tab.
  menus.panels.register({id:'quests',label:'Quests',icon:'quests',order:10,returnTo:true,element:document.createElement('section')});
@@ -61,18 +62,21 @@ test('first quest introduces the hidden menu, guides Quests, then resumes openin
  }finally{globalThis.document=previous;}
 });
 
- test('skill refresh preserves disclosure rows and open state while XP changes',()=>{
+ test('the skills page keeps rows and open state while XP changes, and opens the lesson skill',()=>{
  const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
-  const skill={level:1,xp:0};
+  const skill=createGatheringSkill();
   const tutorial=createCraftingTutorial({freePlay:true,getInventory:()=>({}),getSkills:()=>({Gathering:skill}),startCraft:()=>false});
-  get('open-skills').click();const row=get('skills-list').children[0];
-  row.open=true;for(let i=0;i<8;i++)tutorial.menus.refresh();
-  assert.equal(get('skills-list').children.length,1);assert.ok(get('skills-list').children[0]===row);assert.equal(row.open,true);
-  skill.xp=20;tutorial.menus.refresh();assert.equal(row.querySelector('p').textContent,'20 total XP');assert.equal(row.open,true);
-  row.open=false;tutorial.menus.refresh();assert.equal(row.open,false);
-  get('skills-search').value='mining';get('skills-search').oninput();assert.equal(row.hidden,true);
-  get('skills-search').value='';get('skills-search').oninput();assert.equal(row.hidden,false);assert.ok(get('skills-list').children[0]===row);
+  get('open-character').click();const rows=()=>[...get('character-panel').querySelectorAll('[data-skill]')],row=rows()[0];
+  const open=()=>row.hasAttribute('open');row.toggleAttribute('open',true);skill.xp=20;
+  assert.equal(rows().length,1);assert.ok(rows()[0]===row);assert.equal(open(),true);
+  assert.match(row.textContent,/20 total XP/);
+  row.toggleAttribute('open',false);skill.xp=40;assert.equal(open(),false,'XP changes never reopen a row');
+  const search=get('character-panel').querySelector('input[type=search]');
+  search.value='mining';search.dispatchEvent(new window.Event('input'));assert.equal(row.hidden,true);
+  search.value='';search.dispatchEvent(new window.Event('input'));assert.equal(row.hidden,false);assert.ok(rows()[0]===row);
+  tutorial.menus.setSkillGuidance({locked:true,focus:'Gathering'});
+  assert.equal(open(),true);assert.equal(row.hasAttribute('data-guide'),true);assert.equal(tutorial.menus.panels.closeLocked.value,true);
  }finally{globalThis.document=previous;}
 });
 
@@ -105,11 +109,13 @@ test('shared menus expose both introductory tools and Culinary without a tutoria
  const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
   const inventory={sticks:2,stones:2},crafts=[];
-  const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>({Crafting:{level:6,xp:600},Culinary:{level:1,xp:0}}),startCraft:id=>{crafts.push(id);return true;}});
+  const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>({Crafting:{level:6,xp:600},Culinary:{level:1,xp:0},'Melee Power':{level:1,xp:0,group:'combat'},'Light Armor':{level:1,xp:0,group:'armor'},'Dagger Proficiency':{level:2,xp:90,group:'weapon',curve:'adopted'}}),startCraft:id=>{crafts.push(id);return true;}});
   menus.openCrafting();
   for(const id of ['axes','pickaxes']){assert.equal(get('choose-'+id).hidden,false);assert.equal(get('craft-'+id).disabled,false);assert.equal(get(id+'-duration').textContent,'Time · 1.67 seconds');get('craft-'+id).click();}
   assert.deepEqual(crafts,['axes','pickaxes']);
   inventory.stones=0;menus.refresh();assert.equal(get('craft-axes').disabled,true);assert.equal(get('craft-pickaxes').disabled,true);
-  menus.openSkills();assert.ok([...get('skills-list').children].some(row=>row.dataset.skill==='Culinary'));
+  menus.openSkills();const lists=[...get('character-panel').querySelectorAll('.q-skills')].map(list=>[...list.querySelectorAll('[data-skill]')].map(row=>row.dataset.skill));
+  assert.deepEqual(lists,[['Crafting','Culinary','Melee Power','Light Armor'],['Dagger Proficiency']],'skills (non-combat, combat, armor), then proficiencies');
+  assert.equal(menus.panels.isOpen('character'),true);
  }finally{globalThis.document=previous;}
 });

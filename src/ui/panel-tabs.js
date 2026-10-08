@@ -16,6 +16,7 @@ export function panelTabs(container, host, {filter = () => true, ids = true, onS
       title: entry.ariaLabel ?? entry.label,
       'aria-label': entry.ariaLabel ?? entry.label,
       'aria-current': () => host.active.value === entry.id,
+      class: entry.badge ? 'q-tab--badged' : null,
       hidden: () => !host.available(entry),
       on: {
         click() {
@@ -25,7 +26,9 @@ export function panelTabs(container, host, {filter = () => true, ids = true, onS
       },
     },
     typeof entry.icon === 'function' ? entry.icon() : iconNode(entry.icon),
-    h('span', null, entry.label));
+    h('span', null, entry.label),
+    // Not a span: legacy bar styles hide spans (the text labels) in icon-only layouts.
+    entry.badge ? h('i', {class: 'q-badge', hidden: () => !entry.badge.value, 'aria-hidden': 'true'}) : null);
   });
 }
 

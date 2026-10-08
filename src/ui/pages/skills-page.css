@@ -1,0 +1,23 @@
+/* Skills and Proficiencies pages (ui/pages/skills-page.js): searchable progression rows. */
+
+.q-skills { display: grid; gap: 4px; }
+.q-skill { border-radius: var(--q-control-radius); background: var(--q-control-selected); }
+.q-skill[hidden] { display: none; }
+.q-skill[data-guide] { box-shadow: inset 0 0 0 2px var(--q-guide), 0 0 0 4px var(--q-guide-glow); }
+.q-skill__summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 4px 10px;
+  min-block-size: var(--q-touch);
+  padding: 8px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.q-skill__summary::-webkit-details-marker { display: none; }
+.q-skill__summary:focus-visible { outline: 2px solid var(--q-accent); outline-offset: -2px; border-radius: var(--q-control-radius); }
+.q-skill__summary .q-progress { grid-column: 1 / -1; }
+.q-skill__icon svg { display: block; inline-size: 20px; block-size: 20px; }
+.q-skill__name { font-size: 13px; font-weight: 600; min-inline-size: 0; }
+.q-skill__level { font: 700 12px / 1 var(--q-font-numeric); }
+.q-skill__body { display: grid; gap: 2px; padding: 0 12px 10px; color: var(--q-ink-muted); font-size: 12px; }

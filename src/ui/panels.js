@@ -20,6 +20,7 @@ import {bind, createScope, runInScope} from './scope.js';
 //   dismiss,            the page's own close behaviour (close button, Escape)
 //   closeLocked,        signal/function: true while the page may not be closed
 //   returnTo,           closing goes back to whatever was showing before (Quests)
+//   badge,              signal: true shows an attention dot on the tab (e.g. unspent points)
 // })
 //
 // `defaultDismiss` closes a page that has no `dismiss` of its own (the game routes it through

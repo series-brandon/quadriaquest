@@ -22,8 +22,8 @@
     "important": 1
   },
   "src/game-menus.js": {
-    "innerHTML": 7,
-    "propertyHandlers": 5
+    "innerHTML": 4,
+    "propertyHandlers": 3
   },
   "src/item-feedback.js": {
     "innerHTML": 1

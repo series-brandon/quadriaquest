@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import {levelProgress,totalXpForLevel} from './combat-formulas.js';
+import {reactiveRecord} from './reactive.js';
 
 export const GATHERING_XP_PER_ITEM = 20;
 export const GATHERING_XP_PER_LEVEL = 120;
 
-export function createGatheringSkill(){return {xp:0,level:1};}
+// Reactive so menus follow XP from any source (awards, resets, dev grants) without polling.
+export function createGatheringSkill(){return reactiveRecord({xp:0,level:1});}
 // Every non-combat skill award passes through here so it also feeds the character's single core-XP
 // conversion (5:1, shared remainder) alongside combat tracks. The app registers the listener once.
 let skillXpListener=null;

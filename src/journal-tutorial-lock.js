@@ -4,7 +4,8 @@ import {signal} from './reactive.js';
 export function journalTutorialActions(stage, guidedTarget = null) {
   if (/^(quests|skills|inventory)-/.test(stage)) {
     if (stage.endsWith('-toggle')) return ['#game-menu-toggle'];
-    if (stage.endsWith('-menu')) return ['#open-' + stage.split('-')[0]];
+    // The skills lesson lives on the Character tab.
+    if (stage.endsWith('-menu')) return ['#open-' + ({skills: 'character'}[stage.split('-')[0]] ?? stage.split('-')[0])];
     if (stage === 'inventory-select') return ['[data-item="sticks"]'];
     return [];
   }

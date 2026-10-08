@@ -191,10 +191,10 @@ function itemSettings(id){
  if(!FOODS[id]||!assistance)return [];
  return [{label:'Allow auto eating',checked:()=>(assistance.revision.value,assistance.allowed('food',id)),onChange:on=>assistance.setPermission('food',id,on)}];
 }
-// The item systems (food, campfires, equipment, assistance) are created after the menus; the
-// Inventory page tracks this signal so it follows them once they exist.
-const itemSystems=signal(false);
-const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,startCraft:id=>recipeCrafting.start(id),craftState:()=>recipeCrafting?.state,craftBusy:()=>!!recipeCrafting?.working||combat?.working||combat?.busy,items:{settings:itemSettings,isEquipped:id=>equipment?.isEquipped(id),track:()=>{itemSystems.value;equipment?.revision.value;assistance?.revision.value;},actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[])]}});
+// Several systems (food, campfires, equipment, assistance, fishing, cooking…) are created after the
+// menus; the Inventory and Skills pages track this signal so they follow them once they exist.
+const systemsReady=signal(false);
+const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,trackSkills:()=>{systemsReady.value;character.revision.value;},startCraft:id=>recipeCrafting.start(id),craftState:()=>recipeCrafting?.state,craftBusy:()=>!!recipeCrafting?.working||combat?.working||combat?.busy,items:{settings:itemSettings,isEquipped:id=>equipment?.isEquipped(id),track:()=>{systemsReady.value;equipment?.revision.value;assistance?.revision.value;},actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[])]}});
 const craftingTutorial=createCraftingTutorial({menus,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
 // Combat skills always list; proficiencies and armor skills appear once trained (Unarmed from the start).
 function combatSkills(){const out={};for(const d of TRACKS){const t=character.tracks[d.id];if(d.group==='combat'||t.xp>0||d.id==='prof.unarmed')out[d.name]=t;}return out;}
@@ -698,7 +698,7 @@ if(__PLAYGROUND__){
 const journal=mountJournal(menus,craftingTutorial,settingsUI);
 createCompanionMenu(companions,{panels:menus.panels,modals,canClose:()=>menus.events.beforeClose?.('automatic')!==false});
 playerInterface=createPlayerInterface({modals,playerControl,assistance,auras,styles,toast,menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
-itemSystems.value=true;
+systemsReady.value=true;
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.

@@ -45,3 +45,62 @@ export function row({name, detail = null, actions = []}) {
     h('div', {class: 'q-row__text'}, h('span', {class: 'q-row__name'}, name), detail === null ? null : h('small', {class: 'q-row__detail'}, detail)),
     h('div', {class: 'q-row__actions'}, actions));
 }
+
+// A thin progress bar (0–1). The fill scales on the compositor; the value is exposed to
+// assistive tech as a percentage.
+export function progressBar({label, value}) {
+  const fraction = () => Math.max(0, Math.min(1, read(value) || 0));
+  return h('div', {
+    class: 'q-progress',
+    role: 'progressbar',
+    'aria-label': label,
+    'aria-valuemin': '0',
+    'aria-valuemax': '100',
+    'aria-valuenow': () => String(Math.round(fraction() * 100)),
+  }, h('span', {class: 'q-progress__fill', style: {transform: () => `scaleX(${fraction()})`}}));
+}
+
+// Sub-tabs inside a page: a tablist and one panel per tab. Panels are built once and kept, so
+// their scroll, search and open rows survive switching. Arrow keys move between tabs.
+//   tabs: [{id, label, badge?, build: () => node}], value: signal of the selected id
+let tabsCount = 0;
+export function subTabs({label, tabs, value, onChange = next => { value.value = next; }}) {
+  const base = `q-tabs-${++tabsCount}`;
+  const buttons = [];
+  const select = (index, focus = false) => {
+    const tab = tabs[(index + tabs.length) % tabs.length];
+    onChange(tab.id);
+    if (focus) buttons[tabs.indexOf(tab)].focus?.();
+  };
+  const keys = {ArrowRight: 1, ArrowLeft: -1};
+  return h('div', {class: 'q-tabs'},
+    h('div', {class: 'q-tabs__list', role: 'tablist', 'aria-label': label}, tabs.map((tab, index) => {
+      const selected = () => read(value) === tab.id;
+      const button = h('button', {
+        type: 'button',
+        role: 'tab',
+        id: `${base}-${tab.id}`,
+        class: 'q-tabs__tab',
+        'aria-selected': selected,
+        'aria-controls': `${base}-${tab.id}-panel`,
+        tabindex: () => (selected() ? '0' : '-1'),
+        on: {
+          click: () => select(index),
+          keydown: event => {
+            if (!(event.key in keys)) return;
+            event.preventDefault();
+            select(index + keys[event.key], true);
+          },
+        },
+      }, tab.label, tab.badge ? h('span', {class: 'q-badge', hidden: () => !read(tab.badge), 'aria-label': tab.badgeLabel ?? null}) : null);
+      buttons.push(button);
+      return button;
+    })),
+    tabs.map(tab => h('div', {
+      class: 'q-tabs__panel',
+      role: 'tabpanel',
+      id: `${base}-${tab.id}-panel`,
+      'aria-labelledby': `${base}-${tab.id}`,
+      hidden: () => read(value) !== tab.id,
+    }, tab.build())));
+}

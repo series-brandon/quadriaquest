@@ -1,0 +1,9 @@
+/* Character page (ui/pages/character-page.js): core level above Attributes / Skills / Proficiencies. */
+.q-core { display: grid; gap: 4px; }
+.q-core__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.q-core__head small { color: var(--q-ink-muted); font-size: 12px; }
+.q-core__points { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.q-core__points b { color: var(--q-ink-muted); font-size: 12px; }
+.q-core__points b[data-unspent] { color: var(--q-accent); }
+.q-attribute__value { min-inline-size: 2ch; font: 700 15px / 1 var(--q-font-numeric); text-align: end; }
+.q-button--square { inline-size: var(--q-touch); padding: 0; font-size: 20px; }

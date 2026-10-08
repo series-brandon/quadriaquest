@@ -30,10 +30,9 @@ p{color:var(--ui-muted)}
 .splash-start button:hover{background:#614769}.splash-start button:focus-visible{outline-color:var(--ui-accent)}
 #game-menu-bar{display:flex;gap:8px}
 #open-skills{padding:13px 24px;white-space:nowrap;background:#eee0e5}
-#skills-panel{position:absolute;right:0;bottom:70px;width:min(350px,calc(100vw - 40px));max-height:55vh;overflow:auto;padding:22px;background:var(--ui-paper);color:var(--ui-ink);border:1px solid var(--ui-border);border-radius:18px;box-shadow:0 12px 40px #382b4922}
-.skill-entry{padding:15px 12px;margin-top:14px;border:1px solid var(--ui-border);border-radius:12px}.skill-entry>div{display:flex;justify-content:space-between;gap:10px}.skill-entry b{font-size:12px}.skill-entry p{margin:8px 0;color:var(--ui-muted)}.skill-entry small{display:block;font-size:11px;line-height:1.8}.skill-entry progress{display:block;width:100%;height:7px;margin:10px 0;appearance:none;border:0;border-radius:4px;overflow:hidden;background:#ddc8d8}.skill-entry progress::-webkit-progress-bar{background:#ddc8d8}.skill-entry progress::-webkit-progress-value{background:var(--ui-accent)}.skill-entry progress::-moz-progress-bar{background:var(--ui-accent)}.skill-focus{outline:2px solid #eac35f;box-shadow:0 0 16px #efbf5535}
+
 body:has(#skills-panel:not([hidden])) #gather-tutorial{left:24px;transform:none;width:min(440px,calc(100vw - 420px))}
-@media(max-width:700px){body:has(#skills-panel:not([hidden])) #gather-tutorial{left:16px;width:calc(100% - 32px)}#skills-panel{max-height:38vh;bottom:65px}body:has(#skills-panel:not([hidden])) #game-menus{bottom:230px}}
+@media(max-width:700px){body:has(#skills-panel:not([hidden])) #gather-tutorial{left:16px;width:calc(100% - 32px)}body:has(#skills-panel:not([hidden])) #game-menus{bottom:230px}}
 #game-menu-bar{flex-wrap:wrap;width:max-content;max-width:calc(100vw - 52px)}
 #open-inventory{padding:13px 24px;white-space:nowrap;background:#eee0e5}
 
@@ -58,21 +57,21 @@ body #game-menus{bottom:20px;right:20px}
 .journal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;font:20px Georgia,serif}.journal-header button{background:transparent;padding:6px;border:0}
 #journal #game-menu-bar{position:static;transform:none;background:transparent;box-shadow:none;border:0;border-bottom:1px solid var(--ui-border);border-radius:0;display:flex!important;flex-wrap:nowrap;width:auto;max-width:none;padding:10px 16px;gap:5px}
 #journal #game-menu-bar button{display:flex;align-items:center;gap:6px;padding:9px 10px;border:0;border-radius:8px;font-size:12px;background:transparent}#journal #game-menu-bar button[hidden]{display:none}#journal #game-menu-bar button[aria-current=true]{background:#e8d8e3}#journal #game-menu-bar .game-icon{width:19px;height:19px}
-#journal #skills-panel,#journal #crafting-panel{position:relative;inset:auto;width:auto;max-height:none;min-height:120px;overflow:auto;padding:16px 20px 20px;border:0;border-radius:0 0 18px 18px;box-shadow:none;background:transparent;flex:1}
+#journal #crafting-panel{position:relative;inset:auto;width:auto;max-height:none;min-height:120px;overflow:auto;padding:16px 20px 20px;border:0;border-radius:0 0 18px 18px;box-shadow:none;background:transparent;flex:1}
 #journal .crafting-heading{position:static;margin:0 0 15px;display:flex;align-items:center;justify-content:space-between}#journal .crafting-heading h2{font-size:16px;margin:0}#journal .crafting-heading button{position:static}.crafting-intro{font-size:12px}
 
 .journal-search{width:100%;padding:10px 12px;margin:0 0 12px;border:1px solid var(--ui-border);border-radius:8px;background:#fff9f2;color:var(--ui-ink);font:inherit;font-size:13px}
-#journal .skill-entry{padding:10px 12px;margin:5px 0;background:#eee3e8;border:0;border-radius:8px}.skill-entry summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none}.skill-entry summary strong{flex:1}.skill-entry summary b{font-size:12px}.skill-entry summary .game-icon{width:22px;height:22px}#journal .skill-entry progress{margin:8px 0 0;height:4px}#journal .skill-entry p{font-size:12px}#journal .skill-entry small{line-height:1.6}
+
 .recipe-choices{display:flex;gap:8px;margin:14px 0}.recipe-choice{flex:1;display:flex;gap:7px;align-items:center;padding:10px;border:1px solid var(--ui-border);border-radius:8px;background:#eee3e8;color:var(--ui-ink);font-size:12px}.recipe-choice[aria-pressed=true]{outline:2px solid var(--ui-accent)}.recipe-detail h3{font:22px Georgia,serif;margin:18px 0 12px}.ingredient-counts{display:flex;flex-direction:column;gap:10px;padding:12px 0}.ingredient{display:flex;align-items:center;gap:10px;font-size:13px}.recipe-facts{display:flex;justify-content:space-between;font-size:12px;margin:15px 0;color:var(--ui-muted)}#journal .recipe{display:block;width:100%;padding:12px;background:var(--ui-button);color:var(--ui-button-ink);border-radius:8px;font:inherit}.recipe:disabled{opacity:.5}
 
 [hidden],#journal [hidden]{display:none!important}
-@media(max-width:700px){#journal,#journal.expanded{right:12px;bottom:80px;transform:none;width:calc(100vw - 24px);max-width:none;max-height:65dvh}body:has(#gather-tutorial:not([hidden])) #journal{max-height:48dvh}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:12px;left:12px;width:calc(100vw - 24px);padding:12px 15px}#journal-size{display:none}.journal-header{padding-top:12px}#journal #game-menu-bar{padding:6px 12px}#journal #skills-panel,#journal #crafting-panel{padding:12px 16px}#dialogue{bottom:16px}}
+@media(max-width:700px){#journal,#journal.expanded{right:12px;bottom:80px;transform:none;width:calc(100vw - 24px);max-width:none;max-height:65dvh}body:has(#gather-tutorial:not([hidden])) #journal{max-height:48dvh}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:12px;left:12px;width:calc(100vw - 24px);padding:12px 15px}#journal-size{display:none}.journal-header{padding-top:12px}#journal #game-menu-bar{padding:6px 12px}#journal #crafting-panel{padding:12px 16px}#dialogue{bottom:16px}}
 #item-feed{position:fixed;right:24px;bottom:92px;display:flex;flex-direction:column;gap:8px;width:280px;max-width:calc(100vw - 32px);pointer-events:none;z-index:22}body:has(#journal:not([hidden])) #item-feed{right:auto;left:24px;bottom:24px}.loot-receipt{background:#faf1e7f2;border:1px solid var(--ui-border);border-radius:12px;padding:12px 14px;box-shadow:0 5px 18px #382b491c;animation:loot-in .25s ease-out;transition:opacity .35s,transform .35s}.loot-line{display:flex;gap:10px;align-items:center;font-size:13px}.loot-line.gain{color:#46694e}.loot-line.cost{color:#806c7e}.loot-receipt small{display:block;margin:7px 0 0 35px;font-size:11px;color:var(--ui-muted)}.loot-receipt.leaving{opacity:0;transform:translateY(-8px)}@keyframes loot-in{from{opacity:0;transform:translateX(15px)}to{opacity:1;transform:translateX(0)}}
 #audio-settings{position:fixed;left:18px;bottom:18px;z-index:60;font-size:12px}#audio-settings summary{cursor:pointer;list-style:none;padding:9px 12px;border-radius:12px;background:var(--ui-paper);border:1px solid var(--ui-border)}#audio-settings>div{position:absolute;bottom:45px;left:0;padding:18px;width:240px;background:var(--ui-paper);border:1px solid var(--ui-border);border-radius:12px;box-shadow:0 8px 30px #382b4930}#audio-settings label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}#audio-settings input[type=range]{width:130px;accent-color:var(--ui-button)}
 @media(prefers-reduced-motion:reduce){.loot-receipt{animation:none;transition:none}}
 #journal .journal-header{position:static;inset:auto;transform:none;opacity:1;visibility:visible;width:auto;flex-shrink:0;pointer-events:auto}
-#journal .skill-entry summary{flex-wrap:wrap}#journal .skill-entry summary progress{flex:0 0 100%;margin-top:2px}#journal .skill-entry>progress{display:none}body:has(#journal:not([hidden])) #item-feed{bottom:70px}
-#journal .skill-entry .game-icon{color:#8d6359}
+body:has(#journal:not([hidden])) #item-feed{bottom:70px}
+
 @media(min-width:701px){#journal.expanded #crafting-panel{display:grid;grid-template-columns:200px 1fr;gap:8px 26px}#journal.expanded #crafting-panel>.crafting-heading,#journal.expanded .crafting-intro{grid-column:1/-1}#journal.expanded .recipe-choices{flex-direction:column;align-self:start}#journal.expanded .recipe-choice{flex:none}#journal.expanded .recipe-detail{grid-column:2;grid-row:3/6}body:has(#gather-tutorial:not([hidden])) #journal.expanded{max-height:calc(100dvh - 340px)}}
 
 /* Success is a distinct state; inset row outlines stay inside scroll clipping. */
@@ -98,8 +97,8 @@ body #game-menus{bottom:20px;right:20px}
  
  
  
- #journal #skills-panel,#journal #crafting-panel{min-height:0;padding:12px 16px;overscroll-behavior:contain}
- #journal .crafting-heading{display:none}.journal-search{font-size:16px;min-height:44px}#journal .skill-entry summary{min-height:48px;font-size:15px}#journal .skill-entry p,#journal .skill-entry small{font-size:13px}
+ #journal #crafting-panel{min-height:0;padding:12px 16px;overscroll-behavior:contain}
+ #journal .crafting-heading{display:none}.journal-search{font-size:16px;min-height:44px}
  .recipe-choices{margin:14px 2px;gap:8px}.recipe-choice{min-height:52px;font-size:14px}.ingredient{white-space:normal;font-size:14px;line-height:1.6;align-items:flex-start}.recipe-facts{flex-direction:column;gap:8px;font-size:14px}#journal .recipe{min-height:48px;text-align:center}
  body #journal #gather-tutorial{position:relative;inset:auto;transform:none;width:auto;max-width:none;max-height:30dvh;min-height:0;flex-shrink:1;overflow:auto;margin:0 10px 6px;padding:12px 14px;box-shadow:none;pointer-events:auto;border-radius:10px}
  #journal #gather-tutorial #tutorial-copy{font-size:14px;line-height:1.5}#journal #gather-tutorial #tutorial-continue,#journal #gather-tutorial #tutorial-help{min-height:44px}
@@ -245,12 +244,4 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 
 /* Guided journal steps expose only their required action. */
 #game-menus [data-tutorial-locked="true"]{ opacity: .4; cursor: not-allowed; }
-#character-summary{display:grid;gap:4px;margin:6px 0 10px;padding:10px 12px;border-radius:8px;background:#eee3e8}
-#character-summary .core-level{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
-#character-summary progress{width:100%}
-.attribute-list summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:6px}
-.attribute-list ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
-.attribute-list li{display:grid;grid-template-columns:1fr auto 44px;align-items:center;gap:8px;min-height:44px}
-.attribute-list li small{display:block;opacity:.75}
-.attribute-list button{width:44px;height:44px;font-size:20px;font-weight:700}
 

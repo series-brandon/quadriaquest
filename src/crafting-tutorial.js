@@ -19,7 +19,7 @@ export function createCraftingTutorial({menus,freePlay=false,onComplete=()=>{}})
   const help=document.createElement('button');help.id='tutorial-help';help.textContent='Show me how';help.hidden=true;$('gather-tutorial').append(help);
   if(!$('tutorial-continue')){const b=document.createElement('button');b.id='tutorial-continue';b.hidden=true;$('gather-tutorial').append(b);}
   const actions=document.createElement('div');actions.className='tutorial-actions';actions.append(help,$('tutorial-continue'));$('gather-tutorial').append(actions);
-  const {host,panels,skillsPanel,inventoryMenu,selectRecipe,closeMenus,refresh,openSkills,openInventory}=menus;
+  const {host,panels,inventoryMenu,selectRecipe,closeMenus,refresh,openSkills,openInventory}=menus;
   host.hidden=!freePlay;
   for(const id of ['inventory','crafting'])panels.setAvailable(id,freePlay);
   menus.events.selected=id=>{if(miningGuided&&stage==='pickaxe')guide(id==='pickaxes'?'craft-pickaxes':'choose-pickaxes');};
@@ -118,7 +118,7 @@ export function createCraftingTutorial({menus,freePlay=false,onComplete=()=>{}})
   function activateChopping(){setStage('chop');guide(null);tutorial('Click on a tree with an appropriate tool in your inventory to start chopping it down. Be patient! If you move before you finish, you’ll have to start over!');}
   function pickaxeGuide(){
     if(!miningGuided||stage!=='pickaxe')return;
-    guide(panels.isOpen('crafting')?(!$('pickaxes-detail').hidden?'craft-pickaxes':'choose-pickaxes'):(panels.navShown.peek()||panels.isOpen('skills')||panels.isOpen('inventory'))?'open-crafting':'game-menu-toggle');
+    guide(panels.isOpen('crafting')?(!$('pickaxes-detail').hidden?'craft-pickaxes':'choose-pickaxes'):(panels.navShown.peek()||panels.isOpen('character')||panels.isOpen('inventory'))?'open-crafting':'game-menu-toggle');
   }
   function pickaxePrompt(){
     setStage('pickaxe');setObjectiveHelp('pickaxe',()=>{closeMenus();help.onclick();});tutorial('Craft a Crude Pickaxe using Sticks ×1 and Rocks ×1.');help.hidden=miningGuided;pickaxeGuide();
@@ -150,7 +150,7 @@ export function createCraftingTutorial({menus,freePlay=false,onComplete=()=>{}})
   menus.events.toggle=()=>{
     if(stage.startsWith('quests-')){if(stage==='quests-toggle'){setStage('quests-menu');panels.showNav();guide('open-quests');tutorial('Open the Quests tab to see your new quest.');}return true;}
     if(stage.startsWith('inventory-')){if(stage==='inventory-toggle'){setStage('inventory-menu');panels.showNav();guide('open-inventory');tutorial('Open the Inventory menu.');}return true;}
-    if(stage.startsWith('skills-')){if(stage==='skills-toggle'){setStage('skills-menu');panels.showNav();guide('open-skills');tutorial('Open the Skills menu.');}return true;}
+    if(stage.startsWith('skills-')){if(stage==='skills-toggle'){setStage('skills-menu');panels.showNav();guide('open-character');tutorial('Open the Character menu to see your skills.');}return true;}
     if(stage==='pickaxe'){panels.toggleNav();pickaxeGuide();return true;}
     if(['mining-intro','mining-crafted','mining-success','mining-craft','intro','crafting','craft-success','chop-dialogue','chop-success'].includes(stage))return true;
     if(stage==='menu'||stage==='retry'){
@@ -187,7 +187,7 @@ export function createCraftingTutorial({menus,freePlay=false,onComplete=()=>{}})
         else if(successNext){const fn=successNext;successNext=null;fn();}
         else if(['quests-toggle','skills-toggle','inventory-toggle','menu'].includes(stage))$('game-menu-toggle').click();
         else if(stage==='quests-menu')$('open-quests').click();
-        else if(stage==='skills-menu')$('open-skills').click();
+        else if(stage==='skills-menu')$('open-character').click();
         else if(stage==='inventory-menu')$('open-inventory').click();
         else if(stage==='inventory-select'){inventoryMenu.panel.querySelector('[data-item="sticks"]')?.click();}
         else if(stage==='craft-menu')$('open-crafting').click();
