@@ -20,6 +20,16 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Right/left hands and handedness — 2026-10-08 (design change)
+- **User decisions:** hands are physical (Right, Left). Every one-handed item, shields included, fits either hand. A two-handed item is held in the hand you choose and occupies the other. **Handedness** (right by default; Combat → Attack setup → Dominant hand) only decides which hand strikes first in a one-two and which takes the off-hand penalty; it never moves items. The penalty applies to the second strike of every one-two (fists included). Attack hands: Auto / Both / Right / Left. Equip actions: "Equip right hand" / "Equip left hand".
+- **Equipment (equipment.js):** slots `right`/`left`; `handedness`, `setHandedness`, `sideOf(role)`, `roleOf(side)`, `eligibleSides()`. Role APIs stay for combat: `handAttack('main'|'off'|side)` returns `{hand: role, side}`, and `slots` includes `main`/`off` role views. `setSlots` accepts sides or roles. Shields and two-handed items default to the off hand (a right-hander's bow in the left, as before). An older Attack hands `main`/`off` choice maps to a side. GEAR hand items are `slot:'hand'`; `offHand` is gone.
+- **Presentation:** a model per hand item per hand (`equipment-<side>-<id>`, `handModel(id, side)`), created the first time that hand holds the item (perf: objects 407 → 382; eager creation had added +21). A shield in its non-authored hand turns 180° about the hand. A bow does not turn: it lies in the mirror plane, so the mirrored hand pose alone mirrors it (turning it, as first shipped, left the grip 0.44 from the palm with the string between). Each side has a bow presentation, with the arrow in the drawing hand.
+- **Animation:** profiles carry `rightHand`/`leftHand` and the striking `side`. `heldItems`, `mirrorHands` and `strikingSide` cover strikes (authored right-handed), bow and shield guards (authored left), blade guards and the one-two (each strike on its own side). Idle and sleep grips follow each side. Motion keys use the side.
+- **UI:** Equipment page Right/Left hand slots. Combat page Dominant hand, Auto/Both/Right/Left, per-side damage types, and a side-named summary. The viewer has Right hand / Left hand (any hand item), Dominant hand and Auto/Both/Right/Left.
+- **Optimize** still works in roles: the best weapon goes in the dominant hand, the off hand gets a weapon or shield, and a two-handed weapon goes in the off hand. Locked Right/Left map to roles. With one dagger and a sword it now pairs Copper Dagger (right) + Stone Sword (left), since swords fit the off hand.
+- **Edge:** with two shields no hand can strike; attacks fall back to a punch (`equipment.attack`), as gameplay always did with no eligible hand. Not designed further.
+- **Verified:** tests (equipment physical hands and handedness, presentation per hand, animation, viewer loadout, Combat page). Viewer screenshots: shield idle and block in each hand, a left-hand dagger strike, bows in each hand. The right-hand bow mirror is plausible but worth a look in the Browser pane.
+
 ### Attack hands Auto; Optimize respects locked hands — 2026-10-08
 - Attack hands on the Combat page: **Auto** (default; `attackHandsChoice === null`, resolves to every hand that can strike), Both, Main, Off. `setAttackHands('auto')` clears the lock. The control shows the choice (falling back to the resolved hand when a locked choice is unavailable).
 - Optimize reads `equipment.attackHandsChoice`. On Auto it picks gear and hands freely. **Main** keeps off-hand weapons out (that hand only defends, so it takes a shield). **Off** keeps the current main item and picks the best off-hand weapon. **Both** keeps shields out. Dual Wield level counts only when both hands strike with weapons. Tested in combat-systems and on the Combat page. COMBAT.md is updated.
@@ -558,6 +568,11 @@ In Cinderhold, when the player tells Bristle "Actually, no. I don't want to figh
   - If they accept, continue with the Pacifist version above.
   - If they decline, talk about Threat Levels (today's speech).
 - **Rules:** keep it area narrative calling shared gameplay (AGENTS.md). Cover each branch in `cinderhold-dialogue.test.js` and in the playground (Cinderhold "refused"/"meet" checkpoints with each mode).
+
+### Opening rework backlog (user requests, 2026-10-08; not started)
+For the planned rework of the opening/tutorial (alongside the "???" item above):
+- **Skip the tutorial:** offer a way to skip parts of the tutorial, or all of it.
+- **Handedness at character creation:** ask right- or left-handed during customization. It's also settable any time under Combat → Attack setup.
 
 ### Per-item Simple permissions — 2026-10-08
 - **User decision:** settings lists don't scale to dozens of foods or spells, so permissions now live on the items. The old "Never auto-use X" checkboxes in Simple settings are gone.

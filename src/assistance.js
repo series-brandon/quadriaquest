@@ -95,10 +95,11 @@ export function createAssistance(api){
   const owned=id=>(inventory[id]||0)>0,slots=equipment.slots,strategy=styles.strategy;
   // A locked Attack hands choice (Main, Off or Both) is respected: gear is fitted around it, and a hand
   // that won't attack takes the best defensive item. Auto (null) lets Optimize choose hands freely.
-  const hands=equipment.attackHandsChoice;
-  let mains=forStyle==='magic'?[slots.main]:[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].style&&STYLE_OF(id)===forStyle&&GEAR[id].slot==='main')];
+  // Locked sides map to roles through handedness (main = the dominant hand).
+  const locked=equipment.attackHandsChoice,hands=locked==='right'||locked==='left'?equipment.roleOf(locked):locked;
+  let mains=forStyle==='magic'?[slots.main]:[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].style&&STYLE_OF(id)===forStyle&&GEAR[id].slot==='hand')];
   if(forStyle==='ranged'&&mains.length===1){optimizeReport='No ranged weapon owned.';changed();return optimizeReport;}
-  let offs=[null,...Object.keys(GEAR).filter(id=>owned(id)&&(GEAR[id].shield||GEAR[id].offHand))];
+  let offs=[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].slot==='hand'&&(GEAR[id].shield||GEAR[id].style&&!GEAR[id].twoHanded))];
   if(forStyle!=='magic'){
    if(hands==='main')offs=offs.filter(id=>!GEAR[id]?.style);            // the off hand only defends
    if(hands==='both')offs=offs.filter(id=>!GEAR[id]?.shield);           // both hands must stay free to strike
@@ -122,7 +123,8 @@ export function createAssistance(api){
    const score=[...lead,keep,(main?1:0)+(off?1:0),main?1:0];
    if(!best||better(score,best.score))best={main,off,score};
   }
-  const next={main:best.main,off:best.off};
+  // A two-handed weapon is held in the off hand by default (a bow in the left hand of a right-hander).
+  const next=GEAR[best.main]?.twoHanded?{main:null,off:best.main}:{main:best.main,off:best.off};
   for(const slot of ARMOR_SLOTS.concat('head')){
    const pieces=Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].armor&&GEAR[id].slot===slot);
    if(!pieces.length)continue;

@@ -5,7 +5,7 @@ import {h} from '../ui/dom.js';
 import {keyedList} from '../ui/list.js';
 import {onCleanup} from '../ui/scope.js';
 import {MODEL_CATALOG} from './model-catalog.js';
-import {MAIN_HANDS, OFF_HANDS, ATTACK_MOTIONS, BLOCK_MOTIONS, ATTACK_HANDS, previewAttackHands, previewDamageTypes} from './preview-loadout.js';
+import {HAND_ITEMS, HANDEDNESS, ATTACK_MOTIONS, BLOCK_MOTIONS, ATTACK_HANDS, previewAttackHands, previewDamageTypes} from './preview-loadout.js';
 import './model-viewer.css';
 
 const STATIC_MOTIONS = ['Static', 'Closed', 'Open', 'Broken', 'Repaired'];
@@ -28,7 +28,7 @@ export function createModelViewer(modals) {
 function modelViewer() {
   // Choices. Loadout fields use '' for "none / default", as the preview loadout expects.
   const model = signal('Slime'), motion = signal('Idle'), expression = signal('default'), prop = signal(PROPS[0]), paused = signal(false);
-  const loadout = {mainHand: signal(''), offHand: signal(''), style: signal('weapon'), attackMotion: signal(''), blockMotion: signal(''), attackHands: signal(''), mainDamageType: signal(''), offDamageType: signal('')};
+  const loadout = {rightHand: signal(''), leftHand: signal(''), handedness: signal('right'), style: signal('weapon'), attackMotion: signal(''), blockMotion: signal(''), attackHands: signal(''), rightDamageType: signal(''), leftDamageType: signal('')};
   const settings = () => Object.fromEntries(Object.entries(loadout).map(([key, value]) => [key, value.peek()]));
 
   const entry = computed(() => MODEL_CATALOG.find(item => item.name === model.value));
@@ -40,13 +40,13 @@ function modelViewer() {
   const slime = computed(() => !!entry.value.loadout);
   // The loadout rules build a real equipment instance (which writes its own signals), so they run
   // when the loadout changes and publish their results, never inside a computation.
-  const damage = signal({main: null, off: null}), note = signal('');
+  const damage = signal({right: null, left: null}), note = signal('');
   function readLoadout() {
     damage.value = previewDamageTypes(settings());
     const hands = previewAttackHands(settings()), requested = loadout.attackHands.peek();
     const requestedLabel = ATTACK_HANDS.find(([id]) => id === requested)?.[1];
     const fallback = requested && requested !== hands.resolved ? ` (${requestedLabel} isn't available with this loadout)` : '';
-    note.value = `Attacks: ${loadout.style.peek() === 'magic' ? 'spell (no hand)' : hands.label + fallback}. ${loadout.mainHand.peek() === 'bows' ? 'Bow uses both hands. ' : ''}Casting keeps equipment visible; skilling tools temporarily replace it.`;
+    note.value = `Attacks: ${loadout.style.peek() === 'magic' ? 'spell (no hand)' : hands.label + fallback}. ${[loadout.rightHand.peek(), loadout.leftHand.peek()].includes('bows') ? 'Bow uses both hands. ' : ''}Casting keeps equipment visible; skilling tools temporarily replace it.`;
   }
   const animated = computed(() => !STATIC_MOTIONS.includes(motion.value));
 
@@ -132,11 +132,13 @@ function modelViewer() {
     frame = requestAnimationFrame(draw);
   }
   const changeLoadout = () => {
-    if (loadout.mainHand.peek() === 'bows') loadout.offHand.value = '';
+    // A two-handed item frees the other hand.
+    if (loadout.rightHand.peek() === 'bows') loadout.leftHand.value = '';
+    if (loadout.leftHand.peek() === 'bows') loadout.rightHand.value = '';
     readLoadout();
     const choices = damage.peek();
-    loadout.mainDamageType.value = choices.main?.selected || '';
-    loadout.offDamageType.value = choices.off?.selected || '';
+    loadout.rightDamageType.value = choices.right?.selected || '';
+    loadout.leftDamageType.value = choices.left?.selected || '';
     update(); measure(); fit();
   };
 
@@ -169,12 +171,13 @@ function modelViewer() {
         h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { age = 0; update(0); }}}, 'Restart'),
         h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => fit(true)}}, 'Reset view')),
       h('div', {class: 'q-viewer__loadout', hidden: () => !slime.value},
-        loadoutField('Main hand', 'mainHand', computed(() => MAIN_HANDS)),
-        loadoutField('Main hand damage', 'mainDamageType', computed(() => (damage.value.main?.types || []).map(t => [t, title(t)])), {hidden: () => !damage.value.main}),
-        loadoutField('Off hand', 'offHand', computed(() => OFF_HANDS), {disabled: () => loadout.mainHand.value === 'bows'}),
-        loadoutField('Off hand damage', 'offDamageType', computed(() => (damage.value.off?.types || []).map(t => [t, title(t)])), {hidden: () => !damage.value.off}),
+        loadoutField('Right hand', 'rightHand', computed(() => HAND_ITEMS)),
+        loadoutField('Right hand damage', 'rightDamageType', computed(() => (damage.value.right?.types || []).map(t => [t, title(t)])), {hidden: () => !damage.value.right}),
+        loadoutField('Left hand', 'leftHand', computed(() => HAND_ITEMS)),
+        loadoutField('Left hand damage', 'leftDamageType', computed(() => (damage.value.left?.types || []).map(t => [t, title(t)])), {hidden: () => !damage.value.left}),
+        loadoutField('Dominant hand', 'handedness', computed(() => HANDEDNESS)),
         loadoutField('Attack hands', 'attackHands', computed(() => ATTACK_HANDS)),
-        h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { for (const [key, value] of Object.entries(loadout)) value.value = key === 'style' ? 'weapon' : ''; changeLoadout(); }}}, 'Reset loadout'),
+        h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { for (const [key, value] of Object.entries(loadout)) value.value = key === 'style' ? 'weapon' : key === 'handedness' ? 'right' : ''; changeLoadout(); }}}, 'Reset loadout'),
         h('p', {class: 'q-page__help'}, note))),
     stage,
     h('p', {class: 'q-viewer__hint'}, 'Drag to rotate · scroll or pinch to zoom. Uses the same models and animation functions as the game.'));

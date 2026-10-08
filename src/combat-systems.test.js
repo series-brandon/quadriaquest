@@ -35,7 +35,7 @@ test('dual wielding: off-hand eligibility, owned copies, default hands and per-h
  e.toggle('copperDagger','main');assert.equal(e.attackHands,'both','a weapon and a free fist both strike');assert.equal(e.handAttack('off').style,'unarmed');
  e.toggle('copperDagger','off');assert.equal(e.slots.main,null,'only one owned copy moves');assert.equal(e.slots.off,'copperDagger');assert.equal(e.attackHands,'both');
  inventory.copperDagger=2;e.toggle('copperDagger','main');assert.deepEqual([e.slots.main,e.slots.off],['copperDagger','copperDagger']);assert.equal(e.attackHands,'both');
- assert.equal(e.inventoryActions('swords').length,1,'swords are not off-hand eligible');
+ assert.deepEqual(e.inventoryActions('swords').map(a=>a.label),['Equip right hand','Equip left hand'],'every one-handed item fits either hand');
  assert.equal(e.damageTypeFor('main'),'piercing');assert.ok(e.setDamageType('off','slashing'));assert.equal(e.damageTypeFor('off'),'slashing');assert.equal(e.setDamageType('off','bludgeoning'),false);
  e.toggle('copperShield');assert.equal(e.handAttack('off'),null,'a shield hand is not a free fist');assert.deepEqual(e.eligibleHands(),['main']);
  e.reset();assert.equal(e.attackHands,'both','two free hands strike both');
@@ -51,6 +51,19 @@ function combatFixture(kind='target',control=null,{openingWindup}={}){
  const a=system.add({kind,rules:ENEMIES[kind],group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
  return {system,a,equipment,styles,character,health,mana,toasts,inventory,set roll(v){roll=v;}};
 }
+
+test('hands are physical: either-hand items, shields and two-handed items on either side, handedness never moves items',()=>{
+ const inventory={copperDagger:1,copperShield:1,bows:1},e=createEquipment({inventory});
+ assert.equal(e.handedness,'right');
+ e.toggle('copperShield','right');assert.equal(e.slots.right,'copperShield','a shield fits the right hand');assert.deepEqual(e.eligibleSides(),['left'],'the shield hand does not strike');
+ e.toggle('copperDagger','left');assert.equal(e.handAttack('left').item,'copperDagger');assert.equal(e.handAttack('left').hand,'off','left is the off hand of a right-hander');
+ assert.ok(e.setHandedness('left'));assert.deepEqual([e.slots.right,e.slots.left],['copperShield','copperDagger'],'handedness does not move items');
+ assert.equal(e.handAttack('left').hand,'main','the left hand is now dominant');assert.equal(e.slots.main,'copperDagger');
+ e.toggle('bows','right');assert.deepEqual([e.slots.right,e.slots.left],['bows',null],'a two-handed item takes its hand and frees the other');assert.deepEqual(e.eligibleSides(),['right']);
+ e.setHandedness('right');e.reset();e.toggle('bows');assert.equal(e.slots.left,'bows','a bow defaults to the off hand (left for a right-hander)');
+ // Attack hands are physical; older role choices map through handedness.
+ e.reset();e.setAttackHands('off');assert.equal(e.attackHandsChoice,'left');e.setAttackHands('right');assert.equal(e.attackHands,'right');
+});
 
 test('dual wielding strikes both hands each attack: the off hand a beat later at reduced damage, training its own weapon',()=>{
  const f=combatFixture();f.equipment.toggle('copperDagger','main');f.equipment.toggle('copperDagger','off');f.system.start(f.a);
@@ -157,21 +170,21 @@ test('Auto spells skip any backfire risk unless explicitly allowed',()=>{
 
 test('Optimize ranks owned gear by DPS, then reduction, then current gear, and runs on Class change',()=>{
  // Dual wielding outdamages a shield, so a sword plus an off-hand dagger beats dagger and shield.
- const f=assistFixture();assert.match(f.assistance.optimize('melee'),/Stone Sword \(main\).*Copper Dagger \(off\)/);assert.equal(f.assistance.optimize('melee'),'No better setup found.');
+ const f=assistFixture();assert.match(f.assistance.optimize('melee'),/Copper Dagger \(right\).*Stone Sword \(left\)/);assert.equal(f.assistance.optimize('melee'),'No better setup found.');
  f.inventory.copperDagger=0;f.inventory.swords=0;f.inventory.copperDagger=1;f.equipment.setSlots({main:null,off:null});
- assert.equal(f.assistance.optimize('melee'),'Equipped Copper Dagger (main).','with one weapon, the free fist outdamages a shield');
- f.assistance.setOptimizePriority('defense');assert.match(f.assistance.optimize('melee'),/Copper Shield \(off\)/,'Defense takes the shield');f.assistance.setOptimizePriority('damage');
+ assert.equal(f.assistance.optimize('melee'),'Equipped Copper Dagger (right).','with one weapon, the free fist outdamages a shield');
+ f.assistance.setOptimizePriority('defense');assert.match(f.assistance.optimize('melee'),/Copper Shield \(left\)/,'Defense takes the shield');f.assistance.setOptimizePriority('damage');
  assert.equal(f.assistance.setStyle('ranged'),'No ranged weapon owned.');
- f.inventory.bows=1;f.assistance.setStyle('melee');assert.match(f.assistance.setStyle('ranged'),/Training Bow \(main\).*no arrows/);assert.equal(f.equipment.slots.off,null);
+ f.inventory.bows=1;f.assistance.setStyle('melee');assert.match(f.assistance.setStyle('ranged'),/Training Bow \(left\).*no arrows/);assert.deepEqual([f.equipment.slots.right,f.equipment.slots.left],[null,'bows'],'a bow in the left hand frees nothing else to hold');
 });
 
 test('Optimize priority: Damage takes the dual wield, Defense and Balanced take the shield when it outweighs the lost damage',()=>{
  const f=assistFixture();
- assert.equal(f.assistance.settings.optimizePriority,'damage');f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperDagger','damage: sword + dagger');
+ assert.equal(f.assistance.settings.optimizePriority,'damage');f.assistance.optimize('melee');assert.ok(GEAR[f.equipment.slots.off]?.style,'damage: two weapons');
  assert.equal(f.assistance.setOptimizePriority('fastest'),false);
  f.assistance.setOptimizePriority('defense');f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperShield','defense: the shield');
  // Balanced compares DPS / (1 − reduction): a 5% shield is worth ~5% more damage, far less than the off-hand strike adds.
- f.assistance.setOptimizePriority('balanced');f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperDagger','balanced: the off-hand strike outweighs a 5% shield');
+ f.assistance.setOptimizePriority('balanced');f.assistance.optimize('melee');assert.ok(GEAR[f.equipment.slots.off]?.style,'balanced: the off-hand strike outweighs a 5% shield');
  f.assistance.reset();assert.equal(f.assistance.settings.optimizePriority,'damage');
 });
 

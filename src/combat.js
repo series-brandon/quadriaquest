@@ -41,10 +41,10 @@ export function createCombatSystem(api){
  const withOffHand=(main,a,strategy)=>{
   if(!dualWielding(a))return main;
   const off=api.equipment.handAttack('off'),twoWeapons=!!(a.item&&off.item);
-  return pairStrikes(main,offHandFollowUp({...playerAttackProfile(character,off,strategy),mainHand:main.mainHand,offHand:main.offHand},twoWeapons?character.level('prof.dualWield'):null));
+  return pairStrikes(main,offHandFollowUp({...playerAttackProfile(character,off,strategy),rightHand:main.rightHand,leftHand:main.leftHand},twoWeapons?character.level('prof.dualWield'):null));
  };
  // Commit-time snapshot: later equipment, strategy or spell changes affect only the next attack.
- const profile=()=>{const a=attack(),strategy=api.strategy?.()||'technical';return withOffHand({...playerAttackProfile(character,a,strategy),mainHand:api.equipment.slots?.main||null,offHand:api.equipment.slots?.off||null},a,strategy);};
+ const profile=()=>{const a=attack(),strategy=api.strategy?.()||'technical';return withOffHand({...playerAttackProfile(character,a,strategy),rightHand:api.equipment.slots?.right||null,leftHand:api.equipment.slots?.left||null},a,strategy);};
  const reward=(result,a)=>{if(result.tracks.length||result.core.xp)api.reward?.(result,a);};
  // One shared pending combat-action slot. An ability attaches to the next attack when its windup begins;
  // a cancelled attack takes its ability with it (never restored).
@@ -63,14 +63,14 @@ export function createCombatSystem(api){
   pending=null;notify();
   if(reason){api.toast?.(reason);return;}
   // The ability empowers the main-hand strike; a dual-wield follow-up still lands as normal.
-  const strong={...strongStrikeProfile(character,attack(),ability),mainHand:c.profile.mainHand,offHand:c.profile.offHand};
+  const strong={...strongStrikeProfile(character,attack(),ability),rightHand:c.profile.rightHand,leftHand:c.profile.leftHand};
   c.profile=c.profile.followUp?pairStrikes(strong,c.profile.followUp):strong;c.ability=ability;notify();
  }
  // A queued quick spell turns this attack into one cast (docs/COMBAT.md, Quick slots). It is
  // refused at attach time when unaffordable; afterwards the selected attack resumes.
  function commitSpell(c){
   const id=pending.spell,spell=SPELLS[id];pending=null;notify();
-  const cast={...playerAttackProfile(character,{...spell,spell:id,item:null},api.strategy?.()||'technical'),mainHand:c.profile.mainHand,offHand:c.profile.offHand};
+  const cast={...playerAttackProfile(character,{...spell,spell:id,item:null},api.strategy?.()||'technical'),rightHand:c.profile.rightHand,leftHand:c.profile.leftHand};
   if(cast.manaCost&&!(api.mana?.value>=cast.manaCost)){api.toast?.(`Not enough Mana for ${spell.name} (${cast.manaCost} needed). It was cancelled.`);return;}
   c.profile=cast;
  }

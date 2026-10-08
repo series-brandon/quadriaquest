@@ -66,13 +66,13 @@ test('every slime exposes the same motions and clears action tools when returnin
 
 test('slime loadout stays visible for casting and motion overrides, hides for tools, then returns',()=>{
  for(const entry of MODEL_CATALOG.filter(m=>m.loadout)){
-  const instance=entry.create(),options={mainHand:'copperDagger',offHand:'copperShield',style:'magic'};
+  const instance=entry.create(),options={rightHand:'copperDagger',leftHand:'copperShield',style:'magic'};
   const visible=()=>{const names=[];instance.group.traverse(o=>{if(o.visible&&o.name.startsWith('preview-tool-'))names.push(o.name.slice(13));});return names.sort();};
-  instance.update(1.8,'Attack',0,'default','Generic item',options);assert.deepEqual(visible(),['copperDagger','copperShield'],entry.name);
-  instance.update(1.5,'Attack',0,'default','Generic item',{...options,attackMotion:'slash'});assert.deepEqual(visible(),['copperDagger','copperShield']);
-  instance.update(.1,'Block',0,'default','Generic item',{...options,blockMotion:'fists'});assert.deepEqual(visible(),['copperDagger','copperShield']);
+  instance.update(1.8,'Attack',0,'default','Generic item',options);assert.deepEqual(visible(),['left:copperShield','right:copperDagger'],entry.name);
+  instance.update(1.5,'Attack',0,'default','Generic item',{...options,attackMotion:'slash'});assert.deepEqual(visible(),['left:copperShield','right:copperDagger']);
+  instance.update(.1,'Block',0,'default','Generic item',{...options,blockMotion:'fists'});assert.deepEqual(visible(),['left:copperShield','right:copperDagger']);
   instance.update(.3,'Fishing',0,'default','Generic item',options);assert.deepEqual(visible(),['rods']);
   instance.update(.3,'Mining',0,'default','Generic item',options);assert.deepEqual(visible(),['pickaxes']);
-  instance.update(.3,'Idle',0,'default','Generic item',options);assert.deepEqual(visible(),['copperDagger','copperShield']);
+  instance.update(.3,'Idle',0,'default','Generic item',options);assert.deepEqual(visible(),['left:copperShield','right:copperDagger']);
  }
 });

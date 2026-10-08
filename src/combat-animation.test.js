@@ -33,7 +33,7 @@ test('casting gathers energy between converging hands, pulls back, then tosses i
   const step=Math.max(...h.map((x,i)=>Math.hypot(x[0]-prev[i][0],x[1]-prev[i][1],x[2]-prev[i][2])));assert.ok(step<.12,`no jump at ${t.toFixed(2)} (${step.toFixed(3)})`);prev=h;}
 });
 test('block poses cover bare hands, blades, bows, magic and every legal shield combination',()=>{
- for(const item of [null,'swords','copperDagger','bows'])for(const offHand of [null,'shields','copperShield']){if(item==='bows'&&offHand)continue;const pose=blockAnimation({item,offHand},.1);for(const h of pose.hands)assert.ok(h.every(Number.isFinite));if(offHand){assert.ok(pose.hands[1][2]>.5);assert.equal(pose.hands[0][0],-.47);}else if(!item)assert.ok(pose.hands.every(h=>h[1]>.55));else if(item!=='bows')assert.ok(pose.hands[0][4]<-.7);}
+ for(const item of [null,'swords','copperDagger','bows'])for(const offHand of [null,'shields','copperShield']){if(item==='bows'&&offHand)continue;const pose=blockAnimation({item,leftHand:offHand},.1);for(const h of pose.hands)assert.ok(h.every(Number.isFinite));if(offHand){assert.ok(pose.hands[1][2]>.5);assert.equal(pose.hands[0][0],-.47);}else if(!item)assert.ok(pose.hands.every(h=>h[1]>.55));else if(item!=='bows')assert.ok(pose.hands[0][4]<-.7);}
  // Bare hands settle back into the boxing guard the punches resume from, not down to the sides.
  const end=blockAnimation({},.42);assert.deepEqual(end.hands,PUNCH_GUARD);
 });
@@ -92,7 +92,7 @@ test('relaxed bow has its string above the wood and drawing hand carries the arr
 
 test('one-handed attacks counterbalance with the off hand and settle their torso momentum',()=>{
  for(const item of [null,'copperDagger','swords'])for(const offHand of [null,'copperShield']){
-  const profile={item,offHand,interval:1.5},ready=attackAnimation(profile,0),impact=attackAnimation(profile,1.5),rest=attackAnimation(profile,1.9);
+  const profile={item,leftHand:offHand,interval:1.5},ready=attackAnimation(profile,0),impact=attackAnimation(profile,1.5),rest=attackAnimation(profile,1.9);
   assert.ok(impact.hands[1][2]<ready.hands[1][2]-.13);assert.ok(impact.pose.twist>.1&&impact.pose.twist<.15);
   assert.ok(Math.abs(rest.pose.twist)<1e-9);assert.ok(Math.abs(rest.hands[1][2]-ready.hands[1][2])<1e-9);
  }
@@ -111,7 +111,7 @@ test('bow sweep and body turn finish during setup before the stationary bow is d
 });
 test('shield blocks preserve the main-hand carry orientation through the whole block',()=>{
  for(const item of [null,'swords','copperDagger'])for(const offHand of ['shields','copperShield']){
-  const profile={item,offHand},rest=equipmentIdleHands(profile);
+  const profile={item,leftHand:offHand},rest=equipmentIdleHands(profile);
   for(const age of [0,.035,.1,.25,.35,.42])assert.deepEqual(blockAnimation(profile,age).hands[0].slice(3),rest[0].slice(3));
   assert.equal(blockAnimation(profile,.1).hands[1][5],-Math.PI/2);
  }
@@ -187,10 +187,10 @@ test('an unarmed block hands back to the punch guard without the fists dropping'
 
 test('blades rest tilted in either hand, and keep that grip through hand-placing poses like sleep', async () => {
   const {withGrip} = await import('./combat-animation.js');
-  const both = equipmentIdleHands({mainHand: 'copperDagger', offHand: 'copperDagger'});
+  const both = equipmentIdleHands({rightHand: 'copperDagger', leftHand: 'copperDagger'});
   assert.equal(both[0][3], 1.85);
   assert.equal(both[1][3], 1.85, 'an off-hand dagger rests like a main-hand one');
-  assert.equal(equipmentIdleHands({mainHand: 'copperDagger'})[1][3], 0, 'an empty off hand stays relaxed');
+  assert.equal(equipmentIdleHands({rightHand: 'copperDagger'})[1][3], 0, 'an empty off hand stays relaxed');
   const sleeping = [[-.4, .2, .08, 0, 0], [.4, .26, .08, 0, 0]];
   const gripped = withGrip(sleeping, both);
   assert.deepEqual(gripped.map(h => h.slice(0, 3)), sleeping.map(h => h.slice(0, 3)), 'positions come from the pose');
@@ -201,7 +201,7 @@ test('blades rest tilted in either hand, and keep that grip through hand-placing
 test('a waving hand brings its weapon upright; the other hand keeps its grip', async () => {
   const {withGrip} = await import('./combat-animation.js');
   const {socialMotion} = await import('./slime-social.js');
-  const carry = equipmentIdleHands({mainHand: 'copperDagger', offHand: 'copperDagger'});
+  const carry = equipmentIdleHands({rightHand: 'copperDagger', leftHand: 'copperDagger'});
   const wave = socialMotion('Wave', 1);
   const hands = withGrip(wave.hands, carry, wave.grip);
   assert.ok(hands[0][3] < 0.1, 'raised hand: blade upright');
@@ -212,7 +212,7 @@ test('a waving hand brings its weapon upright; the other hand keeps its grip', a
 test('dual wielding animates one-two: the main hand thrusts first, the off hand a beat later', async () => {
   const {FOLLOW_UP_DELAY} = await import('./combat-profile.js');
   const dagger = {item: 'copperDagger', style: 'melee', damageTypes: ['piercing'], damageType: 'piercing', interval: 1.5};
-  const pair = {...dagger, hand: 'main', mainHand: 'copperDagger', offHand: 'copperDagger', followUp: {...dagger, hand: 'off'}};
+  const pair = {...dagger, hand: 'main', side: 'right', rightHand: 'copperDagger', leftHand: 'copperDagger', followUp: {...dagger, hand: 'off', side: 'left'}};
   const reach = (t, i) => attackAnimation(pair, t).hands[i][2];
   const rest = equipmentIdleHands(pair);
   assert.ok(reach(1.5, 0) > rest[0][2] + 0.4, 'main hand extended at its release');

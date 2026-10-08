@@ -18,8 +18,8 @@ test('changing motion crossfades hands and body from the last shown pose; same m
 
 test('motion keys distinguish attack motion, striking hand and block style',()=>{
  assert.notEqual(motionKey('Combat',{item:'copperDagger'}),motionKey('Combat',{item:null}),'stab vs punch');
- assert.notEqual(motionKey('Combat',{item:null,hand:'main'}),motionKey('Combat',{item:null,hand:'off'}),'left vs right');
+ assert.notEqual(motionKey('Combat',{item:null,side:'right'}),motionKey('Combat',{item:null,side:'left'}),'left vs right');
  assert.equal(motionKey('Combat',{item:'copperDagger',damageType:'slashing'}),motionKey('Combat',{item:'swords'}),'both slash');
- assert.notEqual(motionKey('Block',{offHand:'copperShield'}),motionKey('Block',{}));
+ assert.notEqual(motionKey('Block',{leftHand:'copperShield'}),motionKey('Block',{}));
  assert.equal(motionKey('Eating'),'Eating');assert.equal(motionKey(null),'none');
 });

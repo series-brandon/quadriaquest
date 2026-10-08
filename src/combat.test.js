@@ -107,7 +107,7 @@ test('enemy cannot hit from a logically adjacent tile before its body arrives',(
  const f=fixture();f.tile=f.world.get('3,5');f.a.rules={...f.a.rules,interval:.1};f.a.aggro=true;f.system.start(f.a);f.system.update(.02,0);assert.equal(f.a.z,4);assert.equal(f.health.value,30);assert.ok(f.a.group.position.z<4-6);frames(f,.2);assert.equal(f.health.value,30);
 });
 test('incoming hits select equipment-aware blocking, but simultaneous player attacks win',()=>{
- const f=fixture('bruiser',{openingWindup:null});f.equipment.toggle('swords');f.equipment.toggle('shields');f.a.rules={...f.a.rules,interval:.6};f.a.aggressive=true;f.system.start(f.a);const block=f.system.update(.6,.6);assert.equal(block.kind,'Block');assert.equal(block.profile.mainHand,'swords');assert.equal(block.profile.offHand,'shields');
+ const f=fixture('bruiser',{openingWindup:null});f.equipment.toggle('swords');f.equipment.toggle('shields');f.a.rules={...f.a.rules,interval:.6};f.a.aggressive=true;f.system.start(f.a);const block=f.system.update(.6,.6);assert.equal(block.kind,'Block');assert.equal(block.profile.rightHand,'swords');assert.equal(block.profile.leftHand,'shields');
  f.system.reset();f.a.rules={...f.a.rules,interval:2.5};f.system.start(f.a);const simultaneous=f.system.update(2.5,2.5);assert.equal(simultaneous.kind,'Combat');assert.equal(simultaneous.profile.item,'swords');assert.ok(f.health.value<30);
  f.system.clear();assert.equal(f.system.update(.02,2),null);
 });

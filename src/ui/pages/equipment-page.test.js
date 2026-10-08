@@ -21,7 +21,7 @@ const gearRow = (node, name) => [...node.querySelectorAll('.q-gear')].find(g => 
 
 test('worn slots and owned gear follow the inventory and equipment', () => {
   const s = setup();
-  assert.deepEqual(slotText(s.node), ['Main handEmpty', 'Off handEmpty', 'HeadEmpty']);
+  assert.deepEqual(slotText(s.node), ['Right handEmpty', 'Left handEmpty', 'HeadEmpty']);
   assert.equal(s.node.querySelectorAll('.q-gear').length, 0);
   s.inventory.copperDagger = 2;
   const dagger = gearRow(s.node, 'Copper Dagger');
@@ -29,11 +29,11 @@ test('worn slots and owned gear follow the inventory and equipment', () => {
   assert.equal(dagger.querySelector('.q-row__detail').textContent, gearFacts(GEAR.copperDagger));
   const [main, off] = dagger.querySelectorAll('.q-button');
   press(main);
-  assert.deepEqual(slotText(s.node).slice(0, 2), ['Main handCopper Dagger', 'Off handEmpty']);
+  assert.deepEqual(slotText(s.node).slice(0, 2), ['Right handCopper Dagger', 'Left handEmpty']);
   assert.equal(dagger.hasAttribute('data-equipped'), true);
-  assert.equal(main.textContent, 'Unequip main hand');
+  assert.equal(main.textContent, 'Unequip right hand');
   press(off);
-  assert.deepEqual(slotText(s.node).slice(0, 2), ['Main handCopper Dagger', 'Off handCopper Dagger']);
+  assert.deepEqual(slotText(s.node).slice(0, 2), ['Right handCopper Dagger', 'Left handCopper Dagger']);
   // Losing a copy unequips the extra (shared equipment rules), and the page follows.
   s.inventory.copperDagger = 1;
   assert.equal(slotText(s.node).filter(t => t.includes('Copper Dagger')).length, 1);
@@ -47,7 +47,7 @@ test('a refused change explains itself instead of disabling buttons', () => {
   s.setBusy(false);
   press(gearRow(s.node, 'Copper Shield').querySelector('.q-button'));
   assert.equal(s.node.querySelector('.q-page__status').hidden, true);
-  assert.deepEqual(slotText(s.node)[1], 'Off handCopper Shield');
+  assert.deepEqual(slotText(s.node)[0], 'Right handCopper Shield', 'the first action equips the right hand; shields fit either hand');
 });
 
 test('with assistance, Optimize equips for the current class and reports what changed', async () => {

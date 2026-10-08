@@ -51,8 +51,8 @@ try {
       out.loadoutShown = !viewer.querySelector('.q-viewer__loadout').hidden;
       await choose(viewer, 'Animation', 'Attack');
       out.attackFields = !field(viewer, 'Combat style').hidden && !field(viewer, 'Attack motion').hidden;
-      await choose(viewer, 'Main hand', 'copperDagger');
-      out.daggerDamage = field(viewer, 'Main hand damage').hidden ? null : [...field(viewer, 'Main hand damage').querySelectorAll('option')].map(o => o.value).join(',');
+      await choose(viewer, 'Right hand', 'copperDagger');
+      out.daggerDamage = field(viewer, 'Right hand damage').hidden ? null : [...field(viewer, 'Right hand damage').querySelectorAll('option')].map(o => o.value).join(',');
       out.note = viewer.querySelector('.q-viewer__loadout .q-page__help').textContent;
       const pause = [...viewer.querySelectorAll('button')].find(b => b.textContent === 'Pause');
       pause?.click();

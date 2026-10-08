@@ -10,7 +10,7 @@ const BODY=['squash','stretch','twist','lean','lift'];
 // Identity of what the body is doing; a change of key starts a blend.
 export function motionKey(kind,profile){
  if(!kind)return 'none';
- if(kind==='Combat'||kind==='Casting')return `${kind}:${resolveAttackMotion(profile||{})}:${profile?.hand||'main'}`;
+ if(kind==='Combat'||kind==='Casting')return `${kind}:${resolveAttackMotion(profile||{})}:${profile?.side||(profile?.hand==='off'?'left':'right')}`;
  if(kind==='Block')return `Block:${resolveBlockMotion(profile||{})}`;
  return kind;
 }

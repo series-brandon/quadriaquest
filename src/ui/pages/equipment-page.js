@@ -8,7 +8,7 @@ import {ITEMS} from '../../items.js';
 import {ICON_NAMES} from '../../icons.js';
 
 const title = s => s[0].toUpperCase() + s.slice(1);
-const SLOT_LABEL = {main: 'Main hand', off: 'Off hand', head: 'Head'};
+const SLOT_LABEL = {right: 'Right hand', left: 'Left hand', head: 'Head'};
 const icon = id => iconNode(ICON_NAMES.includes(id) ? id : 'shields');
 
 // The few numbers that tell gear apart, from the shared item definitions.
@@ -20,7 +20,6 @@ export function gearFacts(item) {
   if (item.baseInterval) facts.push(`${item.baseInterval}s attacks`);
   if (item.range > 1) facts.push(`Range ${item.range}`);
   if (item.twoHanded) facts.push('Two-handed');
-  if (item.offHand) facts.push('Either hand');
   return facts.join(' · ');
 }
 
@@ -35,7 +34,7 @@ export function equipmentPage({equipment, inventory, assistance = null}) {
   const slots = computed(() => (equipment.revision.value, equipment.slots));
   const owned = computed(() => Object.keys(GEAR).filter(id => inventory[id] > 0));
   // Armor slots appear once something could fill them.
-  const shownSlots = computed(() => ['main', 'off', 'head', ...(owned.value.some(id => GEAR[id].armor) ? ARMOR_SLOTS : [])]);
+  const shownSlots = computed(() => ['right', 'left', 'head', ...(owned.value.some(id => GEAR[id].armor) ? ARMOR_SLOTS : [])]);
   const name = id => GEAR[id]?.name || ITEMS[id]?.name || id;
 
   const run = action => {
