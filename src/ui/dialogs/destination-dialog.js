@@ -20,7 +20,6 @@ export function destinationDialog({areas, visited, source, initial, travelTo, se
   };
 
   return [
-    h('p', {class: 'q-page__help'}, 'Choose your next adventure.'),
     h('div', {class: 'q-list', role: 'group', 'aria-label': 'Destinations'}, areas.list().map(area => h('button', {
       type: 'button',
       class: 'q-tile',
@@ -33,7 +32,6 @@ export function destinationDialog({areas, visited, source, initial, travelTo, se
     h('p', {class: 'q-page__status', role: 'status', hidden: () => !travelStatus.value}, travelStatus),
     h('button', {type: 'button', class: 'q-button', disabled: () => !source || !selected.value || selected.value === here, on: {click: travel}}, 'Travel'),
     h('h3', {class: 'q-modal__subtitle'}, 'Crystal services'),
-    h('p', {class: 'q-page__help'}, 'Available outside combat. Both fully restore Health, Mana, Stamina, Energy and Ki.'),
     h('div', {class: 'q-list'},
       h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => service('restore')}}, 'Restore'),
       h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => service('respec')}}, 'Redistribute attribute points')),

@@ -39,7 +39,8 @@ export function mountJournal(menus,controller,settings){
   classes:{expanded:()=>expanded.value&&!compact.value,'has-page':()=>!!panels.active.value},
  },h('header',{class:'journal-header'},
   h('span',null,()=>panels.activeEntry.value?.label??'Adventurer’s journal'),
-  h('button',{id:'journal-size',type:'button','aria-label':()=>expanded.value?'Minimize journal':'Expand journal',on:{click:toggleExpanded}},iconNode('expand')),
+  h('button',{id:'journal-size',type:'button','aria-label':()=>expanded.value?'Dock journal':'Pop out journal',title:()=>expanded.value?'Dock journal':'Pop out journal',on:{click:toggleExpanded}},
+   h('span',{class:'journal-size-icon',hidden:expanded},iconNode('popOut')),h('span',{class:'journal-size-icon',hidden:()=>!expanded.value},iconNode('popIn'))),
   h('button',{id:'journal-close',type:'button','aria-label':'Close journal',disabled:panels.closeLocked,on:{click:closePage}},iconNode('close'))))).node;
  host.append(shell);shell.append(nav,questPanel,settingsView.node,$('inventory-panel'),menus.characterPanel,$('crafting-panel'));
 
@@ -72,6 +73,8 @@ export function mountJournal(menus,controller,settings){
  }
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')&&!shell.hidden){e.preventDefault();closePage();}});
  return {setDocked(value){docked.value=!!value;},compact(){expanded.value=false;},
+  // The docked sidebar has no header; its edge control pops the journal out.
+  popOut(){if(!expanded.peek())toggleExpanded();},
   // Whether an open journal covers the world (phones, or the undocked desktop journal); the docked
   // sidebar never does.
   get covering(){return !hidden.peek()&&!dockedDesktop.peek();},get locked(){return tutorialLock.locked;},get expanded(){return expanded.peek();}};

@@ -58,7 +58,6 @@ export function powersPage({styles, auras, assistance = null, combat, character 
     h('div', {hidden: learned}, locked(def)));
 
   const spellList = () => h('div', {class: 'q-page__group'},
-    h('p', {class: 'q-page__help'}, 'Star a spell to make it your quick spell: the HUD spell button casts it on your next attack, or opens your next fight with it.'),
     keyedList(h('div', {class: 'q-powers'}), spells, id => id, item => {
       const id = item.peek(), def = SPELLS[id];
       return card({id, def, icon: 'spell', learned: () => known.value.spells.has(id),
@@ -69,7 +68,6 @@ export function powersPage({styles, auras, assistance = null, combat, character 
     h('p', {class: 'q-page__help', hidden: () => spells.value.length > 0}, 'No spells yet.'));
 
   const auraList = () => h('div', {class: 'q-page__group'},
-    h('p', {class: 'q-page__help'}, 'Auras drain Ki every second while on; switching one on costs a second of upkeep. Star auras to switch them together with the HUD aura button.'),
     keyedList(h('div', {class: 'q-powers'}), auraIds, id => id, item => {
       const id = item.peek(), def = AURAS[id];
       return card({id, def, icon: 'aura', learned: () => auraState.value.learned.has(id),
@@ -83,7 +81,6 @@ export function powersPage({styles, auras, assistance = null, combat, character 
     h('p', {class: 'q-page__help', hidden: () => auraIds.value.length > 0}, 'No auras yet.'));
 
   const abilityList = () => h('div', {class: 'q-page__group'},
-    h('p', {class: 'q-page__help'}, 'Abilities spend Energy when the attack lands. Queue one for your next eligible attack; it never repeats on its own.'),
     keyedList(h('div', {class: 'q-powers'}), abilities, id => id, item => {
       const id = item.peek(), def = ABILITIES[id];
       const queued = computed(() => combatState.value.pending === id || combatState.value.committed === def.name);

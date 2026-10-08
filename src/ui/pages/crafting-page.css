@@ -1,19 +1,54 @@
-/* Crafting page (ui/pages/crafting-page.js): recipes, and the chosen recipe beside or below them. */
+/* Crafting page (ui/pages/crafting-page.js): search, filters and a recipe grid (the inventory's
+   tiles), and the chosen recipe beside the grid or, in narrow journals, in its place. */
 .q-crafting-page { padding-block-end: 16px; }
 .q-crafting__body { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
-.q-crafting__list { display: grid; gap: 6px; flex: 1 1 220px; min-inline-size: 0; }
+.q-crafting__list { display: grid; gap: 8px; flex: 1 1 260px; min-inline-size: 0; }
+.q-crafting__search { inline-size: 100%; }
 .q-crafting__detail { flex: 1 1 260px; min-inline-size: 0; border: 1px solid var(--q-line); border-radius: var(--q-control-radius); background: var(--q-card); }
 .q-crafting__detail .q-recipe-detail[hidden] { display: none; }
-.q-crafting__detail .q-recipe-detail__body { padding: 14px; }
+.q-crafting__detail .q-recipe-detail__body { gap: 12px; padding: 14px; }
 /* The craft button stays in view at the bottom of the scrolling journal page. */
 .q-crafting__detail .q-recipe-detail__actions { position: sticky; inset-block-end: 0; padding: 12px 14px; border-end-start-radius: var(--q-control-radius); border-end-end-radius: var(--q-control-radius); background: var(--q-card); }
 .q-crafting__back { display: none; }
 
-/* A narrow journal (the desktop sidebar, phones): the recipes, then the chosen recipe in their
-   place, with a way back. A wide journal keeps both side by side. */
+/* Show filters: compact toggles with a check while on. */
+.q-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.q-filter { display: inline-flex; align-items: center; gap: 4px; }
+.q-filter svg { inline-size: 14px; block-size: 14px; visibility: hidden; }
+.q-filter[aria-pressed='true'] { border-color: var(--q-control-pressed); background: var(--q-control-selected); }
+.q-filter[aria-pressed='true'] svg { visibility: visible; }
+
+/* Recipe tiles: the inventory's item tiles, dimmed while ingredients are missing, tagged with their
+   station (or Crafting… while in progress). */
+.q-recipe-tile[data-missing] .q-item__icon,
+.q-recipe-tile[data-missing] .q-item__name { opacity: 0.55; }
+.q-recipe-tile__tag {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 4px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--q-control-track);
+  color: var(--q-ink);
+  font-size: 9px;
+  font-weight: 700;
+}
+.q-recipe-tile__tag[hidden] { display: none; }
+.q-recipe-tile:has(.q-recipe-tile__tag:not([hidden])) { padding-block-start: 18px; }
+
+/* Detail parts: Ingredients, Tools, Station, Makes. */
+.q-recipe-part { display: grid; gap: 4px; }
+.q-recipe-part h4 { margin: 0; }
+/* Rows within a part run together; only the parts are spaced apart. */
+.q-recipe-part .q-ingredients li { padding-block: 4px; border-block-start: 0; }
+.q-recipe-part__item { display: inline-flex; align-items: center; gap: 8px; min-inline-size: 0; }
+.q-recipe-part__item svg { flex: none; inline-size: 18px; block-size: 18px; }
+
+/* A narrow journal (the desktop sidebar, phones): the grid, then the chosen recipe in its place,
+   with a way back. A wide journal keeps both side by side. */
 @container (max-width: 640px) {
   .q-crafting-page[data-view='list'] .q-crafting__detail,
   .q-crafting-page[data-view='detail'] .q-crafting__list { display: none; }
-  .q-crafting-page[data-view='list'] .q-recipe[aria-pressed='true'] { border-color: transparent; background: transparent; box-shadow: none; }
+  .q-crafting-page[data-view='list'] .q-recipe-tile[aria-pressed='true'] { border-color: var(--q-line); background: var(--q-control-face); box-shadow: none; }
   .q-crafting__back { display: flex; }
 }

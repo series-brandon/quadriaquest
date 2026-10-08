@@ -42,8 +42,7 @@ export function characterPage({character = null, onAllocate = () => {}, section 
         'aria-label': `Spend a point on ${id}`,
         disabled: () => !state.value.attributes[index].can,
         on: {click: () => spend(id)},
-      }, '+')))),
-    h('p', {class: 'q-page__help'}, 'Core levels grant attribute points. Redistribute them at an Iter Crystal.'));
+      }, '+')))));
 
   return h('div', {class: 'q-page q-character-page'},
     h('div', {class: 'q-core', role: 'group', 'aria-label': 'Core level'},

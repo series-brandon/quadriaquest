@@ -13,6 +13,10 @@
 body #player-sidebar #journal:not(.expanded){position:relative;inset:auto;transform:none;width:100%;max-width:none;flex:1;min-height:0;height:auto;max-height:none;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper)}
 /* Expanded: a near-full-screen journal over the world and the sidebar (never narrower than docked). */
 /* The sidebar's collapse control would float over it, so it steps aside while expanded. */
+/* Docked in the sidebar, the journal has no header row (the selected tab names the page); the pop-out
+   control sits on the sidebar's edge under the collapse control. */
+body.player-sidebar-open #player-sidebar #journal:not(.expanded) .journal-header{display:none}
+body.player-sidebar-open .overview-heading{flex-direction:column;gap:6px}
 body:has(#player-sidebar #journal.expanded:not([hidden])) .overview-heading{visibility:hidden}
 body #player-sidebar #journal.expanded{position:fixed;left:24px;right:24px;top:24px;bottom:24px;z-index:2;transform:none;width:auto;max-width:none;height:auto;max-height:none}
 body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sidebar-open>header,body.player-sidebar-open>footer{right:calc(var(--player-panel-width) + 28px)}

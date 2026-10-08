@@ -4,9 +4,9 @@ import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
 
 export const STATIONS = {
-  fire: {title: 'Cooking', noun: 'campfire', article: 'a', verb: 'Cook one', footer: 'Cook a meal, one at a time.'},
-  furnace: {title: 'Furnace · Smelting', noun: 'furnace', article: 'a', verb: 'Make one', footer: '20 Smithing XP per completed item. Tools are reusable.'},
-  anvil: {title: 'Anvil · Smithing', noun: 'anvil', article: 'an', verb: 'Make one', footer: '20 Smithing XP per completed item. Tools are reusable.'},
+  fire: {title: 'Cooking', noun: 'campfire', article: 'a', verb: 'Cook one'},
+  furnace: {title: 'Furnace · Smelting', noun: 'furnace', article: 'a', verb: 'Make one'},
+  anvil: {title: 'Anvil · Smithing', noun: 'anvil', article: 'an', verb: 'Make one'},
 };
 // Long recipe lists get a search field.
 const SEARCH_FROM = 6;
@@ -71,7 +71,7 @@ export function stationDialog({kind, recipes, items, inventory, canMake, duratio
       h('div', {class: 'q-recipe-detail__actions'},
         h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value}, status),
         h('button', {type: 'button', class: 'q-button', disabled: () => !station || !ready.value, on: {click: () => make(id)}}, info.verb),
-        h('small', {class: 'q-page__help'}, () => (!station ? `Interact with ${info.article} ${info.noun} to use this recipe.` : ready.value ? 'Uses the ingredients shown above.' : 'Gather the missing ingredients and reusable tools.'))));
+        station ? null : h('small', {class: 'q-page__help'}, `Interact with ${info.article} ${info.noun} to use this recipe.`)));
   });
 
   return h('div', {class: 'q-station', 'data-view': () => (viewing.value && selected.value ? 'detail' : 'list')},
@@ -84,6 +84,5 @@ export function stationDialog({kind, recipes, items, inventory, canMake, duratio
         h('p', {class: 'q-page__help', hidden: () => shown.value.length > 0}, catalogue.length ? 'No matching recipes.' : 'No recipes at this station yet.')),
       detail),
     h('footer', {class: 'q-station__footer'},
-      station?.pack ? h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { close('packed'); station.pack(); }}}, 'Pack up campfire') : null,
-      h('small', {class: 'q-page__help'}, info.footer)));
+      station?.pack ? h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { close('packed'); station.pack(); }}}, 'Pack up campfire') : null));
 }

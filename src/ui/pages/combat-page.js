@@ -163,7 +163,6 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
   // Strategy: which combat skill attacks train.
   const strategy = track(styles, () => styles.strategy);
   const strategySection = section({title: 'Strategy', value: () => title(strategy.value)},
-    h('p', {class: 'q-page__help'}, 'Decides which combat skill your attacks train. Applies from your next attack.'),
     h('div', {class: 'q-grid'}, Object.entries(STRATEGIES).map(([id, def]) => h('button', {
       type: 'button',
       class: 'q-tile',
@@ -212,7 +211,6 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
       if (Number.isFinite(next)) setPolicy(key, Math.min(max, Math.max(min, next)) / scale);
     }}}));
   const modeSection = assistance ? section({title: 'Mode settings', value: () => title(mode.value)},
-    h('p', {class: 'q-page__help'}, 'Changing any of these switches to Custom; your other modes stay as they are.'),
     h('span', {class: 'q-label'}, 'Attacks'),
     segmented({label: 'Attacks', options: [{value: 'allowed', label: 'Allowed'}, {value: 'prevented', label: 'Prevented'}], value: policy('attacks'), onChange: next => setPolicy('attacks', next)}),
     CHOICE_POLICIES.map(([key, label]) => h('div', {class: 'q-page__group'},

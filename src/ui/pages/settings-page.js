@@ -14,6 +14,5 @@ export function settingsPage({audio}) {
         value: () => audio.settings[key],
         onInput: next => { audio.unlock(); audio.set(key, next); },
       })),
-      toggleSwitch({label: 'Mute all', on: () => audio.settings.muted, onChange: on => audio.set('muted', on)})),
-    h('p', {class: 'q-page__help'}, 'Combat modes and assistance live on the Combat tab.'));
+      toggleSwitch({label: 'Mute all', on: () => audio.settings.muted, onChange: on => audio.set('muted', on)})));
 }

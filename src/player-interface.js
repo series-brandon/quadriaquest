@@ -1,4 +1,5 @@
 import {h,mount} from './ui/dom.js';
+import {iconNode} from './ui/icon.js';
 import {resourceMeter} from './ui/hud/meter.js';
 import {compactQuery} from './ui/viewport.js';
 import {bind} from './ui/scope.js';
@@ -18,6 +19,8 @@ export function createPlayerInterface({modals=null,menus,journal,health,resource
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
  const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div>`;
  const heading=overview.querySelector('.overview-heading');
+ // Pop out the docked journal (its header row is dropped in the sidebar to save height).
+ const popOut=h('button',{id:'journal-pop-out',type:'button','aria-label':'Pop out journal',title:'Pop out journal',on:{click:()=>journal.popOut()}},iconNode('popOut'));heading.append(popOut);
  const hud=document.createElement('aside');hud.id='player-mobile-hud';document.body.append(hud);
  menus.host.append(sidebar);sidebar.append(overview,$('journal'));$('overview-vitals').append($('player-health'));
  // Combat warnings: a transient chip under the action row (no space while idle). Danger persists on
@@ -84,6 +87,7 @@ export function createPlayerInterface({modals=null,menus,journal,health,resource
   mobileNav.hidden=!visible||!mobile.matches;
   if(mobileNav.hidden||journal.locked)closeMore();
   journal.setDocked(visible&&!mobile.matches&&!hidden);
+  popOut.hidden=mobile.matches||hidden;
   const toggle=$('hide-player-panel');toggle.hidden=mobile.matches;const label=hidden?'Expand player sidebar':'Collapse player sidebar';if(toggle.getAttribute('aria-label')!==label){toggle.setAttribute('aria-label',label);toggle.title=label;toggle.innerHTML=icon(hidden?'expandSidebar':'collapseSidebar');}toggle.setAttribute('aria-expanded',String(!hidden));
  }
  function reaction(event='action'){

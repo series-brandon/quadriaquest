@@ -20,6 +20,25 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Instruction copy removed; dock icon — 2026-10-08
+- **Rule of thumb (user):** keep the UI free of explanatory instructions. Empty states ("No spells yet."), search misses, live status and reasons for a disabled control stay.
+- **Removed:**
+  - Character: the attribute-points note.
+  - Crafting: the line under the craft button.
+  - Powers: the three sub-tab descriptions.
+  - Settings: the Combat-tab pointer.
+  - Combat: the Strategy and Mode settings notes.
+  - Crystal destinations: "Choose your next adventure." and the services note.
+  - Station dialog: the line under the make button, except a preview's "Interact with a campfire…", and the footer text (and its config).
+- **Kept:** the Combat mode description under the Mode select (says what the chosen mode does).
+- **`popIn` icon:** the arrowhead now ends inside the box clear of its edges, entering through the open corner.
+
+### Sidebar header, pop-out control, Crafting grid — 2026-10-08
+- **Docked sidebar:** the journal's header row (title, expand button) is gone; the selected tab names the page, and close does nothing when docked. That saves about 70px. The pop-out control (`#journal-pop-out`, made in player-interface.js) sits on the sidebar's left edge under the collapse control and calls `journal.popOut()`. The expanded journal keeps its header; `#journal-size` shows a "dock" icon there.
+- **Icons:** `popOut` (box with an arrow leaving) and `popIn` (arrow entering). Labels: "Pop out journal" / "Dock journal".
+- **Crafting page:** the inventory's tile grid (hand recipes first; station recipes tagged Furnace/Anvil/Campfire; dimmed while ingredients are missing; "Crafting…" tag while in progress). Search and Show filters (Station recipes, Missing ingredients) replace the "At stations" section. The detail has a head (icon, name, time), the description and four parts: Ingredients (owned / needed), Tools (kept by crafting, or "None needed"), Station (or "None: craft anywhere") and Makes (`recipe.makes ?? 1`). Stable ids for tutorials are unchanged. The station dialog's recipe detail is unchanged.
+- **Verified headless:** sidebar 1280 (no header; edge controls; Crafting grid, detail and back), expanded 1280–1600 (grid with the detail beside it), phone 390. Tests cover parts, filters and search. Smoke's tutorial crafting lessons pass.
+
 ### Journal layout pass (sidebar list/detail, expanded journal, tab bar) — 2026-10-08
 - **Sidebar Inventory and Crafting:** choosing an item or recipe replaces the list with its detail, with a back button (`.q-back`: chevron + "All items" / "All recipes"). The swap now follows the journal's width (`@container (max-width: 640px)`), not the viewport, so phones keep the same behaviour. Free-play Crafting opens to the list; only the crafting lessons pre-select a recipe.
 - **Expanded journal:** a near-full-screen panel over the world and the sidebar (24px margins), never narrower than the docked one. The sidebar's collapse button hides while expanded.
