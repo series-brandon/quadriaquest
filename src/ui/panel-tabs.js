@@ -5,7 +5,8 @@ import {keyedList} from './list.js';
 
 // Tab buttons for a panel host, rendered into `container` (which the tabs own entirely).
 // Every matching entry keeps a button, hidden while unavailable, so tab ids stay addressable
-// by tutorials and tests. `ids: false` omits ids for secondary copies (the phone bar).
+// by tutorials and tests. `ids: false` omits ids for secondary copies (the phone bar); every
+// copy carries `data-tab` (the tab id) so lessons can guide whichever bar is showing.
 export function panelTabs(container, host, {filter = () => true, ids = true, onSelect = () => {}} = {}) {
   const entries = computed(() => host.entries.value.filter(filter));
   return keyedList(container, entries, entry => entry.id, item => {
@@ -13,6 +14,7 @@ export function panelTabs(container, host, {filter = () => true, ids = true, onS
     return h('button', {
       type: 'button',
       id: ids ? entry.tab : null,
+      'data-tab': entry.tab,
       title: entry.ariaLabel ?? entry.label,
       'aria-label': entry.ariaLabel ?? entry.label,
       'aria-current': () => host.active.value === entry.id,

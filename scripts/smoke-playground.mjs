@@ -82,6 +82,15 @@ try {
     document.querySelector('[data-dev="levels"]').click();
     await wait(300);
     out.levelUp = document.querySelector('#skill-rewards .q-level')?.textContent;
+    // Guided tab lessons: each checkpoint follows the real steps through its tab click and throws
+    // (a page error) if it cannot reach its step.
+    out.lessons = [];
+    for (const step of ['quests-detail', 'skills-detail', 'inventory-stacks', 'recipe']) {
+      pick('#dev-checkpoint', `clearing:${step}`);
+      press('[data-dev="checkpoint"]');
+      await wait(1200);
+      out.lessons.push(document.getElementById('tutorial-copy')?.textContent.slice(0, 32));
+    }
     // Willowbank's playground hooks: a checkpoint stage, the shared splats, and the full reset.
     pick('#dev-checkpoint', 'willowbank:fish');
     press('[data-dev="checkpoint"]');

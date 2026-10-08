@@ -1,18 +1,19 @@
 import {signal} from './reactive.js';
 
+// A guide target by id; tab ids also match their copy in the phone tab bar (`data-tab`).
+const target = id => ['#' + id, `[data-tab="${id}"]`];
+
 // null means free use; an empty list means only the separate tutorial prompt may advance.
 export function journalTutorialActions(stage, guidedTarget = null) {
   if (/^(quests|skills|inventory)-/.test(stage)) {
-    if (stage.endsWith('-toggle')) return ['#game-menu-toggle'];
     // The skills lesson lives on the Character tab.
-    if (stage.endsWith('-menu')) return ['#open-' + ({skills: 'character'}[stage.split('-')[0]] ?? stage.split('-')[0])];
+    if (stage.endsWith('-menu')) return target('open-' + ({skills: 'character'}[stage.split('-')[0]] ?? stage.split('-')[0]));
     if (stage === 'inventory-select') return ['[data-item="sticks"]'];
     return [];
   }
-  if (stage === 'menu' || stage === 'retry') return ['#game-menu-toggle'];
-  if (stage === 'craft-menu') return ['#open-crafting'];
+  if (stage === 'craft-menu' || stage === 'retry') return target('open-crafting');
   if (stage === 'recipe') return ['#craft-axes'];
-  return guidedTarget ? ['#' + guidedTarget] : null;
+  return guidedTarget ? target(guidedTarget) : null;
 }
 
 export function mountJournalTutorialLock(host, controller) {
@@ -20,8 +21,8 @@ export function mountJournalTutorialLock(host, controller) {
   // Whether a guided step restricts the journal; the journal and HUD read it reactively.
   const locked = signal(false);
   function actions() {
-    const target = [...host.querySelectorAll('.gold-guide[id]')].find(node => !node.closest('[hidden]') && !node.disabled);
-    return journalTutorialActions(controller.stage, target?.id);
+    const guided = [...host.querySelectorAll('.gold-guide[id],.gold-guide[data-tab]')].find(node => !node.closest('[hidden]') && !node.disabled);
+    return journalTutorialActions(controller.stage, guided && (guided.id || guided.dataset.tab));
   }
   function allowed(node, rules = actions()) {
     return rules === null || !!node.closest('#gather-tutorial') || rules.some(selector => node.matches(selector));

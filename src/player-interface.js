@@ -97,7 +97,6 @@ export function createPlayerInterface({modals=null,menus,journal,health,resource
  menus.events.action=()=>reaction('action');
  menus.events.beforeClose=event=>{closeMore();if(event==='dismiss'&&!mobile.matches&&!hidden)return false;const result=menuReaction(mobile.matches,event);if(result==='compact')journal.compact();return result==='close';};
  $('hide-player-panel').onclick=()=>{hidden=!hidden;journal.setDocked(false);if(hidden)menus.closeMenus('dismiss');layout();};
- $('game-menu-toggle').addEventListener('click',()=>{if(hidden){hidden=false;layout();} });
  function drawMap(){
   const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=mapControls.radius;mapCenter={x:p.x,z:p.z};
   const grid=minimapGrid(canvas.parentElement.clientWidth-8,devicePixelRatio,radius),{size,pixels,gap}=grid;

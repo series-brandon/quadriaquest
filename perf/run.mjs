@@ -1,6 +1,8 @@
 // Performance runner: `npm run perf` (quick, dev-gpu) / `npm run perf:full` (all local environments).
 // Options: --env a,b  --scenarios a,b  --windows N  --window-ms N  --no-build  --profile  --no-diagnose
 //          --no-gate  --update-baseline --note "why"
+// With --scenarios, --update-baseline replaces only those scenarios in the existing baseline; each keeps
+// its own note and calibration. Use --windows 5 to match full baselines.
 import {mkdir,writeFile,readFile} from 'node:fs/promises';import path from 'node:path';import {execFileSync} from 'node:child_process';
 import {ENVIRONMENTS,QUICK_ENVIRONMENTS,FULL_ENVIRONMENTS} from './lib/environments.mjs';
 import {openEnvironment,runScenario,calibrate} from './lib/session.mjs';
@@ -52,8 +54,12 @@ try{
   if(rows.some(r=>r.status==='FAIL'))failed=true;
   if(flag('update-baseline')){
    await mkdir(path.dirname(baselinePath),{recursive:true});
-   await writeFile(baselinePath,JSON.stringify({meta:{updated:new Date().toISOString(),note:option('note'),commit:git(['rev-parse','--short','HEAD']),dirty:!!git(['status','--porcelain']),renderer:results[0]?.renderer,windows,windowMs,calibrationMs},
-    scenarios:Object.fromEntries(results.map(r=>[r.scenario,{summary:r.summary,samples:r.samples,leak:r.leak,census:{byGroup:r.census.byGroup,byKind:r.census.byKind}}]))},null,1)+'\n');
+   const entry=r=>({summary:r.summary,samples:r.samples,leak:r.leak,census:{byGroup:r.census.byGroup,byKind:r.census.byKind}});
+   const next=option('scenarios')&&baseline
+    ?{...baseline,scenarios:{...baseline.scenarios,...Object.fromEntries(results.map(r=>[r.scenario,{meta:{updated:new Date().toISOString(),note:option('note'),renderer:r.renderer,windows,windowMs,calibrationMs},...entry(r)}]))}}
+    :{meta:{updated:new Date().toISOString(),note:option('note'),commit:git(['rev-parse','--short','HEAD']),dirty:!!git(['status','--porcelain']),renderer:results[0]?.renderer,windows,windowMs,calibrationMs},
+     scenarios:Object.fromEntries(results.map(r=>[r.scenario,entry(r)]))};
+   await writeFile(baselinePath,JSON.stringify(next,null,1)+'\n');
    console.log(`Baseline updated: ${path.relative(root,baselinePath)}`);
   }
  }

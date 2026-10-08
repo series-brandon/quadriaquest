@@ -44,21 +44,22 @@ test('normal chopping leads into optional mining guidance, retry, success and fi
  }finally{globalThis.document=previous;}
 });
 
-test('first quest introduces the hidden menu, guides Quests, then resumes opening lessons',()=>{
+test('first quest reveals the menus with its line, guides the Quests tab, then resumes opening lessons',()=>{
  const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
   let resumed=0;
   const tutorial=createCraftingTutorial({getInventory:()=>({}),getSkills:()=>({}),startCraft:()=>false});
+  // The phone tab bar's copy of the tab (no id, same data-tab).
+  const phoneTab=document.createElement('button');phoneTab.dataset.tab='open-quests';get('game-menus').append(phoneTab);
   tutorial.startQuests(()=>resumed++);
   assert.equal(get('game-menus').hidden,true);
   assert.match(get('tutorial-copy').textContent,/been given a quest/);
   get('tutorial-continue').click();
-  assert.equal(tutorial.stage,'quests-reveal');assert.equal(get('game-menus').hidden,false);
-  assert.ok(get('game-menu-toggle').classList.contains('gold-guide'));assert.equal(resumed,0);
-  get('game-menu-toggle').click();assert.equal(tutorial.stage,'quests-reveal');
-  get('dialogue').click();assert.equal(tutorial.stage,'quests-toggle');
-  get('game-menu-toggle').click();assert.equal(tutorial.stage,'quests-menu');
-  assert.ok(get('open-quests').classList.contains('gold-guide'));
+  assert.equal(tutorial.stage,'quests-reveal');assert.equal(get('game-menus').hidden,false,'the menus arrive with the line');
+  assert.equal(get('game-menu-toggle'),null,'no separate menu button');assert.equal(resumed,0);
+  get('dialogue').click();assert.equal(tutorial.stage,'quests-menu');
+  assert.ok(get('open-quests').classList.contains('gold-guide'));assert.ok(phoneTab.classList.contains('gold-guide'),'both bars are guided');
+  assert.match(get('tutorial-copy').textContent,/Open the Quests tab/);
   tutorial.questsOpened();assert.equal(tutorial.stage,'quests-detail');assert.equal(resumed,0);
   get('tutorial-continue').click();assert.equal(resumed,1);assert.equal(tutorial.stage,'inactive');
   assert.equal(tutorial.menus.panels.active.value,null,'no page left open');assert.equal(get('gather-tutorial').hidden,true);
@@ -83,28 +84,28 @@ test('first quest introduces the hidden menu, guides Quests, then resumes openin
  }finally{globalThis.document=previous;}
 });
 
- test('dialogue-only transitions notify journal locks before the required menu click',async()=>{
+ test('dialogue-only transitions notify journal locks before the required tab click',async()=>{
  const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
   const {mountJournalTutorialLock}=await import('./journal-tutorial-lock.js');
   const tutorial=createCraftingTutorial({getInventory:()=>({sticks:3,stones:3}),getSkills:()=>({}),startCraft:()=>true});
-  const attrs=new Map();
-  const toggle={inert:false,matches:s=>s==='#game-menu-toggle',closest:()=>null,getAttribute:k=>attrs.get(k),hasAttribute:k=>attrs.has(k),setAttribute:(k,v)=>attrs.set(k,v),removeAttribute:k=>attrs.delete(k)};
+  const tabs={};
+  const make=tab=>{const attrs=new Map();return tabs[tab]={inert:false,dataset:{tab},matches:s=>s===`[data-tab="${tab}"]`,closest:()=>null,getAttribute:k=>attrs.get(k),hasAttribute:k=>attrs.has(k),setAttribute:(k,v)=>attrs.set(k,v),removeAttribute:k=>attrs.delete(k)};};
+  const controls=['open-quests','open-character','open-inventory'].map(make);
   // Deliberately no MutationObserver: the real regression happens when only
-  // dialogue outside the journal changes between reveal and menu instructions.
-  const host={querySelectorAll:s=>s==='.gold-guide[id]'?[]:[toggle],addEventListener(){}};
+  // dialogue outside the journal changes between the line and the tab instruction.
+  const host={querySelectorAll:s=>s.startsWith('.gold-guide')?[]:controls,addEventListener(){}};
   const lock=mountJournalTutorialLock(host,tutorial);
   tutorial.startQuests();get('tutorial-continue').click();await Promise.resolve();
-  assert.equal(tutorial.stage,'quests-reveal');assert.equal(toggle.inert,true);
+  assert.equal(tutorial.stage,'quests-reveal');assert.equal(tabs['open-quests'].inert,true);
   get('dialogue').click();await Promise.resolve();
-  assert.equal(tutorial.stage,'quests-toggle');assert.equal(toggle.inert,false);
-  assert.equal(attrs.has('aria-disabled'),false);
-  get('game-menu-toggle').click();await Promise.resolve();assert.equal(toggle.inert,true);
+  assert.equal(tutorial.stage,'quests-menu');assert.equal(tabs['open-quests'].inert,false);assert.equal(tabs['open-character'].inert,true);
+  assert.equal(tabs['open-quests'].hasAttribute('aria-disabled'),false);
   tutorial.questsOpened();get('tutorial-continue').click();await Promise.resolve();assert.equal(lock.locked,false);
-  tutorial.startSkills();await Promise.resolve();assert.equal(toggle.inert,true);
-  get('dialogue').click();await Promise.resolve();assert.equal(toggle.inert,false);
-  tutorial.startInventory();await Promise.resolve();assert.equal(toggle.inert,true);
-  for(let i=0;i<3;i++)get('dialogue').click();await Promise.resolve();assert.equal(toggle.inert,false);
+  tutorial.startSkills();await Promise.resolve();assert.equal(tabs['open-character'].inert,true);
+  get('dialogue').click();await Promise.resolve();assert.equal(tabs['open-character'].inert,false);
+  tutorial.startInventory();await Promise.resolve();assert.equal(tabs['open-inventory'].inert,true);
+  for(let i=0;i<3;i++)get('dialogue').click();await Promise.resolve();assert.equal(tabs['open-inventory'].inert,false);
  }finally{globalThis.document=previous;}
 });
 

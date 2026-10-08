@@ -16,7 +16,7 @@ p{color:var(--ui-muted)}
 
 #tooltip{background:#493452f2;color:var(--ui-button-ink)}
 
-#game-menu-toggle{background:var(--ui-paper);color:var(--ui-button);border-color:var(--ui-border);box-shadow:0 6px 26px #382b4926}
+
 #splash{color:var(--ui-ink);background:linear-gradient(var(--ui-paper),transparent 42%,transparent 74%,var(--ui-paper))}
 .splash-heading h1{font-family:Georgia,serif;font-weight:600;letter-spacing:-.045em;text-shadow:none}
 .splash-heading h1 span{color:var(--ui-accent)}
@@ -86,7 +86,7 @@ body:has(#journal:not([hidden])) #item-feed{bottom:70px}
  
  body #journal #gather-tutorial{position:relative;inset:auto;transform:none;width:auto;max-width:none;max-height:30dvh;min-height:0;flex-shrink:1;overflow:auto;margin:0 10px 6px;padding:12px 14px;box-shadow:none;pointer-events:auto;border-radius:10px}
  
- body:has(#journal:not([hidden])) #game-menu-toggle{display:none}
+ 
  body:has(#journal:not([hidden])) #item-feed{left:16px;right:16px;bottom:16px;width:auto;z-index:40}
  body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial{top:max(12px,env(safe-area-inset-top));left:12px;width:calc(100vw - 24px);max-height:40dvh;overflow:auto;pointer-events:auto}
  
@@ -98,9 +98,9 @@ body:has(#journal:not([hidden])) #item-feed{bottom:70px}
 /* Settings has one shared home, reachable from the journal and splash. */
 body #game-menus{top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));bottom:auto}
 #journal:not(.expanded){top:82px;bottom:auto;max-height:calc(100dvh - 100px)}
-#game-menu-toggle.gold-guide::before{left:auto;right:calc(100% + 22px);top:50%;bottom:auto;width:36px;height:54px;transform:translateY(-50%) rotate(-90deg);animation:menu-guide-bob 1.8s ease-in-out infinite}
-@keyframes menu-guide-bob{0%,100%{transform:translate(-7px,-50%) rotate(-90deg)}50%{transform:translate(3px,-50%) rotate(-90deg)}}
-@media(prefers-reduced-motion:reduce){#game-menu-toggle.gold-guide::before{animation:none}}
+
+
+
 
 .splash-actions{--splash-button-size:62px;display:flex;align-items:center;justify-content:center;gap:14px}
 .splash-actions button{box-sizing:border-box;height:var(--splash-button-size);padding-top:0;padding-bottom:0}

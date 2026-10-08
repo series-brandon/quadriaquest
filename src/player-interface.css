@@ -12,7 +12,7 @@
 #player-combat-status{grid-column:1/-1}
 body #player-sidebar #journal:not(.expanded){position:relative;inset:auto;transform:none;width:100%;max-width:none;flex:1;min-height:0;height:auto;max-height:none;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper)}
 body #player-sidebar #journal.expanded{position:fixed;left:24px;right:calc(var(--player-panel-width) + 24px);top:24px;bottom:24px;transform:none;width:auto;max-width:none;height:auto;max-height:none}
-body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sidebar-open>header,body.player-sidebar-open>footer{right:calc(var(--player-panel-width) + 28px)}body.player-sidebar-open #game-menu-toggle{position:fixed;right:calc(var(--player-panel-width) + 14px);bottom:20px}
+body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sidebar-open>header,body.player-sidebar-open>footer{right:calc(var(--player-panel-width) + 28px)}
 #journal #game-menu-bar{flex-wrap:wrap;overflow:visible;justify-content:flex-start}#journal #game-menu-bar button{flex:0 0 44px;min-width:44px}
 #journal.expanded #game-menu-bar button{flex:1 0 auto}
 #journal #combat-panel,#journal #powers-panel,#journal #equipment-panel,#journal #inventory-panel,#journal #character-panel,#journal #crafting-panel,#journal #quests-panel,#journal #settings-panel,#journal #companions-panel{position:static;inset:auto;transform:none;width:100%;max-width:none;min-width:0;min-height:0;max-height:none;margin:0;padding:16px;overflow:auto;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper);color:var(--ui-ink)}
@@ -32,18 +32,18 @@ body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sideb
  body.player-ui-active #journal,body.player-ui-active #journal:not(.expanded),body.player-ui-active #journal.expanded{position:fixed;inset:0 0 calc(63px + env(safe-area-inset-bottom));height:auto;max-height:none;padding-top:calc(54px + env(safe-area-inset-top));padding-bottom:0;z-index:34;background:var(--ui-paper);border-radius:0;transform:none}
  body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud{z-index:35}body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .overview-map,body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud #player-combat-status{display:none}
  body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud #player-overview{padding:8px 18px;display:block}
- body.player-ui-active #journal #game-menu-bar{display:none!important}body.player-ui-active #game-menu-toggle{bottom:calc(72px + env(safe-area-inset-bottom));right:12px;position:fixed;width:44px;height:44px}
+ body.player-ui-active #journal #game-menu-bar{display:none!important}
  
  body.player-ui-active #objective-update{top:160px}
 }
 body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) #player-mobile-hud,body:has(#splash:not([hidden])) #player-mobile-nav{display:none!important}
-@media(max-width:700px){body.journal-guided #player-mobile-nav{display:none!important}body.player-ui-active.journal-guided #journal #game-menu-bar{display:flex!important}}
 @media(max-width:700px){
  body.player-ui-active #game-menus #journal{inset:0 0 calc(63px + env(safe-area-inset-bottom));height:auto;max-height:none;padding-top:calc(112px + env(safe-area-inset-top));padding-bottom:0}
  body.player-ui-active #game-menus #journal .journal-header{min-height:52px;flex-shrink:0}
 }
 
-@media(max-width:700px){body.player-ui-active:has(#journal:not([hidden])) #item-feed{bottom:calc(76px + env(safe-area-inset-bottom));z-index:31}}
+/* Phones: item receipts and the lesson tip sit above the bottom tab bar (lessons guide its tabs). */
+@media(max-width:700px){body.player-ui-active #item-feed{bottom:calc(76px + env(safe-area-inset-bottom))}body.player-ui-active:not(:has(#journal:not([hidden]))) #gather-tutorial{bottom:calc(76px + env(safe-area-inset-bottom))}body.player-ui-active:has(#journal:not([hidden])) #item-feed{bottom:calc(76px + env(safe-area-inset-bottom));z-index:31}}
 
 /* Shared world overlays follow the rendered viewport, including sidebar resizing. */
 @media(min-width:701px){
@@ -54,16 +54,16 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
  body.player-sidebar-open::after,body.player-sidebar-open #scene-fade{right:var(--player-panel-width)}
  body.player-sidebar-open dialog{right:var(--player-panel-width);max-width:calc(var(--game-viewport-width,100vw) - 40px)}
  body.player-sidebar-open dialog::backdrop{right:var(--player-panel-width)}
- body.player-ui-active:not(.journal-guided) #game-menu-toggle{display:none!important}
+ 
 }
 #player-mobile-more{display:none}
 @media(max-width:700px){
  #player-mobile-hud #player-overview{grid-template-columns:156px minmax(0,1fr)}
  #player-mobile-hud #overview-vitals{width:max-content}
- body.player-ui-active #player-mobile-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible}
+ body.player-ui-active #player-mobile-nav{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);overflow:visible}
  #player-mobile-nav button{min-width:0;width:100%}
  #player-mobile-nav button span{max-width:100%;white-space:nowrap}
- body.player-ui-active:not(.journal-guided) #game-menu-toggle{display:none!important}
+ 
  #player-mobile-more:not([hidden]){display:block;position:fixed;z-index:37;left:8px;right:8px;bottom:calc(72px + env(safe-area-inset-bottom));max-height:calc(100dvh - 160px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain;padding:12px;border:1px solid var(--ui-border);border-radius:18px;background:var(--ui-paper);box-shadow:0 0 0 100vmax #241b3940;color:var(--ui-ink)}
  .more-heading{display:flex;align-items:center;justify-content:space-between;padding-left:8px}.more-heading button{min-width:44px;min-height:44px}
  .more-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.more-tabs button{display:flex;align-items:center;gap:10px;min-height:56px;padding:10px;text-align:left;background:#eee3e8}.more-tabs .game-icon{width:24px;height:24px;flex-shrink:0}.more-tabs button[aria-current=true]{background:#dac8dc}

@@ -17,8 +17,7 @@ const PROFICIENCY_GROUPS=['weapon','armorSlot','element'];
 export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,trackSkills=()=>{},startCraft,craftActive=()=>null,items={}}){
  const $=id=>document.getElementById(id),events={};
  const host=document.createElement('div');host.id='game-menus';
- host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false">☰</button>
- <nav id="game-menu-bar" hidden aria-label="Game menu"></nav>`;
+ host.innerHTML='<nav id="game-menu-bar" hidden aria-label="Game menu"></nav>';
  document.body.append(host);
  // Plain pages close through the shared close rules (events.beforeClose), like their × buttons.
  const panels=createPanelHost({defaultDismiss:()=>closeMenus('dismiss')});
@@ -58,6 +57,5 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,tr
  panels.register({id:'character',label:'Character',icon:'character',order:20,primary:true,element:characterPanel,badge:unspentPoints,select:()=>{if(!events.openSkills?.())openCharacter();},closeLocked:computed(()=>!!guidance.value.locked)});
  panels.register({id:'inventory',label:'Inventory',icon:'inventory',order:30,primary:true,element:inventoryMenu.panel,select:()=>{if(!events.openInventory?.())openInventory();},closeLocked:inventoryMenu.locked,dismiss:()=>{if(!events.inventoryLocked?.())closeMenus('dismiss');}});
  panels.register({id:'crafting',label:'Crafting',icon:'crafting',order:40,primary:true,element:panel,select:()=>{if(!events.openCrafting?.())openCrafting();},dismiss:()=>{closeMenus('dismiss');events.closeCrafting?.();}});
- $('game-menu-toggle').addEventListener('click',()=>{if(!events.toggle?.())panels.toggleNav();});
  return {host,panels,characterPanel,inventoryMenu,events,selectRecipe,get selectedRecipe(){return selectedRecipe.peek();},openCrafting,openInventory,openSkills,closeMenus,action,setSkillGuidance(value){guidance.value=value;}};
 }

@@ -7,15 +7,13 @@ import {iconNode} from './ui/icon.js';
 import {bind} from './ui/scope.js';
 import {compactViewport} from './ui/viewport.js';
 
-// Free-play stages where the journal button opens or closes the last page directly.
-const FREE_STAGES=['done','inactive','chop','mine'];
 const EXPANDED_KEY='quadriaquest-journal-expanded';
 
 // The adventurer's journal: the shell around the panel host's pages (header, docking,
 // expansion), plus the Quests and Settings pages. Which page is open, whether the tab bar
 // shows and which tabs exist all live in menus.panels; this module presents that state.
 export function mountJournal(menus,controller,settings){
- const $=id=>document.getElementById(id),{panels,host}=menus,nav=$('game-menu-bar'),toggle=$('game-menu-toggle');
+ const $=id=>document.getElementById(id),{panels,host}=menus,nav=$('game-menu-bar');
  const tutorialLock=mountJournalTutorialLock(host,controller);
  const compact=compactViewport(),docked=signal(false),expanded=signal(readExpanded());
  const dockedDesktop=computed(()=>docked.value&&!compact.value);
@@ -23,7 +21,7 @@ export function mountJournal(menus,controller,settings){
  const hidden=computed(()=>!dockedDesktop.value&&!panels.active.value&&!panels.navShown.value);
 
  const questPanel=mount(()=>h('section',{id:'quests-panel','aria-label':'Quests',hidden:true},questsPage({chapters:questChapters,revision:questRevision,help:showObjectiveHelp}))).node;
- panels.register({id:'quests',label:'Quests',icon:'quests',order:10,element:questPanel,returnTo:true,
+ panels.register({id:'quests',label:'Quests',icon:'quests',order:10,primary:true,element:questPanel,returnTo:true,
   closeLocked:computed(()=>controller.stageState.value==='quests-detail'),
   select(){
    const stage=controller.stage;
@@ -45,14 +43,13 @@ export function mountJournal(menus,controller,settings){
   h('button',{id:'journal-close',type:'button','aria-label':'Close journal',disabled:panels.closeLocked,on:{click:closePage}},iconNode('close'))))).node;
  host.append(shell);shell.append(nav,questPanel,settingsView.node,$('inventory-panel'),menus.characterPanel,$('crafting-panel'));
 
- toggle.replaceChildren(iconNode('inventory'));toggle.setAttribute('aria-label','Open adventurer’s journal');
  const tip=$('gather-tutorial'),tipParent=tip.parentElement;
  let last='quests';
 
  mount(()=>{
-  bind(()=>toggle.setAttribute('aria-expanded',String(!hidden.value)));
-  // The docked desktop journal always shows its tabs and a page (the last one used).
-  bind(()=>panels.setNavPinned(dockedDesktop.value&&!locked.value));
+  // The docked desktop journal always shows its tabs (lessons guide them) and, outside lessons,
+  // a page (the last one used).
+  bind(()=>panels.setNavPinned(dockedDesktop.value));
   bind(()=>{if(panels.active.value)last=panels.active.value;});
   bind(()=>{
    if(!dockedDesktop.value||locked.value||panels.active.value)return;
@@ -73,20 +70,6 @@ export function mountJournal(menus,controller,settings){
   if(dockedDesktop.peek()||tutorialLock.locked||panels.closeLocked.peek())return;
   panels.dismiss();menus.closeMenus('dismiss');
  }
- // Capture so these run before the menu's own toggle handling.
- toggle.addEventListener('click',e=>{
-  if(!panels.isOpen('quests'))return;
-  e.stopImmediatePropagation();panels.dismiss();
- },{capture:true});
- toggle.addEventListener('click',e=>{
-  if(shell.hidden||!FREE_STAGES.includes(controller.stage))return;
-  e.stopImmediatePropagation();menus.closeMenus('dismiss');
- },{capture:true});
- // In free play the button opens the last page directly rather than the bare tab bar.
- toggle.addEventListener('click',()=>{
-  if(!FREE_STAGES.includes(controller.stage)||!panels.navShown.peek())return;
-  const entry=panels.entry(last);panels.select(entry&&panels.available(entry)?last:'character');
- });
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')&&!shell.hidden){e.preventDefault();closePage();}});
  return {setDocked(value){docked.value=!!value;},compact(){expanded.value=false;},get locked(){return tutorialLock.locked;},get expanded(){return expanded.peek();}};
 }

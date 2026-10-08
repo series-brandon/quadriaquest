@@ -23,10 +23,12 @@ export function createContactShadow(scene, world) {
   const geometry=new THREE.PlaneGeometry(1,1);
   const receivers=Array.from({length:9},()=>{
     const plane=new THREE.Mesh(geometry,material);plane.rotation.x=-Math.PI/2;
-    plane.renderOrder=1;scene.add(plane);return plane;
+    plane.renderOrder=1;plane.visible=false;scene.add(plane);return plane;
   });
   return {
-    update(position,scale){
+    // Hidden owners (the slime before its opening drop) cast nothing.
+    update(position,scale,visible=true){
+      if(!visible){for(const plane of receivers)plane.visible=false;return;}
       material.uniforms.center.value.copy(position);
       material.uniforms.radius.value.set(.44*scale.x,.44*scale.z);
       const x=Math.round(position.x+6),z=Math.round(position.z+6);

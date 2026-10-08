@@ -451,7 +451,7 @@ const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=n
 // One batch per frame: UI bindings flush once, after the frame's state changes.
 function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
 // Playground builds attribute frame time to these laps; normal builds compile them away.
-function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update(dt,opening.playable&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update(dt,(opening.playable||!menus.host.hidden)&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
@@ -467,7 +467,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
   }
   const focus=(opening.inClearing?clearingSpawn:introSpawn).clone().add(new THREE.Vector3(0,.35,0)),distance=opening.inClearing?22:introZoom;
   camera.position.set(focus.x+Math.sin(angle)*distance*Math.cos(elevation),focus.y+Math.sin(elevation)*distance,focus.z+Math.cos(angle)*distance*Math.cos(elevation));
-  camera.lookAt(focus.clone().add(new THREE.Vector3(0,opening.inClearing?0:-distance*.09,0)));camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);return;
+  camera.lookAt(focus.clone().add(new THREE.Vector3(0,opening.inClearing?0:-distance*.09,0)));camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale,player.visible);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);return;
  }
  campfires.update(elapsed);
  fishingSpots.update(elapsed);
@@ -562,7 +562,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
   bottom=Math.min(bottom,bodyVertex.y);
  }
  visual.position.y=.002-bottom;
- contactShadow.update(player.position,visual.scale);
+ contactShadow.update(player.position,visual.scale,player.visible);
  axeTool.visible=actionMotion?.kind==='Chopping'||(__PLAYGROUND__&&debug?.chopping);
  pickaxeTool.visible=actionMotion?.kind==='Mining'||(__PLAYGROUND__&&debug?.mining);
  const chopping=pickaxeTool.visible?miningMotion(actionMotion?.time??debug?.time??0):axeTool.visible?chopMotion(actionMotion?.time??debug?.time??0):null;
@@ -638,7 +638,7 @@ if(__PLAYGROUND__){
    const finaleSteps={closing:()=>finale.begin(),portal:()=>finale.dropPortal(),practice:()=>finale.resetPractice(),reward:()=>finale.revealReward(),chest:()=>finale.dropChest()};
    if(finaleSteps[step]){finaleSteps[step]();return;}
    Object.assign(gatheringSkill,{xp:120,level:2});
-   if(['intro','menu','craft-menu','recipe','crafting'].includes(step))inventory.axes=0;
+   if(['intro','craft-menu','recipe','crafting'].includes(step))inventory.axes=0;
    if(['mining-intro','pickaxe','mining-craft'].includes(step))inventory.pickaxes=0;
    await craftingTutorial.debugCheckpoint(step);
   },

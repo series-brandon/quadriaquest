@@ -7,9 +7,10 @@ const pct=n=>`${n>=0?'+':''}${(n*100).toFixed(1)}%`;
 export function evaluate({envName,env,results,baseline,budgets,calibrationMs,scenarios=[]}){
  const d=budgets.defaults,rows=[];
  // Machine-speed ratio vs the baseline session, clamped; scales baseline frame times (not CPU %, fps or counters).
- const speed=baseline?.meta?.calibrationMs&&calibrationMs?Math.min(1.6,Math.max(.6,calibrationMs/baseline.meta.calibrationMs)):1;
+ // A scenario updated on its own carries its own calibration (meta), else the file's applies.
+ const speedFor=base=>{const was=base?.meta?.calibrationMs??baseline?.meta?.calibrationMs;return was&&calibrationMs?Math.min(1.6,Math.max(.6,calibrationMs/was)):1;};
  for(const r of results){
-  const issues=[],notes=[],s=r.summary,base=baseline?.scenarios?.[r.scenario];
+  const issues=[],notes=[],s=r.summary,base=baseline?.scenarios?.[r.scenario],speed=speedFor(base);
   const budget={...budgets.budgets?.['*']?.[r.scenario],...budgets.budgets?.[envName]?.[r.scenario]};
   for(const [key,limit] of Object.entries(budget)){const value=s.counters[key]??s.timing[key];if(value!=null&&value>limit)issues.push({level:'FAIL',text:`${key} ${round(value,1)} exceeds budget ${limit}`});}
   const target=budgets.targets?.[envName]?.[r.scenario];

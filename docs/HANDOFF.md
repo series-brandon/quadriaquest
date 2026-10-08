@@ -20,6 +20,17 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Tutorial menus, opening shadow and phone notices — 2026-10-08
+- **Old menu button removed:** `#game-menu-toggle`, its CSS and its tutorial stages (`quests-toggle`, `skills-toggle`, `inventory-toggle`, `menu`) are gone. On desktop it soft-locked the first quest: the docked journal already showed Quests, so the tab click did nothing.
+- **Lessons guide the real tabs:** "Oh wait, I forgot... here you go!" reveals the menus (desktop sidebar, phone bottom tab bar). The tip then guides the tab directly: Quests, Character (skills), Inventory, Crafting (axe, retry and pickaxe guidance).
+  - `guideTab` closes any open page first, so the tab click is always the step.
+  - Every tab button carries `data-tab`. Guides highlight both bars' copies, and the tutorial lock accepts either (`#id` or `[data-tab]`).
+  - The docked desktop journal always pins its tabs, even during lessons. On phones the bottom bar stays visible during lessons (the old rule swapping in the journal's own tab row is gone).
+- **Phones:** Quests is a primary tab. The bar is one row of equal columns for any count (5 tabs + More). The lesson tip and item receipts sit above the bar.
+- **No hidden tabs:** the tutorial no longer hides Inventory and Crafting. All tabs are always available; Debug appears only in the playground build.
+- **Opening shadow:** the contact shadow's receivers started visible at the origin and showed a blob left of the lone block until the slime dropped. They now start hidden, and `contactShadow.update(position, scale, visible)` hides them while the player model is hidden.
+- **Verified headless** (normal build and playground, 1280×800 and 390×844 with touch): no stray shadow before the drop, and the slime lands with its shadow. Through the first quest on both sizes, the line reveals the menus, Quests is highlighted, clicking it opens the page and advances the lesson, and the phone receipt clears the bar. `npm run smoke` now walks the quests, skills, inventory and crafting tab lessons through their real steps.
+
 ### Dead code and prototype HUD cleanup — 2026-10-08
 - **Prototype HUD removed:** the hidden "Playable Study 01" header, journal, footer satchel, camera buttons and controls hint are gone from `index.html`, with their `style.css` rules. main.js no longer writes them: `updateUI` only reports the count to the opening, and the frame loop and move handler no longer write the activity text or the action-progress bar. The unreachable camera-button and "Reset clearing" handlers are gone (the playground has its own reset). `#game`, `#tooltip` and `#scene-fade` stay.
 - **Dead code removed:**
