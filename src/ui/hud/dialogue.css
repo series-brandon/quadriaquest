@@ -210,7 +210,9 @@ body.q-cutscene .q-conversation__portrait { opacity: 0; animation: none; }
 .q-conversation__choice:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
 @keyframes q-portrait-in { from { transform: translateX(var(--portrait-dir)); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes q-portrait-out { to { transform: translateX(var(--portrait-dir)); opacity: 0; } }
-@keyframes q-choices-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* Grow in place rather than slide: a slide pushes the choices past their scrolling box for a
+   frame, which flashes a scrollbar. */
+@keyframes q-choices-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 700px) {
   .q-narrator,

@@ -16,9 +16,8 @@ import {fisher,animateFisher} from './fisher-model.js';
 import {WILLOWBANK,makeWillowbankTiles} from './willowbank-rules.js';
 import {updateObjective,finishObjective,setObjectiveHelp,resetObjectives} from './quests.js';
 import {key} from './world.js';
-import {RECIPES,missingFor} from './recipes.js';
+import {nextStep,stepKey,describeStep} from './acquisition.js';
 import {BRIDGE_REPAIR} from './carpentry.js';
-import {ITEMS} from './items.js';
 import {portalSpawn} from './portal-spawn.js';
 import './willowbank.css';
 
@@ -33,7 +32,7 @@ export function createWillowbank(api){
  }
  let introSeen=false,introActive=false,introFocus=null;
  let fishingFollowup=false;
- let active=false,phase='meet',bridgeDone=false,rescueAge=null,caught=0,flintCollected=0,cooked=0,eaten=0,guided=false,guideKinds=new Set(),bridgeKey=null,bridgeShown=false;
+ let active=false,phase='meet',bridgeDone=false,rescueAge=null,caught=0,flintCollected=0,cooked=0,eaten=0,guided=false,guideKinds=new Set();
  const dialogue=api.dialogue,hitFeedback=createCombatFeedback(),bridgeInjury=createBridgeInjury();
  let injuryReaction=null;
 
@@ -65,44 +64,42 @@ export function createWillowbank(api){
  function hideGuide(){guided=false;guideKinds=new Set();api.guideMenu?.(null);}
  // Show me how for a world target: highlight it and briefly bring it into view, then return.
  function showTarget(x,z){guided=true;const tile=t(x,z);introFocus={position:new THREE.Vector3(tile.x-6,tile.h,tile.z-6),blend:0,returning:false,hold:1.4,after:()=>{}};}
- // The bridge tip follows what the player still needs, one step at a time, moving on as they do
- // each: gather for a Crude Hammer and craft it; then, short of Small Logs, gather for a Crude Axe,
- // craft it and chop trees; then the bridge. Show me how highlights only the current step (ground
- // items, trees, the menus, or the bridge with a camera pan); the next step starts unhighlighted.
- const itemNames=ids=>ids.map(id=>ITEMS[id]?.name??id).join(' and '),purpose={hammers:'to repair the bridge',axes:'to chop Small Logs for the bridge'};
- function bridgeStep(){
-  const inv=api.inventory,logs=BRIDGE_REPAIR.cost.logs;
-  const tool=id=>{const missing=missingFor(inv,RECIPES[id]);return missing.length?{step:'gather',item:id,missing}:{step:'craft',item:id};};
-  if(!inv.hammers)return tool('hammers');
-  if((inv.logs||0)<logs)return inv.axes?{step:'chop',logs,have:inv.logs||0}:tool('axes');
-  return {step:'bridge'};
- }
- function showBridgeStep(s,show){
+ // Each building phase walks its goal with the shared acquisition steps: the tip always shows the
+ // next step (gather, chop/mine, craft, then the phase's own final step) and moves on as the
+ // inventory changes. Show me how highlights only that step: ground items, trees or boulders, the
+ // menus, or the final target with a short camera pan. The next step starts unhighlighted.
+ const bridgeMiddle=()=>Math.round((WILLOWBANK.bridgeStart+WILLOWBANK.bridgeEnd)/2);
+ const GOALS={
+  bridge:{needs:()=>[['hammers',1],['logs',BRIDGE_REPAIR.cost.logs]],purpose:{hammers:'to repair the bridge',logs:'for the bridge'},
+   final:{title:'A little carpentry',text:'You have a Crude Hammer and enough Small Logs. Click or tap any broken bridge tile to begin.',show(){api.closeMenus();showTarget(bridgeMiddle(),WILLOWBANK.bridgeZ);}}},
+  fish:{needs:()=>[['rods',1]],purpose:{rods:'to fish'},
+   final:{title:'Dinner starts here',text:'Click or tap the rippling fishing spot in the pond. Each catch ends with a little celebration. Catch one Raw Pondfish for your first meal.',show(){api.closeMenus();showTarget(16,14);}}},
+  fire:{needs:()=>[['campfires',1]],purpose:{campfires:'to cook your fish'},final:null},
+ };
+ let goalPhase=null,goalKey=null,goalHave=null,goalShown=false;
+ function goalStep(){const g=GOALS[phase];return nextStep(api.inventory,g.needs())??(g.final?{step:'final'}:null);}
+ function showGoalStep(s,show){
   guideKinds=new Set();api.guideMenu?.(null);guided=false;
-  const tool=ITEMS[s.item]?.name,help=bridgeHelp;
-  if(s.step==='gather'){if(show)guideKinds=new Set(s.missing);showTip('Gather materials',`Pick up ${itemNames(s.missing)} to make a ${tool} ${purpose[s.item]}.${show?' They\'re highlighted on the ground.':''}`,null,help);}
-  if(s.step==='craft'){if(show)api.guideMenu?.({page:'crafting',recipe:s.item});showTip(`Craft a ${tool}`,`You need a ${tool} ${purpose[s.item]}. Open the Crafting tab, choose the ${tool}, then craft it.`,null,help);}
-  if(s.step==='chop'){if(show)guideKinds=new Set(['tree']);showTip('Chop some wood',`The bridge needs Small Logs ×${s.logs}. Chop ${show?'the highlighted ':''}trees for them. You have ${s.have}.`,null,help);}
-  if(s.step==='bridge'){showTip('A little carpentry','You have a Crude Hammer and enough Small Logs. Click or tap any broken bridge tile to begin.',null,help);if(show){api.closeMenus();showTarget(Math.round((WILLOWBANK.bridgeStart+WILLOWBANK.bridgeEnd)/2),WILLOWBANK.bridgeZ);}}
+  const g=GOALS[phase];if(!s)return;
+  if(s.step==='final'){showTip(g.final.title,g.final.text,null,goalHelp);if(show)g.final.show();return;}
+  const {title,text}=describeStep(s,{purpose:g.purpose[s.item]??'',shown:show&&s.step!=='craft'});
+  if(show){if(s.step==='gather')guideKinds=new Set(s.kinds);if(s.step==='harvest')guideKinds=new Set([s.kind]);if(s.step==='craft')api.guideMenu?.({page:'crafting',recipe:s.item});}
+  showTip(title,text,null,goalHelp);
  }
- // A step's identity leaves out progress within it (logs so far), so chopping keeps its highlights.
- const stepKey=({have,...step})=>JSON.stringify(step);
- let bridgeHave=null;
- function bridgeHelp(){const s=bridgeStep();bridgeKey=stepKey(s);bridgeHave=s.have;bridgeShown=true;showBridgeStep(s,true);}
- // A finished step (an item gathered, a tool crafted, enough logs) moves the tip on, unhighlighted;
- // progress within a step only updates its tip. It waits while the player is busy, so a craft or
- // chop in progress keeps its step.
- function followBridgeSteps(){
-  if(phase!=='bridge'||api.playerWorking?.())return;
-  const s=bridgeStep(),next=stepKey(s);
-  if(next!==bridgeKey){bridgeKey=next;bridgeShown=false;bridgeHave=s.have;showBridgeStep(s,false);}
-  else if(s.have!==bridgeHave){bridgeHave=s.have;showBridgeStep(s,bridgeShown);}
+ function setGoalStep(s,show){goalKey=stepKey(s);goalHave=s?.have;goalShown=show;showGoalStep(s,show);}
+ function startGoal(){goalPhase=phase;setGoalStep(goalStep(),false);}
+ function goalHelp(){if(GOALS[phase])setGoalStep(goalStep(),true);}
+ // Waits for the phase's prompt (never under dialogue or a camera moment) and while the player is
+ // busy, so a craft or chop in progress keeps its step; progress inside a step only updates its tip.
+ function followGoal(){
+  if(goalPhase!==phase||!GOALS[phase]||busy()||api.playerWorking?.())return;
+  const s=goalStep();
+  if(stepKey(s)!==goalKey)setGoalStep(s,false);
+  else if(s&&s.have!==goalHave){goalHave=s.have;showGoalStep(s,goalShown);}
  }
- function fishHelp(){if(!api.inventory.rods)helpCraft('rods');else{api.closeMenus();showTarget(16,14);}}
  // Show me how in the menus walks the player there step by step (the shared menu guide): the
  // Inventory tab, the Cooked Pondfish, then Eat; or the Crafting tab, the recipe, then Craft.
  function eatHelp(){hideGuide();api.guideMenu?.({page:'inventory',item:'cookedFish',action:'Eat'});}
- function helpCraft(id){if(!id)return;hideGuide();api.guideMenu?.({page:'crafting',recipe:id});}
  function lines(texts,after){api.stop();tip.hide();let i=0;const next=()=>{if(i===texts.length){dialogue.finish(after);return;}dialogue.show({side:'right',name:'Reed',model:reed.group,text:texts[i][0],expression:texts[i++][1],next});};next();}
  function playerLine(text,next,expression){dialogue.show({side:'left',name:api.profile().name||'Pip',model:api.visual,text,expression,next});}
  function talk(){reedFacing.face(api.player);tip.hide();
@@ -120,10 +117,10 @@ export function createWillowbank(api){
  }
  function prompt(){
   hideGuide();
-  if(phase==='bridge'){goal('bridge','Repair the bridge','Craft a Crude Hammer. With it and Small Logs ×3 in your inventory, click any broken bridge tile.');setObjectiveHelp('willow-bridge',bridgeHelp);const step=bridgeStep();bridgeKey=stepKey(step);bridgeHave=step.have;bridgeShown=false;showBridgeStep(step,false);}
-  if(phase==='fish'){goal('fish','Catch Raw Pondfish','Craft a Crude Fishing Rod from Sticks ×2, then catch one Raw Pondfish at the rippling water in the pond.',caught,1);setObjectiveHelp('willow-fish',fishHelp);showTip('Dinner starts here','Craft a Crude Fishing Rod, then click or tap a fishing spot. Each catch ends with a little celebration. Catch one Raw Pondfish for your first meal.',null,fishHelp);}
+  if(phase==='bridge'){goal('bridge','Repair the bridge','Craft a Crude Hammer. With it and Small Logs ×3 in your inventory, click any broken bridge tile.');setObjectiveHelp('willow-bridge',goalHelp);startGoal();}
+  if(phase==='fish'){goal('fish','Catch Raw Pondfish','Craft a Crude Fishing Rod from Sticks ×2, then catch one Raw Pondfish at the rippling water in the pond.',caught,1);setObjectiveHelp('willow-fish',goalHelp);startGoal();}
   if(phase==='flint'){goal('flint','Collect Flint','Gather Flint on the ground near the water.',flintCollected,1);guided=true;showTip('A spark of an idea','Look near the water for Flint. Gather one piece to get started.');}
-  if(phase==='fire'){goal('fire','Prepare a Campfire','Craft Flint and Stone from Flint ×1 and Stone ×1, then a Campfire from Small Logs ×2. The fire-starting tool is reusable.',api.inventory.campfires||api.campfires.current?1:0);setObjectiveHelp('willow-fire',()=>helpCraft(api.inventory.firestarters?'campfires':'firestarters'));showTip('Build a Campfire','Make Flint and Stone, then craft a Campfire. Select the Campfire in your inventory and choose Place.',null,()=>helpCraft(api.inventory.firestarters?'campfires':'firestarters'));}
+  if(phase==='fire'){goal('fire','Prepare a Campfire','Craft Flint and Stone from Flint ×1 and Stone ×1, then a Campfire from Small Logs ×2. The fire-starting tool is reusable.',api.inventory.campfires||api.campfires.current?1:0);setObjectiveHelp('willow-fire',goalHelp);startGoal();}
   if(phase==='place'){goal('place','Place your Campfire','Use Place in your Campfire inventory details. Click or tap a clear meadow tile to walk over and place it.');showTip('Make yourself at home','Select your Campfire in your inventory, then choose Place.');}
   if(phase==='cook'){goal('cook','Cook a Pondfish','Interact with your Campfire and cook a Raw Pondfish.',cooked,1);guided=true;showTip('Something warm','Click or tap your Campfire to open its cooking menu. Cook a Pondfish to make your first meal.');}
   if(phase==='eat'){goal('eat','Eat a Cooked Pondfish','Select Cooked Pondfish in your inventory and choose Eat. It restores 20 health.',eaten,1);showTip('Time to recover','Select the Cooked Pondfish in your inventory and choose Eat. Food restores health. Eat your cooked fish to soothe that sore hand!',null,eatHelp);setObjectiveHelp('willow-eat',eatHelp);}
@@ -183,14 +180,14 @@ export function createWillowbank(api){
 
 reedFacing.update(dt);animateFisher(reed,time,dialogue.expressionFor('right')||(phase==='meet'?'distraught':'idle'));
   const targets={bridge:'bridge',flint:'flint',cook:'fire'};
-  followBridgeSteps();
+  followGoal();
   for(const a of actors){const repairing=a===bridge&&api.carpentry.matches(bridge);a.highlight.update((phase==='meet'&&a===reedActor||guided&&a.kind===targets[phase]||guideKinds.has(a.kind))&&!a.depleted&&!a.opened&&!repairing,time,api.hover()===a&&!a.depleted&&!a.opened&&!repairing);}
   if(injuryReaction){injuryReaction.age+=dt;if(injuryReaction.age>=1.2&&!injuryReaction.spoken){injuryReaction.spoken=true;playerLine('Youch! I smashed my finger!',()=>{dialogue.hide();injuryReaction=null;},'struggle');}return {kind:'Hammer injury',time:Math.min(injuryReaction.age,1.2)};}
   if(rescueAge!==null){if(rescueWaiting)return null;rescueAge+=dt;if(rescueAge>4&&!petMoving){rescueAge=null;companions.acquire({at:t(Math.round(pet.position.x+6),Math.round(pet.position.z+6))});namePet();}return null;}
   return null;
  }
- function reset(){api.fishing.cancel();companions.reset();fishingFollowup=false;setBridgeRepairTarget(true);bridgeInjury.reset();injuryReaction=null;reedFacing.reset();hitFeedback.clear();companions.resetRoute();rescueGait=0;rescueWaiting=false;introActive=false;introFocus=null;api.narrator.hide();resetObjectives('willow-');cancel();dialogue.hide();tip.hide();phase='meet';api.health.restore();rescueAge=null;bridgeDone=false;caught=flintCollected=cooked=eaten=0;api.resourceActions.resetWhere(n=>map.get(key(n.x,n.z))===n.tile);cancelPlacement();api.campfires.reset(map);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).water=true;t(x,WILLOWBANK.bridgeZ).blocked=true;}showBridge(0);group.attach(pet);pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);if(active)api.teleport(portalSpawn(map,crystal.tile));}
- return {restartWater:()=>water.restart(),group,tiles,crystal,grassMaterials,enter,interact,update,cancel,craftStarted(){if(phase!=='bridge')hideGuide();},crafted(){if(active)checkProgress();},get active(){return active;},get cameraFocus(){return introFocus?{position:introFocus.position,blend:THREE.MathUtils.smoothstep(introFocus.blend,0,1)}:rescueAge===null?null:{position:pet.position.clone(),blend:Math.min(THREE.MathUtils.smoothstep(rescueAge,0,.6),1-THREE.MathUtils.smoothstep(rescueAge,3,4))};},get busy(){return busy();},
+ function reset(){goalPhase=goalKey=null;api.fishing.cancel();companions.reset();fishingFollowup=false;setBridgeRepairTarget(true);bridgeInjury.reset();injuryReaction=null;reedFacing.reset();hitFeedback.clear();companions.resetRoute();rescueGait=0;rescueWaiting=false;introActive=false;introFocus=null;api.narrator.hide();resetObjectives('willow-');cancel();dialogue.hide();tip.hide();phase='meet';api.health.restore();rescueAge=null;bridgeDone=false;caught=flintCollected=cooked=eaten=0;api.resourceActions.resetWhere(n=>map.get(key(n.x,n.z))===n.tile);cancelPlacement();api.campfires.reset(map);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).water=true;t(x,WILLOWBANK.bridgeZ).blocked=true;}showBridge(0);group.attach(pet);pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);if(active)api.teleport(portalSpawn(map,crystal.tile));}
+ return {restartWater:()=>water.restart(),group,tiles,crystal,grassMaterials,enter,interact,update,cancel,craftStarted(){if(!GOALS[phase])hideGuide();},crafted(){if(active)checkProgress();},get active(){return active;},get cameraFocus(){return introFocus?{position:introFocus.position,blend:THREE.MathUtils.smoothstep(introFocus.blend,0,1)}:rescueAge===null?null:{position:pet.position.clone(),blend:Math.min(THREE.MathUtils.smoothstep(rescueAge,0,.6),1-THREE.MathUtils.smoothstep(rescueAge,3,4))};},get busy(){return busy();},
 
  foodEaten,campfirePlaced,campfireCooked,get campfireGuide(){return active&&guided&&phase==='cook';},
   get expression(){return dialogue.expressionFor('left');},

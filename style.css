@@ -22,7 +22,6 @@
 .splash-heading p{font-size:11px;letter-spacing:.23em;font-weight:700}
 .splash-heading h1{font-family:Georgia,serif;font-size:clamp(48px,9vw,100px);line-height:.95;letter-spacing:-.055em;margin:16px 0;text-shadow:0 3px 0 #ffffff88}
 .splash-heading h1 span{color:#628448}
-.splash-heading .splash-subtitle{font-size:15px;letter-spacing:.04em;font-weight:400}
 .splash-start{display:grid;gap:18px;justify-items:center}
 .splash-start button{background:#304e3e;color:#fff6dc;border:1px solid #ffffff88;border-radius:18px;padding:17px 74px;font-size:22px;font-weight:700;box-shadow:0 7px 0 #203b30,0 15px 30px #304e3e30;cursor:pointer;transition:transform .15s,background .15s}
 .splash-start button:hover{transform:translateY(-3px);background:#426449}
