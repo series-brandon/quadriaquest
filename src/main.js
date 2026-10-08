@@ -3,7 +3,7 @@ import {createPlayerInterface} from './player-interface.js';
 import {gameViewport,measureGameViewport} from './game-viewport.js';
 import {cancelPlayerActions} from './action-interruption.js';
 import {createAfterStep} from './after-step.js';
-import {equipmentIdleHands} from './combat-animation.js';
+import {equipmentIdleHands,withGrip} from './combat-animation.js';
 import {terrainHitData,createTerrainBatch} from './terrain-batch.js';
 import {CINDERHOLD} from './cinderhold-rules.js';
 import {createCinderhold} from './cinderhold.js';
@@ -501,7 +501,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=pla
  elevation = THREE.MathUtils.clamp(elevation + (Number(rotationKeys.has('ArrowUp')) - Number(rotationKeys.has('ArrowDown'))) * Math.PI / 3 * dt, THREE.MathUtils.degToRad(20), THREE.MathUtils.degToRad(75));
  opening.rotated(Math.abs(angle-oldAngle)+Math.abs(elevation-oldElevation));
  let pose=idlePose(elapsed),handWork=null,expression=elapsed<happyUntil?'happy':'idle',socialHands=null;
- if(asleep){const social=socialMotion('Sleeping',idleClock.sleepTime);pose=social.pose;expression=social.expression;socialHands=social.hands;}
+ if(asleep){const social=socialMotion('Sleeping',idleClock.sleepTime);pose=social.pose;expression=social.expression;socialHands=withGrip(social.hands,equipmentIdleHands({mainHand:equipment.slots.main,offHand:equipment.slots.off}));}
  if(!segment&&path.length&&companions.cannotYield(path[0])){path=[];target=null;feedback.clearDestination();toast("Your companion needs room to move aside.");}
  // Stun/immobilize let the current step finish but start no new one.
  if(!segment&&path.length&&!companions.occupies(path[0])&&playerControl.can('move')){
@@ -568,7 +568,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=pla
  axeTool.visible=actionMotion?.kind==='Chopping'||(__PLAYGROUND__&&debug?.chopping);
  pickaxeTool.visible=actionMotion?.kind==='Mining'||(__PLAYGROUND__&&debug?.mining);
  const chopping=pickaxeTool.visible?miningMotion(actionMotion?.time??debug?.time??0):axeTool.visible?chopMotion(actionMotion?.time??debug?.time??0):null;
- const carryHands=equipmentIdleHands({item:equipment.slots.main});
+ const carryHands=equipmentIdleHands({mainHand:equipment.slots.main,offHand:equipment.slots.off});
  // Both hands share the chop cycle; other interactions keep their scoop gesture.
  for(let i=0;i<hands.length;i++){
   const hand=hands[i];

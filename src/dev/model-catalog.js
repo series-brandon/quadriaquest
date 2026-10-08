@@ -1,6 +1,6 @@
 import {createBowPresentation} from '../bow-presentation.js';
 import {previewCombat,previewLoadout} from './preview-loadout.js';
-import {combatEquipmentVisible,equipmentIdleHands} from '../combat-animation.js';
+import {combatEquipmentVisible,equipmentIdleHands,withGrip} from '../combat-animation.js';
 import {mentorModel,animateMentor,MENTORS,copperOutcrop,furnace,animateFurnace,anvil,supplyShelf,stoneArch,stoneTile,ingot,trainingTarget,animateTarget} from '../training-models.js';
 import {projectileModel} from '../projectile-effects.js';
 import {makeCrystal,animateCrystal} from '../crystal-model.js';
@@ -78,6 +78,7 @@ function slimePreview(factory,{idle,defaultExpression='idle'}={}){
   if(combatEquipmentVisible(actionKind)){if(loadout.mainHand)tools[loadout.mainHand].visible=true;if(loadout.offHand)tools[GEAR[loadout.offHand]?.offHand&&!GEAR[loadout.offHand]?.shield?loadout.offHand+'Off':loadout.offHand].visible=true;}
   if(!combat)bowPresentation.update(null);
   if((loadout.mainHand||loadout.offHand)&&!hands&&handWork===null&&(motion==='Idle'||motion==='Sliding'))hands=equipmentIdleHands(loadout);
+  else if((loadout.mainHand||loadout.offHand)&&hands&&SOCIAL_DURATIONS[motion])hands=withGrip(hands,equipmentIdleHands(loadout));
   if(motion==='Idle')expression=defaultExpression;
   if(expressionOverride&&expressionOverride.toLowerCase()!=='default')expression=expressionOverride.toLowerCase();
   rig.face.set(expression);bend(pose.bend||0);

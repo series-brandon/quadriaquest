@@ -184,3 +184,16 @@ test('an unarmed block hands back to the punch guard without the fists dropping'
  const after=attackAnimation(profile,1.2).hands,end=blockAnimation(profile,.42).hands;
  for(let i=0;i<2;i++)for(let j=0;j<3;j++)assert.ok(Math.abs(after[i][j]-end[i][j])<1e-6,`hand ${i} axis ${j}`);
 });
+
+test('blades rest tilted in either hand, and keep that grip through hand-placing poses like sleep', async () => {
+  const {withGrip} = await import('./combat-animation.js');
+  const both = equipmentIdleHands({mainHand: 'copperDagger', offHand: 'copperDagger'});
+  assert.equal(both[0][3], 1.85);
+  assert.equal(both[1][3], 1.85, 'an off-hand dagger rests like a main-hand one');
+  assert.equal(equipmentIdleHands({mainHand: 'copperDagger'})[1][3], 0, 'an empty off hand stays relaxed');
+  const sleeping = [[-.4, .2, .08, 0, 0], [.4, .26, .08, 0, 0]];
+  const gripped = withGrip(sleeping, both);
+  assert.deepEqual(gripped.map(h => h.slice(0, 3)), sleeping.map(h => h.slice(0, 3)), 'positions come from the pose');
+  assert.deepEqual(gripped.map(h => h[3]), [1.85, 1.85], 'the grip comes from the carry pose');
+  assert.deepEqual(withGrip(sleeping, equipmentIdleHands({})).map(h => h[3]), [0, 0], 'empty hands are unchanged');
+});

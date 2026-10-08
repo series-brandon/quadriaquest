@@ -12,12 +12,19 @@ const SHIELDS=['shields','copperShield'];
 export function resolveBlockMotion(profile={}){const item=profile.mainHand??profile.item;return profile.blockMotion||(SHIELDS.includes(profile.offHand)?'shield':item==='bows'?'bow':item==='swords'||item==='copperDagger'?'blade':'fists');}
 export function combatEquipmentVisible(kind){return !['Gathering','Crafting','Chopping','Mining','Repairing','Smithing','Smelting','Fishing','Fishing cast','Fishing catch','Celebration','Eating','Cooking','Petting','Hammer injury','Defeated'].includes(kind);}
 // Shared relaxed carry pose, independent of the selected attack style.
+// Blades rest tilted forward in either hand.
+const BLADES=['swords','copperDagger'];
 export function equipmentIdleHands(profile={}){
  const hands=[[-.46,.33,.08,0,0,0],[.46,.33,.08,0,0,0]],item=profile.mainHand??profile.item;
- if(['swords','copperDagger'].includes(item))hands[0][3]=1.85;
- if(profile.offHand==='copperDagger')hands[1][3]=1.85;
+ if(BLADES.includes(item))hands[0][3]=1.85;
+ if(BLADES.includes(profile.offHand))hands[1][3]=1.85;
  if(item==='bows')hands[1][3]=Math.PI/2;
  return hands;
+}
+// Poses that only place the hands (waving, hopping, sleeping) keep each held weapon's grip from
+// the carry pose (curl and yaw), so blades don't swing upright.
+export function withGrip(hands,carry){
+ return hands.map((h,i)=>[h[0],h[1],h[2],carry[i][3]||h[3]||0,h[4]||0,carry[i][5]||h[5]||0]);
 }
 export function attackAnimation(profile={},time=0){
  const motion=resolveAttackMotion(profile),interval=profile.interval||1.5,clock=time%interval,after=time>=interval&&clock<.28;

@@ -20,6 +20,11 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Held-weapon rest pose: off hand and sleep — 2026-10-08
+- **Off hand:** the frame built the carry pose from the main hand only (`equipmentIdleHands({item: slots.main})`), so an off-hand dagger pointed straight up. It now passes both hands; `equipmentIdleHands` tilts a blade (sword or dagger) in either hand.
+- **Sleep:** the sleep pose placed the hands with no grip, so held blades swung upright. `withGrip(hands, carry)` (combat-animation.js) keeps each held weapon's grip (curl, yaw) through hand-placing poses. Gameplay applies it to the sleep pose (attack, eating and celebration poses set their own grip), and the model viewer applies it to its social motions (Happy hop, Wave, Sleeping) with a loadout.
+- **Verified headless:** a dagger in each hand rests tilted forward when idle and asleep ("Doze off"). combat-animation tests cover both.
+
 ### Optimize moved to Equipment — 2026-10-08
 - The Optimize button is on the Equipment page (`equipmentPage({…, assistance})`): "Optimize for <current class>", calling the same `assistance.optimize()`, with its report under it. Switching Class on the Combat page still optimizes automatically, and that page keeps showing the report under Class; only its button is gone. COMBAT.md is updated; tests cover the button and its report.
 
