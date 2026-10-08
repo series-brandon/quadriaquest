@@ -45,14 +45,16 @@ export function attackDps(p){const avg=x=>(x.min+x.max)/2*(x.damageScale??1);ret
 // bonusResistancePct: flat percentage points added once per incoming portion (Harden).
 // Armor: each piece's positive bonuses scale by its own armor-skill effectiveness; equipped slots add their
 // slot-proficiency resistance (+0.02/level) and block (+0.0001 pp/level) at full strength.
-export function playerDefense(character,{activeStyle='melee',strategy='technical',incomingStyle='melee',shield=null,armor=[],bonusResistancePct=0}={}){
+// held: a non-shield hand item with resistance (a defensive two-hander); it adds its resistance like a
+// shield's item bonus, without the shield's block chance.
+export function playerDefense(character,{activeStyle='melee',strategy='technical',incomingStyle='melee',shield=null,held=null,armor=[],bonusResistancePct=0}={}){
  const sheet=character.sheet(),shieldEff=shield?effectiveness(character,shield.requirements):0;
  const armorSlotLevels=armor.map(p=>character.level(`prof.${p.armor.slot}`));
  const armorResistance=armor.reduce((s,p)=>s+scaleItemBonus(p.resistance||0,effectiveness(character,p.requirements)),0);
  return {
   dodgePercent:playerDodgePercent(dodgeBonus(sheet,activeStyle,{strategy})),
   blockPercent:playerBlockPercent({shieldProficiency:shield?character.level('prof.shield'):0,armorSlotLevels}),
-  resistancePct:resistanceBonus(sheet,incomingStyle,{strategy,shield:!!shield,armorSlotLevels,item:(shield?scaleItemBonus(shield.resistance||0,shieldEff):0)+armorResistance})/10+bonusResistancePct,
+  resistancePct:resistanceBonus(sheet,incomingStyle,{strategy,shield:!!shield,armorSlotLevels,item:(shield?scaleItemBonus(shield.resistance||0,shieldEff):0)+(held?scaleItemBonus(held.resistance||0,effectiveness(character,held.requirements)):0)+armorResistance})/10+bonusResistancePct,
  };
 }
 // Armor XP for one connected hit: one skill pool split by class counts, one slot pool split equally by piece.

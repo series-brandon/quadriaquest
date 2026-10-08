@@ -44,9 +44,19 @@ const projected=new THREE.Vector3();
 // gained, or {seq, clear:true} to dismiss them all.
 export const levelNotice=signal(null);
 let levelSeq=0;
+const XP_MERGE_WINDOW=.8;
 export function showSkillReward(reward,position,{float=true}={}){
-  if(float){const xp=document.createElement('div');xp.className='floating-xp';xp.textContent=`+${Math.round(reward.xp)} ${reward.skillName||'Gathering'} Exp.!`;xp.setAttribute('role','status');document.body.append(xp);
-  floatingXp.push({element:xp,origin:position.clone().add(new THREE.Vector3(0,1.35,0)),age:0});}
+  if(float){
+    // Awards close together (a dual-wield one-two) share one notice: the same skill adds to a recent
+    // one with a small pop; another skill stacks above it instead of overlapping.
+    const skill=reward.skillName||'Gathering',recent=floatingXp.find(r=>r.skill===skill&&r.age<XP_MERGE_WINDOW);
+    if(recent){recent.xp+=reward.xp;recent.element.textContent=`+${Math.round(recent.xp)} ${skill} Exp.!`;recent.pop=0;}
+    else{
+      const xp=document.createElement('div');xp.className='floating-xp';xp.textContent=`+${Math.round(reward.xp)} ${skill} Exp.!`;xp.setAttribute('role','status');document.body.append(xp);
+      const lane=floatingXp.filter(r=>r.age<XP_MERGE_WINDOW).length;
+      floatingXp.push({element:xp,skill,xp:reward.xp,lane,pop:null,origin:position.clone().add(new THREE.Vector3(0,1.35,0)),age:0});
+    }
+  }
   if(reward.leveledUp){
     window.dispatchEvent(new Event('quadriaquest-level'));
     const skill=reward.skillName||'Gathering';
@@ -60,8 +70,9 @@ export function updateSkillRewards(dt,camera,width,height){
     const progress=Math.min(1,reward.age/2.2);
     projected.copy(reward.origin).project(camera);
     // One composited write per frame: transform avoids layout, cssText yields a single mutation.
-    const x=(projected.x+1)*width/2,y=(1-projected.y)*height/2-18-progress*32;
-    reward.element.style.cssText=`transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%);opacity:${(Math.min(1,reward.age/.1)*(1-progress*progress)).toFixed(3)};visibility:${projected.z<-1||projected.z>1?'hidden':'visible'}`;
+    const x=(projected.x+1)*width/2,y=(1-projected.y)*height/2-18-progress*32-reward.lane*24;
+    let scale=1;if(reward.pop!==null){reward.pop+=dt;scale=1+.18*Math.max(0,1-reward.pop/.18);if(reward.pop>=.18)reward.pop=null;}
+    reward.element.style.cssText=`transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%) scale(${scale.toFixed(3)});opacity:${(Math.min(1,reward.age/.1)*(1-progress*progress)).toFixed(3)};visibility:${projected.z<-1||projected.z>1?'hidden':'visible'}`;
     if(progress===1){reward.element.remove();floatingXp.splice(i,1);}
   }
 }

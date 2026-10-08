@@ -86,7 +86,10 @@ export function createAssistance(api){
  // Optimize: within the chosen style, rank owned setups by expected damage per second, then incoming
  // damage reduction, then the current gear. Armor slots take the most effective owned piece.
  // Optimize priority: Damage (default: damage per second first), Defense (damage reduction first) or
- // Balanced (damage per second × 1/(1 − reduction): kill speed against how long you last, no enemy needed).
+ // Balanced (user rule): your best damage dealer with your best defensive item (a shield) in the other
+ // hand, or a two-hander with both offensive and defensive stats, decided by damage per second ×
+ // 1/(1 − reduction) (kill speed against how long you last, no enemy needed). Without any such setup
+ // (only offensive gear), Balanced ranks like Damage.
  const OPTIMIZE_PRIORITIES=['damage','balanced','defense'];let optimizePriority='damage';
  // Lexicographic score comparison; the leading values are real numbers.
  const better=(a,b)=>{for(let i=0;i<a.length;i++){const d=a[i]-b[i];if(Math.abs(d)>1e-9)return d>0;}return false;};
@@ -99,13 +102,20 @@ export function createAssistance(api){
   const locked=equipment.attackHandsChoice,hands=locked==='right'||locked==='left'?equipment.roleOf(locked):locked;
   let mains=forStyle==='magic'?[slots.main]:[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].style&&STYLE_OF(id)===forStyle&&GEAR[id].slot==='hand')];
   if(forStyle==='ranged'&&mains.length===1){optimizeReport='No ranged weapon owned.';changed();return optimizeReport;}
+  // A ranged setup holds a ranged weapon; bare fists only count for melee (they can outscore a new bow).
+  if(forStyle==='ranged')mains=mains.filter(Boolean);
   let offs=[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].slot==='hand'&&(GEAR[id].shield||GEAR[id].style&&!GEAR[id].twoHanded))];
   if(forStyle!=='magic'){
    if(hands==='main')offs=offs.filter(id=>!GEAR[id]?.style);            // the off hand only defends
    if(hands==='both')offs=offs.filter(id=>!GEAR[id]?.shield);           // both hands must stay free to strike
    if(hands==='off')mains=[GEAR[slots.main]?.twoHanded?null:slots.main]; // the main hand is left as it is
   }
-  let best=null;
+  // Balanced setups (user rule): an offensive hand item with a defensive one (a shield) in the other hand,
+  // or a two-hander with both offensive and defensive stats. Only those compete, by the balanced score,
+  // so a two-hander must beat your best pair. With no such setup, Balanced ranks like Damage.
+  const defensive=id=>!!GEAR[id]&&(GEAR[id].shield||GEAR[id].resistance>0);
+  const balancedSetup=(main,off)=>GEAR[main]?.twoHanded?!!GEAR[main].style&&defensive(main):GEAR[off]?.shield&&!GEAR[main]?.shield;
+  const candidates=[];
   for(const main of mains)for(const off of offs){
    if(GEAR[main]?.twoHanded&&off)continue;if(main&&main===off&&inventory[main]<2)continue;if(forStyle!=='melee'&&GEAR[off]?.style)continue;
    // Same default hands as equipment: every hand that can strike does (a free hand punches); the off
@@ -117,12 +127,15 @@ export function createAssistance(api){
    // Spells ignore held weapons, so magic setups differ only in survivability.
    const profiles=forStyle==='magic'?[]:attacks.map(a=>playerAttackProfile(character,a,strategy));
    const dps=!profiles.length?0:attackDps(profiles.length>1?pairStrikes(profiles[0],offHandFollowUp(profiles[1],weapons.length===2&&attacks.length===2?character.level('prof.dualWield'):null)):profiles[0]);
-   const reduction=playerDefense(character,{shield:GEAR[off]?.shield?GEAR[off]:null}).resistancePct;
+   const reduction=playerDefense(character,{shield:GEAR[off]?.shield?GEAR[off]:null,held:GEAR[main]?.twoHanded&&defensive(main)?GEAR[main]:null}).resistancePct;
    // Ties: keep gear already equipped (empty slots don't count), then fill more hands, main hand first.
-   const keep=(main&&main===slots.main?1:0)+(off&&off===slots.off?1:0),lead=optimizePriority==='defense'?[reduction,dps]:optimizePriority==='balanced'?[dps/Math.max(.01,1-reduction/100),dps,reduction]:[dps,reduction];
-   const score=[...lead,keep,(main?1:0)+(off?1:0),main?1:0];
-   if(!best||better(score,best.score))best={main,off,score};
+   const keep=(main&&main===slots.main?1:0)+(off&&off===slots.off?1:0);
+   candidates.push({main,off,dps,reduction,tie:[keep,(main?1:0)+(off?1:0),main?1:0],balanced:balancedSetup(main,off)});
   }
+  const pool=optimizePriority==='balanced'&&candidates.some(c=>c.balanced)?candidates.filter(c=>c.balanced):candidates;
+  const lead=c=>optimizePriority==='defense'?[c.reduction,c.dps]:optimizePriority==='balanced'&&pool!==candidates?[c.dps/Math.max(.01,1-c.reduction/100),c.dps,c.reduction]:[c.dps,c.reduction];
+  let best=null;
+  for(const c of pool){const score=[...lead(c),...c.tie];if(!best||better(score,best.score))best={main:c.main,off:c.off,score};}
   // A two-handed weapon is held in the off hand by default (a bow in the left hand of a right-hander).
   const next=GEAR[best.main]?.twoHanded?{main:null,off:best.main}:{main:best.main,off:best.off};
   for(const slot of ARMOR_SLOTS.concat('head')){

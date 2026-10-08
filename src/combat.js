@@ -281,7 +281,8 @@ export function createCombatSystem(api){
    // Animation time follows the committed attack clock, including recovery after each release.
    const shown=c.struck&&c.released&&c.playerClock<RECOVERY+(c.released.followUp?FOLLOW_UP_DELAY:0)?c.released:c.profile;
    c.age=(c.struck?shown.interval:0)+c.playerClock;
-   if(fight){api.interacting?.();if(!defense||attackWindow(shown,c.age))return {kind:shown.style==='ranged'?'Archery':shown.style==='magic'?'Casting':'Combat',time:c.age,profile:shown};}
+   // A block shows between melee/ranged attacks, never over a spell's cast.
+   if(fight){api.interacting?.();if(!defense||shown.style==='magic'||attackWindow(shown,c.age))return {kind:shown.style==='ranged'?'Archery':shown.style==='magic'?'Casting':'Combat',time:c.age,profile:shown};}
   }
   return defense?{kind:'Block',time:defense.age,profile:defense.profile}:null;
  }

@@ -163,3 +163,13 @@ test('play-style choice: Simple preselected, choosing reveals that style, confir
   assert.deepEqual(chosen, ['expert']);
   assert.equal(PLAY_STYLES.every(style => ['pacifist', 'simple', 'expert'].includes(style.mode)), true);
 });
+
+test('destination dialog: a service that announces itself closes the dialog', () => {
+  const host = createModalHost(), closed = [];
+  host.open({id: 'destinations', title: 'Where to?', onClose: r => closed.push(r), build: ({close}) => destinationDialog({
+    areas: {id: 'clearing', list: () => [{id: 'clearing', name: 'Clearing'}]}, visited: new Set(['clearing']), source: {available: () => true}, initial: 'clearing',
+    travelTo: () => null, services: {restore: () => null, respec: () => 'Points returned.'}, close})});
+  const node = document.body.querySelector('dialog.q-modal:last-of-type');
+  press(button(node, 'Restore'));
+  assert.deepEqual(closed, ['restore']);
+});

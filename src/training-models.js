@@ -16,7 +16,8 @@ export function trainingTool(kind){const g=new THREE.Group();
 }
 export function furnace(){const g=new THREE.Group();box(g,.95,.17,.83,'#454553',0,.085);box(g,.90,.80,.65,'#686575',0,.52);box(g,.43,.37,.02,'#322b36',0,.40,.337);const fire=part(g,new THREE.SphereGeometry(.18,10,8),'#ffb14c',0,.38,.36);fire.scale.set(1,.8,.3);fire.material.emissive=new THREE.Color('#ff7028');fire.material.emissiveIntensity=1.4;g.userData.fire=fire;const glow=new THREE.PointLight('#ffac58',3,4,2);glow.position.set(0,.65,.7);g.add(glow);box(g,.34,.45,.34,'#55525e',0,1.1);return g;}
 export function animateFurnace(g,time){const f=g.userData.fire;if(f){f.scale.y=.8+Math.sin(time*7)*.09;f.material.emissiveIntensity=1.2+Math.sin(time*9)*.25;}}
-export function anvil(){const g=new THREE.Group();box(g,.60,.42,.57,'#716051',0,.21);box(g,.58,.12,.42,'#42444f',0,.48);box(g,.25,.23,.26,'#696d7e',0,.61);box(g,.68,.16,.35,'#8d91a0',0,.78);const horn=part(g,new THREE.ConeGeometry(.12,.36,6),'#8d91a0',.48,.79);horn.rotation.z=-Math.PI/2;return g;}
+// Sits on the ground: foot, waist, face and horn.
+export function anvil(){const g=new THREE.Group();box(g,.58,.12,.42,'#42444f',0,.06);box(g,.25,.23,.26,'#696d7e',0,.19);box(g,.68,.16,.35,'#8d91a0',0,.36);const horn=part(g,new THREE.ConeGeometry(.12,.36,6),'#8d91a0',.48,.37);horn.rotation.z=-Math.PI/2;return g;}
 export function supplyShelf(){const g=new THREE.Group();box(g,.8,.1,.4,'#9a7354',0,.38);for(const x of [-.32,.32])box(g,.07,.55,.07,'#755640',x,.28);for(let i=0;i<3;i++)part(g,new THREE.SphereGeometry(.11,10,8),'#d3a36a',-.23+i*.23,.5,0);return g;}
 export function trainingTarget(){const g=new THREE.Group();box(g,.08,1,.08,'#997652',0,.5);for(const [r,c,z] of [[.4,'#d2b786',0],[.27,'#8d5549',.045],[.13,'#e0bf80',.09]]){const m=part(g,new THREE.CylinderGeometry(r,r,.055,24),c,0,.92,z);m.rotation.x=Math.PI/2;}return g;}
 export function animateTarget(g,time,hit=0){g.rotation.x=Math.sin(time*30)*hit*.12;}

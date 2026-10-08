@@ -168,6 +168,13 @@ test('Auto spells skip any backfire risk unless explicitly allowed',()=>{
  finally{SPELLS.energyStrike.requirements['magic.technique']=original;}
 });
 
+test('the Ranged class always holds a ranged weapon, even when trained fists outscore a new bow',()=>{
+ const f=assistFixture();f.character.setLevel('prof.unarmed',60);f.character.setLevel('melee.power',40);f.inventory.bows=1;f.inventory.arrows=20;
+ f.equipment.setSlots({main:null,off:null});
+ assert.match(f.assistance.setStyle('ranged'),/Training Bow/);assert.equal(f.equipment.slots.left,'bows');
+ f.equipment.setSlots({main:null,off:null});f.assistance.setStyle('melee');f.equipment.setSlots({main:null,off:null});
+ assert.match(f.assistance.optimize('ranged'),/Training Bow/,'Optimize for Ranged too');
+});
 test('Optimize ranks owned gear by DPS, then reduction, then current gear, and runs on Class change',()=>{
  // Dual wielding outdamages a shield, so a sword plus an off-hand dagger beats dagger and shield.
  const f=assistFixture();assert.match(f.assistance.optimize('melee'),/Copper Dagger \(right\).*Stone Sword \(left\)/);assert.equal(f.assistance.optimize('melee'),'No better setup found.');
@@ -178,13 +185,30 @@ test('Optimize ranks owned gear by DPS, then reduction, then current gear, and r
  f.inventory.bows=1;f.assistance.setStyle('melee');assert.match(f.assistance.setStyle('ranged'),/Training Bow \(left\).*no arrows/);assert.deepEqual([f.equipment.slots.right,f.equipment.slots.left],[null,'bows'],'a bow in the left hand frees nothing else to hold');
 });
 
+test('Balanced: a weapon with a defensive item, or a two-hander with both kinds of stats if it beats that pair',()=>{
+ const f=assistFixture();f.assistance.setOptimizePriority('balanced');f.equipment.setSlots({main:null,off:null});
+ f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperShield'],'the stronger of sword and dagger, with the shield');
+ // Test-only two-handers with offensive and defensive stats: one strong enough to beat the pair, one not.
+ const base={slot:'hand',twoHanded:true,style:'melee',baseInterval:2.55,range:1,proficiency:'sword',damageTypes:['slashing'],requirements:{}};
+ try{
+  GEAR.testHalberd={...base,name:'Test Halberd',power:40,accuracy:40,resistance:200};f.inventory.testHalberd=1;
+  f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'testHalberd','it outscores dagger + shield');
+  GEAR.testHalberd={...base,name:'Test Halberd',power:1,accuracy:1,resistance:5};f.equipment.setSlots({main:null,off:null});
+  f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperShield'],'a weak one loses to the pair');
+ }finally{delete GEAR.testHalberd;delete f.inventory.testHalberd;}
+ // Only offensive gear for the class (a bow has no defense): ranked like Damage.
+ f.inventory.bows=1;f.inventory.arrows=10;f.assistance.optimize('ranged');assert.deepEqual([f.equipment.slots.right,f.equipment.slots.left],[null,'bows']);
+ f.inventory.copperShield=0;f.inventory.copperDagger=2;f.equipment.setSlots({main:null,off:null});
+ f.assistance.optimize('melee');assert.ok(GEAR[f.equipment.slots.off]?.style,'no defensive item: the most damaging setup (two weapons)');
+});
+
 test('Optimize priority: Damage takes the dual wield, Defense and Balanced take the shield when it outweighs the lost damage',()=>{
  const f=assistFixture();
  assert.equal(f.assistance.settings.optimizePriority,'damage');f.assistance.optimize('melee');assert.ok(GEAR[f.equipment.slots.off]?.style,'damage: two weapons');
  assert.equal(f.assistance.setOptimizePriority('fastest'),false);
  f.assistance.setOptimizePriority('defense');f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperShield','defense: the shield');
  // Balanced compares DPS / (1 − reduction): a 5% shield is worth ~5% more damage, far less than the off-hand strike adds.
- f.assistance.setOptimizePriority('balanced');f.assistance.optimize('melee');assert.ok(GEAR[f.equipment.slots.off]?.style,'balanced: the off-hand strike outweighs a 5% shield');
+ f.assistance.setOptimizePriority('balanced');f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperShield','balanced: best damage dealer plus the shield');assert.ok(GEAR[f.equipment.slots.main]?.style,'and a weapon in the other hand');
  f.assistance.reset();assert.equal(f.assistance.settings.optimizePriority,'damage');
 });
 

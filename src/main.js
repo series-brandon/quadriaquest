@@ -221,13 +221,13 @@ const areas=createAreaRuntime({world,beforeSwitch(){combat?.clear();stopAll();},
 const travel=createTravelSystem({areas,stop:stopAll,blocked:()=>!areas.canMove||combat?.busy||combat?.working,
  occupied:t=>companions?.occupies(t),fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},failed:()=>toast('There’s no safe space beside the destination crystal.')});
 // Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
-// Restore keeps active auras (and their upkeep); respec turns them off and refunds invested attribute points.
+// Restore keeps active auras (and their upkeep) and just announces itself; respec turns them off and refunds invested attribute points.
 function crystalRestore(){health.max=character.maxima.health;health.restore();playerResources.restoreAll();}
 // Utility dialogs (stations, destinations, naming, confirmations) share one modal host.
 const modals=createModalHost();
 const settingsUI=createSettingsMenu({audio:gameAudio,modals});
 destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,services:{
- restore(){if(combat.inCombat)return 'Not available during combat.';crystalRestore();return 'Restored. Active auras stay on.';},
+ restore(){if(combat.inCombat)return 'Not available during combat.';crystalRestore();toast('You have been fully restored!');return null;},
  respec(){if(combat.inCombat)return 'Not available during combat.';auras.deactivateAll();const refund=character.redistribute();crystalRestore();return `${refund} attribute point${refund===1?'':'s'} returned to spend in Skills. Auras turned off; resources restored.`;}}});
 const crystals=createCrystals({world,pickables,travel,choose:(a,after)=>destinations.open(a,after),hover:()=>hover?.actor});
 const afterStep=createAfterStep({moving:()=>!!segment,prepare(label){cancelWork({keepCombat:label==='Eating',keepFood:label==='Eating'});path=[];target=null;gatherTime=0;menus.action();feedback.destination(segment.to);}});
@@ -246,7 +246,7 @@ const projectiles=createProjectileEffects(scene);
 const equipmentPresentation=createEquipmentPresentation({hands,visual,equipment});
 castPresentation=createCastPresentation(hands);
 combat=createCombatSystem({world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,passive:()=>!!assistance?.attacksPrevented,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),danger:a=>assistance?.danger?.enemy===a?assistance.danger.band:null,resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:showItemChanges,projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
- attacked:()=>playerInterface?.attacked(),interrupt:()=>cancelWork({keepCombat:true,keepFood:true}),retaliate:a=>selectActor(a),eating:()=>food?.working,
+ attacked:()=>playerInterface?.attacked(),won:()=>{happyUntil=elapsed+1.6;},interrupt:()=>cancelWork({keepCombat:true,keepFood:true}),retaliate:a=>selectActor(a),eating:()=>food?.working,
  blocked:()=>!areas.canMove||travel.busy,
  inReach:a=>!segment&&!path.length&&withinAttackRange(world,tile,a,attackRange()),
  tile:()=>tile,reserved:t=>t===segment?.to||path.includes(t)||campfires?.placementTile===t||companions.occupies(t),
@@ -350,7 +350,7 @@ areas.register({id:'willowbank',name:'Willowbank',recommendedDestination:'cinder
  interact:a=>willow.interact(a),clearUI:()=>willow.debug?.clearUI(),reset:()=>willow.debug?.stage('meet')
 });
 cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:characterDialogue,resources:resourceActions,combat,equipment,styles,supplies,openStation,player,stop:stopAll,toast,
- hover:()=>hover?.actor||hover?.tree||hover?.resource,approach:selectActor,guideMenu:value=>menus.guide(value),tip:(...args)=>craftingTutorial.showChapterTip(...args),hideTip(){tip.hide();},attacksPrevented:()=>!!assistance?.attacksPrevented,setCombatMode:mode=>assistance?.setMode(mode),showCombatModes:()=>styleMenu.showModes(),
+ hover:()=>hover?.actor||hover?.tree||hover?.resource,approach:selectActor,guideMenu:value=>menus.guide(value),tip:(...args)=>craftingTutorial.showChapterTip(...args),hideTip(){tip.hide();},attacksPrevented:()=>!!assistance?.attacksPrevented,setCombatMode:mode=>assistance?.setMode(mode),abilitiesAuto:()=>assistance?.settings.policies.abilities==='auto',showCombatModes:()=>styleMenu.showModes(),
  working:()=>!!actorTarget||!!segment||path.length>0||combat.working||smithing.working||resourceActions.working||food.working||recipeCrafting.working
 });
 areas.register(cinder);
@@ -542,6 +542,8 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=pla
  if(actionMotion){
   const motion=actionPose=poseBlender.update(motionKey(actionMotion.kind,actionMotion.profile),playerActionMotion(actionMotion.kind,actionMotion.time,elapsed,actionMotion.profile),dt,{instant:actionMotion.kind==='Archery'});
   if(actionMotion.kind!=='Block'||!segment)pose=motion.pose;expression=motion.expression;handWork=motion.handWork;socialHands=motion.hands;sleeping=false;
+  // A finished task or a won fight keeps its happy face through the attack's recovery.
+  if(elapsed<happyUntil)expression='happy';
  }
  else poseBlender.reset();
  const celebration=areas.celebration;

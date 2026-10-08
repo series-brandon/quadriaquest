@@ -34,7 +34,7 @@ test('arrival cannot complete cooking; successful cooking alone finishes its mar
  cooking.start('cookedFish',station);frame(.1);cooking.cancel();feedback.clearDestination();frame(5);
  assert.equal(destination.visible,false);assert.equal(inventory.rawFish,1);
  feedback.destination(tile);feedback.arrived();assert.equal(label(),'Arrived!');
- for(const kind of ['Eating','Crafting','Fishing','Repairing','Fighting']){
+ for(const kind of ['Eating','Crafting','Fishing','Repairing','Fighting','Smelting','Smithing']){
   feedback.destination(tile);feedback.interacting(kind);feedback.arrived();assert.equal(label(),kind);
   feedback.complete();assert.equal(label(),'Done!');
  }

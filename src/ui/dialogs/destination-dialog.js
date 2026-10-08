@@ -15,8 +15,12 @@ export function destinationDialog({areas, visited, source, initial, travelTo, se
     if (problem) travelStatus.value = problem;
     else close('travelled');
   };
+  // A service returns a status to show, or null when it is done and announced itself (the dialog closes).
   const service = run => {
-    serviceStatus.value = source?.available() ? services?.[run]() || '' : 'Preview only — approach an Iter Crystal to use its services.';
+    if (!source?.available()) { serviceStatus.value = 'Preview only — approach an Iter Crystal to use its services.'; return; }
+    const result = services?.[run]();
+    if (result === null) close(run);
+    else serviceStatus.value = result || '';
   };
 
   return [

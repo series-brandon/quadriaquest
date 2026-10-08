@@ -20,6 +20,19 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Polish batch: restore toast, XP notices, victory face, station labels, Simple-mode fixes — 2026-10-08
+- **Crystal Restore:** closes the dialog and toasts "You have been fully restored!" (a service returning `null` closes `destinationDialog`); the aura note is gone. Redistribute is unchanged.
+- **XP notices:** `showSkillReward` merges awards for the same skill within 0.8s into one notice (with a small pop) and stacks a different skill in its own lane, so dual-wield one-twos don't jitter.
+- **Victory face:** combat's `won` hook sets `happyUntil` (1.6s), and the happy face holds over the attack recovery.
+- **Action labels:** `feedback.interacting` draws any label on first use, so the furnace/anvil show Smelting/Smithing (playground feedback buttons added).
+- **Anvil:** no wooden block; it sits on the ground.
+- **Simple mode Strong Strike:** with abilities on Auto, Bristle's lines and the Bruiser task say the combat mode uses it for you (no Energy or button talk); `api.abilitiesAuto`.
+- **Ranged Optimize:** a Ranged setup must hold a ranged weapon (trained fists outscored a new bow, so Class: Ranged / Optimize reported "No better setup found").
+- **Casting over blocks:** a hit taken during a spell keeps the Casting animation.
+- **Balanced (user decision):** only balanced setups compete: an offensive hand item with a defensive one (a shield) in the other hand, or a two-hander with both offensive and defensive stats (`resistance`), which must beat the best pair on damage per second × 1/(1 − reduction). With only offensive gear (e.g. the bow), Balanced ranks like Damage. `playerDefense({held})` counts a defensive two-hander's resistance without the shield's block chance.
+- **Cinderhold equip hint (user decision):** "Equip your Copper Dagger and Copper Shield from your Inventory." (no Optimize mention: Damage, the default, won't pick the shield). Show me how still walks the Inventory.
+- **Verified:** 399 tests (new: Balanced pairing, merged XP notices, cast over block, ranged Optimize with trained fists, Restore closes the dialog, station labels), smoke, both builds, debug isolation, UI check; Cinderhold browser check of Bristle's Simple-mode lines, the Bruiser task, Restore's toast and the anvil.
+
 ### Brand logos and icons — 2026-10-08
 - User-supplied art: originals in `brand/` (not shipped); web logos in `src/assets/brand/` (trimmed WebP); favicon/32px/Apple touch icon in `src/assets/icons/`, linked from `index.html`. See README "Brand art and icons".
 - Splash: the `h1` is the logo (`<picture>`: wide, square at ≤700px; alt "QuadriaQuest"), tagline under it. The Georgia title styles are gone.

@@ -99,7 +99,8 @@ export function createFeedback(scene) {
     },
     interacting(label='Gathering'){
       if(state!=='approaching')return;
-      state='interacting';pin.material.map=workingTextures[label]||workingTextures.Gathering;spinner.visible=true;
+      // Any action names itself (Smelting, Smithing…); its label is drawn the first time it is used.
+      state='interacting';pin.material.map=workingTextures[label]??=statusTexture(label);spinner.visible=true;
     },
     // Ending a walk must never finish a still-running gameplay action.
     arrived(){if(state==='approaching')this.complete();},
