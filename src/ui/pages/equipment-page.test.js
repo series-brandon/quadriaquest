@@ -49,3 +49,25 @@ test('a refused change explains itself instead of disabling buttons', () => {
   assert.equal(s.node.querySelector('.q-page__status').hidden, true);
   assert.deepEqual(slotText(s.node)[1], 'Off handCopper Shield');
 });
+
+test('with assistance, Optimize equips for the current class and reports what changed', async () => {
+  const {combatSystems} = await import('./test-systems.js');
+  const {assistance} = combatSystems();
+  const inventory = reactiveRecord({copperDagger: 0});
+  const equipment = createEquipment({inventory, busy: () => false});
+  const {node} = mount(() => equipmentPage({equipment, inventory, assistance}));
+  const button = [...node.querySelectorAll('.q-button')].find(b => b.textContent.startsWith('Optimize'));
+  assert.equal(button.textContent, 'Optimize for Melee');
+  const report = button.parentElement.querySelector('.q-page__status');
+  assert.equal(report.hidden, true);
+  press(button);
+  assert.equal(report.hidden, false);
+  assert.equal(report.textContent, 'Equipped Copper Dagger.');
+  assistance.setStyle('ranged');
+  assert.equal(button.textContent, 'Optimize for Ranged');
+});
+
+test('without assistance there is no Optimize button', () => {
+  const s = setup();
+  assert.equal([...s.node.querySelectorAll('.q-button')].some(b => b.textContent.startsWith('Optimize')), false);
+});

@@ -108,7 +108,7 @@ Combat assistance is configured through **policies**, and a **mode** is a named 
 - **Retaliate:** Smart (Auto's danger-aware choice), Always or Never. Picking Simple or Pacifist applies Smart or Never, and Expert applies Always; afterwards the player may change it freely. It is not shown while attacks are prevented.
 - **Class** (Melee, Ranged or Magic) is shown while Attack and spell choice is Auto. It selects the style Auto chooses attacks and optimizes equipment for.
 - **Training goal** is shown while Strategy is Auto.
-- **Optimize equipment** is available alongside Class.
+- **Optimize equipment** lives on the Equipment page ("Optimize for <class>", with its report). Switching Class still optimizes automatically, and the Combat page shows that report under Class.
 
 **One-time overrides:**
 - Acting yourself on something a policy leaves to Auto is a one-time override and does not change the mode. Examples: choosing a strategy or attack, or switching an aura on or off.

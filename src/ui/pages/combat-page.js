@@ -91,7 +91,6 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
     h('div', {class: 'q-page__group', hidden: () => !isAuto('attack') || prevented.value},
       h('span', {class: 'q-label'}, 'Class'),
       segmented({label: 'Class', options: STYLES.map(id => ({value: id, label: title(id)})), value: () => settings.value?.style, onChange: id => assistance.setStyle(id)}),
-      h('button', {type: 'button', class: 'q-button', on: {click: () => assistance.optimize()}}, 'Optimize equipment'),
       h('small', {class: 'q-page__help', role: 'status', hidden: () => !(settings.value && assistance.optimizeReport)}, () => (settings.value, assistance?.optimizeReport ?? ''))),
     h('label', {class: 'q-field', hidden: () => !isAuto('strategy') || prevented.value},
       h('span', {class: 'q-label'}, 'Train a specific skill'),

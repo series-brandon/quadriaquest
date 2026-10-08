@@ -70,7 +70,7 @@ export function createPlayerInterface({modals=null,menus,journal,health,resource
  document.addEventListener('pointerdown',e=>{if(!more.hidden&&!more.contains(e.target)&&!mobileNav.contains(e.target))closeMore();});
  let hidden=false,visible=false,clock=0,layoutSignature='',lastAttacked=-Infinity;
  // Equipment page (ui/pages/equipment-page.js): reactive on equipment and the inventory.
- const gear=mount(()=>h('section',{id:'equipment-panel','aria-label':'Equipment'},equipmentPage({equipment,inventory}))).node;$('journal').append(gear);
+ const gear=mount(()=>h('section',{id:'equipment-panel','aria-label':'Equipment'},equipmentPage({equipment,inventory,assistance}))).node;$('journal').append(gear);
  panels.register({id:'equipment',label:'Equipment',icon:'shields',order:80,element:gear});
  $('journal').append($('combat-panel'),$('powers-panel'));
  

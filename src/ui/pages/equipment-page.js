@@ -26,8 +26,10 @@ export function gearFacts(item) {
 
 // Equipment page: what you wear (slot tiles) and the gear you own (rows with their equip
 // actions). Equip rules, copies and busy checks belong to the shared equipment system; the page
-// only calls its actions and follows its revision and the reactive inventory.
-export function equipmentPage({equipment, inventory}) {
+// only calls its actions and follows its revision and the reactive inventory. With `assistance`, an
+// Optimize button equips the best gear for the current class (the same optimize that switching
+// class on the Combat page runs) and shows what it changed.
+export function equipmentPage({equipment, inventory, assistance = null}) {
   const status = signal('');
   const slots = computed(() => (equipment.revision.value, equipment.slots));
   const owned = computed(() => Object.keys(GEAR).filter(id => inventory[id] > 0));
@@ -65,10 +67,19 @@ export function equipmentPage({equipment, inventory}) {
       }));
   });
 
+  const optimizer = () => {
+    const tuned = computed(() => (assistance.revision.value, assistance.settings.style));
+    const report = computed(() => (assistance.revision.value, assistance.optimizeReport));
+    return h('div', {class: 'q-page__group'},
+      h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => assistance.optimize()}}, () => `Optimize for ${title(tuned.value)}`),
+      h('p', {class: 'q-page__status', role: 'status', hidden: () => !report.value}, report));
+  };
+
   return h('div', {class: 'q-page q-equipment-page'},
     h('span', {class: 'q-label'}, 'Worn'),
     worn,
     h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value}, status),
+    assistance ? optimizer() : null,
     h('span', {class: 'q-label'}, 'Your gear'),
     h('p', {class: 'q-page__help', hidden: () => owned.value.length > 0}, 'No gear yet. Craft or find weapons, shields and armor, then equip them here.'),
     gear);

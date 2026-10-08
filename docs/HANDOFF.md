@@ -20,6 +20,12 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Optimize moved to Equipment — 2026-10-08
+- The Optimize button is on the Equipment page (`equipmentPage({…, assistance})`): "Optimize for <current class>", calling the same `assistance.optimize()`, with its report under it. Switching Class on the Combat page still optimizes automatically, and that page keeps showing the report under Class; only its button is gone. COMBAT.md is updated; tests cover the button and its report.
+
+### Phones: no HUD over open journal pages — 2026-10-08
+- While a journal page is open on a phone, `#player-mobile-hud` (resource meters and quick actions) hides, and the page starts at the safe area instead of 112px down. Attacks already close the page, so health doesn't need to stay in view. DESIGN.md is updated.
+
 ### Sidebar overview: map beside the resources — 2026-10-08
 - In the docked desktop sidebar, the minimap sits left and each resource is a row to its right (meter, then its quick action). The section is pinned to the height all five resource rows need (264px plus padding, about 293px total) in every mode, so mode changes don't move the journal. The map is a square filling that height (up to 264px), shrinking only when the sidebar is narrow (about 208px at a 1024px window). Fewer resources (Simple, Pacifist) sit centred beside it.
 - It was a map-above-a-meter-row layout of about 384px, so the journal gains about 90px. The rules are one block at the end of player-interface.css, scoped to desktop (`:is(#player-sidebar, #player-mobile-hud)` at ≥701px). The collapsed-sidebar HUD uses the same layout (floating top right, 404 × 292px; it was 300 × 384). Phones are unchanged.
