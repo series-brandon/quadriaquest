@@ -14,7 +14,7 @@ const REFUSED = 'Check the required materials and finish your current action fir
 // Materials follow the reactive inventory, times follow the reactive skill records, and the recipe
 // in progress follows the crafting system. Filters hide station recipes or the ones you can't make
 // yet. Recipes keep stable element ids (choose-<id>, <id>-detail, <id>-duration, craft-<id>)
-// because tutorials guide them; every detail exists and only the chosen one shows.
+// (and <id>-back) because tutorials guide them; every detail exists and only the chosen one shows.
 //   selected   signal: the chosen recipe (owned by the host so tutorials can choose)
 //   viewing    signal: narrow journals show the detail instead of the grid
 //   start(id)  shared crafting; false when refused. onStarted(id) runs after a start.
@@ -61,7 +61,7 @@ export function craftingPage({inventory, skills = () => ({}), active = () => nul
       return Number(durationFor(recipe.duration, levels[recipe.skill]?.level || levels.Crafting?.level || 1).toFixed(2));
     });
     return h('article', {class: 'q-recipe-detail', id: `${id}-detail`, 'aria-label': recipe.name, hidden: () => selected.value !== id},
-      recipeDetailBody({id, recipe, items: ITEMS, inventory, time: () => `Time · ${seconds.value} seconds`, timeId: `${id}-duration`, onBack: () => { viewing.value = false; }}),
+      recipeDetailBody({id, recipe, items: ITEMS, inventory, time: () => `Time · ${seconds.value} seconds`, timeId: `${id}-duration`, backId: `${id}-back`, onBack: () => { viewing.value = false; }}),
       h('div', {class: 'q-recipe-detail__actions'},
         h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value || selected.value !== id}, status),
         h('button', {

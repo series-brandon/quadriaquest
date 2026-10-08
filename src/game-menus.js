@@ -63,21 +63,22 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,tr
  //   guide({page:'crafting',recipe}) — the Crafting tab, the recipe, then its Craft button
  //   guide({page:'inventory',item,action}) — the Inventory tab, the item, then its action (optional)
  //   guide(null) ends it; starting a guided recipe's craft also ends it.
- // A new guide starts from each page's list, with no recipe chosen.
+ // From another recipe's detail it highlights the way back to the list (the back button in narrow
+ // journals; wide ones show the list beside it, so the recipe itself).
  const guided=signal(null);let itemStep=false;
- function guide(value){
-  guided.value=value||null;
-  if(value?.recipe){selectedRecipe.value=null;viewingRecipe.value=false;}
- }
+ function guide(value){guided.value=value||null;}
  effect(()=>{
   const g=guided.value,page=panels.active.value;
   for(const node of host.querySelectorAll('[data-menu-guide]')){node.classList.remove('gold-guide');node.removeAttribute('data-menu-guide');}
   const onPage=!!g&&page===g.page;
-  let id=g&&!onPage?panels.entry(g.page)?.tab:null;
-  if(onPage&&g.recipe)id=viewingRecipe.value&&selectedRecipe.value===g.recipe?`craft-${g.recipe}`:`choose-${g.recipe}`;
+  let ids=g&&!onPage?[panels.entry(g.page)?.tab]:[];
+  if(onPage&&g.recipe){
+   const chosen=viewingRecipe.value&&selectedRecipe.value;
+   ids=chosen===g.recipe?[`craft-${g.recipe}`]:chosen?[`${chosen}-back`,`choose-${g.recipe}`]:[`choose-${g.recipe}`];
+  }
   const items=onPage&&!!g.item;
   if(items!==itemStep||items){itemStep=items;untracked(()=>inventoryMenu.guide(items?{item:g.item,action:g.action}:false));}
-  if(id)for(const node of host.querySelectorAll(`#${id},[data-tab="${id}"]`)){node.classList.add('gold-guide');node.dataset.menuGuide='';}
+  for(const id of ids.filter(Boolean))for(const node of host.querySelectorAll(`#${id},[data-tab="${id}"]`)){node.classList.add('gold-guide');node.dataset.menuGuide='';}
  });
  return {host,panels,characterPanel,inventoryMenu,events,selectRecipe,guide,get guided(){return guided.peek();},get selectedRecipe(){return selectedRecipe.peek();},characterSection:computed(()=>section.value),openCrafting,openInventory,openCharacter,openSkills,closeMenus,action,setSkillGuidance(value){guidance.value=value;}};
 }

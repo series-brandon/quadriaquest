@@ -15,8 +15,9 @@ const REFUSED = 'Finish what you’re doing first.';
 //   settings(id) → [{label, checked(), onChange(on)}].
 //   isEquipped(id), track() reads the revisions of systems the actions depend on.
 // `view` holds the search, chosen item and phone detail view (inventoryView()); its owner may
-// reset it, as tutorial guidance does. `guide` ({item, action} or null) highlights a stack until it
-// is chosen, then that item's action button with the matching label (Eat, Place…).
+// reset it, as the Sticks lesson does. `guide` ({item, action} or null) highlights a stack until it
+// is chosen, then that item's action button with the matching label (Eat, Place…). From another
+// item's detail in a narrow journal it highlights the way back to the list.
 export function inventoryView() {
   const view = {query: signal(''), chosen: signal(null), viewing: signal(false)};
   view.reset = () => {
@@ -74,7 +75,7 @@ export function inventoryPage({inventory, actions = () => [], settings = () => [
     const id = item.peek(), worn = equipped(id);
     const itemActions = computed(() => (track(), inventory[id], actions(id).map((action, index) => ({...action, index}))));
     return h('section', {class: 'q-item-detail', 'aria-label': ITEMS[id].name, 'aria-live': 'polite'},
-      h('button', {type: 'button', class: 'q-back q-inventory__back', on: {click: () => { viewing.value = false; }}}, iconNode('back'), h('span', null, 'All items')),
+      h('button', {type: 'button', class: 'q-back q-inventory__back', 'data-guide': () => !!guide.value?.item && guide.value.item !== id && viewing.value, on: {click: () => { viewing.value = false; }}}, iconNode('back'), h('span', null, 'All items')),
       h('div', {class: 'q-item-detail__head'},
         h('span', {class: 'q-item-detail__icon', 'aria-hidden': 'true'}, iconNode(id)),
         h('span', {class: 'q-item-detail__title'},

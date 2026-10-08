@@ -27,9 +27,9 @@ export function recipeTile({id, recipe, pressed, ready, tag = () => '', label = 
 // The body of a recipe's detail: a back button (narrow layouts), the head (icon, name, time), the
 // description, then its parts: Ingredients (used up), Tools (kept), Station and Makes. A station
 // recipe's Station row is checked when you're at that station (`atStation`, its kind), crossed otherwise.
-//   recipeDetailBody({id, recipe, items, inventory, time, timeId, onBack, backLabel, atStation})
-//   time: a function giving the time line; timeId: a stable id for it (tutorials, tests).
-export function recipeDetailBody({id, recipe, items, inventory, time, timeId = null, onBack, backLabel = 'All recipes', atStation = null}) {
+//   recipeDetailBody({id, recipe, items, inventory, time, timeId, backId, onBack, backLabel, atStation})
+//   time: a function giving the time line; timeId, backId: stable ids for it and the back button (guides, tests).
+export function recipeDetailBody({id, recipe, items, inventory, time, timeId = null, backId = null, onBack, backLabel = 'All recipes', atStation = null}) {
   const name = item => items[item]?.name ?? item;
   const need = (item, count) => {
     const owned = () => inventory[item] || 0;
@@ -48,7 +48,7 @@ export function recipeDetailBody({id, recipe, items, inventory, time, timeId = n
       h('strong', {'aria-label': here ? `At the ${label.toLowerCase()}` : `Needs ${/^[aeiou]/i.test(label) ? 'an' : 'a'} ${label.toLowerCase()}`}, iconNode(here ? 'check' : 'close')));
   };
   return h('div', {class: 'q-recipe-detail__body'},
-    h('button', {type: 'button', class: 'q-back q-recipe-detail__back', on: {click: onBack}}, iconNode('back'), h('span', null, backLabel)),
+    h('button', {type: 'button', id: backId, class: 'q-back q-recipe-detail__back', on: {click: onBack}}, iconNode('back'), h('span', null, backLabel)),
     h('div', {class: 'q-item-detail__head'},
       h('span', {class: 'q-item-detail__icon', 'aria-hidden': 'true'}, iconNode(id)),
       h('span', {class: 'q-item-detail__title'},

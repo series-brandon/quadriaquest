@@ -25,7 +25,9 @@ export function mountJournalTutorialLock(host, controller) {
   // Whether a guided step restricts the journal; the journal and HUD read it reactively.
   const locked = signal(false);
   function actions() {
-    const guided = [...host.querySelectorAll('.gold-guide[id],.gold-guide[data-tab]')].find(node => !node.closest('[hidden]') && !node.disabled);
+    // The visible guided control (a guide may mark two, such as a back button and the recipe
+    // beside it, when the layout shows only one).
+    const guided = [...host.querySelectorAll('.gold-guide[id],.gold-guide[data-tab]')].find(node => !node.closest('[hidden]') && !node.disabled && (node.checkVisibility?.() ?? true));
     return journalTutorialActions(controller.stage, guided && (guided.id || guided.dataset.tab));
   }
   function allowed(node, rules = actions()) {

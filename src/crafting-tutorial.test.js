@@ -148,9 +148,9 @@ test('the axe lesson has the player open Crafting, choose the Crude Axe, then cr
   assert.equal(get('axes-detail').hidden,false);assert.ok(guided('craft-axes'));assert.equal(guided('choose-axes'),false);
   get('craft-axes').click();assert.deepEqual(crafts,['axes']);assert.equal(tutorial.stage,'crafting');
   assert.equal(document.querySelectorAll('[data-menu-guide]').length,0);
-  // Interrupted: back to the Crafting tab, and the recipe must be chosen again.
+  // Interrupted: back to the Crafting tab; the page reopens where it was, on the Crude Axe.
   tutorial.menus.closeMenus();tutorial.craftCancelled();assert.equal(tutorial.stage,'retry');assert.ok(guided('open-crafting'));
-  get('open-crafting').click();assert.equal(tutorial.stage,'recipe');assert.ok(guided('choose-axes'));
+  get('open-crafting').click();assert.equal(tutorial.stage,'recipe');assert.ok(guided('craft-axes'));
  }finally{globalThis.document=previous;}
 });
 
@@ -185,5 +185,34 @@ test('the skills lesson has the player open Character, choose Skills, then open 
   row.setAttribute('open','');row.dispatchEvent(new window.Event('toggle'));
   assert.equal(tutorial.stage,'skills-detail');assert.match(get('tutorial-copy').textContent,/Here's your Gathering skill/);
   assert.equal(row.hasAttribute('data-guide'),false);
+ }finally{globalThis.document=previous;}
+});
+
+test('a recipe guide from another recipe shows the way back to the list instead of going there',()=>{
+ const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
+ try{
+  const menus=createGameMenus({getInventory:()=>reactiveRecord({sticks:2,stones:2}),getSkills:()=>({}),startCraft:()=>true});
+  const guided=id=>get(id).classList.contains('gold-guide');
+  get('open-crafting').click();get('choose-axes').click();
+  menus.guide({page:'crafting',recipe:'pickaxes'});
+  assert.equal(menus.selectedRecipe,'axes','the page stays where the player left it');
+  assert.ok(guided('axes-back'),'narrow journals: the back button');assert.ok(guided('choose-pickaxes'),'wide journals: the recipe beside it');
+  assert.equal(guided('craft-axes'),false);
+  get('axes-back').click();assert.equal(guided('axes-back'),false);assert.ok(guided('choose-pickaxes'));
+  get('choose-pickaxes').click();assert.ok(guided('craft-pickaxes'));
+ }finally{globalThis.document=previous;}
+});
+
+test('an item guide from another item highlights the way back to the list',()=>{
+ const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
+ try{
+  const menus=createGameMenus({getInventory:()=>reactiveRecord({sticks:2,stones:2}),getSkills:()=>({}),startCraft:()=>false});
+  const panel=menus.inventoryMenu.panel;
+  get('open-inventory').click();panel.querySelector('[data-item="stones"]').click();
+  menus.guide({page:'inventory',item:'sticks'});
+  assert.equal(panel.querySelector('.q-inventory__back').hasAttribute('data-guide'),true);
+  assert.equal(panel.querySelector('[data-item="sticks"]').hasAttribute('data-guide'),true);
+  panel.querySelector('.q-inventory__back').click();
+  assert.equal(panel.querySelector('.q-inventory__back')?.hasAttribute('data-guide')??false,false);
  }finally{globalThis.document=previous;}
 });
