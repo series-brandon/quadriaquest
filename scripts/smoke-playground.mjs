@@ -107,19 +107,32 @@ try {
   if (!results.viewer || !results.viewerClosed || !results.reopened || !results.daggerDamage || !results.objective || !results.receipt || !results.levelUp || !results.splats) failed = true;
   await page.close();
 
-  // The normal build (dist), when present: starts from the splash without errors.
+  // The normal build (dist), when present: a new game from the splash, played as a player would,
+  // through the opening to the first Quests lesson (checkpoints skip this real ordering), on
+  // desktop and a phone.
   if (existsSync(path.resolve('dist', 'index.html'))) {
     const game = await serve(path.resolve('dist'));
     try {
-      const normal = await browser.newPage({viewport: {width: 1280, height: 800}});
-      normal.on('pageerror', error => errors.push(`dist pageerror: ${error.message}`));
-      normal.on('console', message => { if (message.type() === 'error') errors.push(`dist console: ${message.text()}`); });
-      await normal.goto(game.url, {waitUntil: 'load'});
-      await normal.click('#splash-play', {timeout: 15000});
-      await normal.waitForTimeout(3000);
-      const debugFree = await normal.evaluate(() => !window.quadriaquest);
-      console.log(JSON.stringify({normalBuildStarted: true, debugFree}));
-      if (!debugFree) failed = true;
+      for (const [label, viewport, tab] of [['desktop', {width: 1280, height: 800}, '#open-quests'], ['phone', {width: 390, height: 844}, '#player-mobile-nav [data-tab="open-quests"]']]) {
+        const phone = label === 'phone';
+        const normal = await browser.newPage({viewport, isMobile: phone, hasTouch: phone});
+        normal.on('pageerror', error => errors.push(`dist ${label} pageerror: ${error.message}`));
+        normal.on('console', message => { if (message.type() === 'error') errors.push(`dist ${label} console: ${message.text()}`); });
+        await normal.goto(game.url, {waitUntil: 'load'});
+        await normal.click('#splash-play', {timeout: 15000});
+        await normal.waitForTimeout(2500);
+        const debugFree = await normal.evaluate(() => !window.quadriaquest);
+        const reached = await playToFirstQuest(normal);
+        const guided = reached && await normal.evaluate(selector => {
+          const node = document.querySelector(selector), box = node?.getBoundingClientRect();
+          return !!node && node.classList.contains('gold-guide') && !node.closest('[hidden]') && box.width > 0 && box.height > 0;
+        }, tab);
+        if (guided) { await normal.click(tab, {timeout: 5000}); await normal.waitForTimeout(400); }
+        const opened = guided && await normal.evaluate(() => !document.getElementById('quests-panel').hidden && /Here are your quests/.test(document.getElementById('tutorial-copy')?.textContent));
+        console.log(JSON.stringify({normalBuild: label, debugFree, reachedFirstQuest: reached, questsTabGuided: guided, questsOpened: opened}));
+        if (!debugFree || !opened) failed = true;
+        await normal.close();
+      }
     } finally { await game.close(); }
   }
 } catch (error) {
@@ -130,5 +143,35 @@ try {
   await server.close();
 }
 if (errors.length) { console.error(errors.join('\n')); failed = true; }
+
+// Plays the opening like a player: advances dialogue, accepts the first choice of each prompt, and
+// does the camera/move lessons, until the tip asks for the Quests tab. False if it stalls.
+async function playToFirstQuest(page) {
+  let last = '', same = 0;
+  for (let i = 0; i < 120; i++) {
+    const s = await page.evaluate(() => {
+      const shown = el => !!el && !el.closest('[hidden]') && el.getBoundingClientRect().width > 0;
+      const dialogue = document.getElementById('dialogue'), tip = document.getElementById('gather-tutorial'), next = document.getElementById('tutorial-continue');
+      return {dialogue: shown(dialogue) ? dialogue.textContent.slice(0, 60) : null,
+        buttons: shown(dialogue) ? [...dialogue.querySelectorAll('button')].filter(shown).map(b => b.textContent.trim()) : [],
+        tip: shown(tip) ? `${tip.querySelector('#tutorial-title')?.textContent}|${tip.querySelector('#tutorial-copy')?.textContent}` : null,
+        next: shown(next) && !next.disabled};
+    });
+    if (s.tip?.includes('Open the Quests tab')) return true;
+    const key = JSON.stringify(s);
+    same = key === last ? same + 1 : 0; last = key;
+    if (same > 20) return false;
+    if (s.dialogue) {
+      const choice = s.buttons.find(b => b && !/^No\b|another|change/i.test(b));
+      if (choice) await page.locator('#dialogue button', {hasText: choice}).first().click().catch(() => {});
+      else if (!s.buttons.length) await page.click('#dialogue', {position: {x: 20, y: 20}}).catch(() => {});
+    } else if (s.tip?.startsWith('Rotate')) { await page.keyboard.down('ArrowRight'); await page.waitForTimeout(1200); await page.keyboard.up('ArrowRight'); }
+    else if (s.tip?.startsWith('Zoom')) { const {width, height} = page.viewportSize(); await page.mouse.move(width / 3, height / 2); for (let k = 0; k < 6; k++) { await page.mouse.wheel(0, -200); await page.waitForTimeout(80); } }
+    else if (s.tip?.startsWith('Find your footing')) { const {width, height} = page.viewportSize(); await page.mouse.click(width * 0.3, height * 0.6); await page.waitForTimeout(1500); }
+    else if (s.next) await page.click('#tutorial-continue');
+    await page.waitForTimeout(500);
+  }
+  return false;
+}
 console.log(failed ? 'Smoke check FAILED.' : 'Smoke check passed: no page errors.');
 process.exit(failed ? 1 : 0);

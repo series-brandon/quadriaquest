@@ -65,7 +65,7 @@ export function createCraftingTutorial({menus,narrator,tip,freePlay=false,onComp
   function startQuests(done){
     closeMenus();guide(null);advance=null;questsDone=done;setStage('quests-intro');host.hidden=true;
     updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',0,6);
-    tutorial("You've been given a quest! Open your game menu to view your quests.",false,()=>{
+    tutorial("You've been given a quest! Check your Quests tab to view it.",false,()=>{
       setStage('quests-reveal');
       // The menus (desktop sidebar, phone tab bar) appear with this line.
       say('Oh wait, I forgot... here you go!',()=>{

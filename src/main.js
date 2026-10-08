@@ -175,6 +175,9 @@ const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.ac
 let playerInterface;
 const playerResources=createPlayerResources();
 const health=createPlayerHealth(),healthVisible=signal(false);
+// The player UI (vitals, sidebar or tab bar) shows once play starts, or earlier when the first-quest
+// line reveals the menus ahead of the camera lessons.
+const playerUiShown=()=>opening.playable||!menus.host.hidden;
 document.body.append(mount(()=>resourceMeter({id:'player-health',kind:'health',label:'Health',resource:health,hidden:()=>!healthVisible.value})).node);
 // Player health plate just above the slime (floating XP starts above it): shown in combat, whenever
 // health is below full, and while a control effect is active.
@@ -451,7 +454,7 @@ const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=n
 // One batch per frame: UI bindings flush once, after the frame's state changes.
 function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
 // Playground builds attribute frame time to these laps; normal builds compile them away.
-function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update(dt,(opening.playable||!menus.host.hidden)&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
@@ -480,7 +483,6 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  auras.update(dt);playerControl.update(dt);
  assistance.update(dt);
  playerResources.regenerate(dt,{health,attribute:character.attribute,inCombat:combat.inCombat,aurasActive:auras.anyActive});
- healthVisible.value=opening.playable;
  const resourceMotion=resourceActions.update(dt);
  gatherTime=resourceActions.state?.kind==='Gathering'?resourceActions.state.age:0;
  const carpentryMotion=carpentry.update(dt);
