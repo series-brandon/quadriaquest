@@ -324,9 +324,9 @@ willow=createWillowbank({narrator,tipBox:tip,dialogue:characterDialogue,scene,wo
  stop:stopAll,toast,showItems:showItemChanges,approach:selectActor,sound:name=>gameAudio.play(name),
  face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},
  teleport(t){if(!t)return;path=[];segment=null;tile=t;player.position.set(t.x-6,t.h,t.z-6);},
- openCrafting(){menus.panels.select('crafting');},showTabs:(...ids)=>{for(const id of ids)menus.panels.setAvailable(id,true);},selectRecipe:id=>{if(id)menus.selectRecipe(id);},
+ openCrafting(){menus.panels.select('crafting');},showTabs:(...ids)=>{for(const id of ids)menus.panels.setAvailable(id,true);},menuCovering:()=>journal.covering,selectRecipe:id=>{if(id)menus.selectRecipe(id);},
  showTip:(...args)=>craftingTutorial.showChapterTip(...args),say:(...args)=>craftingTutorial.sayChapter(...args),
- openInventory:()=>menus.openInventory(),closeMenus:()=>menus.closeMenus()
+ openInventory:()=>menus.openInventory(),guideInventory:(item,action)=>menus.inventoryMenu.guide(item?{item,action}:false),closeMenus:()=>menus.closeMenus()
 });
 finale=createTutorialFinale({narrator,tip,destination:'willowbank',parent:clearingGroup,tiles:clearingTiles,spawn:clearingTiles.get(key(SPAWN.x,SPAWN.z)),active:()=>areas.id==='clearing',crystals,player,visual,trees,resources,pickables,inventory,
  getTile:()=>tile,getAngle:()=>angle,stop:stopAll,showItemChanges,approach:selectActor,

@@ -18,9 +18,9 @@ function setup({items = {cookedFish: 2, sticks: 3}} = {}) {
     ? [{label: 'Eat', disabled: !(inventory[id] > 0), run: () => (busy ? false : (inventory[id]--, undefined))}]
     : id === 'swords' ? [{label: worn.has(id) ? 'Unequip' : 'Equip', disabled: false, run: () => { worn.has(id) ? worn.delete(id) : worn.add(id); revision.value++; }}] : []);
   const settings = id => (id === 'cookedFish' ? [{label: 'Allow auto eating', checked: () => (revision.value, allowed.has(id)), onChange: on => { on ? allowed.add(id) : allowed.delete(id); revision.value++; }}] : []);
-  const guided = signal(false), view = inventoryView();
-  const {node} = mount(() => inventoryPage({inventory, actions, settings, isEquipped: id => worn.has(id), track: () => revision.value, onSelect: id => selections.push(id), guided, view}));
-  return {node, inventory, allowed, selections, guided, view, setBusy: on => { busy = on; }};
+  const guide = signal(null), view = inventoryView();
+  const {node} = mount(() => inventoryPage({inventory, actions, settings, isEquipped: id => worn.has(id), track: () => revision.value, onSelect: id => selections.push(id), guide, view}));
+  return {node, inventory, allowed, selections, guide, view, setBusy: on => { busy = on; }};
 }
 
 test('stacks follow the reactive inventory, in catalogue order, without rebuilding rows', () => {
@@ -102,17 +102,28 @@ test('search filters the stacks; phones switch between the stacks and the detail
   assert.equal(page.dataset.view, 'list');
 });
 
-test('tutorial guidance resets the view and highlights Sticks; empty inventories say so', () => {
+test('tutorial guidance resets the view and highlights an item; empty inventories say so', () => {
   const s = setup();
   s.view.query.value = 'fish';
   s.view.chosen.value = 'cookedFish';
   s.view.reset();
-  s.guided.value = true;
+  s.guide.value = {item: 'sticks'};
   assert.equal(s.node.querySelector('input[type=search]').value, '');
   assert.equal(s.node.querySelector('[data-item=sticks]').hasAttribute('data-guide'), true);
   assert.equal(s.node.querySelector('[data-item=cookedFish]').hasAttribute('data-guide'), false);
-  s.guided.value = false;
+  s.guide.value = null;
   assert.equal(s.node.querySelector('[data-item=sticks]').hasAttribute('data-guide'), false);
+
+  // Item, then action: the stack until it is chosen, then its Eat button.
+  s.guide.value = {item: 'cookedFish', action: 'Eat'};
+  const fish = s.node.querySelector('[data-item=cookedFish]');
+  assert.equal(fish.hasAttribute('data-guide'), true);
+  assert.equal(s.node.querySelector('.q-item-detail__actions [data-guide]'), null, 'no action guide before choosing');
+  press(fish);
+  assert.equal(fish.hasAttribute('data-guide'), false);
+  assert.equal(s.node.querySelector('.q-item-detail__actions [data-guide]')?.textContent, 'Eat');
+  s.guide.value = null;
+  assert.equal(s.node.querySelector('.q-item-detail__actions [data-guide]'), null);
 
   const empty = setup({items: {}});
   assert.match(empty.node.textContent, /Your inventory is empty/);

@@ -1,9 +1,12 @@
 import {displayedLoss} from './combat-formulas.js';
+// Health the finger smash costs: enough that it is still worth eating by the end of the chapter
+// (passive regeneration erased a smaller loss before the meal).
+export const INJURY_DAMAGE=20;
 export function createBridgeInjury(){
  let applied=false;
  return {get applied(){return applied;},reset(){applied=false;},atProgress(progress,health){
   if(applied||progress<.75)return null;
-  applied=true;const next=Math.max(1,health-5);return {health:next,damage:displayedLoss(health,next)};
+  applied=true;const next=Math.max(1,health-INJURY_DAMAGE);return {health:next,damage:displayedLoss(health,next)};
  }};
 }
 export function hammerInjuryPose(time){

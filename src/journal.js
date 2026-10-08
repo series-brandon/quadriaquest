@@ -71,7 +71,10 @@ export function mountJournal(menus,controller,settings){
   panels.dismiss();menus.closeMenus('dismiss');
  }
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')&&!shell.hidden){e.preventDefault();closePage();}});
- return {setDocked(value){docked.value=!!value;},compact(){expanded.value=false;},get locked(){return tutorialLock.locked;},get expanded(){return expanded.peek();}};
+ return {setDocked(value){docked.value=!!value;},compact(){expanded.value=false;},
+  // Whether an open journal covers the world (phones, or the undocked desktop journal); the docked
+  // sidebar never does.
+  get covering(){return !hidden.peek()&&!dockedDesktop.peek();},get locked(){return tutorialLock.locked;},get expanded(){return expanded.peek();}};
 }
 
 function readExpanded(){

@@ -105,6 +105,23 @@ try {
   });
   console.log(JSON.stringify(results, null, 1));
   if (!results.viewer || !results.viewerClosed || !results.reopened || !results.daggerDamage || !results.objective || !results.receipt || !results.levelUp || !results.splats) failed = true;
+
+  // Willowbank: catching the first Pondfish (real clicks) must lead Reed into the flint step, with
+  // the desktop journal docked beside the world.
+  await page.evaluate(() => { const s = document.querySelector('#dev-checkpoint'); s.value = 'willowbank:fish'; s.dispatchEvent(new Event('change')); document.querySelector('[data-dev="checkpoint"]').click(); });
+  await page.waitForTimeout(2500);
+  await walkAndClick(page, 16, 14);
+  const followUp = await waitFor(page, () => /A fine catch/.test(document.getElementById('character-dialogue')?.textContent || ''), 45000);
+  // Repair the bridge with a hammer in hand: Show me how brings the (off-screen) bridge into view.
+  await page.evaluate(() => { const s = document.querySelector('#dev-checkpoint'); s.value = 'willowbank:bridge'; s.dispatchEvent(new Event('change')); document.querySelector('[data-dev="checkpoint"]').click(); });
+  await page.waitForTimeout(2500);
+  const inView = () => page.evaluate(() => { const p = window.quadriaquest.screenFor(18, 9); return p.x > 0 && p.y > 0 && p.x < innerWidth && p.y < innerHeight; });
+  const bridgeHidden = !(await inView());
+  await page.click('#tutorial-help').catch(() => {});
+  await page.waitForTimeout(1500);
+  const bridgeShown = await inView();
+  console.log(JSON.stringify({willowbankCatchFollowUp: followUp, bridgeHelpBringsBridgeIntoView: bridgeHidden && bridgeShown}));
+  if (!followUp || !bridgeShown) failed = true;
   await page.close();
 
   // The normal build (dist), when present: a new game from the splash, played as a player would,
@@ -143,6 +160,32 @@ try {
   await server.close();
 }
 if (errors.length) { console.error(errors.join('\n')); failed = true; }
+
+async function waitFor(page, test, ms) {
+  return page.waitForFunction(test, null, {timeout: ms, polling: 250}).then(() => true, () => false);
+}
+
+// Clicks a world tile like a player (via the dev API's screenFor). An off-screen target is reached by
+// clicking the farthest visible tile on the way, clear of the tip and sidebar, until it is in view.
+async function walkAndClick(page, x, z) {
+  for (let hop = 0; hop < 20; hop++) {
+    const plan = await page.evaluate(([x, z]) => {
+      const q = window.quadriaquest, me = q.getState().tile;
+      const clear = p => p.x > 40 && p.y > 60 && p.y < innerHeight - 60 && document.elementFromPoint(p.x, p.y)?.tagName === 'CANVAS';
+      const target = q.screenFor(x, z);
+      if (clear(target)) return {click: target};
+      for (let f = 0.9; f > 0.05; f -= 0.1) {
+        try { const p = q.screenFor(Math.round(me.x + (x - me.x) * f), Math.round(me.z + (z - me.z) * f)); if (clear(p)) return {walk: p}; } catch {}
+      }
+      return null;
+    }, [x, z]);
+    if (!plan) return false;
+    if (plan.click) { await page.mouse.click(plan.click.x, plan.click.y); return true; }
+    await page.mouse.click(plan.walk.x, plan.walk.y);
+    await page.waitForTimeout(2500);
+  }
+  return false;
+}
 
 // Plays the opening like a player: advances dialogue, accepts the first choice of each prompt, and
 // does the camera/move lessons, until the tip asks for the Quests tab. False if it stalls.

@@ -26,6 +26,7 @@
 .q-item[aria-pressed='true'] { border-color: var(--q-control-pressed); background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); }
 .q-item:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
 .q-item[data-guide] { border-color: var(--q-guide); box-shadow: inset 0 0 0 2px var(--q-guide), 0 0 0 4px var(--q-guide-glow); }
+.q-item-detail__actions .q-button[data-guide] { border-color: var(--q-guide); box-shadow: inset 0 0 0 2px var(--q-guide), 0 0 0 4px var(--q-guide-glow); }
 .q-item__icon svg { inline-size: 26px; block-size: 26px; }
 .q-item__name {
   display: -webkit-box;

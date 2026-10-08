@@ -20,6 +20,30 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Eat "Show me how" — 2026-10-08
+- **User report (desktop):** the Willowbank Eat step's Show me how only opened the Inventory.
+- **Fix:** the inventory guide is general now. `inventoryMenu.guide({item, action})` (`true` still means the Sticks lesson) highlights the stack until it is chosen, then that item's action button with the matching label. The inventory page takes `guide` (`{item, action}` or null) instead of `guided`.
+- Willowbank's `eatHelp` opens Inventory and guides Cooked Pondfish → Eat, for both the tip and the Quests-page help. The area API has `guideInventory(item, action)`. `hideGuide()` clears it, and eating clears it at once.
+- **Verified headless** on desktop and phone (390×844, touch): the fish is highlighted, then Eat after choosing it, and eating finishes the chapter with no guide left. The inventory page test covers item → action.
+
+### Finger smash damage — 2026-10-08
+- The Willowbank hammer injury now costs **20 health** (was 5), from `INJURY_DAMAGE` in `bridge-injury.js`. Willowbank's playground checkpoints after the bridge use the same constant for their starting health. At the base out-of-combat rate (1 health per 6s) it takes about 2 minutes to regenerate, so it usually remains for the meal. The Eat objective text now says the fish restores 20 health, matching `FOODS.cookedFish`.
+
+### Willowbank "Show me how" for world targets — 2026-10-08
+- **User report:** on Repair the bridge, Show me how did nothing.
+- **Cause:** with a Crude Hammer already in hand (the usual case after the previous step), the help only switched on the bridge highlight. The bridge is off-screen from the arrival area, so nothing visible changed. The Catch Raw Pondfish help had the same issue for the fishing spot. Without the tool, the help already worked (it opens Crafting on the recipe).
+- **Fix:** `showTarget(x, z)` in willowbank.js highlights the target and pans the camera to it (the existing `introFocus` focus, with a 1.4s hold, then back). It closes menus first. `bridgeHelp` and `fishHelp` serve both the tip and the Quests-page help.
+- **Verified headless:** from the bridge checkpoint, the help pans to the highlighted bridge and returns. `npm run smoke` checks the bridge comes into view after pressing help.
+
+### Willowbank stalled after the first catch — 2026-10-08
+- **User report:** Broken Bridge Rescue stopped after catching a Pondfish instead of continuing to flint, Flint and Stone, the Campfire, placing it, cooking and eating.
+- **Cause:** Reed's follow-up ("A fine catch!… Look near the water for Flint") waited for `document.getElementById('journal').hidden`. The desktop journal is now docked in the sidebar and never hidden, so the follow-up never played.
+- **Fix:** the journal exposes `covering` (open, and not the docked desktop sidebar: phones or the undocked journal). The area API has `menuCovering()`, and Willowbank waits on that. No other area code reads menu DOM state.
+- **Verified headless (desktop, real clicks):**
+  - From the Catch Raw Pondfish checkpoint, the catch leads to Reed's follow-up, then flint, then "Make yourself a Flint and Stone…".
+  - From the Prepare a Campfire checkpoint: craft Campfire, place it from Inventory, "cold fish" line, cook one at the fire, "best part" line, eat from Inventory, closing lines, then "Broken Bridge Rescue — Complete!".
+- `npm run smoke` now catches a Pondfish in Willowbank (walking via `screenFor`) and requires the follow-up.
+
 ### Tutorial menus, opening shadow and phone notices — 2026-10-08
 - **Old menu button removed:** `#game-menu-toggle`, its CSS and its tutorial stages (`quests-toggle`, `skills-toggle`, `inventory-toggle`, `menu`) are gone. On desktop it soft-locked the first quest: the docked journal already showed Quests, so the tab click did nothing.
 - **Lessons guide the real tabs:** "Oh wait, I forgot... here you go!" reveals the menus (desktop sidebar, phone bottom tab bar). The tip then guides the tab directly: Quests, Character (skills), Inventory, Crafting (axe, retry and pickaxe guidance).

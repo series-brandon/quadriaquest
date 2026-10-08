@@ -15,7 +15,8 @@ const REFUSED = 'Finish what you’re doing first.';
 //   settings(id) → [{label, checked(), onChange(on)}].
 //   isEquipped(id), track() reads the revisions of systems the actions depend on.
 // `view` holds the search, chosen item and phone detail view (inventoryView()); its owner may
-// reset it, as tutorial guidance does. `guided` highlights the Sticks stack.
+// reset it, as tutorial guidance does. `guide` ({item, action} or null) highlights a stack until it
+// is chosen, then that item's action button with the matching label (Eat, Place…).
 export function inventoryView() {
   const view = {query: signal(''), chosen: signal(null), viewing: signal(false)};
   view.reset = () => {
@@ -26,7 +27,7 @@ export function inventoryView() {
   return view;
 }
 
-export function inventoryPage({inventory, actions = () => [], settings = () => [], isEquipped = () => false, track = () => {}, onSelect = () => {}, guided = signal(false), view = inventoryView()}) {
+export function inventoryPage({inventory, actions = () => [], settings = () => [], isEquipped = () => false, track = () => {}, onSelect = () => {}, guide = signal(null), view = inventoryView()}) {
   const {query, chosen, viewing} = view;
   const status = signal('');
 
@@ -58,7 +59,7 @@ export function inventoryPage({inventory, actions = () => [], settings = () => [
       type: 'button',
       class: 'q-item',
       'data-item': id,
-      'data-guide': () => guided.value && id === 'sticks',
+      'data-guide': () => guide.value?.item === id && chosen.value !== id,
       'aria-pressed': () => selected.value === id,
       'aria-label': () => `${name}${worn.value ? ', equipped' : ''}, quantity ${inventory[id]}`,
       on: {click: () => choose(id)},
@@ -84,6 +85,7 @@ export function inventoryPage({inventory, actions = () => [], settings = () => [
         type: 'button',
         class: 'q-button',
         disabled: () => !!action.value.disabled,
+        'data-guide': () => !!guide.value?.action && guide.value.item === id && chosen.value === id && guide.value.action === action.value.label,
         on: {click: () => run(action.peek())},
       }, () => action.value.label)),
       h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value}, status),
