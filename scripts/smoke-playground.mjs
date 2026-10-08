@@ -1,7 +1,9 @@
 // Dev-only startup smoke check for the built playground (dist-playground): loads it in installed
 // Chrome (hardware GPU, like the perf harness's dev-gpu environment), exercises the kit HUD
-// surfaces, and fails on any page error. One bounded browser, always closed.
-//   npm run build:debug && node scripts/smoke-playground.mjs
+// surfaces and area hooks, then starts the normal build (dist) when present. Fails on any page
+// error. One bounded browser, always closed.
+//   npm run build && npm run build:debug && node scripts/smoke-playground.mjs
+import {existsSync} from 'node:fs';
 import path from 'node:path';
 import {chromium} from 'playwright';
 import {serve} from '../perf/lib/serve.mjs';
@@ -21,6 +23,14 @@ try {
 
   const results = await page.evaluate(async () => {
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const press = selector => { const el = document.querySelector(selector); if (!el) throw new Error(`missing ${selector}`); el.click(); };
+    // Grouped playground buttons become a select plus Run (playground-layout.js `dropdown`).
+    const command = (key, label) => {
+      const select = document.getElementById(`dev-command-${key}`), option = select && [...select.options].find(o => o.textContent === label);
+      if (!option) throw new Error(`missing ${key} command "${label}"`);
+      select.value = option.value;
+      press(`[data-command="${key}"]`);
+    };
     const pick = (selector, value) => { const s = document.querySelector(selector); s.value = value; s.dispatchEvent(new Event('change')); };
     const out = {};
     // Model viewer: models, motions, the slime loadout, playback, close and reopen.
@@ -72,10 +82,37 @@ try {
     document.querySelector('[data-dev="levels"]').click();
     await wait(300);
     out.levelUp = document.querySelector('#skill-rewards .q-level')?.textContent;
+    // Willowbank's playground hooks: a checkpoint stage, the shared splats, and the full reset.
+    pick('#dev-checkpoint', 'willowbank:fish');
+    press('[data-dev="checkpoint"]');
+    await wait(2500);
+    for (const kind of ['Damage splat', 'Blocked splat', 'Miss splat']) command('feedback', kind);
+    await wait(100);
+    out.splats = document.querySelectorAll('.combat-hit').length;
+    command('reset', 'Full test area');
+    await wait(500);
+    out.reset = true;
     return out;
   });
   console.log(JSON.stringify(results, null, 1));
-  if (!results.viewer || !results.viewerClosed || !results.reopened || !results.daggerDamage || !results.objective || !results.receipt || !results.levelUp) failed = true;
+  if (!results.viewer || !results.viewerClosed || !results.reopened || !results.daggerDamage || !results.objective || !results.receipt || !results.levelUp || !results.splats) failed = true;
+  await page.close();
+
+  // The normal build (dist), when present: starts from the splash without errors.
+  if (existsSync(path.resolve('dist', 'index.html'))) {
+    const game = await serve(path.resolve('dist'));
+    try {
+      const normal = await browser.newPage({viewport: {width: 1280, height: 800}});
+      normal.on('pageerror', error => errors.push(`dist pageerror: ${error.message}`));
+      normal.on('console', message => { if (message.type() === 'error') errors.push(`dist console: ${message.text()}`); });
+      await normal.goto(game.url, {waitUntil: 'load'});
+      await normal.click('#splash-play', {timeout: 15000});
+      await normal.waitForTimeout(3000);
+      const debugFree = await normal.evaluate(() => !window.quadriaquest);
+      console.log(JSON.stringify({normalBuildStarted: true, debugFree}));
+      if (!debugFree) failed = true;
+    } finally { await game.close(); }
+  }
 } catch (error) {
   failed = true;
   console.error(error);

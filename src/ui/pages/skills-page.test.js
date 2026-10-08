@@ -9,7 +9,6 @@ import {createCharacter} from '../../character.js';
 
 installDom();
 
-const press = el => el.dispatchEvent(new window.Event('click'));
 
 function setup() {
   const character = createCharacter();

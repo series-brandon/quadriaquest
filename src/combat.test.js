@@ -10,9 +10,6 @@ import {createRecipeCrafting} from './recipe-crafting.js';
 import {ENEMIES} from './combat-rules.js';
 import {createCharacter} from './character.js';
 import {createResource} from './player-resources.js';
-import {GEAR} from './equipment.js';
-import {SPELLS} from './combat-styles.js';
-import {UNARMED} from './combat-profile.js';
 import {totalXpForLevel,XP_BASE} from './combat-formulas.js';
 // roll .5: ordinary hit both ways (no crit, dodge, block or 1% enemy miss). roll .005: enemy misses; player crits.
 const BRUISER_HIT=12,PLAYER_INTERVAL=2.55/1.02,CAST_INTERVAL=3/1.02;

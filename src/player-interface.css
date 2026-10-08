@@ -9,7 +9,7 @@
 #overview-vitals #player-health{position:relative;inset:auto;grid-column:1;grid-row:1;padding:0}
 .resource-placeholder-action.health{grid-column:1}
 /* The combat warning chip (ui/hud/warning-chip.js) styles itself and takes no space while idle. */
-#player-combat-status{grid-column:1/-1}#reopen-journal{margin:16px;padding:12px;background:var(--ui-button);color:var(--ui-button-ink);min-height:44px}
+#player-combat-status{grid-column:1/-1}
 body #player-sidebar #journal:not(.expanded){position:relative;inset:auto;transform:none;width:100%;max-width:none;flex:1;min-height:0;height:auto;max-height:none;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper)}
 body #player-sidebar #journal.expanded{position:fixed;left:24px;right:calc(var(--player-panel-width) + 24px);top:24px;bottom:24px;transform:none;width:auto;max-width:none;height:auto;max-height:none}
 body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sidebar-open>header,body.player-sidebar-open>footer{right:calc(var(--player-panel-width) + 28px)}body.player-sidebar-open #game-menu-toggle{position:fixed;right:calc(var(--player-panel-width) + 14px);bottom:20px}
@@ -33,7 +33,7 @@ body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sideb
  body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud{z-index:35}body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .overview-map,body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud #player-combat-status{display:none}
  body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud #player-overview{padding:8px 18px;display:block}
  body.player-ui-active #journal #game-menu-bar{display:none!important}body.player-ui-active #game-menu-toggle{bottom:calc(72px + env(safe-area-inset-bottom));right:12px;position:fixed;width:44px;height:44px}
- body.player-ui-active .camera-controls{margin-bottom:15px}body.player-ui-active .controls-hint{display:none}
+ 
  body.player-ui-active #objective-update{top:160px}
 }
 body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) #player-mobile-hud,body:has(#splash:not([hidden])) #player-mobile-nav{display:none!important}
@@ -47,10 +47,10 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
 
 /* Shared world overlays follow the rendered viewport, including sidebar resizing. */
 @media(min-width:701px){
- body #dialogue,body #character-dialogue,body #character-dialogue[data-mode=choices],body #toast,body #area-name,body #skill-rewards,body #placement-controls,body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{left:var(--game-viewport-center,50%);max-width:calc(var(--game-viewport-width,100vw) - 40px)}
+ body #dialogue,body #character-dialogue,body #character-dialogue[data-mode=choices],body #toast,body #skill-rewards,body #placement-controls,body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial{left:var(--game-viewport-center,50%);max-width:calc(var(--game-viewport-width,100vw) - 40px)}
  /* A tutorial embedded in the journal belongs to its page, rather than the world. */
  body #journal #gather-tutorial{left:auto;max-width:100%;transform:none}
- body .controls-hint{width:var(--game-viewport-width,100vw)}
+ 
  body.player-sidebar-open::after,body.player-sidebar-open #scene-fade{right:var(--player-panel-width)}
  body.player-sidebar-open dialog{right:var(--player-panel-width);max-width:calc(var(--game-viewport-width,100vw) - 40px)}
  body.player-sidebar-open dialog::backdrop{right:var(--player-panel-width)}
@@ -75,7 +75,7 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
 /* Action tiles are kit components (ui/hud/action-button.css); this only places them under their meters. */
 .resource-placeholder-action{grid-row:2;justify-self:center}
 .resource-placeholder-action.mana{grid-column:2}.resource-placeholder-action.stamina{grid-column:3}
-@media(min-width:701px){body.player-sidebar-open #journal-close,body.player-sidebar-open #journal .crafting-heading>button[aria-label^="Close"]{display:none!important}}
+@media(min-width:701px){body.player-sidebar-open #journal-close{display:none!important}}
 @media(max-width:700px){#player-mobile-hud .overview-map{max-width:172px}}
 
 /* Desktop overview: map above resources, with the panel toggle on its edge. */

@@ -20,6 +20,18 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Dead code and prototype HUD cleanup — 2026-10-08
+- **Prototype HUD removed:** the hidden "Playable Study 01" header, journal, footer satchel, camera buttons and controls hint are gone from `index.html`, with their `style.css` rules. main.js no longer writes them: `updateUI` only reports the count to the opening, and the frame loop and move handler no longer write the activity text or the action-progress bar. The unreachable camera-button and "Reset clearing" handlers are gone (the playground has its own reset). `#game`, `#tooltip` and `#scene-fade` stay.
+- **Dead code removed:**
+  - `src/dev/theme-comparison.js` and `.css`;
+  - unused imports and locals in main.js, enemy-entity.js, cinderhold.js, model-catalog.js, splash.js, companion-follow.js and three tests;
+  - Willowbank debug hooks nothing reached, plus the action-preview state only they set. Kept: `stage`, `clearUI`, `reset`, and `hit`/`zero`/`miss`, which `sharedAction` in main.js calls by name.
+- **CSS:** removed selectors that match nothing (`#skills-panel`, `.crafting-heading`, `#area-name`, `.journal-search`, `#reopen-journal`, `.q-chips`, `.q-check` and others) from `ui-theme.css`, `player-interface.css` and `ui/page.css`. Only the dead selectors were removed from combined selector lists. Rules that always lose to later ones need a browser CSS coverage pass, not yet done.
+- **Kept on purpose:**
+  - test- and automation-only helpers (`character.addXp`/`setLevel`, `itemChangeMessage`, `awardGatheringXp`, `enterWillow`, `screenFor` and so on);
+  - the unwired combat-formula exports. `sprintDrainPerSecond` (athletics lowers drain) is planned; `player-resources.js` still drains a fixed one stamina per 0.5s.
+- **Smoke check extended:** a Willowbank checkpoint, the three splats through `sharedAction`, the full reset, and a normal-build (`dist`) start from the splash with no debug API. `npm run smoke` now builds both variants.
+
 ### Playground startup fix and smoke check — 2026-10-08
 - **User report:** the playground crashed on load with `ReferenceError: toastTimer is not defined`. The toast migration had missed two calls in main.js: player movement dismissing the current message, and the playground reset. Both now call the kit toast's new `clear()`, which is covered by `notices.test.js`.
 - **New smoke check:** `npm run smoke` (`scripts/smoke-playground.mjs`) runs headless and dev-only.
@@ -824,7 +836,7 @@ In Cinderhold, when the player tells Bristle "Actually, no. I don't want to figh
 
 ### Interactive minimap and player resources — 2026-10-06
 
-- Shared health, mana and stamina start at 100. `player-resources.js` owns resource pools and sprint timing; `resource-orb.js` shares rendering and white/orange/red number thresholds (>50%, 25–50%, <25%). Mana costs, quick restore and passive regeneration are not implemented.
+- Shared health, mana and stamina start at 100. `player-resources.js` owns resource pools and sprint timing; rendering was `resource-orb.js` at the time (since replaced by the kit meter, `src/ui/hud/meter.js`, with `resourceTone` from `player-resources.js`), with white/orange/red number thresholds (>50%, 25–50%, <25%). Mana costs, quick restore and passive regeneration are not implemented.
 - The boot toggles double-speed movement, spending one stamina per 0.5 seconds of movement. Idle time does not drain it; exhaustion disables sprint and smoothly resumes walking. Partial drain time survives toggles. Full playground reset restores resources and disables sprint.
 - `minimap-controls.js` supports wheel/pinch zoom, keyboard +/- zoom and click/tap movement through the existing shared pathfinder. The minimap marks the current route destination, including an edge indicator outside the view. Clicking uses the displayed map center; pinch/drag does not issue movement.
 - Playground Inventory & skills exposes individual resource values and restore/reset controls. The shared `minimap-sprint` performance scenario exercises movement, zoom and sprint.
@@ -870,7 +882,7 @@ In Cinderhold, when the player tells Bristle "Actually, no. I don't want to figh
 - Previous automated checks explicitly forced SwiftShader, moving graphics rendering onto the CPU; a short comparison got ~8 FPS versus ~60 FPS with ANGLE Metal on the M1 Max. No old verification browsers/servers were running when this investigation started; the user's port-5174 server was preserved. Routine checks must use hardware rendering, one browser, bounded lifetime and finally cleanup (see AGENTS/README).
 - Removed unchanged per-frame health DOM writes, redundant sidebar layout/navigation/status writes, recipe markup rebuilds and combat-option reconstruction. Recipe caches include inventory, skill levels, busy state and active recipe; combat cache includes learned/selected styles, busy state and retaliation. Cached fixed game viewport bounds refresh through the existing resize/ResizeObserver path, avoiding repeated layout measurements during rendering.
 - Four four-second idle samples (Quests, Inventory, Skills, Combat), same 1200×850 GPU-backed clearing setup: sidebar mutations fell from 8,304–8,506 per sample to zero; summed main-thread task duration fell 6.007s → 5.277s (~12%). ~60 FPS retained; layout duration fell to zero during those idle samples. These are short local main-thread measurements, not total-machine CPU guarantees; 3D rendering/shadow/scene traversal work remains.
-- `node scripts/profile-ui.mjs` profiles the running playground, reports actual renderer/timings/mutations and saves Chrome CPU profiles under a printed temporary directory. It launches one disposable browser with a 65-second watchdog and cleans up automatically; optional --software runs one explicit comparison. Existing health/inventory/crafting/combat/travel/reset and resize/collapse controls exercise production behavior; playground instructions updated.
+- `node scripts/profile-ui.mjs` (since folded into the perf runner and removed) profiled the running playground, reporting actual renderer/timings/mutations and saving Chrome CPU profiles under a printed temporary directory. It launched one disposable browser with a 65-second watchdog and cleaned up automatically; optional --software ran one explicit comparison. Existing health/inventory/crafting/combat/travel/reset and resize/collapse controls exercise production behavior; playground instructions updated.
 - Live regression checks passed health damage/eating completion, crafting busy/completion labels, retaliation toggling, viewport cache updates through desktop/mobile/collapse/restore, Cinderhold and reset. 198 tests and both build variants/debug isolation passed. No frame-rate cap, visual-quality reduction or gameplay timing change was introduced.
 
 ### Sidebar persistence and overview refinements — 2026-10-05

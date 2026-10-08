@@ -90,7 +90,7 @@ The splash slime receives a random body/hand color on each page load, with adapt
 
 Willowbank is the second playable tutorial area. See [the chapter design](docs/WILLOWBANK.md). Use the unified tutorial selector for arrival, dialogue, hammer crafting, repair, naming, fishing, Flint, fire-starting, placement, cooking, and eating. Each selection automatically enters the area.
 
-The playground's **Shared model preview** opens the real terrain, foliage, resource and character models with repeatable animation controls. Willowbank's **arrival** button replays the narrator/camera introduction; chapter animation options include goblin idle/walk/attack/hit, corgi happy/sad/walk, and Reed idle. Existing area/reset controls exercise the shared water and adjacent resource gathering.
+The playground's **Shared model preview** opens the real terrain, foliage, resource and character models with repeatable animation controls. The Willowbank **Arrival** tutorial checkpoint replays the narrator/camera introduction; the viewer covers goblin idle/walk/attack/hit, corgi poses and Reed's animations. Existing area/reset controls exercise the shared water and adjacent resource gathering.
 
 Use the shared model viewer for individual rig animations, Visual feedback for hit splats, and Companions for follower behavior. Load Willowbank · Repair bridge to replay the real rescue crossing.
 

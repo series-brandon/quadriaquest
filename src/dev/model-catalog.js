@@ -17,7 +17,7 @@ import {companion,animateCompanion} from '../companion-model.js';
 import {EATING_DURATION} from '../eating-motion.js';
 import {updateFishingCast,updateFishingRodMotion,resetFishingRodMotion} from '../fishing-rod.js';
 import {makePondfish} from '../fish-model.js';
-import {catchMotion,holdUpMotion,CELEBRATION_DURATION,HOOK_DURATION,CAST_DURATION} from '../catch-motion.js';
+import {holdUpMotion,CELEBRATION_DURATION,HOOK_DURATION,CAST_DURATION} from '../catch-motion.js';
 import {placeFaintedHands,groundFaintedBody} from '../faint-motion.js';
 import {FAINT_PREVIEW_DURATION} from '../faint-motion.js';
 import {playerActionMotion,gatheringHand,alignSupportingHand} from '../player-action-motion.js';

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Group} from 'three';
 import {createControlState} from './control-effects.js';
-import {createEquipment,GEAR} from './equipment.js';
+import {createEquipment} from './equipment.js';
 import {createCombatStyles,SPELLS} from './combat-styles.js';
 import {createCharacter} from './character.js';
 import {createAuras} from './auras.js';

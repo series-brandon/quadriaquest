@@ -6,7 +6,7 @@ import {stoneTile,stoneArch,furnace,animateFurnace,anvil,supplyShelf,MENTORS} fr
 import {createWorldActor,createMentor} from './world-actors.js';
 import {createResourceEntity} from './resource-entities.js';
 import {createEnemyEntity} from './enemy-entity.js';
-import {updateObjective,finishObjective,resetObjectives,registerQuestChapter,setObjectiveHelp} from './quests.js';
+import {updateObjective,resetObjectives,registerQuestChapter,setObjectiveHelp} from './quests.js';
 import {key} from './world.js';
 // Area configuration: Cinderhold's creatures give 1.5× XP until each receiving skill reaches level 3, then
 // normal XP, so the lessons deliver early level-ups. Practice targets keep their own shared 0.5×-then-0 rule.

@@ -19,7 +19,6 @@ export function createSplash(renderer,enabled,settings){
   scene.add(new THREE.HemisphereLight('#fff9df','#719584',3));
   const light=new THREE.DirectionalLight('#fff0d1',3);light.position.set(-3,8,5);light.castShadow=true;scene.add(light);
   const camera=new THREE.PerspectiveCamera(38,1,.1,50);
-  function mesh(geometry,color,parent=scene){const m=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:.9}));m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
   // A separate pocket garden: a low pond shelf and raised rear corners.
   const grassMaterials=createGrassColors().map(color=>new THREE.MeshStandardMaterial({color,roughness:.9}));
   let grassIndex=0;

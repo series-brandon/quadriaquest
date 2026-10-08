@@ -1,5 +1,4 @@
 import {trainingTarget} from './training-models.js';
-import * as THREE from 'three';
 import {goblin} from './enemy-model.js';
 import {ENEMIES} from './combat-rules.js';
 import {highlightResource} from './resource-highlight.js';

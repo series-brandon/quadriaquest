@@ -142,7 +142,7 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
     if(step<clearingLines.length){show(clearingLines[step++],'line',clearingLine);}
     else {
       narrator.hide();
-      const beginLessons=()=>{playable=true;transition('play');showLesson();document.querySelector('.character-card strong').textContent=name;};
+      const beginLessons=()=>{playable=true;transition('play');showLesson();};
       if(onFirstQuest)onFirstQuest(beginLessons);else beginLessons();
     }
   }
