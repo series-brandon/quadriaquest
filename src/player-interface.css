@@ -122,3 +122,23 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
 #overview-vitals[data-columns="4"]{grid-template-columns:repeat(4,48px)}
 #overview-vitals[data-energy-hidden] .resource-placeholder.ki,#overview-vitals[data-energy-hidden] .resource-placeholder-action.ki{grid-column:4}
 @media(max-width:700px){#player-mobile-hud #overview-vitals[data-columns="3"]{grid-template-columns:repeat(3,44px)}#player-mobile-hud #overview-vitals[data-columns="4"]{grid-template-columns:repeat(4,44px)}}
+
+/* Desktop overview (docked sidebar and the collapsed-sidebar HUD alike): the map on the left and each resource as a row beside it (meter, then its
+   quick action). The section is pinned to the height all five rows need (5 × 48px + 4 × 6px), in
+   every mode, so mode changes never move the journal; the map is a square filling that height,
+   shrinking only when the sidebar is too narrow. Fewer resources sit centred beside it. */
+@media(min-width:701px){
+ #player-mobile-hud{width:auto}
+ :is(#player-sidebar,#player-mobile-hud) #player-overview{grid-template-columns:minmax(0,264px) auto;justify-content:center;justify-items:start;align-items:center;column-gap:14px;row-gap:8px}
+ :is(#player-sidebar,#player-mobile-hud) .overview-map{grid-column:1;grid-row:1;justify-self:stretch;width:auto;max-width:264px}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals{grid-column:2;grid-row:1;grid-template-columns:48px 44px;grid-template-rows:none;grid-auto-rows:48px;align-items:center;justify-content:start;align-content:center;min-height:264px}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals #player-health,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.health{grid-row:1}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder.mana,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.mana{grid-row:2}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder.stamina,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.stamina{grid-row:3}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder.energy,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.energy{grid-row:4}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder.ki,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.ki{grid-row:5}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals[data-energy-hidden] .resource-placeholder.ki,:is(#player-sidebar,#player-mobile-hud) #overview-vitals[data-energy-hidden] .resource-placeholder-action.ki{grid-row:4}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals #player-health,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder{grid-column:1}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action{grid-column:2;justify-self:start}
+ :is(#player-sidebar,#player-mobile-hud) #player-combat-status{grid-column:1/-1;grid-row:2;justify-self:center}
+}

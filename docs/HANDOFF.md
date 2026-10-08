@@ -20,6 +20,10 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Sidebar overview: map beside the resources — 2026-10-08
+- In the docked desktop sidebar, the minimap sits left and each resource is a row to its right (meter, then its quick action). The section is pinned to the height all five resource rows need (264px plus padding, about 293px total) in every mode, so mode changes don't move the journal. The map is a square filling that height (up to 264px), shrinking only when the sidebar is narrow (about 208px at a 1024px window). Fewer resources (Simple, Pacifist) sit centred beside it.
+- It was a map-above-a-meter-row layout of about 384px, so the journal gains about 90px. The rules are one block at the end of player-interface.css, scoped to desktop (`:is(#player-sidebar, #player-mobile-hud)` at ≥701px). The collapsed-sidebar HUD uses the same layout (floating top right, 404 × 292px; it was 300 × 384). Phones are unchanged.
+
 ### Station badge, station window size — 2026-10-08
 - **Station part badge:** `recipeDetailBody({…, atStation})` checks a station recipe's Station row green when the window belongs to that station (station dialogs pass their kind) and crosses it red elsewhere (the Crafting page). Hand recipes say "None: craft anywhere" with no badge.
 - **Removed:** the "Interact with a/an X to use this recipe" line and the unreachable preview message in `make()` (the button is disabled without a station), plus the stations' unused `article`.
