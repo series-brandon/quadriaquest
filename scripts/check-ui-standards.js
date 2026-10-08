@@ -10,6 +10,8 @@ import {join, relative} from 'node:path';
 const ROOT = new URL('..', import.meta.url).pathname;
 const BASELINE = join(ROOT, 'scripts/ui-standards-baseline.json');
 const BREAKPOINTS = new Set(['700px', '701px']);
+// Page layouts follow the journal's width (container queries), with one breakpoint of their own.
+const PAGE_BREAKPOINTS = new Set(['640px', '641px']);
 const failures = [];
 
 async function files(dir) {
@@ -60,8 +62,9 @@ for (const path of ui) {
     if (found) failures.push(`${path}: ${found}× ${rule.name}`);
   }
   if (path.endsWith('.css')) {
-    for (const [, width] of text.matchAll(/\((?:max|min)-width:\s*([^)]+)\)/g)) {
-      if (!BREAKPOINTS.has(width.trim())) failures.push(`${path}: breakpoint ${width} (use 700px/701px from ui/viewport.js)`);
+    for (const [, at, width] of text.matchAll(/@(media|container)[^{]*?\((?:max|min)-width:\s*([^)]+)\)/g)) {
+      const allowed = at === 'container' ? PAGE_BREAKPOINTS : BREAKPOINTS;
+      if (!allowed.has(width.trim())) failures.push(`${path}: ${at} breakpoint ${width} (${at === 'container' ? 'pages use 640px/641px journal widths' : 'use 700px/701px from ui/viewport.js'})`);
     }
     const selectors = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/'[^']*'|"[^"]*"/g, '');
     for (const [, name] of selectors.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {

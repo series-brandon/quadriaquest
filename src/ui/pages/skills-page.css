@@ -21,3 +21,8 @@
 .q-skill__name { font-size: 13px; font-weight: 600; min-inline-size: 0; }
 .q-skill__level { font: 700 12px / 1 var(--q-font-numeric); }
 .q-skill__body { display: grid; gap: 2px; padding: 0 12px 10px; color: var(--q-ink-muted); font-size: 12px; }
+
+/* Wide journals: skill rows flow into columns (each opens in place). */
+@container (min-width: 641px) {
+  .q-skills { grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); align-items: start; column-gap: 12px; }
+}

@@ -20,6 +20,15 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Journal layout pass (sidebar list/detail, expanded journal, tab bar) — 2026-10-08
+- **Sidebar Inventory and Crafting:** choosing an item or recipe replaces the list with its detail, with a back button (`.q-back`: chevron + "All items" / "All recipes"). The swap now follows the journal's width (`@container (max-width: 640px)`), not the viewport, so phones keep the same behaviour. Free-play Crafting opens to the list; only the crafting lessons pre-select a recipe.
+- **Expanded journal:** a near-full-screen panel over the world and the sidebar (24px margins), never narrower than the docked one. The sidebar's collapse button hides while expanded.
+- **Wide pages** (`@container (min-width: 641px)`): pages are centred at a 60rem maximum, Combat and Settings at 40rem (`.q-page--form`). Attribute and skill rows flow into columns. Sub-tabs and segmented options ellipsize instead of clipping.
+- **Kit font bug:** `font: 600 13px / 1.2 inherit` is invalid CSS, so buttons, segmented controls, sub-tabs and dialogue buttons rendered at the 16px body font. These are now longhand properties at the intended 13px semibold, which makes button text visibly smaller everywhere.
+- **Tab bar:** the kit `.q-tabbar` with `panelTabs(…, {balance: 72})` publishes `--q-tab-columns` (one row when every tab fits at 72px, otherwise balanced rows: 10 tabs as 5 + 5, 9 as 5 + 4), with icons over labels. All legacy `#game-menu-bar` / `#open-crafting` / `#open-inventory` rules were removed (ui-theme.css, player-interface.css, style.css). The nav is built with `h()`.
+- **Standards:** `check:ui` allows container queries at 640px/641px only (docs/UI.md).
+- **Verified headless:** 1280 sidebar (Inventory and Crafting swap to detail and back), expanded at 1600, 1280, 900 and 760 (Character, Inventory, Crafting, Settings, Combat, Quests), and phone 390 (unchanged list/detail, tab bar). Tests cover the balanced columns.
+
 ### Eat "Show me how" — 2026-10-08
 - **User report (desktop):** the Willowbank Eat step's Show me how only opened the Inventory.
 - **Fix:** the inventory guide is general now. `inventoryMenu.guide({item, action})` (`true` still means the Sticks lesson) highlights the stack until it is chosen, then that item's action button with the matching label. The inventory page takes `guide` (`{item, action}` or null) instead of `guided`.

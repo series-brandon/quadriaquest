@@ -11,10 +11,13 @@
 /* The combat warning chip (ui/hud/warning-chip.js) styles itself and takes no space while idle. */
 #player-combat-status{grid-column:1/-1}
 body #player-sidebar #journal:not(.expanded){position:relative;inset:auto;transform:none;width:100%;max-width:none;flex:1;min-height:0;height:auto;max-height:none;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper)}
-body #player-sidebar #journal.expanded{position:fixed;left:24px;right:calc(var(--player-panel-width) + 24px);top:24px;bottom:24px;transform:none;width:auto;max-width:none;height:auto;max-height:none}
+/* Expanded: a near-full-screen journal over the world and the sidebar (never narrower than docked). */
+/* The sidebar's collapse control would float over it, so it steps aside while expanded. */
+body:has(#player-sidebar #journal.expanded:not([hidden])) .overview-heading{visibility:hidden}
+body #player-sidebar #journal.expanded{position:fixed;left:24px;right:24px;top:24px;bottom:24px;z-index:2;transform:none;width:auto;max-width:none;height:auto;max-height:none}
 body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sidebar-open>header,body.player-sidebar-open>footer{right:calc(var(--player-panel-width) + 28px)}
-#journal #game-menu-bar{flex-wrap:wrap;overflow:visible;justify-content:flex-start}#journal #game-menu-bar button{flex:0 0 44px;min-width:44px}
-#journal.expanded #game-menu-bar button{flex:1 0 auto}
+
+
 #journal #combat-panel,#journal #powers-panel,#journal #equipment-panel,#journal #inventory-panel,#journal #character-panel,#journal #crafting-panel,#journal #quests-panel,#journal #settings-panel,#journal #companions-panel{position:static;inset:auto;transform:none;width:100%;max-width:none;min-width:0;min-height:0;max-height:none;margin:0;padding:16px;overflow:auto;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper);color:var(--ui-ink)}
 /* Crafting's craft button sticks to the bottom edge, so nothing scrolls beneath it. */
 #journal #crafting-panel{padding-block-end:0}
@@ -32,7 +35,7 @@ body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sideb
  body.player-ui-active #journal,body.player-ui-active #journal:not(.expanded),body.player-ui-active #journal.expanded{position:fixed;inset:0 0 calc(63px + env(safe-area-inset-bottom));height:auto;max-height:none;padding-top:calc(54px + env(safe-area-inset-top));padding-bottom:0;z-index:34;background:var(--ui-paper);border-radius:0;transform:none}
  body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud{z-index:35}body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud .overview-map,body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud #player-combat-status{display:none}
  body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud #player-overview{padding:8px 18px;display:block}
- body.player-ui-active #journal #game-menu-bar{display:none!important}
+ 
  
  body.player-ui-active #objective-update{top:160px}
 }

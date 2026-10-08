@@ -7,3 +7,8 @@
 .q-core__points b[data-unspent] { color: var(--q-accent); }
 .q-attribute__value { min-inline-size: 2ch; font: 700 15px / 1 var(--q-font-numeric); text-align: end; }
 .q-button--square { inline-size: var(--q-touch); padding: 0; font-size: 20px; }
+
+/* Wide journals: attribute rows flow into columns instead of stretching across the page. */
+@container (min-width: 641px) {
+  .q-character-page .q-list { grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); column-gap: 28px; }
+}

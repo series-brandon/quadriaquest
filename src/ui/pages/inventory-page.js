@@ -74,7 +74,7 @@ export function inventoryPage({inventory, actions = () => [], settings = () => [
     const id = item.peek(), worn = equipped(id);
     const itemActions = computed(() => (track(), inventory[id], actions(id).map((action, index) => ({...action, index}))));
     return h('section', {class: 'q-item-detail', 'aria-label': ITEMS[id].name, 'aria-live': 'polite'},
-      h('button', {type: 'button', class: 'q-inventory__back', on: {click: () => { viewing.value = false; }}}, 'Back to items'),
+      h('button', {type: 'button', class: 'q-back q-inventory__back', on: {click: () => { viewing.value = false; }}}, iconNode('back'), h('span', null, 'All items')),
       h('div', {class: 'q-item-detail__head'},
         h('span', {class: 'q-item-detail__icon', 'aria-hidden': 'true'}, iconNode(id)),
         h('span', {class: 'q-item-detail__title'},

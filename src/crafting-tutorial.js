@@ -149,7 +149,8 @@ export function createCraftingTutorial({menus,narrator,tip,freePlay=false,onComp
   function continueTip(){if(successNext){const next=successNext;successNext=null;next();}}
   menus.events.openCrafting=()=>{
     if(stage.startsWith('quests-')||stage.startsWith('skills-')||stage.startsWith('inventory-'))return true;
-    menus.openCrafting(stage==='pickaxe'?'pickaxes':'axes');
+    // Lessons open on their recipe; otherwise the page opens as it was left (the recipe list at first).
+    menus.openCrafting(stage==='pickaxe'?'pickaxes':['craft-menu','recipe','retry'].includes(stage)?'axes':null);
     if(stage==='pickaxe')selectRecipe('pickaxes');
     if(['craft-menu','recipe','retry'].includes(stage)){setStage('recipe');selectRecipe('axes');tutorial('Craft a Crude Axe.');guide('craft-axes');}
     pickaxeGuide();return true;

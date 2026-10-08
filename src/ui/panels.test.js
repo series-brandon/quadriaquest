@@ -97,3 +97,24 @@ test('phone tabs split primary from More and report availability', () => {
   host.setAvailable('settings', false);
   assert.equal(more.value, false);
 });
+
+test('balanced tabs: one row when all fit, otherwise equal rows, following width and availability', () => {
+  const {host} = setup();
+  for (const [id, order] of [['crafting', 40], ['combat', 50], ['powers', 55]]) host.register({id, label: id, icon: 'skills', element: document.createElement('section'), order});
+  const observers = [];
+  const previous = globalThis.ResizeObserver;
+  globalThis.ResizeObserver = class { constructor(fn) { this.fn = fn; this.disconnected = false; observers.push(this); } observe() {} disconnect() { this.disconnected = true; } };
+  try {
+    const view = mount(() => panelTabs(h('nav'), host, {balance: 72}));
+    const nav = view.node, columns = () => nav.style.getPropertyValue('--q-tab-columns');
+    const resize = width => observers[0].fn([{contentRect: {width}}]);
+    resize(800);
+    assert.equal(columns(), '7', 'seven tabs fit in one row');
+    resize(380);
+    assert.equal(columns(), '4', 'two rows: 4 + 3, not 5 + 2');
+    host.setAvailable('powers', false);
+    assert.equal(columns(), '3', 'six visible tabs: 3 + 3');
+    view.dispose();
+    assert.equal(observers[0].disconnected, true);
+  } finally { globalThis.ResizeObserver = previous; }
+});

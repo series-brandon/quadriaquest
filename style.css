@@ -8,8 +8,8 @@
 .floating-xp{position:fixed;left:0;top:0;z-index:34;transform:translate(-50%,-100%);pointer-events:none;white-space:nowrap;font-size:12px;font-weight:700;letter-spacing:.15px;color:#fff1ac;text-shadow:-1px -1px 1px #293d29,1px -1px 1px #293d29,-1px 1px 1px #293d29,1px 1px 1px #293d29,0 2px 4px #293d2980;will-change:top,opacity}
 #game-menus{position:fixed;right:26px;bottom:26px;z-index:32}
 
-#game-menu-bar{position:absolute;right:0;bottom:68px;background:#fafcf4;padding:10px;border-radius:14px;box-shadow:0 8px 35px #29442d20}
-#open-crafting{padding:13px 24px;background:#e9eedf;white-space:nowrap}
+
+
 
 .gold-guide{position:relative!important;outline:2px solid #eac35f;box-shadow:0 0 0 5px #f6d87b35,0 0 24px #efbf5570!important}
 .gold-guide::before{content:'';position:absolute;left:50%;bottom:calc(100% + 10px);width:27px;height:40px;transform:translateX(-50%);background:linear-gradient(#ffe798,#e9a92d);clip-path:polygon(35% 0,65% 0,65% 55%,100% 55%,50% 100%,0 55%,35% 55%);filter:drop-shadow(0 1px 1px #76521b);animation:guide-bob 1s ease-in-out infinite;pointer-events:none}

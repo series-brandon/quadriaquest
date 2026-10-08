@@ -1,4 +1,5 @@
 import {computed} from '../reactive.js';
+import {bind, onCleanup} from './scope.js';
 import {h} from './dom.js';
 import {iconNode} from './icon.js';
 import {keyedList} from './list.js';
@@ -7,8 +8,12 @@ import {keyedList} from './list.js';
 // Every matching entry keeps a button, hidden while unavailable, so tab ids stay addressable
 // by tutorials and tests. `ids: false` omits ids for secondary copies (the phone bar); every
 // copy carries `data-tab` (the tab id) so lessons can guide whichever bar is showing.
-export function panelTabs(container, host, {filter = () => true, ids = true, onSelect = () => {}} = {}) {
+// `balance` (the narrowest a tab may be, in px) lays the tabs out in equal columns over balanced
+// rows: one row when every tab fits, otherwise 10 tabs as 5 + 5 rather than 8 + 2. The column
+// count is published as --q-tab-columns on the container (styled by .q-tabbar).
+export function panelTabs(container, host, {filter = () => true, ids = true, onSelect = () => {}, balance = 0} = {}) {
   const entries = computed(() => host.entries.value.filter(filter));
+  if (balance) balanceTabs(container, computed(() => entries.value.filter(entry => host.available(entry)).length), balance);
   return keyedList(container, entries, entry => entry.id, item => {
     const entry = item.peek();
     return h('button', {
@@ -37,4 +42,18 @@ export function panelTabs(container, host, {filter = () => true, ids = true, onS
 // Whether any entry matching `filter` currently has a visible tab.
 export function anyAvailable(host, filter) {
   return computed(() => host.entries.value.some(entry => filter(entry) && host.available(entry)));
+}
+
+function balanceTabs(container, count, narrowest) {
+  let width = 0;
+  const apply = () => {
+    if (!width) return;
+    const n = Math.max(1, count.peek()), rows = Math.ceil((n * narrowest) / width);
+    container.style.setProperty('--q-tab-columns', String(Math.ceil(n / rows)));
+  };
+  bind(() => { count.value; apply(); });
+  if (!globalThis.ResizeObserver) return;
+  const observer = new ResizeObserver(([entry]) => { width = entry.contentRect.width; apply(); });
+  observer.observe(container);
+  onCleanup(() => observer.disconnect());
 }

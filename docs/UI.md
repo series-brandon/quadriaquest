@@ -41,7 +41,9 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
    - Classes use the `q-` prefix (`q-block`, `q-block__part`, `q-block--variant`).
    - Values come from tokens; color literals belong only in `tokens.css`.
    - No `!important`.
-   - Breakpoints are 700px and 701px only.
+   - Breakpoints are 700px and 701px only (viewport `@media`). Page layouts respond to the journal's width instead: `#journal` is the size container, and container queries use 640px and 641px only (narrow: the desktop sidebar and phones; wide: the expanded journal). `check:ui` enforces both.
+   - Wide journals cap pages at a readable width (`.q-page`, centred) and settings-style pages narrower (`.q-page--form`). Lists of rows flow into columns there (`repeat(auto-fill, minmax(17rem, 1fr))`) instead of stretching. Narrow journals swap list and detail, with a `.q-back` button.
+   - Use the longhand font properties (`font-family: inherit; font-size: …`): `inherit` is not valid as the family inside the `font` shorthand, so the whole declaration is dropped.
    - Animate with `transform` and `opacity`.
    - Respect `prefers-reduced-motion`.
    - Components do not import CSS; add each sheet to `src/ui/ui.css` so components stay loadable in node tests.
@@ -62,6 +64,7 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 | Combat warnings and player effects | Kit. The warning chip (`ui/hud/warning-chip.js`) announces new advice and the start of an attack, fades after 3s and takes no space while idle. Player control effects show as icons on the player's health plate. Assistance's `warning` is signal-backed. The polled status line is gone. |
 | Health plates over combatants (enemy target frame, player bar) | Kit (`ui/hud/health-plate.js`). Enemy HP is signal-backed (`enemy-entity.js`). The owner's frame loop writes only position, effects text and danger band, and each reaches the DOM only on change. |
 | Panel registry and host (journal pages, tab bars, mobile nav and More) | Kit (`ui/panels.js`, `ui/panel-tabs.js`). Every page registers once; the journal shell, docking and Quests return are reactive. |
+| Journal tab bar | Kit: `.q-tabbar` (`ui/tabbar.css`), rendered by `panelTabs(…, {balance: 72})`: icon over label, equal columns in balanced rows (5 + 5 in the sidebar, one row when expanded). The legacy `#game-menu-bar` rules and the floating menu button are gone. |
 | Journal shell (`journal.js`) | Built with `h()`. The page contents (Skills, Inventory, Crafting, Quests, Settings, Combat, Equipment, Companions) are still legacy markup. |
 | Tutorial journal lock | Legacy: id-based rules plus a MutationObserver (moved out of the journal). It exposes `lockedState` for the kit. Retire it once guide highlights are tutorial state. |
 | Utility dialogs (cooking, furnace, anvil, destinations, companion name, food confirm) | Kit: the modal host (`ui/modal.js`) with `ui/dialogs/station-dialog.js`, `destination-dialog.js`, `name-dialog.js` and `confirmModal`. Station ingredients follow the reactive inventory. The dev model viewer is the only legacy `<dialog>` left. |

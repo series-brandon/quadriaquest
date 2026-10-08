@@ -226,7 +226,7 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
     number('auraRecovery', 'Restart auras after exhaustion at Ki %', 100, 1, 100),
     number('auraGrace', 'Aura grace period (seconds)', 1, 0, 30)) : null;
 
-  return h('div', {class: 'q-page q-combat-page'},
+  return h('div', {class: 'q-page q-page--form q-combat-page'},
     header, assistance ? quick : null, overridePanel,
     h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value}, status),
     attackSection, strategySection, powersSection, modeSection);

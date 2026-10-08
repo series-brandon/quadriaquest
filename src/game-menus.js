@@ -17,12 +17,12 @@ const PROFICIENCY_GROUPS=['weapon','armorSlot','element'];
 export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,trackSkills=()=>{},startCraft,craftActive=()=>null,items={}}){
  const $=id=>document.getElementById(id),events={};
  const host=document.createElement('div');host.id='game-menus';
- host.innerHTML='<nav id="game-menu-bar" hidden aria-label="Game menu"></nav>';
+ host.append(h('nav',{id:'game-menu-bar',class:'q-tabbar',hidden:true,'aria-label':'Journal pages'}));
  document.body.append(host);
  // Plain pages close through the shared close rules (events.beforeClose), like their × buttons.
  const panels=createPanelHost({defaultDismiss:()=>closeMenus('dismiss')});
  const bar=$('game-menu-bar');
- mount(()=>{bind(()=>{bar.hidden=!panels.navShown.value;});return panelTabs(bar,panels);});
+ mount(()=>{bind(()=>{bar.hidden=!panels.navShown.value;});return panelTabs(bar,panels,{balance:72});});
  // Crafting page (ui/pages/crafting-page.js). The chosen recipe is host state so tutorials and
  // areas can choose one (selectRecipe) and guide its stable element ids.
  const selectedRecipe=signal('axes'),viewingRecipe=signal(false);

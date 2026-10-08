@@ -58,7 +58,7 @@ export function craftingPage({inventory, skills = () => ({}), active = () => nul
     });
     return h('article', {class: 'q-recipe-detail', id: `${id}-detail`, 'aria-label': recipe.name, hidden: () => selected.value !== id},
       h('div', {class: 'q-recipe-detail__body'},
-        h('button', {type: 'button', class: 'q-crafting__back', on: {click: () => { viewing.value = false; }}}, 'All recipes'),
+        h('button', {type: 'button', class: 'q-back q-crafting__back', on: {click: () => { viewing.value = false; }}}, iconNode('back'), h('span', null, 'All recipes')),
         h('span', {class: 'q-recipe-detail__hero', 'aria-hidden': 'true'}, iconNode(id)),
         h('h3', null, recipe.name),
         h('p', {class: 'q-page__help', id: `${id}-duration`}, () => `Time · ${seconds.value} seconds`),

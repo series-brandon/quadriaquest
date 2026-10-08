@@ -10,12 +10,18 @@
   flex: 1 1 0;
   min-inline-size: 0;
   min-block-size: var(--q-touch);
-  padding: 6px 8px;
+  padding: 6px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border: 0;
   border-radius: calc(var(--q-control-radius) - 2px);
   background: transparent;
   color: var(--q-ink);
-  font: 600 13px / 1.2 inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
 }
 .q-segmented__option[aria-pressed='true'] {
@@ -137,12 +143,18 @@
   flex: 1 1 0;
   min-inline-size: 0;
   min-block-size: var(--q-touch);
-  padding: 6px 8px;
+  padding: 6px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border: 0;
   border-radius: calc(var(--q-control-radius) - 2px);
   background: transparent;
   color: var(--q-ink);
-  font: 600 13px / 1.2 inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
 }
 .q-tabs__tab[aria-selected='true'] { background: var(--q-control-pressed); color: var(--q-ink-on-dark); }

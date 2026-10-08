@@ -51,6 +51,7 @@ const paths={
  hats:'<path d="m7 16-2-12q7-3 14 0l-2 12M7 12h10"/><ellipse cx="12" cy="17" rx="10" ry="4"/>',
  sound:'<path d="M3 9h4l5-5v16l-5-5H3zM16 8q5 4 0 8M19 4q8 8 0 16"/>',
  close:'<path d="m6 6 12 12M6 18 18 6"/>',
+ back:'<path d="M15 5 8 12l7 7"/>',
  expand:'<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
  check:'<path d="m4 12 5 5L20 6"/>',
 };

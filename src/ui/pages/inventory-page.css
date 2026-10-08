@@ -88,23 +88,13 @@
 .q-item-detail__actions .q-button { flex: 1 1 120px; }
 .q-inventory__back { display: none; }
 
-/* Phones: the stacks, then the chosen item with a way back. */
-@media (max-width: 700px) {
+/* A narrow journal (the desktop sidebar, phones): the stacks, then the chosen item in their place,
+   with a way back. A wide journal keeps both side by side. */
+@container (max-width: 640px) {
   .q-inventory-page[data-view='list'] .q-inventory__detail,
   .q-inventory-page[data-view='detail'] .q-inventory__stacks,
   .q-inventory-page[data-view='detail'] .q-inventory__search { display: none; }
   /* In the list nothing is open yet, so no stack looks chosen. */
   .q-inventory-page[data-view='list'] .q-item[aria-pressed='true']:not([data-guide]) { border-color: var(--q-line); background: var(--q-control-face); box-shadow: none; }
-  .q-inventory__back {
-    display: block;
-    justify-self: start;
-    min-block-size: var(--q-touch);
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--q-ink-muted);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-  }
+  .q-inventory__back { display: flex; }
 }
