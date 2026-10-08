@@ -145,9 +145,8 @@ export function mountPlayground(api){
       if(b.dataset.objective)api.objectives[b.dataset.objective]();
       if(b.dataset.sound){api.audio.unlock();api.audio.play(b.dataset.sound);}
       if(b.dataset.prompt){
-        const tutorial=document.getElementById('gather-tutorial');
-        tutorial.hidden=b.dataset.prompt==='hide';
-        if(!tutorial.hidden){showGatheringPrompt(Number(b.dataset.prompt));tutorial.classList.remove('complete');tutorial.querySelector('.progress-track').hidden=false;}
+        if(b.dataset.prompt==='hide')api.tip.hide();
+        else{const count=Number(b.dataset.prompt);api.tip.show({progress:count/6,action:{label:'Dismiss',onPress:()=>api.tip.hide()}});showGatheringPrompt(api.tip,count);}
         status('Gathering prompt preview — no gameplay progress changed.');
       }
       if(b.dataset.dev){

@@ -16,7 +16,7 @@ export function createTutorialFinale(api){
   function busy(){return !!next||drops.length>0||!!celebration||!!crystalFocus;}
   function hideDialogue(){next=null;api.narrator.hide();}
   function say(text,advance){
-    api.stop();$('gather-tutorial').hidden=true;next=advance;
+    api.stop();api.tip.hide();next=advance;
     api.narrator.show({text,next:advanceLine});
   }
   // The narrator calls this on advance; `next` is cleared or replaced by the finale's own steps.

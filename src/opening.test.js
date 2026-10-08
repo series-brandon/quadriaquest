@@ -29,7 +29,16 @@ test('XP and level explanations return to gathering and final success only after
     const modes=[];
     // The narrator's surface: the current line and its built controls (the real box is ui/hud/narrator.js).
     const narrator={line:null,controls:null,show(line){this.controls?.dispose();this.line=line;this.controls=line.controls?mount(()=>{const box=document.createElement('div');box.append(...[line.controls()].flat());return box;}):null;},hide(){this.controls?.dispose();this.controls=null;this.line=null;},setPrompt(){}};
-    const opening=createOpening({narrator,onModeChosen:mode=>modes.push(mode),onFirstQuest:done=>{finishQuests=done;},onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
+    // The tip's surface (the real card is ui/hud/tip.js), exposed under the ids the assertions read.
+    const tipState={visible:false,state:{title:'',text:'',count:'',progress:null,action:null}};
+    const tip={get state(){return tipState.state;},show(next){tipState.state={title:'',text:'',count:'',progress:null,complete:false,action:null,help:null,...next};tipState.visible=true;},update(patch){tipState.state={...tipState.state,...patch};},updateAction(patch){tipState.state={...tipState.state,action:patch&&{...tipState.state.action,...patch}};},hide(){tipState.visible=false;}};
+    const continueButton={id:'tutorial-continue',get disabled(){return !!tipState.state.action?.disabled;},get textContent(){return tipState.state.action?.label??'';},click(){const action=tipState.state.action;if(action&&!action.disabled)action.onPress();}};
+    nodes.set('gather-tutorial',{get hidden(){return !tipState.visible;},set hidden(on){tipState.visible=!on;},children:[continueButton]});
+    nodes.set('tutorial-copy',{get textContent(){return tipState.state.text;}});
+    nodes.set('tutorial-title',{get textContent(){return tipState.state.title;}});
+    nodes.set('tutorial-count',{get textContent(){return tipState.state.count;},set textContent(value){tipState.state.count=value;}});
+    nodes.set('tutorial-progress',{style:{get width(){return tipState.state.progress===null?'':`${tipState.state.progress*100}%`;},set width(value){tipState.state.progress=parseFloat(value)/100;}}});
+    const opening=createOpening({narrator,tip,onModeChosen:mode=>modes.push(mode),onFirstQuest:done=>{finishQuests=done;},onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
     const text=n=>n.data??(n.textContent||(n.children||[]).map(text).join(''));
     const dialogue=()=>narrator.line?.next?.();
     const button=label=>{const b=narrator.controls.node.find(n=>n.handlers?.click&&text(n)===label);assert.ok(b,label);b.click();};

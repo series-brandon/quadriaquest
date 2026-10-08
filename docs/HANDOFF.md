@@ -20,6 +20,26 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Tutorial tip on the kit — 2026-10-08
+- **Tip** (`ui/hud/tip.js`): `createTip()` (main.js) builds and owns `#gather-tutorial` (`#tutorial-title`, `#tutorial-count`, `#tutorial-copy`, `#tutorial-progress`, `#tutorial-help`, `#tutorial-continue`); `index.html` no longer has the static markup.
+  - **API:** `show({title, text, emphasis, count, progress, complete, action:{label, disabled, onPress}, help:{label, onPress}})` replaces the tip; `update(patch)`, `updateAction(patch)` and `hide()`; `state` and `visible`.
+  - **Emphasis:** item names in the text render as `<strong>` from a keyed list (it replaces `writeItems`).
+- **One owner for the buttons:** previously the opening and the crafting tutorial each attached listeners to the shared Continue button and checked their own flags. Now each `show` names its owner's callback: the opening's `onContinue` (camera lessons, gathering, XP and level explanations) or the crafting tutorial's `continueTip` (`successNext`).
+  - **Show me how:** the crafting tutorial keeps `helpShown`/`helpAction` (mining help, or the chapter's `onHelp` from `showChapterTip`) in place of the legacy button element.
+- **Callers converted:**
+  - `opening.js`: `showGatheringPrompt(tip, count)` and `showGatheringCompletion(tip, onPress)` now take the tip. Lesson, explanation and success cards reproduce the effective legacy state; the count and progress stay current.
+  - `crafting-tutorial.js`: `tutorial()` and the overrides "A closer look" / "Got it!".
+  - `tutorial-finale.js` (`api.tip.hide()`), Willowbank (`api.tipBox.hide()` ×9), Cinderhold `hideTip`, and the playground's gathering-prompt preview (`api.tip`).
+  - The journal still moves the tip node into itself on phones (by id).
+- **CSS:** `ui/hud/tip.css` on tokens (`--q-tip-*`): dark plum card, "TUTORIAL" eyebrow, title, 16px copy (14px inside the phone journal), cream buttons, green complete state, gold item names.
+  - Removed internals from `style.css`/`ui-theme.css` (`.tutorial-heading`, `.progress-track`, `.tutorial-actions`, `#tutorial-*`, `.item-name`, the base card look). The main card rule now keeps only placement.
+  - **Parity, flagged:** a later legacy rule hid the count and progress bar in every presentation, so the opening's counter and bar never showed. `tip.css` keeps them hidden; showing them would be a visible change. Ask before enabling.
+- **Verification:**
+  - 355 tests pass: `tip.test.js`, the crafting-tutorial tests (a real tip, via the same ids) and the opening test (a fake tip under the ids its assertions read).
+  - `check:ui` passes; legacy debt fell and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground: the rotate lesson shows the plum card with a disabled Continue; dragging the camera turns it green ("✓ Well done!", "Nice! You can look around.") and enables Continue.
+  - **Still to check in the browser:** the XP and level explanations, the pickaxe Show me how, chapter tips with help, and the phone (in-journal) tip. The Browser pane was hidden mid-check, and hidden pages don't run, so these were not completed. The unit tests cover their logic.
+
 ### Dialogue boxes on the kit — 2026-10-08
 - **Narrator** (`ui/hud/narrator.js`): `createNarrator()` (main.js, before the opening) builds and owns `#dialogue` (`#dialogue-line`, `#dialogue-controls`, `#dialogue-prompt`) from `h()`; `index.html` no longer has the static markup.
   - **API:** `show({text, speaker='???', presentation, input, prompt, size, next, controls})`, `setPrompt(on)`, `hide()`, and `visible` (a signal).

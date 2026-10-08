@@ -24,6 +24,7 @@ import {createProjectileEffects} from './projectile-effects.js';
 import {attackRoute,withinAttackRange} from './combat-range.js';
 import {createCharacterDialogue} from './character-dialogue.js';
 import {createNarrator} from './ui/hud/narrator.js';
+import {createTip} from './ui/hud/tip.js';
 import {createAreaRuntime} from './area-runtime.js';
 import {createTravelSystem} from './travel.js';
 import {createCrystals} from './crystals.js';
@@ -156,7 +157,9 @@ const playground=__PLAYGROUND__?await import('./dev/playground.js'):null;
 const perfProbe=__PLAYGROUND__?playground.createPerfProbe({renderer,scene}):null;let playgroundApi=null;
 // The narrator's dialogue box ("???"): the opening, tutorials and areas show lines through it.
 const narrator=createNarrator();
-const opening=(playground?.createFreeOpening||createOpening)({narrator,player,visual,face:expressionFace,introSpawn,spawn:clearingSpawn,onComplete:()=>craftingTutorial.start(),onModeChosen:mode=>assistance?.setMode(mode),onFirstLevel:done=>craftingTutorial.startSkills(done),onFirstQuest:done=>craftingTutorial.startQuests(done),
+// The tutorial tip card: lessons and area chapters show guidance through it.
+const tip=createTip();
+const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,player,visual,face:expressionFace,introSpawn,spawn:clearingSpawn,onComplete:()=>craftingTutorial.start(),onModeChosen:mode=>assistance?.setMode(mode),onFirstLevel:done=>craftingTutorial.startSkills(done),onFirstQuest:done=>craftingTutorial.startQuests(done),
  setColor(color){body.material.color.set(color);expressionFace.setBodyColor(color);},
  showClearing(){clearingGroup.visible=true;for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
@@ -199,7 +202,7 @@ function itemSettings(id){
 // menus; the Inventory and Skills pages track this signal so they follow them once they exist.
 const systemsReady=signal(false);
 const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,trackSkills:()=>{systemsReady.value;character.revision.value;},startCraft:id=>recipeCrafting.start(id),craftActive:()=>(systemsReady.value,recipeCrafting?.activeId??null),items:{settings:itemSettings,isEquipped:id=>equipment?.isEquipped(id),track:()=>{systemsReady.value;equipment?.revision.value;assistance?.revision.value;},actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[])]}});
-const craftingTutorial=createCraftingTutorial({menus,narrator,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
+const craftingTutorial=createCraftingTutorial({menus,narrator,tip,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
 // Combat skills always list; proficiencies and armor skills appear once trained (Unarmed from the start).
 function combatSkills(){const out={};for(const d of TRACKS){const t=character.tracks[d.id];if(d.group==='combat'||t.xp>0||d.id==='prof.unarmed')out[d.name]=t;}return out;}
 function playerSkills(){return {Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,...(fishing?{Fishing:fishing.skill}:{}),...(carpentry?{Carpentry:carpentry.skill}:{}),...combatSkills(),...(cooking?{Culinary:cooking.skill}:{}),...(smithing?{Smithing:smithing.skill}:{})};}
@@ -306,7 +309,7 @@ const stationOptions={modals,recipes:COOKING_RECIPES,items:ITEMS,inventory,canMa
 furnaceMenu=createCookingMenu({...stationOptions,kind:'furnace'});anvilMenu=createCookingMenu({...stationOptions,kind:'anvil'});
 const openStation=a=>(a.kind==='furnace'?furnaceMenu:anvilMenu).open(a);
 const characterDialogue=createCharacterDialogue({player:()=>({name:opening.profile.name||'Pip',model:visual})});
-willow=createWillowbank({narrator,dialogue:characterDialogue,scene,world,crystals,renderer,player,visual,hands,pickables,inventory,feedback,companions,cookingMenu,campfires,health,food,fishing,fishingSpots,carpentry,resourceActions,
+willow=createWillowbank({narrator,tipBox:tip,dialogue:characterDialogue,scene,world,crystals,renderer,player,visual,hands,pickables,inventory,feedback,companions,cookingMenu,campfires,health,food,fishing,fishingSpots,carpentry,resourceActions,
  playerWorking:()=>!!actorTarget||companions.working||resourceActions.working||carpentry.working||fishing.working||food.working||cooking.working||recipeCrafting.working,
  playerSleepTime:()=>idleClock.sleepTime,approaching:()=>actorTarget,occupied:t=>t===tile||t===segment?.to,routeContains:t=>segment?.to===t||path.includes(t),tile:()=>tile,hover:()=>hover?.actor||hover?.tree||hover?.resource,moving:()=>!!segment||path.length>0,profile:()=>opening.profile,
  walkRoute(route){path=[...route];},
@@ -317,7 +320,7 @@ willow=createWillowbank({narrator,dialogue:characterDialogue,scene,world,crystal
  showTip:(...args)=>craftingTutorial.showChapterTip(...args),say:(...args)=>craftingTutorial.sayChapter(...args),
  openInventory:()=>menus.openInventory(),closeMenus:()=>menus.closeMenus()
 });
-finale=createTutorialFinale({narrator,destination:'willowbank',parent:clearingGroup,tiles:clearingTiles,spawn:clearingTiles.get(key(SPAWN.x,SPAWN.z)),active:()=>areas.id==='clearing',crystals,player,visual,trees,resources,pickables,inventory,
+finale=createTutorialFinale({narrator,tip,destination:'willowbank',parent:clearingGroup,tiles:clearingTiles,spawn:clearingTiles.get(key(SPAWN.x,SPAWN.z)),active:()=>areas.id==='clearing',crystals,player,visual,trees,resources,pickables,inventory,
  getTile:()=>tile,getAngle:()=>angle,stop:stopAll,showItemChanges,approach:selectActor,
  clearFalling(){resourceActions.resetWhere(n=>clearingTiles.get(key(n.x,n.z))===n.tile);},
  ensureClearSpawn(){if(trees.some(t=>t.x===tile.x&&t.z===tile.z)){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}},
@@ -338,7 +341,7 @@ areas.register({id:'willowbank',name:'Willowbank',recommendedDestination:'cinder
  interact:a=>willow.interact(a),clearUI:()=>willow.debug?.clearUI(),reset:()=>willow.debug?.stage('meet')
 });
 cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:characterDialogue,resources:resourceActions,combat,equipment,styles,supplies,openStation,player,stop:stopAll,toast,
- hover:()=>hover?.actor||hover?.tree||hover?.resource,approach:selectActor,openInventory:()=>menus.openInventory(),tip:(...args)=>craftingTutorial.showChapterTip(...args),hideTip(){document.getElementById('gather-tutorial').hidden=true;},attacksPrevented:()=>!!assistance?.attacksPrevented,showCombatModes:()=>styleMenu.showModes(),
+ hover:()=>hover?.actor||hover?.tree||hover?.resource,approach:selectActor,openInventory:()=>menus.openInventory(),tip:(...args)=>craftingTutorial.showChapterTip(...args),hideTip(){tip.hide();},attacksPrevented:()=>!!assistance?.attacksPrevented,showCombatModes:()=>styleMenu.showModes(),
  working:()=>!!actorTarget||!!segment||path.length>0||combat.working||smithing.working||resourceActions.working||food.working||recipeCrafting.working
 });
 areas.register(cinder);
@@ -648,6 +651,7 @@ if(__PLAYGROUND__){
   resources:playerResources,health,
   sharedAction(name){splash.close();if(name==='heal')health.restore();else if(name==='hurt')health.value=Math.max(1,health.value-10);else if(name==='eat'){inventory.cookedFish=Math.max(1,inventory.cookedFish||0);food.start('cookedFish',true);}else willow.debug[name]();return health.value;},
   closeSplash(){splash.close();},
+  tip,
   grassPalette:playground.createGrassPaletteControls(()=>[...grass,...splash.grassMaterials,...willow.grassMaterials]),
   combatProfile:()=>combat.preview(),
   objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip()},audio:gameAudio,itemFeed,openSettings:()=>menus.panels.select('settings'),showCrafting(){menus.panels.select('crafting');},registerTab:tab=>menus.panels.register(tab),waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},

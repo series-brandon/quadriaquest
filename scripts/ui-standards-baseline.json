@@ -3,9 +3,6 @@
     "innerHTML": 1,
     "propertyHandlers": 1
   },
-  "src/crafting-tutorial.js": {
-    "propertyHandlers": 4
-  },
   "src/game-menus.js": {
     "innerHTML": 1
   },

@@ -1,0 +1,52 @@
+/* Tutorial tip (ui/hud/tip.js): a dark card with an eyebrow, title, guidance and actions.
+   Placement (beside the journal, inside it on phones, clear of open pages) stays with the
+   shared HUD layout rules, which address the card by id. */
+.q-tip {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 45;
+  padding: 18px 20px;
+  border: 1px solid var(--q-tip-border);
+  border-inline-start: 4px solid var(--q-tip-accent);
+  border-radius: 8px 16px 16px 8px;
+  background: var(--q-tip-bg);
+  color: var(--q-tip-ink);
+  box-shadow: 0 8px 28px var(--q-tip-shadow);
+  overflow: auto;
+  pointer-events: auto;
+}
+.q-tip[hidden] { display: none; }
+.q-tip[data-complete] { border-color: var(--q-tip-done-border); border-inline-start-color: var(--q-tip-done-accent); background: var(--q-tip-done-bg); }
+.q-tip::before { content: 'TUTORIAL'; display: block; margin-block-end: 10px; font-size: 10px; letter-spacing: 0.16em; opacity: 0.7; }
+.q-tip__head { display: flex; justify-content: space-between; gap: 12px; margin-block-end: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; }
+.q-tip[data-complete] .q-tip__title { color: var(--q-tip-done-title); }
+/* The counter and bar are hidden in every presentation today; lessons still keep them current. */
+.q-tip__count,
+.q-tip__track { display: none; }
+.q-tip__copy { margin: 0; color: var(--q-tip-ink); font-size: 16px; line-height: 1.6; }
+.q-tip__item { color: var(--q-tip-item); font-weight: 700; }
+.q-tip__progress { block-size: 4px; background: var(--q-tip-accent); transform-origin: left center; }
+.q-tip__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-block-start: 16px; }
+.q-tip__actions:not(:has(button:not([hidden]))) { display: none; }
+.q-tip__continue,
+.q-tip__help {
+  min-block-size: var(--q-touch);
+  margin: 0;
+  padding: 9px 15px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--q-tip-button);
+  color: var(--q-tip-button-ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.q-tip__continue[hidden],
+.q-tip__help[hidden] { display: none; }
+.q-tip__continue:hover,
+.q-tip__help:hover { background: var(--q-tip-button-hover); }
+.q-tip__continue:disabled { opacity: 0.45; cursor: not-allowed; background: var(--q-tip-button); }
+.q-tip__continue:focus-visible,
+.q-tip__help:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 3px; }
+/* Inside the phone journal the tip is a compact strip. */
+#journal .q-tip__copy { font-size: 14px; line-height: 1.5; }

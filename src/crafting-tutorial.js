@@ -10,15 +10,18 @@ const introduction=[
   "So let's learn about crafting.",
   "Open your game menu again. This time, we'll make something!"
 ];
-export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete=()=>{}}){
+// Item names the tips emphasise.
+const ITEM_TERMS=['Crude Pickaxe','Crude Axe','Small Logs','Sticks','Rocks','Stone','Boulder'];
+export function createCraftingTutorial({menus,narrator,tip,freePlay=false,onComplete=()=>{}}){
   const $=id=>document.getElementById(id);
   let stage=freePlay?'done':'inactive',lineIndex=0,advance=null,successNext=null,firstTree=!freePlay;
   const stageListeners=new Set(),stageState=signal(stage);
   function setStage(value){stage=value;stageState.value=value;menus.setSkillGuidance({locked:stage.startsWith('skills-'),focus:stage==='skills-detail'?'Gathering':null});for(const listener of stageListeners)listener();}
   let skillsDone=null,inventoryDone=null,questsDone=null,miningGuided=false;
-  const help=document.createElement('button');help.id='tutorial-help';help.textContent='Show me how';help.hidden=true;$('gather-tutorial').append(help);
-  if(!$('tutorial-continue')){const b=document.createElement('button');b.id='tutorial-continue';b.hidden=true;$('gather-tutorial').append(b);}
-  const actions=document.createElement('div');actions.className='tutorial-actions';actions.append(help,$('tutorial-continue'));$('gather-tutorial').append(actions);
+  // The tip's "Show me how": whether it shows and what it does (mining guidance by default).
+  let helpShown=false,helpAction=()=>{};
+  const syncHelp=()=>tip.update({help:helpShown?{onPress:()=>helpAction()}:null});
+  const showHelp=on=>{helpShown=!!on;syncHelp();};
   const {host,panels,inventoryMenu,selectRecipe,closeMenus,openSkills,openInventory}=menus;
   host.hidden=!freePlay;
   for(const id of ['inventory','crafting'])panels.setAvailable(id,freePlay);
@@ -30,15 +33,15 @@ export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete
     tutorial("Select an item to read about it. These sticks might not look like much, but they'll come in handy soon!",true,()=>{
       closeMenus();guide(null);inventoryMenu.lock(false);setStage(freePlay?'done':'inactive');
       finishObjective('inventory');const done=inventoryDone;inventoryDone=null;
-      if(done)done();else{showGatheringCompletion();successNext=()=>{$('gather-tutorial').hidden=true;};}
-    });$('tutorial-title').textContent='A closer look';$('tutorial-continue').textContent='Got it!';
+      if(done)done();else{successNext=()=>tip.hide();showGatheringCompletion(tip,continueTip);}
+    });tip.update({title:'A closer look'});tip.updateAction({label:'Got it!'});
   };
   menus.events.openInventory=()=>{
     if(stage==='inventory-menu'){
       setStage('inventory-stacks');guide(null);openInventory();inventoryMenu.lock(true);
       tutorial("Here are your supplies! Items of the same type stack together. The number on each stack shows how many you're carrying.",true,()=>{
         setStage('inventory-select');tutorial('Select your Sticks stack to take a closer look.');inventoryMenu.guide(true);
-      });$('tutorial-title').textContent='A closer look';$('tutorial-continue').textContent='Continue';
+      });tip.update({title:'A closer look'});tip.updateAction({label:'Continue'});
     }else return !['inactive','done','chop','pickaxe','mine'].includes(stage);
     return true;
   };
@@ -55,8 +58,8 @@ export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete
       tutorial("Here's your Gathering skill! Each skill shows your current level, total experience, and progress toward the next level. You've reached Gathering level 2!",true,()=>{
         setStage('skills-summary');renderSkills();tutorial('You can check your skills here any time. Skills improve as you use them, so try different activities and watch yourself grow!',true,()=>{
           finishObjective('skills');const done=skillsDone;skillsDone=null;startInventory(done);
-        });$('tutorial-title').textContent='A closer look';$('tutorial-continue').textContent='Got it!';
-      });$('tutorial-title').textContent='A closer look';$('tutorial-continue').textContent='Continue';
+        });tip.update({title:'A closer look'});tip.updateAction({label:'Got it!'});
+      });tip.update({title:'A closer look'});tip.updateAction({label:'Continue'});
     }else return !['inactive','done','chop','pickaxe','mine'].includes(stage);
     return true;
   };
@@ -75,7 +78,7 @@ export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete
     if(stage!=='quests-menu')return;
     setStage('quests-detail');guide(null);
     tutorial('Here are your quests! Each quest shows what you need to do and tracks your progress. Your first task is to collect six items from the ground. You can return here whenever you need a reminder.',false,()=>{
-      closeMenus();setStage(freePlay?'done':'inactive');$('gather-tutorial').hidden=true;
+      closeMenus();setStage(freePlay?'done':'inactive');tip.hide();
       const done=questsDone;questsDone=null;if(done)done();
     });
   }
@@ -88,27 +91,19 @@ export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete
   }
 
   function guide(id){for(const node of host.querySelectorAll('.gold-guide'))node.classList.remove('gold-guide');if(id)$(id).classList.add('gold-guide');}
-  function writeItems(element,text){
-    element.replaceChildren();
-    for(const part of text.split(/(Crude Pickaxe|Crude Axe|Small Logs|Sticks|Rocks|Stone|Boulder)/g)){
-      if(/^(Crude Pickaxe|Crude Axe|Small Logs|Sticks|Rocks|Stone|Boulder)$/.test(part)){const strong=document.createElement('strong');strong.className='item-name';strong.textContent=part;element.append(strong);}
-      else element.append(document.createTextNode(part));
-    }
-  }
   function tutorial(text,success=false,next=null){
-    help.hidden=true;narrator.hide();$('gather-tutorial').hidden=false;
-    $('tutorial-title').textContent=success?'Well done!':({chop:'Chop a tree',pickaxe:'Craft a Crude Pickaxe',mine:'Mine a boulder',recipe:'Craft a Crude Axe',crafting:'Crafting your axe','mining-craft':'Crafting your pickaxe'})[stage]||'Learning the ropes';
-    $('tutorial-count').textContent='';writeItems($('tutorial-copy'),text);
-    $('gather-tutorial').querySelector('.progress-track').hidden=true;
-    $('gather-tutorial').classList.toggle('complete',success);
-    $('tutorial-continue').disabled=false;$('tutorial-continue').hidden=false;$('tutorial-continue').textContent=next?'Continue':'Dismiss';successNext=next||(()=>{$('gather-tutorial').hidden=true;});
+    helpShown=false;narrator.hide();successNext=next||(()=>tip.hide());
+    tip.show({
+      title:success?'Well done!':({chop:'Chop a tree',pickaxe:'Craft a Crude Pickaxe',mine:'Mine a boulder',recipe:'Craft a Crude Axe',crafting:'Crafting your axe','mining-craft':'Crafting your pickaxe'})[stage]||'Learning the ropes',
+      text,emphasis:ITEM_TERMS,complete:success,action:{label:next?'Continue':'Dismiss',onPress:continueTip},
+    });
     const goals={menu:['axe','Craft a Crude Axe','Use the Crafting tab to make a Crude Axe with Sticks ×1 and Rocks ×1. Stay still until crafting finishes.'],chop:['chop','Chop a tree','With a Crude Axe in your inventory, click a tree in the clearing and wait to obtain Small Logs.'],pickaxe:['pickaxe','Craft a Crude Pickaxe','Use the Crafting tab to make a Crude Pickaxe with Sticks ×1 and Rocks ×1. Use Show me how if you need guidance.'],mine:['mine','Mine a boulder','With a Crude Pickaxe in your inventory, click a boulder in the clearing to obtain Stone. Stay still until mining finishes.']};
     if(goals[stage])updateObjective(...goals[stage]);
     if(stage.startsWith('skills-'))updateObjective('skills','Explore your skills',text);
     if(stage.startsWith('inventory-'))updateObjective('inventory','Check your inventory',text);
   }
   function say(text,next){
-    help.hidden=true;$('gather-tutorial').hidden=true;advance=next;
+    showHelp(false);tip.hide();advance=next;
     narrator.show({text,next:advanceLine});
   }
   function nextIntro(){
@@ -120,13 +115,13 @@ export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete
     guide(panels.isOpen('crafting')?(menus.selectedRecipe==='pickaxes'?'craft-pickaxes':'choose-pickaxes'):(panels.navShown.peek()||panels.isOpen('character')||panels.isOpen('inventory'))?'open-crafting':'game-menu-toggle');
   }
   function pickaxePrompt(){
-    setStage('pickaxe');setObjectiveHelp('pickaxe',()=>{closeMenus();help.onclick();});tutorial('Craft a Crude Pickaxe using Sticks ×1 and Rocks ×1.');help.hidden=miningGuided;pickaxeGuide();
+    setStage('pickaxe');setObjectiveHelp('pickaxe',()=>{closeMenus();helpAction();});tutorial('Craft a Crude Pickaxe using Sticks ×1 and Rocks ×1.');showHelp(!miningGuided);pickaxeGuide();
   }
   function activateMining(){
-    setStage('mine');setObjectiveHelp('mine',()=>{closeMenus();help.onclick();});miningGuided=false;guide(null);tutorial('Mine a Boulder to collect Stone.');help.hidden=false;
+    setStage('mine');setObjectiveHelp('mine',()=>{closeMenus();helpAction();});miningGuided=false;guide(null);tutorial('Mine a Boulder to collect Stone.');showHelp(true);
   }
   function startMining(){
-    help.onclick=miningHelp;
+    helpAction=miningHelp;
     closeMenus();guide(null);advance=null;successNext=null;miningGuided=false;setStage('mining-intro');host.hidden=false;panels.setAvailable('crafting',true);
     const lines=[
       'Nicely done! Wood will come in handy, but some things need something sturdier.',
@@ -136,14 +131,16 @@ export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete
     ];
     let index=0;const next=()=>index<lines.length?say(lines[index++],next):pickaxePrompt();next();
   }
-  const miningHelp=help.onclick=()=>{
-    miningGuided=true;help.hidden=true;
+  const miningHelp=()=>{
+    miningGuided=true;showHelp(false);
     if(stage==='pickaxe')pickaxeGuide();
     if(stage==='mine')tutorial('Click/Tap a highlighted Boulder to start mining. Keep your Crude Pickaxe in your inventory, and wait until you’re finished. Moving away will interrupt mining.');
-  };
-  function reset(){help.onclick=miningHelp;closeMenus();guide(null);inventoryMenu.guide(false);inventoryMenu.lock(false);advance=successNext=null;questsDone=skillsDone=inventoryDone=null;miningGuided=false;setStage('done');firstTree=false;help.hidden=true;narrator.hide();$('gather-tutorial').hidden=true;}
+  };  helpAction=miningHelp;
+
+  function reset(){helpAction=miningHelp;closeMenus();guide(null);inventoryMenu.guide(false);inventoryMenu.lock(false);advance=successNext=null;questsDone=skillsDone=inventoryDone=null;miningGuided=false;setStage('done');firstTree=false;showHelp(false);narrator.hide();tip.hide();}
   function advanceLine(){if(advance){const next=advance;advance=null;next();}}
-  $('tutorial-continue')?.addEventListener('click',()=>{if(successNext){const next=successNext;successNext=null;next();}});
+  // The tip's Continue/Dismiss while the crafting tutorial owns it.
+  function continueTip(){if(successNext){const next=successNext;successNext=null;next();}}
   menus.events.toggle=()=>{
     if(stage.startsWith('quests-')){if(stage==='quests-toggle'){setStage('quests-menu');panels.showNav();guide('open-quests');tutorial('Open the Quests tab to see your new quest.');}return true;}
     if(stage.startsWith('inventory-')){if(stage==='inventory-toggle'){setStage('inventory-menu');panels.showNav();guide('open-inventory');tutorial('Open the Inventory menu.');}return true;}
@@ -201,7 +198,7 @@ export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete
     }:undefined,
     onStageChange(listener){stageListeners.add(listener);return ()=>stageListeners.delete(listener);},
     sayChapter(text,next){setStage('done');say(text,next);},
-    showChapterTip(title,text,next=null,onHelp=null){setStage('done');tutorial(text,title==='Well done!'||title.includes('Complete'),next);$('tutorial-title').textContent=title;help.hidden=!onHelp;help.onclick=onHelp||(()=>{});},
+    showChapterTip(title,text,next=null,onHelp=null){setStage('done');tutorial(text,title==='Well done!'||title.includes('Complete'),next);tip.update({title});helpAction=onHelp||(()=>{});showHelp(!!onHelp);},
     previewTip(){tutorial('Click a resource and wait to finish gathering. Your Quests tab keeps track of your progress.');},
     startQuests,questsOpened,startSkills,startInventory,startMining,reset,
     start(){ panels.setAvailable('crafting',true);setStage('intro');lineIndex=0;nextIntro();},
@@ -214,6 +211,6 @@ export function createCraftingTutorial({menus,narrator,freePlay=false,onComplete
     craftCancelled(){if(stage==='mining-craft'){pickaxePrompt();return;}if(stage==='crafting'){setStage('retry');guide('game-menu-toggle');tutorial('Crafting interrupted. Your materials are safe. Open the menu and craft a Crude Axe again.');}},
     craftComplete(output){if(!['axes','pickaxes'].includes(output))return;finishObjective(output==='pickaxes'?'pickaxe':'axe');if(stage==='mining-craft'&&output==='pickaxes'){setStage('mining-crafted');tutorial('Crude Pickaxe crafted! You’re ready to mine.',true,()=>{setStage('mining-intro');say('Remember how you cut down a tree? Mining Stone works the same way!',()=>say('With your pickaxe in your inventory, find a boulder and give it a try.',activateMining));});return;}if(stage==='crafting'&&output==='axes'){setStage('craft-success');tutorial('You crafted a Crude Axe! Your new tool is in your inventory.',true,()=>{setStage('chop-dialogue');say("All right! We've got an axe! Let's do some light deforestation!",activateChopping);});}},
     chopped(logs){finishObjective('chop');if(firstTree){firstTree=false;setStage('chop-success');tutorial(`You chopped your first tree and gained Small Logs ×${logs}!`,true,startMining);}},
-    mined(){finishObjective('mine');if(stage==='mine'){setStage('mining-success');miningGuided=false;tutorial('You mined your first Stone! With better resources comes the ability to craft better tools. Be on the lookout for better materials on your adventures!',true,()=>{setStage('done');$('gather-tutorial').hidden=true;onComplete();});}},
+    mined(){finishObjective('mine');if(stage==='mine'){setStage('mining-success');miningGuided=false;tutorial('You mined your first Stone! With better resources comes the ability to craft better tools. Be on the lookout for better materials on your adventures!',true,()=>{setStage('done');tip.hide();onComplete();});}},
   };
 }

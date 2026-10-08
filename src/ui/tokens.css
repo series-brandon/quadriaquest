@@ -78,6 +78,22 @@
   --q-badge-shadow: #22192b20;
   --q-font-display: Georgia, serif;
 
+  /* Tutorial tip (ui/hud/tip.css): a dark card; green once a step is done */
+  --q-tip-bg: #493452f5;
+  --q-tip-ink: #fff0db;
+  --q-tip-muted: #dbcadd;
+  --q-tip-border: #ad8dba;
+  --q-tip-accent: #dbb878;
+  --q-tip-item: #f3cc88;
+  --q-tip-shadow: #382b4920;
+  --q-tip-button: #f4e6d5;
+  --q-tip-button-hover: #fff5e7;
+  --q-tip-button-ink: #493452;
+  --q-tip-done-bg: #304e40f7;
+  --q-tip-done-border: #739c7d;
+  --q-tip-done-accent: #b3e6ac;
+  --q-tip-done-title: #c4f2b9;
+
   /* Modal host (ui/modal.js) */
   --q-paper: #faf1e7;
   --q-modal-border: #c7abc1;
