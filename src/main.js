@@ -657,7 +657,7 @@ if(__PLAYGROUND__){
   resources:playerResources,health,
   sharedAction(name){splash.close();if(name==='heal')health.restore();else if(name==='hurt')health.value=Math.max(1,health.value-10);else if(name==='eat'){inventory.cookedFish=Math.max(1,inventory.cookedFish||0);food.start('cookedFish',true);}else willow.debug[name]();return health.value;},
   closeSplash(){splash.close();},
-  tip,
+  tip,modals,
   grassPalette:playground.createGrassPaletteControls(()=>[...grass,...splash.grassMaterials,...willow.grassMaterials]),
   combatProfile:()=>combat.preview(),
   objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip()},audio:gameAudio,itemFeed,openSettings:()=>menus.panels.select('settings'),showCrafting(){menus.panels.select('crafting');},registerTab:tab=>menus.panels.register(tab),waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},

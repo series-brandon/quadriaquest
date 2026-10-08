@@ -8,7 +8,7 @@ import {Group} from 'three';
 import {organizePlayground} from './playground-layout.js';
 import {enemySheetDetails} from './combat-fixtures.js';
 import {playerActionMotion} from '../player-action-motion.js';
-import {createModelPreview} from './model-preview.js';
+import {createModelViewer} from './model-viewer.js';
 import {GRASS_BASE_COLOR,createGrassColors} from '../grass-palette.js';
 import {icon,ICON_NAMES} from '../icons.js';
 import {miningMotion,MINING_DURATION} from '../mining.js';
@@ -166,7 +166,7 @@ export function mountPlayground(api){
         if(action==='resource-reset'){api.health.restore();api.resources.reset();}
         if(action==='health'){status(`Health: ${api.sharedAction($('health').value)} / ${api.health.max}`);}
         if(action==='splash-close')api.closeSplash();
-        if(action==='interface'){stop();const name=$('interface').value;if(name==='models'){modelPreview??=createModelPreview();modelPreview.show();}else if(name==='splash')api.showSplash();else api.openInterface(name);status('Opened '+name+'.');}
+        if(action==='interface'){stop();const name=$('interface').value;if(name==='models'){modelPreview??=createModelViewer(api.modals);modelPreview.show();}else if(name==='splash')api.showSplash();else api.openInterface(name);status('Opened '+name+'.');}
 
         if(action==='crafting-menu'){stop();api.showCrafting();}
         if(action==='receipt')api.itemFeed.show({sticks:-1,stones:-1,axes:1});
@@ -175,7 +175,7 @@ export function mountPlayground(api){
         if(action==='settings')api.openSettings();
         if(action==='audio-reset'){api.audio.reset();panel.querySelector('#dev-music').value='';}
         if(action==='grass-reset'){api.grassPalette.reset();$('grass-color').value=api.grassPalette.defaultColor;status('Original grass palette restored.');}
-        if(action==='models'){modelPreview??=createModelPreview();modelPreview.show();}
+        if(action==='models'){modelPreview??=createModelViewer(api.modals);modelPreview.show();}
         if(action==='water-restart'){api.restartWater();status('Water animation restarted.');}
         if(action==='water-reset'){Object.assign(api.waterSettings,WATER_DEFAULTS);for(const [id,key] of Object.entries(waterControls)){const input=$('water-'+id);if(input.type==='checkbox')input.checked=WATER_DEFAULTS[key];else input.value=WATER_DEFAULTS[key];}api.restartWater();status('Water defaults restored.');}
         if(action==='mining-lesson'){stop();api.miningLesson();}

@@ -20,6 +20,18 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Dev model viewer on the kit — 2026-10-08 (no legacy UI surfaces left)
+- **`dev/model-viewer.js`** (dev only) replaces `dev/model-preview.js`/`.css`, which had an HTML-string template, property handlers and its own `<dialog>`.
+  - **Modal host:** `createModelViewer(api.modals).show()` opens it on the host (id `dev-model-viewer`, the new `size: 'large'`: 1000×820 on desktop, edge-to-edge on phones).
+  - **Controls:** model, animation, expression, held item (Celebration), and for slimes combat style, attack/block motion, main/off hand with damage types, and attack hands. They are keyed selects bound to signals; motions and expressions follow the chosen model; damage choices and the loadout note come from the production preview-loadout rules.
+  - **Playback:** Pause/Play (disabled for static motions), Restart, Reset view, Reset loadout.
+  - **Ownership:** the view's scope owns the WebGL renderer, OrbitControls, `ResizeObserver` and rAF loop, all disposed on close. They're recreated on each open, where the legacy viewer kept one renderer forever.
+  - **Same behaviour:** the camera fit and measurement, Celebration/Corgi pose sampling and production `update` calls are unchanged.
+- **Wiring:** the dev API exposes `modals`. The playground's Interface → Model viewer and Combat models button use the new viewer. `check-debug-isolation.js`'s marker is now `dev-model-viewer`, and the check confirms it's in the debug build only.
+- **Verification:**
+  - 359 tests pass. `check:ui`, both builds and `check:debug-isolation` pass.
+  - **Not yet checked in the browser:** the Browser pane was hidden, and WebGL can't run in unit tests. Pending: open the viewer, switch models and motions, the slime loadout, pause/restart/reset view, close and reopen (renderer disposed and recreated), and the phone layout.
+
 ### Notices on the kit — 2026-10-08
 - **`ui/hud/notices.js`:**
   - `messageToast()`: `#toast`, mounted in main.js; `toast(text)` plays the blocked sound and shows it for 2.6s.

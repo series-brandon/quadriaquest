@@ -23,6 +23,7 @@
 .q-modal::backdrop { background: var(--q-backdrop); }
 .q-modal--wide { inline-size: min(680px, calc(100vw - 48px)); block-size: min(520px, calc(100dvh - 48px)); }
 .q-modal--compact { inline-size: min(360px, calc(100vw - 2 * var(--q-modal-edge))); }
+.q-modal--large { inline-size: min(1000px, calc(100vw - 48px)); block-size: min(820px, calc(100dvh - 48px)); }
 
 .q-modal__header {
   display: flex;
@@ -71,7 +72,8 @@
 
 @media (max-width: 700px) {
   .q-modal--sheet,
-  .q-modal--wide {
+  .q-modal--wide,
+  .q-modal--large {
     inset: 0;
     margin: 0;
     inline-size: 100%;
@@ -81,7 +83,8 @@
     border-radius: 0;
   }
   .q-modal--sheet .q-modal__header,
-  .q-modal--wide .q-modal__header {
+  .q-modal--wide .q-modal__header,
+  .q-modal--large .q-modal__header {
     padding-block-start: max(12px, env(safe-area-inset-top));
     padding-inline: max(var(--q-modal-pad), env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
   }

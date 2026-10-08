@@ -11,8 +11,9 @@ import {iconNode} from './icon.js';
 //   id,           one dialog per id; opening an open id replaces it
 //   title,        heading text (also the accessible name unless `label` is given)
 //   label,        accessible name when it should differ from the title
-//   size,         'sheet' (default), 'wide' (two-pane browsers) or 'compact' (short confirmations,
-//                 which stay centered on phones); sheet and wide go edge-to-edge on phones
+//   size,         'sheet' (default), 'wide' (two-pane browsers), 'large' (tools such as the dev
+//                 model viewer) or 'compact' (short confirmations, which stay centered on phones);
+//                 sheet, wide and large go edge-to-edge on phones
 //   flush,        the content manages its own padding and scrolling
 //   required,     no close button; Escape and closeAll leave it open (finish it to close)
 //   onClose,      (reason) => void after it closes: 'dismiss', 'replaced', a closeAll reason, or
