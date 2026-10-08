@@ -37,9 +37,9 @@ body>header,body>.journal,body>footer,body>.controls-hint{display:none}
 #game-menu-toggle{width:54px;height:54px;border-radius:17px;background:#fcfdf5;color:#435c3b;box-shadow:0 6px 26px #29442d26;border:1px solid #fff;font-size:26px}
 #game-menu-bar{position:absolute;right:0;bottom:68px;background:#fafcf4;padding:10px;border-radius:14px;box-shadow:0 8px 35px #29442d20}
 #open-crafting{padding:13px 24px;background:#e9eedf;white-space:nowrap}
-#crafting-panel{position:absolute;right:0;bottom:70px;width:min(350px,calc(100vw - 40px));padding:24px;background:#fafcf6fa;border:1px solid #fff;border-radius:18px;box-shadow:0 12px 45px #29442d29}
+
 .crafting-heading{display:flex;justify-content:space-between;align-items:center}.crafting-heading h2{font-size:20px;margin:0}.crafting-heading button{font-size:23px;width:32px;height:32px}
-.crafting-intro{font-size:11px;margin:8px 0 28px}.recipe{position:relative;width:100%;display:flex;gap:12px;align-items:center;text-align:left;padding:15px 10px;background:#edf1e4;border:1px solid #d4dec5;border-radius:12px}.recipe small{display:block;margin-top:7px;font-size:10px;color:#7c896b}.recipe:disabled{opacity:.5;cursor:not-allowed}.axe-symbol{font-size:28px;color:#957749}.item-name{color:#9c6b17;font-weight:700}#crafting-stock{font-size:10px;line-height:1.7;margin-top:18px}#recipe-error{font-size:11px;color:#a34736;margin-top:8px}
+.axe-symbol{font-size:28px;color:#957749}.item-name{color:#9c6b17;font-weight:700}#crafting-stock{font-size:10px;line-height:1.7;margin-top:18px}
 .gold-guide{position:relative!important;outline:2px solid #eac35f;box-shadow:0 0 0 5px #f6d87b35,0 0 24px #efbf5570!important}
 .gold-guide::before{content:'';position:absolute;left:50%;bottom:calc(100% + 10px);width:27px;height:40px;transform:translateX(-50%);background:linear-gradient(#ffe798,#e9a92d);clip-path:polygon(35% 0,65% 0,65% 55%,100% 55%,50% 100%,0 55%,35% 55%);filter:drop-shadow(0 1px 1px #76521b);animation:guide-bob 1s ease-in-out infinite;pointer-events:none}
 @keyframes guide-bob{50%{transform:translate(-50%,-5px)}}

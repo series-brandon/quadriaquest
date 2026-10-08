@@ -19,7 +19,7 @@ export function createCraftingTutorial({menus,freePlay=false,onComplete=()=>{}})
   const help=document.createElement('button');help.id='tutorial-help';help.textContent='Show me how';help.hidden=true;$('gather-tutorial').append(help);
   if(!$('tutorial-continue')){const b=document.createElement('button');b.id='tutorial-continue';b.hidden=true;$('gather-tutorial').append(b);}
   const actions=document.createElement('div');actions.className='tutorial-actions';actions.append(help,$('tutorial-continue'));$('gather-tutorial').append(actions);
-  const {host,panels,inventoryMenu,selectRecipe,closeMenus,refresh,openSkills,openInventory}=menus;
+  const {host,panels,inventoryMenu,selectRecipe,closeMenus,openSkills,openInventory}=menus;
   host.hidden=!freePlay;
   for(const id of ['inventory','crafting'])panels.setAvailable(id,freePlay);
   menus.events.selected=id=>{if(miningGuided&&stage==='pickaxe')guide(id==='pickaxes'?'craft-pickaxes':'choose-pickaxes');};
@@ -118,7 +118,7 @@ export function createCraftingTutorial({menus,freePlay=false,onComplete=()=>{}})
   function activateChopping(){setStage('chop');guide(null);tutorial('Click on a tree with an appropriate tool in your inventory to start chopping it down. Be patient! If you move before you finish, you’ll have to start over!');}
   function pickaxeGuide(){
     if(!miningGuided||stage!=='pickaxe')return;
-    guide(panels.isOpen('crafting')?(!$('pickaxes-detail').hidden?'craft-pickaxes':'choose-pickaxes'):(panels.navShown.peek()||panels.isOpen('character')||panels.isOpen('inventory'))?'open-crafting':'game-menu-toggle');
+    guide(panels.isOpen('crafting')?(menus.selectedRecipe==='pickaxes'?'craft-pickaxes':'choose-pickaxes'):(panels.navShown.peek()||panels.isOpen('character')||panels.isOpen('inventory'))?'open-crafting':'game-menu-toggle');
   }
   function pickaxePrompt(){
     setStage('pickaxe');setObjectiveHelp('pickaxe',()=>{closeMenus();help.onclick();});tutorial('Craft a Crude Pickaxe using Sticks ×1 and Rocks ×1.');help.hidden=miningGuided;pickaxeGuide();
@@ -128,7 +128,7 @@ export function createCraftingTutorial({menus,freePlay=false,onComplete=()=>{}})
   }
   function startMining(){
     help.onclick=miningHelp;
-    closeMenus();guide(null);advance=null;successNext=null;miningGuided=false;setStage('mining-intro');host.hidden=false;panels.setAvailable('crafting',true);$('craft-pickaxes').hidden=false;$('choose-pickaxes').hidden=false;
+    closeMenus();guide(null);advance=null;successNext=null;miningGuided=false;setStage('mining-intro');host.hidden=false;panels.setAvailable('crafting',true);
     const lines=[
       'Nicely done! Wood will come in handy, but some things need something sturdier.',
       'See those boulders? We can mine some Stone from them.',
@@ -215,8 +215,8 @@ export function createCraftingTutorial({menus,freePlay=false,onComplete=()=>{}})
     // Reactive stage for UI that must follow lessons (journal close locks).
     stageState:computed(()=>stageState.value),
     craftCancelled(){if(stage==='mining-craft'){pickaxePrompt();return;}if(stage==='crafting'){setStage('retry');guide('game-menu-toggle');tutorial('Crafting interrupted. Your materials are safe. Open the menu and craft a Crude Axe again.');}},
-    craftComplete(output){if(!['axes','pickaxes'].includes(output))return;finishObjective(output==='pickaxes'?'pickaxe':'axe');refresh();if(stage==='mining-craft'&&output==='pickaxes'){setStage('mining-crafted');tutorial('Crude Pickaxe crafted! You’re ready to mine.',true,()=>{setStage('mining-intro');say('Remember how you cut down a tree? Mining Stone works the same way!',()=>say('With your pickaxe in your inventory, find a boulder and give it a try.',activateMining));});return;}if(stage==='crafting'&&output==='axes'){setStage('craft-success');tutorial('You crafted a Crude Axe! Your new tool is in your inventory.',true,()=>{setStage('chop-dialogue');say("All right! We've got an axe! Let's do some light deforestation!",activateChopping);});}},
-    chopped(logs){finishObjective('chop');refresh();if(firstTree){firstTree=false;setStage('chop-success');tutorial(`You chopped your first tree and gained Small Logs ×${logs}!`,true,startMining);}},
-    mined(){finishObjective('mine');refresh();if(stage==='mine'){setStage('mining-success');miningGuided=false;tutorial('You mined your first Stone! With better resources comes the ability to craft better tools. Be on the lookout for better materials on your adventures!',true,()=>{setStage('done');$('gather-tutorial').hidden=true;onComplete();});}},
+    craftComplete(output){if(!['axes','pickaxes'].includes(output))return;finishObjective(output==='pickaxes'?'pickaxe':'axe');if(stage==='mining-craft'&&output==='pickaxes'){setStage('mining-crafted');tutorial('Crude Pickaxe crafted! You’re ready to mine.',true,()=>{setStage('mining-intro');say('Remember how you cut down a tree? Mining Stone works the same way!',()=>say('With your pickaxe in your inventory, find a boulder and give it a try.',activateMining));});return;}if(stage==='crafting'&&output==='axes'){setStage('craft-success');tutorial('You crafted a Crude Axe! Your new tool is in your inventory.',true,()=>{setStage('chop-dialogue');say("All right! We've got an axe! Let's do some light deforestation!",activateChopping);});}},
+    chopped(logs){finishObjective('chop');if(firstTree){firstTree=false;setStage('chop-success');tutorial(`You chopped your first tree and gained Small Logs ×${logs}!`,true,startMining);}},
+    mined(){finishObjective('mine');if(stage==='mine'){setStage('mining-success');miningGuided=false;tutorial('You mined your first Stone! With better resources comes the ability to craft better tools. Be on the lookout for better materials on your adventures!',true,()=>{setStage('done');$('gather-tutorial').hidden=true;onComplete();});}},
   };
 }

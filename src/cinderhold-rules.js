@@ -10,8 +10,8 @@ export function makeCinderholdTiles(){
 export const TRAINING_STEPS=['meet','unarmed','report','smith','mine','smelt','dagger','shield','equip','return','bruiser','graduate','finished'];
 // Story state only: facts come from shared gameplay completion events, never inventory mutation.
 export function createTrainingProgress(){
- const state={phase:'meet',refused:false,entered:false,ore:0,ingots:0,dagger:0,shield:0,unarmed:false,bruiser:false,ranged:'offer',magic:'offer',ki:'offer'};
- return {state,reset(){Object.assign(state,{phase:'meet',refused:false,entered:false,ore:0,ingots:0,dagger:0,shield:0,unarmed:false,bruiser:false,ranged:'offer',magic:'offer',ki:'offer'});},
+ const state={phase:'meet',refused:false,spurned:false,entered:false,ore:0,ingots:0,dagger:0,shield:0,unarmed:false,bruiser:false,ranged:'offer',magic:'offer',ki:'offer'};
+ return {state,reset(){Object.assign(state,{phase:'meet',refused:false,spurned:false,entered:false,ore:0,ingots:0,dagger:0,shield:0,unarmed:false,bruiser:false,ranged:'offer',magic:'offer',ki:'offer'});},
   event(type,data){if(!state.entered)return;
    if(type==='resource'&&data.copperOre)state.ore+=data.copperOre;
    if(type==='crafted'){if(data==='copperIngots')state.ingots++;if(data==='copperDagger')state.dagger++;if(data==='copperShield')state.shield++;}

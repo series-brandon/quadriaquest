@@ -15,7 +15,7 @@ const HAND_LABEL = {main: 'Main hand', off: 'Off hand', alternate: 'Alternate'};
 const STYLES = ['melee', 'ranged', 'magic'];
 const MODE_HELP = {
   simple: 'Auto picks strategy, attacks, abilities and auras for you. You always control movement.',
-  pacifist: 'You never attack. Eating, defensive auras and warnings still help you get away.',
+  pacifist: 'You never attack, and most creatures leave you alone. Eating, defensive auras and warnings help when one doesn’t.',
   expert: 'Every combat choice is yours.',
   custom: 'Your own mix of Auto and Manual. Switching modes never changes these settings.',
 };
@@ -29,7 +29,8 @@ const CHOICE_POLICIES = [['strategy', 'Strategy'], ['attack', 'Attack and spell 
 // Attack setup, strategy, spells, abilities, auras and mode settings are collapsible sections
 // whose headers show their current value. Every control calls the shared systems; state follows
 // their revisions, so nothing polls or rebuilds while the page is open.
-export function combatPage({styles, combat, auras, assistance, equipment, character, health}) {
+// `guide` (signal, optional): 'mode' highlights the mode dropdown until a mode is chosen.
+export function combatPage({styles, combat, auras, assistance, equipment, character, health, guide = null}) {
   const track = (system, read) => computed(() => (system?.revision.value, read()));
   const settings = track(assistance, () => assistance?.settings ?? null);
   const policy = key => computed(() => settings.value?.policies[key]);
@@ -77,7 +78,7 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
   const mode = computed(() => settings.value?.mode ?? 'simple');
   const modeSelect = h('label', {class: 'q-field'},
     h('span', {class: 'q-label'}, 'Mode'),
-    h('select', {class: 'q-select', 'aria-label': 'Combat mode', on: {change: event => assistance.setMode(event.target.value)}},
+    h('select', {class: 'q-select', 'aria-label': 'Combat mode', 'data-guide': () => guide?.value === 'mode', on: {change: event => { assistance.setMode(event.target.value); if (guide) guide.value = null; }}},
       MODES.map(id => h('option', {value: id, selected: () => mode.value === id}, title(id)))));
 
   // Quick settings: never change the mode.

@@ -54,7 +54,10 @@ export function createCinderhold(api){
    if(line.speaker==='player')return dialogue.showPlayer({...line,...extra});
    dialogue.show({side:'right',name:line.speaker==='unknown'?'???':'Bristle',model:line.speaker==='unknown'?null:mentors.sarge.group,...line,...extra});
   };
-  bristleIntroduction({refused:state.refused,
+  bristleIntroduction({refused:state.refused,returning:state.spurned,
+   // Attacks prevented (Pacifist): Bristle won't train; a tip points to the Combat page's modes.
+   pacifist:()=>!!api.attacksPrevented?.(),
+   turnedAway(){state.spurned=true;dialogue.hide();speaker=null;sync();api.tip('Want to fight?','Change your combat mode if you wish to partake in some battle.',null,()=>{api.hideTip();api.showCombatModes?.();});},
    say(lines,after){let i=0;const next=()=>{if(i===lines.length)return dialogue.finish(after);show(lines[i++],{next});};next();},
    choose(line,choices){show(line,{choices});},
    refuse(){state.refused=true;},leave:finish,

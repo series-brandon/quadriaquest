@@ -211,7 +211,9 @@ export function createCombatSystem(api){
    if(a.waitingRespawn){resetEnemy(a);if(a.waitingRespawn)continue;}
    a.group.visible=!a.opened||fleeing.has(a);a.highlight?.update(!!a.guided&&!a.opened,time,api.hover?.()===a&&!a.opened);
    if(a.opened)continue;a.hitAge=Math.max(0,a.hitAge-dt);a.attackAge=Math.max(0,a.attackAge-dt);a.control.update(dt);const canMove=a.control.can('move');
-   if(!a.aggro&&!a.returning&&!a.rules.inert&&(a.aggressive??a.rules.aggressive)&&!defeated&&!api.blocked()&&!api.safe?.(api.tile())&&settled(a)){
+   // Players whose attacks are prevented (Pacifist) draw no aggression, except from creatures configured
+   // to attack pacifists. Aggression that already started is kept until it ends normally (leash, safety, defeat).
+   if(!a.aggro&&!a.returning&&!a.rules.inert&&(a.aggressive??a.rules.aggressive)&&(!api.passive?.()||(a.attacksPacifists??a.rules.attacksPacifists))&&!defeated&&!api.blocked()&&!api.safe?.(api.tile())&&settled(a)){
     const p=api.tile();if(withinAttackRange(api.world,a.tile,{x:p.x,z:p.z,tile:p},a.aggroRange??a.rules.aggroRange??3)&&findPath(api.world,a.tile,p))engage(a);
    }
    // Stun and immobilize hold the enemy in place; slows scale its walking below.

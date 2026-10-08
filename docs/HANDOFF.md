@@ -20,6 +20,76 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Pacifist turns aggression off — 2026-10-08
+- **User decisions:**
+  - Attacks: Prevented also turns proximity aggression off for all enemies (one policy, never separate options) unless an enemy is configured `attacksPacifists`. That's rare: the most aggressive creatures and some bosses.
+  - Switching to Pacifist doesn't calm enemies already aggressive (fighting or chasing); they keep it until leash, a safe tile or defeat.
+  - Leaving Pacifist near an unaware enemy is allowed.
+  - Pacifist-hunting creatures show a warning.
+  - Bristle turns away a Pacifist "Yes! Teach me!".
+- **Shared combat** (`combat.js`): the proximity check also requires `!api.passive?.() || a.attacksPacifists`. `passive` comes from `assistance.attacksPrevented` (a new getter on the Attacks policy, so Custom-with-prevented behaves the same). The existing `a.aggro` state carries ongoing aggression through mode switches.
+- **Enemy config:** `attacksPacifists` comes from the enemy rules, overridable per placement (`createEnemyEntity({attacksPacifists})`). No enemy sets it yet. The hover label appends "⚠ Hunts pacifists".
+- **Cinderhold:**
+  - `bristleIntroduction` takes `pacifist()`, `turnedAway` and `returning`. A Pacifist "Yes! Teach me!" (or "I changed my mind, teach me!") gets three lines ("Wait a second! I can't teach a woo-woo do-gooder how to FIGHT." / "Go talk to the other tree huggers around here! They might talk nonsense with you!" / "Come back if you ever grow a SPINE, SLIME! DISMISSED!") and the conversation ends.
+  - A tip follows: "Want to fight?" / "Change your combat mode if you wish to partake in some battle.", with Show me how and Dismiss.
+  - "Show me how" opens the Combat page with the mode dropdown highlighted (`styleMenu.showModes()`, a `guide` signal cleared when a mode is chosen or the page closes).
+  - `state.spurned` makes Bristle skip straight to his offer next time; `reset` clears it.
+- **Combat page:** the Pacifist help now reads "You never attack, and most creatures leave you alone…".
+- **Playground:** Combat practice → "Spawn pacifist-hunting enemies (3 tiles)", with a note on how to exercise the rules. Cinderhold "meet" checkpoint plus Pacifist mode exercises Bristle.
+- **Verification:**
+  - 340 tests pass:
+    - production combat system: a Pacifist player is ignored by an aggressive bruiser in range, a hunter engages, and switching to Pacifist mid-fight keeps the enemy aggressive and attacking;
+    - `attacksPrevented` follows Pacifist, Custom and the Attacks policy;
+    - Bristle turns a Pacifist away (both "teach me" paths) and skips to his offer when returning.
+  - `check:ui`, both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - aggressive goblins stood beside a Pacifist player without engaging;
+    - pacifist hunters engaged, the player didn't retaliate, and the hover showed "⚠ Hunts pacifists";
+    - in Simple, the Bruiser engaged; switching to Pacifist mid-fight kept it chasing and hitting (HP 100 → 54); after its aggression ended (reset), it stayed calm;
+    - the Cinderhold meet checkpoint in Pacifist: Bristle's line, then the tip, and "Show me how" opened Combat with the mode dropdown highlighted.
+
+### Opening asks for a play style — 2026-10-08
+- **User request:** after the player names themselves, the narrator ("???") asks "Before we get too far, how would you like your experience to go?". There are three options with the user's copy (`PLAY_STYLES` in `ui/dialogs/mode-choice.js`):
+  - "I'm a lover, not a fighter" → Pacifist (like Animal Crossing);
+  - "I wanna fight stuff, but nothing complicated" → Simple (like Stardew Valley);
+  - "I want to control every aspect of my game" → Expert (like RuneScape);
+  - plus the "no pressure, swap any time, custom settings" note.
+- **Component:** `modeChoice` is a radio group of label cards (Simple preselected; the chosen card expands its description and "You might like…" line) with a "Play as <Mode>" confirm. It uses radios rather than buttons because the legacy `#dialogue-controls button` styles override kit buttons by id.
+- **Flow:** `opening.js` `chooseMode()` runs after the name is confirmed, mounts the choice into the dialogue controls (disposed on the next `show`), and calls the new `onModeChosen(mode)` option, which main.js routes to `assistance.setMode`. Then "Well, <name>, you're in for quite an adventure!" and the fade, as before.
+- **Dialogue size:** input steps have a fixed 155px dialogue box, so the choice sets `data-size="tall"` (auto height up to the viewport, scrolling controls). The rule is in `dialogue-presentation.css`, and `show()` clears it.
+- **Playground:** tutorial checkpoint **clearing:mode** ("Choose play style") routes through `customization()` like color and name.
+- **Pacifist copy is now backed by gameplay:** see "Pacifist turns aggression off" above.
+- **Verification:**
+  - 337 tests pass: a `modeChoice` component test, and `opening.test.js` now picks Pacifist between naming and the adventure line and asserts `onModeChosen('pacifist')`.
+  - `check:ui`, both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - desktop: the choice fits, choosing Pacifist expands its copy, and "Play as Pacifist" set the Combat page mode to Pacifist before continuing;
+    - phone: the box grows to fit, with no horizontal overflow and the confirm button visible.
+
+### Crafting page rebuilt in the kit — 2026-10-08
+- **New page:** `ui/pages/crafting-page.js`, hosted in `game-menus.js`. It replaces the legacy recipe browser, its HTML strings and signature-diffing `refresh()`, and about 5 KB of `.recipe*`, `#crafting-panel` and `.ingredient*` CSS (`ui-theme.css`, `style.css`).
+  - **Hand recipes first, then "At stations":** station recipes say "Made at a furnace / an anvil / a campfire" and their button reads "Make at …", disabled.
+  - **Detail of the chosen recipe:** icon, time ("Time · N seconds", from the recipe skill's level), description, have/need ingredients and a craft button that sticks to the bottom of the scrolling journal page, so it stays clear of the phone tutorial tip.
+  - **Layout:** a flex-wrap puts the detail beside the list when there's room and below it otherwise (choosing scrolls it into view). Phones show the list, then the detail with "All recipes".
+  - **Shared styles:** recipe styles (`q-recipe`, `q-recipe-detail`, `q-ingredients`) moved from the station dialog to `page.css`, so both use them.
+- **Stable ids for guides:** every recipe renders its detail (hidden unless chosen), keeping `choose-<id>`, `<id>-detail`, `<id>-duration` and `craft-<id>`. The tutorial's `guide()` and Willowbank's `guideElement` work unchanged.
+  - The tutorial now reads `menus.selectedRecipe` instead of poking `#pickaxes-detail`, and dropped two no-op `hidden=false` writes.
+  - The host owns the selection (`selectRecipe`, `events.selected`).
+- **Reactivity at the source:**
+  - `recipeCrafting.activeId` is a signal ("Crafting…" on the row and button).
+  - Materials follow the reactive inventory, and times follow the reactive skill records.
+  - A refused start says "Check the required materials and finish your current action first."
+- **Removed `menus.refresh()`** and every caller: main (item changes, crystal restore, equipment `changed`, checkpoints, test armor, the playground API) and the crafting tutorial. This also ends `player-interface.js` calling it every 0.15s while the journal was open, the last polling behind the journal pages. `createGameMenus` takes `craftActive` instead of `craftState`/`craftBusy`.
+- **Verification:**
+  - 336 tests pass: `crafting-page.test.js` (ids, grouping, readiness and time following inventory and skill, Crafting… and reset, the phone view switch) and the menus test (reactive inventory, station button, refusal message, `selectRecipe`).
+  - `check:ui` passes; legacy debt fell and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - adding Sticks enabled Crude Fishing Rod; Craft showed Crafting… on the row and button, then made a rod, used 2 Sticks and reset the labels;
+    - phone tutorial craft-menu → recipe: guided `craft-axes` visible above the tip → a real tap → craft-success with an axe;
+    - the pickaxe help flow guides game menu → Crafting → `craft-pickaxes`;
+    - Willowbank's hammer help opens Crafting with Crude Hammer chosen and its craft button guided.
+  - No console errors from the current build.
+
 ### Character tab with Attributes / Skills / Proficiencies sub-tabs — 2026-10-08
 - **User decision:** the Skills page did too much. After briefly trying three separate journal tabs, we settled on **one Character tab with sub-tabs**: it saves tab-bar space, and on phones all three views sit in the primary bar instead of two hiding under More.
 - **Character tab** (`open-character`, order 20, primary, new `character` icon) replaces the Skills tab.
@@ -162,6 +232,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
   - 308 tests pass, including page tests on the real equipment system: equip, either-hand dagger, losing a copy, and a busy refusal.
   - In the built playground: real gear equips into the slots on desktop, and at 375px there is no horizontal scroll and every button is at least 40px.
   - No console errors.
+
+### Required before the tutorial is complete: mode-aware "I don't want to fight" (user request, 2026-10-08; not started)
+In Cinderhold, when the player tells Bristle "Actually, no. I don't want to fight.", the unknown narrator ("???") currently gives one fixed speech about Threat Levels (`bristleIntroduction` in `cinderhold-dialogue.js`). Rework it to respond to the player's combat mode (`assistance.attacksPrevented` / `settings.mode`):
+- **Already Pacifist:** say that most creatures won't bother them now, BUT there are some very dangerous ones that will. These are the `attacksPacifists` creatures, which show "⚠ Hunts pacifists" on hover.
+- **Not Pacifist (Simple, Expert or Custom with attacks allowed):** suggest Pacifist and offer to switch to it right there, through the shared `assistance.setMode('pacifist')`, never a separate flag.
+  - If they accept, continue with the Pacifist version above.
+  - If they decline, talk about Threat Levels (today's speech).
+- **Rules:** keep it area narrative calling shared gameplay (AGENTS.md). Cover each branch in `cinderhold-dialogue.test.js` and in the playground (Cinderhold "refused"/"meet" checkpoints with each mode).
 
 ### Planned: Spells and Auras journal tabs (user request, 2026-10-08; not started)
 - **Spells tab:** every spell, with its description, power, cast time, base XP and costs, plus an "Allow auto use" setting (`assistance` spell permission). Includes a "Set quick spell" action.

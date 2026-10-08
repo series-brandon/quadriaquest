@@ -2,6 +2,8 @@ import {addNameDice} from './random-names.js';
 import {updateObjective,finishObjective} from './quests.js';
 import {SOCIAL_DURATIONS} from './slime-social.js';
 import {spawnMotion} from './slime-motion.js';
+import {mount} from './ui/dom.js';
+import {modeChoice} from './ui/dialogs/mode-choice.js';
 const openingLines = [
   'Hello there!',
   'Welcome to the world of Quadria!',
@@ -34,7 +36,8 @@ export function showGatheringCompletion(){
   const button=document.getElementById('tutorial-continue');button.hidden=false;button.textContent='Click to continue';
 }
 
-export function createOpening({player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel,onFirstQuest}) {
+// onModeChosen(mode): the play style picked after naming (a combat mode preset).
+export function createOpening({player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel,onFirstQuest,onModeChosen=()=>{}}) {
   const dialogue=document.getElementById('dialogue');
   const line=document.getElementById('dialogue-line');
   const prompt=document.getElementById('dialogue-prompt');
@@ -46,7 +49,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   tutorial.append(continueButton);
   let finished=false,reaction=null,skillsPending=false;
   let phase='intro-wait',age=0,step=0,mode='line',next=null;
-  let name='Pip',color='#a4ce77',inClearing=false,playable=false;
+  let name='Pip',color='#a4ce77',inClearing=false,playable=false,choiceView=null;
   const lessons=[
     {id:'rotate',text:'Use the arrow keys or drag the screen to rotate the camera',success:'Nice! You can look around.'},
     {id:'zoom',text:'Use the scroll wheel or pinch-and-zoom to zoom in and out!',success:'Perfect! A closer look.'},
@@ -106,7 +109,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   const transition=to=>{phase=to;age=0;};
   function show(text,kind='line',advance=null){
     dialogue.dataset.presentation=inClearing?'conversation':'customize';dialogue.dataset.input=String(kind!=='line');dialogue.hidden=false;line.textContent=text;mode=kind;next=advance;
-    controls.replaceChildren();prompt.hidden=kind!=='line';
+    choiceView?.dispose();choiceView=null;delete dialogue.dataset.size;controls.replaceChildren();prompt.hidden=kind!=='line';
     dialogue.setAttribute('aria-label',text);
     dialogue.tabIndex=kind==='line'?0:-1;
   }
@@ -138,12 +141,21 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
       const proposed=input.value.trim();
       if(!proposed){input.setCustomValidity('Please enter a name.');input.reportValidity();return;}
       name=proposed;show(`So they call you ${name}?`,'confirm');
-      button('Yes',()=>{reaction={kind:'Wave',time:0};show(`Well, ${name}, you're in for quite an adventure! Let's get you started!`,'line',()=>{dialogue.hidden=true;transition('fade-out');});});
+      button('Yes',()=>{reaction={kind:'Wave',time:0};chooseMode();});
       button('No, change my name',chooseName,true);
     };
     input.addEventListener('input',()=>input.setCustomValidity(''));
     input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();submit();}});
     button('That’s my name',submit);input.focus();
+  }
+  // How the player wants to play: Pacifist, Simple or Expert (changeable any time on the Combat page).
+  function chooseMode(){
+    show('Before we get too far, how would you like your experience to go?','mode');dialogue.dataset.size='tall';
+    choiceView=mount(()=>modeChoice({onConfirm:mode=>{
+      onModeChosen(mode);
+      show(`Well, ${name}, you're in for quite an adventure! Let's get you started!`,'line',()=>{dialogue.hidden=true;transition('fade-out');});
+    }}));
+    controls.append(choiceView.node);
   }
   function clearingLine(){
     if(step<clearingLines.length){show(clearingLines[step++],'line',clearingLine);}
@@ -173,7 +185,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     enterFreePlay,
     debugCheckpoint:typeof __PLAYGROUND__!=='undefined'&&__PLAYGROUND__?function(step){
       enterFreePlay();interruption=null;reaction=null;collectedCount=0;xpExplained=levelExplained=false;
-      if(step==='color'||step==='name'){this.startCustomization();if(step==='name')chooseName();return;}
+      if(step==='color'||step==='name'||step==='mode'){this.startCustomization();if(step==='name')chooseName();if(step==='mode')chooseMode();return;}
       finished=false;
       if(['rotate','zoom','move'].includes(step)){this.startControls(null);lesson=['rotate','zoom','move'].indexOf(step);showLesson();return;}
       if(step==='gather'){this.startGathering();return;}

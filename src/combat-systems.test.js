@@ -227,3 +227,32 @@ test('per-item aura permissions keep Auto from using that aura',()=>{
  f.assistance.update(.2);assert.equal(f.auras.isActive('harden'),false);
  f.assistance.setPermission('aura','harden',true);f.assistance.update(.2);assert.equal(f.auras.isActive('harden'),true);
 });
+
+test('Pacifist draws no aggression unless a creature attacks pacifists; aggression already started stays',()=>{
+ const build=({passive,attacksPacifists=false})=>{
+  const world=new Map();for(let z=0;z<9;z++)for(let x=0;x<9;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
+  const home=world.get('3,3'),inventory={},health=createResource(100),character=createCharacter(),equipment=createEquipment({inventory}),styles=createCombatStyles({equipment});
+  const state={passive,player:world.get('3,5')};
+  const system=createCombatSystem({world,health,equipment,inventory,character,mana:createResource(),energy:createResource(),strategy:()=>styles.strategy,attack:()=>styles.attack,player:new Group(),random:()=>.5,stop(){},face(){},sound(){},hit(){},blocked:()=>false,inReach:()=>true,tile:()=>state.player,reserved:()=>false,respawn:()=>false,defeatStop(){system.cancel();},passive:()=>state.passive});
+  const a=system.add({kind:'bruiser',rules:ENEMIES.bruiser,aggressive:true,aggroRange:4,attacksPacifists,group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
+  const run=seconds=>{for(let t=0;t<seconds;t+=.05)system.update(.05,t);};
+  return {system,a,state,health,run};
+ };
+ const calm=build({passive:true});calm.run(3);
+ assert.equal(calm.a.aggro,false,'aggressive enemies ignore a Pacifist player in range');assert.equal(calm.health.value,100);
+ const hunter=build({passive:true,attacksPacifists:true});hunter.run(3);
+ assert.equal(hunter.a.aggro,true,'creatures configured to attack pacifists still engage');
+ const chased=build({passive:false});chased.run(.5);assert.equal(chased.a.aggro,true);
+ chased.state.passive=true;chased.run(4);
+ assert.equal(chased.a.aggro,true,'turning Pacifist on mid-fight does not calm the enemy already attacking');
+ assert.ok(chased.health.value<100,'and it keeps attacking');
+});
+
+test('aggression follows the Attacks policy itself, so Pacifist and Custom-with-prevented agree',()=>{
+ const f=assistFixture();
+ assert.equal(f.assistance.attacksPrevented,false);
+ f.assistance.setMode('pacifist');assert.equal(f.assistance.attacksPrevented,true);
+ f.assistance.setPolicy('autoEat',false);assert.equal(f.assistance.settings.mode,'custom');assert.equal(f.assistance.attacksPrevented,true,'Custom copied from Pacifist');
+ f.assistance.setPolicy('attacks','allowed');assert.equal(f.assistance.attacksPrevented,false);
+ f.assistance.setMode('expert');f.assistance.setPolicy('attacks','prevented');assert.equal(f.assistance.attacksPrevented,true);
+});

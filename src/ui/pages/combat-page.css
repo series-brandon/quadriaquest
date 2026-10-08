@@ -27,3 +27,6 @@
 }
 .q-note[hidden] { display: none; }
 .q-note > strong { font-size: 13px; }
+
+/* Guided from a tip ("Show me how"): the mode dropdown. */
+.q-select[data-guide] { border-color: var(--q-guide); box-shadow: 0 0 0 3px var(--q-guide-glow); }

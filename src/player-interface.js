@@ -122,7 +122,7 @@ export function createPlayerInterface({modals=null,menus,journal,health,resource
   attacked(){reaction('attacked');const now=performance.now();if(now-lastAttacked>10000)warning.announce('Under attack!');lastAttacked=now;},
   reset(){mapControls.reset();hidden=false;quickFood.value='cookedFish';journal.compact();menus.closeMenus();layout();},
   update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();if(!visible)return;
-   drawMap();if(!$('journal').hidden)menus.refresh();
+   drawMap();
   },
   get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:moreOpen.peek(),hidden,quickFood:quickFood.peek(),expanded:journal.expanded,menuOpen:!$('journal').hidden};}
  };

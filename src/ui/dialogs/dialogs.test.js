@@ -6,6 +6,8 @@ import {createModalHost} from '../modal.js';
 import {stationDialog} from './station-dialog.js';
 import {destinationDialog} from './destination-dialog.js';
 import {nameDialog} from './name-dialog.js';
+import {modeChoice, PLAY_STYLES} from './mode-choice.js';
+import {mount} from '../dom.js';
 import {RECIPES, canMake, durationFor} from '../../recipes.js';
 import {ITEMS} from '../../items.js';
 
@@ -140,4 +142,23 @@ test('name dialog submits trimmed names, rejects blanks and rolls random names',
   submit();
   assert.deepEqual(names, ['Biscuit']);
   assert.equal(host.isOpen('name'), false);
+});
+
+test('play-style choice: Simple preselected, choosing reveals that style, confirm reports it', () => {
+  const chosen = [];
+  const {node} = mount(() => modeChoice({onConfirm: mode => chosen.push(mode)}));
+  const options = [...node.querySelectorAll('.q-mode-option')];
+  assert.deepEqual(options.map(o => o.querySelector('.q-mode-option__mode').textContent), ['Pacifist', 'Simple', 'Expert']);
+  const shown = () => options.map(o => !o.querySelector('.q-mode-option__more').hidden);
+  assert.deepEqual(shown(), [false, true, false]);
+  const confirm = node.querySelector('.q-mode-choice__confirm');
+  assert.equal(confirm.textContent, 'Play as Simple');
+  options[2].querySelector('input').dispatchEvent(new window.Event('change'));
+  assert.deepEqual(shown(), [false, false, true]);
+  assert.equal(options[2].querySelector('input').checked, true);
+  assert.match(options[2].textContent, /You might like this mode if you like: RuneScape/);
+  assert.equal(confirm.textContent, 'Play as Expert');
+  press(confirm);
+  assert.deepEqual(chosen, ['expert']);
+  assert.equal(PLAY_STYLES.every(style => ['pacifist', 'simple', 'expert'].includes(style.mode)), true);
 });

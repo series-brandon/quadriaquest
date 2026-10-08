@@ -8,14 +8,14 @@ button{color:var(--ui-ink)}
 button:hover{background:#eadbe5}
 button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}
 p{color:var(--ui-muted)}
-#dialogue,#gather-tutorial,#crafting-panel,#game-menu-bar,#toast,#area-name{background:#faf1e7f5;color:var(--ui-ink);border:1px solid var(--ui-border);box-shadow:0 12px 40px #382b491a}
-#dialogue,#crafting-panel{border-radius:18px}
+#dialogue,#gather-tutorial,#game-menu-bar,#toast,#area-name{background:#faf1e7f5;color:var(--ui-ink);border:1px solid var(--ui-border);box-shadow:0 12px 40px #382b491a}
+#dialogue{border-radius:18px}
 #dialogue-line,#tutorial-copy,.tutorial-heading,.color-choice,.crafting-heading{color:var(--ui-ink)}
 .dialogue-speaker,.item-name{color:var(--ui-accent)}
-#dialogue-prompt,#tutorial-count,.recipe small,.crafting-intro{color:var(--ui-muted)}
+#dialogue-prompt,#tutorial-count{color:var(--ui-muted)}
 #dialogue-controls button,#tutorial-continue{background:var(--ui-button);color:var(--ui-button-ink);border:1px solid var(--ui-border);border-radius:18px;box-shadow:0 3px 0 var(--ui-border)}
 #dialogue-controls button:hover,#tutorial-continue:hover{background:#614769}
-#dialogue-controls button.secondary,#open-crafting,.recipe{background:#eee0e5;color:var(--ui-ink);border-color:var(--ui-border)}
+#dialogue-controls button.secondary,#open-crafting{background:#eee0e5;color:var(--ui-ink);border-color:var(--ui-border)}
 #dialogue-controls input[type=text],#dialogue-controls input[type=color]{background:#fff9f2;color:var(--ui-ink);border-color:var(--ui-border)}
 .progress-track{background:#ddc8d8}.progress-track>div{background:var(--ui-accent)}
 #gather-tutorial.complete{border-color:var(--ui-accent)}
@@ -42,8 +42,6 @@ body:has(#inventory-panel:not([hidden])) #gather-tutorial{left:24px;transform:no
 #tutorial-help{pointer-events:auto;margin-top:12px;padding:10px 18px;background:var(--ui-button);color:var(--ui-button-ink);border:1px solid var(--ui-border);border-radius:18px;cursor:pointer;font:inherit;box-shadow:0 3px 0 var(--ui-border)}
 #tutorial-help:hover{background:#614769}
 
-.ingredient.enough{color:#356247}.ingredient.missing{color:#a12f45}.ingredient{font-weight:700;white-space:nowrap}
-
 /* Journal and objective cards share materials, not layout or purpose. */
 .game-icon{width:25px;height:25px;flex:none;vertical-align:middle;color:currentColor}
 #dialogue{border-radius:8px 22px 22px 22px;border-left:4px solid var(--ui-accent);max-width:680px}
@@ -57,22 +55,20 @@ body #game-menus{bottom:20px;right:20px}
 .journal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;font:20px Georgia,serif}.journal-header button{background:transparent;padding:6px;border:0}
 #journal #game-menu-bar{position:static;transform:none;background:transparent;box-shadow:none;border:0;border-bottom:1px solid var(--ui-border);border-radius:0;display:flex!important;flex-wrap:nowrap;width:auto;max-width:none;padding:10px 16px;gap:5px}
 #journal #game-menu-bar button{display:flex;align-items:center;gap:6px;padding:9px 10px;border:0;border-radius:8px;font-size:12px;background:transparent}#journal #game-menu-bar button[hidden]{display:none}#journal #game-menu-bar button[aria-current=true]{background:#e8d8e3}#journal #game-menu-bar .game-icon{width:19px;height:19px}
-#journal #crafting-panel{position:relative;inset:auto;width:auto;max-height:none;min-height:120px;overflow:auto;padding:16px 20px 20px;border:0;border-radius:0 0 18px 18px;box-shadow:none;background:transparent;flex:1}
-#journal .crafting-heading{position:static;margin:0 0 15px;display:flex;align-items:center;justify-content:space-between}#journal .crafting-heading h2{font-size:16px;margin:0}#journal .crafting-heading button{position:static}.crafting-intro{font-size:12px}
+
+#journal .crafting-heading{position:static;margin:0 0 15px;display:flex;align-items:center;justify-content:space-between}#journal .crafting-heading h2{font-size:16px;margin:0}#journal .crafting-heading button{position:static}
 
 .journal-search{width:100%;padding:10px 12px;margin:0 0 12px;border:1px solid var(--ui-border);border-radius:8px;background:#fff9f2;color:var(--ui-ink);font:inherit;font-size:13px}
 
-.recipe-choices{display:flex;gap:8px;margin:14px 0}.recipe-choice{flex:1;display:flex;gap:7px;align-items:center;padding:10px;border:1px solid var(--ui-border);border-radius:8px;background:#eee3e8;color:var(--ui-ink);font-size:12px}.recipe-choice[aria-pressed=true]{outline:2px solid var(--ui-accent)}.recipe-detail h3{font:22px Georgia,serif;margin:18px 0 12px}.ingredient-counts{display:flex;flex-direction:column;gap:10px;padding:12px 0}.ingredient{display:flex;align-items:center;gap:10px;font-size:13px}.recipe-facts{display:flex;justify-content:space-between;font-size:12px;margin:15px 0;color:var(--ui-muted)}#journal .recipe{display:block;width:100%;padding:12px;background:var(--ui-button);color:var(--ui-button-ink);border-radius:8px;font:inherit}.recipe:disabled{opacity:.5}
-
 [hidden],#journal [hidden]{display:none!important}
-@media(max-width:700px){#journal,#journal.expanded{right:12px;bottom:80px;transform:none;width:calc(100vw - 24px);max-width:none;max-height:65dvh}body:has(#gather-tutorial:not([hidden])) #journal{max-height:48dvh}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:12px;left:12px;width:calc(100vw - 24px);padding:12px 15px}#journal-size{display:none}.journal-header{padding-top:12px}#journal #game-menu-bar{padding:6px 12px}#journal #crafting-panel{padding:12px 16px}#dialogue{bottom:16px}}
+@media(max-width:700px){#journal,#journal.expanded{right:12px;bottom:80px;transform:none;width:calc(100vw - 24px);max-width:none;max-height:65dvh}body:has(#gather-tutorial:not([hidden])) #journal{max-height:48dvh}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:12px;left:12px;width:calc(100vw - 24px);padding:12px 15px}#journal-size{display:none}.journal-header{padding-top:12px}#journal #game-menu-bar{padding:6px 12px}#dialogue{bottom:16px}}
 #item-feed{position:fixed;right:24px;bottom:92px;display:flex;flex-direction:column;gap:8px;width:280px;max-width:calc(100vw - 32px);pointer-events:none;z-index:22}body:has(#journal:not([hidden])) #item-feed{right:auto;left:24px;bottom:24px}.loot-receipt{background:#faf1e7f2;border:1px solid var(--ui-border);border-radius:12px;padding:12px 14px;box-shadow:0 5px 18px #382b491c;animation:loot-in .25s ease-out;transition:opacity .35s,transform .35s}.loot-line{display:flex;gap:10px;align-items:center;font-size:13px}.loot-line.gain{color:#46694e}.loot-line.cost{color:#806c7e}.loot-receipt small{display:block;margin:7px 0 0 35px;font-size:11px;color:var(--ui-muted)}.loot-receipt.leaving{opacity:0;transform:translateY(-8px)}@keyframes loot-in{from{opacity:0;transform:translateX(15px)}to{opacity:1;transform:translateX(0)}}
 #audio-settings{position:fixed;left:18px;bottom:18px;z-index:60;font-size:12px}#audio-settings summary{cursor:pointer;list-style:none;padding:9px 12px;border-radius:12px;background:var(--ui-paper);border:1px solid var(--ui-border)}#audio-settings>div{position:absolute;bottom:45px;left:0;padding:18px;width:240px;background:var(--ui-paper);border:1px solid var(--ui-border);border-radius:12px;box-shadow:0 8px 30px #382b4930}#audio-settings label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}#audio-settings input[type=range]{width:130px;accent-color:var(--ui-button)}
 @media(prefers-reduced-motion:reduce){.loot-receipt{animation:none;transition:none}}
 #journal .journal-header{position:static;inset:auto;transform:none;opacity:1;visibility:visible;width:auto;flex-shrink:0;pointer-events:auto}
 body:has(#journal:not([hidden])) #item-feed{bottom:70px}
 
-@media(min-width:701px){#journal.expanded #crafting-panel{display:grid;grid-template-columns:200px 1fr;gap:8px 26px}#journal.expanded #crafting-panel>.crafting-heading,#journal.expanded .crafting-intro{grid-column:1/-1}#journal.expanded .recipe-choices{flex-direction:column;align-self:start}#journal.expanded .recipe-choice{flex:none}#journal.expanded .recipe-detail{grid-column:2;grid-row:3/6}body:has(#gather-tutorial:not([hidden])) #journal.expanded{max-height:calc(100dvh - 340px)}}
+@media(min-width:701px){body:has(#gather-tutorial:not([hidden])) #journal.expanded{max-height:calc(100dvh - 340px)}}
 
 /* Success is a distinct state; inset row outlines stay inside scroll clipping. */
 #gather-tutorial.complete{--objective-background:#304e40f7;--objective-border:#739c7d;--objective-accent:#b3e6ac}
@@ -97,9 +93,9 @@ body:has(#journal:not([hidden])) #item-feed{bottom:70px}
  
  
  
- #journal #crafting-panel{min-height:0;padding:12px 16px;overscroll-behavior:contain}
+ 
  #journal .crafting-heading{display:none}.journal-search{font-size:16px;min-height:44px}
- .recipe-choices{margin:14px 2px;gap:8px}.recipe-choice{min-height:52px;font-size:14px}.ingredient{white-space:normal;font-size:14px;line-height:1.6;align-items:flex-start}.recipe-facts{flex-direction:column;gap:8px;font-size:14px}#journal .recipe{min-height:48px;text-align:center}
+ 
  body #journal #gather-tutorial{position:relative;inset:auto;transform:none;width:auto;max-width:none;max-height:30dvh;min-height:0;flex-shrink:1;overflow:auto;margin:0 10px 6px;padding:12px 14px;box-shadow:none;pointer-events:auto;border-radius:10px}
  #journal #gather-tutorial #tutorial-copy{font-size:14px;line-height:1.5}#journal #gather-tutorial #tutorial-continue,#journal #gather-tutorial #tutorial-help{min-height:44px}
  body:has(#journal:not([hidden])) #game-menu-toggle,body:has(#journal:not([hidden])) #audio-settings{display:none}
@@ -162,34 +158,6 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{max-height:calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
 @media(max-width:700px){body:has(#journal:not([hidden])) #journal #gather-tutorial{max-height:calc(100dvh - 160px - env(safe-area-inset-top) - env(safe-area-inset-bottom));flex:0 1 auto;min-height:0}}
 
-/* Crafting uses one recipe browser, with an inset selection ring and space for guides. */
-#journal #crafting-panel,#journal.expanded #crafting-panel{display:block;overflow:auto}
-#journal #crafting-panel[hidden]{display:none}
-.recipe-browser{display:grid;grid-template-columns:minmax(130px,.85fr) minmax(0,1.3fr);gap:16px;min-height:300px}
-#journal .recipe-choices{display:flex;flex-direction:column;gap:8px;margin:0;padding:8px;max-height:440px;overflow:auto;align-self:start;min-width:0}
-#journal .recipe-choice{flex:none;width:100%;min-height:48px;text-align:left;outline:none;box-sizing:border-box}
-#journal .recipe-choice[aria-pressed=true]{border-color:var(--ui-accent);box-shadow:inset 0 0 0 1px var(--ui-accent);background:#e5d6e5}
-#journal .recipe-details{min-width:0;padding:8px;display:flex;flex-direction:column}
-#journal .recipe-detail{min-height:300px;display:flex;flex-direction:column;grid-column:auto;grid-row:auto}
-#journal .recipe-detail[hidden]{display:none}
-#journal .recipe-detail h3{margin:0 0 12px;font-size:21px}
-#journal .recipe-detail>p{margin:0 0 12px;line-height:1.5;min-height:3em}
-#journal .ingredient-counts{gap:12px;border-top:1px solid var(--ui-border);border-bottom:1px solid var(--ui-border);margin:8px 0}
-#journal .ingredient{line-height:1.5;align-items:flex-start;white-space:normal}
-#journal .recipe-facts{display:flex;flex-direction:column;gap:8px;margin:14px 0 20px}
-#journal .recipe-detail>.recipe{margin-top:auto;min-height:48px}
-#journal .recipe-back{display:none}
-#journal .recipe-detail .gold-guide{outline-offset:0}
-@media(max-width:700px){
- #journal .recipe-browser{display:block;min-height:0}
- #journal .recipe-choices{max-height:none;padding:8px;display:flex}
- #journal .recipe-details{display:none}
- #journal .viewing-recipe .recipe-choices{display:none}
- #journal .viewing-recipe .recipe-details{display:flex}
- #journal .recipe-back{display:block;align-self:flex-start;margin:0 0 20px;padding:10px 12px;border:1px solid var(--ui-border);border-radius:8px;background:#eee3e8;color:var(--ui-ink);font:inherit;min-height:44px}
- #journal .recipe-detail{min-height:340px}
-}
-
 /* One shared close control; each selected tab already names its page. */
 #journal{container-type:inline-size}
 #journal .crafting-heading{display:none}
@@ -207,26 +175,19 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 #journal #journal-size,#journal #journal-close{flex:0 0 36px;margin:0}
 @media(min-width:701px){#journal:not(.expanded){width:min(390px,calc(100vw - 48px))}}
 
-#journal:not(.expanded) .recipe-browser{display:block;min-height:0}
-#journal:not(.expanded) .recipe-choices{max-height:none}
-#journal:not(.expanded) .recipe-details{display:none}
-#journal:not(.expanded) .viewing-recipe .recipe-choices{display:none}
-#journal:not(.expanded) .viewing-recipe .recipe-details{display:flex}
-#journal:not(.expanded) .recipe-back{display:block;align-self:flex-start;margin-bottom:16px}
 #journal .journal-browser{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:20px}
 #journal .journal-list{display:flex;flex-direction:column;gap:8px;min-width:0}
 #journal .journal-entry{font:inherit;font-size:14px;min-height:48px;text-align:left;padding:12px;border:1px solid transparent;border-radius:8px;background:#eee3e8;color:var(--ui-ink);cursor:pointer;margin:0}
 #journal .journal-entry[aria-pressed=true]{border-color:var(--ui-accent);box-shadow:inset 0 0 0 1px var(--ui-accent)}
 #journal .journal-detail{min-width:0;border-left:1px solid var(--ui-border);padding-left:20px}
 #journal .journal-detail h3{margin-top:8px}
-#journal .journal-back,#journal .recipe-back{font:inherit;font-size:14px;min-height:44px;padding:8px 12px;border:1px solid var(--ui-border);border-radius:8px;background:#eee3e8;color:var(--ui-ink);cursor:pointer}
+#journal .journal-back{font:inherit;font-size:14px;min-height:44px;padding:8px 12px;border:1px solid var(--ui-border);border-radius:8px;background:#eee3e8;color:var(--ui-ink);cursor:pointer}
 #journal .journal-back{display:none}
 #journal:not(.expanded) .journal-browser{display:block}
 #journal:not(.expanded) .journal-detail{display:none;border:0;padding:0}
 #journal:not(.expanded) .viewing-detail .journal-list{display:none}
 #journal:not(.expanded) .viewing-detail .journal-detail{display:block}
 #journal:not(.expanded) .journal-back{display:block;margin:0 0 16px}
-#journal.expanded .recipe-back{display:none}
 
 @media(min-width:701px){#journal.expanded{top:max(24px,env(safe-area-inset-top));bottom:auto;max-height:calc(100dvh - 48px)}}
 

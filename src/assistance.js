@@ -205,6 +205,8 @@ export function createAssistance(api){
   toggleAuraManually(id){if(policies().auras==='auto')markOverride('auras',id);const r=auras.toggle(id);changed();return r;},
   // Ends every one-time override at once.
   returnToAuto(){overrides={strategy:false,attack:false,auras:{}};overrideFight=false;changed();},
+  // Attacks: Prevented also means enemies don't become aggressive (combat reads this; docs/COMBAT.md).
+  get attacksPrevented(){return prevented();},
   setMode(next){
    if(!MODES.includes(next))return false;
    mode=next;if(PRESET_RETALIATE[next])retaliate=PRESET_RETALIATE[next];

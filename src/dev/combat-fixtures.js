@@ -18,17 +18,18 @@ export function enemySheetDetails(){
 export function createCombatFixtures(api){
  let actors=[];
  function clear(){api.combat.clear();for(const a of actors)api.combat.remove(a);actors=[];}
- function spawn(aggressive=false){
+ function spawn(aggressive=false,attacksPacifists=false){
   api.stop();api.clearUI();clear();
   for(const kind of ['scrapper','bruiser']){
    const p=api.tile(),tile=[...api.world.values()].filter(t=>!t.water&&!t.blocked&&!api.occupied(t)&&Math.abs(t.x-p.x)+Math.abs(t.z-p.z)>=2&&interactionRoute(api.world,p,{x:t.x,z:t.z,tile:t})).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
-   if(!tile)continue;actors.push(api.combat.add(createEnemyEntity({kind,tile,parent:api.scene,pickables:api.pickables,aggressive,aggroRange:3})));
+   if(!tile)continue;actors.push(api.combat.add(createEnemyEntity({kind,tile,parent:api.scene,pickables:api.pickables,aggressive,aggroRange:3,attacksPacifists})));
   }
-  return actors.length?'Spawned '+(aggressive?'aggressive (3-tile awareness)':'passive')+' combat practice enemies nearby.':'No clear reachable tiles for enemies.';
+  return actors.length?'Spawned '+(attacksPacifists?'aggressive, pacifist-hunting':aggressive?'aggressive (3-tile awareness)':'passive')+' combat practice enemies nearby.':'No clear reachable tiles for enemies.';
  }
  return {clear,run(action){
   if(action==='spawn')return spawn(false);
   if(action==='spawn-aggressive')return spawn(true);
+  if(action==='spawn-hunters')return spawn(true,true);
   if(action==='sheets')return ['scrapper','bruiser'].map(enemySheetSummary).join(' ')+' All values are live: enemy attacks resolve miss → your dodge → your block → damage → your resistance.';
   if(action==='remove'){clear();return 'Removed combat practice enemies.';}
   if(action==='reset'){api.stop();api.combat.reset();return 'Reset enemy health, positions, and combat.';}

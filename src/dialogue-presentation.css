@@ -68,3 +68,6 @@ body #dialogue[data-input=true] #dialogue-line{flex-shrink:0}
 @media(max-width:400px){body #dialogue[data-input=true] #dialogue-controls>button{font-size:12px;padding:10px 8px}.color-choice{gap:6px}}
 body #dialogue-controls .name-dice{padding:0;box-sizing:border-box}
 .name-dice .game-icon{width:22px;height:22px}
+/* Rich choices (the opening's play style) need more room than one-line input steps. */
+body #dialogue[data-size=tall]{height:auto;max-height:calc(100dvh - 70px)}
+body #dialogue[data-size=tall] #dialogue-controls{min-height:0;overflow:auto;flex-shrink:1}

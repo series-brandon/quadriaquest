@@ -1,9 +1,16 @@
 // Cinderhold narrative only; training and dialogue presentation remain shared.
-export function bristleIntroduction({say,choose,refuse,train,leave,refused=false}){
+// pacifist(): attacks are prevented, so Bristle refuses to train (turnedAway runs after his line).
+// returning: he turned the player away before, so he skips straight to his offer.
+export function bristleIntroduction({say,choose,refuse,train,leave,refused=false,pacifist=()=>false,turnedAway=leave,returning=false}){
  const bristle=(text,expression='angry')=>({text,expression});
  const sequence=(lines,after)=>say(lines,after);
+ const teach=()=>pacifist()?sequence([
+  bristle("Wait a second! I can't teach a woo-woo do-gooder how to FIGHT."),
+  bristle('Go talk to the other tree huggers around here! They might talk nonsense with you!'),
+  bristle('Come back if you ever grow a SPINE, SLIME! DISMISSED!')
+ ],turnedAway):train();
  const offer=()=>choose(bristle('Now, should we learn how to make a soldier out of you or not??'),[
-  ['Yes! Teach me!',train,'happy'],
+  ['Yes! Teach me!',teach,'happy'],
   ["Actually, no. I don't want to fight.",()=>{refuse();sequence([
    bristle('GREAT! First things first...'),
    bristle('Wait... no?','distraught'),bristle("You can't... how can... that...",'distraught'),bristle("I thought... I didn't... But...",'distraught'),
@@ -23,8 +30,9 @@ export function bristleIntroduction({say,choose,refuse,train,leave,refused=false
   ],leave);},'frown']
  ]);
  if(refused)return choose(bristle("There can't... it's not... when...",'distraught'),[
-  ["I'm just gonna go",leave,'concerned'],['I changed my mind, teach me!',train,'happy']
+  ["I'm just gonna go",leave,'concerned'],['I changed my mind, teach me!',teach,'happy']
  ]);
+ if(returning)return offer();
  sequence([
   bristle('Welcome to combat training, maggot!'),bristle("No, that's not right. You're lower than a maggot!"),bristle("You're a SLIME!"),
   {speaker:'player',expression:'shocked',text:'...I am a slime.'},{speaker:'player',expression:'shocked',text:"We're both slimes, actually."},

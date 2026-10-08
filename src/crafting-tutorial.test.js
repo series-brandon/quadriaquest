@@ -5,6 +5,7 @@ import {createGameMenus} from './game-menus.js';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
 import {createGatheringSkill} from './skills.js';
+import {reactiveRecord} from './reactive.js';
 function createCraftingTutorial(options){let tutorial;const startCraft=id=>{const started=options.startCraft(id);if(started)tutorial.craftStarted(id);return started;};const menus=createGameMenus({...options,startCraft});
  // The journal registers Quests in the game; lessons guide its tab.
  menus.panels.register({id:'quests',label:'Quests',icon:'quests',order:10,returnTo:true,element:document.createElement('section')});
@@ -108,12 +109,15 @@ test('first quest introduces the hidden menu, guides Quests, then resumes openin
 test('shared menus expose both introductory tools and Culinary without a tutorial or area adapter',()=>{
  const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
-  const inventory={sticks:2,stones:2},crafts=[];
-  const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>({Crafting:{level:6,xp:600},Culinary:{level:1,xp:0},'Melee Power':{level:1,xp:0,group:'combat'},'Light Armor':{level:1,xp:0,group:'armor'},'Dagger Proficiency':{level:2,xp:90,group:'weapon',curve:'adopted'}}),startCraft:id=>{crafts.push(id);return true;}});
+  const inventory=reactiveRecord({sticks:2,stones:2}),crafts=[];let started=true;
+  const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>({Crafting:{level:6,xp:600},Culinary:{level:1,xp:0},'Melee Power':{level:1,xp:0,group:'combat'},'Light Armor':{level:1,xp:0,group:'armor'},'Dagger Proficiency':{level:2,xp:90,group:'weapon',curve:'adopted'}}),startCraft:id=>{crafts.push(id);return started;}});
   menus.openCrafting();
   for(const id of ['axes','pickaxes']){assert.equal(get('choose-'+id).hidden,false);assert.equal(get('craft-'+id).disabled,false);assert.equal(get(id+'-duration').textContent,'Time · 1.67 seconds');get('craft-'+id).click();}
   assert.deepEqual(crafts,['axes','pickaxes']);
-  inventory.stones=0;menus.refresh();assert.equal(get('craft-axes').disabled,true);assert.equal(get('craft-pickaxes').disabled,true);
+  inventory.stones=0;assert.equal(get('craft-axes').disabled,true,'materials follow the inventory');assert.equal(get('craft-pickaxes').disabled,true);
+  assert.equal(get('craft-copperIngots').disabled,true,'station recipes are made at their station');assert.match(get('craft-copperIngots').textContent,/Make at a furnace/);
+  inventory.stones=1;started=false;get('craft-axes').click();assert.match(get('axes-detail').textContent,/finish your current action first/,'a refused start explains why');
+  menus.selectRecipe('pickaxes');assert.equal(get('pickaxes-detail').hidden,false);assert.equal(get('axes-detail').hidden,true);assert.equal(menus.selectedRecipe,'pickaxes');
   menus.openSkills();const lists=[...get('character-panel').querySelectorAll('.q-skills')].map(list=>[...list.querySelectorAll('[data-skill]')].map(row=>row.dataset.skill));
   assert.deepEqual(lists,[['Crafting','Culinary','Melee Power','Light Armor'],['Dagger Proficiency']],'skills (non-combat, combat, armor), then proficiencies');
   assert.equal(menus.panels.isOpen('character'),true);

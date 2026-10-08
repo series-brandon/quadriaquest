@@ -1,0 +1,29 @@
+/* Crafting page (ui/pages/crafting-page.js): recipes, and the chosen recipe beside or below them. */
+.q-crafting-page { padding-block-end: 16px; }
+.q-crafting__body { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+.q-crafting__list { display: grid; gap: 6px; flex: 1 1 220px; min-inline-size: 0; }
+.q-crafting__detail { flex: 1 1 260px; min-inline-size: 0; border: 1px solid var(--q-line); border-radius: var(--q-control-radius); background: var(--q-card); }
+.q-crafting__detail .q-recipe-detail[hidden] { display: none; }
+.q-crafting__detail .q-recipe-detail__body { padding: 14px; }
+/* The craft button stays in view at the bottom of the scrolling journal page. */
+.q-crafting__detail .q-recipe-detail__actions { position: sticky; inset-block-end: 0; padding: 12px 14px; border-end-start-radius: var(--q-control-radius); border-end-end-radius: var(--q-control-radius); background: var(--q-card); }
+.q-crafting__back { display: none; }
+
+/* Phones: the recipes, then the chosen recipe with a way back. */
+@media (max-width: 700px) {
+  .q-crafting-page[data-view='list'] .q-crafting__detail,
+  .q-crafting-page[data-view='detail'] .q-crafting__list { display: none; }
+  .q-crafting-page[data-view='list'] .q-recipe[aria-pressed='true'] { border-color: transparent; background: transparent; box-shadow: none; }
+  .q-crafting__back {
+    display: block;
+    justify-self: start;
+    min-block-size: var(--q-touch);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--q-ink-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+}

@@ -12,6 +12,12 @@ Combat should almost always be optional, including its tutorial. Players must be
 
 When a player cannot avoid being attacked, they should be able to choose pacifism/defense and survive while escaping without attacking. Automatic combat assistance must respect that choice. The **Pacifist** mode (Attacks: Prevented; see *Modes, policies and overrides*) prevents all automatic offensive actions, including retaliation, while allowing defensive assistance. Do not treat the existing Defensive attack strategy as pacifism: it still attacks. Prevented attacks also block deliberate manual attacks; show **“Attacks are prevented in this mode.”** The player must change mode (or the Attacks policy) to attack; manual priority and danger-warning overrides do not bypass this prohibition. Additional defensive tools remain to be defined.
 
+**Prevented attacks also turn aggression off.** While Attacks is Prevented (Pacifist, or Custom with attacks prevented), creatures never become aggressive on their own: proximity aggression is skipped for every enemy. The two are one policy, never separate options. Exceptions:
+
+- **Creatures configured to attack pacifists** (`attacksPacifists` on the enemy type, overridable per placement) still engage. Reserve it for the most aggressive creatures and some bosses, and make sure such encounters can be escaped (leash, safe tiles), because a Pacifist player cannot fight back. Their hover shows **“⚠ Hunts pacifists”**, so Pacifist players can avoid them.
+- **Aggression already under way stays.** Switching to Pacifist is not an escape: every enemy already aggressive toward the player (fighting or chasing) keeps that aggression until it ends normally (leash, safe tile or defeat). Afterwards it ignores the Pacifist player.
+- **Leaving Pacifist next to an unaware creature is allowed.** It is a deliberate choice, like walking up to any passive creature.
+
 Tutorial combat lessons are optional. Cinderhold's Basic Training, including its Scrapper and Bruiser fights, can be refused or abandoned; leaving the area, travel and later content never require completing it.
 
 For story-required bosses or otherwise inescapable encounters, actively seek puzzle, negotiation, escape, environmental or other success routes that require neither killing nor injuring the opponent. On rare occasions an opponent injuring itself is acceptable; this is not the default substitute for a nonviolent solution. Review mandatory encounters individually rather than treating a kill requirement as inevitable. Narrative owns alternative objectives and outcomes; any reusable interactions and defensive mechanics remain shared gameplay.
@@ -93,6 +99,7 @@ Combat assistance is configured through **policies**, and a **mode** is a named 
 | Show Energy and Quick Ability | On / Off | Off | Off | On |
 | Show Ki and Quick Auras | On / Off | Off | Off | On |
 
+- **Choosing at the start:** during the opening, after naming, the narrator asks how the player wants to play (Pacifist, Simple or Expert, with Simple preselected) and applies that mode. The choice can be changed at any time on the Combat page.
 - **Simple** is the new-player default. **Pacifist** prevents every manual and automatic attack while defensive help (eating, defensive and utility auras, strategy for defense, warnings) continues. **Expert** leaves every combat choice to the player. In Pacifist, Auto strategy still matters because strategy affects defense.
 - **Custom:** changing any policy while in Simple, Pacifist or Expert copies that preset, with the change, into **Custom** and switches to it, with a brief notice. Custom keeps its own saved policies. Switching to another mode never alters them; only editing a policy from a preset again overwrites Custom with that preset plus the new change.
 - **Show Energy / Show Ki** control the HUD: while off, the Energy (and Strong Strike) or Ki (and quick auras) meters and buttons are hidden. Energy and Ki work the same either way.
