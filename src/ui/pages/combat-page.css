@@ -109,3 +109,15 @@
 
 .q-check { display: flex; align-items: center; gap: 10px; min-block-size: var(--q-touch); font-size: 13px; }
 .q-check input { inline-size: 22px; block-size: 22px; accent-color: var(--q-control-pressed); }
+
+/* One-time overrides: what you're choosing yourself this fight, with Return to Auto. */
+.q-note {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-selected);
+  box-shadow: inset 3px 0 0 var(--q-control-pressed);
+}
+.q-note[hidden] { display: none; }
+.q-note > strong { font-size: 13px; }

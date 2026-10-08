@@ -10,7 +10,7 @@ This document is the source of truth for QuadriaQuest's combat and associated pr
 
 Combat should almost always be optional, including its tutorial. Players must be able to reliably avoid encounters; a lucky dodge or an enemy randomly failing to notice the player is not a reliable avoidance route. World placement, awareness, navigation and escape opportunities must support this deliberately.
 
-When a player cannot avoid being attacked, they should be able to choose pacifism/defense and survive while escaping without attacking. Automatic combat assistance must respect that choice. An explicit **Pacifist** setting prevents all automatic offensive actions, including Auto-Retaliate, while allowing defensive assistance. Do not treat the existing Defensive attack strategy as pacifism: it still attacks. Pacifist also blocks deliberate manual attacks. Show **“Cannot attack while in pacifist mode.”** The player must leave Pacifist mode to attack; manual priority and danger-warning overrides do not bypass this prohibition. Additional defensive tools remain to be defined.
+When a player cannot avoid being attacked, they should be able to choose pacifism/defense and survive while escaping without attacking. Automatic combat assistance must respect that choice. The **Pacifist** mode (Attacks: Prevented; see *Modes, policies and overrides*) prevents all automatic offensive actions, including retaliation, while allowing defensive assistance. Do not treat the existing Defensive attack strategy as pacifism: it still attacks. Prevented attacks also block deliberate manual attacks; show **“Attacks are prevented in this mode.”** The player must change mode (or the Attacks policy) to attack; manual priority and danger-warning overrides do not bypass this prohibition. Additional defensive tools remain to be defined.
 
 Tutorial combat lessons are optional. Cinderhold's Basic Training, including its Scrapper and Bruiser fights, can be refused or abandoned; leaving the area, travel and later content never require completing it.
 
@@ -18,7 +18,7 @@ For story-required bosses or otherwise inescapable encounters, actively seek puz
 
 ### Adaptive retaliation
 
-The **Balanced** Auto mode uses adaptive retaliation; Adaptive describes this behavior, not a third top-level Auto mode. Existing unconditional retaliation controls belong among manual/advanced controls. Adaptive retaliates against manageable enemies and withholds automatic retaliation against enemies assessed as too dangerous, favoring escape. Pacifist prohibits both automatic and manual attacks regardless of the danger assessment. Neither mode is permission to initiate attacks against unprovoked passive creatures.
+**Smart** retaliation (the Retaliate quick setting; Simple's default) is adaptive: it retaliates against manageable enemies and withholds automatic retaliation against enemies assessed as too dangerous, favoring escape. Prevented attacks prohibit both automatic and manual attacks regardless of the danger assessment. No retaliation setting is permission to initiate attacks against unprovoked passive creatures.
 
 Assess danger using the player’s current health, equipment and enemy capabilities, rather than Threat Level alone. Provide context-sensitive assistance that reflects the current ability to survive: a manageable encounter at full health may be dangerous while injured. Threat Level is informational and excludes equipment/buffs, so it cannot substitute for this assessment. Base the initial single-enemy danger assessment on how many maximum-damage hits would defeat the player at their current HP, using the enemy's actual maximum hit (see the information rule below) and accounting for current mitigation and final damage rounding. Do not count on a miss, dodge or block to survive. Use damage-based scores rather than Threat Level as the deciding metric. Exact reevaluation timing remains open. When danger warrants escape, show an advisory warning such as **“Warning! Recommend fleeing!”** and withhold automatic retaliation. In Balanced mode the warning is a recommendation, not a prohibition: players may deliberately choose to attack or continue fighting despite it. Pacifist’s attack prohibition remains separate. A deliberate manual attack overrides Adaptive’s recommendation for that target and permits the normal attack sequence to continue. Do not repeatedly stop attacks or require confirmation because the danger assessment remains unfavorable; advisory warnings may remain available without interrupting combat. This target-specific override does not enable unconditional retaliation against other enemies. Ordinary action eligibility, resource, cancellation and combat-ending rules still apply. Never automatically flee, choose an escape destination, or override the player’s movement: the player retains agency. This assistance is warning-only for escape; it does not take control of navigation. Clear the target-specific manual override when the fight ends at the shared 5-second out-of-combat boundary. Adaptive assesses subsequent encounters normally. New players default to **Auto + Balanced + Melee + no particular training skill**. Detailed warning presentation remains open.
 
@@ -72,29 +72,51 @@ When implemented, expose combat and noncombat discovery, estimate updates, varia
 
 ### Minimal setup, optional advanced settings
 
-**Per-item permissions.** Whether Simple may use a particular food or spell is a setting on that item, not a list in the advanced settings, so it scales to any number of foods and spells:
-- each food has **Allow auto eating** (on by default) in its inventory details;
-- each learned spell has **Allow Simple to cast** (on by default) on the Combat page's spell list, shown in Simple mode.
+**Auto must remove decisions, not replace combat complexity with a configuration questionnaire.**
 
-Turning one off excludes only that item; Simple still chooses among the rest. The **Auto-eat before a one-hit defeat** setting turns auto-eating off entirely.
+#### Modes, policies and overrides
 
-Players see the Auto control as **Simple** mode; "Auto" remains this document's name for it. Simple mode manages abilities and auras, so the HUD hides the Energy and Ki meters and their quick buttons (Strong Strike, quick auras) while it is on. Two Simple settings, **Show Energy and Quick Ability** and **Show Ki and Quick Auras** (both off by default), show each pair independently. Manual always shows them. Energy and Ki keep working the same either way.
+Combat assistance is configured through **policies**, and a **mode** is a named preset of them. The player picks a mode from a selector; a short description of it is shown beneath.
 
-**Auto must remove decisions, not replace combat complexity with a configuration questionnaire.** Organize the main combat controls into **Manual** and **Auto**.
+| Policy | Values | Simple | Pacifist | Expert |
+|---|---|---|---|---|
+| Attacks | Allowed / Prevented | Allowed | Prevented | Allowed |
+| Strategy | Auto / Manual | Auto | Auto | Manual |
+| Attack and spell choice | Auto / Manual | Auto | Auto | Manual |
+| Abilities | Auto / Manual | Auto | Manual | Manual |
+| Auras | Auto / Manual | Auto | Auto | Manual |
+| Auto-eat before a one-hit defeat | On / Off | On | On | Off |
+| Emergency healing may interrupt queued actions | On / Off | Off | Off | Off |
+| Allow Auto to cast spells with backfire risk | On / Off | Off | Off | Off |
+| Restart auras after exhaustion at Ki % | 1–100 | 50 | 50 | 50 |
+| Aura grace period (seconds) | 0–30 | 3 | 3 | 3 |
+| Show Energy and Quick Ability | On / Off | Off | Off | On |
+| Show Ki and Quick Auras | On / Off | Off | Off | On |
 
-New-player defaults are **Auto**, **Balanced**, **Melee**, and **No** particular training skill.
+- **Simple** is the new-player default. **Pacifist** prevents every manual and automatic attack while defensive help (eating, defensive and utility auras, strategy for defense, warnings) continues. **Expert** leaves every combat choice to the player. In Pacifist, Auto strategy still matters because strategy affects defense.
+- **Custom:** changing any policy while in Simple, Pacifist or Expert copies that preset, with the change, into **Custom** and switches to it, with a brief notice. Custom keeps its own saved policies. Switching to another mode never alters them; only editing a policy from a preset again overwrites Custom with that preset plus the new change.
+- **Show Energy / Show Ki** control the HUD: while off, the Energy (and Strong Strike) or Ki (and quick auras) meters and buttons are hidden. Energy and Ki work the same either way.
 
-**Manual** exposes the full combat configuration: style, damage type, strategy, participating hands, spell/repeat/channeling choices, abilities, auras and other supported expert controls.
+**Quick settings** are not part of any mode; changing them never changes the mode:
+- **Retaliate:** Smart (Auto's danger-aware choice), Always or Never. Picking Simple or Pacifist applies Smart or Never, and Expert applies Always; afterwards the player may change it freely. It is not shown while attacks are prevented.
+- **Class** (Melee, Ranged or Magic) is shown while Attack and spell choice is Auto. It selects the style Auto chooses attacks and optimizes equipment for.
+- **Training goal** is shown while Strategy is Auto.
+- **Optimize equipment** is available alongside Class.
 
-**Pacifist** is available in both Manual and Auto and always blocks manual and automatic attacks, whichever mode is selected.
+**One-time overrides:**
+- Acting yourself on something a policy leaves to Auto is a one-time override and does not change the mode. Examples: choosing a strategy or attack, or switching an aura on or off.
+- An override lasts until the current fight ends. One made outside combat lasts through the next fight. Afterwards Auto takes over again.
+- While any override is active, the Combat page names it, suggests the matching policy (for example "Set Strategy to Manual") and offers **Return to Auto**, which ends every override at once.
+- After the same kind of override in three consecutive fights, a one-time tip suggests switching that policy to Manual.
 
-Persist the Manual/Auto choices, Pacifist, compact Auto controls and advanced assistance settings with the player's other preferences, surviving travel. The full playground reset restores the defaults.
+**Per-item permissions** belong to items, not modes. Each food (**Allow auto eating**, inventory details), spell (**Allow auto use**) and aura (**Allow auto use**) can be excluded from Auto's choices; Auto still chooses among the rest.
+
+New-player defaults are **Simple**, Smart retaliation, **Melee** and no training goal. Persist the mode, Custom's policies, quick settings and permissions with the player's other preferences, surviving travel. The full playground reset restores the defaults.
 
 **Auto** exposes only this compact set:
 
 | Control | Choices / behavior |
 |---|---|
-| Mode | **Pacifist** or **Balanced**. Pacifist prevents automatic and manual attacks while allowing defensive assistance; Balanced uses adaptive retaliation and balanced offense/survivability decisions. |
 | Class | **Melee**, **Ranged** or **Magic**. “Class” here selects combat style, not a permanent character-class restriction. Changing it automatically optimizes equipment under the shared rules below. |
 | Train specific skill? | **No**, **Technique**, **Power**, **Accuracy**, **Defense**, **Agility** or **Speed**, within the chosen style. No leaves strategy selection to general effectiveness; a selected goal follows the training constraints below and does not authorize offense in Pacifist mode. |
 | Optimize Equipment | Repeatable button to reevaluate and equip suitable owned gear for the current intent, including after acquiring new equipment. |
@@ -133,7 +155,7 @@ In Auto, assistance uses learned abilities whenever they are available: during a
 
 Provide an explicit, default-off setting allowing emergency automatic healing to take priority over manual actions. This permits interruption/replacement only through the existing shared action, eating and cancellation rules; it does not grant extra queue slots, bypass costs/cooldowns, or override food/spell exclusions and backfire restrictions. Automated abilities still use the single shared action queue; Auto cannot prequeue a sequence of future actions.
 
-A manual change to a persistent selection, such as combat strategy, selected spell or aura setup, keeps that selection under manual control until the player explicitly re-enables Auto for it. Other automatic selections remain enabled; do not switch all assistance off because one selection was overridden. Combat ending does not release these manual selections. A deliberate one-time action takes precedence for that action, then Auto resumes for the selections still assigned to it. Distinguish changing a persistent setup from issuing a one-time action in the UI. Equipment optimization runs when explicitly requested or when the player changes combat style; these triggers can replace manually equipped gear for the chosen style. Between those triggers, manual gear choices remain intact rather than being continuously overwritten. The separate target-specific Adaptive attack override retains its shared 5-second combat-exit reset. The primary Manual/Auto controls, defaults and aura usefulness rules are defined above; detailed action selection priorities remain open.
+A player's own choice on something a policy leaves to Auto is a one-time override (see *Modes, policies and overrides*); it lasts until the current fight ends. Choosing Manual for that policy makes it permanent.
 
 ### Quick slots
 

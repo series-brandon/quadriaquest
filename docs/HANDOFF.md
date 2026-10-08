@@ -20,11 +20,51 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Combat modes: Simple, Pacifist, Expert, Custom — 2026-10-08
+- **User design** (COMBAT.md → Modes, policies and overrides is the source of truth):
+  - Four modes, picked from a dropdown on the Combat page. Each policy is **Auto | Manual**; "Manual" mode was renamed **Expert** to avoid a clash.
+  - Editing any policy from a preset copies that preset plus the change into **Custom** and switches to it, with a tip. Switching modes never alters Custom.
+  - The Pacifist checkbox is gone; Pacifist is now a mode (`attacks: 'prevented'`, Manual abilities, Auto defensive/utility auras).
+- **Quick settings never change the mode:**
+  - Retaliate Smart / Always / Never. Each preset applies its default: Simple → Smart, Pacifist → Never, Expert → Always. Hidden while attacks are prevented.
+  - Class is shown while Attack choice is Auto.
+  - Training goal is shown while Strategy is Auto.
+- **Per-item permissions are not part of a mode:** `permissions.food/spell/aura` via `setPermission` / `allowed`. They replace `foodExclusions` / `spellExclusions`, and auras now have an Allow auto use switch too.
+- **One-time overrides:**
+  - Acting on an Auto policy (strategy, attack, an aura) lasts until the fight ends, or through the next fight if made outside combat.
+  - The Combat page shows "Your choice for this fight", an "Always choose my …" chip (sets that policy to Manual → Custom) and **Return to Auto** (`returnToAuto()` clears all).
+  - Three consecutive fights with the same override earn a one-time tip through the warning chip.
+- **API:** `setMode`, `setPolicy`, `setRetaliate`, `setPermission`, `allowed`, `returnToAuto()`. Removed: `setControl`, `setPacifist`, `setAdvanced`, `modeLabel`. Energy/Ki visibility now reads `policies.showEnergy/showKi`.
+- **Playground:** use the real Combat page; the status line shows the mode and retaliate setting.
+- **Verification:**
+  - 312 tests pass, including Custom capture/memory, preset retaliate defaults, overrides ending with the fight, the tip and aura permissions.
+  - Both builds pass, along with `check:ui` and `check:debug-isolation`.
+  - In the built playground:
+    - each mode shows the right quick settings and HUD columns (Expert 5, others 3);
+    - editing a setting from Simple switches to Custom with the tip, and Custom remembers it;
+    - an override shows the note, and Return to Auto clears it;
+    - Pacifist with aggressive enemies never starts a fight.
+  - At 375px: no horizontal scroll and no console errors.
+- **Superseded:** the "Simple mode" and "Per-item Simple permissions" entries below describe the earlier Simple | Manual control and exclusion lists.
+
+### Equipment page rebuilt in the kit — 2026-10-08
+- **User's sequencing:** finish the remaining UI work (Equipment, a shared modal host for the pop-up dialogs, then Inventory, Skills, Crafting, Quests and Settings), then build the Spells and Auras tabs on that base to test it.
+- **New page:** `ui/pages/equipment-page.js` replaces `renderGear`, its 0.15s refresh and the legacy `#equipment-panel` button CSS.
+  - **Worn:** a slot-tile grid (Main hand, Off hand, Head, plus armor slots once armor is owned).
+  - **Your gear:** a row per owned item with `gearFacts` (Power, Accuracy, Resistance, attack time, range, two-handed or either hand), an equipped highlight, and the equipment system's own `inventoryActions`.
+  - **Refusals:** a refused change (busy) shows "Finish what you're doing before changing equipment" rather than a stale disabled state.
+  - **Phones:** the buttons wrap below the text on narrow rows.
+  - **Reactivity:** follows `equipment.revision` and the reactive inventory.
+- **Verification:**
+  - 308 tests pass, including page tests on the real equipment system: equip, either-hand dagger, losing a copy, and a busy refusal.
+  - In the built playground: real gear equips into the slots on desktop, and at 375px there is no horizontal scroll and every button is at least 40px.
+  - No console errors.
+
 ### Planned: Spells and Auras journal tabs (user request, 2026-10-08; not started)
-- **Spells tab:** every spell, with its description, power, cast time, base XP and costs, plus an "Allow auto use" setting (Simple; today `spellExclusions`). Includes a "Set quick spell" action.
+- **Spells tab:** every spell, with its description, power, cast time, base XP and costs, plus an "Allow auto use" setting (`assistance` spell permission). Includes a "Set quick spell" action.
 - **Auras tab:** every aura, with its description, effects and Ki cost per second, plus an "Allow auto use" setting. Includes a "Set quick auras" action.
 - **Open points when building:**
-  - Auras have no per-aura Simple exclusion yet. Today only manual overrides exist, so this needs an `auraExclusions` setting, a COMBAT.md rule and handling in `autoAuras`.
+  - Per-item permissions exist for spells and auras (`assistance.setPermission`); the tabs should reuse them.
   - The Combat page's Spells and Auras sections should then move to these tabs (or link to them) rather than duplicate them.
   - Two more tabs need a place in the tab order and on phones (probably under More).
   - Decide whether unlearned spells and auras appear (for example locked, with how to learn them).

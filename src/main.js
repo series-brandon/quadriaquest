@@ -184,12 +184,11 @@ let castPresentation=null;
 // Non-combat skill XP joins combat XP in the one core conversion (5:1); core level-ups grant attribute points.
 onSkillXp(amount=>{const core=character.convertProgression(amount);if(core?.leveledUp)showSkillReward({skillName:'Core',level:core.level,leveledUp:true,detail:`+${core.points} attribute points`},player.position,{float:false});return core;});
 const auras=createAuras({ki:playerResources.ki,exhausted:()=>{assistance?.auraExhausted();toast('Out of Ki — all auras faded. Ki recovers while they are off.');}});
-// Per-item settings in the inventory detail. Food: whether Simple mode may eat it automatically
-// (assistance's foodExclusions; docs/COMBAT.md).
+// Per-item settings in the inventory detail. Food: whether Auto may eat it (a per-item permission;
+// docs/COMBAT.md, Modes, policies and overrides).
 function itemSettings(id){
  if(!FOODS[id]||!assistance)return [];
- const excluded=assistance.settings.advanced.foodExclusions;
- return [{label:'Allow auto eating',checked:!excluded.includes(id),onChange:on=>{const list=assistance.settings.advanced.foodExclusions;assistance.setAdvanced({foodExclusions:on?list.filter(x=>x!==id):[...list,id]});}}];
+ return [{label:'Allow auto eating',checked:assistance.allowed('food',id),onChange:on=>assistance.setPermission('food',id,on)}];
 }
 const menus=createGameMenus({itemSettings,getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,startCraft:id=>recipeCrafting.start(id),craftState:()=>recipeCrafting?.state,craftBusy:()=>!!recipeCrafting?.working||combat?.working||combat?.busy,equipment:{state:()=>equipment?.state,isEquipped:id=>equipment?.isEquipped(id),actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[])]}});
 const craftingTutorial=createCraftingTutorial({menus,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
@@ -332,7 +331,7 @@ cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:character
  working:()=>!!actorTarget||!!segment||path.length>0||combat.working||smithing.working||resourceActions.working||food.working||recipeCrafting.working
 });
 areas.register(cinder);
-assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0});
+assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0,tip:text=>playerInterface?.tip(text)});
 styleMenu=createCombatStyleMenu({styles,combat,panels:menus.panels,auras,assistance,equipment,character,health,busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
 areas.activate('clearing',{announce:false});
 function canMove(){return areas.canMove&&!travel.busy&&!combat?.busy;}

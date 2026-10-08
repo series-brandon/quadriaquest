@@ -5,12 +5,11 @@ import {bind} from './ui/scope.js';
 import {panelTabs,anyAvailable} from './ui/panel-tabs.js';
 import {quickActions} from './ui/hud/quick-actions.js';
 import {warningChip} from './ui/hud/warning-chip.js';
+import {equipmentPage} from './ui/pages/equipment-page.js';
 import {computed,signal,untracked} from './reactive.js';
 import {mountMinimapControls} from './minimap-controls.js';
 import {icon} from './icons.js';
-import {ITEMS} from './items.js';
 import {FOODS} from './player-health.js';
-import {GEAR,ARMOR_SLOTS} from './equipment.js';
 import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
@@ -36,9 +35,9 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
   const meter=mount(()=>resourceMeter({id:'player-'+kind,kind,label,resource:resources[kind]})).node;meter.classList.add('resource-placeholder',kind);meters[kind]=meter;
   $('overview-vitals').append(meter,actionFor[kind]);
  }
- // Simple mode manages abilities and auras, so Energy (Quick Ability) and Ki (Quick Auras) meters and
- // buttons stay hidden unless the player opts in under Simple settings. The row closes up the gap.
- const shows=computed(()=>{assistance?.revision.value;const s=assistance?.settings,simple=!!s&&s.control!=='manual';return {energy:!simple||s.advanced.showEnergy,ki:!simple||s.advanced.showKi};});
+ // The Show Energy / Show Ki policies (off in Simple and Pacifist, on in Expert) decide whether the
+ // Energy (Quick Ability) and Ki (Quick Auras) meters and buttons show. The row closes up the gap.
+ const shows=computed(()=>{assistance?.revision.value;const p=assistance?.settings.policies;return {energy:!p||p.showEnergy,ki:!p||p.showKi};});
  mount(()=>{bind(()=>{const {energy,ki}=shows.value,vitals=$('overview-vitals');
   meters.energy.hidden=actionFor.energy.hidden=!energy;meters.ki.hidden=actionFor.ki.hidden=!ki;
   vitals.dataset.columns=String(3+energy+ki);vitals.toggleAttribute('data-energy-hidden',!energy);});return $('overview-vitals');});
@@ -66,9 +65,10 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  menus.host.append(mobileNav,more);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!more.hidden){e.preventDefault();closeMore(true);}});
  document.addEventListener('pointerdown',e=>{if(!more.hidden&&!more.contains(e.target)&&!mobileNav.contains(e.target))closeMore();});
- let hidden=false,visible=false,clock=0,gearSignature='',layoutSignature='',lastAttacked=-Infinity;
- const gear=document.createElement('section');gear.id='equipment-panel';gear.innerHTML='<div class="crafting-heading"><h2>Equipment</h2><button aria-label="Close equipment">×</button></div><div class="equipment-list"></div>';$('journal').append(gear);gear.querySelector('button').addEventListener('click',()=>panels.dismiss());
- panels.register({id:'equipment',label:'Equipment',icon:'shields',order:80,element:gear,select(){panels.open('equipment');gearSignature='';renderGear();}});
+ let hidden=false,visible=false,clock=0,layoutSignature='',lastAttacked=-Infinity;
+ // Equipment page (ui/pages/equipment-page.js): reactive on equipment and the inventory.
+ const gear=mount(()=>h('section',{id:'equipment-panel','aria-label':'Equipment'},equipmentPage({equipment,inventory}))).node;$('journal').append(gear);
+ panels.register({id:'equipment',label:'Equipment',icon:'shields',order:80,element:gear});
  $('journal').append($('combat-panel'));
  
  function layout(){
@@ -98,14 +98,6 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  menus.events.beforeClose=event=>{closeMore();if(event==='dismiss'&&!mobile.matches&&!hidden)return false;const result=menuReaction(mobile.matches,event);if(result==='compact')journal.compact();return result==='close';};
  $('hide-player-panel').onclick=()=>{hidden=!hidden;journal.setDocked(false);if(hidden)menus.closeMenus('dismiss');layout();};
  $('game-menu-toggle').addEventListener('click',()=>{if(hidden){hidden=false;layout();} });
- function renderGear(){
-  const signature=JSON.stringify(equipment.slots)+Object.keys(GEAR).map(id=>`${inventory[id]}:${equipment.inventoryActions(id).map(a=>a.label+a.disabled)}`).join();if(signature===gearSignature)return;gearSignature=signature;
-  const list=gear.querySelector('.equipment-list');list.replaceChildren();
-  // Armor slots appear once something can fill them.
-  const slots=equipment.slots,armorOwned=Object.keys(GEAR).some(id=>GEAR[id].armor&&inventory[id]>0);
-  for(const [slot,label] of [['main','Main hand'],['off','Off hand'],['head','Head'],...(armorOwned?ARMOR_SLOTS.map(s=>[s,s[0].toUpperCase()+s.slice(1)]):[])]){const p=document.createElement('p');p.textContent=label+': '+(ITEMS[slots[slot]]?.name||'Empty');list.append(p);}
-  for(const id of Object.keys(GEAR).filter(id=>inventory[id]>0))for(const action of equipment.inventoryActions(id)){const b=document.createElement('button');b.innerHTML=icon(id);b.append(document.createTextNode(`${ITEMS[id].name} · ${action.label}`));b.disabled=action.disabled;b.onclick=()=>{action.run();renderGear();menus.refresh();};list.append(b);}
- }
  function drawMap(){
   const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=mapControls.radius;mapCenter={x:p.x,z:p.z};
   const grid=minimapGrid(canvas.parentElement.clientWidth-8,devicePixelRatio,radius),{size,pixels,gap}=grid;
@@ -125,10 +117,12 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  return {
   reaction,assignFood(id){if(FOODS[id])quickFood.value=id;},get quickFood(){return quickFood.peek();},
   // Announce being attacked only when it starts (no hit in the last 10s), not on every hit of a fight.
+  // One-off notices (assistance tips, mode changes) through the warning chip.
+  tip(text){warning.announce(text);},
   attacked(){reaction('attacked');const now=performance.now();if(now-lastAttacked>10000)warning.announce('Under attack!');lastAttacked=now;},
   reset(){mapControls.reset();hidden=false;quickFood.value='cookedFish';journal.compact();menus.closeMenus();layout();},
   update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();if(!visible)return;
-   drawMap();if(panels.isOpen('equipment'))renderGear();if(!$('journal').hidden)menus.refresh();
+   drawMap();if(!$('journal').hidden)menus.refresh();
   },
   get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:moreOpen.peek(),hidden,quickFood:quickFood.peek(),expanded:journal.expanded,menuOpen:!$('journal').hidden};}
  };

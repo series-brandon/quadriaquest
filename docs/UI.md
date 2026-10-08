@@ -62,6 +62,7 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 | Journal shell (`journal.js`) | Built with `h()`. The page contents (Skills, Inventory, Crafting, Quests, Settings, Combat, Equipment, Companions) are still legacy markup. |
 | Tutorial journal lock | Legacy: id-based rules plus a MutationObserver (moved out of the journal). It exposes `lockedState` for the kit. Retire it once guide highlights are tutorial state. |
 | Utility dialogs (cooking, furnace, anvil, destinations, companion name, food confirm) | Legacy `<dialog>`s, not yet on the host |
-| Combat page | Kit (`ui/pages/combat-page.js`, hosted by `combat-style-menu.js`). Reactive through the revisions of styles, combat, auras, assistance, equipment and character; no refresh calls. |
-| Equipment, skills, inventory, crafting, dialogue, toasts | Legacy |
+| Combat page | Kit (`ui/pages/combat-page.js`, hosted by `combat-style-menu.js`). Reactive through the revisions of styles, combat, auras, assistance, equipment and character; no refresh calls. Mode dropdown, quick settings, one-time override note with Return to Auto, and a Mode settings section of Auto/Manual policies. |
+| Equipment page | Kit (`ui/pages/equipment-page.js`): worn slot tiles plus owned gear rows with stats and the equipment system's own actions. Refused changes explain why. |
+| Skills, inventory, crafting, quests, settings, dialogue, toasts | Legacy |
 | Spells and Auras tabs | Planned (user request): see HANDOFF → Planned: Spells and Auras journal tabs |

@@ -6,17 +6,39 @@ import {SPELLS,ABILITIES} from './combat-styles.js';
 import {AURAS} from './auras.js';
 import {FOODS} from './player-health.js';
 
-// Manual/Auto combat assistance (docs/COMBAT.md). Auto acts only through the same legal choices,
+// Combat assistance driven by modes and policies (docs/COMBAT.md). Auto acts only through the same legal choices,
 // owned equipment, learned abilities, costs and shared combat resolution as manual play; it may read
 // actual enemy data (deliberate design decision) but never moves or flees for the player.
 export const TRAINING_GOALS=['technique','power','accuracy','defense','agility','speed'];
 const GOAL_STRATEGY=Object.fromEntries(Object.entries(STRATEGIES).map(([id,s])=>[s.skill,id]));
-const DEFAULT_ADVANCED={autoEat:true,emergencyPriority:false,allowRiskySpells:false,foodExclusions:[],spellExclusions:[],auraRecovery:.5,auraGrace:3,showEnergy:false,showKi:false};
+// Modes are presets of policies (docs/COMBAT.md, Modes, policies and overrides). Custom keeps its own copy.
+export const MODES=['simple','pacifist','expert','custom'];
+const BASE={attacks:'allowed',strategy:'auto',attack:'auto',abilities:'auto',auras:'auto',autoEat:true,emergencyPriority:false,allowRiskySpells:false,auraRecovery:.5,auraGrace:3,showEnergy:false,showKi:false};
+export const POLICIES=Object.keys(BASE);
+export const PRESETS={
+ simple:BASE,
+ pacifist:{...BASE,attacks:'prevented',abilities:'manual'},
+ expert:{...BASE,strategy:'manual',attack:'manual',abilities:'manual',auras:'manual',autoEat:false,showEnergy:true,showKi:true},
+};
+// Retaliate is a quick setting: picking a preset applies its default; it never changes the mode.
+const PRESET_RETALIATE={simple:'smart',pacifist:'never',expert:'always'};
+export const RETALIATE=['smart','always','never'];
+const OVERRIDE_KINDS=['strategy','attack','auras'];
+// One-time overrides in this many consecutive fights earn a single tip to make it a Manual policy.
+const TIP_AFTER=3;
 const STYLE_OF=item=>GEAR[item]?.style==='ranged'?'ranged':'melee';
 
 export function createAssistance(api){
  const {combat,character,equipment,styles,auras,food,inventory,health,resources}=api;
- let control='auto',pacifist=false,style='melee',goal=null,advanced={...DEFAULT_ADVANCED},manual={strategy:false,spell:false,auras:{}};
+ let mode='simple',custom={...BASE},retaliate='smart',style='melee',goal=null;
+ let permissions={food:[],spell:[],aura:[]};
+ // One-time overrides of Auto policies; they end with the fight they belong to.
+ let overrides={strategy:false,attack:false,auras:{}},overrideFight=false,wasInCombat=false;
+ const streak={strategy:0,attack:0,auras:0},tipped=new Set();
+ const policies=()=>mode==='custom'?custom:PRESETS[mode];
+ const prevented=()=>policies().attacks==='prevented';
+ const allowed=(kind,id)=>!permissions[kind].includes(id);
+ const anyOverride=()=>overrides.strategy||overrides.attack||Object.keys(overrides.auras).length>0;
  // Signal-backed so the HUD warning chip follows advice without polling.
  const warning=signal('');
  let override=null,danger=null,exhausted=false,optimizeReport='',clock=0;const grace={};
@@ -34,16 +56,15 @@ export function createAssistance(api){
  }
 
  // Attacks: Pacifist forbids every manual and automatic attack.
- function canAttack(){if(!pacifist)return true;api.toast?.('Cannot attack while in pacifist mode.');return false;}
+ function canAttack(){if(!prevented())return true;api.toast?.('Attacks are prevented in this mode.');return false;}
  // Retaliation: Manual uses the Auto-Retaliate preference; Auto Balanced withholds it at 1–3 hits unless
  // the player deliberately attacked this target since the last 5-second combat exit.
  function shouldRetaliate(enemy){
-  if(pacifist)return false;
-  if(control==='manual')return combat.autoRetaliate;
-  if(override===enemy)return true;
+  if(prevented()||retaliate==='never')return false;
+  if(retaliate==='always'||override===enemy)return true;
   return assess(enemy)?.retaliate??true;
  }
- function noteManualAttack(enemy){if(control==='auto')override=enemy;}
+ function noteManualAttack(enemy){if(retaliate==='smart')override=enemy;}
 
  // Strategy: a training goal fixes the strategy (never redirected, even in danger); otherwise defend
  // when 6 or fewer hits remain, else take the highest expected damage per second.
@@ -57,8 +78,8 @@ export function createAssistance(api){
  // Spells: learned, not excluded, affordable later; any backfire risk is ineligible unless explicitly allowed.
  function chooseSpell(){
   if(style!=='magic')return null;let best=null,score=-1;
-  for(const id of styles.state.learned){if(advanced.spellExclusions.includes(id))continue;const p=playerAttackProfile(character,{...SPELLS[id],spell:id},styles.strategy);
-   if(p.backfirePercent>0&&!advanced.allowRiskySpells)continue;const s=meanDps(p);if(s>score){score=s;best=id;}}
+  for(const id of styles.state.learned){if(!allowed('spell',id))continue;const p=playerAttackProfile(character,{...SPELLS[id],spell:id},styles.strategy);
+   if(p.backfirePercent>0&&!policies().allowRiskySpells)continue;const s=meanDps(p);if(s>score){score=s;best=id;}}
   return best;
  }
 
@@ -99,10 +120,10 @@ export function createAssistance(api){
  // Auto-eat: before an enemy could defeat you in one hit (≤150% of its max hit). Manual queued actions
  // keep priority unless emergency priority is enabled. With nothing eligible, recommend fleeing.
  function autoEat(){
-  if(!advanced.autoEat||!danger||health.value>=health.max)return '';
+  if(!danger||health.value>=health.max)return '';
   if(health.value>1.5*danger.maxHit)return '';
-  if(combat.pendingManual&&!advanced.emergencyPriority)return 'Warning! Recommend fleeing!';
-  const foods=Object.keys(FOODS).filter(id=>inventory[id]>0&&!advanced.foodExclusions.includes(id));
+  if(combat.pendingManual&&!policies().emergencyPriority)return 'Warning! Recommend fleeing!';
+  const foods=Object.keys(FOODS).filter(id=>inventory[id]>0&&allowed('food',id));
   if(!foods.length)return 'Warning! Recommend fleeing!';
   if(food.cooldown>0||food.working)return '';
   const id=foods.sort((a,b)=>FOODS[b].healing-FOODS[a].healing)[0];
@@ -127,48 +148,91 @@ export function createAssistance(api){
  // activation below 25% Ki; after exhaustion, wait for the recovery threshold. Off after the grace period.
  function autoAuras(dt){
   const ki=resources.ki,inCombat=!!engaged();
-  if(exhausted&&ki.value>=advanced.auraRecovery*ki.max)exhausted=false;
+  if(exhausted&&ki.value>=policies().auraRecovery*ki.max)exhausted=false;
   for(const id of Object.keys(AURAS)){
-   if(manual.auras[id]||!auras.state.learned.includes(id))continue;
+   if(overrides.auras[id]||!allowed('aura',id)||!auras.state.learned.includes(id))continue;
    const useful=id==='rush'?inCombat&&api.moving():inCombat&&!!danger&&danger.hits<=6;
    if(useful){grace[id]=0;if(!auras.isActive(id)&&!exhausted&&ki.value>=.25*ki.max)auras.toggle(id);}
-   else if(auras.isActive(id)){grace[id]=(grace[id]||0)+dt;if(grace[id]>=advanced.auraGrace){auras.toggle(id);grace[id]=0;}}
+   else if(auras.isActive(id)){grace[id]=(grace[id]||0)+dt;if(grace[id]>=policies().auraGrace){auras.toggle(id);grace[id]=0;}}
   }
  }
 
+ // Overrides end with their fight. Track consecutive fights per kind for the one-time tip.
+ function trackFights(){
+  const inCombat=combat.inCombat;
+  if(inCombat&&anyOverride())overrideFight=true;
+  if(wasInCombat&&!inCombat){
+   for(const kind of OVERRIDE_KINDS){
+    const used=kind==='auras'?Object.keys(overrides.auras).length>0:overrides[kind];
+    streak[kind]=used?streak[kind]+1:0;
+    if(streak[kind]>=TIP_AFTER&&!tipped.has(kind)){tipped.add(kind);api.tip?.(`Tip: set ${({strategy:'Strategy',attack:'Attack choice',auras:'Auras'})[kind]} to Manual in Mode settings to always choose it yourself.`);}
+   }
+   if(overrideFight){overrides={strategy:false,attack:false,auras:{}};overrideFight=false;changed();}
+  }
+  wasInCombat=inCombat;
+ }
+ function markOverride(kind,id){
+  if(kind==='auras')overrides.auras[id]=true;else overrides[kind]=true;
+  // Made outside combat, it lasts through the next fight.
+  overrideFight=combat.inCombat;
+ }
+ function applyRetaliate(){combat.setAutoRetaliate?.(retaliate!=='never');}
  const api2={
   revision,
   canAttack,shouldRetaliate,noteManualAttack,optimize,assess,
   update(dt){
    if(!combat.inCombat)override=null;
+   trackFights();
    // Decisions run at 10 Hz; that is ample for 2.5-second attacks and avoids per-frame profile work.
    clock+=dt;if(clock<.1)return;dt=clock;clock=0;
    danger=assess();let advice='';
-   if(control==='auto'&&!pacifist){
-    // Persistent selections still assigned to Auto are reevaluated; manual ones are left alone.
-    const spell=chooseSpell();if(!manual.spell&&styles.state.selected!==spell&&!combat.working)styles.select(spell);
-    if(!manual.strategy){const s=chooseStrategy();if(styles.strategy!==s)styles.setStrategy(s);}
-   }
-   if(control==='auto'){advice=autoEat();autoAuras(dt);if(!pacifist)autoAbilities();}
+   const p=policies();
+   // Policies left to Auto are reevaluated; overridden or Manual ones are left alone.
+   if(p.attacks==='allowed'){
+    if(p.attack==='auto'&&!overrides.attack){const spell=chooseSpell();if(styles.state.selected!==spell&&!combat.working)styles.select(spell);}
+    if(p.strategy==='auto'&&!overrides.strategy){const s=chooseStrategy();if(styles.strategy!==s)styles.setStrategy(s);}
+   }else if(p.strategy==='auto'&&!overrides.strategy&&styles.strategy!=='defensive')styles.setStrategy('defensive');
+   if(p.autoEat)advice=autoEat();
+   if(p.auras==='auto')autoAuras(dt);
+   if(p.attacks==='allowed'&&p.abilities==='auto')autoAbilities();
    // Advisory only: warnings never stop a fight the player chose or move the player.
    warning.value=advice||danger?.message||'';
   },
   auraExhausted(){exhausted=true;},
-  // Persistent manual selections keep manual control until returned to Auto.
-  setStrategyManually(id){if(control==='auto')manual.strategy=true;styles.setStrategy(id);changed();},
-  selectSpellManually(id){if(control==='auto')manual.spell=true;styles.select(id);changed();},
-  toggleAuraManually(id){if(control==='auto')manual.auras[id]=true;const r=auras.toggle(id);changed();return r;},
-  returnToAuto(kind,id){if(kind==='aura')delete manual.auras[id];else manual[kind]=false;changed();},
-  setControl(next){if(next!==control){control=next;changed();}},
-  setPacifist(on){pacifist=!!on;if(pacifist)combat.stopAttacking();changed();},
+  // The player's own choice on an Auto policy is a one-time override (until the fight ends).
+  setStrategyManually(id){if(policies().strategy==='auto')markOverride('strategy');styles.setStrategy(id);changed();},
+  selectSpellManually(id){if(policies().attack==='auto')markOverride('attack');const ok=styles.select(id);changed();return ok;},
+  toggleAuraManually(id){if(policies().auras==='auto')markOverride('auras',id);const r=auras.toggle(id);changed();return r;},
+  // Ends every one-time override at once.
+  returnToAuto(){overrides={strategy:false,attack:false,auras:{}};overrideFight=false;changed();},
+  setMode(next){
+   if(!MODES.includes(next))return false;
+   mode=next;if(PRESET_RETALIATE[next])retaliate=PRESET_RETALIATE[next];
+   overrides={strategy:false,attack:false,auras:{}};overrideFight=false;
+   if(prevented())combat.stopAttacking();applyRetaliate();changed();return true;
+  },
+  // Editing a policy from a preset copies it, with the change, into Custom.
+  setPolicy(key,value){
+   if(!POLICIES.includes(key))return false;
+   const next={...policies(),[key]:value};
+   if(mode!=='custom')api.tip?.('Switched to Custom mode. Your other modes are unchanged.');
+   custom=next;mode='custom';
+   if(prevented())combat.stopAttacking();changed();return true;
+  },
+  setRetaliate(next){if(!RETALIATE.includes(next))return false;retaliate=next;applyRetaliate();changed();return true;},
+  // Per-item permissions: kind is 'food', 'spell' or 'aura'.
+  setPermission(kind,id,on){if(!permissions[kind])return false;const list=permissions[kind].filter(x=>x!==id);permissions={...permissions,[kind]:on?list:[...list,id]};changed();return true;},
+  allowed,
   // A player-selected style change runs Optimize for that style (no extra confirmation).
-  setStyle(next){if(next===style)return optimizeReport;style=next;manual.spell=false;const report=optimize(next);changed();return report;},
+  setStyle(next){if(next===style)return optimizeReport;style=next;overrides.attack=false;const report=optimize(next);changed();return report;},
   setGoal(next){goal=TRAINING_GOALS.includes(next)?next:null;changed();},
-  setAdvanced(patch){advanced={...advanced,...patch};changed();},
   get warning(){return warning.value;},get danger(){return danger;},get optimizeReport(){return optimizeReport;},
-  get modeLabel(){return pacifist?'Pacifist':control==='auto'?'Auto · Balanced':'Manual · Auto-Retaliate '+(combat.autoRetaliate?'On':'Off');},
-  get settings(){return {control,pacifist,style,goal,advanced:{...advanced},manual:{strategy:manual.strategy,spell:manual.spell,auras:{...manual.auras}},override:override?.kind||null};},
-  reset(){control='auto';pacifist=false;style='melee';goal=null;advanced={...DEFAULT_ADVANCED};manual={strategy:false,spell:false,auras:{}};override=null;warning.value='';exhausted=false;optimizeReport='';changed();},
+  get settings(){return {mode,policies:{...policies()},custom:{...custom},retaliate,style,goal,
+   permissions:{food:[...permissions.food],spell:[...permissions.spell],aura:[...permissions.aura]},
+   overrides:{strategy:overrides.strategy,attack:overrides.attack,auras:{...overrides.auras}},override:override?.kind||null};},
+  reset(){mode='simple';custom={...BASE};retaliate='smart';style='melee';goal=null;permissions={food:[],spell:[],aura:[]};
+   overrides={strategy:false,attack:false,auras:{}};overrideFight=false;wasInCombat=false;tipped.clear();for(const k of OVERRIDE_KINDS)streak[k]=0;
+   override=null;warning.value='';exhausted=false;optimizeReport='';applyRetaliate();changed();},
  };
  return api2;
 }

@@ -88,38 +88,40 @@ function assistFixture({hp=100}={}){
  return {assistance,combat,character,equipment,styles,auras,resources,health,inventory,toasts,enemy,get stopped(){return stopped;},set moving(v){moving=v;}};
 }
 
-test('danger bands use the actual max hit after defenses; Balanced withholds retaliation at 1–3 hits unless the player chose the target',()=>{
+test('danger bands use the actual max hit after defenses; Smart retaliation withholds at 1–3 hits unless the player chose the target',()=>{
  const f=assistFixture({hp:100});f.assistance.update(.2);assert.equal(f.assistance.danger.maxHit,20);assert.equal(f.assistance.danger.hits,5);assert.equal(f.assistance.warning,'Use caution.');assert.ok(f.assistance.shouldRetaliate(f.enemy));
  f.health.value=40;f.assistance.update(.2);assert.equal(f.assistance.danger.band,'flee');assert.equal(f.assistance.shouldRetaliate(f.enemy),false);
  f.assistance.noteManualAttack(f.enemy);assert.ok(f.assistance.shouldRetaliate(f.enemy),'deliberate attack overrides the recommendation');
  f.combat.inCombat=false;f.assistance.update(.2);assert.equal(f.assistance.shouldRetaliate(f.enemy),false,'override clears after the combat exit');
- f.assistance.setControl('manual');assert.ok(f.assistance.shouldRetaliate(f.enemy),'Manual follows Auto-Retaliate');
+ f.assistance.setRetaliate('always');assert.ok(f.assistance.shouldRetaliate(f.enemy),'Always retaliates');
+ f.assistance.setRetaliate('never');assert.equal(f.assistance.shouldRetaliate(f.enemy),false);
+ f.assistance.setMode('expert');assert.equal(f.assistance.settings.retaliate,'always','Expert applies its retaliate default');
 });
 
-test('Pacifist blocks every attack and stops the current windup; Auto never overrides it',()=>{
- const f=assistFixture();f.assistance.setPacifist(true);assert.equal(f.stopped,1);assert.equal(f.assistance.canAttack(),false);assert.equal(f.toasts.at(-1),'Cannot attack while in pacifist mode.');assert.equal(f.assistance.shouldRetaliate(f.enemy),false);
- f.assistance.setPacifist(false);assert.ok(f.assistance.canAttack());
+test('Pacifist mode blocks every attack and stops the current windup; Auto never overrides it',()=>{
+ const f=assistFixture();f.assistance.setMode('pacifist');assert.equal(f.stopped,1);assert.equal(f.assistance.canAttack(),false);assert.equal(f.toasts.at(-1),'Attacks are prevented in this mode.');assert.equal(f.assistance.shouldRetaliate(f.enemy),false);
+ f.assistance.setMode('simple');assert.ok(f.assistance.canAttack());
 });
 
 test('auto-eat acts at 150% of the max hit, respects exclusions and manual priority, and otherwise recommends fleeing',()=>{
  const f=assistFixture({hp:31});f.assistance.update(.2);assert.equal(f.inventory.cookedFish,2,'31 > 30');
  f.health.value=30;f.combat.pending='strongStrike';f.assistance.update(.2);assert.equal(f.inventory.cookedFish,2,'manual queue keeps priority');assert.equal(f.assistance.warning,'Warning! Recommend fleeing!');
- f.assistance.setAdvanced({emergencyPriority:true});f.assistance.update(.2);assert.equal(f.inventory.cookedFish,1);assert.equal(f.health.value,50);
- const g=assistFixture({hp:20});g.assistance.setAdvanced({foodExclusions:['cookedFish']});g.assistance.update(.2);assert.equal(g.inventory.cookedFish,2);assert.equal(g.assistance.warning,'Warning! Recommend fleeing!');
+ f.assistance.setPolicy('emergencyPriority',true);f.assistance.update(.2);assert.equal(f.inventory.cookedFish,1);assert.equal(f.health.value,50);
+ const g=assistFixture({hp:20});g.assistance.setPermission('food','cookedFish',false);g.assistance.update(.2);assert.equal(g.inventory.cookedFish,2);assert.equal(g.assistance.warning,'Warning! Recommend fleeing!');
 });
 
-test('Auto strategy honours the training goal, defends in danger otherwise, and manual choices stick until returned to Auto',()=>{
+test('Auto strategy honours the training goal, defends in danger otherwise, and a manual choice is a one-time override',()=>{
  const f=assistFixture({hp:100});f.combat.engagedEnemy=null;f.assistance.update(.2);assert.equal(f.styles.strategy,'strong','highest expected DPS when safe');
  f.combat.engagedEnemy=f.enemy;f.health.value=60;f.assistance.update(.2);assert.equal(f.styles.strategy,'defensive');
  f.assistance.setGoal('accuracy');f.assistance.update(.2);assert.equal(f.styles.strategy,'accurate','danger never redirects a training goal');
- f.assistance.setStrategyManually('fast');f.assistance.update(.2);assert.equal(f.styles.strategy,'fast');f.assistance.returnToAuto('strategy');f.assistance.update(.2);assert.equal(f.styles.strategy,'accurate');
+ f.assistance.setStrategyManually('fast');f.assistance.update(.2);assert.equal(f.styles.strategy,'fast');f.assistance.returnToAuto();f.assistance.update(.2);assert.equal(f.styles.strategy,'accurate');
 });
 
 test('Auto spells skip any backfire risk unless explicitly allowed',()=>{
  const f=assistFixture();f.styles.learn('energyStrike');f.assistance.setStyle('magic');f.assistance.update(.2);assert.equal(f.styles.state.selected,'energyStrike');
  const original=SPELLS.energyStrike.requirements['magic.technique'];
  try{SPELLS.energyStrike.requirements['magic.technique']=5;f.assistance.update(.2);assert.equal(f.styles.state.selected,null);
-  f.assistance.setAdvanced({allowRiskySpells:true});f.assistance.update(.2);assert.equal(f.styles.state.selected,'energyStrike');}
+  f.assistance.setPolicy('allowRiskySpells',true);f.assistance.update(.2);assert.equal(f.styles.state.selected,'energyStrike');}
  finally{SPELLS.energyStrike.requirements['magic.technique']=original;}
 });
 
@@ -136,7 +138,7 @@ test('Auto auras: Harden in danger, Rush while moving in combat, 25% Ki floor, e
  f.auras.deactivateAll();f.assistance.auraExhausted();f.resources.ki.value=40;f.assistance.update(.2);assert.equal(f.auras.isActive('harden'),false,'waits for 50% after exhaustion');
  f.resources.ki.value=60;f.assistance.update(.2);assert.ok(f.auras.isActive('harden'));
  f.assistance.toggleAuraManually('harden');f.assistance.update(.2);assert.equal(f.auras.isActive('harden'),false,'manual choice sticks');
- f.assistance.returnToAuto('aura','harden');f.resources.ki.value=10;f.assistance.update(.2);assert.equal(f.auras.isActive('harden'),false,'below the 25% floor');
+ f.assistance.returnToAuto();f.resources.ki.value=10;f.assistance.update(.2);assert.equal(f.auras.isActive('harden'),false,'below the 25% floor');
 });
 
 test('a stun cancels the unreleased windup and pending action, keeps the target and restarts fully; stunned enemies hold',()=>{
@@ -146,7 +148,7 @@ test('a stun cancels the unreleased windup and pending action, keeps the target 
  const before=f.health.value;f.a.control.apply({kind:'stun',duration:10,protection:0});f.system.update(5,10);assert.equal(f.health.value,before,'a stunned enemy cannot attack');
 });
 
-test('Auto uses learned abilities whenever eligible and affordable, respecting goals, the queue and Pacifist',()=>{
+test('Auto uses learned abilities whenever eligible and affordable, respecting goals, the queue and the mode',()=>{
  const f=assistFixture({hp:100});f.styles.learnAbility('strongStrike');f.combat.fighting=true;
  f.assistance.update(.2);assert.equal(f.combat.pending,'strongStrike');assert.equal(f.combat.pendingManual,null,'queued as an Auto request');
  // Already queued or committed: no second request.
@@ -154,8 +156,8 @@ test('Auto uses learned abilities whenever eligible and affordable, respecting g
  f.resources.energy.value=49;f.assistance.update(.2);assert.equal(f.combat.pending,null,'needs 50 Energy');f.resources.energy.value=100;
  f.assistance.setGoal('technique');f.assistance.update(.2);assert.equal(f.combat.pending,null,'Strong Strike would redirect XP to Power');
  f.assistance.setGoal('power');f.assistance.update(.2);assert.equal(f.combat.pending,'strongStrike');f.combat.pending=null;
- f.assistance.setControl('manual');f.assistance.update(.2);assert.equal(f.combat.pending,null,'Manual never acts');f.assistance.setControl('auto');
- f.assistance.setPacifist(true);f.assistance.update(.2);assert.equal(f.combat.pending,null);f.assistance.setPacifist(false);
+ f.assistance.setMode('expert');f.assistance.update(.2);assert.equal(f.combat.pending,null,'Expert (Manual abilities) never acts');f.assistance.setMode('simple');
+ f.assistance.setMode('pacifist');f.assistance.update(.2);assert.equal(f.combat.pending,null);f.assistance.setMode('simple');
  f.combat.fighting=false;f.assistance.update(.2);assert.equal(f.combat.pending,null,'only during a fight');
  f.inventory.bows=1;f.combat.fighting=true;f.equipment.toggle('bows');f.assistance.update(.2);assert.equal(f.combat.pending,null,'Strong Strike needs a melee attack');
 });
@@ -184,4 +186,44 @@ test('the follow-through after a release keeps the attack that struck; the next 
  const struck=f.system.update(2.5,2.5);assert.equal(struck.profile.hand,'main');assert.equal(struck.profile.item,'copperDagger','recovery shows the dagger stab');
  const windup=f.system.update(2.0,4.5);assert.equal(windup.kind,'Combat');assert.equal(windup.profile.hand,'off','the next windup is the off-hand punch');assert.equal(windup.profile.item,null);
  assert.equal(f.system.nextHand,'off');
+});
+
+test('modes are presets; editing a policy moves to Custom, which remembers its settings',()=>{
+ const tips=[],f=assistFixture();f.assistance.reset();
+ const assistance=createAssistance({combat:f.combat,character:f.character,equipment:f.equipment,styles:f.styles,auras:f.auras,food:{cooldown:0,working:false,start(){}},inventory:f.inventory,health:f.health,resources:f.resources,toast(){},moving:()=>false,tip:t=>tips.push(t)});
+ assert.equal(assistance.settings.mode,'simple');assert.equal(assistance.settings.policies.strategy,'auto');
+ assistance.setMode('expert');assert.equal(assistance.settings.policies.auras,'manual');assert.equal(assistance.settings.policies.showEnergy,true);
+ assistance.setPolicy('auras','auto');
+ assert.equal(assistance.settings.mode,'custom');assert.equal(assistance.settings.policies.auras,'auto');assert.equal(assistance.settings.policies.strategy,'manual','copied from Expert');
+ assert.match(tips.at(-1),/Switched to Custom/);
+ assistance.setMode('simple');assert.equal(assistance.settings.policies.strategy,'auto','presets are unchanged');
+ assistance.setMode('custom');assert.equal(assistance.settings.policies.auras,'auto');assert.equal(assistance.settings.policies.strategy,'manual','Custom remembers');
+ assistance.setMode('pacifist');assistance.setPolicy('autoEat',false);
+ assert.equal(assistance.settings.policies.attacks,'prevented','editing from a preset overwrites Custom with that preset');assert.equal(assistance.settings.policies.autoEat,false);
+ // Quick settings never change the mode.
+ assistance.setMode('simple');assistance.setRetaliate('never');assistance.setStyle('ranged');assistance.setGoal('power');
+ assert.equal(assistance.settings.mode,'simple');
+});
+
+test('one-time overrides end with their fight, Return to Auto ends them all, and repeats earn one tip',()=>{
+ const tips=[],f=assistFixture({hp:100});
+ const assistance=createAssistance({combat:f.combat,character:f.character,equipment:f.equipment,styles:f.styles,auras:f.auras,food:{cooldown:0,working:false,start(){}},inventory:f.inventory,health:f.health,resources:f.resources,toast(){},moving:()=>false,tip:t=>tips.push(t)});
+ f.auras.learn('harden');
+ const fight=()=>{f.combat.inCombat=true;assistance.update(.2);f.combat.inCombat=false;assistance.update(.2);};
+ f.combat.inCombat=true;assistance.setStrategyManually('fast');assistance.toggleAuraManually('harden');
+ assert.equal(assistance.settings.overrides.strategy,true);assert.equal(assistance.settings.overrides.auras.harden,true);assert.equal(assistance.settings.mode,'simple','overrides keep the mode');
+ assistance.returnToAuto();assert.equal(assistance.settings.overrides.strategy,false);assert.deepEqual(assistance.settings.overrides.auras,{});
+ // Made outside combat, an override lasts through the next fight.
+ f.combat.inCombat=false;assistance.update(.2);assistance.setStrategyManually('fast');
+ f.combat.inCombat=true;assistance.update(.2);assert.equal(f.styles.strategy,'fast','the override holds during the fight');
+ f.combat.inCombat=false;assistance.update(.2);assert.equal(assistance.settings.overrides.strategy,false,'and ends with it');
+ for(let i=0;i<2;i++){assistance.setStrategyManually('fast');fight();}
+ assert.equal(tips.filter(t=>/Strategy to Manual/.test(t)).length,1,'third consecutive fight: one tip');
+ assistance.setStrategyManually('fast');fight();assert.equal(tips.filter(t=>/Strategy to Manual/.test(t)).length,1,'only once');
+});
+
+test('per-item aura permissions keep Auto from using that aura',()=>{
+ const f=assistFixture({hp:60});f.auras.learn('harden');f.assistance.setPermission('aura','harden',false);
+ f.assistance.update(.2);assert.equal(f.auras.isActive('harden'),false);
+ f.assistance.setPermission('aura','harden',true);f.assistance.update(.2);assert.equal(f.auras.isActive('harden'),true);
 });

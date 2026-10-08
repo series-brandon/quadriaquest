@@ -7,24 +7,34 @@ import {SPELLS, ABILITIES} from '../../combat-styles.js';
 import {AURAS} from '../../auras.js';
 import {STRATEGIES, backfireBaseDamage, resolvePortions} from '../../combat-formulas.js';
 import {playerDefense} from '../../combat-profile.js';
-import {TRAINING_GOALS} from '../../assistance.js';
+import {TRAINING_GOALS, MODES} from '../../assistance.js';
 
 const title = s => s[0].toUpperCase() + s.slice(1);
 const STRATEGY_HELP = {technical: 'No modifiers', accurate: '+10 Accuracy', strong: '+10 Power', fast: '+10 Speed', defensive: '+10 Resistance', agile: '+10 Dodge'};
 const HAND_LABEL = {main: 'Main hand', off: 'Off hand', alternate: 'Alternate'};
 const STYLES = ['melee', 'ranged', 'magic'];
+const MODE_HELP = {
+  simple: 'Auto picks strategy, attacks, abilities and auras for you. You always control movement.',
+  pacifist: 'You never attack. Eating, defensive auras and warnings still help you get away.',
+  expert: 'Every combat choice is yours.',
+  custom: 'Your own mix of Auto and Manual. Switching modes never changes these settings.',
+};
+const AUTO_MANUAL = [{value: 'auto', label: 'Auto'}, {value: 'manual', label: 'Manual'}];
+// Policies with Auto/Manual values.
+const CHOICE_POLICIES = [['strategy', 'Strategy'], ['attack', 'Attack and spell choice'], ['abilities', 'Abilities'], ['auras', 'Auras']];
 
-// Combat page (docs/COMBAT.md: minimal setup, advanced controls when wanted). Always visible:
-// mode, the attack summary, and either Simple mode's three choices (class, training goal, Optimize)
-// or Manual's attack setup. Players see Auto as "Simple" (internally the `auto` control). Strategy,
-// spells, abilities, auras and Simple settings are collapsible
-// sections whose headers show their current value. Every control calls the shared systems;
-// state follows their revisions, so nothing polls or rebuilds while the page is open.
+// Combat page (docs/COMBAT.md: Modes, policies and overrides). Always visible: the mode selector,
+// quick settings that never change the mode (retaliate; class and training goal while those
+// policies are Auto), any one-time overrides with Return to Auto, and the attack summary.
+// Attack setup, strategy, spells, abilities, auras and mode settings are collapsible sections
+// whose headers show their current value. Every control calls the shared systems; state follows
+// their revisions, so nothing polls or rebuilds while the page is open.
 export function combatPage({styles, combat, auras, assistance, equipment, character, health}) {
   const track = (system, read) => computed(() => (system?.revision.value, read()));
   const settings = track(assistance, () => assistance?.settings ?? null);
-  const auto = computed(() => !!settings.value && settings.value.control !== 'manual');
-  const pacifist = computed(() => !!settings.value?.pacifist);
+  const policy = key => computed(() => settings.value?.policies[key]);
+  const isAuto = key => !settings.value || settings.value.policies[key] === 'auto';
+  const prevented = computed(() => settings.value?.policies.attacks === 'prevented');
   const learned = track(styles, () => styles.state.learned);
   const status = signal('');
   const say = result => { status.value = result === true || result === undefined ? '' : String(result || ''); };
@@ -51,61 +61,77 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
     const damage = resolvePortions(Object.values(p.elements || {none: 1}).map(share => ({base: backfireBaseDamage(p) * share, resistancePct: defense.resistancePct})));
     return `${+p.backfirePercent.toFixed(2)}% backfire chance: ${damage} damage to you${health && damage >= health.value ? ' — a backfire could defeat you' : ''}`;
   });
+  // What Auto currently decides, for the policies left to it (overridden ones are yours).
   const autoChose = computed(() => {
-    if (!auto.value) return '';
+    const s = settings.value;
+    if (!s) return '';
     styles.revision.value; auras?.revision.value;
-    const spell = styles.state.selected ? SPELLS[styles.state.selected].name : 'weapon or bare hands';
-    const on = auras?.state.active.map(id => AURAS[id].name).join(', ') || 'no auras';
-    return `Chosen for you: ${title(styles.strategy)} strategy, ${spell}, ${on}.`;
+    const parts = [];
+    if (s.policies.strategy === 'auto' && !s.overrides.strategy) parts.push(`${title(styles.strategy)} strategy`);
+    if (s.policies.attack === 'auto' && !s.overrides.attack && s.policies.attacks !== 'prevented') parts.push(styles.state.selected ? SPELLS[styles.state.selected].name : 'weapon or bare hands');
+    if (s.policies.auras === 'auto' && !Object.keys(s.overrides.auras).length) parts.push(auras?.state.active.map(id => AURAS[id].name).join(', ') || 'no auras');
+    return parts.length ? `Auto chose: ${parts.join(', ')}.` : '';
   });
 
-  const modeHelp = computed(() => (pacifist.value
-    ? 'Pacifist: you won’t attack. Eating, auras and warnings still help.'
-    : auto.value ? 'Simple picks strategy, spells, abilities and auras for you. You always control movement.' : 'Every choice is yours.'));
+  // Mode selector and its description. Its options carry the selection.
+  const mode = computed(() => settings.value?.mode ?? 'simple');
+  const modeSelect = h('label', {class: 'q-field'},
+    h('span', {class: 'q-label'}, 'Mode'),
+    h('select', {class: 'q-select', 'aria-label': 'Combat mode', on: {change: event => assistance.setMode(event.target.value)}},
+      MODES.map(id => h('option', {value: id, selected: () => mode.value === id}, title(id)))));
 
-  // Mode, pacifist and the attack summary are always visible.
+  // Quick settings: never change the mode.
+  const goalValue = computed(() => settings.value?.goal || '');
+  const quick = h('div', {class: 'q-page__group'},
+    h('div', {class: 'q-page__group', hidden: prevented},
+      h('span', {class: 'q-label'}, 'Retaliate'),
+      segmented({label: 'Retaliate', options: [{value: 'smart', label: 'Smart', title: 'Fight back unless the enemy is too dangerous'}, {value: 'always', label: 'Always'}, {value: 'never', label: 'Never'}], value: () => settings.value?.retaliate, onChange: next => assistance.setRetaliate(next)})),
+    h('div', {class: 'q-page__group', hidden: () => !isAuto('attack') || prevented.value},
+      h('span', {class: 'q-label'}, 'Class'),
+      segmented({label: 'Class', options: STYLES.map(id => ({value: id, label: title(id)})), value: () => settings.value?.style, onChange: id => assistance.setStyle(id)}),
+      h('button', {type: 'button', class: 'q-button', on: {click: () => assistance.optimize()}}, 'Optimize equipment'),
+      h('small', {class: 'q-page__help', role: 'status', hidden: () => !(settings.value && assistance.optimizeReport)}, () => (settings.value, assistance?.optimizeReport ?? ''))),
+    h('label', {class: 'q-field', hidden: () => !isAuto('strategy') || prevented.value},
+      h('span', {class: 'q-label'}, 'Train a specific skill'),
+      h('select', {class: 'q-select', 'aria-label': 'Train a specific skill', on: {change: event => assistance.setGoal(event.target.value || null)}},
+        [['', 'No — best overall'], ...TRAINING_GOALS.map(id => [id, title(id)])].map(([id, label]) => h('option', {value: id, selected: () => goalValue.value === id}, label)))));
+
+  // One-time overrides: what you're choosing yourself this fight, how to make it permanent, and a
+  // single button to hand everything back to Auto.
+  const overrides = computed(() => {
+    const o = settings.value?.overrides;
+    if (!o) return [];
+    return [
+      ...(o.strategy ? [{id: 'strategy', label: 'Strategy', policy: 'strategy', noun: 'my strategy'}] : []),
+      ...(o.attack ? [{id: 'attack', label: 'Attack choice', policy: 'attack', noun: 'my attacks'}] : []),
+      ...Object.keys(o.auras).map(id => ({id: `aura-${id}`, label: AURAS[id].name, policy: 'auras', noun: 'my auras'})),
+    ];
+  });
+  const overridePanel = h('div', {class: 'q-note', hidden: () => !overrides.value.length},
+    h('strong', null, 'Your choice for this fight'),
+    keyedList(h('div', {class: 'q-list'}), overrides, item => item.id, item => row({
+      name: () => item.value.label,
+      detail: 'Auto takes over again when the fight ends.',
+      actions: [h('button', {
+        type: 'button',
+        class: 'q-chip-button',
+        title: 'Sets this policy to Manual (switches to Custom)',
+        on: {click: () => assistance.setPolicy(item.peek().policy, 'manual')},
+      }, () => `Always choose ${item.value.noun}`)],
+    })),
+    h('button', {type: 'button', class: 'q-button', on: {click: () => assistance.returnToAuto()}}, 'Return to Auto'));
+
   const header = h('div', {class: 'q-page__lead'},
-    assistance ? segmented({label: 'Combat control', options: [{value: true, label: 'Simple'}, {value: false, label: 'Manual'}], value: auto, onChange: on => assistance.setControl(on ? 'auto' : 'manual')}) : null,
-    assistance ? toggleSwitch({label: 'Pacifist', on: pacifist, onChange: on => assistance.setPacifist(on)}) : null,
-    h('p', {class: 'q-page__help'}, modeHelp),
+    assistance ? modeSelect : null,
+    assistance ? h('p', {class: 'q-page__help'}, () => MODE_HELP[mode.value]) : null,
     h('div', {class: 'q-card', role: 'status'},
       h('strong', null, attackName),
       h('small', null, attackFacts),
       h('small', {class: 'q-card__warning', hidden: () => !backfire.value}, iconNode('caution'), backfire),
       h('small', {class: 'q-card__auto', hidden: () => !autoChose.value}, autoChose)));
 
-  // Simple (the `auto` control): class, training goal and Optimize, plus chips for choices the player
-  // made themselves, each of which can be handed back.
-  const overrides = computed(() => {
-    const s = settings.value;
-    if (!s) return [];
-    return [
-      ...(s.manual.strategy ? [{id: 'strategy', label: 'Strategy is your choice', kind: 'strategy'}] : []),
-      ...(s.manual.spell ? [{id: 'spell', label: 'Attack is your choice', kind: 'spell'}] : []),
-      ...Object.keys(s.manual.auras).map(id => ({id: `aura-${id}`, label: `${AURAS[id].name} is your choice`, kind: 'aura', aura: id})),
-    ];
-  });
-  // Options carry the selection (a select's value can't be set before its options exist).
-  const goalValue = computed(() => settings.value?.goal || '');
-  const goal = h('select', {
-    class: 'q-select',
-    'aria-label': 'Train a specific skill',
-    on: {change: event => assistance.setGoal(event.target.value || null)},
-  }, [['', 'No — best overall'], ...TRAINING_GOALS.map(id => [id, title(id)])].map(([id, label]) => h('option', {value: id, selected: () => goalValue.value === id}, label)));
-  const autoPanel = h('div', {class: 'q-page__group', hidden: () => !auto.value},
-    h('span', {class: 'q-label'}, 'Class'),
-    segmented({label: 'Class', options: STYLES.map(id => ({value: id, label: title(id)})), value: () => settings.value?.style, onChange: id => assistance.setStyle(id)}),
-    h('label', {class: 'q-field'}, h('span', {class: 'q-label'}, 'Train a specific skill'), goal),
-    h('button', {type: 'button', class: 'q-button', on: {click: () => assistance.optimize()}}, 'Optimize equipment'),
-    h('small', {class: 'q-page__help', role: 'status', hidden: () => !(settings.value && assistance.optimizeReport)}, () => (settings.value, assistance?.optimizeReport ?? '')),
-    keyedList(h('div', {class: 'q-chips'}), overrides, item => item.id, item => h('button', {
-      type: 'button',
-      class: 'q-chip-button',
-      title: 'Let Simple mode choose again',
-      on: {click: () => assistance.returnToAuto(item.peek().kind, item.peek().aura)},
-    }, () => item.value.label, ' · Let Simple choose')));
-
-  // Manual: retaliation, what to attack with, which hands and damage types.
+  // Attack setup: what to attack with, which hands and damage types. Choosing an attack while
+  // Attack and spell choice is Auto is a one-time override.
   const attackOptions = computed(() => [{value: null, label: 'Weapon'}, ...learned.value.map(id => ({value: id, label: SPELLS[id].name}))]);
   const hands = track(equipment, () => {
     if (!equipment) return [];
@@ -120,10 +146,8 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
     const ok = assistance ? assistance.selectSpellManually(id) : styles.select(id);
     say(ok === false ? 'Finish your current action before changing your attack.' : true);
   };
-  const manualPanel = h('div', {class: 'q-page__group', hidden: auto},
-    toggleSwitch({label: 'Auto-Retaliate', description: 'Fight back when attacked', on: track(combat, () => combat.autoRetaliate), onChange: on => combat.setAutoRetaliate(on)}),
+  const attackSection = section({title: 'Attack setup', value: attackName, hidden: prevented},
     h('span', {class: 'q-label'}, 'Attack with'),
-    // Rebuilt only when the learned spells change.
     keyedList(h('div', {class: 'q-stack'}), computed(() => [attackOptions.value]), options => options.map(option => String(option.value)).join(),
       options => segmented({label: 'Attack with', options: options.peek(), value: track(styles, () => styles.state.selected), onChange: selectAttack})),
     h('span', {class: 'q-label', hidden: () => hands.value.length < 2}, 'Hands'),
@@ -145,25 +169,24 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
       on: {click: () => (assistance ? assistance.setStrategyManually(id) : styles.setStrategy(id))},
     }, h('strong', null, title(id)), h('small', null, `${STRATEGY_HELP[id]} → ${title(def.skill)}`)))));
 
-  // Spells: the quick spell (HUD Mana button) is chosen here, in either mode.
+  // Per-item "Allow auto use" switch (a permission, never part of a mode).
+  const allowSwitch = (kind, id, name, show) => (assistance ? h('span', {hidden: () => !show()}, toggleSwitch({
+    label: `Allow auto use: ${name}`,
+    on: () => (settings.value, assistance.allowed(kind, id)),
+    onChange: on => assistance.setPermission(kind, id, on),
+  })) : null);
+
+  // Spells: the quick spell (HUD Mana button) and whether Auto may pick each one.
   const quickSpell = track(styles, () => styles.quickSpell);
   const spellSection = section({title: 'Spells', value: () => (quickSpell.value ? `Quick: ${SPELLS[quickSpell.value].name}` : `${learned.value.length} learned`), hidden: () => !learned.value.length},
     h('p', {class: 'q-page__help'}, 'Star a spell to make it your quick spell: the HUD spell button casts it on your next attack, or opens your next fight with it.'),
-    h('p', {class: 'q-page__help', hidden: () => !auto.value}, 'The switch decides whether Simple may cast the spell when it picks your attack.'),
+    h('p', {class: 'q-page__help', hidden: () => !isAuto('attack')}, 'The switch decides whether Auto may cast the spell when it picks your attack.'),
     keyedList(h('div', {class: 'q-list'}), learned, id => id, item => row({
       name: SPELLS[item.peek()].name,
       detail: `${SPELLS[item.peek()].mana} Mana · ${SPELLS[item.peek()].castTime}s cast · range ${SPELLS[item.peek()].range}`,
       actions: [
         starButton({label: `Quick spell: ${SPELLS[item.peek()].name}`, on: () => quickSpell.value === item.peek(), onPress: () => styles.setQuickSpell(quickSpell.peek() === item.peek() ? null : item.peek())}),
-        // Per-spell permission for Simple's spell choice (assistance's spellExclusions).
-        assistance ? h('span', {hidden: () => !auto.value}, toggleSwitch({
-          label: `Allow Simple to cast ${SPELLS[item.peek()].name}`,
-          on: () => !(settings.value?.advanced.spellExclusions ?? []).includes(item.peek()),
-          onChange: on => {
-            const list = assistance.settings.advanced.spellExclusions;
-            assistance.setAdvanced({spellExclusions: on ? list.filter(x => x !== item.peek()) : [...list, item.peek()]});
-          },
-        })) : null,
+        allowSwitch('spell', item.peek(), SPELLS[item.peek()].name, () => isAuto('attack')),
       ],
     })));
 
@@ -182,7 +205,7 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
       });
     }));
 
-  // Auras: on/off and the quick-toggle set (HUD Ki button), in either mode.
+  // Auras: on/off, the quick-toggle set (HUD Ki button) and whether Auto may use each one.
   const auraState = track(auras, () => ({learned: auras?.state.learned ?? [], active: auras?.state.active ?? [], quick: auras?.quick ?? []}));
   const auraSection = section({title: 'Auras', value: () => `${auraState.value.active.length} on`, hidden: () => !auraState.value.learned.length},
     h('p', {class: 'q-page__help'}, 'Auras drain Ki every second while on; turning one on costs a second of upkeep. Star auras to switch them together with the HUD aura button.'),
@@ -193,34 +216,39 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
         detail: `${aura.description} · ${aura.upkeep} Ki/s`,
         actions: [
           starButton({label: `Quick toggle: ${aura.name}`, on: () => auraState.value.quick.includes(item.peek()), onPress: () => auras.setQuick(item.peek(), !auras.isQuick(item.peek()))}),
+          allowSwitch('aura', item.peek(), aura.name, () => isAuto('auras')),
           toggleSwitch({label: `${aura.name} on`, on: () => auraState.value.active.includes(item.peek()), onChange: () => say(assistance ? assistance.toggleAuraManually(item.peek()) : auras.toggle(item.peek()))}),
         ],
       });
     }));
 
-  // Simple settings: optional preferences with sensible defaults.
-  const advanced = computed(() => settings.value?.advanced ?? null);
-  const check = (key, label) => h('label', {class: 'q-check'},
-    h('input', {type: 'checkbox', checked: () => !!advanced.value?.[key], on: {change: event => assistance.setAdvanced({[key]: event.target.checked})}}), label);
+  // Mode settings: every policy. Changing one from a preset switches to Custom.
+  const setPolicy = (key, value) => assistance.setPolicy(key, value);
+  const policySwitch = (key, label) => toggleSwitch({label, on: policy(key), onChange: on => setPolicy(key, on)});
   const number = (key, label, scale, min, max) => h('label', {class: 'q-field'}, h('span', {class: 'q-label'}, label),
-    h('input', {type: 'number', class: 'q-input', min, max, value: () => (advanced.value ? Math.round(advanced.value[key] * scale) : ''), on: {change: event => {
+    h('input', {type: 'number', class: 'q-input', min, max, value: () => (settings.value ? Math.round(settings.value.policies[key] * scale) : ''), on: {change: event => {
       const next = Number(event.target.value);
-      if (Number.isFinite(next)) assistance.setAdvanced({[key]: Math.min(max, Math.max(min, next)) / scale});
+      if (Number.isFinite(next)) setPolicy(key, Math.min(max, Math.max(min, next)) / scale);
     }}}));
-  const autoSection = assistance ? section({title: 'Simple settings', hidden: () => !auto.value},
-    // Simple manages abilities and auras, so their meters and HUD buttons are opt-in here.
-    check('showEnergy', 'Show Energy and Quick Ability'),
-    check('showKi', 'Show Ki and Quick Auras'),
-    check('autoEat', 'Auto-eat before a one-hit defeat'),
-    check('emergencyPriority', 'Emergency healing may interrupt my queued actions'),
-    check('allowRiskySpells', 'Allow Simple to cast spells with backfire risk'),
+  const modeSection = assistance ? section({title: 'Mode settings', value: () => title(mode.value)},
+    h('p', {class: 'q-page__help'}, 'Changing any of these switches to Custom; your other modes stay as they are.'),
+    h('span', {class: 'q-label'}, 'Attacks'),
+    segmented({label: 'Attacks', options: [{value: 'allowed', label: 'Allowed'}, {value: 'prevented', label: 'Prevented'}], value: policy('attacks'), onChange: next => setPolicy('attacks', next)}),
+    CHOICE_POLICIES.map(([key, label]) => h('div', {class: 'q-page__group'},
+      h('span', {class: 'q-label'}, label),
+      segmented({label, options: AUTO_MANUAL, value: policy(key), onChange: next => setPolicy(key, next)}))),
+    policySwitch('autoEat', 'Auto-eat before a one-hit defeat'),
+    policySwitch('emergencyPriority', 'Emergency healing may interrupt my queued actions'),
+    policySwitch('allowRiskySpells', 'Allow Auto to cast spells with backfire risk'),
+    policySwitch('showEnergy', 'Show Energy and Quick Ability'),
+    policySwitch('showKi', 'Show Ki and Quick Auras'),
     number('auraRecovery', 'Restart auras after exhaustion at Ki %', 100, 1, 100),
     number('auraGrace', 'Aura grace period (seconds)', 1, 0, 30)) : null;
 
   return h('div', {class: 'q-page q-combat-page'},
-    header, autoPanel, manualPanel,
+    header, assistance ? quick : null, overridePanel,
     h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value}, status),
-    strategySection, spellSection, abilitySection, auraSection, autoSection);
+    attackSection, strategySection, spellSection, abilitySection, auraSection, modeSection);
 }
 
 // Star toggle for "quick" membership (quick spell, quick auras).
