@@ -151,3 +151,18 @@
 
 /* Text for assistive tech only. */
 .q-visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Quick-slot star (quick spell, quick auras). */
+.q-star {
+  display: grid;
+  place-items: center;
+  inline-size: var(--q-touch);
+  block-size: var(--q-touch);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.q-star svg { inline-size: 22px; block-size: 22px; fill: none; stroke: var(--q-ink-muted); }
+.q-star[aria-pressed='true'] svg { fill: var(--q-energy); stroke: var(--q-rim); }

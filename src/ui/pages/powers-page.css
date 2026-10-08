@@ -1,0 +1,24 @@
+/* Powers page (ui/pages/powers-page.js): spells, auras and abilities as cards. */
+.q-powers { display: grid; gap: 8px; }
+.q-power {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-card);
+}
+.q-power[data-locked] { border-style: dashed; background: transparent; }
+.q-power[data-locked] .q-power__head,
+.q-power[data-locked] > p { color: var(--q-ink-muted); }
+.q-power__head { display: flex; align-items: center; gap: 10px; min-block-size: var(--q-touch); }
+.q-power__head strong { flex: 1; font-size: 15px; }
+.q-power__icon svg { display: block; inline-size: 22px; block-size: 22px; }
+.q-power > p { margin: 0; font-size: 13px; line-height: 1.5; }
+.q-power__facts { color: var(--q-ink-muted); font-size: 12px; }
+.q-power__controls { display: grid; gap: 2px; }
+.q-power__controls[hidden],
+.q-power__allow[hidden] { display: none; }
+.q-power__controls .q-button { justify-self: start; }
+.q-power__lock { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--q-ink-muted); font-size: 12px; }
+.q-power__lock svg { inline-size: 14px; block-size: 14px; flex: none; }

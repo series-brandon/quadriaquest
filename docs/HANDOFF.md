@@ -20,6 +20,30 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Powers tab: Spells, Auras and Abilities — 2026-10-08
+- **User decisions:**
+  - One journal tab, **Powers**, with sub-tabs Spells | Auras | Abilities.
+  - Unlearned powers: "a mix". A standard set shows locked with simple requirements; quest, scroll, tutor and secret powers stay hidden until learned.
+  - The Combat page's Spells and Auras sections move, leaving a link.
+- **New page:** `ui/pages/powers-page.js`, hosted by `powers-menu.js` (`#powers-panel`, tab `open-powers`, order 55, `spell` icon, under More on phones). `powersMenu.open(sub)` opens a given sub-tab, whose signal the host owns (remembered).
+  - **Spells:** description and facts (power, cast time, range, Mana, "15 XP per cast, +1 per damage dealt", style), a quick-spell star, and **Allow auto use** (shown while Attack choice is Auto).
+  - **Auras:** description, Ki per second, an **On** switch (through `assistance.toggleAuraManually`, a one-time override), a quick-toggle star, and **Allow auto use** (while Auras is Auto).
+  - **Abilities:** description, Energy, style and strategy, plus **Queue**.
+- **Visibility data:** `listed` and `unlock` on `SPELLS`, `AURAS` and `ABILITIES` entries.
+  - Listed, not learned: a dashed card showing the `unlock` hint and requirements (e.g. "Requires Magic Technique 1", with "(you: n)" when below).
+  - Not listed: hidden until learned.
+  - All current powers are listed: Energy Strike (Wisp), Rush and Harden (Ember), Strong Strike (Sergeant Bristle). `SPELLS.energyStrike` gained a description.
+- **Combat page:** Spells, Abilities and Auras are replaced by one compact **Powers** section: value "Quick: <spell> · n auras on", ability Queue rows, aura on/off switches and an "All spells, auras and abilities" link (`openPowers`). `.q-star` moved to `page.css`.
+- **Tests:** a shared fixture `ui/pages/test-systems.js` (real styles and auras, a fake assistance and combat) serves the Combat and Powers page tests.
+- **Playground:** Interface → "Powers (spells, auras, abilities)"; Training → Reset spells shows the locked state; Combat practice → quick-slot kit learns them all.
+- **Verification:**
+  - 349 tests pass, including `powers-page.test.js`: sub-tabs, locked listed entries with requirements and unlock hint, unlisted secret until learned, quick spell, aura on/off as an override, quick aura, Queue, permissions shown per policy, host-opened sub-tab.
+  - `check:ui`, both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - after Reset spells, Energy Strike showed locked; after the quick-slot kit it was learned with a filled star;
+    - Rush's On switch worked, and the Combat page's Powers section read "Quick: Energy Strike · 1 aura on"; its link opened Powers;
+    - at 375px: no overflow, and card order is head, description, facts, controls.
+
 ### Settings page rebuilt in the kit — 2026-10-08 (UI rework pages complete)
 - **New page:** `ui/pages/settings-page.js`: a "Sound" card with Music/Effects/Ambience sliders (the new kit `slider`, showing percentages) and a Mute all switch, plus a pointer to the Combat tab for modes.
 - **One page in two hosts:** `settings-menu.js` (`createSettingsMenu({audio, modals})`) replaces `audio.js`'s `mountAudioControls`.
@@ -283,15 +307,6 @@ In Cinderhold, when the player tells Bristle "Actually, no. I don't want to figh
   - If they accept, continue with the Pacifist version above.
   - If they decline, talk about Threat Levels (today's speech).
 - **Rules:** keep it area narrative calling shared gameplay (AGENTS.md). Cover each branch in `cinderhold-dialogue.test.js` and in the playground (Cinderhold "refused"/"meet" checkpoints with each mode).
-
-### Planned: Spells and Auras journal tabs (user request, 2026-10-08; not started)
-- **Spells tab:** every spell, with its description, power, cast time, base XP and costs, plus an "Allow auto use" setting (`assistance` spell permission). Includes a "Set quick spell" action.
-- **Auras tab:** every aura, with its description, effects and Ki cost per second, plus an "Allow auto use" setting. Includes a "Set quick auras" action.
-- **Open points when building:**
-  - Per-item permissions exist for spells and auras (`assistance.setPermission`); the tabs should reuse them.
-  - The Combat page's Spells and Auras sections should then move to these tabs (or link to them) rather than duplicate them.
-  - Two more tabs need a place in the tab order and on phones (probably under More).
-  - Decide whether unlearned spells and auras appear (for example locked, with how to learn them).
 
 ### Per-item Simple permissions — 2026-10-08
 - **User decision:** settings lists don't scale to dozens of foods or spells, so permissions now live on the items. The old "Never auto-use X" checkboxes in Simple settings are gone.

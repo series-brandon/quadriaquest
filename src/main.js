@@ -66,6 +66,7 @@ import {updateObjective,finishObjective,resetObjectives} from './quests.js';
 import {icon} from './icons.js';
 import {createGameAudio} from './audio.js';
 import {createSettingsMenu} from './settings-menu.js';
+import {createPowersMenu} from './powers-menu.js';
 import {mountJournal} from './journal.js';
 import {BOULDER_TILES,makePickaxe,miningMotion} from './mining.js';
 import {ITEMS} from './items.js';
@@ -340,7 +341,9 @@ cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:character
 });
 areas.register(cinder);
 assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0,tip:text=>playerInterface?.tip(text)});
-styleMenu=createCombatStyleMenu({styles,combat,panels:menus.panels,auras,assistance,equipment,character,health,busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
+styleMenu=createCombatStyleMenu({styles,combat,panels:menus.panels,auras,assistance,equipment,character,health,openPowers:()=>powersMenu.open(),busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
+// Powers (Spells, Auras, Abilities) after the Combat page, which links to it.
+const powersMenu=createPowersMenu({styles,auras,assistance,combat,character,panels:menus.panels});
 areas.activate('clearing',{announce:false});
 function canMove(){return areas.canMove&&!travel.busy&&!combat?.busy;}
 
@@ -481,7 +484,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  if(__PLAYGROUND__)perfProbe.lap('systems');
  // A fresh attack windup may replace the remaining (cosmetic) eating animation.
  const actionMotion=combatMotion?.kind==='Defeated'?combatMotion:combatMotion||foodMotion||companionMotion||resourceMotion||carpentryMotion||fishingMotion||cookingMotion||recipeMotion||smithingMotion||worldMotion;
- if(!areas.canOrbit||travel.busy||document.querySelector('dialog[open]'))rotationKeys.clear();
+ if(!areas.canOrbit||travel.busy||modals.anyOpen.peek())rotationKeys.clear();
  const oldAngle=angle,oldElevation=elevation;
  angle += (Number(rotationKeys.has('ArrowRight')) - Number(rotationKeys.has('ArrowLeft'))) * keyboardRotationSpeed * dt;
  elevation = THREE.MathUtils.clamp(elevation + (Number(rotationKeys.has('ArrowUp')) - Number(rotationKeys.has('ArrowDown'))) * Math.PI / 3 * dt, THREE.MathUtils.degToRad(20), THREE.MathUtils.degToRad(75));

@@ -3,8 +3,8 @@
 // Reaching zero Ki turns every aura off (exhaustion). Ki regenerates only while all auras are off.
 import {signal} from './reactive.js';
 export const AURAS={
- rush:{name:'Rush',upkeep:.5,description:'+10% movement speed',movementBonus:.1},
- harden:{name:'Harden',upkeep:.5,description:'+10% resistance to each incoming damage portion',resistancePct:10},
+ rush:{name:'Rush',upkeep:.5,description:'+10% movement speed',movementBonus:.1,listed:true,unlock:'Taught by Ember in Cinderhold.'},
+ harden:{name:'Harden',upkeep:.5,description:'+10% resistance to each incoming damage portion',resistancePct:10,listed:true,unlock:'Taught by Ember in Cinderhold.'},
 };
 export function createAuras({ki,changed:notify=()=>{},exhausted=()=>{}}){
  // `revision` changes with every aura change so UI bindings can follow learned/active/quick state.

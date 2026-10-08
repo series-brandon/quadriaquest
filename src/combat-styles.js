@@ -1,9 +1,11 @@
 import {STRATEGIES} from './combat-formulas.js';
 import {signal} from './reactive.js';
 
-export const SPELLS={energyStrike:{name:'Energy Strike',style:'magic',base:20,castTime:3,range:6,mana:4,elements:{energy:1},requirements:{'magic.technique':1}}};
+// Powers page visibility: `listed` entries show (locked, with their requirements and `unlock` hint) before
+// they are learned; unlisted ones (quest rewards, scrolls, secrets…) appear only once learned.
+export const SPELLS={energyStrike:{name:'Energy Strike',style:'magic',base:20,castTime:3,range:6,mana:4,elements:{energy:1},requirements:{'magic.technique':1},description:'A bolt of raw energy that strikes a target up to 6 tiles away.',listed:true,unlock:'Taught by Wisp in Cinderhold.'}};
 // Abilities enhance one eligible attack; Energy is spent at strike/release under the shared cost rule.
-export const ABILITIES={strongStrike:{name:'Strong Strike',energy:50,style:'melee',strategy:'strong',description:'One melee attack with Strong strategy, double maximum damage and at least half that maximum.'}};
+export const ABILITIES={strongStrike:{name:'Strong Strike',energy:50,style:'melee',strategy:'strong',description:'One melee attack with Strong strategy, double maximum damage and at least half that maximum.',listed:true,unlock:'Taught by Sergeant Bristle in Cinderhold.'}};
 export function createCombatStyles({equipment,busy=()=>false,changed:notify=()=>{}}){
  // `revision` changes with every selection/learning change for UI bindings.
  const revision=signal(0),changed=()=>{revision.value++;notify();};

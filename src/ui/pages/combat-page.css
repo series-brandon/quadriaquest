@@ -2,20 +2,6 @@
 .q-card__warning { display: flex; gap: 4px; align-items: center; color: var(--q-accent); }
 .q-card__warning svg { inline-size: 14px; block-size: 14px; flex: none; fill: var(--q-tone-warning); stroke: var(--q-rim); }
 
-.q-star {
-  display: grid;
-  place-items: center;
-  inline-size: var(--q-touch);
-  block-size: var(--q-touch);
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-}
-.q-star svg { inline-size: 22px; block-size: 22px; fill: none; stroke: var(--q-ink-muted); }
-.q-star[aria-pressed='true'] svg { fill: var(--q-energy); stroke: var(--q-rim); }
-
 /* One-time overrides: what you're choosing yourself this fight, with Return to Auto. */
 .q-note {
   display: grid;

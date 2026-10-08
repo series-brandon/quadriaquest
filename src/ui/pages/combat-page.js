@@ -30,7 +30,8 @@ const CHOICE_POLICIES = [['strategy', 'Strategy'], ['attack', 'Attack and spell 
 // whose headers show their current value. Every control calls the shared systems; state follows
 // their revisions, so nothing polls or rebuilds while the page is open.
 // `guide` (signal, optional): 'mode' highlights the mode dropdown until a mode is chosen.
-export function combatPage({styles, combat, auras, assistance, equipment, character, health, guide = null}) {
+// `openPowers` (optional) opens the Powers page, which holds the full spell, aura and ability lists.
+export function combatPage({styles, combat, auras, assistance, equipment, character, health, guide = null, openPowers = null}) {
   const track = (system, read) => computed(() => (system?.revision.value, read()));
   const settings = track(assistance, () => assistance?.settings ?? null);
   const policy = key => computed(() => settings.value?.policies[key]);
@@ -170,58 +171,37 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
       on: {click: () => (assistance ? assistance.setStrategyManually(id) : styles.setStrategy(id))},
     }, h('strong', null, title(id)), h('small', null, `${STRATEGY_HELP[id]} → ${title(def.skill)}`)))));
 
-  // Per-item "Allow auto use" switch (a permission, never part of a mode).
-  const allowSwitch = (kind, id, name, show) => (assistance ? h('span', {hidden: () => !show()}, toggleSwitch({
-    label: `Allow auto use: ${name}`,
-    on: () => (settings.value, assistance.allowed(kind, id)),
-    onChange: on => assistance.setPermission(kind, id, on),
-  })) : null);
-
-  // Spells: the quick spell (HUD Mana button) and whether Auto may pick each one.
+  // Powers in brief: queue abilities and switch auras mid-fight. Descriptions, quick slots and
+  // "Allow auto use" live on the Powers page (openPowers).
   const quickSpell = track(styles, () => styles.quickSpell);
-  const spellSection = section({title: 'Spells', value: () => (quickSpell.value ? `Quick: ${SPELLS[quickSpell.value].name}` : `${learned.value.length} learned`), hidden: () => !learned.value.length},
-    h('p', {class: 'q-page__help'}, 'Star a spell to make it your quick spell: the HUD spell button casts it on your next attack, or opens your next fight with it.'),
-    h('p', {class: 'q-page__help', hidden: () => !isAuto('attack')}, 'The switch decides whether Auto may cast the spell when it picks your attack.'),
-    keyedList(h('div', {class: 'q-list'}), learned, id => id, item => row({
-      name: SPELLS[item.peek()].name,
-      detail: `${SPELLS[item.peek()].mana} Mana · ${SPELLS[item.peek()].castTime}s cast · range ${SPELLS[item.peek()].range}`,
-      actions: [
-        starButton({label: `Quick spell: ${SPELLS[item.peek()].name}`, on: () => quickSpell.value === item.peek(), onPress: () => styles.setQuickSpell(quickSpell.peek() === item.peek() ? null : item.peek())}),
-        allowSwitch('spell', item.peek(), SPELLS[item.peek()].name, () => isAuto('attack')),
-      ],
-    })));
-
-  // Abilities: queue one for your next eligible attack.
   const abilityState = track(combat, () => ({pending: combat.pending, committed: combat.committedAbility}));
   const knownAbilities = track(styles, () => Object.keys(ABILITIES).filter(id => styles.knowsAbility(id)));
-  const abilitySection = section({title: 'Abilities', value: () => `${knownAbilities.value.length} learned`, hidden: () => !knownAbilities.value.length},
-    h('p', {class: 'q-page__help'}, 'Spend Energy when the attack lands. Queue one for your next eligible attack; it never repeats on its own.'),
+  const auraState = track(auras, () => ({learned: auras?.state.learned ?? [], active: auras?.state.active ?? []}));
+  const powersValue = () => {
+    const parts = [];
+    if (quickSpell.value) parts.push(`Quick: ${SPELLS[quickSpell.value].name}`);
+    if (auraState.value.learned.length) parts.push(`${auraState.value.active.length} aura${auraState.value.active.length === 1 ? '' : 's'} on`);
+    return parts.join(' · ') || `${learned.value.length + knownAbilities.value.length + auraState.value.learned.length} learned`;
+  };
+  const powersSection = section({title: 'Powers', value: powersValue, hidden: () => !(learned.value.length || knownAbilities.value.length || auraState.value.learned.length)},
     keyedList(h('div', {class: 'q-list'}), knownAbilities, id => id, item => {
       const ability = ABILITIES[item.peek()];
       const queued = computed(() => abilityState.value.pending === item.peek() || abilityState.value.committed === ability.name);
       return row({
         name: ability.name,
-        detail: `${ability.energy} Energy · ${ability.description}`,
+        detail: `${ability.energy} Energy`,
         actions: [h('button', {type: 'button', class: 'q-button q-button--small', 'aria-pressed': queued, on: {click: () => say(combat.queue(item.peek()))}}, () => (queued.value ? 'Queued' : 'Queue'))],
       });
-    }));
-
-  // Auras: on/off, the quick-toggle set (HUD Ki button) and whether Auto may use each one.
-  const auraState = track(auras, () => ({learned: auras?.state.learned ?? [], active: auras?.state.active ?? [], quick: auras?.quick ?? []}));
-  const auraSection = section({title: 'Auras', value: () => `${auraState.value.active.length} on`, hidden: () => !auraState.value.learned.length},
-    h('p', {class: 'q-page__help'}, 'Auras drain Ki every second while on; turning one on costs a second of upkeep. Star auras to switch them together with the HUD aura button.'),
+    }),
     keyedList(h('div', {class: 'q-list'}), () => auraState.value.learned, id => id, item => {
       const aura = AURAS[item.peek()];
       return row({
         name: aura.name,
-        detail: `${aura.description} · ${aura.upkeep} Ki/s`,
-        actions: [
-          starButton({label: `Quick toggle: ${aura.name}`, on: () => auraState.value.quick.includes(item.peek()), onPress: () => auras.setQuick(item.peek(), !auras.isQuick(item.peek()))}),
-          allowSwitch('aura', item.peek(), aura.name, () => isAuto('auras')),
-          toggleSwitch({label: `${aura.name} on`, on: () => auraState.value.active.includes(item.peek()), onChange: () => say(assistance ? assistance.toggleAuraManually(item.peek()) : auras.toggle(item.peek()))}),
-        ],
+        detail: `${aura.upkeep} Ki/s`,
+        actions: [toggleSwitch({label: `${aura.name} on`, on: () => auraState.value.active.includes(item.peek()), onChange: () => say(assistance ? assistance.toggleAuraManually(item.peek()) : auras.toggle(item.peek()))})],
       });
-    }));
+    }),
+    openPowers ? h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => openPowers()}}, 'All spells, auras and abilities') : null);
 
   // Mode settings: every policy. Changing one from a preset switches to Custom.
   const setPolicy = (key, value) => assistance.setPolicy(key, value);
@@ -249,10 +229,5 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
   return h('div', {class: 'q-page q-combat-page'},
     header, assistance ? quick : null, overridePanel,
     h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value}, status),
-    attackSection, strategySection, spellSection, abilitySection, auraSection, modeSection);
-}
-
-// Star toggle for "quick" membership (quick spell, quick auras).
-function starButton({label, on, onPress}) {
-  return h('button', {type: 'button', class: 'q-star', 'aria-label': label, title: label, 'aria-pressed': on, on: {click: onPress}}, iconNode('star'));
+    attackSection, strategySection, powersSection, modeSection);
 }

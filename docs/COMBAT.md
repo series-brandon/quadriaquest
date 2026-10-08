@@ -116,7 +116,7 @@ Combat assistance is configured through **policies**, and a **mode** is a named 
 - While any override is active, the Combat page names it, suggests the matching policy (for example "Set Strategy to Manual") and offers **Return to Auto**, which ends every override at once.
 - After the same kind of override in three consecutive fights, a one-time tip suggests switching that policy to Manual.
 
-**Per-item permissions** belong to items, not modes. Each food (**Allow auto eating**, inventory details), spell (**Allow auto use**) and aura (**Allow auto use**) can be excluded from Auto's choices; Auto still chooses among the rest.
+**Per-item permissions** belong to items, not modes. Each food (**Allow auto eating**, inventory details), spell (**Allow auto use**, Powers page) and aura (**Allow auto use**, Powers page) can be excluded from Auto's choices; Auto still chooses among the rest.
 
 New-player defaults are **Simple**, Smart retaliation, **Melee** and no training goal. Persist the mode, Custom's policies, quick settings and permissions with the player's other preferences, surviving travel. The full playground reset restores the defaults.
 
