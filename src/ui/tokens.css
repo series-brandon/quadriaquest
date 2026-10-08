@@ -59,6 +59,18 @@
   --q-control-pressed: #5a5068;
   --q-control-selected: #efe6ee;
   --q-control-radius: 10px;
+  --q-ready: #376a46;
+  --q-ready-wash: #376a4614;
+  --q-missing: #a23b4a;
+  --q-missing-wash: #a23b4a14;
+
+  /* Modal host (ui/modal.js) */
+  --q-paper: #faf1e7;
+  --q-modal-border: #c7abc1;
+  --q-modal-radius: 18px;
+  --q-modal-pad: 20px;
+  --q-modal-edge: 16px;
+  --q-backdrop: #29203177;
 
   /* Motion */
   --q-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);

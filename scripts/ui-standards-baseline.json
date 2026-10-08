@@ -12,18 +12,10 @@
     "propertyHandlers": 1
   },
   "src/companion-menu.js": {
-    "innerHTML": 2,
-    "propertyHandlers": 6
-  },
-  "src/cooking-menu.js": {
-    "innerHTML": 3,
-    "propertyHandlers": 6
+    "innerHTML": 1,
+    "propertyHandlers": 5
   },
   "src/crafting-tutorial.js": {
-    "propertyHandlers": 4
-  },
-  "src/destination-menu.js": {
-    "innerHTML": 1,
     "propertyHandlers": 4
   },
   "src/dialogue-presentation.css": {
@@ -41,8 +33,7 @@
     "innerHTML": 1
   },
   "src/main.js": {
-    "innerHTML": 1,
-    "propertyHandlers": 7
+    "propertyHandlers": 5
   },
   "src/player-interface.css": {
     "important": 9

@@ -13,7 +13,7 @@ import {FOODS} from './player-health.js';
 import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
-export function createPlayerInterface({menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styles,styleMenu,auras,toast=()=>{},playerControl=null,assistance=null}){
+export function createPlayerInterface({modals=null,menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styles,styleMenu,auras,toast=()=>{},playerControl=null,assistance=null}){
  const $=id=>document.getElementById(id),mobile=compactQuery(),panels=menus.panels;
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
  const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div>`;
@@ -90,7 +90,7 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
   closeMore();
   if(menuReaction(mobile.matches,event)==='close'){
    menus.closeMenus();
-   if(mobile.matches&&event==='attacked')for(const d of document.querySelectorAll('dialog[open]')){d.close();d.dispatchEvent(new Event('cancel'));}
+   if(mobile.matches&&event==='attacked'){modals?.closeAll('attacked');for(const d of document.querySelectorAll('dialog[open]:not(.q-modal)')){d.close();d.dispatchEvent(new Event('cancel'));}}
   }else journal.compact();
   layout();
  }

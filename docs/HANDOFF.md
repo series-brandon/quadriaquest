@@ -20,6 +20,34 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Modal host for utility dialogs — 2026-10-08
+- **New kit module:** `src/ui/modal.js`.
+  - `createModalHost()` (one instance in main.js, `modals`) owns every utility dialog. `open({id, title, size, flush, required, onClose, build})` builds the content in its own scope inside the shared `<dialog class="q-modal">` frame (title, close button, Escape), and closing disposes the scope and removes the dialog.
+  - Sizes: `sheet` and `wide`, which go edge-to-edge on phones with safe-area padding, and `compact`, which stays a centered card.
+  - Opening an open id replaces it. `closeAll(reason)` skips `required` dialogs, so an attack on a phone no longer force-closes required companion naming.
+  - `confirmModal` is the shared short confirmation; AGENTS.md now points to it instead of `compact-confirm`.
+- **Moved onto it** (contents in `src/ui/dialogs/`):
+  - **Cooking, furnace and anvil:** `station-dialog.js`. Ingredients and "Materials ready" follow the reactive inventory. An unreachable station explains why on Make. Phones show the list, then the detail.
+  - **Destinations:** `destination-dialog.js`. `createDestinationMenu`'s per-frame `update()` still closes it when the crystal becomes unusable.
+  - **Companion naming:** `name-dialog.js`, with the dice built in and Enter to submit. The "Is X the name…" confirmation still uses the legacy dialogue box.
+  - **Food at full health:** `confirmModal`.
+  - The wrappers (`createCookingMenu`, `createDestinationMenu`, `companionMenu.editName`) keep their APIs, so callers and tutorials are unchanged.
+- **Shared page styles:** primitives (`q-button`, `q-field`, `q-card`, `q-tile`, `q-list`…) moved from `combat-page.css` to `src/ui/page.css`. Added `q-button--quiet`.
+- **Removed:** `cooking-menu.css`, `utility-menu.css`, the `.companion-modal` and `.food-confirm` styles, and the `compact-confirm` rules. The legacy phone `body dialog` rule now skips `.q-modal`.
+- **Still legacy `<dialog>`s:** the Settings popup (`audio.js`; moves with the Settings page) and the dev model viewer.
+- **Playground:** Interface → Open now closes other dialogs first. Added "Eat at full health (confirm)". Cooking, Furnace, Anvil, Destinations and Companion naming open the real dialogs; Training → Use furnace/anvil exercises the real stations.
+- **Verification:**
+  - 322 tests pass, including host tests (bindings disposed on close, Escape and close button, required, replace, closeAll, confirm) and dialog tests on the real recipe catalogue and reactive inventory.
+  - `check:ui` passes; legacy debt fell in cooking-menu, destination-menu, companion-menu and main, and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - the anvil preview (desktop, 624×520) and destinations render;
+    - the food confirm is a compact 360px card with focus on "Eat anyway", and eating proceeds;
+    - companion naming is fullscreen at 375px with the input focused; the dice, Confirm, then Yes renames;
+    - cooking on a phone switches from list to detail, and Escape closes and removes the dialog;
+    - Training → Use furnace walks to the real furnace and opens it; Make smelts an ingot (+20 Smithing XP).
+  - No console errors.
+- **Not browser-checked:** a required name dialog under a real repeated Escape. Unit-tested: a browser-made close reopens it.
+
 ### Combat modes: Simple, Pacifist, Expert, Custom — 2026-10-08
 - **User design** (COMBAT.md → Modes, policies and overrides is the source of truth):
   - Four modes, picked from a dropdown on the Combat page. Each policy is **Auto | Manual**; "Manual" mode was renamed **Expert** to avoid a clash.

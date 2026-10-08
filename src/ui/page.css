@@ -1,0 +1,105 @@
+/* Shared page and dialog building blocks: layout, labels, fields, cards, buttons, lists, tiles. */
+.q-page {
+  display: grid;
+  gap: 12px;
+  color: var(--q-ink);
+}
+.q-page__lead,
+.q-page__group { display: grid; gap: 8px; }
+.q-page__group[hidden] { display: none; }
+.q-page__help { margin: 0; color: var(--q-ink-muted); font-size: 12px; }
+.q-page__help[hidden] { display: none; }
+.q-page__status { margin: 0; color: var(--q-accent); font-size: 12px; }
+.q-page__status[hidden] { display: none; }
+
+.q-label { color: var(--q-ink-muted); font-size: 12px; font-weight: 600; }
+.q-label[hidden] { display: none; }
+.q-field { display: grid; gap: 4px; }
+.q-select,
+.q-input {
+  min-block-size: var(--q-touch);
+  padding: 0 10px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.q-card {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-card);
+}
+.q-card strong { font-size: 14px; }
+.q-card small { color: var(--q-ink-muted); font-size: 12px; }
+.q-card small[hidden] { display: none; }
+.q-button {
+  min-block-size: var(--q-touch);
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-pressed);
+  color: var(--q-ink-on-dark);
+  font: 600 13px / 1 inherit;
+  cursor: pointer;
+}
+.q-button--small {
+  min-inline-size: 76px;
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  box-shadow: inset 0 0 0 1px var(--q-line);
+}
+.q-button--small[aria-pressed='true'] { background: var(--q-energy); color: var(--q-ink); box-shadow: none; }
+.q-button--quiet {
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  box-shadow: inset 0 0 0 1px var(--q-line);
+}
+.q-button:disabled { opacity: 0.5; cursor: default; }
+.q-button:focus-visible,
+.q-chip-button:focus-visible,
+.q-tile:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+
+.q-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.q-chip-button {
+  min-block-size: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--q-line);
+  border-radius: 16px;
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.q-stack { display: grid; gap: 8px; }
+.q-list { display: grid; gap: 4px; }
+
+.q-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.q-tile {
+  display: grid;
+  gap: 2px;
+  min-block-size: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.q-tile strong { font-size: 13px; }
+.q-tile small { color: var(--q-ink-muted); font-size: 11px; }
+.q-tile:disabled { cursor: default; opacity: 0.7; }
+.q-tile[aria-pressed='true'] { border-color: var(--q-control-pressed); box-shadow: inset 0 0 0 1px var(--q-control-pressed); background: var(--q-control-selected); }
+
+.q-check { display: flex; align-items: center; gap: 10px; min-block-size: var(--q-touch); font-size: 13px; }
+.q-check input { inline-size: 22px; block-size: 22px; accent-color: var(--q-control-pressed); }
+

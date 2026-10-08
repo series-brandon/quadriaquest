@@ -21,7 +21,9 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 | `src/ui/list.js` | `keyedList` keeps row nodes, focus and scopes across updates. |
 | `src/ui/panels.js` | `createPanelHost` holds the open page, the tab bar (open or pinned), tab availability, return-to pages, close locks and dismiss rules. Every journal page and launcher tab registers here once. |
 | `src/ui/panel-tabs.js` | `panelTabs` builds tab buttons from a host: the desktop bar, the phone bar and the More sheet. Tab ids (`open-<id>`) stay stable for tutorials and tests. |
+| `src/ui/modal.js` | `createModalHost` owns every utility dialog: `open({id, title, size, required, build})` builds content in its own scope inside the shared `<dialog>` frame and disposes it on close. Sizes are `sheet` and `wide` (edge-to-edge on phones) and `compact` (stays centered). `confirmModal` is the shared short confirmation. Contents live in `src/ui/dialogs/`. |
 | `src/ui/controls.js` | Shared page controls: `segmented`, `toggleSwitch`, `section` (collapsible, with its current value in the header) and `row`. |
+| `src/ui/page.css` | Shared page and dialog building blocks: labels, fields, cards, buttons (`q-button`, `--small`, `--quiet`), chips, lists and tiles. |
 | `src/ui/viewport.js` | The single breakpoint (700px) and the `compactViewport()` signal. |
 | `src/ui/icon.js` | `iconNode(name)`, the shared icons as DOM nodes. |
 | `src/ui/tokens.css` | Every color, shape, size, font, shadow and motion value used by the kit (`--q-*`). |
@@ -43,11 +45,12 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
    - Animate with `transform` and `opacity`.
    - Respect `prefers-reduced-motion`.
    - Components do not import CSS; add each sheet to `src/ui/ui.css` so components stay loadable in node tests.
-8. **Pages and tabs go through the panel host.** Register a page (`menus.panels.register`) instead of appending tabs or showing and hiding pages yourself. Open, close and check pages with `panels.open/close/dismiss/isOpen`, and toggle tabs with `setAvailable`. Never set a registered page's `hidden`, list panel ids, or read another module's DOM to find which page is open.
-9. **Breakpoints in JS** come from `ui/viewport.js`. Legacy code uses `compactQuery()`.
-10. **Accessibility:** use real roles (`meter`, `button`, `dialog`), keep labels and values current, give controls at least a 44px touch target (`--q-touch`), and keep focus stable across updates.
-11. **Tests:** each component has a `node --test` file that runs on linkedom (`src/ui/test-dom.js`). Cover its bindings: the values shown, updates when state changes, and that unchanged state causes no DOM writes.
-12. **Legacy ratchet:** `scripts/ui-standards-baseline.json` records the debt in legacy files: HTML strings, property event handlers, `matchMedia` and `!important`. Counts may fall but never rise. After reducing debt, run `node scripts/check-ui-standards.js --update`. To change a legacy surface substantially, move it into the kit rather than extending it.
+8. **Dialogs go through the modal host.** Open utility dialogs with `modals.open` (or `confirmModal`) instead of creating `<dialog>` elements. Closing is the host's job: content calls the `close(reason)` it was given.
+9. **Pages and tabs go through the panel host.** Register a page (`menus.panels.register`) instead of appending tabs or showing and hiding pages yourself. Open, close and check pages with `panels.open/close/dismiss/isOpen`, and toggle tabs with `setAvailable`. Never set a registered page's `hidden`, list panel ids, or read another module's DOM to find which page is open.
+10. **Breakpoints in JS** come from `ui/viewport.js`. Legacy code uses `compactQuery()`.
+11. **Accessibility:** use real roles (`meter`, `button`, `dialog`), keep labels and values current, give controls at least a 44px touch target (`--q-touch`), and keep focus stable across updates.
+12. **Tests:** each component has a `node --test` file that runs on linkedom (`src/ui/test-dom.js`). Cover its bindings: the values shown, updates when state changes, and that unchanged state causes no DOM writes.
+13. **Legacy ratchet:** `scripts/ui-standards-baseline.json` records the debt in legacy files: HTML strings, property event handlers, `matchMedia` and `!important`. Counts may fall but never rise. After reducing debt, run `node scripts/check-ui-standards.js --update`. To change a legacy surface substantially, move it into the kit rather than extending it.
 
 ## Migration status
 
@@ -61,7 +64,7 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 | Panel registry and host (journal pages, tab bars, mobile nav and More) | Kit (`ui/panels.js`, `ui/panel-tabs.js`). Every page registers once; the journal shell, docking and Quests return are reactive. |
 | Journal shell (`journal.js`) | Built with `h()`. The page contents (Skills, Inventory, Crafting, Quests, Settings, Combat, Equipment, Companions) are still legacy markup. |
 | Tutorial journal lock | Legacy: id-based rules plus a MutationObserver (moved out of the journal). It exposes `lockedState` for the kit. Retire it once guide highlights are tutorial state. |
-| Utility dialogs (cooking, furnace, anvil, destinations, companion name, food confirm) | Legacy `<dialog>`s, not yet on the host |
+| Utility dialogs (cooking, furnace, anvil, destinations, companion name, food confirm) | Kit: the modal host (`ui/modal.js`) with `ui/dialogs/station-dialog.js`, `destination-dialog.js`, `name-dialog.js` and `confirmModal`. Station ingredients follow the reactive inventory. The Settings popup (`audio.js`) and the dev model viewer are still legacy `<dialog>`s; Settings moves with the Settings page. |
 | Combat page | Kit (`ui/pages/combat-page.js`, hosted by `combat-style-menu.js`). Reactive through the revisions of styles, combat, auras, assistance, equipment and character; no refresh calls. Mode dropdown, quick settings, one-time override note with Return to Auto, and a Mode settings section of Auto/Manual policies. |
 | Equipment page | Kit (`ui/pages/equipment-page.js`): worn slot tiles plus owned gear rows with stats and the equipment system's own actions. Refused changes explain why. |
 | Skills, inventory, crafting, quests, settings, dialogue, toasts | Legacy |

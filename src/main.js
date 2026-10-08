@@ -9,6 +9,7 @@ import {CINDERHOLD} from './cinderhold-rules.js';
 import {createCinderhold} from './cinderhold.js';
 import {createStationCrafting} from './station-crafting.js';
 import {createDestinationMenu} from './destination-menu.js';
+import {createModalHost,confirmModal} from './ui/modal.js';
 import {createCombatStyles,SPELLS} from './combat-styles.js';
 import {createCombatStyleMenu} from './combat-style-menu.js';
 import {createCharacter,TRACKS} from './character.js';
@@ -203,7 +204,9 @@ const travel=createTravelSystem({areas,stop:stopAll,blocked:()=>!areas.canMove||
 // Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
 // Restore keeps active auras (and their upkeep); respec turns them off and refunds invested attribute points.
 function crystalRestore(){health.max=character.maxima.health;health.restore();playerResources.restoreAll();menus.refresh();}
-destinations=createDestinationMenu({areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,services:{
+// Utility dialogs (stations, destinations, naming, confirmations) share one modal host.
+const modals=createModalHost();
+destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,services:{
  restore(){if(combat.inCombat)return 'Not available during combat.';crystalRestore();return 'Restored. Active auras stay on.';},
  respec(){if(combat.inCombat)return 'Not available during combat.';auras.deactivateAll();const refund=character.redistribute();crystalRestore();return `${refund} attribute point${refund===1?'':'s'} returned to spend in Skills. Auras turned off; resources restored.`;}}});
 const crystals=createCrystals({world,pickables,travel,choose:(a,after)=>destinations.open(a,after),hover:()=>hover?.actor});
@@ -267,13 +270,13 @@ food=createFoodSystem({inventory,health,defer:afterStep.defer,busy:()=>!canMove(
  consumed(changes){showItemChanges(changes);areas.notify('foodEaten');combat?.consumableUsed();},
  completed(){feedback.complete();},
  confirm:confirmFood});
-function confirmFood(proceed){const d=document.createElement('dialog');d.className='food-confirm compact-confirm';d.setAttribute('aria-label','Eat at full health?');d.setAttribute('aria-describedby','food-confirm-message');d.innerHTML='<p id="food-confirm-message">Your health is already full. Eat this anyway?</p><button>Eat anyway</button><button>Cancel</button>';document.body.append(d);d.showModal();const close=()=>{d.close();d.remove();};d.querySelectorAll('button')[0].onclick=()=>{close();proceed();};d.querySelectorAll('button')[1].onclick=close;d.addEventListener('cancel',()=>d.remove());return close;}
+function confirmFood(proceed){const dialog=confirmModal(modals,{id:'food-confirm',title:'Eat at full health?',message:'Your health is already full. Eat this anyway?',confirm:'Eat anyway',onConfirm:proceed});return ()=>dialog.close('cancelled');}
 cooking=createCookingSystem({inventory,stop:()=>stopAll({keepMenu:true}),busy:()=>!canMove()||combat?.working,
  started(){feedback.destination(tile);feedback.interacting('Cooking');},
  completed(changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();},
  cancelled(){feedback.clearDestination();}
 });
-cookingMenu=createCookingMenu({recipes:COOKING_RECIPES,items:ITEMS,inventory,canMake:canCookRecipe,duration:seconds=>cookingDuration(seconds,cooking.skill.level),onCook:(id,station)=>cooking.start(id,station)});
+cookingMenu=createCookingMenu({modals,recipes:COOKING_RECIPES,items:ITEMS,inventory,canMake:canCookRecipe,duration:seconds=>cookingDuration(seconds,cooking.skill.level),onCook:(id,station)=>cooking.start(id,station)});
 recipeCrafting=createRecipeCrafting({inventory,skill:craftingSkill,defer:afterStep.defer,
  busy:()=>combat?.busy||combat?.working||areas.busy||travel.busy||companions?.working||resourceActions?.working||carpentry?.working||fishing?.working||food?.working||cooking?.working||smithing?.working,
  progressed(age,dt){if(Math.floor((age-dt)/.45)!==Math.floor(age/.45))gameAudio.play('craft');},
@@ -291,7 +294,7 @@ smithing=createStationCrafting({inventory,stop:()=>stopAll({keepMenu:true}),busy
  started(a){facing=Math.atan2(a.x-tile.x,a.z-tile.z);feedback.destination(tile);feedback.interacting(a.kind==='anvil'?'Smithing':'Smelting');},
  completed(id,changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();areas.broadcast('stationCrafted',id);},cancelled(){feedback.clearDestination();}
 });
-const stationOptions={recipes:COOKING_RECIPES,items:ITEMS,inventory,canMake:canCookRecipe,duration:seconds=>cookingDuration(seconds,smithing.skill.level),onCook:(id,station)=>smithing.start(id,station)};
+const stationOptions={modals,recipes:COOKING_RECIPES,items:ITEMS,inventory,canMake:canCookRecipe,duration:seconds=>cookingDuration(seconds,smithing.skill.level),onCook:(id,station)=>smithing.start(id,station)};
 furnaceMenu=createCookingMenu({...stationOptions,kind:'furnace'});anvilMenu=createCookingMenu({...stationOptions,kind:'anvil'});
 const openStation=a=>(a.kind==='furnace'?furnaceMenu:anvilMenu).open(a);
 const characterDialogue=createCharacterDialogue({player:()=>({name:opening.profile.name||'Pip',model:visual})});
@@ -624,9 +627,10 @@ if(__PLAYGROUND__){
   },
   resetCurrentArea(){stopAll();travel.cancel();trainingFixtures.clear();combatFixtures.clear();if(areas.active.reset)areas.active.reset();else this.reset('all');},
   openInterface(name){
-   splash.close();travel.cancel();stopAll();areas.notify('clearUI');craftingTutorial.reset();opening.enterFreePlay();$('game-menus').hidden=false;$('game-menus').inert=false;
+   splash.close();travel.cancel();stopAll();modals.closeAll('replaced');areas.notify('clearUI');craftingTutorial.reset();opening.enterFreePlay();$('game-menus').hidden=false;$('game-menus').inert=false;
    if(name==='cooking'){cookingMenu.open();return;}
    if(name==='furnace'){furnaceMenu.open();return;}if(name==='anvil'){anvilMenu.open();return;}if(name==='destinations'){destinations.open(null);return;}if(name==='combat-styles'){styleMenu.open();return;}
+   if(name==='food-confirm'){health.restore();inventory.cookedFish=Math.max(1,inventory.cookedFish||0);food.start('cookedFish');return;}
    if(name==='companion-name'){if(!companions.state.owned)companions.acquire();companions.name();return;}
    if(name==='settings-popup'){settingsUI.open();return;}
    const entry=menus.panels.entryForTab('open-'+name);if(entry){menus.panels.setAvailable(entry.id,true);menus.panels.select(entry.id);}
@@ -689,8 +693,8 @@ if(__PLAYGROUND__){
  debug=playground.mountPlayground(playgroundApi);
 }
 const journal=mountJournal(menus,craftingTutorial,settingsUI);
-createCompanionMenu(companions,{panels:menus.panels,canClose:()=>menus.events.beforeClose?.('automatic')!==false});
-playerInterface=createPlayerInterface({playerControl,assistance,auras,styles,toast,menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
+createCompanionMenu(companions,{panels:menus.panels,modals,canClose:()=>menus.events.beforeClose?.('automatic')!==false});
+playerInterface=createPlayerInterface({modals,playerControl,assistance,auras,styles,toast,menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.

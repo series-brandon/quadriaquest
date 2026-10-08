@@ -6,5 +6,8 @@
 @import './hud/health-plate.css';
 @import './hud/warning-chip.css';
 @import './controls.css';
+@import './page.css';
+@import './modal.css';
+@import './dialogs/dialogs.css';
 @import './pages/combat-page.css';
 @import './pages/equipment-page.css';

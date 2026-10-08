@@ -1,3 +1,2 @@
 body:has(#player-health:not([hidden])) #objective-update{top:110px}
-.food-confirm{color:var(--ui-ink);background:var(--ui-paper,#faf1df);border:1px solid var(--ui-border);border-radius:18px;padding:24px;max-width:min(460px,calc(100vw - 48px));font:inherit}.food-confirm::backdrop{background:#29203177}.food-confirm button{background:var(--ui-button,#5b456d);color:var(--ui-button-ink,#fff9ec);border:1px solid var(--ui-border,#806b91);border-radius:10px;padding:10px 15px;min-height:44px;font:inherit;cursor:pointer;margin:12px 8px 0 0}
 
