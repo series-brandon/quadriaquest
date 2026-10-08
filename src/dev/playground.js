@@ -124,9 +124,9 @@ export function mountPlayground(api){
     <pre id="dev-state"></pre>`;
   const commands=organizePlayground(panel);
   document.body.append(panel);
-  const launcher=document.createElement('button');launcher.id='show-debug-menu';launcher.dataset.journalLast='';launcher.type='button';launcher.setAttribute('aria-label','Show debug menu');launcher.setAttribute('aria-controls',panel.id);launcher.setAttribute('aria-expanded','false');launcher.innerHTML='<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-14-2 16"/></svg><span>Debug</span>';
-  document.getElementById('game-menu-bar').append(launcher);
-  launcher.onclick=()=>{panel.open=true;panel.querySelector('summary').focus();};
+  // A launcher tab (no page) in the journal's tab registry; it opens this debug panel.
+  api.registerTab({id:'debug',tab:'show-debug-menu',label:'Debug',ariaLabel:'Show debug menu',order:1000,icon:()=>{const t=document.createElement('template');t.innerHTML='<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-14-2 16"/></svg>';return t.content.firstElementChild;},action:()=>{panel.open=true;panel.querySelector('summary').focus();}});
+  const launcher=document.getElementById('show-debug-menu');launcher.setAttribute('aria-controls',panel.id);launcher.setAttribute('aria-expanded','false');
   panel.addEventListener('toggle',()=>{launcher.setAttribute('aria-expanded',String(panel.open));if(!panel.open&&panel.contains(document.activeElement))launcher.focus();});
 
   const $=id=>panel.querySelector('#dev-'+id);

@@ -126,7 +126,7 @@ export function createWillowbank(api){
    }));
  }
  function meetGoal(){goal('meet','Talk to Reed','Speak to the worried fisher near the arrival crystal.',phase==='meet'?0:1);}
- function enter(value,skipIntro=false){hitFeedback.clear();companions.resetRoute();active=value;group.visible=value;cancel();cancelPlacement();dialogue.hide();tip.hidden=true;cookUI.close();introActive=false;introFocus=null;if(value){companions.showMenuTab();document.getElementById('open-inventory').hidden=false;document.getElementById('open-crafting').hidden=false;if(skipIntro)introSeen=true;if(!introSeen)arrival();else if(phase==='meet')meetGoal();}}
+ function enter(value,skipIntro=false){hitFeedback.clear();companions.resetRoute();active=value;group.visible=value;cancel();cancelPlacement();dialogue.hide();tip.hidden=true;cookUI.close();introActive=false;introFocus=null;if(value){companions.showMenuTab();api.showTabs?.('inventory','crafting');if(skipIntro)introSeen=true;if(!introSeen)arrival();else if(phase==='meet')meetGoal();}}
  function update(dt,time,camera){hitFeedback.update(dt,camera);if(introFocus){introFocus.blend=THREE.MathUtils.clamp(introFocus.blend+(introFocus.returning?-1:1)*dt/.9,0,1);if(introFocus.returning&&introFocus.blend===0){const after=introFocus.after||meetGoal;introFocus=null;introActive=false;after();}}
 
   let petMoving=false;if(!companions.state.owned)pet.visible=active;

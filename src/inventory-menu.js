@@ -1,9 +1,10 @@
 import {icon} from './icons.js';
 import {ITEMS} from './items.js';
+import {signal} from './reactive.js';
 export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment={}){
  const panel=document.createElement('section');panel.id='inventory-panel';panel.hidden=true;panel.setAttribute('aria-label','Inventory');
  panel.innerHTML='<div class="crafting-heading"><h2>Inventory</h2><button aria-label="Close inventory menu">×</button></div><input class="journal-search" type="search" placeholder="Search supplies…" aria-label="Search inventory"><div class="inventory-grid"></div><p class="inventory-empty">Your inventory is empty.</p><section class="inventory-detail" aria-live="polite"></section>';
- host.append(panel);let selected=null,last='',guided=false,detailOpen=false,guideFrame;
+ host.append(panel);const locked=signal(false);let selected=null,last='',guided=false,detailOpen=false,guideFrame;
  const guideOverlay=document.createElement('div');guideOverlay.id='inventory-guide';guideOverlay.className='gold-guide';guideOverlay.hidden=true;guideOverlay.setAttribute('aria-hidden','true');document.body.append(guideOverlay);
  function positionGuide(){
   if(!guided){guideOverlay.hidden=true;return;}
@@ -15,7 +16,7 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
   guideFrame=requestAnimationFrame(positionGuide);
  }
 
- panel.querySelector('button').onclick=onClose;
+ panel.querySelector('button').addEventListener('click',onClose);
  const grid=panel.querySelector('.inventory-grid'),detail=panel.querySelector('.inventory-detail'),search=panel.querySelector('.journal-search');
  search.oninput=()=>{detailOpen=false;refresh(true);};
  function refresh(force=false){
@@ -42,5 +43,6 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
   }
 
  }
- return {panel,refresh,open(){panel.hidden=false;refresh(true);},close(){panel.hidden=true;},guide(value){guided=value;if(guideFrame!==undefined)cancelAnimationFrame(guideFrame);guideOverlay.hidden=true;if(value){search.value='';selected=null;detailOpen=false;}refresh(true);if(value){grid.scrollTop=0;guideFrame=requestAnimationFrame(positionGuide);}},lock(value){panel.querySelector('button').disabled=value;}};
+ // Visibility belongs to the panel host; `locked` blocks closing during guided steps.
+ return {panel,refresh,locked,open(){refresh(true);},guide(value){guided=value;if(guideFrame!==undefined)cancelAnimationFrame(guideFrame);guideOverlay.hidden=true;if(value){search.value='';selected=null;detailOpen=false;}refresh(true);if(value){grid.scrollTop=0;guideFrame=requestAnimationFrame(positionGuide);}},lock(value){panel.querySelector('button').disabled=value;locked.value=!!value;}};
 }

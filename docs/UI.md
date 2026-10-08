@@ -19,6 +19,8 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 | `src/ui/dom.js` | `h(tag, props, ...children)` and `mount(build)`. Props and children that are signals or functions are bound to that node. |
 | `src/ui/scope.js` | Ownership. Each binding belongs to the view that built it and is disposed with that view. |
 | `src/ui/list.js` | `keyedList` keeps row nodes, focus and scopes across updates. |
+| `src/ui/panels.js` | `createPanelHost` holds the open page, the tab bar (open or pinned), tab availability, return-to pages, close locks and dismiss rules. Every journal page and launcher tab registers here once. |
+| `src/ui/panel-tabs.js` | `panelTabs` builds tab buttons from a host: the desktop bar, the phone bar and the More sheet. Tab ids (`open-<id>`) stay stable for tutorials and tests. |
 | `src/ui/viewport.js` | The single breakpoint (700px) and the `compactViewport()` signal. |
 | `src/ui/icon.js` | `iconNode(name)`, the shared icons as DOM nodes. |
 | `src/ui/tokens.css` | Every color, shape, size, font, shadow and motion value used by the kit (`--q-*`). |
@@ -40,10 +42,11 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
    - Animate with `transform` and `opacity`.
    - Respect `prefers-reduced-motion`.
    - Components do not import CSS; add each sheet to `src/ui/ui.css` so components stay loadable in node tests.
-8. **Breakpoints in JS** come from `ui/viewport.js`. Legacy code uses `compactQuery()`.
-9. **Accessibility:** use real roles (`meter`, `button`, `dialog`), keep labels and values current, give controls at least a 44px touch target (`--q-touch`), and keep focus stable across updates.
-10. **Tests:** each component has a `node --test` file that runs on linkedom (`src/ui/test-dom.js`). Cover its bindings: the values shown, updates when state changes, and that unchanged state causes no DOM writes.
-11. **Legacy ratchet:** `scripts/ui-standards-baseline.json` records the debt in legacy files: HTML strings, property event handlers, `matchMedia` and `!important`. Counts may fall but never rise. After reducing debt, run `node scripts/check-ui-standards.js --update`. To change a legacy surface substantially, move it into the kit rather than extending it.
+8. **Pages and tabs go through the panel host.** Register a page (`menus.panels.register`) instead of appending tabs or showing and hiding pages yourself. Open, close and check pages with `panels.open/close/dismiss/isOpen`, and toggle tabs with `setAvailable`. Never set a registered page's `hidden`, list panel ids, or read another module's DOM to find which page is open.
+9. **Breakpoints in JS** come from `ui/viewport.js`. Legacy code uses `compactQuery()`.
+10. **Accessibility:** use real roles (`meter`, `button`, `dialog`), keep labels and values current, give controls at least a 44px touch target (`--q-touch`), and keep focus stable across updates.
+11. **Tests:** each component has a `node --test` file that runs on linkedom (`src/ui/test-dom.js`). Cover its bindings: the values shown, updates when state changes, and that unchanged state causes no DOM writes.
+12. **Legacy ratchet:** `scripts/ui-standards-baseline.json` records the debt in legacy files: HTML strings, property event handlers, `matchMedia` and `!important`. Counts may fall but never rise. After reducing debt, run `node scripts/check-ui-standards.js --update`. To change a legacy surface substantially, move it into the kit rather than extending it.
 
 ## Migration status
 
@@ -52,5 +55,8 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 | Resource meters (Health, Mana, Stamina, Energy, Ki) | Kit (`ui/hud/meter.js`): low-poly bevelled tile, signal-backed resources, idle-still (in design review) |
 | Breakpoint (player interface, journal) | Shared `ui/viewport.js` |
 | Resource action buttons, combat status line | Legacy, polled in `player-interface.js`. To be replaced by the combat HUD: ability bar, target frame and effect icons. |
-| Panel registry and host (journal pages, utility dialogs, mobile nav) | Legacy, with id lists duplicated across `game-menus.js`, `journal.js` and `player-interface-policy.js`. This is the next foundation step. |
+| Panel registry and host (journal pages, tab bars, mobile nav and More) | Kit (`ui/panels.js`, `ui/panel-tabs.js`). Every page registers once; the journal shell, docking and Quests return are reactive. |
+| Journal shell (`journal.js`) | Built with `h()`. The page contents (Skills, Inventory, Crafting, Quests, Settings, Combat, Equipment, Companions) are still legacy markup. |
+| Tutorial journal lock | Legacy: id-based rules plus a MutationObserver (moved out of the journal). It exposes `lockedState` for the kit. Retire it once guide highlights are tutorial state. |
+| Utility dialogs (cooking, furnace, anvil, destinations, companion name, food confirm) | Legacy `<dialog>`s, not yet on the host |
 | Combat page, equipment, skills, inventory, crafting, dialogue, toasts | Legacy |

@@ -13,8 +13,8 @@ const button=(text,{pressed,disabled,onclick}={})=>{const b=document.createEleme
 
 // Combat controls: Manual exposes the full configuration; Auto exposes only Mode, Class, Training goal and
 // Optimize, with detailed preferences under Advanced settings. Pacifist works in both.
-export function createCombatStyleMenu({styles,combat,auras=null,assistance=null,equipment=null,character=null,health=null,busy=()=>false,beforeOpen=()=>{}}){
- const dialog=document.createElement('section');dialog.id='combat-panel';dialog.hidden=true;dialog.className='utility-menu';dialog.setAttribute('aria-label','Combat');
+export function createCombatStyleMenu({styles,combat,panels,auras=null,assistance=null,equipment=null,character=null,health=null,busy=()=>false}){
+ const dialog=document.createElement('section');dialog.id='combat-panel';dialog.className='utility-menu';dialog.setAttribute('aria-label','Combat');
  dialog.innerHTML=`<div class="utility-heading"><h2>Combat</h2><button data-close aria-label="Close combat">×</button></div>
  <div class="utility-options" role="group" aria-label="Combat control" data-control></div><p data-mode-help></p>
  <section data-auto><h3>Class</h3><div class="utility-options" data-class></div>
@@ -31,7 +31,7 @@ export function createCombatStyleMenu({styles,combat,auras=null,assistance=null,
  <p>Eating heals at once and restarts your current attack; a second item waits for the 2-second cooldown.</p>`;
  document.getElementById('game-menus').append(dialog);
  const $=sel=>dialog.querySelector(sel);let previous='';
- $('[data-close]').onclick=()=>dialog.hidden=true;
+ $('[data-close]').addEventListener('click',()=>panels.dismiss());
  $('[data-goal]').onchange=e=>{assistance.setGoal(e.target.value||null);render();};
  $('[data-optimize]').onclick=()=>{assistance.optimize();render();};
  $('[data-auto-retaliate]').onclick=()=>{combat.setAutoRetaliate(!combat.autoRetaliate);render();};
@@ -91,7 +91,7 @@ export function createCombatStyleMenu({styles,combat,auras=null,assistance=null,
    ...exclusions('foodExclusions',Object.keys(FOODS),id=>ITEMS[id]?.name||id),...exclusions('spellExclusions',Object.keys(SPELLS),id=>SPELLS[id].name),
    number('auraRecovery','Restart auto auras after exhaustion at Ki %',100,1,100),number('auraGrace','Aura grace period (seconds)',1,0,30));
  }
- const open=()=>{beforeOpen();render();dialog.hidden=false;};
- const menuButton=document.createElement('button');menuButton.id='open-combat-styles';menuButton.textContent='Combat';document.getElementById('game-menu-bar').append(menuButton);menuButton.onclick=open;
- return {refresh:render,open,close(){dialog.hidden=true;}};
+ const open=()=>{panels.open('combat');render();};
+ panels.register({id:'combat',tab:'open-combat-styles',label:'Combat',icon:'Combat',order:50,primary:true,element:dialog,select:open});
+ return {refresh:render,open};
 }

@@ -13,11 +13,11 @@
   },
   "src/combat-style-menu.js": {
     "innerHTML": 1,
-    "propertyHandlers": 9
+    "propertyHandlers": 7
   },
   "src/companion-menu.js": {
-    "innerHTML": 3,
-    "propertyHandlers": 8
+    "innerHTML": 2,
+    "propertyHandlers": 6
   },
   "src/cooking-menu.js": {
     "innerHTML": 3,
@@ -35,18 +35,14 @@
   },
   "src/game-menus.js": {
     "innerHTML": 7,
-    "propertyHandlers": 11
+    "propertyHandlers": 5
   },
   "src/inventory-menu.js": {
     "innerHTML": 2,
-    "propertyHandlers": 5
+    "propertyHandlers": 4
   },
   "src/item-feedback.js": {
     "innerHTML": 1
-  },
-  "src/journal.js": {
-    "innerHTML": 6,
-    "propertyHandlers": 5
   },
   "src/main.js": {
     "innerHTML": 1,
@@ -56,8 +52,8 @@
     "important": 9
   },
   "src/player-interface.js": {
-    "innerHTML": 11,
-    "propertyHandlers": 11
+    "innerHTML": 5,
+    "propertyHandlers": 6
   },
   "src/quests.js": {
     "innerHTML": 1,

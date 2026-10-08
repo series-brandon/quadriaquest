@@ -5,15 +5,25 @@ import {createInventoryMenu} from './inventory-menu.js';
 import {skillProgress} from './skills.js';
 import {ATTRIBUTES,ATTRIBUTE_INFO} from './character.js';
 import {levelProgress} from './combat-formulas.js';
+import {computed,signal} from './reactive.js';
+import {createPanelHost} from './ui/panels.js';
+import {panelTabs} from './ui/panel-tabs.js';
+import {mount} from './ui/dom.js';
+import {bind} from './ui/scope.js';
 
 // Shared journal pages. Tutorial guidance is optional and does not own recipes or skills.
+// Page visibility, the tab bar and tab availability belong to the panel host (`panels`).
 export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,startCraft,craftState=()=>null,craftBusy=()=>false,equipment={}}){
  const $=id=>document.getElementById(id),events={};
  const host=document.createElement('div');host.id='game-menus';
  host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false">☰</button>
- <nav id="game-menu-bar" hidden aria-label="Game menu"><button id="open-skills">Skills</button><button id="open-inventory">Inventory</button><button id="open-crafting">Crafting</button></nav>
+ <nav id="game-menu-bar" hidden aria-label="Game menu"></nav>
  <section id="crafting-panel" hidden aria-label="Crafting"><div class="crafting-heading"><h2>Crafting</h2><button id="close-crafting" aria-label="Close crafting menu">×</button></div><div class="recipe-browser"><div class="recipe-choices"></div><div class="recipe-details"></div></div><p id="recipe-error" role="status"></p></section>`;
  document.body.append(host);
+ // Plain pages close through the shared close rules (events.beforeClose), like their × buttons.
+ const panels=createPanelHost({defaultDismiss:()=>closeMenus('dismiss')});
+ const bar=$('game-menu-bar');
+ mount(()=>{bind(()=>{bar.hidden=!panels.navShown.value;});return panelTabs(bar,panels);});
  const panel=$('crafting-panel'),recipeKinds=Object.keys(RECIPES);
  const back=document.createElement('button');back.className='recipe-back';back.textContent='← All recipes';back.onclick=()=>panel.classList.remove('viewing-recipe');panel.querySelector('.recipe-details').append(back);
  for(const id of recipeKinds){
@@ -24,12 +34,12 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
  }
  function selectRecipe(id){if(!recipeKinds.includes(id))return;selectedRecipe=id;panel.classList.add('viewing-recipe');for(const kind of recipeKinds){$(kind+'-detail').hidden=kind!==id;$('choose-'+kind).setAttribute('aria-pressed',String(kind===id));}events.selected?.(id);}
  let selectedRecipe='axes';
- function openCrafting(id){closeMenus('switch');if(id)selectRecipe(id);else selectRecipe(selectedRecipe);panel.hidden=false;refresh();}
+ function openCrafting(id){if(id)selectRecipe(id);else selectRecipe(selectedRecipe);panels.open('crafting');refresh();}
  const skillsPanel=document.createElement('section');skillsPanel.id='skills-panel';skillsPanel.hidden=true;skillsPanel.setAttribute('aria-label','Skills');
  skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><input id="skills-search" class="journal-search" type="search" placeholder="Search skills…" aria-label="Search skills"><section id="character-summary" aria-label="Core level and attributes"></section><div id="skills-list"></div>';host.append(skillsPanel);
- const inventoryMenu=createInventoryMenu(host,getInventory,id=>events.inventorySelected?.(id),()=>{if(!events.inventoryLocked?.())closeMenus('dismiss');},equipment);
- function openInventory(){closeMenus('switch');inventoryMenu.open();}
- let skillGuidance={};
+ const inventoryMenu=createInventoryMenu(host,getInventory,id=>events.inventorySelected?.(id),()=>panels.dismiss(),equipment);
+ function openInventory(){panels.open('inventory');inventoryMenu.open();}
+ const guidance=signal({});
  $('skills-search').oninput=()=>renderSkills();
   const skillRows=new Map();let characterSignature='';
   const whole=n=>Math.floor(n).toLocaleString();
@@ -44,6 +54,7 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
   }
   function renderSkills(){
     renderCharacter();
+    const skillGuidance=guidance.peek();
     if($('close-skills').disabled!==!!skillGuidance.locked)$('close-skills').disabled=!!skillGuidance.locked;
     const skills=getSkills(),search=($('skills-search').value||'').toLowerCase();
     for(const [name,row] of skillRows)if(!skills[name]){row.remove();skillRows.delete(name);}
@@ -72,9 +83,9 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
       labels[1].textContent=`${whole(Math.ceil(p.remaining))} XP to next level`;
     }
   }
-  function openSkills(){closeMenus('switch');renderSkills();skillsPanel.hidden=false;}
+  function openSkills(){panels.open('skills');renderSkills();}
   function action(){if(events.action)events.action();else closeMenus();}
- function closeMenus(reason='automatic'){if(events.beforeClose?.(reason)===false)return;for(const id of ['combat-panel','equipment-panel'])if($(id))$(id).hidden=true;if($('settings-panel'))$('settings-panel').hidden=true;if($('companions-panel'))$('companions-panel').hidden=true; if($('quests-panel'))$('quests-panel').hidden=true;$('game-menu-bar').hidden=true;$('crafting-panel').hidden=true;skillsPanel.hidden=true;inventoryMenu.close();$('game-menu-toggle').setAttribute('aria-expanded','false');}
+ function closeMenus(reason='automatic'){if(events.beforeClose?.(reason)===false)return;panels.close();}
 
  let recipeSignature='';
  function refresh(){
@@ -88,11 +99,12 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
   if($('recipe-error').textContent)$('recipe-error').textContent='';}
   if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();
  }
- $('open-inventory').onclick=()=>{if(!events.openInventory?.())openInventory();};
- $('open-skills').onclick=()=>{if(!events.openSkills?.())openSkills();};
- $('open-crafting').onclick=()=>{if(!events.openCrafting?.())openCrafting();};
- $('close-skills').onclick=()=>{if(!skillGuidance.locked)closeMenus('dismiss');};
- $('close-crafting').onclick=()=>{closeMenus('dismiss');events.closeCrafting?.();};
- $('game-menu-toggle').onclick=()=>{if(events.toggle?.())return;$('game-menu-bar').hidden=!$('game-menu-bar').hidden;$('game-menu-toggle').setAttribute('aria-expanded',String(!$('game-menu-bar').hidden));};
- return {host,skillsPanel,inventoryMenu,events,selectRecipe,openCrafting,openInventory,openSkills,closeMenus,action,refresh,renderSkills,setSkillGuidance(value){skillGuidance=value;renderSkills();}};
+ // Tutorials may intercept a tab (events.open*) to run a lesson step instead.
+ panels.register({id:'skills',label:'Skills',icon:'skills',order:20,primary:true,element:skillsPanel,select:()=>{if(!events.openSkills?.())openSkills();},closeLocked:computed(()=>!!guidance.value.locked)});
+ panels.register({id:'inventory',label:'Inventory',icon:'inventory',order:30,primary:true,element:inventoryMenu.panel,select:()=>{if(!events.openInventory?.())openInventory();},closeLocked:inventoryMenu.locked,dismiss:()=>{if(!events.inventoryLocked?.())closeMenus('dismiss');}});
+ panels.register({id:'crafting',label:'Crafting',icon:'crafting',order:40,primary:true,element:panel,select:()=>{if(!events.openCrafting?.())openCrafting();},dismiss:()=>{closeMenus('dismiss');events.closeCrafting?.();}});
+ $('close-skills').addEventListener('click',()=>panels.dismiss());
+ $('close-crafting').addEventListener('click',()=>panels.dismiss());
+ $('game-menu-toggle').addEventListener('click',()=>{if(!events.toggle?.())panels.toggleNav();});
+ return {host,panels,skillsPanel,inventoryMenu,events,selectRecipe,openCrafting,openInventory,openSkills,closeMenus,action,refresh,renderSkills,setSkillGuidance(value){guidance.value=value;renderSkills();}};
 }

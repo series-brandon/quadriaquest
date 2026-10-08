@@ -1,3 +1,5 @@
+import {signal} from './reactive.js';
+
 // null means free use; an empty list means only the separate tutorial prompt may advance.
 export function journalTutorialActions(stage, guidedTarget = null) {
   if (/^(quests|skills|inventory)-/.test(stage)) {
@@ -14,6 +16,8 @@ export function journalTutorialActions(stage, guidedTarget = null) {
 
 export function mountJournalTutorialLock(host, controller) {
   const controls = 'button,input,select,textarea,summary,a[href]';
+  // Whether a guided step restricts the journal; the journal and HUD read it reactively.
+  const locked = signal(false);
   function actions() {
     const target = [...host.querySelectorAll('.gold-guide[id]')].find(node => !node.closest('[hidden]') && !node.disabled);
     return journalTutorialActions(controller.stage, target?.id);
@@ -29,13 +33,14 @@ export function mountJournalTutorialLock(host, controller) {
   }, true);
   function sync() {
     const rules = actions();
+    locked.value = rules !== null;
     for (const node of host.querySelectorAll(controls)) {
-      const locked = !allowed(node, rules);
+      const blocked = !allowed(node, rules);
       // Inert leaves recipe/equipment availability's native disabled state untouched.
-      if (node.inert !== locked) node.inert = locked;
-      if (locked && node.getAttribute('data-tutorial-locked') !== 'true') {
+      if (node.inert !== blocked) node.inert = blocked;
+      if (blocked && node.getAttribute('data-tutorial-locked') !== 'true') {
         node.setAttribute('data-tutorial-locked', 'true');node.setAttribute('aria-disabled', 'true');
-      } else if (!locked && node.hasAttribute('data-tutorial-locked')) {
+      } else if (!blocked && node.hasAttribute('data-tutorial-locked')) {
         node.removeAttribute('data-tutorial-locked');node.removeAttribute('aria-disabled');
       }
     }
@@ -43,5 +48,11 @@ export function mountJournalTutorialLock(host, controller) {
   // Lesson transitions can change only dialogue outside the journal. Never depend
   // on journal DOM mutations to release a formerly inert required control.
   controller.onStageChange(() => queueMicrotask(sync));
-  return {sync, get locked(){return actions() !== null;}};
+  // Guide highlights (.gold-guide) and newly rendered controls can change the rules or need
+  // locking without a stage change. Legacy: retire once guides are tutorial state.
+  if (globalThis.MutationObserver && host instanceof globalThis.Node) {
+    new MutationObserver(sync).observe(host, {subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class', 'disabled']});
+  }
+  sync();
+  return {sync, lockedState: locked, get locked(){return actions() !== null;}};
 }

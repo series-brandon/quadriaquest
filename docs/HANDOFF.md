@@ -20,6 +20,41 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### UI rework: panel registry and host — 2026-10-07
+- **The `menus.panels` host** (`src/ui/panels.js`) now owns which journal page is open, whether the tab bar is open or pinned, tab availability, Quests' return-to behaviour, close locks and dismiss rules. Every page registers once:
+  - Quests and Settings (`journal.js`)
+  - Skills, Inventory and Crafting (`game-menus.js`)
+  - Combat (`combat-style-menu.js`, tab id `open-combat-styles`)
+  - Equipment (`player-interface.js`)
+  - Companions (`companion-menu.js`; unavailable until owned)
+  - the playground's Debug launcher (`api.registerTab`)
+- **Tabs are built from the registry** (`src/ui/panel-tabs.js`): the desktop `#game-menu-bar`, the phone bar and the More sheet. This replaced the 0.15s `refreshNav` HTML cloning, `partitionMobileTabs` (now a `primary` flag) and the ordering via `data-journal-last`.
+- **Removed:**
+  - the duplicated panel-id lists in `closeMenus`, `journal.js` (`suspendedPanels`, `activeClose`, `sync`) and the policy;
+  - the journal's MutationObserver `sync()`;
+  - all direct page `hidden` writes from other modules.
+- **The journal shell** is built with `h()` and follows the host reactively: visibility, `has-page`, title, the close lock, toggle `aria-expanded`, and the docked desktop's pinned tabs and auto-open of the last page.
+- **The tutorial uses the host API:**
+  - `panels.setAvailable`, `showNav` and `toggleNav`, and `isOpen` / `navShown` for reads;
+  - a new read-only `stageState` signal;
+  - the lock exposes `lockedState` and now owns the DOM observer the journal used to have.
+- **Willowbank** unlocks tabs through `api.showTabs`. `openInterface`, `openCrafting` and `openSettings` call `panels.select`.
+- **Behaviour is preserved:** docked desktop close/Escape keep the page, the journal button opens the last page in free play, and Quests returns to the page it replaced (or closes the journal). Tab order is unchanged (Quests, Skills, Inventory, Crafting, Combat, Settings, Companions, Equipment, Debug).
+- **Tests:**
+  - `crafting-tutorial.test.js` now runs on linkedom with the real `index.html`, replacing the hand-made fake DOM.
+  - New host/tab tests, plus a keyed-list trailing-node test.
+  - 285 tests pass.
+  - Legacy debt fell (journal innerHTML 6 → 0, handlers 5 → 0; game-menus handlers 11 → 5; player-interface innerHTML 11 → 5); the baseline is updated.
+- **Verified in the built playground:**
+  - docked desktop: every tab, the HUD Auras → Combat shortcut, Quests return, the docked close rules and the Debug launcher;
+  - phone: primary tabs, the More sheet, Escape, ×, journal close and the toggle reopening the last page;
+  - the Quests, Skills, Inventory and Crafting lessons by real clicks from checkpoints, with locks and guides;
+  - the desktop guided pickaxe flow and Willowbank tab unlocks.
+  - No console errors.
+- **Next:**
+  - move utility `<dialog>`s onto a shared modal host;
+  - rebuild page contents in the kit, starting with Combat and Equipment, then the combat HUD (ability bar, target frame, effects).
+
 ### UI rework foundation — 2026-10-07
 - The user chose a plain-JS rebuild of the UI (no framework for now), an open visual direction (sleek and modern, rounded-square "slime" gauges, OSRS gameplay but not its look), and a foundation-first rollout with strict standards. Rules and migration status: `docs/UI.md`. Gate: `npm run check:ui`.
 - **Kit:**

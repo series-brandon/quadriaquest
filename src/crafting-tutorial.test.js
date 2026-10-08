@@ -2,28 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCraftingTutorial as createTutorialController} from './crafting-tutorial.js';
 import {createGameMenus} from './game-menus.js';
-function createCraftingTutorial(options){let tutorial;const startCraft=id=>{const started=options.startCraft(id);if(started)tutorial.craftStarted(id);return started;};const menus=createGameMenus({...options,startCraft});tutorial=createTutorialController({...options,menus});return Object.assign(tutorial,{menus});}
+import {readFileSync} from 'node:fs';
+import {parseHTML} from 'linkedom';
+function createCraftingTutorial(options){let tutorial;const startCraft=id=>{const started=options.startCraft(id);if(started)tutorial.craftStarted(id);return started;};const menus=createGameMenus({...options,startCraft});
+ // The journal registers Quests in the game; lessons guide its tab.
+ menus.panels.register({id:'quests',label:'Quests',icon:'quests',order:10,returnTo:true,element:document.createElement('section')});
+ tutorial=createTutorialController({...options,menus});return Object.assign(tutorial,{menus});}
 
-// Small DOM harness for the real tutorial controller's branching and callbacks.
+// The game's real page markup on a lightweight DOM, so the tutorial drives the real menus.
+const PAGE=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 function fixture(){
- const nodes=new Map();
- class Element{
-  constructor(){this.children=[];this.handlers={};this.hidden=false;this.style={};this.dataset={};this.classes=new Set();this.classList={add:c=>this.classes.add(c),remove:c=>this.classes.delete(c),toggle:(c,on)=>on?this.classes.add(c):this.classes.delete(c)};}
-  set id(id){this._id=id;nodes.set(id,this);}get id(){return this._id;}
-  set innerHTML(html){for(const [,id]of html.matchAll(/id="([^"]+)"/g))get(id);}
-  insertBefore(child,before){const index=this.children.indexOf(before);if(index<0)this.children.push(child);else this.children.splice(index,0,child);}
-  append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}
-  setAttribute(){} querySelector(selector){this.queries??={};return this.queries[selector]??=new Element();}
-  querySelectorAll(selector){if(selector==='progress'||selector==='small'){this.lists??={};return this.lists[selector]??=[new Element(),new Element()];}return [...nodes.values()].filter(n=>n.classes.has('gold-guide'));}
-  addEventListener(name,fn){(this.handlers[name]??=[]).push(fn);}
-  click(){const event={target:{closest(){return null;}}};this.onclick?.(event);for(const fn of this.handlers.click||[])fn(event);}
- }
- const get=id=>{if(!nodes.has(id)){const node=new Element();node.id=id;}return nodes.get(id);};
- const document={getElementById:get,createElement:()=>new Element(),createTextNode:text=>({textContent:text}),body:new Element()};
- return {document,get,nodes};
+ const {window,document}=parseHTML(PAGE);
+ globalThis.window=window;
+ return {document,get:id=>document.getElementById(id)};
 }
 test('normal chopping leads into optional mining guidance, retry, success and finale',()=>{
- const previous=globalThis.document,{document,get,nodes}=fixture();globalThis.document=document;
+ const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
   let finished=0;const crafts=[];
   const tutorial=createCraftingTutorial({getInventory:()=>({sticks:3,stones:3,axes:1,pickaxes:0}),getSkills:()=>({}),startCraft:item=>{crafts.push(item);return true;},onComplete:()=>finished++});
@@ -31,10 +25,11 @@ test('normal chopping leads into optional mining guidance, retry, success and fi
   get('tutorial-continue').click();assert.equal(tutorial.stage,'mining-intro');
   for(let i=0;i<4;i++)get('dialogue').click();
   assert.equal(tutorial.stage,'pickaxe');assert.equal(get('tutorial-help').hidden,false);
-  assert.equal([...nodes.values()].some(n=>n.classes.has('gold-guide')),false);
+  // The inventory overlay always carries the class; only highlighted controls count.
+  assert.equal([...document.querySelectorAll('.gold-guide')].some(n=>n.id!=='inventory-guide'),false);
   get('craft-pickaxes').click();assert.deepEqual(crafts,['pickaxes']);assert.equal(tutorial.stage,'mining-craft');
   tutorial.craftCancelled();assert.equal(tutorial.stage,'pickaxe');assert.equal(get('tutorial-help').hidden,false);
-  tutorial.menus.openCrafting('pickaxes');get('tutorial-help').click();assert.ok(get('craft-pickaxes').classes.has('gold-guide'));
+  tutorial.menus.openCrafting('pickaxes');get('tutorial-help').click();assert.ok(get('craft-pickaxes').classList.contains('gold-guide'));
   get('craft-pickaxes').click();tutorial.craftComplete('pickaxes');assert.equal(tutorial.stage,'mining-crafted');
   get('tutorial-continue').click();get('dialogue').click();get('dialogue').click();
   assert.equal(tutorial.stage,'mine');assert.equal(tutorial.highlightBoulders,false);
@@ -52,17 +47,17 @@ test('first quest introduces the hidden menu, guides Quests, then resumes openin
   const tutorial=createCraftingTutorial({getInventory:()=>({}),getSkills:()=>({}),startCraft:()=>false});
   tutorial.startQuests(()=>resumed++);
   assert.equal(get('game-menus').hidden,true);
-  assert.match(get('tutorial-copy').children.map(n=>n.textContent||'').join(''),/been given a quest/);
+  assert.match(get('tutorial-copy').textContent,/been given a quest/);
   get('tutorial-continue').click();
   assert.equal(tutorial.stage,'quests-reveal');assert.equal(get('game-menus').hidden,false);
-  assert.ok(get('game-menu-toggle').classes.has('gold-guide'));assert.equal(resumed,0);
+  assert.ok(get('game-menu-toggle').classList.contains('gold-guide'));assert.equal(resumed,0);
   get('game-menu-toggle').click();assert.equal(tutorial.stage,'quests-reveal');
   get('dialogue').click();assert.equal(tutorial.stage,'quests-toggle');
   get('game-menu-toggle').click();assert.equal(tutorial.stage,'quests-menu');
-  assert.ok(get('open-quests').classes.has('gold-guide'));
+  assert.ok(get('open-quests').classList.contains('gold-guide'));
   tutorial.questsOpened();assert.equal(tutorial.stage,'quests-detail');assert.equal(resumed,0);
   get('tutorial-continue').click();assert.equal(resumed,1);assert.equal(tutorial.stage,'inactive');
-  assert.equal(get('quests-panel').hidden,true);assert.equal(get('gather-tutorial').hidden,true);
+  assert.equal(tutorial.menus.panels.active.value,null,'no page left open');assert.equal(get('gather-tutorial').hidden,true);
  }finally{globalThis.document=previous;}
 });
 
@@ -73,11 +68,11 @@ test('first quest introduces the hidden menu, guides Quests, then resumes openin
   const tutorial=createCraftingTutorial({freePlay:true,getInventory:()=>({}),getSkills:()=>({Gathering:skill}),startCraft:()=>false});
   get('open-skills').click();const row=get('skills-list').children[0];
   row.open=true;for(let i=0;i<8;i++)tutorial.menus.refresh();
-  assert.equal(get('skills-list').children.length,1);assert.equal(get('skills-list').children[0],row);assert.equal(row.open,true);
+  assert.equal(get('skills-list').children.length,1);assert.ok(get('skills-list').children[0]===row);assert.equal(row.open,true);
   skill.xp=20;tutorial.menus.refresh();assert.equal(row.querySelector('p').textContent,'20 total XP');assert.equal(row.open,true);
   row.open=false;tutorial.menus.refresh();assert.equal(row.open,false);
   get('skills-search').value='mining';get('skills-search').oninput();assert.equal(row.hidden,true);
-  get('skills-search').value='';get('skills-search').oninput();assert.equal(row.hidden,false);assert.equal(get('skills-list').children[0],row);
+  get('skills-search').value='';get('skills-search').oninput();assert.equal(row.hidden,false);assert.ok(get('skills-list').children[0]===row);
  }finally{globalThis.document=previous;}
 });
 
@@ -115,6 +110,6 @@ test('shared menus expose both introductory tools and Culinary without a tutoria
   for(const id of ['axes','pickaxes']){assert.equal(get('choose-'+id).hidden,false);assert.equal(get('craft-'+id).disabled,false);assert.equal(get(id+'-duration').textContent,'Time · 1.67 seconds');get('craft-'+id).click();}
   assert.deepEqual(crafts,['axes','pickaxes']);
   inventory.stones=0;menus.refresh();assert.equal(get('craft-axes').disabled,true);assert.equal(get('craft-pickaxes').disabled,true);
-  menus.openSkills();assert.ok(get('skills-list').children.some(row=>row.dataset.skill==='Culinary'));
+  menus.openSkills();assert.ok([...get('skills-list').children].some(row=>row.dataset.skill==='Culinary'));
  }finally{globalThis.document=previous;}
 });

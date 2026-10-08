@@ -1,7 +1,8 @@
 import {computed, signal, Signal, untracked} from '../reactive.js';
 import {bind, createScope, onCleanup, runInScope} from './scope.js';
 
-// Renders a reactive array into `container`, which the list owns entirely.
+// Renders a reactive array into `container`. The list owns the container's leading children;
+// fixed nodes appended after the list (a trailing button) stay after its rows.
 // Rows are keyed: an existing row keeps its node, focus and scope, and receives new data
 // through its item signal; only added rows are built and only removed rows are disposed.
 // Items are compared by identity, so publish new item objects (snapshots) when data changes.

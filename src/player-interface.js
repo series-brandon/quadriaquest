@@ -1,16 +1,19 @@
-import {mount} from './ui/dom.js';
+import {h,mount} from './ui/dom.js';
 import {resourceMeter} from './ui/hud/meter.js';
 import {compactQuery} from './ui/viewport.js';
+import {bind} from './ui/scope.js';
+import {panelTabs,anyAvailable} from './ui/panel-tabs.js';
+import {signal,untracked} from './reactive.js';
 import {mountMinimapControls} from './minimap-controls.js';
 import {icon} from './icons.js';
 import {ITEMS} from './items.js';
 import {FOODS} from './player-health.js';
 import {GEAR,ARMOR_SLOTS} from './equipment.js';
-import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems,partitionMobileTabs} from './player-interface-policy.js';
+import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
 export function createPlayerInterface({menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styleMenu,auras,knowsAbility=()=>false,playerControl=null,assistance=null}){
- const $=id=>document.getElementById(id),mobile=compactQuery();
+ const $=id=>document.getElementById(id),mobile=compactQuery(),panels=menus.panels;
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
  const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div><button id="quick-food">${icon('quickEat')}<span></span></button><small id="player-combat-status" role="status"></small>`;
  const heading=overview.querySelector('.overview-heading');
@@ -27,20 +30,32 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  }
  const mapCanvas=overview.querySelector('canvas');let mapCenter={x:tile().x,z:tile().z};
  const mapControls=mountMinimapControls(mapCanvas,{center:()=>mapCenter,move,changed:()=>{clock=.15;drawMap();}});
- const mobileNav=document.createElement('nav');mobileNav.id='player-mobile-nav';mobileNav.setAttribute('aria-label','Player menu');menus.host.append(mobileNav);
- const more=document.createElement('section');more.id='player-mobile-more';more.hidden=true;more.setAttribute('aria-label','More player menus');more.innerHTML='<div class="more-heading"><strong>More</strong><button aria-label="Close more menus">×</button></div><div class="more-tabs"></div>';menus.host.append(more);
- const moreButton=document.createElement('button');moreButton.innerHTML='<b aria-hidden="true">•••</b><span>More</span>';moreButton.setAttribute('aria-controls',more.id);moreButton.setAttribute('aria-expanded','false');
- function closeMore(restoreFocus=false){more.hidden=true;moreButton.setAttribute('aria-expanded','false');if(restoreFocus)moreButton.focus();}
- moreButton.onclick=()=>{more.hidden=!more.hidden;moreButton.setAttribute('aria-expanded',String(!more.hidden));if(!more.hidden)more.querySelector('button').focus();};
- more.querySelector('button').onclick=()=>closeMore(true);
+ // Phone tab bar: primary tabs plus a More sheet for the rest, both rendered from the panel host.
+ const secondary=entry=>!entry.primary,moreOpen=signal(false),hasMore=anyAvailable(panels,secondary);
+ let mobileNav,more,moreButton,moreClose;
+ function closeMore(restoreFocus=false){moreOpen.value=false;if(restoreFocus)moreButton.focus();}
+ mount(()=>{
+  moreButton=h('button',{type:'button','aria-controls':'player-mobile-more','aria-expanded':moreOpen,hidden:()=>!hasMore.value,
+   'aria-current':()=>!!panels.activeEntry.value&&secondary(panels.activeEntry.value),on:{click:()=>{moreOpen.value=!moreOpen.peek();if(moreOpen.peek())moreClose.focus();}}},
+   h('b',{'aria-hidden':'true'},'•••'),h('span',null,'More'));
+  moreClose=h('button',{type:'button','aria-label':'Close more menus',on:{click:()=>closeMore(true)}},'×');
+  more=h('section',{id:'player-mobile-more','aria-label':'More player menus',hidden:()=>!moreOpen.value},
+   h('div',{class:'more-heading'},h('strong',null,'More'),moreClose),
+   panelTabs(h('div',{class:'more-tabs'}),panels,{filter:secondary,ids:false,onSelect:()=>closeMore()}));
+  // The More button trails the keyed tabs; keyedList leaves trailing nodes in place.
+  mobileNav=panelTabs(h('nav',{id:'player-mobile-nav','aria-label':'Player menu'}),panels,{filter:entry=>entry.primary,ids:false,onSelect:()=>closeMore()});
+  mobileNav.append(moreButton);
+  // Any page change (including from elsewhere) dismisses the More sheet.
+  bind(()=>{panels.active.value;untracked(()=>closeMore());});
+  return mobileNav;
+ });
+ menus.host.append(mobileNav,more);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!more.hidden){e.preventDefault();closeMore(true);}});
  document.addEventListener('pointerdown',e=>{if(!more.hidden&&!more.contains(e.target)&&!mobileNav.contains(e.target))closeMore();});
- const mobileButtons=new Map();
- let hidden=false,visible=false,quickFood='cookedFish',clock=0,gearSignature='',navSignature='',lastMessage='',messageUntil=0,layoutSignature='',foodSignature='';
- const gear=document.createElement('section');gear.id='equipment-panel';gear.hidden=true;gear.innerHTML='<div class="crafting-heading"><h2>Equipment</h2><button aria-label="Close equipment">×</button></div><div class="equipment-list"></div>';$('journal').append(gear);gear.querySelector('button').onclick=()=>menus.closeMenus('dismiss');
- const gearTab=document.createElement('button');gearTab.id='open-equipment';gearTab.innerHTML=icon('shields')+'<span>Equipment</span>';$('game-menu-bar').append(gearTab);gearTab.onclick=()=>{menus.closeMenus('switch');gear.hidden=false;renderGear();};
- $('journal').append($('combat-panel'));$('open-combat-styles').innerHTML=icon('Combat')+'<span>Combat</span>';
- // Journal tab identity is deliberately independent of the old menu's DOM id.
+ let hidden=false,visible=false,quickFood='cookedFish',clock=0,gearSignature='',lastMessage='',messageUntil=0,layoutSignature='',foodSignature='';
+ const gear=document.createElement('section');gear.id='equipment-panel';gear.innerHTML='<div class="crafting-heading"><h2>Equipment</h2><button aria-label="Close equipment">×</button></div><div class="equipment-list"></div>';$('journal').append(gear);gear.querySelector('button').addEventListener('click',()=>panels.dismiss());
+ panels.register({id:'equipment',label:'Equipment',icon:'shields',order:80,element:gear,select(){panels.open('equipment');gearSignature='';renderGear();}});
+ $('journal').append($('combat-panel'));
  
  function layout(){
   const signature=[visible,mobile.matches,hidden,journal.locked].join(':');if(signature===layoutSignature)return;layoutSignature=signature;
@@ -93,18 +108,6 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
   const goal=destination();if(goal){const dx=goal.x-p.x,dz=goal.z-p.z,distance=mobile.matches?Math.hypot(dx,dz):Math.max(Math.abs(dx),Math.abs(dz)),limit=mobile.matches?radius-.5:radius,scale=distance>limit?limit/distance:1,x=(dx*scale+radius+.5)*size,y=(dz*scale+radius+.5)*size;ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(2,gap);ctx.strokeRect(x-size*.42,y-size*.42,size*.84,size*.84);ctx.beginPath();ctx.moveTo(x-size*.25,y);ctx.lineTo(x+size*.25,y);ctx.moveTo(x,y-size*.25);ctx.lineTo(x,y+size*.25);ctx.stroke();}
   ctx.fillStyle='#eff6b9';ctx.beginPath();ctx.arc(pixels/2,pixels/2,size*.5,0,Math.PI*2);ctx.fill();
  }
- function refreshNav(){
-  const tabs=[...$('game-menu-bar').querySelectorAll('button')].filter(b=>!b.hidden);
-  const signature=tabs.map(b=>b.id+':'+b.inert).join();
-  if(signature!==navSignature){
-   navSignature=signature;mobileNav.replaceChildren();more.querySelector('.more-tabs').replaceChildren();mobileButtons.clear();
-   const {primary,secondary}=partitionMobileTabs(tabs);
-   for(const b of tabs){const proxy=document.createElement('button');proxy.innerHTML=b.innerHTML;proxy.setAttribute('aria-label',b.getAttribute('aria-label')||b.textContent);proxy.onclick=()=>{closeMore();b.click();};(primary.includes(b)?mobileNav:more.querySelector('.more-tabs')).append(proxy);mobileButtons.set(b,proxy);}
-   if(secondary.length)mobileNav.append(moreButton);else closeMore();
-  }
-  for(const [b,proxy] of mobileButtons){if(proxy.inert!==b.inert)proxy.inert=b.inert;if(proxy.disabled!==b.disabled)proxy.disabled=b.disabled;const current=b.getAttribute('aria-current')||'false';if(proxy.getAttribute('aria-current')!==current)proxy.setAttribute('aria-current',current);}
-  const moreActive=String(!!more.querySelector('[aria-current="true"]'));if(moreButton.getAttribute('aria-current')!==moreActive)moreButton.setAttribute('aria-current',moreActive);
- }
  mobile.addEventListener('change',layout);
  return {
   reaction,assignFood(id){if(FOODS[id])quickFood=id;},get quickFood(){return quickFood;},
@@ -117,8 +120,8 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
    const strike=$('quick-strong-strike'),queued=combat.pending==='strongStrike'||!!combat.committedAbility,known=knowsAbility('strongStrike'),strikeLabel=!known?'Strong Strike — not learned':queued?'Strong Strike queued for your next melee attack (press to withdraw)':'Strong Strike (50 Energy, next melee attack)';
    if(strike.disabled===known)strike.disabled=!known;if(strike.getAttribute('aria-pressed')!==String(queued))strike.setAttribute('aria-pressed',String(queued));if(strike.title!==strikeLabel){strike.title=strikeLabel;strike.setAttribute('aria-label',strikeLabel);}
    const auraButton=$('open-auras'),glowing=String(!!auras?.anyActive);if(auraButton.getAttribute('aria-pressed')!==glowing)auraButton.setAttribute('aria-pressed',glowing);const sprint=$('toggle-sprint'),pressed=String(resources.sprint);if(sprint.getAttribute('aria-pressed')!==pressed)sprint.setAttribute('aria-pressed',pressed);if(sprint.disabled!==(resources.stamina.value===0))sprint.disabled=resources.stamina.value===0;
-   drawMap();refreshNav();if(!gear.hidden)renderGear();if(!$('combat-panel').hidden)styleMenu.refresh();if(!$('journal').hidden)menus.refresh();
+   drawMap();if(panels.isOpen('equipment'))renderGear();if(panels.isOpen('combat'))styleMenu.refresh();if(!$('journal').hidden)menus.refresh();
   },
-  get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:!more.hidden,hidden,quickFood,expanded:journal.expanded,menuOpen:!$('journal').hidden};}
+  get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:moreOpen.peek(),hidden,quickFood,expanded:journal.expanded,menuOpen:!$('journal').hidden};}
  };
 }

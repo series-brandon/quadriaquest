@@ -1,60 +1,96 @@
 import {createQuestPanel} from './quests.js';
-import {icon} from './icons.js';
 import {mountJournalTutorialLock} from './journal-tutorial-lock.js';
-import {compactQuery} from './ui/viewport.js';
+import {computed,signal,untracked} from './reactive.js';
+import {h,mount} from './ui/dom.js';
+import {iconNode} from './ui/icon.js';
+import {bind} from './ui/scope.js';
+import {compactViewport} from './ui/viewport.js';
+
+// Free-play stages where the journal button opens or closes the last page directly.
+const FREE_STAGES=['done','inactive','chop','mine'];
+const EXPANDED_KEY='quadriaquest-journal-expanded';
+
+// The adventurer's journal: the shell around the panel host's pages (header, docking,
+// expansion), plus the Quests and Settings pages. Which page is open, whether the tab bar
+// shows and which tabs exist all live in menus.panels; this module presents that state.
 export function mountJournal(menus,controller,settings){
- const $=id=>document.getElementById(id),host=$('game-menus'),nav=$('game-menu-bar');
- const shell=document.createElement('section');shell.id='journal';shell.hidden=true;shell.setAttribute('aria-label','Adventurer’s journal');
- shell.innerHTML=`<header class="journal-header"><span>Adventurer’s journal</span><button id="journal-size" aria-label="Expand journal">${icon('expand')}</button><button id="journal-close" aria-label="Close journal">${icon('close')}</button></header>`;
+ const $=id=>document.getElementById(id),{panels,host}=menus,nav=$('game-menu-bar'),toggle=$('game-menu-toggle');
  const tutorialLock=mountJournalTutorialLock(host,controller);
- let suspendedPanels=[],suspendedNav=true;
- function closeQuests(){if(controller.stage==='quests-detail')return;questPanel.hidden=true;for(const node of suspendedPanels)node.hidden=false;nav.hidden=suspendedPanels.length?suspendedNav:true;suspendedPanels=[];}
- const questPanel=createQuestPanel(host,closeQuests);
- const questButton=document.createElement('button');questButton.id='open-quests';questButton.innerHTML=icon('quests')+'<span>Quests</span>';nav.prepend(questButton);
- questButton.onclick=()=>{if(controller.stage.startsWith('quests-')&&controller.stage!=='quests-menu')return;if(!questPanel.hidden)return;suspendedNav=nav.hidden;suspendedPanels=['inventory','skills','crafting','companions','settings','combat','equipment'].map(name=>$(name+'-panel')).filter(node=>node&&!node.hidden);for(const node of suspendedPanels)node.hidden=true;questPanel.hidden=false;controller.questsOpened();};
- nav.addEventListener('click',e=>{if(!questPanel.hidden&&e.target.closest('button')!==questButton)closeQuests();},{capture:true});
- $('game-menu-toggle').addEventListener('click',e=>{if(!questPanel.hidden){e.stopImmediatePropagation();closeQuests();}},{capture:true});
- const settingsButton=document.createElement('button');settingsButton.id='open-settings';settingsButton.innerHTML=icon('settings')+'<span>Settings</span>';settingsButton.onclick=()=>{menus.closeMenus('switch');settings.mount(settingsPanel);settingsPanel.hidden=false;};nav.append(settingsButton);
- const settingsPanel=document.createElement('section');settingsPanel.id='settings-panel';settingsPanel.hidden=true;settingsPanel.setAttribute('aria-label','Settings');settingsPanel.innerHTML='<div class="crafting-heading"><button aria-label="Close settings">×</button></div>';settingsPanel.querySelector('button').onclick=()=>menus.closeMenus('dismiss');
- host.append(shell);shell.append(nav,questPanel,settingsPanel,$('inventory-panel'),$('skills-panel'),$('crafting-panel'));
- let expanded=false;try{expanded=(localStorage.getItem('quadriaquest-journal-expanded')??localStorage.getItem('quadra-journal-expanded'))==='true';}catch{}
- const mobile=compactQuery(),desktop={get matches(){return !mobile.matches;}};
- function resize(){shell.classList.toggle('expanded',expanded&&desktop.matches);$('journal-size').setAttribute('aria-label',expanded?'Minimize journal':'Expand journal');}
- mobile.addEventListener('change',resize);resize();$('journal-size').onclick=()=>{expanded=!expanded;resize();try{localStorage.setItem('quadriaquest-journal-expanded',expanded);}catch{}};
- $('game-menu-toggle').innerHTML=icon('inventory');$('game-menu-toggle').setAttribute('aria-label','Open adventurer’s journal');
- for(const name of ['skills','inventory','crafting'])$('open-'+name).innerHTML=icon(name)+`<span>${name[0].toUpperCase()+name.slice(1)}</span>`;
- const activeClose=()=>['inventory','skills','crafting','quests','companions','settings','combat','equipment'].map(name=>$(name+'-panel')).find(panel=>panel&&!panel.hidden)?.querySelector('.crafting-heading button');
+ const compact=compactViewport(),docked=signal(false),expanded=signal(readExpanded());
+ const dockedDesktop=computed(()=>docked.value&&!compact.value);
+ const locked=tutorialLock.lockedState;
+ const hidden=computed(()=>!dockedDesktop.value&&!panels.active.value&&!panels.navShown.value);
+
+ const questPanel=createQuestPanel(host,()=>panels.dismiss());
+ panels.register({id:'quests',label:'Quests',icon:'quests',order:10,element:questPanel,returnTo:true,
+  closeLocked:computed(()=>controller.stageState.value==='quests-detail'),
+  select(){
+   const stage=controller.stage;
+   if(stage.startsWith('quests-')&&stage!=='quests-menu')return;
+   if(panels.isOpen('quests'))return;
+   panels.open('quests');controller.questsOpened();
+  }});
+
+ const settingsView=mount(()=>h('section',{id:'settings-panel','aria-label':'Settings'},
+  h('div',{class:'crafting-heading'},h('button',{type:'button','aria-label':'Close settings',on:{click:()=>panels.dismiss()}},'×'))));
+ panels.register({id:'settings',label:'Settings',icon:'settings',order:60,element:settingsView.node,
+  select(){panels.open('settings');settings.mount(settingsView.node);}});
+
+ const shell=mount(()=>h('section',{
+  id:'journal','aria-label':'Adventurer’s journal',hidden,
+  classes:{expanded:()=>expanded.value&&!compact.value,'has-page':()=>!!panels.active.value},
+ },h('header',{class:'journal-header'},
+  h('span',null,()=>panels.activeEntry.value?.label??'Adventurer’s journal'),
+  h('button',{id:'journal-size',type:'button','aria-label':()=>expanded.value?'Minimize journal':'Expand journal',on:{click:toggleExpanded}},iconNode('expand')),
+  h('button',{id:'journal-close',type:'button','aria-label':'Close journal',disabled:panels.closeLocked,on:{click:closePage}},iconNode('close'))))).node;
+ host.append(shell);shell.append(nav,questPanel,settingsView.node,$('inventory-panel'),$('skills-panel'),$('crafting-panel'));
+
+ toggle.replaceChildren(iconNode('inventory'));toggle.setAttribute('aria-label','Open adventurer’s journal');
  const tip=$('gather-tutorial'),tipParent=tip.parentElement;
- function closePage(){if((docked&&desktop.matches)||tutorialLock.locked)return;const close=activeClose();if(close?.disabled)return;if(close)close.click();menus.closeMenus('dismiss');}
- $('journal-close').onclick=closePage;
- let last='quests',docked=false;
- const sync=()=>{
-  const lastTab=nav.querySelector('[data-journal-last]');if(lastTab?.nextElementSibling)nav.append(lastTab);
-  for(const button of nav.querySelectorAll('button')){const label=button.querySelector('span')?.textContent;if(label){if(!button.hasAttribute('aria-label'))button.setAttribute('aria-label',label);if(button.title!==label)button.title=label;}}
-  const active=['inventory','skills','crafting','quests','companions','settings','combat','equipment'].find(name=>$(name+'-panel')&&!$(name+'-panel').hidden);
-  if(docked&&desktop.matches&&!tutorialLock.locked&&nav.hidden)nav.hidden=false;
-  if(docked&&desktop.matches&&!active&&!tutorialLock.locked){const button=$(last==='combat'?'open-combat-styles':'open-'+last);if(button&&!button.hidden)button.click();}
-  const hide=!(docked&&desktop.matches)&&!active&&nav.hidden;if(shell.hidden!==hide)shell.hidden=hide;
-  shell.classList.toggle('has-page',!!active);
-  if(mobile.matches&&!hide){if(tip.parentElement!==shell)shell.append(tip);}
-  else if(tip.parentElement!==tipParent)tipParent.append(tip);
+ let last='quests';
 
-  if(active)last=active;const heading=shell.querySelector('.journal-header>span'),title=active?active[0].toUpperCase()+active.slice(1):'Adventurer’s journal';if(heading.textContent!==title)heading.textContent=title;
-
-  const questClose=questPanel.querySelector('.crafting-heading button');const locked=controller.stage==='quests-detail';if(questClose.disabled!==locked)questClose.disabled=locked;
-  const close=activeClose();if($('journal-close').disabled!==!!close?.disabled)$('journal-close').disabled=!!close?.disabled;
-  for(const name of ['inventory','skills','crafting','quests','companions','settings','combat','equipment']){const button=$(name==='combat'?'open-combat-styles':'open-'+name),current=String(active===name);if(button&&button.getAttribute('aria-current')!==current)button.setAttribute('aria-current',current);}
-  const expanded=String(!shell.hidden);if($('game-menu-toggle').getAttribute('aria-expanded')!==expanded)$('game-menu-toggle').setAttribute('aria-expanded',expanded);
-  tutorialLock.sync();
- };
- new MutationObserver(sync).observe(host,{subtree:true,attributes:true,attributeFilter:['hidden','disabled','class'],childList:true});mobile.addEventListener('change',sync);sync();
- // Keep the tutorial's explicit tab-selection steps, but skip the extra menu in free play.
- $('game-menu-toggle').addEventListener('click',()=>{
-  if(['done','inactive','chop','mine'].includes(controller.stage)&&!nav.hidden){
-   const next=$('open-'+last)?.hidden?'skills':last;$(next==='combat'?'open-combat-styles':'open-'+next).click();
-  }
+ mount(()=>{
+  bind(()=>toggle.setAttribute('aria-expanded',String(!hidden.value)));
+  // The docked desktop journal always shows its tabs and a page (the last one used).
+  bind(()=>panels.setNavPinned(dockedDesktop.value&&!locked.value));
+  bind(()=>{if(panels.active.value)last=panels.active.value;});
+  bind(()=>{
+   if(!dockedDesktop.value||locked.value||panels.active.value)return;
+   untracked(()=>{const entry=panels.entry(last);if(entry&&panels.available(entry))panels.select(last);});
+  });
+  // On phones the lesson tip sits inside the open journal.
+  bind(()=>{
+   const inside=compact.value&&!hidden.value;
+   if(inside&&tip.parentElement!==shell)shell.append(tip);
+   else if(!inside&&tip.parentElement!==tipParent)tipParent.append(tip);
+  });
+  return shell;
  });
- $('game-menu-toggle').addEventListener('click',e=>{if(!shell.hidden&&['done','inactive','chop','mine'].includes(controller.stage)){e.stopImmediatePropagation();menus.closeMenus('dismiss');}},{capture:true});
+
+ function toggleExpanded(){expanded.value=!expanded.peek();try{localStorage.setItem(EXPANDED_KEY,expanded.peek());}catch{}}
+ // Close button and Escape: the page's own close, then the shared close rules.
+ function closePage(){
+  if(dockedDesktop.peek()||tutorialLock.locked||panels.closeLocked.peek())return;
+  panels.dismiss();menus.closeMenus('dismiss');
+ }
+ // Capture so these run before the menu's own toggle handling.
+ toggle.addEventListener('click',e=>{
+  if(!panels.isOpen('quests'))return;
+  e.stopImmediatePropagation();panels.dismiss();
+ },{capture:true});
+ toggle.addEventListener('click',e=>{
+  if(shell.hidden||!FREE_STAGES.includes(controller.stage))return;
+  e.stopImmediatePropagation();menus.closeMenus('dismiss');
+ },{capture:true});
+ // In free play the button opens the last page directly rather than the bare tab bar.
+ toggle.addEventListener('click',()=>{
+  if(!FREE_STAGES.includes(controller.stage)||!panels.navShown.peek())return;
+  const entry=panels.entry(last);panels.select(entry&&panels.available(entry)?last:'skills');
+ });
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')&&!shell.hidden){e.preventDefault();closePage();}});
- return {setDocked(value){if(docked===value)return;docked=value;sync();},compact(){expanded=false;resize();},get locked(){return tutorialLock.locked;},get expanded(){return expanded;},open:()=>{$('game-menu-toggle').click();},expand(){expanded=true;resize();}};
+ return {setDocked(value){docked.value=!!value;},compact(){expanded.value=false;},get locked(){return tutorialLock.locked;},get expanded(){return expanded.peek();}};
+}
+
+function readExpanded(){
+ try{return (localStorage.getItem(EXPANDED_KEY)??localStorage.getItem('quadra-journal-expanded'))==='true';}catch{return false;}
 }

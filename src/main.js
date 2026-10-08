@@ -283,7 +283,7 @@ willow=createWillowbank({dialogue:characterDialogue,scene,world,crystals,rendere
  stop:stopAll,toast,showItems:showItemChanges,approach:selectActor,sound:name=>gameAudio.play(name),
  face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},
  teleport(t){if(!t)return;path=[];segment=null;tile=t;player.position.set(t.x-6,t.h,t.z-6);},
- openCrafting(){document.getElementById('open-crafting').click();},selectRecipe:id=>{if(id)menus.selectRecipe(id);},
+ openCrafting(){menus.panels.select('crafting');},showTabs:(...ids)=>{for(const id of ids)menus.panels.setAvailable(id,true);},selectRecipe:id=>{if(id)menus.selectRecipe(id);},
  showTip:(...args)=>craftingTutorial.showChapterTip(...args),say:(...args)=>craftingTutorial.sayChapter(...args),
  openInventory:()=>menus.openInventory(),closeMenus:()=>menus.closeMenus()
 });
@@ -313,7 +313,7 @@ cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:character
 });
 areas.register(cinder);
 assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0,changed:()=>styleMenu?.refresh()});
-styleMenu=createCombatStyleMenu({styles,combat,auras,assistance,equipment,character,health,beforeOpen:()=>menus.closeMenus('switch'),busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
+styleMenu=createCombatStyleMenu({styles,combat,panels:menus.panels,auras,assistance,equipment,character,health,busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
 areas.activate('clearing',{announce:false});
 function canMove(){return areas.canMove&&!travel.busy&&!combat?.busy;}
 
@@ -608,14 +608,14 @@ if(__PLAYGROUND__){
    if(name==='furnace'){furnaceMenu.open();return;}if(name==='anvil'){anvilMenu.open();return;}if(name==='destinations'){destinations.open(null);return;}if(name==='combat-styles'){styleMenu.open();return;}
    if(name==='companion-name'){if(!companions.state.owned)companions.acquire();companions.name();return;}
    if(name==='settings-popup'){settingsUI.open();return;}
-   const button=$('open-'+name);if(button){button.hidden=false;button.disabled=false;button.click();}
+   const entry=menus.panels.entryForTab('open-'+name);if(entry){menus.panels.setAvailable(entry.id,true);menus.panels.select(entry.id);}
   },
   resources:playerResources,health,
   sharedAction(name){splash.close();if(name==='heal')health.restore();else if(name==='hurt')health.value=Math.max(1,health.value-10);else if(name==='eat'){inventory.cookedFish=Math.max(1,inventory.cookedFish||0);food.start('cookedFish',true);}else willow.debug[name]();return health.value;},
   closeSplash(){splash.close();},
   grassPalette:playground.createGrassPaletteControls(()=>[...grass,...splash.grassMaterials,...willow.grassMaterials]),
   combatProfile:()=>combat.preview(),
-  objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip()},audio:gameAudio,itemFeed,openSettings:()=>document.getElementById('open-settings').click(),showCrafting(){document.getElementById('open-crafting').click();},waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},
+  objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip()},audio:gameAudio,itemFeed,openSettings:()=>menus.panels.select('settings'),showCrafting(){menus.panels.select('crafting');},registerTab:tab=>menus.panels.register(tab),waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},
   miningLesson(){this.reset('all');stopAll();finale.reset();Object.assign(inventory,{sticks:3,stones:3,pickaxes:0});for(const tree of trees)if(['boulder','copper'].includes(tree.kind))resourceActions.reset(tree);if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}craftingTutorial.startMining();},
   stopMiningLesson(){stopAll();craftingTutorial.reset();},
   mineNearest(){const node=trees.filter(t=>t.kind==='boulder'&&!t.depleted&&routeToTree(t)).sort((a,b)=>routeToTree(a).route.length-routeToTree(b).route.length)[0];if(node)selectTree(node);},
@@ -666,7 +666,7 @@ if(__PLAYGROUND__){
  debug=playground.mountPlayground(playgroundApi);
 }
 const journal=mountJournal(menus,craftingTutorial,settingsUI);
-createCompanionMenu(companions,{closeMenus:()=>menus.closeMenus('switch'),canClose:()=>menus.events.beforeClose?.('automatic')!==false});
+createCompanionMenu(companions,{panels:menus.panels,canClose:()=>menus.events.beforeClose?.('automatic')!==false});
 playerInterface=createPlayerInterface({playerControl,assistance,auras,knowsAbility:id=>styles.knowsAbility(id),menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();

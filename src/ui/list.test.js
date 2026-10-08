@@ -50,3 +50,16 @@ test('removed rows stop updating', () => {
 test('duplicate keys are an error', () => {
   assert.throws(() => setup([{id: 'a', label: 1}, {id: 'a', label: 2}]), /duplicate key/);
 });
+
+test('fixed nodes after the list stay after its rows', () => {
+  const items = signal([1, 2]);
+  const view = mount(() => {
+    const list = keyedList(h('ul'), items, n => n, n => h('li', null, () => String(n.value)));
+    list.append(h('li', {class: 'q-more'}, 'more'));
+    return list;
+  });
+  items.value = [3, 1, 2];
+  assert.deepEqual([...view.node.children].map(li => li.textContent), ['3', '1', '2', 'more']);
+  items.value = [2];
+  assert.deepEqual([...view.node.children].map(li => li.textContent), ['2', 'more']);
+});
