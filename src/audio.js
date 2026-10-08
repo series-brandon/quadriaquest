@@ -1,7 +1,9 @@
+import {reactiveRecord} from './reactive.js';
 // Original, lightweight procedural sketches. No audio downloads or external services.
 export function createGameAudio(){
  let previewMode=null;let context,buses={},mode='clearing',note=0,nextMusic=0,nextAmbient=0;
- const settings={music:.22,effects:.45,ambience:.25,muted:false};
+ // Reactive so settings pages follow changes from any source (sliders, reset, the playground).
+ const settings=reactiveRecord({music:.22,effects:.45,ambience:.25,muted:false});
  try{Object.assign(settings,JSON.parse(localStorage.getItem('quadriaquest-audio')??localStorage.getItem('quadra-audio')??'{}'));}catch{}
  for(const key of ['music','effects','ambience'])settings[key]=Math.max(0,Math.min(1,Number(settings[key])||0));
  let scheduledMusic=null;
@@ -37,14 +39,4 @@ export function createGameAudio(){
  document.addEventListener('pointerdown',unlock,{once:true});document.addEventListener('keydown',unlock,{once:true});
  document.addEventListener('click',e=>{if(e.target.closest('button'))play('ui');});
  return {play,update,unlock,set,settings,preview(value){previewMode=value;note=0;nextMusic=0;},reset(){for(const [key,value]of Object.entries({music:.22,effects:.45,ambience:.25,muted:false}))set(key,value);previewMode=null;note=0;nextMusic=0;nextAmbient=0;},get ready(){return context?.state==='running';}};
-}
-export function mountAudioControls(audio){
- const host=document.createElement('dialog');host.id='game-settings';host.setAttribute('aria-labelledby','settings-title');
- host.innerHTML='<div class="settings-heading"><h2 id="settings-title">Settings</h2><button id="close-settings" aria-label="Close settings">×</button></div>';document.body.append(host);
- const content=document.createElement('div');content.className='settings-content';
- content.innerHTML='<h3>Sound</h3>'+['music','effects','ambience'].map(key=>`<label>${key[0].toUpperCase()+key.slice(1)}<input type="range" min="0" max="1" step="0.05" value="${audio.settings[key]}" data-audio="${key}" aria-label="${key} volume"></label>`).join('')+`<label class="mute-setting"><input type="checkbox" id="audio-muted" ${audio.settings.muted?'checked':''}> Mute all</label>`;host.append(content);
- content.querySelectorAll('[data-audio]').forEach(input=>input.oninput=()=>{audio.unlock();audio.set(input.dataset.audio,Number(input.value));});content.querySelector('#audio-muted').onchange=e=>audio.set('muted',e.target.checked);
- host.querySelector('#close-settings').onclick=()=>host.close();
- function refresh(){for(const input of content.querySelectorAll('[data-audio]'))input.value=audio.settings[input.dataset.audio];content.querySelector('#audio-muted').checked=audio.settings.muted;}
- return {open(){host.append(content);refresh();host.showModal();},mount(panel){host.close();panel.append(content);refresh();},close(){host.close();}};
 }

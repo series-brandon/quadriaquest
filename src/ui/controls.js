@@ -104,3 +104,10 @@ export function subTabs({label, tabs, value, onChange = next => { value.value = 
       hidden: () => read(value) !== tab.id,
     }, tab.build())));
 }
+
+// A labelled range input that shows its current value (formatted by `format`).
+export function slider({label, value, min = 0, max = 1, step = 0.05, format = v => `${Math.round(v * 100)}%`, onInput}) {
+  return h('label', {class: 'q-slider'},
+    h('span', {class: 'q-slider__head'}, h('span', {class: 'q-slider__label'}, label), h('b', {class: 'q-slider__value'}, () => format(read(value)))),
+    h('input', {type: 'range', min, max, step, value: () => String(read(value)), 'aria-label': label, on: {input: event => onInput(Number(event.target.value))}}));
+}

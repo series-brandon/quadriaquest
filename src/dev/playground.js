@@ -174,7 +174,7 @@ export function mountPlayground(api){
         if(action==='clear-loot')api.itemFeed.clear();
         if(action==='quests')document.getElementById('open-quests').click();
         if(action==='settings')api.openSettings();
-        if(action==='audio-reset'){api.audio.reset();panel.querySelector('#dev-music').value='';for(const input of document.querySelectorAll('[data-audio]'))input.value=api.audio.settings[input.dataset.audio];document.getElementById('audio-muted').checked=false;}
+        if(action==='audio-reset'){api.audio.reset();panel.querySelector('#dev-music').value='';}
         if(action==='grass-reset'){api.grassPalette.reset();$('grass-color').value=api.grassPalette.defaultColor;status('Original grass palette restored.');}
         if(action==='models'){modelPreview??=createModelPreview();modelPreview.show();}
         if(action==='water-restart'){api.restartWater();status('Water animation restarted.');}

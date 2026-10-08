@@ -162,3 +162,9 @@
 }
 .q-badge[hidden] { display: none; }
 .q-tab--badged { position: relative; }
+
+.q-slider { display: grid; gap: 4px; min-block-size: var(--q-touch); }
+.q-slider__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.q-slider__label { font-size: 13px; font-weight: 600; }
+.q-slider__value { color: var(--q-ink-muted); font: 700 12px / 1 var(--q-font-numeric); }
+.q-slider input { inline-size: 100%; min-block-size: 28px; margin: 0; accent-color: var(--q-control-pressed); }

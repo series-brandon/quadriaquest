@@ -32,10 +32,9 @@ export function mountJournal(menus,controller,settings){
    panels.open('quests');controller.questsOpened();
   }});
 
- const settingsView=mount(()=>h('section',{id:'settings-panel','aria-label':'Settings'},
-  h('div',{class:'crafting-heading'},h('button',{type:'button','aria-label':'Close settings',on:{click:()=>panels.dismiss()}},'×'))));
+ const settingsView=mount(()=>h('section',{id:'settings-panel','aria-label':'Settings',hidden:true},settings.page()));
  panels.register({id:'settings',label:'Settings',icon:'settings',order:60,element:settingsView.node,
-  select(){panels.open('settings');settings.mount(settingsView.node);}});
+  select(){panels.open('settings');}});
 
  const shell=mount(()=>h('section',{
   id:'journal','aria-label':'Adventurer’s journal',hidden,

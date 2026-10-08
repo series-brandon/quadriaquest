@@ -45,7 +45,7 @@ export function createSplash(renderer,enabled,settings){
   const bend=createSlimeBend(slime,[body,face.group]);
   const zs=createSleepFeedback(scene);let age=2;
   let blocked=[];
-  function show(){if(!overlay.hidden)return;overlay.hidden=false;blocked=[...document.body.children].filter(el=>el!==overlay&&el.id!=='game-settings'&&!(__PLAYGROUND__&&el.id==='quadriaquest-dev-playground')&&!el.inert);for(const el of blocked)el.inert=true;}
+  function show(){if(!overlay.hidden)return;overlay.hidden=false;blocked=[...document.body.children].filter(el=>el!==overlay&&!el.classList?.contains('q-modal')&&!(__PLAYGROUND__&&el.id==='quadriaquest-dev-playground')&&!el.inert);for(const el of blocked)el.inert=true;}
   const close=()=>{overlay.hidden=true;for(const el of blocked)el.inert=false;blocked=[];};overlay.querySelector('#splash-play').onclick=close;
   if(enabled)show();
   return {grassMaterials,randomizeAppearance,restartWater(){gardenWater.restart();},get active(){return !overlay.hidden;},show,close,render(dt){

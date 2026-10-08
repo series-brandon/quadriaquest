@@ -20,6 +20,29 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Settings page rebuilt in the kit — 2026-10-08 (UI rework pages complete)
+- **New page:** `ui/pages/settings-page.js`: a "Sound" card with Music/Effects/Ambience sliders (the new kit `slider`, showing percentages) and a Mute all switch, plus a pointer to the Combat tab for modes.
+- **One page in two hosts:** `settings-menu.js` (`createSettingsMenu({audio, modals})`) replaces `audio.js`'s `mountAudioControls`.
+  - `journal.js` mounts `settings.page()` in `#settings-panel`.
+  - `settingsUI.open()` shows it on the modal host (the splash gear button, playground Interface → Settings popup).
+  - `settingsUI` is now created after the modal host in main.js.
+- **Reactive at the source:** `createGameAudio`'s `settings` is a `reactiveRecord`. Sliders bind to it, so the journal copy, the popup, playground Reset audio and localStorage persistence all agree. The playground no longer pokes `[data-audio]` inputs.
+- **Splash:** it inerts body children except kit modals (previously `#game-settings`), so the popup stays usable over the splash.
+- **Removed:** the legacy `#game-settings` dialog, `.settings-heading`/`.settings-content` and `#settings-panel` CSS, plus dead `#audio-settings` rules (no element renders it). About 2.3 KB.
+- **Verification:**
+  - 344 tests pass, including `settings-page.test.js`: two copies agree, sliders and mute write through, unlock on slide, external reset shows.
+  - `check:ui` passes; legacy debt fell and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - journal Music 70% shows in the popup and saves to localStorage;
+    - Mute all toggles and saves;
+    - playground Reset audio updates the open popup;
+    - the splash gear opens the popup above the splash (not inert) and its slider works;
+    - at 375px the popup is fullscreen.
+  - The preview's audio settings were reset to defaults afterwards.
+- **UI rework status:** every journal page (Quests, Character with Attributes/Skills/Proficiencies, Inventory, Crafting, Combat, Settings, Equipment) and every utility dialog is on the kit.
+  - Still legacy: the Companions page, dialogue boxes, tutorial tips, toasts (including the objective toast) and the dev model viewer.
+  - Next per the user's plan: the Spells and Auras tabs.
+
 ### Quests page rebuilt in the kit — 2026-10-08
 - **New page:** `ui/pages/quests-page.js`, mounted by `journal.js` as `#quests-panel`. It replaces `quests.js`'s `render()`/`createQuestPanel` (rebuilt the whole panel on every objective call), its HTML strings and about 1.3 KB of `#quests-panel`/`.quest-*` CSS. The `journal-entry`/`journal-back` styles stay because Companions still uses them.
   - **Quest lines:** title plus "n / m tasks" or Complete. The list is hidden when there's only one, since the detail title names it.

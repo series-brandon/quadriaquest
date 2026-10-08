@@ -1,0 +1,3 @@
+/* Settings page (ui/pages/settings-page.js). */
+.q-settings-page { max-inline-size: 480px; }
+.q-settings__group { gap: 10px; }

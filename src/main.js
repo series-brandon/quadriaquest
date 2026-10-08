@@ -64,7 +64,8 @@ import {createWillowbank} from './willowbank.js';
 import {createGrassColors} from './grass-palette.js';
 import {updateObjective,finishObjective,resetObjectives} from './quests.js';
 import {icon} from './icons.js';
-import {createGameAudio,mountAudioControls} from './audio.js';
+import {createGameAudio} from './audio.js';
+import {createSettingsMenu} from './settings-menu.js';
 import {mountJournal} from './journal.js';
 import {BOULDER_TILES,makePickaxe,miningMotion} from './mining.js';
 import {ITEMS} from './items.js';
@@ -79,7 +80,7 @@ import {socialMotion,createIdleClock,SLEEP_SETTLE} from './slime-social.js';
 import {createSleepFeedback} from './sleep-feedback.js';
 import {createTutorialFinale} from './tutorial-finale.js';
 import {createItemFeed} from './item-feedback.js';
-const gameAudio=createGameAudio(),itemFeed=createItemFeed(icon),settingsUI=mountAudioControls(gameAudio);
+const gameAudio=createGameAudio(),itemFeed=createItemFeed(icon);
 window.addEventListener('quadriaquest-level',()=>gameAudio.play('level'));
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -209,6 +210,7 @@ const travel=createTravelSystem({areas,stop:stopAll,blocked:()=>!areas.canMove||
 function crystalRestore(){health.max=character.maxima.health;health.restore();playerResources.restoreAll();}
 // Utility dialogs (stations, destinations, naming, confirmations) share one modal host.
 const modals=createModalHost();
+const settingsUI=createSettingsMenu({audio:gameAudio,modals});
 destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,services:{
  restore(){if(combat.inCombat)return 'Not available during combat.';crystalRestore();return 'Restored. Active auras stay on.';},
  respec(){if(combat.inCombat)return 'Not available during combat.';auras.deactivateAll();const refund=character.redistribute();crystalRestore();return `${refund} attribute point${refund===1?'':'s'} returned to spend in Skills. Auras turned off; resources restored.`;}}});

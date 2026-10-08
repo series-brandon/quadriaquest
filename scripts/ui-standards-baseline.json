@@ -1,8 +1,4 @@
 {
-  "src/audio.js": {
-    "innerHTML": 2,
-    "propertyHandlers": 3
-  },
   "src/campfires.js": {
     "innerHTML": 1,
     "propertyHandlers": 1

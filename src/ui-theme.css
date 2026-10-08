@@ -63,7 +63,7 @@ body #game-menus{bottom:20px;right:20px}
 [hidden],#journal [hidden]{display:none!important}
 @media(max-width:700px){#journal,#journal.expanded{right:12px;bottom:80px;transform:none;width:calc(100vw - 24px);max-width:none;max-height:65dvh}body:has(#gather-tutorial:not([hidden])) #journal{max-height:48dvh}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:12px;left:12px;width:calc(100vw - 24px);padding:12px 15px}#journal-size{display:none}.journal-header{padding-top:12px}#journal #game-menu-bar{padding:6px 12px}#dialogue{bottom:16px}}
 #item-feed{position:fixed;right:24px;bottom:92px;display:flex;flex-direction:column;gap:8px;width:280px;max-width:calc(100vw - 32px);pointer-events:none;z-index:22}body:has(#journal:not([hidden])) #item-feed{right:auto;left:24px;bottom:24px}.loot-receipt{background:#faf1e7f2;border:1px solid var(--ui-border);border-radius:12px;padding:12px 14px;box-shadow:0 5px 18px #382b491c;animation:loot-in .25s ease-out;transition:opacity .35s,transform .35s}.loot-line{display:flex;gap:10px;align-items:center;font-size:13px}.loot-line.gain{color:#46694e}.loot-line.cost{color:#806c7e}.loot-receipt small{display:block;margin:7px 0 0 35px;font-size:11px;color:var(--ui-muted)}.loot-receipt.leaving{opacity:0;transform:translateY(-8px)}@keyframes loot-in{from{opacity:0;transform:translateX(15px)}to{opacity:1;transform:translateX(0)}}
-#audio-settings{position:fixed;left:18px;bottom:18px;z-index:60;font-size:12px}#audio-settings summary{cursor:pointer;list-style:none;padding:9px 12px;border-radius:12px;background:var(--ui-paper);border:1px solid var(--ui-border)}#audio-settings>div{position:absolute;bottom:45px;left:0;padding:18px;width:240px;background:var(--ui-paper);border:1px solid var(--ui-border);border-radius:12px;box-shadow:0 8px 30px #382b4930}#audio-settings label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}#audio-settings input[type=range]{width:130px;accent-color:var(--ui-button)}
+
 @media(prefers-reduced-motion:reduce){.loot-receipt{animation:none;transition:none}}
 #journal .journal-header{position:static;inset:auto;transform:none;opacity:1;visibility:visible;width:auto;flex-shrink:0;pointer-events:auto}
 body:has(#journal:not([hidden])) #item-feed{bottom:70px}
@@ -98,15 +98,14 @@ body:has(#journal:not([hidden])) #item-feed{bottom:70px}
  
  body #journal #gather-tutorial{position:relative;inset:auto;transform:none;width:auto;max-width:none;max-height:30dvh;min-height:0;flex-shrink:1;overflow:auto;margin:0 10px 6px;padding:12px 14px;box-shadow:none;pointer-events:auto;border-radius:10px}
  #journal #gather-tutorial #tutorial-copy{font-size:14px;line-height:1.5}#journal #gather-tutorial #tutorial-continue,#journal #gather-tutorial #tutorial-help{min-height:44px}
- body:has(#journal:not([hidden])) #game-menu-toggle,body:has(#journal:not([hidden])) #audio-settings{display:none}
+ body:has(#journal:not([hidden])) #game-menu-toggle{display:none}
  body:has(#journal:not([hidden])) #item-feed{left:16px;right:16px;bottom:16px;width:auto;z-index:40}
  body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:max(12px,env(safe-area-inset-top));left:12px;width:calc(100vw - 24px);max-height:40dvh;overflow:auto;pointer-events:auto}
  #dialogue{left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));transform:none;width:auto;max-width:none;max-height:70dvh;overflow:auto;padding:20px}#dialogue-line{font-size:17px;line-height:1.6}#dialogue-controls input[type=text]{font-size:16px}#dialogue-controls button{min-height:44px}
- #audio-settings{left:12px;bottom:max(12px,env(safe-area-inset-bottom))}#audio-settings summary{min-height:44px;display:flex;align-items:center}
+ 
  #item-feed{right:12px;bottom:80px;width:240px;max-width:calc(100vw - 24px)}#item-feed .loot-receipt:nth-last-child(n+3){display:none}
 }
 @media(max-width:700px){body:has(#journal:not([hidden])) #journal #gather-tutorial{position:relative;inset:auto;transform:none;width:auto;align-self:stretch;max-width:none;margin:0 10px 6px;max-height:30dvh}#journal .journal-header,#journal #game-menu-bar{flex-shrink:0}}
-@media(max-width:700px){body:has(#dialogue:not([hidden])) #audio-settings{top:max(12px,env(safe-area-inset-top));bottom:auto;left:auto;right:12px}body:has(#dialogue:not([hidden])) #audio-settings>div{top:50px;bottom:auto;left:auto;right:0}}
 
 /* Settings has one shared home, reachable from the journal and splash. */
 body #game-menus{top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));bottom:auto}
@@ -114,12 +113,11 @@ body #game-menus{top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-
 #game-menu-toggle.gold-guide::before{left:auto;right:calc(100% + 22px);top:50%;bottom:auto;width:36px;height:54px;transform:translateY(-50%) rotate(-90deg);animation:menu-guide-bob 1.8s ease-in-out infinite}
 @keyframes menu-guide-bob{0%,100%{transform:translate(-7px,-50%) rotate(-90deg)}50%{transform:translate(3px,-50%) rotate(-90deg)}}
 @media(prefers-reduced-motion:reduce){#game-menu-toggle.gold-guide::before{animation:none}}
-#game-settings{width:min(380px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:24px;border:1px solid var(--ui-border);border-radius:18px;background:var(--ui-paper);color:var(--ui-ink);box-shadow:0 18px 65px #382b4933;overflow:auto}
-#game-settings::backdrop{background:#241b36aa;backdrop-filter:blur(3px)}.settings-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.settings-heading h2{font:24px Georgia,serif;margin:0}.settings-heading button{width:44px;height:44px;font-size:26px}.settings-content h3{font-size:14px;margin:24px 0 12px}.settings-content label{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0;min-height:36px;font-size:15px}.settings-content input[type=range]{width:160px;accent-color:var(--ui-button)}.settings-content .mute-setting{justify-content:flex-start}.settings-content input[type=checkbox]{width:20px;height:20px;accent-color:var(--ui-button)}
+
 .splash-actions{--splash-button-size:62px;display:flex;align-items:center;justify-content:center;gap:14px}
 .splash-actions button{box-sizing:border-box;height:var(--splash-button-size);padding-top:0;padding-bottom:0}
 #splash-settings{position:static;flex:0 0 var(--splash-button-size);width:var(--splash-button-size);height:var(--splash-button-size);padding:0;display:grid;place-items:center;background:var(--ui-paper);border:1px solid var(--ui-border);border-radius:14px;color:var(--ui-button);pointer-events:auto}
-@media(max-width:700px){#journal:not(.expanded){inset:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-height:none}#journal #game-menu-bar button{flex-direction:column;font-size:11px;gap:5px;padding:8px 4px}#journal #game-menu-bar .game-icon{width:21px;height:21px}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:80px;max-height:35dvh}#game-settings{padding:20px}.settings-content label{min-height:44px}#item-feed{bottom:20px}}
+@media(max-width:700px){#journal:not(.expanded){inset:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-height:none}#journal #game-menu-bar button{flex-direction:column;font-size:11px;gap:5px;padding:8px 4px}#journal #game-menu-bar .game-icon{width:21px;height:21px}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:80px;max-height:35dvh}#item-feed{bottom:20px}}
 /* Tips share the dialogue area; objective updates are brief, independent receipts. */
 body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:auto;bottom:24px;left:50%;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));max-height:38dvh;overflow:auto;z-index:45;pointer-events:auto}
 #gather-tutorial .progress-track,#gather-tutorial #tutorial-count{display:none}
@@ -184,14 +182,9 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 
 @media(min-width:701px){#journal.expanded{top:max(24px,env(safe-area-inset-top));bottom:auto;max-height:calc(100dvh - 48px)}}
 
-#journal #settings-panel{min-height:0;overflow:auto;padding:16px 20px 20px}
-#journal #settings-panel>.crafting-heading{display:none}
-.settings-content{max-width:480px;width:100%;margin:0 auto}
-.settings-content input[type=range]{max-width:55%}
-
 /* Small screens use edge-to-edge menus; tiny confirmations remain compact overlays. */
 @media(max-width:700px){
- body dialog:not(.q-modal),body #game-settings,body .willow-modal{box-sizing:border-box;position:fixed;inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;border:0;padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow:auto}
+ body dialog:not(.q-modal),body .willow-modal{box-sizing:border-box;position:fixed;inset:0;margin:0;width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;border:0;padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow:auto}
  body #journal,body #journal.expanded,body #journal:not(.expanded){inset:0;width:100%;height:100dvh;max-width:none;max-height:none;border-radius:0;border:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box}
  body dialog:not(.q-modal) input,body dialog:not(.q-modal) select{font-size:16px;min-height:44px;box-sizing:border-box}
 }
