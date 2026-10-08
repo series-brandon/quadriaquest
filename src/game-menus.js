@@ -13,7 +13,7 @@ import {bind} from './ui/scope.js';
 
 // Shared journal pages. Tutorial guidance is optional and does not own recipes or skills.
 // Page visibility, the tab bar and tab availability belong to the panel host (`panels`).
-export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,startCraft,craftState=()=>null,craftBusy=()=>false,equipment={}}){
+export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,startCraft,craftState=()=>null,craftBusy=()=>false,equipment={},itemSettings=()=>[]}){
  const $=id=>document.getElementById(id),events={};
  const host=document.createElement('div');host.id='game-menus';
  host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false">☰</button>
@@ -37,7 +37,7 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
  function openCrafting(id){if(id)selectRecipe(id);else selectRecipe(selectedRecipe);panels.open('crafting');refresh();}
  const skillsPanel=document.createElement('section');skillsPanel.id='skills-panel';skillsPanel.hidden=true;skillsPanel.setAttribute('aria-label','Skills');
  skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><input id="skills-search" class="journal-search" type="search" placeholder="Search skills…" aria-label="Search skills"><section id="character-summary" aria-label="Core level and attributes"></section><div id="skills-list"></div>';host.append(skillsPanel);
- const inventoryMenu=createInventoryMenu(host,getInventory,id=>events.inventorySelected?.(id),()=>panels.dismiss(),equipment);
+ const inventoryMenu=createInventoryMenu(host,getInventory,id=>events.inventorySelected?.(id),()=>panels.dismiss(),equipment,itemSettings);
  function openInventory(){panels.open('inventory');inventoryMenu.open();}
  const guidance=signal({});
  $('skills-search').oninput=()=>renderSkills();

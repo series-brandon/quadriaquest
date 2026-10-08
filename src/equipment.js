@@ -1,4 +1,5 @@
 import {UNARMED} from './combat-profile.js';
+import {signal} from './reactive.js';
 
 // Items contribute bonuses; damage comes from the shared formulas (docs/COMBAT.md).
 // offHand marks one-handed weapons explicitly configured as off-hand eligible.
@@ -14,7 +15,9 @@ export const ARMOR_SLOTS=['chest','hands','legs','feet','back','ward'];
 export const ATTACK_HANDS=['main','off','alternate'];
 const isWeapon=id=>!!GEAR[id]?.style;
 
-export function createEquipment({inventory,busy=()=>false,changed=()=>{}}){
+export function createEquipment({inventory,busy=()=>false,changed:notify=()=>{}}){
+ // `revision` changes with every equipment change for UI bindings.
+ const revision=signal(0),changed=()=>{revision.value++;notify();};
  const slots={main:null,off:null,head:null,...Object.fromEntries(ARMOR_SLOTS.map(s=>[s,null]))};
  const damageTypes={main:null,off:null};let attackHands=null;
  const copies=id=>Object.values(slots).filter(v=>v===id).length;
@@ -45,7 +48,7 @@ export function createEquipment({inventory,busy=()=>false,changed=()=>{}}){
  const eligibleHands=()=>['main','off'].filter(h=>handAttack(h));
  // Defaults: one weapon → its hand; two weapons or two fists → alternate.
  function defaultHands(){const weapons=['main','off'].filter(h=>isWeapon(slots[h]));return weapons.length===1?weapons[0]:'alternate';}
- const api={refresh,toggle,handAttack,eligibleHands,isEquipped(id){refresh();return Object.values(slots).includes(id);},
+ const api={revision,refresh,toggle,handAttack,eligibleHands,isEquipped(id){refresh();return Object.values(slots).includes(id);},
   get slots(){refresh();return {...slots};},
   get attack(){return handAttack('main')||handAttack('off')||{...UNARMED,item:null,hand:'main'};},
   // Worn armor pieces (any slot whose item declares armor), for resistance, block and armor XP.

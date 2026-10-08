@@ -11,7 +11,7 @@ import {FOODS} from './player-health.js';
 // actual enemy data (deliberate design decision) but never moves or flees for the player.
 export const TRAINING_GOALS=['technique','power','accuracy','defense','agility','speed'];
 const GOAL_STRATEGY=Object.fromEntries(Object.entries(STRATEGIES).map(([id,s])=>[s.skill,id]));
-const DEFAULT_ADVANCED={autoEat:true,emergencyPriority:false,allowRiskySpells:false,foodExclusions:[],spellExclusions:[],auraRecovery:.5,auraGrace:3};
+const DEFAULT_ADVANCED={autoEat:true,emergencyPriority:false,allowRiskySpells:false,foodExclusions:[],spellExclusions:[],auraRecovery:.5,auraGrace:3,showEnergy:false,showKi:false};
 const STYLE_OF=item=>GEAR[item]?.style==='ranged'?'ranged':'melee';
 
 export function createAssistance(api){
@@ -20,7 +20,8 @@ export function createAssistance(api){
  // Signal-backed so the HUD warning chip follows advice without polling.
  const warning=signal('');
  let override=null,danger=null,exhausted=false,optimizeReport='',clock=0;const grace={};
- const changed=()=>api.changed?.();
+ // `revision` changes with every settings change for UI bindings.
+ const revision=signal(0),changed=()=>{revision.value++;api.changed?.();};
  const engaged=()=>combat.engagedEnemy;
  const meanDps=p=>((p.min+p.max)/2*(p.damageScale??1))/p.interval;
 
@@ -136,6 +137,7 @@ export function createAssistance(api){
  }
 
  const api2={
+  revision,
   canAttack,shouldRetaliate,noteManualAttack,optimize,assess,
   update(dt){
    if(!combat.inCombat)override=null;

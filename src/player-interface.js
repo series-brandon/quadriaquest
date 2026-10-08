@@ -5,7 +5,7 @@ import {bind} from './ui/scope.js';
 import {panelTabs,anyAvailable} from './ui/panel-tabs.js';
 import {quickActions} from './ui/hud/quick-actions.js';
 import {warningChip} from './ui/hud/warning-chip.js';
-import {signal,untracked} from './reactive.js';
+import {computed,signal,untracked} from './reactive.js';
 import {mountMinimapControls} from './minimap-controls.js';
 import {icon} from './icons.js';
 import {ITEMS} from './items.js';
@@ -31,10 +31,17 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  const actionFor={health:actions.eat,mana:actions.quickSpell,stamina:actions.sprint,energy:actions.strongStrike,ki:actions.quickAuras};
  for(const [kind,node] of Object.entries(actionFor))node.classList.add('resource-placeholder-action',kind);
  $('overview-vitals').append(actionFor.health);
+ const meters={};
  for(const [kind,label] of [['mana','Mana'],['stamina','Stamina'],['energy','Energy'],['ki','Ki']]){
-  const meter=mount(()=>resourceMeter({id:'player-'+kind,kind,label,resource:resources[kind]})).node;meter.classList.add('resource-placeholder',kind);
+  const meter=mount(()=>resourceMeter({id:'player-'+kind,kind,label,resource:resources[kind]})).node;meter.classList.add('resource-placeholder',kind);meters[kind]=meter;
   $('overview-vitals').append(meter,actionFor[kind]);
  }
+ // Simple mode manages abilities and auras, so Energy (Quick Ability) and Ki (Quick Auras) meters and
+ // buttons stay hidden unless the player opts in under Simple settings. The row closes up the gap.
+ const shows=computed(()=>{assistance?.revision.value;const s=assistance?.settings,simple=!!s&&s.control!=='manual';return {energy:!simple||s.advanced.showEnergy,ki:!simple||s.advanced.showKi};});
+ mount(()=>{bind(()=>{const {energy,ki}=shows.value,vitals=$('overview-vitals');
+  meters.energy.hidden=actionFor.energy.hidden=!energy;meters.ki.hidden=actionFor.ki.hidden=!ki;
+  vitals.dataset.columns=String(3+energy+ki);vitals.toggleAttribute('data-energy-hidden',!energy);});return $('overview-vitals');});
  const mapCanvas=overview.querySelector('canvas');let mapCenter={x:tile().x,z:tile().z};
  const mapControls=mountMinimapControls(mapCanvas,{center:()=>mapCenter,move,changed:()=>{clock=.15;drawMap();}});
  // Phone tab bar: primary tabs plus a More sheet for the rest, both rendered from the panel host.
@@ -121,7 +128,7 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
   attacked(){reaction('attacked');const now=performance.now();if(now-lastAttacked>10000)warning.announce('Under attack!');lastAttacked=now;},
   reset(){mapControls.reset();hidden=false;quickFood.value='cookedFish';journal.compact();menus.closeMenus();layout();},
   update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();if(!visible)return;
-   drawMap();if(panels.isOpen('equipment'))renderGear();if(panels.isOpen('combat'))styleMenu.refresh();if(!$('journal').hidden)menus.refresh();
+   drawMap();if(panels.isOpen('equipment'))renderGear();if(!$('journal').hidden)menus.refresh();
   },
   get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:moreOpen.peek(),hidden,quickFood:quickFood.peek(),expanded:journal.expanded,menuOpen:!$('journal').hidden};}
  };

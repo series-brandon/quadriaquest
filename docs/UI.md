@@ -21,6 +21,7 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 | `src/ui/list.js` | `keyedList` keeps row nodes, focus and scopes across updates. |
 | `src/ui/panels.js` | `createPanelHost` holds the open page, the tab bar (open or pinned), tab availability, return-to pages, close locks and dismiss rules. Every journal page and launcher tab registers here once. |
 | `src/ui/panel-tabs.js` | `panelTabs` builds tab buttons from a host: the desktop bar, the phone bar and the More sheet. Tab ids (`open-<id>`) stay stable for tutorials and tests. |
+| `src/ui/controls.js` | Shared page controls: `segmented`, `toggleSwitch`, `section` (collapsible, with its current value in the header) and `row`. |
 | `src/ui/viewport.js` | The single breakpoint (700px) and the `compactViewport()` signal. |
 | `src/ui/icon.js` | `iconNode(name)`, the shared icons as DOM nodes. |
 | `src/ui/tokens.css` | Every color, shape, size, font, shadow and motion value used by the kit (`--q-*`). |
@@ -61,4 +62,6 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 | Journal shell (`journal.js`) | Built with `h()`. The page contents (Skills, Inventory, Crafting, Quests, Settings, Combat, Equipment, Companions) are still legacy markup. |
 | Tutorial journal lock | Legacy: id-based rules plus a MutationObserver (moved out of the journal). It exposes `lockedState` for the kit. Retire it once guide highlights are tutorial state. |
 | Utility dialogs (cooking, furnace, anvil, destinations, companion name, food confirm) | Legacy `<dialog>`s, not yet on the host |
-| Combat page, equipment, skills, inventory, crafting, dialogue, toasts | Legacy |
+| Combat page | Kit (`ui/pages/combat-page.js`, hosted by `combat-style-menu.js`). Reactive through the revisions of styles, combat, auras, assistance, equipment and character; no refresh calls. |
+| Equipment, skills, inventory, crafting, dialogue, toasts | Legacy |
+| Spells and Auras tabs | Planned (user request): see HANDOFF → Planned: Spells and Auras journal tabs |

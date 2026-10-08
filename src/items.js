@@ -13,7 +13,7 @@ export const ITEMS={
  firestarters:{name:'Flint and Stone',description:'A reusable fire-starting tool. Required to craft a Campfire.'},
  campfires:{name:'Campfire',description:'Place on clear ground to cook fish. Can be packed up again.'},
  rawFish:{name:'Raw Pondfish',description:'A fresh catch. Cook it at a Campfire before eating.'},
- cookedFish:{name:'Cooked Pondfish',description:'A warm meal. Restores 10 health, up to your maximum.'},
+ cookedFish:{name:'Cooked Pondfish',description:'A warm meal. Restores 20 health, up to your maximum.'},
  sticks:{name:'Sticks',icon:'╱',description:'A small handful of fallen sticks. Useful for crafting simple tools.'},
  stones:{name:'Rocks',icon:'◆',description:'A handful of moderately sized rocks. Useful for crafting simple tools.'},
  pickaxes:{name:'Crude Pickaxe',icon:'⛏',description:'A simple pickaxe for mining boulders. Keep it in your inventory to use it.'},

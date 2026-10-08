@@ -20,6 +20,67 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Planned: Spells and Auras journal tabs (user request, 2026-10-08; not started)
+- **Spells tab:** every spell, with its description, power, cast time, base XP and costs, plus an "Allow auto use" setting (Simple; today `spellExclusions`). Includes a "Set quick spell" action.
+- **Auras tab:** every aura, with its description, effects and Ki cost per second, plus an "Allow auto use" setting. Includes a "Set quick auras" action.
+- **Open points when building:**
+  - Auras have no per-aura Simple exclusion yet. Today only manual overrides exist, so this needs an `auraExclusions` setting, a COMBAT.md rule and handling in `autoAuras`.
+  - The Combat page's Spells and Auras sections should then move to these tabs (or link to them) rather than duplicate them.
+  - Two more tabs need a place in the tab order and on phones (probably under More).
+  - Decide whether unlearned spells and auras appear (for example locked, with how to learn them).
+
+### Per-item Simple permissions — 2026-10-08
+- **User decision:** settings lists don't scale to dozens of foods or spells, so permissions now live on the items. The old "Never auto-use X" checkboxes in Simple settings are gone.
+- **Food:** the inventory detail shows **Allow auto eating** (default on).
+  - `createInventoryMenu` takes a generic `settingsFor(id)` returning `[{label, checked, onChange}]`, passed through as `createGameMenus({itemSettings})`.
+  - `itemSettings` in main.js supplies the food entry, backed by `assistance` `foodExclusions`.
+- **Spells:** each Combat page spell row has an **Allow Simple to cast** switch beside the quick-spell star (Simple mode only), backed by `spellExclusions`.
+- **Unchanged:** the exclusion data and Simple's decision logic. Excluding one item leaves the rest eligible; "Auto-eat before a one-hit defeat" is the master switch.
+- **Docs:** COMBAT.md → Minimal setup → Per-item permissions.
+
+### Simple mode — 2026-10-08
+- **Rename:** the player-facing "Auto" mode is now **Simple**. The internal control is still `auto`, so the rules, tests and assistance API are unchanged.
+- **Combat page wording:**
+  - "Simple | Manual";
+  - "Chosen for you: …";
+  - "X is your choice · Let Simple choose" chips;
+  - a "Simple settings" section.
+- **Simple hides Energy and Ki** (user decision): the meters and their quick buttons (Strong Strike, quick auras) disappear, and the vitals row shrinks to three columns . The advanced settings `showEnergy` ("Show Energy and Quick Ability") and `showKi` ("Show Ki and Quick Auras"), both off by default and first in Simple settings, show each pair independently; the row uses `data-columns` (3–5), and Ki takes column 4 when Energy is hidden. Manual always shows them. Documented in COMBAT.md → Minimal setup.
+- **Verification:**
+  - 304 tests pass.
+  - In the built playground: Simple shows only Health, Mana and Stamina (156px row); the setting and Manual both restore all five (264px); returning to Simple hides them again.
+  - On a phone the row shows 3 × 44px with no horizontal scroll.
+  - No console errors.
+
+### Combat page rebuilt in the kit — 2026-10-08
+- **New page:** `ui/pages/combat-page.js` replaces the long legacy page of text buttons. `combat-style-menu.js` is now a 12-line host that mounts it and registers the panel. Layout follows COMBAT.md's "minimal setup, advanced when wanted".
+- **Always visible:**
+  - an Auto | Manual segmented control and a Pacifist switch, with one line of mode help;
+  - an attack summary card (weapon or spell, damage, speed, hand and damage type, trained skill), with a backfire warning when relevant and "Auto chose…" in Auto.
+- **Auto only:** Class (segmented), training goal, Optimize equipment and its report, plus "X is manual · Return to Auto" chips.
+- **Manual only:** an Auto-Retaliate switch, "Attack with" (Weapon or learned spells), hands and per-hand damage type.
+- **Collapsible sections** whose headers show the current value:
+  - Strategy: a grid of six tiles;
+  - Spells: the star sets the quick spell; replaces the old Quick slots section;
+  - Abilities: Queue;
+  - Auras: on/off switch and a quick-toggle star;
+  - Auto settings: Auto only.
+  - Sections without learned content are hidden.
+- **New kit controls** (`ui/controls.js`): `segmented`, `toggleSwitch`, `section`, `row`. `h()` now sets `selected` as a property.
+- **Reactive, no polling:** `equipment`, `character` and `assistance` gained `revision` signals. The old `styleMenu.refresh()` calls (the player-interface tick and assistance's `changed`) are gone.
+- **Legacy cleanup:** the old `#combat-panel` CSS in `ui-theme.css` and `player-interface.css` is removed; only the journal page container rule remains. Legacy debt in `combat-style-menu.js` went to zero, and the baseline is updated.
+- **Verification:**
+  - 304 tests pass, including new page tests on the real styles and auras.
+  - In the built playground, against the real systems:
+    - aura switch → HUD Ki button;
+    - manual chips appear and return to Auto;
+    - strategy updates its header;
+    - Manual shows Weapon / Energy Strike plus hands, and selecting a spell updates the card.
+  - Layout:
+    - desktop sidebar and expanded journal;
+    - 375px full-screen sheet with no horizontal scroll and touch-sized controls.
+  - No console errors.
+
 ### Combat HUD, part 3: warning chip and player effect icons — 2026-10-08
 - **The always-on `#player-combat-status` line is gone**, along with its 0.15s polling and the "In combat · Auto · Balanced" mode label (mode is on the Combat page).
 - **Warning chip** (`ui/hud/warning-chip.js`):

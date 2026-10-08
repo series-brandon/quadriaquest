@@ -11,10 +11,6 @@
     "innerHTML": 1,
     "propertyHandlers": 1
   },
-  "src/combat-style-menu.js": {
-    "innerHTML": 1,
-    "propertyHandlers": 7
-  },
   "src/companion-menu.js": {
     "innerHTML": 2,
     "propertyHandlers": 6

@@ -16,7 +16,7 @@ body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sideb
 #journal #game-menu-bar{flex-wrap:wrap;overflow:visible;justify-content:flex-start}#journal #game-menu-bar button{flex:0 0 44px;min-width:44px}
 #journal.expanded #game-menu-bar button{flex:1 0 auto}
 #journal #combat-panel,#journal #equipment-panel{position:static;inset:auto;transform:none;width:100%;max-width:none;min-width:0;min-height:0;max-height:none;margin:0;padding:16px;overflow:auto;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper);color:var(--ui-ink)}
-#journal #combat-panel .utility-heading{display:none}#journal #combat-panel button,#journal #equipment-panel button{min-height:44px;padding:10px;border:1px solid var(--ui-border);background:#eee3e8;margin:6px 0;width:100%;font:inherit;font-size:13px}#journal #equipment-panel .game-icon{vertical-align:middle;margin-right:8px}#journal #equipment-panel p{font-size:13px}
+#journal #equipment-panel button{min-height:44px;padding:10px;border:1px solid var(--ui-border);background:#eee3e8;margin:6px 0;width:100%;font:inherit;font-size:13px}#journal #equipment-panel .game-icon{vertical-align:middle;margin-right:8px}#journal #equipment-panel p{font-size:13px}
 body #player-sidebar #journal:not(.expanded) #inventory-panel{display:flex;flex-direction:column;gap:12px;overflow:auto;padding:12px}
 body #player-sidebar #journal:not(.expanded) #inventory-panel>.inventory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-height:210px;min-height:58px;flex-shrink:0;overflow:auto}
 body #player-sidebar #journal:not(.expanded) #inventory-panel>.journal-search{display:block;flex-shrink:0}
@@ -115,3 +115,9 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
  #player-mobile-hud .q-meter{--q-meter-size:44px}
  #player-mobile-hud .overview-map{max-width:124px}
 }
+/* Simple mode can hide Energy and/or Ki: the row shrinks to the visible columns, and Ki moves into
+   Energy's column when Energy is hidden. */
+#overview-vitals[data-columns="3"]{grid-template-columns:repeat(3,48px)}
+#overview-vitals[data-columns="4"]{grid-template-columns:repeat(4,48px)}
+#overview-vitals[data-energy-hidden] .resource-placeholder.ki,#overview-vitals[data-energy-hidden] .resource-placeholder-action.ki{grid-column:4}
+@media(max-width:700px){#player-mobile-hud #overview-vitals[data-columns="3"]{grid-template-columns:repeat(3,44px)}#player-mobile-hud #overview-vitals[data-columns="4"]{grid-template-columns:repeat(4,44px)}}

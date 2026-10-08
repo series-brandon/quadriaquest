@@ -14,6 +14,7 @@
   box-shadow: inset 0 2px 0 var(--q-action-edge-light), inset 0 -3px 0 var(--q-action-edge-dark);
   cursor: pointer;
 }
+.q-action[hidden] { display: none; }
 .q-action--health { --q-action-color: var(--q-health); }
 .q-action--mana { --q-action-color: var(--q-mana); }
 .q-action--stamina { --q-action-color: var(--q-stamina); }

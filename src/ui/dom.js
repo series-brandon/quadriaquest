@@ -13,11 +13,11 @@ import {bind, createScope, runInScope} from './scope.js';
 //   class    string                     replaces the class attribute
 //   classes  {name: boolean}            toggles individual classes
 //   style    {'property': value}        setProperty; use CSS names, including --custom-properties
-//   hidden, disabled, inert, checked, value   set as element properties
+//   hidden, disabled, inert, checked, selected, value   set as element properties
 //   aria-*   booleans become "true"/"false"
 //   others   attributes; false/null/undefined removes, true sets an empty attribute
 
-const PROPERTIES = new Set(['hidden', 'disabled', 'inert', 'checked', 'value']);
+const PROPERTIES = new Set(['hidden', 'disabled', 'inert', 'checked', 'selected', 'value']);
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 export function isReactive(value) {

@@ -1,4 +1,5 @@
 import {COMBAT_SKILLS,STYLES,cappedAward,convertCoreXp,levelForXp,totalXpForLevel,resourceMaxima,MAX_LEVEL} from './combat-formulas.js';
+import {signal} from './reactive.js';
 
 // Shared player character: attributes, combat skills, proficiencies and core progression.
 // Every track uses the adopted XP curve; derived combat values are computed from levels at runtime.
@@ -26,7 +27,9 @@ function trackDefinitions(){
 }
 export const TRACKS=trackDefinitions();
 
-export function createCharacter({changed=()=>{}}={}){
+export function createCharacter({changed:notify=()=>{}}={}){
+ // `revision` changes with every attribute, level or point change for UI bindings.
+ const revision=signal(0),changed=()=>{revision.value++;notify();};
  const allocated=Object.fromEntries(ATTRIBUTES.map(a=>[a,0]));
  const tracks=Object.fromEntries(TRACKS.map(d=>[d.id,{...d,xp:0,level:1,curve:'adopted',grant:amount=>award([{track:d.id,amount}])}]));
  const core={xp:0,level:1,remainder:0};
@@ -59,7 +62,7 @@ export function createCharacter({changed=()=>{}}={}){
   return {attributes,skills,proficiencies,armor:{light:level('armor.light'),medium:level('armor.medium'),heavy:level('armor.heavy')}};
  }
 
- const api={tracks,core,award,sheet,level,attribute,
+ const api={revision,tracks,core,award,sheet,level,attribute,
   get unspent(){return unspent;},
   get maxima(){return resourceMaxima(sheet().attributes);},
   canAllocate:a=>unspent>0&&a in allocated&&attribute(a)<MAX_LEVEL,

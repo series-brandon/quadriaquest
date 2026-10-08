@@ -72,6 +72,14 @@ When implemented, expose combat and noncombat discovery, estimate updates, varia
 
 ### Minimal setup, optional advanced settings
 
+**Per-item permissions.** Whether Simple may use a particular food or spell is a setting on that item, not a list in the advanced settings, so it scales to any number of foods and spells:
+- each food has **Allow auto eating** (on by default) in its inventory details;
+- each learned spell has **Allow Simple to cast** (on by default) on the Combat page's spell list, shown in Simple mode.
+
+Turning one off excludes only that item; Simple still chooses among the rest. The **Auto-eat before a one-hit defeat** setting turns auto-eating off entirely.
+
+Players see the Auto control as **Simple** mode; "Auto" remains this document's name for it. Simple mode manages abilities and auras, so the HUD hides the Energy and Ki meters and their quick buttons (Strong Strike, quick auras) while it is on. Two Simple settings, **Show Energy and Quick Ability** and **Show Ki and Quick Auras** (both off by default), show each pair independently. Manual always shows them. Energy and Ki keep working the same either way.
+
 **Auto must remove decisions, not replace combat complexity with a configuration questionnaire.** Organize the main combat controls into **Manual** and **Auto**.
 
 New-player defaults are **Auto**, **Balanced**, **Melee**, and **No** particular training skill.
@@ -93,7 +101,7 @@ Persist the Manual/Auto choices, Pacifist, compact Auto controls and advanced as
 
 Detailed Auto aura, healing, safety and other preferences live in optional settings, not additional required fields in this compact combat panel. These are independent controls usable in any order, not a required setup sequence or wizard. Players may invoke Optimize before explicitly choosing a style or training goal; use their current combat style when no explicit style preference has been selected, without requiring completion of other controls first. A player must be able to use and trust assistance without understanding its advanced settings.
 
-Place recovery priorities, safety overrides, food/spell exclusions, aura recovery thresholds and grace periods, and other detailed preferences under optional advanced settings with sensible defaults. Do not require visiting or completing those settings before Auto works. Do not add a separate offense/defense preference to the initial UI unless playtesting establishes a need. Preserve the approved manual controls and configuration capabilities without exposing every decision up front.
+Place recovery priorities, safety overrides, aura recovery thresholds and grace periods, and other detailed preferences under optional advanced settings with sensible defaults. Do not require visiting or completing those settings before Auto works. Do not add a separate offense/defense preference to the initial UI unless playtesting establishes a need. Preserve the approved manual controls and configuration capabilities without exposing every decision up front.
 
 ### Equipment optimization respects player intent
 

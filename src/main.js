@@ -38,7 +38,7 @@ import {heldTool} from './tool-models.js';
 import {createFishingSystem} from './fishing.js';
 import {createFishingSpots} from './fishing-spots.js';
 import {createFishingPresentation} from './fishing-presentation.js';
-import {createPlayerHealth,createFoodSystem} from './player-health.js';
+import {createPlayerHealth,createFoodSystem,FOODS} from './player-health.js';
 import {batch,reactiveRecord,signal} from './reactive.js';
 import {mount} from './ui/dom.js';
 import {resourceMeter} from './ui/hud/meter.js';
@@ -184,7 +184,14 @@ let castPresentation=null;
 // Non-combat skill XP joins combat XP in the one core conversion (5:1); core level-ups grant attribute points.
 onSkillXp(amount=>{const core=character.convertProgression(amount);if(core?.leveledUp)showSkillReward({skillName:'Core',level:core.level,leveledUp:true,detail:`+${core.points} attribute points`},player.position,{float:false});return core;});
 const auras=createAuras({ki:playerResources.ki,exhausted:()=>{assistance?.auraExhausted();toast('Out of Ki — all auras faded. Ki recovers while they are off.');}});
-const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,startCraft:id=>recipeCrafting.start(id),craftState:()=>recipeCrafting?.state,craftBusy:()=>!!recipeCrafting?.working||combat?.working||combat?.busy,equipment:{state:()=>equipment?.state,isEquipped:id=>equipment?.isEquipped(id),actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[])]}});
+// Per-item settings in the inventory detail. Food: whether Simple mode may eat it automatically
+// (assistance's foodExclusions; docs/COMBAT.md).
+function itemSettings(id){
+ if(!FOODS[id]||!assistance)return [];
+ const excluded=assistance.settings.advanced.foodExclusions;
+ return [{label:'Allow auto eating',checked:!excluded.includes(id),onChange:on=>{const list=assistance.settings.advanced.foodExclusions;assistance.setAdvanced({foodExclusions:on?list.filter(x=>x!==id):[...list,id]});}}];
+}
+const menus=createGameMenus({itemSettings,getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,startCraft:id=>recipeCrafting.start(id),craftState:()=>recipeCrafting?.state,craftBusy:()=>!!recipeCrafting?.working||combat?.working||combat?.busy,equipment:{state:()=>equipment?.state,isEquipped:id=>equipment?.isEquipped(id),actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[])]}});
 const craftingTutorial=createCraftingTutorial({menus,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
 // Combat skills always list; proficiencies and armor skills appear once trained (Unarmed from the start).
 function combatSkills(){const out={};for(const d of TRACKS){const t=character.tracks[d.id];if(d.group==='combat'||t.xp>0||d.id==='prof.unarmed')out[d.name]=t;}return out;}
@@ -325,7 +332,7 @@ cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:character
  working:()=>!!actorTarget||!!segment||path.length>0||combat.working||smithing.working||resourceActions.working||food.working||recipeCrafting.working
 });
 areas.register(cinder);
-assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0,changed:()=>styleMenu?.refresh()});
+assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0});
 styleMenu=createCombatStyleMenu({styles,combat,panels:menus.panels,auras,assistance,equipment,character,health,busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
 areas.activate('clearing',{announce:false});
 function canMove(){return areas.canMove&&!travel.busy&&!combat?.busy;}

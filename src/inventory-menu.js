@@ -1,7 +1,9 @@
 import {icon} from './icons.js';
 import {ITEMS} from './items.js';
 import {signal} from './reactive.js';
-export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment={}){
+// settingsFor(id): per-item settings shown in the item detail, e.g. food's "Allow auto eating":
+// [{label, checked, onChange(checked)}]. The game supplies them; the menu only presents them.
+export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment={},settingsFor=()=>[]){
  const panel=document.createElement('section');panel.id='inventory-panel';panel.hidden=true;panel.setAttribute('aria-label','Inventory');
  panel.innerHTML='<div class="crafting-heading"><h2>Inventory</h2><button aria-label="Close inventory menu">×</button></div><input class="journal-search" type="search" placeholder="Search supplies…" aria-label="Search inventory"><div class="inventory-grid"></div><p class="inventory-empty">Your inventory is empty.</p><section class="inventory-detail" aria-live="polite"></section>';
  host.append(panel);const locked=signal(false);let selected=null,last='',guided=false,detailOpen=false,guideFrame;
@@ -20,7 +22,7 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
  const grid=panel.querySelector('.inventory-grid'),detail=panel.querySelector('.inventory-detail'),search=panel.querySelector('.journal-search');
  search.oninput=()=>{detailOpen=false;refresh(true);};
  function refresh(force=false){
-  const inventory=getInventory(),signature=JSON.stringify(inventory)+guided+selected+JSON.stringify(equipment.state?.())+JSON.stringify((equipment.actions?.(selected)||[]).map(a=>[a.label,!!a.disabled]));
+  const inventory=getInventory(),signature=JSON.stringify(inventory)+guided+selected+JSON.stringify(equipment.state?.())+JSON.stringify((equipment.actions?.(selected)||[]).map(a=>[a.label,!!a.disabled]))+JSON.stringify(settingsFor(selected).map(s=>[s.label,!!s.checked]));
   if(!force&&signature===last)return;last=signature;
   const visible=Object.entries(ITEMS).filter(([id,item])=>inventory[id]>0&&item.name.toLowerCase().includes((search.value||'').toLowerCase()));
   if(!visible.some(([id])=>id===selected)&&(!selected||search.value))selected=visible[0]?.[0]||null;
@@ -40,6 +42,7 @@ export function createInventoryMenu(host,getInventory,onSelect,onClose,equipment
   detail.replaceChildren();panel.classList.toggle('viewing-item',detailOpen&&!!selected);detail.hidden=!selected;panel.querySelector('.inventory-empty').textContent=search.value?'No matching items.':'Your inventory is empty.';
   if(selected){const back=document.createElement('button');back.type='button';back.className='inventory-back';back.textContent='Back to items';back.onclick=()=>{detailOpen=false;refresh(true);};detail.append(back);const item=ITEMS[selected];const title=document.createElement('h3'),copy=document.createElement('p'),quantity=document.createElement('small');title.textContent=item.name;copy.textContent=item.description;quantity.textContent=`Quantity: ${inventory[selected]}`;detail.append(title,copy,quantity);
    for(const action of equipment.actions?.(selected)||[]){const button=document.createElement('button');button.type='button';button.className='inventory-equip';button.textContent=action.label;button.disabled=!!action.disabled;button.onclick=()=>{action.run();refresh(true);};detail.append(button);}
+   for(const setting of settingsFor(selected)){const label=document.createElement('label'),box=document.createElement('input');label.className='inventory-setting';box.type='checkbox';box.checked=!!setting.checked;box.addEventListener('change',()=>{setting.onChange(box.checked);refresh(true);});label.append(box,document.createTextNode(setting.label));detail.append(label);}
   }
 
  }

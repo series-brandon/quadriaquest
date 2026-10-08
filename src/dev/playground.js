@@ -206,7 +206,7 @@ export function mountPlayground(api){
         if(action==='control-test')status(api.controlTest($('control').value));
         if(action==='spell-requirement'){api.spellRequirement(amount('spell-requirement'));const p=api.combatPreview();status(`Energy Strike now needs Magic Technique ${Math.max(1,amount('spell-requirement'))}${p.spell?`: ${+p.backfirePercent.toFixed(2)}% backfire, ${Math.round(p.effectiveness*100)}% effectiveness.`:'. Select Energy Strike to see the risk.'}`);}
         if(action==='combat-kit'){api.learnCombatKit(true);status('Learned Strong Strike, Rush and Harden. Use the HUD buttons or the Combat menu.');}
-        if(action==='quick-slots'){api.quickSlotKit();status('Quick spell: Energy Strike (HUD Mana button queues one cast for your next attack, or opens your next fight). Quick auras: Rush and Harden (HUD Ki button switches them together). Change them on the Combat page.');}
+        if(action==='quick-slots'){api.quickSlotKit();status('Quick spell: Energy Strike (HUD Mana button queues one cast for your next attack, or opens your next fight). Quick auras: Rush and Harden (HUD Ki button switches them together). Simple mode hides the Energy and Ki buttons: switch the Combat page to Manual or turn on Simple settings → Show Energy and Quick Ability / Show Ki and Quick Auras.');}
          if(action==='combat-kit-forget'){api.learnCombatKit(false);status('Abilities, auras and spells forgotten; auras off.');}
         if(action==='queue-strike'){const r=api.queueStrongStrike();const p=api.combatPending();status(r===true?`Strong Strike ${p.pending?'queued':'withdrawn'}.`:r);}
         if(action==='character-reset'){api.character.reset();status('Character reset: base attributes, level-1 tracks, 3 creation points.');}

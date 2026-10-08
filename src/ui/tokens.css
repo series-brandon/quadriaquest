@@ -48,8 +48,21 @@
   --q-plate-symbol: 14px;
   --q-plate-effect: 11px;
 
+  /* Pages and controls (kit pages sit on the journal's paper) */
+  --q-ink-muted: #79677f;
+  --q-accent: #a55b55;
+  --q-line: #d9c6d3;
+  --q-card: #fffaf3;
+  --q-control-face: #fffaf3;
+  --q-control-track: #eadfe6;
+  --q-control-thumb: #ffffff;
+  --q-control-pressed: #5a5068;
+  --q-control-selected: #efe6ee;
+  --q-control-radius: 10px;
+
   /* Motion */
   --q-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --q-duration-fast: 150ms;
   --q-meter-level-duration: 350ms;
   --q-action-wait-duration: 700ms;
   --q-chip-fade: 300ms;

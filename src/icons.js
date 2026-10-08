@@ -1,7 +1,8 @@
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
  quickRestore:'<path d="M9 3h6M10 3v5l-5 9q-2 4 3 4h8q5 0 3-4l-5-9V3M7 15h10"/>',
- sprint:'<path d="M7 3h9v9l5 3v5H3v-4l4-4zM7 7h4m-4 3h4M3 17h18"/>',strongStrike:'<path d="M13 2 6 13h5l-1 9 7-11h-5z"/>',caution:'<path d="M12 3 2 20h20z"/><path d="M12 9v5m0 3v.01"/>',
+ sprint:'<path d="M7 3h9v9l5 3v5H3v-4l4-4zM7 7h4m-4 3h4M3 17h18"/>',strongStrike:'<path d="M13 2 6 13h5l-1 9 7-11h-5z"/>',star:'<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+ caution:'<path d="M12 3 2 20h20z"/><path d="M12 9v5m0 3v.01"/>',
  danger:'<path d="M12 3a7 7 0 0 0-7 7c0 2.6 1.4 4.4 3 5.4V20h8v-4.6c1.6-1 3-2.8 3-5.4a7 7 0 0 0-7-7z"/><circle cx="9.3" cy="10.5" r="1.4"/><circle cx="14.7" cy="10.5" r="1.4"/><path d="M11 20v-2.5m2 2.5v-2.5"/>',
  stunned:'<path d="M13 12a1 1 0 1 1-2 0 3 3 0 1 1 6 0 5 5 0 1 1-10 0 7 7 0 1 1 14 0"/>',
  immobilized:'<path d="M12 3v16M8 7h8M5 13c1 5 4 7 7 7s6-2 7-7"/>',
