@@ -1,4 +1,5 @@
-import {createQuestPanel} from './quests.js';
+import {questChapters,questRevision,showObjectiveHelp} from './quests.js';
+import {questsPage} from './ui/pages/quests-page.js';
 import {mountJournalTutorialLock} from './journal-tutorial-lock.js';
 import {computed,signal,untracked} from './reactive.js';
 import {h,mount} from './ui/dom.js';
@@ -21,7 +22,7 @@ export function mountJournal(menus,controller,settings){
  const locked=tutorialLock.lockedState;
  const hidden=computed(()=>!dockedDesktop.value&&!panels.active.value&&!panels.navShown.value);
 
- const questPanel=createQuestPanel(host,()=>panels.dismiss());
+ const questPanel=mount(()=>h('section',{id:'quests-panel','aria-label':'Quests',hidden:true},questsPage({chapters:questChapters,revision:questRevision,help:showObjectiveHelp}))).node;
  panels.register({id:'quests',label:'Quests',icon:'quests',order:10,element:questPanel,returnTo:true,
   closeLocked:computed(()=>controller.stageState.value==='quests-detail'),
   select(){

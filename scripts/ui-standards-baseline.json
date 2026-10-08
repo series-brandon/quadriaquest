@@ -37,10 +37,6 @@
     "innerHTML": 2,
     "propertyHandlers": 1
   },
-  "src/quests.js": {
-    "innerHTML": 1,
-    "propertyHandlers": 4
-  },
   "src/random-names.js": {
     "innerHTML": 1,
     "propertyHandlers": 1

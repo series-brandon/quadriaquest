@@ -20,6 +20,26 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Quests page rebuilt in the kit — 2026-10-08
+- **New page:** `ui/pages/quests-page.js`, mounted by `journal.js` as `#quests-panel`. It replaces `quests.js`'s `render()`/`createQuestPanel` (rebuilt the whole panel on every objective call), its HTML strings and about 1.3 KB of `#quests-panel`/`.quest-*` CSS. The `journal-entry`/`journal-back` styles stay because Companions still uses them.
+  - **Quest lines:** title plus "n / m tasks" or Complete. The list is hidden when there's only one, since the detail title names it.
+  - **Detail:** current tasks as cards (title, description, progress bar, count, "Show me how" when the area set help), then a collapsible **Completed (n)**. "Every task in this quest is complete." when nothing's left.
+  - **Selection:** the chosen line defaults to the first with unfinished tasks.
+  - **Phones:** the list, then the quest with "All quests". A single quest opens directly, so the tutorial's quests lesson lands on the task.
+- **State stays in `quests.js`:** same `updateObjective`/`finishObjective`/`resetObjectives`/`setObjectiveHelp`/`registerQuestChapter` API, so areas and tutorials are unchanged.
+  - New: a `questRevision` signal, `questChapters()` and `showObjectiveHelp(id)`.
+  - The revision bumps only on real changes: unchanged re-sends (Cinderhold `sync()`) and replacing one help action with another don't.
+  - The objective toast is still legacy; it moves with toasts.
+- **Verification:**
+  - 343 tests pass, including `quests-page.test.js`: shared state driving chapters and tasks, task nodes kept, completion, unfinished-first selection, help, the phone view switch, and no revision on unchanged re-sends.
+  - `check:ui` passes; legacy debt fell and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - clearing pickaxe checkpoint: one quest, no duplicate title, help shown;
+    - Cinderhold smelt: "Show me how" walked the player to the furnace;
+    - phone, Cinderhold ranged: two quest lines, Basic Training Complete with "Completed 13";
+    - phone quests lesson: guided tab → task shown directly, close locked → continue → done.
+  - No new console errors.
+
 ### Pacifist turns aggression off — 2026-10-08
 - **User decisions:**
   - Attacks: Prevented also turns proximity aggression off for all enemies (one policy, never separate options) unless an enemy is configured `attacksPacifists`. That's rare: the most aggressive creatures and some bosses.

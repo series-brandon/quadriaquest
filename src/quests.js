@@ -1,18 +1,24 @@
-import {icon} from './icons.js';
+import {signal} from './reactive.js';
 
 // One source of truth for both the journal and brief on-screen updates.
 export const objectives=new Map();
 const chaptersByPrefix=new Map([['willow-','Broken Bridge Rescue']]);
-export function registerQuestChapter(prefix,title){chaptersByPrefix.set(prefix,title);}
+export function registerQuestChapter(prefix,title){chaptersByPrefix.set(prefix,title);render();}
 const chapterFor=g=>[...chaptersByPrefix].find(([prefix])=>g.id.startsWith(prefix))?.[1]||'A Small Beginning';
-let notification,timer,panel,selectedChapter=null,detailOpen=false;
+let notification,timer;
+// Changes with every objective, chapter or help change; the Quests page follows it.
+export const questRevision=signal(0);
+const render=()=>{questRevision.value++;};
 const helpActions=new Map();
-export function setObjectiveHelp(id,action){if(action)helpActions.set(id,action);else helpActions.delete(id);render();}
+// The page only shows whether help exists, so replacing one action with another changes nothing visible.
+export function setObjectiveHelp(id,action){const had=helpActions.has(id);if(action)helpActions.set(id,action);else helpActions.delete(id);if(had!==!!action)render();}
 export function updateObjective(id,title,description,current=0,total=1){
  const previous=objectives.get(id);
  const goal={id,title,description,current:Math.min(current,total),total};
- objectives.set(id,goal);render();
- if(previous&&previous.current===goal.current&&previous.title===title&&previous.description===description)return;
+ objectives.set(id,goal);
+ // Areas re-send unchanged objectives freely; only real changes update the page and the toast.
+ if(previous&&previous.current===goal.current&&previous.total===goal.total&&previous.title===title&&previous.description===description)return;
+ render();
  if(!notification){notification=document.createElement('aside');notification.id='objective-update';notification.setAttribute('role','status');document.body.append(notification);}
  notification.replaceChildren();const label=document.createElement('strong');label.textContent=`${goal.current===total?'✓ ':''}${title} · ${goal.current}/${total}`;
  const progress=document.createElement('progress');progress.max=total;progress.value=goal.current;notification.append(label,progress);
@@ -21,34 +27,11 @@ export function updateObjective(id,title,description,current=0,total=1){
 }
 export function finishObjective(id){const g=objectives.get(id);if(g)updateObjective(id,g.title,g.description,g.total,g.total);}
 export function resetObjectives(prefix){if(prefix){for(const id of objectives.keys())if(id.startsWith(prefix)){objectives.delete(id);helpActions.delete(id);}}else{objectives.clear();helpActions.clear();}clearTimeout(timer);if(notification)notification.hidden=true;render();}
-function render(){
- if(!panel)return;const root=panel.querySelector('.quest-list');root.replaceChildren();
- panel.classList.toggle('viewing-detail',detailOpen);
- if(!objectives.size){root.textContent='Your next adventure will appear here.';return;}
- const chapters=[...new Set([...objectives.values()].map(chapterFor))];
- if(!chapters.includes(selectedChapter))selectedChapter=chapters[0];
- const choices=document.createElement('div'),list=document.createElement('section');choices.className='journal-list';list.className='journal-detail';root.className='quest-list journal-browser';root.append(choices,list);
- for(const chapter of chapters){const button=document.createElement('button');button.className='journal-entry';button.textContent=chapter;button.setAttribute('aria-pressed',String(chapter===selectedChapter));button.onclick=()=>{selectedChapter=chapter;detailOpen=true;render();};choices.append(button);}
- const back=document.createElement('button');back.className='journal-back';back.textContent='Back to quests';back.onclick=()=>{detailOpen=false;render();};list.append(back);
- for(const chapter of chapters){
- const goals=[...objectives.values()].filter(g=>chapterFor(g)===chapter);if(!goals.length||chapter!==selectedChapter)continue;
- const heading=document.createElement('h3');heading.textContent=chapter;list.append(heading);
- for(const done of [false,true]){
-  const section=document.createElement('ul');section.className=done?'quest-tasks completed-tasks':'quest-tasks';
-  section.setAttribute('aria-label',done?'Completed tasks':'Current tasks');
-  for(const g of goals){
-   if((g.current===g.total)!==done)continue;
-   const row=document.createElement('li'),title=document.createElement('h4'),description=document.createElement('p'),progress=document.createElement('progress'),count=document.createElement('small');
-   title.textContent=g.title;description.textContent=g.description;progress.max=g.total;progress.value=g.current;progress.setAttribute('aria-label',g.title);count.textContent=`${g.current} / ${g.total}${done?' · Complete':''}`;
-   if(done){row.className='completed-task';title.textContent='✓ '+g.title;count.textContent='Completed';row.append(title,count);section.append(row);continue;}
-   row.append(title,description,progress,count);if(!done&&helpActions.has(g.id)){const help=document.createElement('button');help.className='quest-help';help.textContent='Show me how';help.onclick=helpActions.get(g.id);row.append(help);}section.append(row);
-  }
-  list.append(section);
- }
- }
+// Quests for the journal page (ui/pages/quests-page.js): chapters in first-seen order, each with its
+// goals and whether they have a "Show me how" action. Read questRevision to follow changes.
+export function questChapters(){
+ const chapters=new Map();
+ for(const goal of objectives.values()){const title=chapterFor(goal);if(!chapters.has(title))chapters.set(title,[]);chapters.get(title).push({...goal,help:helpActions.has(goal.id)});}
+ return [...chapters].map(([title,goals])=>({title,goals}));
 }
-export function createQuestPanel(host,close){
- panel=document.createElement('section');panel.id='quests-panel';panel.hidden=true;panel.setAttribute('aria-label','Quests');
- panel.innerHTML=`<div class="crafting-heading"><h2>Quests</h2><button aria-label="Close quests">${icon('close')}</button></div><div class="quest-list"></div>`;
- panel.resetView=()=>{detailOpen=false;render();};panel.querySelector('button').onclick=close;host.append(panel);render();return panel;
-}
+export function showObjectiveHelp(id){helpActions.get(id)?.();}

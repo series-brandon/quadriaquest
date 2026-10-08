@@ -15,7 +15,7 @@ body #player-sidebar #journal.expanded{position:fixed;left:24px;right:calc(var(-
 body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sidebar-open>header,body.player-sidebar-open>footer{right:calc(var(--player-panel-width) + 28px)}body.player-sidebar-open #game-menu-toggle{position:fixed;right:calc(var(--player-panel-width) + 14px);bottom:20px}
 #journal #game-menu-bar{flex-wrap:wrap;overflow:visible;justify-content:flex-start}#journal #game-menu-bar button{flex:0 0 44px;min-width:44px}
 #journal.expanded #game-menu-bar button{flex:1 0 auto}
-#journal #combat-panel,#journal #equipment-panel,#journal #inventory-panel,#journal #character-panel,#journal #crafting-panel{position:static;inset:auto;transform:none;width:100%;max-width:none;min-width:0;min-height:0;max-height:none;margin:0;padding:16px;overflow:auto;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper);color:var(--ui-ink)}
+#journal #combat-panel,#journal #equipment-panel,#journal #inventory-panel,#journal #character-panel,#journal #crafting-panel,#journal #quests-panel{position:static;inset:auto;transform:none;width:100%;max-width:none;min-width:0;min-height:0;max-height:none;margin:0;padding:16px;overflow:auto;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper);color:var(--ui-ink)}
 /* Crafting's craft button sticks to the bottom edge, so nothing scrolls beneath it. */
 #journal #crafting-panel{padding-block-end:0}
 
