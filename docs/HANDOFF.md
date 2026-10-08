@@ -20,6 +20,89 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Combat HUD, part 3: warning chip and player effect icons — 2026-10-08
+- **The always-on `#player-combat-status` line is gone**, along with its 0.15s polling and the "In combat · Auto · Balanced" mode label (mode is on the Combat page).
+- **Warning chip** (`ui/hud/warning-chip.js`):
+  - Announces when Auto's advice changes (now a signal in `assistance.js`), e.g. "Use caution." or "Fleeing is highly recommended!".
+  - Also announces "Under attack!", but only when an attack starts (no hit in the last 10s), not on every hit.
+  - Fades after 3s, clears 300ms later (also under reduced motion) and is hidden, taking no space, while idle.
+  - Continuing advice doesn't re-show it; persistent danger is the skull or triangle on the enemy plate.
+- **Player control effects** (stunned, immobilized, slowed, immune) appear as icons to the right of the player's health bar, which also shows while an effect is active.
+- **Verification:**
+  - 301 tests pass, including a chip test using mock timers.
+  - In the built playground, a 50% slow showed the hourglass beside the player's bar outside combat.
+  - In a Bruiser fight: "Use caution." on engage, "Under attack!" on the first hit, then the chip faded and stayed hidden through continued hits.
+  - No console errors.
+- **The combat HUD is done.** Next candidates: rebuild the Combat page in the kit, put utility `<dialog>`s on a shared modal host, and polish hit-splat and plate overlap.
+
+### Fix: unarmed block no longer drops the fists — 2026-10-08
+- **Bug** (reported by the user): after an unarmed block, the hands dropped to the sides and then slid back up into the boxing guard for the next punch.
+- **Cause:** `blockAnimation` always eased back to the relaxed carry pose (`equipmentIdleHands`). Unarmed fighters rest in `PUNCH_GUARD` between punches, so the block ended at the sides and the pose blender then crossfaded up into the guard.
+- **Fix:** the bare-hands block now settles into `PUNCH_GUARD`. Weapon, shield and bow blocks still return to the carry pose they attack from. The model viewer uses the same function.
+- **Tests:** the bare-hands block ends exactly in the guard, the fists never sink below guard height during the block, and the next windup starts from the same position. 300 tests pass.
+- **Verified** in a live unarmed Bruiser fight in the built playground: over 611 frames, including 104 while blocking, the lowest hand height was the guard height (0.40), both overall and right after each block.
+
+### Bar-only plates and the opening attack — 2026-10-08
+- **Plates are bars only**, at the user's request: no name, numbers or effect text.
+  - Enemy bar 48×5px; player bar 44×4px.
+  - **Danger symbol** left of the enemy bar (`DANGER_BANDS`): an orange triangle with "!" for caution, and a red skull for flee or imminent. Nothing shows while the fight is manageable.
+  - **Effect icons** right of the bar, from the new `control.kinds`: stunned, immobilized, slowed, immune.
+  - The enemy's hover label now carries the name and exact health (`Fight Goblin Bruiser · 82/100 HP`).
+- **Opening attack** (user decision, written into COMBAT.md → Opening attack):
+  - A ready attacker (no strike within its interval) opens after `OPENING_WINDUP` = 0.5s instead of the full 2.5s. The clock skips to the end of the windup, so the swing animation plays in full.
+  - It applies to player melee (weapon or unarmed) and to aggressive enemies once in reach. Bows and spells keep their full draw and cast time (the user specified both).
+  - Readiness needs a full interval without a strike, so stepping away and re-engaging gains nothing.
+  - `createCombatSystem({openingWindup:null})` pins the old full-windup timing for tests that check other mechanics; dedicated tests cover the opening.
+- **Verification:**
+  - 299 tests pass.
+  - In the built playground, the first melee hit on a Bruiser landed 516ms after engaging.
+  - The caution triangle showed, and the skull appeared at 15 HP.
+  - No console errors.
+- **Known polish item:** hit splats can briefly overlap the bars; refine sizing and placement as the HUD settles.
+
+### Combat HUD, part 2: health plates over combatants — 2026-10-08
+- **Health plates** (`ui/hud/health-plate.js`) replace the old `.enemy-health` text label.
+  - **Enemy plate (the target frame):** name, `hp/max`, a bar and current control effects, plus a danger stripe from the shared `DANGER_BANDS`: orange for caution, red for flee or imminent. The band comes from Auto's assessment via combat's `api.danger`.
+  - **When shown:** over the engaged enemy and any enemy attacking the player.
+  - **Width:** sized to the name, from 72px up to 140px.
+- **Player plate:** a slim 44px bar just above the slime, shown in combat and whenever health is below full. This is my reading of the user's answer ("in combat AND while health is not at maximum") as either condition; it's unconfirmed, so ask the user before changing it.
+- **How it updates:**
+  - Enemy `a.hp` is now an accessor over a signal, so combat code is unchanged and the bar writes only when HP changes.
+  - Position is a per-frame transform written by `combat.js` (enemies) and `updatePlayerPlate()` in main.js (player); the plate skips moves under 0.05px.
+- **Layout fix:** floating XP text now starts 1.35 units above the player (was 1.05), above the player's bar, so the plates no longer collide with it.
+- **Verification:**
+  - 295 tests pass, including new plate tests.
+  - In the built playground, Scrapper and Bruiser fights showed both plates following hits (Bruiser 100 → 88 → 82, player bar 100% → 81%), the caution stripe and no overlap between plates.
+  - No console errors.
+- **Next (part 3):** effect badges for the player and a transient warning chip, replacing the always-on `#player-combat-status` line. Then rebuild the Combat page.
+
+### Combat HUD, part 1: quick slots and the ability row — 2026-10-08
+- **The user's direction:** screen space is at a premium. Fold combat UI into existing slots: the action row becomes the ability bar, the target frame lives on the floating enemy label (combatants need health bars anyway), and effect badges and warnings appear only while relevant.
+- **New gameplay, specified in docs/COMBAT.md → Quick slots:**
+  - **Quick spell** (`styles.setQuickSpell`, `combat.queueSpell`): one cast in the shared pending slot. It attaches to the next attack, or opens the next fight if pressed outside combat, using the spell's own cost, range, backfire and XP; then the selected attack resumes. The newest manual request replaces the pending one, pressing again withdraws it, an unaffordable cast is cancelled with a reason, and eating clears it. A queued spell sets the attack range (`attackRange()` in main.js), so a fight can open from casting distance.
+  - **Targets:** buffs and heals target the player; damage and debuff spells target the enemy. Only enemy spells exist; self-targeted resolution is **deferred to the first buff or heal spell (tracked)**.
+  - **Quick auras** (`auras.setQuick`, `auras.toggleQuick`, `quickState`): if any quick aura is on, all turn off; otherwise each turns on in order, paying its fee, and shortfalls are reported. Every change goes through `assistance.toggleAuraManually`, so those auras become manual. Both quick settings last only for the session (there is no save system yet).
+- **Combat page:** a Quick slots section, available in both Auto and Manual, for choosing the quick spell and quick auras.
+- **HUD action row** (kit; `ui/hud/action-button.js`, `ui/hud/quick-actions.js`):
+  - **Slots:** Eat (with a count badge), quick spell (replacing the disabled "Quick restore"), Sprint, Strong Strike, and quick auras (badge shows how many are on). The old Auras button opened the whole Combat page; this one toggles directly.
+  - **States on the tile:** on, queued (breathing ring), partial and unavailable. Unavailable buttons stay pressable so they can explain why. Unconfigured slots open the Combat page.
+  - **No polling.** It is driven by source signals:
+    - `reactiveRecord` inventory in main.js (a proxy, so existing mutations notify);
+    - signal-backed sprint, eating and consumable cooldown;
+    - `revision` signals on combat, auras and styles;
+    - combat's `inCombatState`.
+  - The old per-tick button code and its CSS are gone (player-interface property handlers 6 → 2).
+- **Playground:** Assistance → "Set up quick slots" learns the kit and Energy Strike and sets both quick slots. "Forget abilities, auras & spells" clears them.
+- **Verification:**
+  - 293 tests pass, including new quick spell, quick aura, reactive-record and action-row tests.
+  - In the built playground:
+    - all five slot states;
+    - the quick-aura toggle (fees, badge, partial);
+    - queue and withdraw, and a fight opened with Energy Strike (Mana 100 → 96 at release);
+    - Combat page quick-slot editing reaching the HUD immediately.
+  - No console errors.
+- **Next (part 2):** the target frame and player health bar on world labels (the player's bar shows in combat and whenever health is below full; read as either condition, so confirm with the user), then effect badges and the warning chip replacing the status line.
+
 ### UI rework: panel registry and host — 2026-10-07
 - **The `menus.panels` host** (`src/ui/panels.js`) now owns which journal page is open, whether the tab bar is open or pinned, tab availability, Quests' return-to behaviour, close locks and dismiss rules. Every page registers once:
   - Quests and Settings (`journal.js`)

@@ -127,6 +127,24 @@ Provide an explicit, default-off setting allowing emergency automatic healing to
 
 A manual change to a persistent selection, such as combat strategy, selected spell or aura setup, keeps that selection under manual control until the player explicitly re-enables Auto for it. Other automatic selections remain enabled; do not switch all assistance off because one selection was overridden. Combat ending does not release these manual selections. A deliberate one-time action takes precedence for that action, then Auto resumes for the selections still assigned to it. Distinguish changing a persistent setup from issuing a one-time action in the UI. Equipment optimization runs when explicitly requested or when the player changes combat style; these triggers can replace manually equipped gear for the chosen style. Between those triggers, manual gear choices remain intact rather than being continuously overwritten. The separate target-specific Adaptive attack override retains its shared 5-second combat-exit reset. The primary Manual/Auto controls, defaults and aura usefulness rules are defined above; detailed action selection priorities remain open.
 
+### Quick slots
+
+The HUD action row offers two player-configured quick controls. Both are shared combat rules that work in any area, not area features.
+
+**Quick spell.**
+- The player marks one learned spell as the quick spell.
+- Pressing the quick spell control places one cast of that spell in the shared pending combat-action slot, the same one-action slot abilities use. The newest manual request replaces any other pending manual request. Pressing again before the cast attaches withdraws it.
+- The cast attaches to the next attack whose windup begins. During a fight that is the next attack; outside combat it is the opening attack of the next fight.
+- That attack becomes one cast of the spell, using the spell's own cast time, range, Mana cost, requirements, backfire and XP under the normal commitment, cost and cancellation rules. Afterwards the selected attack resumes.
+- A fight opened with a queued quick spell may begin from that spell's range.
+- If the cast is unaffordable when it would attach (for example, too little Mana), it is cancelled with a visible reason and the normal attack proceeds. Eating, stuns and other events that clear the pending slot clear it too.
+- **Targets follow the spell's kind:** buffs and heals target the player; damage and debuff spells target the engaged enemy. Only enemy-targeted spells exist so far; self-targeted resolution arrives with the first buff or heal spell.
+
+**Quick auras.**
+- The player adds any learned auras to a quick-toggle set.
+- The quick aura control turns the whole set off if any aura in it is active; otherwise it turns each aura in the set on, in order, paying each normal activation fee. Auras that cannot be afforded stay off, and the control reports why.
+- Each toggle counts as a manual aura change, so those auras leave Auto control as described under *Manual priority and full automatic assistance*.
+
 ### Automatic casting safety
 
 **Automatic assistance must never select or initiate a spell with any nonzero backfire chance unless the player explicitly overrides this restriction in settings.** This applies to all automatic casting, including offensive, healing, support and utility spells—not only emergency healing. The safe default excludes risky spells entirely rather than merely giving them a lower preference. Use the shared backfire calculation and current requirements; a low but nonzero chance is still ineligible. Recheck eligibility for each automatic cast under the shared commitment/resource rules; do not invent different backfire math for Auto.
@@ -535,6 +553,13 @@ For a 1-second dagger followed by a 2-second sword, the timing is: dagger resolv
 Each hand's strike resolves its own damage and awards strategy XP, the striking weapon's proficiency XP, and applicable elemental XP according to existing rules. Merely equipping the other weapon does not grant its proficiency XP on that strike. If both weapons share a proficiency, each strike awards that proficiency once.
 
 Equipment changes are allowed during combat. An already-committed attack retains the weapon and offensive stats it committed with, even if equipment changes before impact. New equipment applies to subsequent attacks; swapping gear cannot change a projectile already in flight. Resolve damage and proficiency attribution from the committed attack rather than whatever happens to be equipped at impact.
+
+**Opening attack.**
+- An attacker is ready when it has not struck or released an attack within that attack's interval.
+- A ready player's melee attack (weapon or unarmed) skips to the last 0.5 seconds of its windup. The swing still plays in full and strikes 0.5 seconds after it begins; later attacks take their full interval.
+- Bows and spells keep their full draw and cast time.
+- Aggressive enemies follow the same rule when they begin attacking.
+- Stepping away and re-engaging cannot create extra openings, because readiness needs a full interval without a strike. A cancelled windup that never struck leaves the attacker ready.
 
 An attack commits when its windup begins. Lock its weapon, offensive stats and attack timing at that point. Equipment swaps do not restart, shorten or modify the committed attack. The next attack uses the new setup and its own interval; do not carry a faster weapon's timing into an attack using a slower replacement.
 

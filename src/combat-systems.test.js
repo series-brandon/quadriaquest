@@ -39,11 +39,12 @@ test('dual wielding: off-hand eligibility, owned copies, default hands and per-h
  e.reset();assert.equal(e.attackHands,'alternate','two free fists alternate');
 });
 
-function combatFixture(kind='target',control=null){
+// openingWindup: null pins full-windup timing for tests of other mechanics.
+function combatFixture(kind='target',control=null,{openingWindup}={}){
  const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
  const home=world.get('3,3'),inventory={copperDagger:2},health=createResource(100),character=createCharacter(),mana=createResource(),energy=createResource(),toasts=[];let roll=.5;
  const equipment=createEquipment({inventory}),styles=createCombatStyles({equipment});
- const system=createCombatSystem({control,world,health,equipment,inventory,character,mana,energy,knowsAbility:id=>styles.knowsAbility(id),strategy:()=>styles.strategy,toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop(){},face(){},sound(){},hit(){},blocked:()=>false,inReach:()=>true,tile:()=>world.get('3,4'),reserved:()=>false,respawn:()=>true});
+ const system=createCombatSystem({openingWindup,control,world,health,equipment,inventory,character,mana,energy,knowsAbility:id=>styles.knowsAbility(id),strategy:()=>styles.strategy,toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop(){},face(){},sound(){},hit(){},blocked:()=>false,inReach:()=>true,tile:()=>world.get('3,4'),reserved:()=>false,respawn:()=>true});
  const a=system.add({kind,rules:ENEMIES[kind],group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
  return {system,a,equipment,styles,character,health,mana,toasts,inventory,set roll(v){roll=v;}};
 }
@@ -139,7 +140,7 @@ test('Auto auras: Harden in danger, Rush while moving in combat, 25% Ki floor, e
 });
 
 test('a stun cancels the unreleased windup and pending action, keeps the target and restarts fully; stunned enemies hold',()=>{
- const control=createControlState(),f=combatFixture('bruiser',control);f.styles.learnAbility('strongStrike');f.system.start(f.a);f.system.update(2,2);f.system.queue('strongStrike');
+ const control=createControlState(),f=combatFixture('bruiser',control,{openingWindup:null});f.styles.learnAbility('strongStrike');f.system.start(f.a);f.system.update(2,2);f.system.queue('strongStrike');
  control.apply({kind:'stun',duration:1,protection:5});f.system.update(.6,2.6);assert.equal(f.a.hp,ENEMIES.bruiser.health,'no strike while stunned');assert.equal(f.system.pending,null);assert.equal(f.system.state.fight,'bruiser');
  control.update(1);f.system.update(2.4,5);assert.equal(f.a.hp,ENEMIES.bruiser.health,'fresh full windup');f.system.update(.2,5.2);assert.ok(f.a.hp<ENEMIES.bruiser.health);
  const before=f.health.value;f.a.control.apply({kind:'stun',duration:10,protection:0});f.system.update(5,10);assert.equal(f.health.value,before,'a stunned enemy cannot attack');
@@ -178,7 +179,7 @@ test('a lethal hit at fractional health reports the visible health, as a whole n
 });
 
 test('the follow-through after a release keeps the attack that struck; the next attack shows after recovery',()=>{
- const f=combatFixture();f.inventory.copperDagger=1;f.equipment.toggle('copperDagger','main');f.equipment.setAttackHands('alternate');f.system.start(f.a);
+ const f=combatFixture('target',null,{openingWindup:null});f.inventory.copperDagger=1;f.equipment.toggle('copperDagger','main');f.equipment.setAttackHands('alternate');f.system.start(f.a);
  assert.equal(f.equipment.attackHands,'alternate');
  const struck=f.system.update(2.5,2.5);assert.equal(struck.profile.hand,'main');assert.equal(struck.profile.item,'copperDagger','recovery shows the dagger stab');
  const windup=f.system.update(2.0,4.5);assert.equal(windup.kind,'Combat');assert.equal(windup.profile.hand,'off','the next windup is the off-hand punch');assert.equal(windup.profile.item,null);

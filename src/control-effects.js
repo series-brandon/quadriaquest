@@ -40,6 +40,8 @@ export function createControlState(){
   get stunned(){return disables.has('stun');},
   get active(){return disables.size>0||slows.length>0||protection.size>0;},
   reset(){disables.clear();protection.clear();slows=[];},
+  // Active effect kinds for compact icons: 'stun', 'immobilize', 'slow', 'immune'.
+  get kinds(){const kinds=[...disables.keys()];if(slows.length)kinds.push('slow');if(protection.size)kinds.push('immune');return kinds;},
   // Player-facing summary: active disables, strongest slow and visible protection windows.
   get summary(){
    const parts=[];for(const d of disables.values())parts.push(`${d.kind==='stun'?'Stunned':'Immobilized'} ${d.remaining.toFixed(1)}s`);

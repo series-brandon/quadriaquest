@@ -28,7 +28,7 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 
 ## Rules
 
-1. **State pushes; the UI never polls.** Gameplay state that a view shows is backed by signals at its source (`createResource` is the model). Gameplay code keeps its normal getters and setters; bindings that read those getters subscribe automatically. Do not add per-frame or timer-driven `update()` or `refresh()` calls to views.
+1. **State pushes; the UI never polls.** Use `reactiveRecord` for plain-object state such as the inventory. Systems whose getters aren't signals expose a `revision` signal that changes whenever they report a change; bindings read it before calling the getter. Gameplay state that a view shows is backed by signals at its source (`createResource` is the model). Gameplay code keeps its normal getters and setters; bindings that read those getters subscribe automatically. Do not add per-frame or timer-driven `update()` or `refresh()` calls to views.
 2. **One flush per frame.** `main.js` runs each frame inside `batch`, so bindings write once, after the frame's state changes.
 3. **Build with `h()`.** No HTML strings (`innerHTML` and friends), no `.onclick =` handlers and no DOM lookups by id or selector. A component keeps references to the nodes it creates. Icons come from `iconNode`.
 4. **Views are owned.** Build inside `mount`, `keyedList` or `runInScope`. Bindings write to the DOM; they never build views. Call `dispose()` when removing a view.
@@ -54,7 +54,9 @@ The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScri
 |---|---|
 | Resource meters (Health, Mana, Stamina, Energy, Ki) | Kit (`ui/hud/meter.js`): low-poly bevelled tile, signal-backed resources, idle-still (in design review) |
 | Breakpoint (player interface, journal) | Shared `ui/viewport.js` |
-| Resource action buttons, combat status line | Legacy, polled in `player-interface.js`. To be replaced by the combat HUD: ability bar, target frame and effect icons. |
+| HUD action row (Eat, quick spell, Sprint, Strong Strike, quick auras) | Kit (`ui/hud/action-button.js`, `ui/hud/quick-actions.js`). Driven by source signals: reactive inventory, signal-backed sprint and eating, and `revision` signals on combat, auras and styles. |
+| Combat warnings and player effects | Kit. The warning chip (`ui/hud/warning-chip.js`) announces new advice and the start of an attack, fades after 3s and takes no space while idle. Player control effects show as icons on the player's health plate. Assistance's `warning` is signal-backed. The polled status line is gone. |
+| Health plates over combatants (enemy target frame, player bar) | Kit (`ui/hud/health-plate.js`). Enemy HP is signal-backed (`enemy-entity.js`). The owner's frame loop writes only position, effects text and danger band, and each reaches the DOM only on change. |
 | Panel registry and host (journal pages, tab bars, mobile nav and More) | Kit (`ui/panels.js`, `ui/panel-tabs.js`). Every page registers once; the journal shell, docking and Quests return are reactive. |
 | Journal shell (`journal.js`) | Built with `h()`. The page contents (Skills, Inventory, Crafting, Quests, Settings, Combat, Equipment, Companions) are still legacy markup. |
 | Tutorial journal lock | Legacy: id-based rules plus a MutationObserver (moved out of the journal). It exposes `lockedState` for the kit. Retire it once guide highlights are tutorial state. |

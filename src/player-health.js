@@ -1,4 +1,5 @@
 import {createResource} from './player-resources.js';
+import {signal} from './reactive.js';
 import {EATING_DURATION} from './eating-motion.js';
 
 export const FOODS={cookedFish:{healing:20,duration:EATING_DURATION}};
@@ -10,28 +11,29 @@ export const CONSUMABLE_COOLDOWN=2;
 // Accepted use consumes the item and heals at initiation (one atomic step); the remaining
 // animation is interruptible presentation. One shared 2-second cooldown covers every manual consumable.
 export function createFoodSystem(api){
- let action=null,confirmation=null,cooldown=0;
- function cancel(){action=null;confirmation?.();confirmation=null;}
+ // Signal-backed so the HUD's Eat control follows eating and the cooldown without polling.
+ const eating=signal(null),cooldown=signal(0);let confirmation=null;
+ function cancel(){eating.value=null;confirmation?.();confirmation=null;}
  function start(id,confirmed=false){
   const food=FOODS[id];
   // Rejected attempts change nothing: no item, effect, interruption or queue clearing.
-  if(!food||!api.inventory[id]||api.busy?.()||cooldown>0)return false;
+  if(!food||!api.inventory[id]||api.busy?.()||cooldown.peek()>0)return false;
   if(api.defer?.(()=>start(id,confirmed),'Eating'))return true;
   if(api.health.value===api.health.max&&!confirmed){
    confirmation?.();confirmation=api.confirm?.(()=>{confirmation=null;start(id,true);});return false;
   }
-  if(!(api.inventory[id]>0)||cooldown>0)return false;
-  api.stop();api.inventory[id]--;api.health.heal(food.healing);cooldown=CONSUMABLE_COOLDOWN;
-  action={id,food,age:0};api.started?.();api.consumed?.({[id]:-1});return true;
+  if(!(api.inventory[id]>0)||cooldown.peek()>0)return false;
+  api.stop();api.inventory[id]--;api.health.heal(food.healing);cooldown.value=CONSUMABLE_COOLDOWN;
+  eating.value={id,food,age:0};api.started?.();api.consumed?.({[id]:-1});return true;
  }
  function update(dt){
-  cooldown=Math.max(0,cooldown-dt);
-  if(!action)return null;
-  const current=action;current.age+=dt;
-  if(current.age>=current.food.duration){action=null;api.completed?.();return null;}
+  if(cooldown.peek()>0)cooldown.value=Math.max(0,cooldown.peek()-dt);
+  const current=eating.peek();if(!current)return null;
+  current.age+=dt;
+  if(current.age>=current.food.duration){eating.value=null;api.completed?.();return null;}
   return {kind:'Eating',time:current.age};
  }
- return {start,update,cancel,get working(){return !!action;},get cooldown(){return cooldown;},
-  inventoryActions(id){return FOODS[id]?[{label:'Eat',disabled:!api.inventory[id]||cooldown>0||!!api.busy?.(),run:()=>start(id)}]:[];}};
+ return {start,update,cancel,get working(){return !!eating.value;},get cooldown(){return cooldown.value;},
+  inventoryActions(id){return FOODS[id]?[{label:'Eat',disabled:!api.inventory[id]||cooldown.value>0||!!api.busy?.(),run:()=>start(id)}]:[];}};
 }
 

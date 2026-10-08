@@ -35,3 +35,18 @@ test('respec returns every invested point and keeps fixed bases',()=>{
  assert.equal(c.invested,3);const unspentBefore=c.unspent;assert.equal(c.redistribute(),3);assert.equal(c.unspent,unspentBefore+3);
  assert.equal(c.attribute('constitution'),10);assert.equal(c.attribute('luck'),1);assert.equal(c.maxima.health,100);assert.equal(c.redistribute(),0);
 });
+
+test('quick auras switch together: all on (paying fees), any on → all off, short Ki reported',()=>{
+ const r=createPlayerResources(),auras=createAuras({ki:r.ki});
+ assert.equal(auras.quickState,'none');assert.equal(auras.toggleQuick(),'No quick auras set');
+ assert.equal(auras.setQuick('rush',true),false,'only learned auras');
+ auras.learn('rush');auras.learn('harden');auras.setQuick('rush',true);auras.setQuick('harden',true);
+ assert.equal(auras.quickState,'off');assert.equal(auras.toggleQuick(),true);
+ assert.equal(auras.quickState,'on');close(r.ki.value,99);
+ auras.toggle('harden');assert.equal(auras.quickState,'partial');
+ assert.equal(auras.toggleQuick(),true);assert.equal(auras.quickState,'off',"any quick aura on turns the set off");
+ r.ki.value=.6;assert.match(auras.toggleQuick(),/Harden: Not enough Ki/);
+ assert.ok(auras.isActive('rush'));assert.equal(auras.isActive('harden'),false);assert.equal(auras.quickState,'partial');
+ const manual=[];auras.toggleQuick(id=>{manual.push(id);return auras.toggle(id);});assert.deepEqual(manual,['rush'],'assistance can record each change as manual');
+ auras.forget('rush');assert.deepEqual(auras.quick,['harden']);auras.reset();assert.deepEqual(auras.quick,[]);
+});

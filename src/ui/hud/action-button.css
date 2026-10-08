@@ -1,0 +1,69 @@
+/* HUD action button: a flat-shaded tile lit from the upper left. States live on the tile. */
+.q-action {
+  --q-action-color: var(--q-health);
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: var(--q-touch);
+  block-size: var(--q-touch);
+  padding: 0;
+  border: 1px solid var(--q-action-border);
+  border-radius: var(--q-action-radius);
+  background: var(--q-action-face);
+  color: var(--q-ink);
+  box-shadow: inset 0 2px 0 var(--q-action-edge-light), inset 0 -3px 0 var(--q-action-edge-dark);
+  cursor: pointer;
+}
+.q-action--health { --q-action-color: var(--q-health); }
+.q-action--mana { --q-action-color: var(--q-mana); }
+.q-action--stamina { --q-action-color: var(--q-stamina); }
+.q-action--energy { --q-action-color: var(--q-energy); }
+.q-action--ki { --q-action-color: var(--q-ki); }
+
+.q-action svg { inline-size: 22px; block-size: 22px; }
+.q-action:focus-visible { outline: 2px solid var(--q-ink); outline-offset: 2px; }
+
+/* Active toggle: tinted face with an inner ring in the action's color. */
+.q-action[data-on] {
+  background: color-mix(in srgb, var(--q-action-color) 45%, var(--q-action-face));
+  box-shadow: inset 0 0 0 2px var(--q-action-color), inset 0 -3px 0 var(--q-action-edge-dark);
+}
+/* Some of a group on: half tint. */
+.q-action[data-partial] {
+  background: linear-gradient(to top, color-mix(in srgb, var(--q-action-color) 45%, var(--q-action-face)) 50%, var(--q-action-face) 50%);
+}
+/* Queued for the next attack: an outer ring that breathes while waiting. */
+.q-action[data-queued] { box-shadow: 0 0 0 2px var(--q-action-color), inset 0 -3px 0 var(--q-action-edge-dark); }
+.q-action[data-queued]::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: calc(var(--q-action-radius) + 4px);
+  border: 2px solid var(--q-action-color);
+  animation: q-action-wait var(--q-action-wait-duration) ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes q-action-wait {
+  from { opacity: 0.15; }
+  to { opacity: 0.8; }
+}
+.q-action[aria-disabled='true'] { opacity: 0.45; }
+
+.q-action__badge {
+  position: absolute;
+  inset-block-start: -5px;
+  inset-inline-end: -5px;
+  min-inline-size: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--q-rim);
+  color: var(--q-ink-on-dark);
+  font: 700 10px / 16px var(--q-font-numeric);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.q-action__badge[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .q-action[data-queued]::after { animation: none; opacity: 0.8; }
+}

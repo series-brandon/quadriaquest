@@ -1,4 +1,4 @@
-import {punchMotion,castMotion} from './combat-motion.js';
+import {punchMotion,castMotion,PUNCH_GUARD} from './combat-motion.js';
 import {idlePose} from './slime-motion.js';
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
@@ -66,11 +66,13 @@ export function attackAnimation(profile={},time=0){
 // Equipment affects the pose only; receiving a block animation never changes damage rules.
 export function blockAnimation(profile={},age=0){
  const weight=age<.07?smooth(age/.07):1-smooth((age-.25)/.17);
- const rest=equipmentIdleHands(profile);
+ const motion=resolveBlockMotion(profile);
+ // Settle back into the stance the attack resumes from: bare hands keep their boxing guard between
+ // punches (dropping to the sides here made the fists dip, then slide back up for the next punch).
+ const rest=motion==='fists'?PUNCH_GUARD:equipmentIdleHands(profile);
  // Bare hands: a boxing high guard, fists nearly touching in front of the face (radius .105 each),
  // clear of the 0.72 body, wrists tilted and angled slightly inward.
  let guard=[[-.11,.57,.50,-.35,0,.2],[.11,.57,.50,-.35,0,-.2]];
- const motion=resolveBlockMotion(profile);
  if(motion==='shield')guard=[[-.47,.34,.05,...rest[0].slice(3)],[.08,.49,.54,.08,-.12,-Math.PI/2]];
  else if(motion==='blade')guard=[[-.22,.40,.48,.30,-.8,0],[.40,.43,.18,0,0,0]];
  else if(motion==='bow')guard=[[-.22,.54,.40,0,0,0],[.10,.50,.60,0,0,.7]];

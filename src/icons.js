@@ -1,7 +1,13 @@
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
  quickRestore:'<path d="M9 3h6M10 3v5l-5 9q-2 4 3 4h8q5 0 3-4l-5-9V3M7 15h10"/>',
- sprint:'<path d="M7 3h9v9l5 3v5H3v-4l4-4zM7 7h4m-4 3h4M3 17h18"/>',strongStrike:'<path d="M13 2 6 13h5l-1 9 7-11h-5z"/>',aura:'<circle cx="12" cy="12" r="3"/><path d="M12 3a9 9 0 0 1 0 18M12 3a9 9 0 0 0 0 18M5 7l2 1.5M19 7l-2 1.5M5 17l2-1.5M19 17l-2-1.5"/>',
+ sprint:'<path d="M7 3h9v9l5 3v5H3v-4l4-4zM7 7h4m-4 3h4M3 17h18"/>',strongStrike:'<path d="M13 2 6 13h5l-1 9 7-11h-5z"/>',caution:'<path d="M12 3 2 20h20z"/><path d="M12 9v5m0 3v.01"/>',
+ danger:'<path d="M12 3a7 7 0 0 0-7 7c0 2.6 1.4 4.4 3 5.4V20h8v-4.6c1.6-1 3-2.8 3-5.4a7 7 0 0 0-7-7z"/><circle cx="9.3" cy="10.5" r="1.4"/><circle cx="14.7" cy="10.5" r="1.4"/><path d="M11 20v-2.5m2 2.5v-2.5"/>',
+ stunned:'<path d="M13 12a1 1 0 1 1-2 0 3 3 0 1 1 6 0 5 5 0 1 1-10 0 7 7 0 1 1 14 0"/>',
+ immobilized:'<path d="M12 3v16M8 7h8M5 13c1 5 4 7 7 7s6-2 7-7"/>',
+ slowed:'<path d="M7 3h10M7 21h10M8 3c0 5 4 6 4 9s-4 4-4 9M16 3c0 5-4 6-4 9s4 4 4 9"/>',
+ immune:'<path d="m12 3 7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/>',
+ spell:'<path d="M12 3v4m0 10v4M3 12h4m10 0h4M6.5 6.5 9 9m6 6 2.5 2.5m0-11L15 9m-6 6-2.5 2.5"/><circle cx="12" cy="12" r="2"/>',aura:'<circle cx="12" cy="12" r="3"/><path d="M12 3a9 9 0 0 1 0 18M12 3a9 9 0 0 0 0 18M5 7l2 1.5M19 7l-2 1.5M5 17l2-1.5M19 17l-2-1.5"/>',
  collapseSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-6-11 3 3-3 3"/>',
  expandSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-4-11-3 3 3 3"/>',
  quickEat:'<path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v18M17 3c-3 3-3 7 0 9h3V3zM20 12v9"/>',

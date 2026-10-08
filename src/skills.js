@@ -42,7 +42,7 @@ export function showSkillReward(reward,position,{float=true}={}){
   let region=document.getElementById('skill-rewards');
   if(!region){region=document.createElement('div');region.id='skill-rewards';region.setAttribute('role','status');region.setAttribute('aria-live','polite');document.body.append(region);}
   if(float){const xp=document.createElement('div');xp.className='floating-xp';xp.textContent=`+${Math.round(reward.xp)} ${reward.skillName||'Gathering'} Exp.!`;xp.setAttribute('role','status');document.body.append(xp);
-  floatingXp.push({element:xp,origin:position.clone().add(new THREE.Vector3(0,1.05,0)),age:0});}
+  floatingXp.push({element:xp,origin:position.clone().add(new THREE.Vector3(0,1.35,0)),age:0});}
   if(reward.leveledUp){
     window.dispatchEvent(new Event('quadriaquest-level'));
     const level=document.createElement('div');level.className='skill-reward level-up';

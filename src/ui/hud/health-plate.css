@@ -1,0 +1,62 @@
+/* Health plates float over combatants: a bar, plus (enemies) a danger symbol on the left and
+   effect icons on the right. Position is a per-frame transform written by the owner; the rest
+   changes only with state. The bar stays centred on the combatant; side symbols hang off it. */
+.q-plate {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 19;
+  pointer-events: none;
+}
+.q-plate[hidden] { display: none; }
+
+.q-plate__bar {
+  overflow: hidden;
+  inline-size: var(--q-plate-width);
+  block-size: var(--q-plate-height);
+  border-radius: 3px;
+  background: var(--q-plate-track);
+  box-shadow: 0 0 0 1px var(--q-rim);
+}
+.q-plate__fill {
+  display: block;
+  block-size: 100%;
+  background: var(--q-health);
+  transform-origin: left;
+  transform: scaleX(var(--q-plate-level, 1));
+  transition: transform var(--q-meter-level-duration) var(--q-ease-out);
+}
+
+.q-plate__danger,
+.q-plate__effects {
+  position: absolute;
+  inset-block-start: 50%;
+  display: flex;
+  gap: 1px;
+  transform: translateY(-50%);
+}
+.q-plate__danger { inset-inline-end: calc(100% + 3px); }
+.q-plate__effects { inset-inline-start: calc(100% + 3px); }
+
+.q-plate__symbol,
+.q-plate__effect { display: grid; }
+.q-plate__symbol svg { inline-size: var(--q-plate-symbol); block-size: var(--q-plate-symbol); stroke: var(--q-rim); stroke-width: 2.2; }
+.q-plate__symbol--caution svg { fill: var(--q-tone-warning); }
+.q-plate__symbol--danger svg { fill: var(--q-tone-danger); }
+.q-plate__effect svg {
+  inline-size: var(--q-plate-effect);
+  block-size: var(--q-plate-effect);
+  stroke: var(--q-ink-on-dark);
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 1px var(--q-rim)) drop-shadow(0 0 1px var(--q-rim));
+}
+
+/* The player's bar is a touch smaller than an enemy's. */
+.q-plate--player .q-plate__bar {
+  inline-size: var(--q-plate-player-width);
+  block-size: var(--q-plate-player-height);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-plate__fill { transition: none; }
+}

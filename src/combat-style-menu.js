@@ -27,6 +27,7 @@ export function createCombatStyleMenu({styles,combat,panels,auras=null,assistanc
  <h3>Strategy</h3><p>Your strategy decides which combat skill your attacks train. Changes apply from your next attack, even mid-fight.</p><div class="utility-options" data-strategies></div>
  <h3>Abilities</h3><p>Abilities spend Energy when the attack lands or releases. Queue one for your next eligible attack; it never repeats on its own.</p><div class="utility-options" data-abilities></div>
  <h3>Auras</h3><p>Auras stack and drain Ki every second. Turning one on costs one second of upkeep. At zero Ki, all auras fade; Ki recovers only while every aura is off.</p><div class="utility-options" data-auras></div>
+ <h3>Quick slots</h3><p>Your HUD's spell button casts your quick spell on your next attack (or opens your next fight with it). The aura button switches every quick aura on or off together.</p><div class="utility-options" role="group" aria-label="Quick spell" data-quick-spell></div><div class="utility-options" role="group" aria-label="Quick auras" data-quick-auras></div>
  <p class="utility-status" role="status" data-summary></p><p class="utility-status" data-aura-status role="status"></p>
  <p>Eating heals at once and restarts your current attack; a second item waits for the 2-second cooldown.</p>`;
  document.getElementById('game-menus').append(dialog);
@@ -78,6 +79,10 @@ export function createCombatStyleMenu({styles,combat,panels,auras=null,assistanc
   $('[data-strategies]').replaceChildren(...Object.entries(STRATEGIES).map(([id,def])=>button(`${title(id)} · ${STRATEGY_HELP[id]} → ${title(def.skill)}`,{pressed:styles.strategy===id,onclick:()=>{assistance?assistance.setStrategyManually(id):styles.setStrategy(id);render();}})));
   $('[data-abilities]').replaceChildren(...Object.entries(ABILITIES).map(([id,a])=>{const known=styles.knowsAbility(id),queued=combat.pending===id;const b=button(`${a.name} · ${a.energy} Energy`+(!known?' · Not learned':queued?' · Queued (press to withdraw)':combat.committedAbility===a.name?' · Winding up':''),{pressed:queued,disabled:!known,onclick:()=>{combat.queue(id);render();}});b.title=a.description;return b;}));
   $('[data-auras]').replaceChildren(...Object.entries(AURAS).map(([id,a])=>{const known=!!auras?.state.learned.includes(id),on=!!auras?.isActive(id);return button(`${a.name} · ${a.description} · ${a.upkeep} Ki/s`+(!known?' · Not learned':on?' · On':''),{pressed:on,disabled:!known,onclick:()=>{const result=assistance?assistance.toggleAuraManually(id):auras.toggle(id);$('[data-aura-status]').textContent=result===true?'':result;render();}});}));
+  // Quick slots configure the HUD action row in both Auto and Manual (docs/COMBAT.md, Quick slots).
+  const learnedSpells=styles.state.learned;
+  $('[data-quick-spell]').replaceChildren(...[[null,'No quick spell'],...learnedSpells.map(id=>[id,`Quick spell: ${SPELLS[id].name}`])].map(([id,name])=>button(name,{pressed:styles.quickSpell===id,onclick:()=>{styles.setQuickSpell(id);render();}})));
+  $('[data-quick-auras]').replaceChildren(...(auras?.state.learned||[]).map(id=>button(`Quick toggle: ${AURAS[id].name}`,{pressed:auras.isQuick(id),onclick:()=>{auras.setQuick(id,!auras.isQuick(id));render();}})));
   $('[data-summary]').textContent=(settings?.pacifist?'Pacifist · ':'')+text;
  }
  // Advanced Auto preferences have sensible defaults and are never required before Auto works.

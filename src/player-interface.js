@@ -3,6 +3,8 @@ import {resourceMeter} from './ui/hud/meter.js';
 import {compactQuery} from './ui/viewport.js';
 import {bind} from './ui/scope.js';
 import {panelTabs,anyAvailable} from './ui/panel-tabs.js';
+import {quickActions} from './ui/hud/quick-actions.js';
+import {warningChip} from './ui/hud/warning-chip.js';
 import {signal,untracked} from './reactive.js';
 import {mountMinimapControls} from './minimap-controls.js';
 import {icon} from './icons.js';
@@ -12,21 +14,26 @@ import {GEAR,ARMOR_SLOTS} from './equipment.js';
 import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
-export function createPlayerInterface({menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styleMenu,auras,knowsAbility=()=>false,playerControl=null,assistance=null}){
+export function createPlayerInterface({menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styles,styleMenu,auras,toast=()=>{},playerControl=null,assistance=null}){
  const $=id=>document.getElementById(id),mobile=compactQuery(),panels=menus.panels;
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
- const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div><button id="quick-food">${icon('quickEat')}<span></span></button><small id="player-combat-status" role="status"></small>`;
+ const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div>`;
  const heading=overview.querySelector('.overview-heading');
  const hud=document.createElement('aside');hud.id='player-mobile-hud';document.body.append(hud);
- menus.host.append(sidebar);sidebar.append(overview,$('journal'));$('overview-vitals').append($('player-health'),$('quick-food'));
- for(const [kind,label,action,glyph] of [['mana','Mana','Quick restore','quickRestore'],['stamina','Stamina','Sprint','sprint'],['energy','Energy','Strong Strike','strongStrike'],['ki','Ki','Auras','aura']]){
+ menus.host.append(sidebar);sidebar.append(overview,$('journal'));$('overview-vitals').append($('player-health'));
+ // Combat warnings: a transient chip under the action row (no space while idle). Danger persists on
+ // enemy health plates and control effects show on the player's plate, so this only announces changes.
+ let warning;mount(()=>{warning=warningChip({id:'player-combat-status',advice:()=>assistance?.warning??''});return warning.node;});
+ overview.append(warning.node);
+ // Action row: one quick action under each meter (ui/hud/quick-actions.js), pushed by gameplay state.
+ const quickFood=signal('cookedFish');let actions;
+ mount(()=>{actions=quickActions({inventory,food,quickFood,resources,styles,combat,auras,assistance,toast,ate:()=>reaction('action'),openCombat:()=>styleMenu.open()});return actions.eat;});
+ const actionFor={health:actions.eat,mana:actions.quickSpell,stamina:actions.sprint,energy:actions.strongStrike,ki:actions.quickAuras};
+ for(const [kind,node] of Object.entries(actionFor))node.classList.add('resource-placeholder-action',kind);
+ $('overview-vitals').append(actionFor.health);
+ for(const [kind,label] of [['mana','Mana'],['stamina','Stamina'],['energy','Energy'],['ki','Ki']]){
   const meter=mount(()=>resourceMeter({id:'player-'+kind,kind,label,resource:resources[kind]})).node;meter.classList.add('resource-placeholder',kind);
-  const button=document.createElement('button');button.id={stamina:'toggle-sprint',mana:'quick-restore',energy:'quick-strong-strike',ki:'open-auras'}[kind];button.className=`resource-placeholder-action ${kind}`;button.disabled=kind==='mana';button.setAttribute('aria-label',kind==='mana'?'Quick restore — not yet available':action);button.title=button.getAttribute('aria-label');button.innerHTML=icon(glyph);
-  if(kind==='stamina'){button.setAttribute('aria-pressed','false');button.onclick=()=>{resources.toggle();clock=.15;};}
-  // Strong Strike queues one use for the next eligible melee attack; pressing again withdraws it before it attaches.
-  if(kind==='energy'){button.setAttribute('aria-pressed','false');button.onclick=()=>{combat.queue('strongStrike');clock=.15;};}
-  if(kind==='ki'){button.setAttribute('aria-pressed','false');button.onclick=()=>{styleMenu.open();clock=.15;};}
-  $('overview-vitals').append(meter,button);
+  $('overview-vitals').append(meter,actionFor[kind]);
  }
  const mapCanvas=overview.querySelector('canvas');let mapCenter={x:tile().x,z:tile().z};
  const mapControls=mountMinimapControls(mapCanvas,{center:()=>mapCenter,move,changed:()=>{clock=.15;drawMap();}});
@@ -52,7 +59,7 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  menus.host.append(mobileNav,more);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!more.hidden){e.preventDefault();closeMore(true);}});
  document.addEventListener('pointerdown',e=>{if(!more.hidden&&!more.contains(e.target)&&!mobileNav.contains(e.target))closeMore();});
- let hidden=false,visible=false,quickFood='cookedFish',clock=0,gearSignature='',lastMessage='',messageUntil=0,layoutSignature='',foodSignature='';
+ let hidden=false,visible=false,clock=0,gearSignature='',layoutSignature='',lastAttacked=-Infinity;
  const gear=document.createElement('section');gear.id='equipment-panel';gear.innerHTML='<div class="crafting-heading"><h2>Equipment</h2><button aria-label="Close equipment">×</button></div><div class="equipment-list"></div>';$('journal').append(gear);gear.querySelector('button').addEventListener('click',()=>panels.dismiss());
  panels.register({id:'equipment',label:'Equipment',icon:'shields',order:80,element:gear,select(){panels.open('equipment');gearSignature='';renderGear();}});
  $('journal').append($('combat-panel'));
@@ -84,7 +91,6 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  menus.events.beforeClose=event=>{closeMore();if(event==='dismiss'&&!mobile.matches&&!hidden)return false;const result=menuReaction(mobile.matches,event);if(result==='compact')journal.compact();return result==='close';};
  $('hide-player-panel').onclick=()=>{hidden=!hidden;journal.setDocked(false);if(hidden)menus.closeMenus('dismiss');layout();};
  $('game-menu-toggle').addEventListener('click',()=>{if(hidden){hidden=false;layout();} });
- $('quick-food').onclick=()=>{if(food.start(quickFood))reaction('action');};
  function renderGear(){
   const signature=JSON.stringify(equipment.slots)+Object.keys(GEAR).map(id=>`${inventory[id]}:${equipment.inventoryActions(id).map(a=>a.label+a.disabled)}`).join();if(signature===gearSignature)return;gearSignature=signature;
   const list=gear.querySelector('.equipment-list');list.replaceChildren();
@@ -110,18 +116,13 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
  }
  mobile.addEventListener('change',layout);
  return {
-  reaction,assignFood(id){if(FOODS[id])quickFood=id;},get quickFood(){return quickFood;},
-  attacked(){reaction('attacked');lastMessage='Under attack!';messageUntil=performance.now()+2000;},
-  reset(){mapControls.reset();hidden=false;quickFood='cookedFish';journal.compact();menus.closeMenus();layout();},
+  reaction,assignFood(id){if(FOODS[id])quickFood.value=id;},get quickFood(){return quickFood.peek();},
+  // Announce being attacked only when it starts (no hit in the last 10s), not on every hit of a fight.
+  attacked(){reaction('attacked');const now=performance.now();if(now-lastAttacked>10000)warning.announce('Under attack!');lastAttacked=now;},
+  reset(){mapControls.reset();hidden=false;quickFood.value='cookedFish';journal.compact();menus.closeMenus();layout();},
   update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();if(!visible)return;
-   const action=food.inventoryActions(quickFood)[0];const button=$('quick-food'),signature=[quickFood,inventory[quickFood],food.working,!!action?.disabled].join(':');if(signature!==foodSignature){foodSignature=signature;button.disabled=!inventory[quickFood]||!!action?.disabled;button.querySelector('span').textContent=food.working?'Eating…':'Eat';button.title=`${ITEMS[quickFood].name} ×${inventory[quickFood]||0}`;button.setAttribute('aria-label',`${food.working?'Eating':'Quick eat'} ${button.title}`);}
-   // Control effects and their immunity windows are always shown; advisory danger comes from assistance.
-   const control=playerControl?.summary||'',advice=assistance?.warning||'',status=[performance.now()<messageUntil?lastMessage:'',advice,control].filter(Boolean).join(' · ')||(combat.working?'In combat · '+(assistance?.modeLabel||'Auto-Retaliate '+(combat.autoRetaliate?'On':'Off')):'');if($('player-combat-status').textContent!==status)$('player-combat-status').textContent=status;
-   const strike=$('quick-strong-strike'),queued=combat.pending==='strongStrike'||!!combat.committedAbility,known=knowsAbility('strongStrike'),strikeLabel=!known?'Strong Strike — not learned':queued?'Strong Strike queued for your next melee attack (press to withdraw)':'Strong Strike (50 Energy, next melee attack)';
-   if(strike.disabled===known)strike.disabled=!known;if(strike.getAttribute('aria-pressed')!==String(queued))strike.setAttribute('aria-pressed',String(queued));if(strike.title!==strikeLabel){strike.title=strikeLabel;strike.setAttribute('aria-label',strikeLabel);}
-   const auraButton=$('open-auras'),glowing=String(!!auras?.anyActive);if(auraButton.getAttribute('aria-pressed')!==glowing)auraButton.setAttribute('aria-pressed',glowing);const sprint=$('toggle-sprint'),pressed=String(resources.sprint);if(sprint.getAttribute('aria-pressed')!==pressed)sprint.setAttribute('aria-pressed',pressed);if(sprint.disabled!==(resources.stamina.value===0))sprint.disabled=resources.stamina.value===0;
    drawMap();if(panels.isOpen('equipment'))renderGear();if(panels.isOpen('combat'))styleMenu.refresh();if(!$('journal').hidden)menus.refresh();
   },
-  get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:moreOpen.peek(),hidden,quickFood,expanded:journal.expanded,menuOpen:!$('journal').hidden};}
+  get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:moreOpen.peek(),hidden,quickFood:quickFood.peek(),expanded:journal.expanded,menuOpen:!$('journal').hidden};}
  };
 }

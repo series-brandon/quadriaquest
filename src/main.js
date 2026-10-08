@@ -39,9 +39,10 @@ import {createFishingSystem} from './fishing.js';
 import {createFishingSpots} from './fishing-spots.js';
 import {createFishingPresentation} from './fishing-presentation.js';
 import {createPlayerHealth,createFoodSystem} from './player-health.js';
-import {batch,signal} from './reactive.js';
+import {batch,reactiveRecord,signal} from './reactive.js';
 import {mount} from './ui/dom.js';
 import {resourceMeter} from './ui/hud/meter.js';
+import {healthPlate} from './ui/hud/health-plate.js';
 import './player-health.css';
 import './campfires.css';
 import {createRecipeCrafting} from './recipe-crafting.js';
@@ -138,7 +139,7 @@ let chopTarget=null,actorTarget=null,actorTime=0;
 const bodyVertex=new THREE.Vector3(),bodyTransform=new THREE.Matrix4();
 const bodyPositions=body.geometry.getAttribute('position');
 body.updateMatrix();
-let tile=world.get(key(SPAWN.x,SPAWN.z)),path=[],segment=null,target=null,gatherTime=0,inventory={sticks:0,stones:0,axes:0,logs:0,hats:0,pickaxes:0,stone:0};for(const id of Object.keys(ITEMS))inventory[id]??=0;player.position.set(tile.x-6,tile.h,tile.z-6);
+let tile=world.get(key(SPAWN.x,SPAWN.z)),path=[],segment=null,target=null,gatherTime=0,inventory=reactiveRecord({sticks:0,stones:0,axes:0,logs:0,hats:0,pickaxes:0,stone:0});for(const id of Object.keys(ITEMS))inventory[id]??=0;player.position.set(tile.x-6,tile.h,tile.z-6);
 const feedback=createFeedback(scene);
 const contactShadow=createContactShadow(scene,world);
 const idleClock=createIdleClock(),sleepFeedback=createSleepFeedback(scene);
@@ -162,6 +163,18 @@ let playerInterface;
 const playerResources=createPlayerResources();
 const health=createPlayerHealth(),healthVisible=signal(false);
 document.body.append(mount(()=>resourceMeter({id:'player-health',kind:'health',label:'Health',resource:health,hidden:()=>!healthVisible.value})).node);
+// Player health plate just above the slime (floating XP starts above it): shown in combat, whenever
+// health is below full, and while a control effect is active.
+let playerPlate;document.body.append(mount(()=>{playerPlate=healthPlate({kind:'player',value:()=>health.value,max:()=>health.max});return playerPlate.node;}).node);
+const plateAnchor=new THREE.Vector3(),PLAYER_PLATE_LIFT=1;
+function updatePlayerPlate(){
+ // Control effects (stunned, slowed…) ride on the player's plate, which also shows while one is active.
+ const effects=playerControl.kinds;playerPlate.effects.value=effects.join(',');
+ const show=opening.playable&&!splash.active&&!travel.busy&&health.value>0&&(combat.inCombat||health.value<health.max||effects.length>0);
+ playerPlate.visible.value=show;if(!show)return;
+ plateAnchor.copy(player.position);plateAnchor.y+=PLAYER_PLATE_LIFT;plateAnchor.project(camera);
+ const view=gameViewport();playerPlate.place(view.left+(plateAnchor.x+1)*view.width/2,view.top+(1-plateAnchor.y)*view.height/2);
+}
 // Resource maxima follow capacity attributes; current amounts are kept and only clamped.
 const character=createCharacter({changed(){const m=character.maxima;health.max=m.health;for(const k of ['mana','stamina','energy','ki'])playerResources[k].max=m[k];}});
 // Player control effects (stun/immobilize/slow and protection) use the same shared state as enemies.
@@ -203,10 +216,10 @@ const supplies=createSupplyOffers({inventory,changed:showItemChanges});
 const projectiles=createProjectileEffects(scene);
 const equipmentPresentation=createEquipmentPresentation({hands,visual,equipment});
 castPresentation=createCastPresentation(hands);
-combat=createCombatSystem({world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:showItemChanges,projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
+combat=createCombatSystem({world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),danger:a=>assistance?.danger?.enemy===a?assistance.danger.band:null,resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:showItemChanges,projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
  attacked:()=>playerInterface?.attacked(),interrupt:()=>cancelWork({keepCombat:true,keepFood:true}),retaliate:a=>selectActor(a),eating:()=>food?.working,
  blocked:()=>!areas.canMove||travel.busy,
- inReach:a=>!segment&&!path.length&&withinAttackRange(world,tile,a,styles.attack.range),
+ inReach:a=>!segment&&!path.length&&withinAttackRange(world,tile,a,attackRange()),
  tile:()=>tile,reserved:t=>t===segment?.to||path.includes(t)||campfires?.placementTile===t||companions.occupies(t),
  approaching:()=>actorTarget,hover:()=>hover?.actor,face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},
  safe:p=>p.safe||pickables.some(m=>{const a=m.userData.actor;return a&&a.crystal&&world.get(key(a.x,a.z))===a.tile&&Math.abs(p.x-a.x)+Math.abs(p.z-a.z)<3;}),
@@ -322,7 +335,9 @@ function cancelWork({keepCombat=false,keepFood=false}={}){
  cancelPlayerActions({smithing,combat,resourceActions,carpentry,fishing,food,cooking,recipeCrafting,campfires,companions},{keepCombat,keepFood});areas.cancel();
  chopTarget=null;if(!(keepCombat&&actorTarget?.enemy)){actorTarget=null;actorTime=0;}
 }
-function routeToTree(target){return target.depleted?null:target.enemy?attackRoute(world,segment?segment.to:tile,target,styles.attack.range):interactionRoute(world,segment?segment.to:tile,target);}
+// A queued quick spell opens the next fight from its own range.
+function attackRange(){return combat?.queuedSpell?SPELLS[combat.queuedSpell].range:styles.attack.range;}
+function routeToTree(target){return target.depleted?null:target.enemy?attackRoute(world,segment?segment.to:tile,target,attackRange()):interactionRoute(world,segment?segment.to:tile,target);}
 function selectTree(tree){
  if(!canMove()||chopTarget===tree||resourceActions.matches(tree))return;if(__PLAYGROUND__)debug?.stop(false);
  const mining=['boulder','copper'].includes(tree.kind),tool=mining?'pickaxes':'axes';
@@ -557,7 +572,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  let viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
  const focus=cameraFocus.copy(player.position).add(focusLift.set(0,.35+closeup*.3,0));if(areaFocus){focus.lerp(areaFocus.position,areaFocus.blend);viewZoom=THREE.MathUtils.lerp(viewZoom,areaFocus.zoom??viewZoom,areaFocus.blend);viewElevation=THREE.MathUtils.lerp(viewElevation,areaFocus.elevation??viewElevation,areaFocus.blend);}
  if(__PLAYGROUND__)perfProbe.lap('player');
- const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);
+ const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);updatePlayerPlate();if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);
 }
 if(__PLAYGROUND__){
  trainingFixtures=playground.createTrainingFixtures({scene,world,pickables,resources:resourceActions,combat,styles,supplies,openStation,stop:stopAll,approach:selectActor,tile:()=>tile,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.actor||m.userData.resource)),clearUI:()=>areas.notify('clearUI')});
@@ -641,7 +656,9 @@ if(__PLAYGROUND__){
   // Dev-only requirement override so the real backfire path can be exercised (Full test area restores 1).
   spellRequirement(level){SPELLS.energyStrike.requirements['magic.technique']=Math.max(1,level);},
   addTestArmor(){for(const id of Object.keys(GEAR))if(GEAR[id].armor)inventory[id]=Math.max(1,inventory[id]||0);menus.refresh();},
-  learnCombatKit(on){if(on){styles.learnAbility('strongStrike');auras.learn('rush');auras.learn('harden');}else{auras.reset();styles.reset();}},queueStrongStrike:()=>combat.queue('strongStrike'),combatPending:()=>({pending:combat.pending,committed:combat.committedAbility,cooldown:food.cooldown}),combatDefense(){const p=combat.preview();return playerDefense(character,{activeStyle:p.combatStyle,strategy:p.strategy,shield:equipment.shield,bonusResistancePct:auras.resistancePct});},
+  learnCombatKit(on){if(on){styles.learnAbility('strongStrike');auras.learn('rush');auras.learn('harden');}else{auras.reset();styles.reset();}},
+   // Quick slots (docs/COMBAT.md): Energy Strike as the quick spell, Rush and Harden in the quick-aura set.
+   quickSlotKit(){styles.learn('energyStrike');this.learnCombatKit(true);styles.setQuickSpell('energyStrike');auras.setQuick('rush',true);auras.setQuick('harden',true);},queueStrongStrike:()=>combat.queue('strongStrike'),combatPending:()=>({pending:combat.pending,committed:combat.committedAbility,cooldown:food.cooldown}),combatDefense(){const p=combat.preview();return playerDefense(character,{activeStyle:p.combatStyle,strategy:p.strategy,shield:equipment.shield,bonusResistancePct:auras.resistancePct});},
   willow,areaId:()=>areas.id,travelTo:id=>{finale.ensurePortal();return travel.request(id);},cancelTravel:()=>travel.cancel(),usePortal(){const crystal=crystals.current()[0];if(crystal)selectActor(crystal);},resetFinale(){travel.cancel();if(areas.id!=='clearing')areas.activate('clearing',{landing:clearingTiles.get(key(SPAWN.x,SPAWN.z)),arrival:false});finale.reset();},enterWillow(){craftingTutorial.reset();opening.enterFreePlay();finale.ensurePortal();travel.request('willowbank');},
   equipment,inventory,player,feedback,getTile:()=>tile,finale,
   doze(){idleClock.update(30,true);},
@@ -667,7 +684,7 @@ if(__PLAYGROUND__){
 }
 const journal=mountJournal(menus,craftingTutorial,settingsUI);
 createCompanionMenu(companions,{panels:menus.panels,canClose:()=>menus.events.beforeClose?.('automatic')!==false});
-playerInterface=createPlayerInterface({playerControl,assistance,auras,knowsAbility:id=>styles.knowsAbility(id),menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
+playerInterface=createPlayerInterface({playerControl,assistance,auras,styles,toast,menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.

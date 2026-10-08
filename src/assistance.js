@@ -1,4 +1,5 @@
 import {STRATEGIES,hitsToDefeat,dangerBand,roundFinal} from './combat-formulas.js';
+import {signal} from './reactive.js';
 import {playerAttackProfile,playerDefense} from './combat-profile.js';
 import {GEAR,ARMOR_SLOTS} from './equipment.js';
 import {SPELLS,ABILITIES} from './combat-styles.js';
@@ -16,7 +17,9 @@ const STYLE_OF=item=>GEAR[item]?.style==='ranged'?'ranged':'melee';
 export function createAssistance(api){
  const {combat,character,equipment,styles,auras,food,inventory,health,resources}=api;
  let control='auto',pacifist=false,style='melee',goal=null,advanced={...DEFAULT_ADVANCED},manual={strategy:false,spell:false,auras:{}};
- let override=null,warning='',danger=null,exhausted=false,optimizeReport='',clock=0;const grace={};
+ // Signal-backed so the HUD warning chip follows advice without polling.
+ const warning=signal('');
+ let override=null,danger=null,exhausted=false,optimizeReport='',clock=0;const grace={};
  const changed=()=>api.changed?.();
  const engaged=()=>combat.engagedEnemy;
  const meanDps=p=>((p.min+p.max)/2*(p.damageScale??1))/p.interval;
@@ -146,7 +149,7 @@ export function createAssistance(api){
    }
    if(control==='auto'){advice=autoEat();autoAuras(dt);if(!pacifist)autoAbilities();}
    // Advisory only: warnings never stop a fight the player chose or move the player.
-   warning=advice||danger?.message||'';
+   warning.value=advice||danger?.message||'';
   },
   auraExhausted(){exhausted=true;},
   // Persistent manual selections keep manual control until returned to Auto.
@@ -160,10 +163,10 @@ export function createAssistance(api){
   setStyle(next){if(next===style)return optimizeReport;style=next;manual.spell=false;const report=optimize(next);changed();return report;},
   setGoal(next){goal=TRAINING_GOALS.includes(next)?next:null;changed();},
   setAdvanced(patch){advanced={...advanced,...patch};changed();},
-  get warning(){return warning;},get danger(){return danger;},get optimizeReport(){return optimizeReport;},
+  get warning(){return warning.value;},get danger(){return danger;},get optimizeReport(){return optimizeReport;},
   get modeLabel(){return pacifist?'Pacifist':control==='auto'?'Auto · Balanced':'Manual · Auto-Retaliate '+(combat.autoRetaliate?'On':'Off');},
   get settings(){return {control,pacifist,style,goal,advanced:{...advanced},manual:{strategy:manual.strategy,spell:manual.spell,auras:{...manual.auras}},override:override?.kind||null};},
-  reset(){control='auto';pacifist=false;style='melee';goal=null;advanced={...DEFAULT_ADVANCED};manual={strategy:false,spell:false,auras:{}};override=null;warning='';exhausted=false;optimizeReport='';changed();},
+  reset(){control='auto';pacifist=false;style='melee';goal=null;advanced={...DEFAULT_ADVANCED};manual={strategy:false,spell:false,auras:{}};override=null;warning.value='';exhausted=false;optimizeReport='';changed();},
  };
  return api2;
 }

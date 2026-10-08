@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Vector3,Euler} from 'three';
 import {attackAnimation,blockAnimation,attackWindow,equipmentIdleHands} from './combat-animation.js';
+import {PUNCH_GUARD} from './combat-motion.js';
 import {trainingTool,animateBow} from './training-models.js';
 test('weapon attacks use distinct blade orientation, windup and impact at the damage boundary',()=>{
  const dagger={item:'copperDagger',style:'melee',interval:1.5},sword={...dagger,item:'swords'};
@@ -33,7 +34,8 @@ test('casting gathers energy between converging hands, pulls back, then tosses i
 });
 test('block poses cover bare hands, blades, bows, magic and every legal shield combination',()=>{
  for(const item of [null,'swords','copperDagger','bows'])for(const offHand of [null,'shields','copperShield']){if(item==='bows'&&offHand)continue;const pose=blockAnimation({item,offHand},.1);for(const h of pose.hands)assert.ok(h.every(Number.isFinite));if(offHand){assert.ok(pose.hands[1][2]>.5);assert.equal(pose.hands[0][0],-.47);}else if(!item)assert.ok(pose.hands.every(h=>h[1]>.55));else if(item!=='bows')assert.ok(pose.hands[0][4]<-.7);}
- const end=blockAnimation({},.42);assert.equal(end.hands[0][1],.33);
+ // Bare hands settle back into the boxing guard the punches resume from, not down to the sides.
+ const end=blockAnimation({},.42);assert.deepEqual(end.hands,PUNCH_GUARD);
 });
 
 
@@ -172,4 +174,13 @@ test('cast orb surges wildly while gathering, then settles small; hands arrive l
  for(const t of [gatherEnd,gatherEnd+.1,interval-.1,interval-.01]){const h=castMotion(t,interval).hands;assert.ok(Math.abs(h[0][1]-h[1][1])<1e-9,`level at ${t.toFixed(2)}`);}
  assert.ok(Math.abs(castMotion(1.0,interval).hands[0][1]-castMotion(1.0,interval).hands[1][1])>.01,'but they do circle mid-gather');
  assert.equal(castMotion(interval,interval).orbScale,0,'gone once thrown');
+});
+
+test('an unarmed block hands back to the punch guard without the fists dropping',()=>{
+ const profile={style:'unarmed',interval:2.5};
+ // Throughout the block the fists never sink below the guard height.
+ for(let age=0;age<=.42;age+=.01)for(const h of blockAnimation(profile,age).hands)assert.ok(h[1]>=PUNCH_GUARD[0][1]-1e-9,`fists dipped at ${age.toFixed(2)}s`);
+ // The next windup (between strikes) holds the same guard, so there is nothing to slide back from.
+ const after=attackAnimation(profile,1.2).hands,end=blockAnimation(profile,.42).hands;
+ for(let i=0;i<2;i++)for(let j=0;j<3;j++)assert.ok(Math.abs(after[i][j]-end[i][j])<1e-6,`hand ${i} axis ${j}`);
 });
