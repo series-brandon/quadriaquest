@@ -6,9 +6,6 @@
   "src/game-menus.js": {
     "innerHTML": 1
   },
-  "src/item-feedback.js": {
-    "innerHTML": 1
-  },
   "src/main.js": {
     "propertyHandlers": 5
   },

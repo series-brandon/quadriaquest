@@ -8,14 +8,14 @@ button{color:var(--ui-ink)}
 button:hover{background:#eadbe5}
 button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:3px}
 p{color:var(--ui-muted)}
-#game-menu-bar,#toast,#area-name{background:#faf1e7f5;color:var(--ui-ink);border:1px solid var(--ui-border);box-shadow:0 12px 40px #382b491a}
+#game-menu-bar,#area-name{background:#faf1e7f5;color:var(--ui-ink);border:1px solid var(--ui-border);box-shadow:0 12px 40px #382b491a}
 
 .crafting-heading{color:var(--ui-ink)}
 
 #open-crafting{background:#eee0e5;color:var(--ui-ink);border-color:var(--ui-border)}
 
 #tooltip{background:#493452f2;color:var(--ui-button-ink)}
-.skill-reward{background:var(--ui-paper);border-color:var(--ui-border);color:var(--ui-ink)}
+
 #game-menu-toggle{background:var(--ui-paper);color:var(--ui-button);border-color:var(--ui-border);box-shadow:0 6px 26px #382b4926}
 #splash{color:var(--ui-ink);background:linear-gradient(var(--ui-paper),transparent 42%,transparent 74%,var(--ui-paper))}
 .splash-heading h1{font-family:Georgia,serif;font-weight:600;letter-spacing:-.045em;text-shadow:none}
@@ -53,9 +53,8 @@ body #game-menus{bottom:20px;right:20px}
 
 [hidden],#journal [hidden]{display:none!important}
 @media(max-width:700px){#journal,#journal.expanded{right:12px;bottom:80px;transform:none;width:calc(100vw - 24px);max-width:none;max-height:65dvh}body:has(#gather-tutorial:not([hidden])) #journal{max-height:48dvh}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:12px;left:12px;width:calc(100vw - 24px);padding:12px 15px}#journal-size{display:none}.journal-header{padding-top:12px}#journal #game-menu-bar{padding:6px 12px}}
-#item-feed{position:fixed;right:24px;bottom:92px;display:flex;flex-direction:column;gap:8px;width:280px;max-width:calc(100vw - 32px);pointer-events:none;z-index:22}body:has(#journal:not([hidden])) #item-feed{right:auto;left:24px;bottom:24px}.loot-receipt{background:#faf1e7f2;border:1px solid var(--ui-border);border-radius:12px;padding:12px 14px;box-shadow:0 5px 18px #382b491c;animation:loot-in .25s ease-out;transition:opacity .35s,transform .35s}.loot-line{display:flex;gap:10px;align-items:center;font-size:13px}.loot-line.gain{color:#46694e}.loot-line.cost{color:#806c7e}.loot-receipt small{display:block;margin:7px 0 0 35px;font-size:11px;color:var(--ui-muted)}.loot-receipt.leaving{opacity:0;transform:translateY(-8px)}@keyframes loot-in{from{opacity:0;transform:translateX(15px)}to{opacity:1;transform:translateX(0)}}
+body:has(#journal:not([hidden])) #item-feed{right:auto;left:24px;bottom:24px}
 
-@media(prefers-reduced-motion:reduce){.loot-receipt{animation:none;transition:none}}
 #journal .journal-header{position:static;inset:auto;transform:none;opacity:1;visibility:visible;width:auto;flex-shrink:0;pointer-events:auto}
 body:has(#journal:not([hidden])) #item-feed{bottom:70px}
 
@@ -92,7 +91,7 @@ body:has(#journal:not([hidden])) #item-feed{bottom:70px}
  body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:max(12px,env(safe-area-inset-top));left:12px;width:calc(100vw - 24px);max-height:40dvh;overflow:auto;pointer-events:auto}
  
  
- #item-feed{right:12px;bottom:80px;width:240px;max-width:calc(100vw - 24px)}#item-feed .loot-receipt:nth-last-child(n+3){display:none}
+ 
 }
 @media(max-width:700px){body:has(#journal:not([hidden])) #journal #gather-tutorial{position:relative;inset:auto;transform:none;width:auto;align-self:stretch;max-width:none;margin:0 10px 6px;max-height:30dvh}#journal .journal-header,#journal #game-menu-bar{flex-shrink:0}}
 
@@ -106,14 +105,11 @@ body #game-menus{top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-
 .splash-actions{--splash-button-size:62px;display:flex;align-items:center;justify-content:center;gap:14px}
 .splash-actions button{box-sizing:border-box;height:var(--splash-button-size);padding-top:0;padding-bottom:0}
 #splash-settings{position:static;flex:0 0 var(--splash-button-size);width:var(--splash-button-size);height:var(--splash-button-size);padding:0;display:grid;place-items:center;background:var(--ui-paper);border:1px solid var(--ui-border);border-radius:14px;color:var(--ui-button);pointer-events:auto}
-@media(max-width:700px){#journal:not(.expanded){inset:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-height:none}#journal #game-menu-bar button{flex-direction:column;font-size:11px;gap:5px;padding:8px 4px}#journal #game-menu-bar .game-icon{width:21px;height:21px}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:80px;max-height:35dvh}#item-feed{bottom:20px}}
+@media(max-width:700px){#journal:not(.expanded){inset:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom));max-height:none}#journal #game-menu-bar button{flex-direction:column;font-size:11px;gap:5px;padding:8px 4px}#journal #game-menu-bar .game-icon{width:21px;height:21px}body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:80px;max-height:35dvh}}
 /* Tips share the dialogue area; objective updates are brief, independent receipts. */
 body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:auto;bottom:24px;left:50%;transform:translateX(-50%);width:min(620px,calc(100vw - 32px));max-height:38dvh;overflow:auto;z-index:45;pointer-events:auto}
 
-#objective-update{position:fixed;top:22px;left:22px;z-index:25;width:min(280px,calc(100vw - 106px));padding:12px 16px;border:1px solid #ac91ba;border-radius:12px;background:#493452ed;color:#fff0db;pointer-events:none;transition:opacity .65s,transform .65s}
-#objective-update strong{display:block;font-size:13px;line-height:1.4}#objective-update progress{display:block;width:100%;height:5px;margin-top:9px;accent-color:#dbb878}#objective-update.complete{background:#304e40f7;border-color:#739c7d}#objective-update.fading{opacity:0;transform:translateY(-8px)}
-
-@media(max-width:700px){body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:auto;bottom:max(12px,env(safe-area-inset-bottom));left:12px;transform:none;width:calc(100vw - 24px);max-height:34dvh}body:has(#gather-tutorial:not([hidden])) #journal,body:has(#gather-tutorial:not([hidden])) #journal.expanded{bottom:calc(34dvh + 24px)}#journal #game-menu-bar button{font-size:10px;min-width:0}#objective-update{top:16px;left:12px}}
+@media(max-width:700px){body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,body:has(#skills-panel:not([hidden])) #gather-tutorial{top:auto;bottom:max(12px,env(safe-area-inset-bottom));left:12px;transform:none;width:calc(100vw - 24px);max-height:34dvh}body:has(#gather-tutorial:not([hidden])) #journal,body:has(#gather-tutorial:not([hidden])) #journal.expanded{bottom:calc(34dvh + 24px)}#journal #game-menu-bar button{font-size:10px;min-width:0}}
 
 #journal #game-menu-bar button{flex:1;min-width:0;flex-direction:column;justify-content:center;gap:5px;padding:8px 4px;font-size:11px}
 @media(min-width:701px){body:has(#gather-tutorial:not([hidden])) #journal:not(.expanded){max-height:calc(100dvh - 370px)}}

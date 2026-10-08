@@ -25,6 +25,9 @@ import {attackRoute,withinAttackRange} from './combat-range.js';
 import {createCharacterDialogue} from './character-dialogue.js';
 import {createNarrator} from './ui/hud/narrator.js';
 import {createTip} from './ui/hud/tip.js';
+import {messageToast,objectiveToast,levelUps} from './ui/hud/notices.js';
+import {notice as objectiveNotice} from './quests.js';
+import {levelNotice} from './skills.js';
 import {createAreaRuntime} from './area-runtime.js';
 import {createTravelSystem} from './travel.js';
 import {createCrystals} from './crystals.js';
@@ -159,6 +162,9 @@ const perfProbe=__PLAYGROUND__?playground.createPerfProbe({renderer,scene}):null
 const narrator=createNarrator();
 // The tutorial tip card: lessons and area chapters show guidance through it.
 const tip=createTip();
+// Brief notices: blocked-action messages, quest progress and level-ups (item receipts: createItemFeed).
+let messages;
+for(const build of [()=>(messages=messageToast()).node,()=>objectiveToast({notice:objectiveNotice}),()=>levelUps({notice:levelNotice})])document.body.append(mount(build).node);
 const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,player,visual,face:expressionFace,introSpawn,spawn:clearingSpawn,onComplete:()=>craftingTutorial.start(),onModeChosen:mode=>assistance?.setMode(mode),onFirstLevel:done=>craftingTutorial.startSkills(done),onFirstQuest:done=>craftingTutorial.startQuests(done),
  setColor(color){body.material.color.set(color);expressionFace.setBodyColor(color);},
  showClearing(){clearingGroup.visible=true;for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
@@ -380,7 +386,7 @@ function selectActor(actor,manual=false){
  combat.disengage();cancelWork({keepCombat:true,keepFood:!!actor.enemy});target=null;gatherTime=0;actorTarget=actor;actorTime=0;path=result.route;feedback.destination(result.at);
 }
 function isVisible(object){for(let o=object;o;o=o.parent)if(!o.visible)return false;return true;}
-let toastTimer;function toast(s){gameAudio.play('blocked');$('toast').textContent=s;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
+function toast(s){gameAudio.play('blocked');messages?.show(s);}
 function showItemChanges(changes){itemFeed.show(changes);gameAudio.play(Object.values(changes).some(n=>n<0)?'complete':'pickup');}
 function updateUI(reward){const count=inventory.sticks+inventory.stones;opening.collected(count,reward);$('sticks').textContent='×'+inventory.sticks;$('stones').textContent='×'+inventory.stones;$('bag-total').textContent=`${count} ITEMS`;$('quest-count').textContent=`${count} / 6 materials collected`;$('quest-progress').style.width=`${count/6*100}%`;$('quest-check').textContent=count===6?'✓':'◇';}
 function moveTo(t,resource){if(!canMove())return;if(campfires?.placing){campfires.selectPlacement(t);return;}if(resource&&(resource===target||resourceActions.matches(resource)))return;if(__PLAYGROUND__)debug?.stop(false);const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&(resource===target||resourceActions.matches(resource))){return;}const start=segment?segment.to:tile;const adjacent=resource?routeToTree(resource):null;const destination=resource?adjacent?.at:t;const route=resource?(adjacent?.route??null):findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}$('toast').classList.remove('visible');clearTimeout(toastTimer);if(recipeCrafting.working&&route.length===0&&!segment&&!resource)return;combat.disengage();cancelWork();opening.moving(tile,destination);target=resource||null;gatherTime=0;path=route;feedback.destination(destination);$('activity').textContent=resource?'On the way to gather':'Exploring';}

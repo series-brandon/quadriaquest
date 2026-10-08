@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {levelProgress,totalXpForLevel} from './combat-formulas.js';
-import {reactiveRecord} from './reactive.js';
+import {reactiveRecord,signal} from './reactive.js';
 
 export const GATHERING_XP_PER_ITEM = 20;
 export const GATHERING_XP_PER_LEVEL = 120;
@@ -40,17 +40,17 @@ export function addSkillLevels(skill,levels){
 const floatingXp=[];
 const projected=new THREE.Vector3();
 
+// Level-up receipts (ui/hud/notices.js `levelUps`) follow this: {seq, title, detail} per level
+// gained, or {seq, clear:true} to dismiss them all.
+export const levelNotice=signal(null);
+let levelSeq=0;
 export function showSkillReward(reward,position,{float=true}={}){
-  let region=document.getElementById('skill-rewards');
-  if(!region){region=document.createElement('div');region.id='skill-rewards';region.setAttribute('role','status');region.setAttribute('aria-live','polite');document.body.append(region);}
   if(float){const xp=document.createElement('div');xp.className='floating-xp';xp.textContent=`+${Math.round(reward.xp)} ${reward.skillName||'Gathering'} Exp.!`;xp.setAttribute('role','status');document.body.append(xp);
   floatingXp.push({element:xp,origin:position.clone().add(new THREE.Vector3(0,1.35,0)),age:0});}
   if(reward.leveledUp){
     window.dispatchEvent(new Event('quadriaquest-level'));
-    const level=document.createElement('div');level.className='skill-reward level-up';
-    const title=document.createElement('strong');title.textContent=`✦ ${reward.skillName||'Gathering'} level has increased!`;
-    const detail=document.createElement('span');detail.textContent=reward.skillName==='Gathering'||!reward.skillName?`Level ${reward.level} · Gathering is now faster`:reward.detail?`Level ${reward.level} · ${reward.detail}`:`Level ${reward.level}`;
-    level.append(title,detail);region.append(level);setTimeout(()=>level.remove(),5000);
+    const skill=reward.skillName||'Gathering';
+    levelNotice.value={seq:++levelSeq,title:`✦ ${skill} level has increased!`,detail:skill==='Gathering'?`Level ${reward.level} · Gathering is now faster`:reward.detail?`Level ${reward.level} · ${reward.detail}`:`Level ${reward.level}`};
   }
 }
 
@@ -69,5 +69,5 @@ export function updateSkillRewards(dt,camera,width,height){
 export function clearSkillRewards(){
   for(const reward of floatingXp)reward.element.remove();
   floatingXp.length=0;
-  document.getElementById('skill-rewards')?.replaceChildren();
+  levelNotice.value={seq:++levelSeq,clear:true};
 }

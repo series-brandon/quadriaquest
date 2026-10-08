@@ -94,6 +94,15 @@
   --q-tip-done-accent: #b3e6ac;
   --q-tip-done-title: #c4f2b9;
 
+  /* Notices (ui/hud/notices.css) */
+  --q-notice-shadow: #382b491c;
+  --q-gain: #46694e;
+  --q-cost: #806c7e;
+  --q-level: #fffae8;
+  --q-level-border: #e7c86e;
+  --q-level-ink: #80601b;
+  --q-level-shadow: #345b2420;
+
   /* Modal host (ui/modal.js) */
   --q-paper: #faf1e7;
   --q-modal-border: #c7abc1;

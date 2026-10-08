@@ -20,6 +20,28 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Notices on the kit — 2026-10-08
+- **`ui/hud/notices.js`:**
+  - `messageToast()`: `#toast`, mounted in main.js; `toast(text)` plays the blocked sound and shows it for 2.6s.
+  - `objectiveToast({notice})`: `#objective-update`, shown for 4.5s, then a 0.65s fade.
+  - `itemFeed()`: `#item-feed`, receipts as a keyed list with icons; same merge, craft and cap rules as the legacy `createItemFeed`, which now wraps it.
+  - `levelUps({notice})`: `#skill-rewards`, receipts that stack and expire after 5s.
+  - Timers belong to each view's scope.
+- **State modules publish notices instead of building DOM:**
+  - `quests.js` exports `notice` (`{seq, title, current, total}` on each real change; null from `resetObjectives`).
+  - `skills.js` exports `levelNotice` (`{seq, title, detail}` per level gained; `{clear:true}` from `clearSkillRewards`).
+  - Floating "+XP" labels stay as they were: world-anchored, positioned each frame like hit splats.
+- **Markup and CSS:**
+  - `index.html` no longer has the static `#toast`.
+  - Look in `ui/hud/notices.css` on tokens (`--q-gain`, `--q-cost`, `--q-level*`, `--q-notice-shadow`; the objective reuses the tip colours).
+  - Positions reproduce the effective legacy values: objective 22/22 on desktop and 16/12 on phones; feed 24/92 on desktop and 12/20 on phones (two newest receipts); toast 190px up and centred.
+  - Journal, sidebar and player-health offsets stay in the legacy layout rules by id.
+  - Removed the legacy look rules and the `skill-pop`/`skill-fade`/`loot-in` keyframes.
+- **Verification:**
+  - 359 tests pass, including `notices.test.js`: toast replace and fade, objective progress, completion and dismiss, feed merge, craft costs, cap and expiry, level-up stack, expiry and clear.
+  - `check:ui` passes; legacy debt fell (`item-feedback.js` innerHTML) and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - **Not yet checked in the browser:** the Browser pane was hidden, and hidden pages don't run. Pending, with the tip checks above: a blocked action's toast, the quest pop-up while gathering, receipts for pickups and a craft, a level-up receipt, and phone positions.
+
 ### Tutorial tip on the kit — 2026-10-08
 - **Tip** (`ui/hud/tip.js`): `createTip()` (main.js) builds and owns `#gather-tutorial` (`#tutorial-title`, `#tutorial-count`, `#tutorial-copy`, `#tutorial-progress`, `#tutorial-help`, `#tutorial-continue`); `index.html` no longer has the static markup.
   - **API:** `show({title, text, emphasis, count, progress, complete, action:{label, disabled, onPress}, help:{label, onPress}})` replaces the tip; `update(patch)`, `updateAction(patch)` and `hide()`; `state` and `visible`.
