@@ -20,6 +20,17 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Station badge, station window size — 2026-10-08
+- **Station part badge:** `recipeDetailBody({…, atStation})` checks a station recipe's Station row green when the window belongs to that station (station dialogs pass their kind) and crosses it red elsewhere (the Crafting page). Hand recipes say "None: craft anywhere" with no badge.
+- **Removed:** the "Interact with a/an X to use this recipe" line and the unreachable preview message in `make()` (the button is disabled without a station), plus the stations' unused `article`.
+- **Station windows (`.q-modal--wide`, used only by them):** up to 900px wide and fitted to their content up to 760px tall (was fixed at 680×520), so a full recipe detail shows without scrolling. The grid and detail split 1 : 1.2. The empty footer hides whenever there's no Pack up button.
+
+### Station dialogs mirror Crafting; recipe detail spacing — 2026-10-08
+- `ui/recipe-view.js` (`recipeTile`, `recipeDetailBody`, `STATION_LABEL`) is shared by the Crafting page and the station dialogs (campfire, furnace, anvil). Stations now show a recipe grid and the same detail; their make button, the campfire's Pack up and the station-preview note are their own. The old list-row recipe styles (`.q-recipe`, `__icon`, `__text`, `-detail__hero`) are gone. The back button is `.q-recipe-detail__back` in both.
+- **Detail spacing:** a divider under each part title (Ingredients, Tools, Station, Makes), rows without dividers, and 8px more between parts.
+- Hover backgrounds on the back button and tab bar apply only on devices that hover (no stuck hover after a tap).
+- **Verified headless:** anvil and cooking on desktop and phone (grid, then detail with back), and Crafting expanded. `recipe-view.test.js` covers the tile and detail.
+
 ### Instruction copy removed; dock icon — 2026-10-08
 - **Rule of thumb (user):** keep the UI free of explanatory instructions. Empty states ("No spells yet."), search misses, live status and reasons for a disabled control stay.
 - **Removed:**

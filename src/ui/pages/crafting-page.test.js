@@ -65,7 +65,7 @@ test('crafting starts through the shared system and shows progress; choosing swi
   assert.equal(s.selected.value, 'rods');
   assert.equal(page.dataset.view, 'detail');
   assert.equal(s.get('rods-detail').hidden, false);
-  press(s.get('rods-detail').querySelector('.q-crafting__back'));
+  press(s.get('rods-detail').querySelector('.q-recipe-detail__back'));
   assert.equal(page.dataset.view, 'list');
 });
 
@@ -79,6 +79,8 @@ test('the detail lists Ingredients, Tools, Station and Makes', () => {
   assert.match(parts('campfires').Makes, /Campfire ×1/);
   assert.match(parts('axes').Tools, /None needed/);
   assert.match(parts('copperDagger').Station, /Anvil/);
+  assert.equal(s.get('copperDagger-detail').querySelector('[aria-label=Station] li').hasAttribute('data-missing'), true, 'crossed: not at an anvil');
+  assert.equal(s.get('copperDagger-detail').querySelector('[aria-label=Station] strong').getAttribute('aria-label'), 'Needs an anvil');
 });
 
 test('search and Show filters narrow the grid', () => {

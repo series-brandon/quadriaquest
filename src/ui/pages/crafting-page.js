@@ -2,13 +2,12 @@ import {computed, signal} from '../../reactive.js';
 import {h} from '../dom.js';
 import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
+import {recipeTile, recipeDetailBody, STATION_LABEL} from '../recipe-view.js';
 import {RECIPES, canMake, durationFor} from '../../recipes.js';
 import {ITEMS} from '../../items.js';
 
-const STATION = {furnace: 'Furnace', anvil: 'Anvil', fire: 'Campfire'};
 const STATION_NAME = {furnace: 'a furnace', anvil: 'an anvil', fire: 'a campfire'};
 const REFUSED = 'Check the required materials and finish your current action first.';
-const name = id => ITEMS[id]?.name ?? id;
 
 // Crafting page: a searchable grid of recipes (hand-made first, station recipes after) and the
 // chosen recipe's detail: time, Ingredients, Tools, Station, what it Makes, and the craft button.
@@ -46,31 +45,13 @@ export function craftingPage({inventory, skills = () => ({}), active = () => nul
 
   const tile = item => {
     const id = item.peek(), recipe = RECIPES[id];
-    const tag = () => (active() === id ? 'Crafting…' : recipe.station ? STATION[recipe.station] ?? recipe.station : '');
-    return h('button', {
-      type: 'button',
-      class: 'q-item q-recipe-tile',
-      id: `choose-${id}`,
-      'aria-pressed': () => selected.value === id,
-      'aria-label': () => `${recipe.name}, ${active() === id ? 'crafting' : recipe.station ? `made at ${STATION_NAME[recipe.station] ?? recipe.station}` : readiness[id].value ? 'materials ready' : 'missing materials'}`,
-      'data-missing': () => !readiness[id].value,
-      on: {click: () => choose(id)},
-    },
-    h('span', {class: 'q-item__icon', 'aria-hidden': 'true'}, iconNode(id)),
-    h('span', {class: 'q-item__name'}, recipe.name),
-    h('small', {class: 'q-recipe-tile__tag', hidden: () => !tag(), 'aria-hidden': 'true'}, tag));
+    return recipeTile({id, recipe, attrs: {id: `choose-${id}`},
+      pressed: () => selected.value === id,
+      ready: () => readiness[id].value,
+      tag: () => (active() === id ? 'Crafting…' : recipe.station ? STATION_LABEL[recipe.station] ?? recipe.station : ''),
+      label: () => `${recipe.name}, ${active() === id ? 'crafting' : recipe.station ? `made at ${STATION_NAME[recipe.station] ?? recipe.station}` : readiness[id].value ? 'materials ready' : 'missing materials'}`,
+      onChoose: () => choose(id)});
   };
-
-  // One labelled part of the recipe detail: rows of what it needs or gives.
-  const part = (title, rows) => h('section', {class: 'q-recipe-part', 'aria-label': title}, h('h4', {class: 'q-label'}, title), h('ul', {class: 'q-ingredients'}, rows));
-  // Ingredients are used up and tools are kept; the part they're in says which.
-  const need = (id, count) => {
-    const owned = () => inventory[id] || 0;
-    return h('li', {'data-missing': () => owned() < count},
-      h('span', {class: 'q-recipe-part__item'}, iconNode(id), h('span', null, name(id))),
-      h('strong', {'aria-label': () => `${owned()} owned, ${count} required`}, () => `${owned()} / ${count}`));
-  };
-  const plain = (text, icon = null) => h('li', null, h('span', {class: 'q-recipe-part__item'}, icon ? iconNode(icon) : null, h('span', null, text)));
 
   const detail = id => {
     const recipe = RECIPES[id];
@@ -78,20 +59,8 @@ export function craftingPage({inventory, skills = () => ({}), active = () => nul
       const levels = skills();
       return Number(durationFor(recipe.duration, levels[recipe.skill]?.level || levels.Crafting?.level || 1).toFixed(2));
     });
-    const tools = Object.entries(recipe.tools ?? {});
     return h('article', {class: 'q-recipe-detail', id: `${id}-detail`, 'aria-label': recipe.name, hidden: () => selected.value !== id},
-      h('div', {class: 'q-recipe-detail__body'},
-        h('button', {type: 'button', class: 'q-back q-crafting__back', on: {click: () => { viewing.value = false; }}}, iconNode('back'), h('span', null, 'All recipes')),
-        h('div', {class: 'q-item-detail__head'},
-          h('span', {class: 'q-item-detail__icon', 'aria-hidden': 'true'}, iconNode(id)),
-          h('span', {class: 'q-item-detail__title'},
-            h('h3', null, recipe.name),
-            h('small', {id: `${id}-duration`}, () => `Time · ${seconds.value} seconds`))),
-        ITEMS[id]?.description ? h('p', {class: 'q-item-detail__copy'}, ITEMS[id].description) : null,
-        part('Ingredients', Object.entries(recipe.cost).map(([item, count]) => need(item, count))),
-        part('Tools', tools.length ? tools.map(([item, count]) => need(item, count)) : [plain('None needed')]),
-        part('Station', [plain(recipe.station ? STATION[recipe.station] ?? recipe.station : 'None: craft anywhere')]),
-        part('Makes', [plain(`${recipe.name} ×${recipe.makes ?? 1}`, id)])),
+      recipeDetailBody({id, recipe, items: ITEMS, inventory, time: () => `Time · ${seconds.value} seconds`, timeId: `${id}-duration`, onBack: () => { viewing.value = false; }}),
       h('div', {class: 'q-recipe-detail__actions'},
         h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value || selected.value !== id}, status),
         h('button', {

@@ -21,7 +21,8 @@
 .q-modal *::before,
 .q-modal *::after { box-sizing: border-box; }
 .q-modal::backdrop { background: var(--q-backdrop); }
-.q-modal--wide { inline-size: min(680px, calc(100vw - 48px)); block-size: min(520px, calc(100dvh - 48px)); }
+/* Station recipe browsers: room for the recipe grid and a full recipe detail without scrolling. */
+.q-modal--wide { inline-size: min(900px, calc(100vw - 48px)); max-block-size: min(760px, calc(100dvh - 48px)); }
 .q-modal--compact { inline-size: min(360px, calc(100vw - 2 * var(--q-modal-edge))); }
 .q-modal--large { inline-size: min(1000px, calc(100vw - 48px)); block-size: min(820px, calc(100dvh - 48px)); }
 

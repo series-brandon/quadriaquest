@@ -26,25 +26,25 @@ function openStation({kind = 'anvil', inventory = reactiveRecord({}), station = 
 
 test('station dialog lists its station’s recipes and follows the inventory', () => {
   const s = openStation();
-  const recipes = [...s.node.querySelectorAll('.q-recipe')];
-  assert.deepEqual(recipes.map(r => r.querySelector('strong').textContent), [RECIPES.copperDagger.name, RECIPES.copperShield.name]);
+  const recipes = [...s.node.querySelectorAll('.q-recipe-tile')];
+  assert.deepEqual(recipes.map(r => r.querySelector('.q-item__name').textContent), [RECIPES.copperDagger.name, RECIPES.copperShield.name]);
   assert.equal(recipes[0].getAttribute('aria-pressed'), 'true', 'the first recipe starts selected');
   assert.equal(s.node.querySelector('input[type=search]'), null, 'short lists have no search');
   const make = button(s.node, 'Make one');
   assert.equal(make.disabled, true);
-  assert.match(recipes[0].textContent, /Missing ingredients/);
-  const counts = () => [...s.node.querySelectorAll('.q-ingredients li')].map(li => [li.hasAttribute('data-missing'), li.querySelector('strong').textContent]);
+  assert.match(recipes[0].getAttribute('aria-label'), /missing ingredients/);
+  const counts = () => [...s.node.querySelectorAll('[aria-label=Ingredients] li, [aria-label=Tools] li')].map(li => [li.hasAttribute('data-missing'), li.querySelector('strong').textContent]);
   assert.deepEqual(counts(), [[true, '0 / 1'], [true, '0 / 1']]);
   s.inventory.copperIngots = 1;
   s.inventory.hammers = 1;
   assert.deepEqual(counts(), [[false, '1 / 1'], [false, '1 / 1']]);
   assert.equal(make.disabled, false);
-  assert.match(recipes[0].textContent, /Materials ready/);
+  assert.match(recipes[0].getAttribute('aria-label'), /materials ready/);
 
   press(recipes[1]);
   assert.equal(s.node.querySelector('.q-station').getAttribute('data-view'), 'detail', 'phones show the chosen recipe');
   assert.match(s.node.querySelector('.q-recipe-detail h3').textContent, new RegExp(RECIPES.copperShield.name));
-  press(button(s.node, 'Back to recipes'));
+  press(s.node.querySelector('.q-recipe-detail__back'));
   assert.equal(s.node.querySelector('.q-station').getAttribute('data-view'), 'list');
   press(recipes[0]);
   press(button(s.node, 'Make one'));
@@ -56,7 +56,8 @@ test('station dialog: previews cannot make, an unreachable station explains why,
   const inventory = reactiveRecord({rawFish: 2});
   const preview = openStation({kind: 'fire', inventory, station: null});
   assert.equal(button(preview.node, 'Cook one').disabled, true);
-  assert.match(preview.node.textContent, /Interact with a campfire/);
+  assert.doesNotMatch(preview.node.textContent, /Interact with/, 'no instruction line');
+  assert.equal(preview.node.querySelector('[aria-label=Station] li').hasAttribute('data-missing'), false, 'the campfire window checks its own station');
   assert.equal(button(preview.node, 'Pack up campfire'), undefined);
   preview.host.close('fire');
 
@@ -77,8 +78,8 @@ test('station dialog searches long recipe lists and keeps a matching selection',
   const search = s.node.querySelector('input[type=search]');
   search.value = 'ee';
   search.dispatchEvent(new window.Event('input'));
-  const shown = [...s.node.querySelectorAll('.q-recipe')];
-  assert.deepEqual(shown.map(r => r.querySelector('strong').textContent), ['Eel']);
+  const shown = [...s.node.querySelectorAll('.q-recipe-tile')];
+  assert.deepEqual(shown.map(r => r.querySelector('.q-item__name').textContent), ['Eel']);
   assert.equal(shown[0].getAttribute('aria-pressed'), 'true');
   search.value = 'zzz';
   search.dispatchEvent(new window.Event('input'));

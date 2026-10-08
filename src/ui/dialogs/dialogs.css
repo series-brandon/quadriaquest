@@ -22,7 +22,7 @@
 /* Station recipe browser: list and detail side by side; one at a time on phones. */
 .q-station { display: flex; flex-direction: column; flex: 1; min-block-size: 0; }
 .q-station__search { padding: 12px var(--q-modal-pad) 0; }
-.q-station__browser { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr); flex: 1; min-block-size: 0; }
+.q-station__browser { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); flex: 1; min-block-size: 0; }
 .q-station__recipes {
   display: grid;
   align-content: start;
@@ -32,9 +32,8 @@
   border-inline-end: 1px solid var(--q-line);
   overflow: auto;
 }
-.q-station__list { display: grid; gap: 4px; }
 .q-station__detail { display: flex; flex-direction: column; min-block-size: 0; min-inline-size: 0; }
-.q-station__back { display: none; }
+.q-station__footer:not(:has(button)) { display: none; }
 .q-station__footer {
   display: flex;
   align-items: center;
@@ -51,21 +50,9 @@
   .q-station__detail { flex: 1; }
   .q-station[data-view='list'] .q-station__detail,
   .q-station[data-view='detail'] .q-station__recipes { display: none; }
-  .q-station__back {
-    display: block;
-    justify-self: start;
-    min-block-size: var(--q-touch);
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--q-ink-muted);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-  }
+  .q-station .q-recipe-detail__back { display: flex; }
+  .q-station[data-view='list'] .q-recipe-tile[aria-pressed='true'] { border-color: var(--q-line); background: var(--q-control-face); box-shadow: none; }
   .q-station__footer { padding-block-end: max(10px, env(safe-area-inset-bottom)); }
-  .q-station__footer > small { display: none; }
-  .q-station__footer:not(:has(button)) { display: none; }
 }
 
 /* Opening play-style choice (mode-choice.js), shown in the narrator's dialogue box. */

@@ -2,17 +2,19 @@ import {computed, signal} from '../../reactive.js';
 import {h} from '../dom.js';
 import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
+import {recipeTile, recipeDetailBody} from '../recipe-view.js';
 
 export const STATIONS = {
-  fire: {title: 'Cooking', noun: 'campfire', article: 'a', verb: 'Cook one'},
-  furnace: {title: 'Furnace · Smelting', noun: 'furnace', article: 'a', verb: 'Make one'},
-  anvil: {title: 'Anvil · Smithing', noun: 'anvil', article: 'an', verb: 'Make one'},
+  fire: {title: 'Cooking', noun: 'campfire', verb: 'Cook one'},
+  furnace: {title: 'Furnace · Smelting', noun: 'furnace', verb: 'Make one'},
+  anvil: {title: 'Anvil · Smithing', noun: 'anvil', verb: 'Make one'},
 };
 // Long recipe lists get a search field.
 const SEARCH_FROM = 6;
 
-// Station recipe browser (campfire, furnace, anvil) for the modal host: recipes on the left,
-// the chosen recipe's ingredients and its make button on the right (one at a time on phones).
+// Station recipe browser (campfire, furnace, anvil) for the modal host, laid out like the Crafting
+// page (ui/recipe-view.js): a recipe grid on the left, the chosen recipe's detail and its make
+// button on the right (one at a time on phones).
 // Recipes come from the shared catalogue; what you own follows the reactive inventory, and
 // making calls the shared skill through `onMake(id, station)`. `station` is null in previews.
 export function stationDialog({kind, recipes, items, inventory, canMake, duration, station, onMake, close}) {
@@ -34,7 +36,7 @@ export function stationDialog({kind, recipes, items, inventory, canMake, duratio
 
   const make = id => {
     if (!usable()) {
-      status.value = station ? `The ${info.noun} is out of reach. Close and approach it again.` : `Interact with ${info.article} ${info.noun} to use this recipe.`;
+      status.value = `The ${info.noun} is out of reach. Close and approach it again.`;
       return;
     }
     if (!canMake(inventory, recipes[id])) return;
@@ -42,36 +44,21 @@ export function stationDialog({kind, recipes, items, inventory, canMake, duratio
     onMake(id, station);
   };
 
-  const list = keyedList(h('div', {class: 'q-station__list', role: 'list', 'aria-label': `${info.title} recipes`}), shown, id => id, item => {
+  const list = keyedList(h('div', {class: 'q-items q-station__list', role: 'list', 'aria-label': `${info.title} recipes`}), shown, id => id, item => {
     const id = item.peek(), recipe = recipes[id];
-    return h('button', {type: 'button', class: 'q-recipe', 'aria-pressed': () => selected.value === id, on: {click: () => choose(id)}},
-      h('span', {class: 'q-recipe__icon', 'aria-hidden': 'true'}, iconNode(id)),
-      h('span', {class: 'q-recipe__text'},
-        h('strong', null, recipe.name),
-        h('small', null, () => (canMake(inventory, recipe) ? 'Materials ready' : 'Missing ingredients or tool'))));
+    const ready = () => canMake(inventory, recipe);
+    return recipeTile({id, recipe, pressed: () => selected.value === id, ready,
+      label: () => `${recipe.name}, ${ready() ? 'materials ready' : 'missing ingredients or tool'}`, onChoose: () => choose(id)});
   });
 
   const detail = keyedList(h('div', {class: 'q-station__detail'}), computed(() => (selected.value ? [selected.value] : [])), id => id, item => {
     const id = item.peek(), recipe = recipes[id];
     const ready = computed(() => canMake(inventory, recipe));
     return h('section', {class: 'q-recipe-detail', 'aria-label': recipe.name},
-      h('div', {class: 'q-recipe-detail__body'},
-        h('button', {type: 'button', class: 'q-station__back', on: {click: () => { viewing.value = false; }}}, 'Back to recipes'),
-        h('span', {class: 'q-recipe-detail__hero', 'aria-hidden': 'true'}, iconNode(id)),
-        h('h3', null, recipe.name),
-        h('p', {class: 'q-page__help'}, `${Number(duration(recipe.duration, recipe).toFixed(1))} sec · Makes 1`),
-        items[id]?.description ? h('p', null, items[id].description) : null,
-        h('span', {class: 'q-label'}, 'Ingredients'),
-        h('ul', {class: 'q-ingredients'}, Object.entries({...recipe.cost, ...recipe.tools}).map(([need, count]) => {
-          const owned = () => inventory[need] || 0;
-          return h('li', {'data-missing': () => owned() < count},
-            h('span', null, `${label(need)}${recipe.tools?.[need] ? ' (reusable)' : ''}`),
-            h('strong', {'aria-label': () => `${owned()} owned, ${count} required`}, () => `${owned()} / ${count}`));
-        }))),
+      recipeDetailBody({id, recipe, items, inventory, time: () => `Time · ${Number(duration(recipe.duration, recipe).toFixed(1))} seconds`, onBack: () => { viewing.value = false; }, atStation: kind}),
       h('div', {class: 'q-recipe-detail__actions'},
         h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value}, status),
-        h('button', {type: 'button', class: 'q-button', disabled: () => !station || !ready.value, on: {click: () => make(id)}}, info.verb),
-        station ? null : h('small', {class: 'q-page__help'}, `Interact with ${info.article} ${info.noun} to use this recipe.`)));
+        h('button', {type: 'button', class: 'q-button', disabled: () => !station || !ready.value, on: {click: () => make(id)}}, info.verb)));
   });
 
   return h('div', {class: 'q-station', 'data-view': () => (viewing.value && selected.value ? 'detail' : 'list')},
