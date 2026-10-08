@@ -20,6 +20,20 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Playground startup fix and smoke check — 2026-10-08
+- **User report:** the playground crashed on load with `ReferenceError: toastTimer is not defined`. The toast migration had missed two calls in main.js: player movement dismissing the current message, and the playground reset. Both now call the kit toast's new `clear()`, which is covered by `notices.test.js`.
+- **New smoke check:** `npm run smoke` (`scripts/smoke-playground.mjs`) runs headless and dev-only.
+  - It builds the playground and serves `dist-playground` with the perf harness's static server.
+  - It loads the page in installed Chrome (hardware GPU, like perf `dev-gpu`), exercises the kit HUD surfaces through the real playground controls, and fails on any page or console error. One browser, always closed.
+  - Use it when the Browser pane isn't available; it would have caught this crash.
+- **Viewer bug found by the smoke check:** the dev model viewer threw "Cycle detected" on open. The preview-loadout rules build a real equipment instance (whose `revision` signal they write), and they ran inside `computed`s. They now run in `readLoadout()` when the loadout changes and publish into signals. The playground's action handler now also logs caught errors to the console.
+- **Smoke-verified:**
+  - viewer: opens with a canvas, Corgi motions listed, slime loadout and Attack fields shown, a dagger offers piercing/slashing damage, the loadout note is shown, Pause turns into Play, it closes and reopens with a fresh renderer;
+  - clearing gather checkpoint: the tip shows "Gathering resources" and the quest pop-up "Collect ground items · 0/6";
+  - adding Sticks shows a "+Sticks ×1" receipt; a Fishing level shows its level-up receipt;
+  - no page or console errors.
+- **Still to check with the Browser pane:** visuals and phone layouts for the tips, notices and viewer, the pickaxe Show me how and chapter tips, and the blocked-action toast.
+
 ### Dev model viewer on the kit — 2026-10-08 (no legacy UI surfaces left)
 - **`dev/model-viewer.js`** (dev only) replaces `dev/model-preview.js`/`.css`, which had an HTML-string template, property handlers and its own `<dialog>`.
   - **Modal host:** `createModelViewer(api.modals).show()` opens it on the host (id `dev-model-viewer`, the new `size: 'large'`: 1000×820 on desktop, edge-to-edge on phones).
@@ -30,7 +44,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 - **Wiring:** the dev API exposes `modals`. The playground's Interface → Model viewer and Combat models button use the new viewer. `check-debug-isolation.js`'s marker is now `dev-model-viewer`, and the check confirms it's in the debug build only.
 - **Verification:**
   - 359 tests pass. `check:ui`, both builds and `check:debug-isolation` pass.
-  - **Not yet checked in the browser:** the Browser pane was hidden, and WebGL can't run in unit tests. Pending: open the viewer, switch models and motions, the slime loadout, pause/restart/reset view, close and reopen (renderer disposed and recreated), and the phone layout.
+  - **Smoke-checked** (see "Playground startup fix and smoke check" above): open, models and motions, slime loadout, pause, close and reopen. Visual and phone checks need the Browser pane.
 
 ### Notices on the kit — 2026-10-08
 - **`ui/hud/notices.js`:**

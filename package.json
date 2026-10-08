@@ -11,6 +11,7 @@
     "build:debug": "vite build --mode playground",
     "preview": "vite preview --host 127.0.0.1",
     "preview:debug": "vite preview --mode playground --host 127.0.0.1 --port 4174 --strictPort",
+    "smoke": "vite build --mode playground && node scripts/smoke-playground.mjs",
     "check:debug-isolation": "node scripts/check-debug-isolation.js",
     "perf": "node perf/run.mjs",
     "perf:full": "node perf/run.mjs --full",

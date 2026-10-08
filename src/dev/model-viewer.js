@@ -38,15 +38,16 @@ function modelViewer() {
   });
   const expressions = computed(() => [['default', entry.value.expressions ? 'Default' : 'Not applicable'], ...[...(entry.value.expressions || [])].sort((a, b) => a.localeCompare(b)).map(e => [e, e])]);
   const slime = computed(() => !!entry.value.loadout);
-  const loadoutVersion = signal(0);
-  const damage = computed(() => (loadoutVersion.value, previewDamageTypes(settings())));
-  const note = computed(() => {
-    loadoutVersion.value;
+  // The loadout rules build a real equipment instance (which writes its own signals), so they run
+  // when the loadout changes and publish their results, never inside a computation.
+  const damage = signal({main: null, off: null}), note = signal('');
+  function readLoadout() {
+    damage.value = previewDamageTypes(settings());
     const hands = previewAttackHands(settings()), requested = loadout.attackHands.peek();
     const requestedLabel = ATTACK_HANDS.find(([id]) => id === requested)?.[1];
     const fallback = requested && requested !== hands.resolved ? ` (${requestedLabel} isn't available with this loadout)` : '';
-    return `Attacks: ${loadout.style.peek() === 'magic' ? 'spell (no hand)' : hands.label + fallback}. ${loadout.mainHand.peek() === 'bows' ? 'Bow uses both hands. ' : ''}Casting keeps equipment visible; skilling tools temporarily replace it.`;
-  });
+    note.value = `Attacks: ${loadout.style.peek() === 'magic' ? 'spell (no hand)' : hands.label + fallback}. ${loadout.mainHand.peek() === 'bows' ? 'Bow uses both hands. ' : ''}Casting keeps equipment visible; skilling tools temporarily replace it.`;
+  }
   const animated = computed(() => !STATIC_MOTIONS.includes(motion.value));
 
   // Three.js stage, owned by this view: disposed when the dialog closes.
@@ -132,7 +133,7 @@ function modelViewer() {
   }
   const changeLoadout = () => {
     if (loadout.mainHand.peek() === 'bows') loadout.offHand.value = '';
-    loadoutVersion.value++;
+    readLoadout();
     const choices = damage.peek();
     loadout.mainDamageType.value = choices.main?.selected || '';
     loadout.offDamageType.value = choices.off?.selected || '';
@@ -145,6 +146,7 @@ function modelViewer() {
       option => h('option', {value: option.peek()[0], selected: () => value.value === option.peek()[0]}, option.peek()[1])));
   const loadoutField = (label, key, options, extra = {}) => field({label, options, value: loadout[key], onChange: next => { loadout[key].value = next; changeLoadout(); }, ...extra});
 
+  readLoadout();
   stage = h('div', {class: 'q-viewer__stage'}, canvas);
   const observer = new ResizeObserver(resize);
   observer.observe(stage);
@@ -169,7 +171,7 @@ function modelViewer() {
       h('div', {class: 'q-viewer__loadout', hidden: () => !slime.value},
         loadoutField('Main hand', 'mainHand', computed(() => MAIN_HANDS)),
         loadoutField('Main hand damage', 'mainDamageType', computed(() => (damage.value.main?.types || []).map(t => [t, title(t)])), {hidden: () => !damage.value.main}),
-        loadoutField('Off hand', 'offHand', computed(() => OFF_HANDS), {disabled: () => (loadoutVersion.value, loadout.mainHand.value === 'bows')}),
+        loadoutField('Off hand', 'offHand', computed(() => OFF_HANDS), {disabled: () => loadout.mainHand.value === 'bows'}),
         loadoutField('Off hand damage', 'offDamageType', computed(() => (damage.value.off?.types || []).map(t => [t, title(t)])), {hidden: () => !damage.value.off}),
         loadoutField('Attack hands', 'attackHands', computed(() => ATTACK_HANDS)),
         h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { for (const [key, value] of Object.entries(loadout)) value.value = key === 'style' ? 'weapon' : ''; changeLoadout(); }}}, 'Reset loadout'),

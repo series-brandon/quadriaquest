@@ -25,6 +25,9 @@ test('the message toast shows, replaces, fades and takes no space', () => {
     assert.equal(node.hasAttribute('data-shown'), false);
     mock.timers.tick(300);
     assert.equal(node.hidden, true);
+    toast.show('That ledge is too high.');
+    toast.clear();
+    assert.equal(node.hidden, true, 'clear dismisses at once');
     view.dispose();
   } finally { mock.timers.reset(); }
 });

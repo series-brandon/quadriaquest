@@ -31,6 +31,13 @@ export function messageToast({duration = 2600} = {}) {
         clear = setTimeout(() => { text.value = ''; }, TOAST_FADE);
       }, duration);
     },
+    // Dismisses the current message at once (the player moved on, or a reset).
+    clear() {
+      clearTimeout(hide);
+      clearTimeout(clear);
+      shown.value = false;
+      text.value = '';
+    },
   };
 }
 

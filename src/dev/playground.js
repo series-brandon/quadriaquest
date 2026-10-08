@@ -254,7 +254,7 @@ export function mountPlayground(api){
       }
       if(b.dataset.reset){stop();api.reset(b.dataset.reset);status(`Reset ${b.dataset.reset}.`);}
       refresh();
-    }catch(error){status(error.message);}
+    }catch(error){status(error.message);console.error(error);}
   });
   for(const [id,key,max] of [['roughness','roughness',1],['reflection','reflectionStrength',5]])$('water-'+id).addEventListener('input',()=>{const value=Number($('water-'+id).value);if(Number.isFinite(value))api.waterSettings[key]=Math.max(0,Math.min(max,value));});
   $('water-shimmers').addEventListener('change',()=>api.waterSettings.shimmers=$('water-shimmers').checked);
