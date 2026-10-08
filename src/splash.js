@@ -9,10 +9,13 @@ import * as THREE from 'three';
 import {createSleepFeedback} from './sleep-feedback.js';
 import {socialMotion} from './slime-social.js';
 import {createSlimeBend} from './slime-bend.js';
+import logoWide from './assets/brand/logo-wide.webp';
+import logoSquare from './assets/brand/logo-square.webp';
 
 export function createSplash(renderer,enabled,settings){
   const overlay=document.createElement('section');overlay.id='splash';overlay.hidden=!enabled;
-  overlay.innerHTML='<div class="splash-heading"><h1>Quadria<span>Quest</span></h1><p>A LITTLE SLIME. A BIG ADVENTURE.</p></div><div class="splash-start"><div class="splash-actions"><button id="splash-play" type="button">Play</button></div><small>AN EARLY PLAYABLE PROTOTYPE</small></div>';
+  // The logo: wide on larger screens, the square lockup on phones.
+  overlay.innerHTML='<div class="splash-heading"><h1><picture><source media="(max-width:700px)" srcset="'+logoSquare+'" width="720" height="620"><img src="'+logoWide+'" alt="QuadriaQuest" width="1280" height="379"></picture></h1><p>A LITTLE SLIME. A BIG ADVENTURE.</p></div><div class="splash-start"><div class="splash-actions"><button id="splash-play" type="button">Play</button></div><small>AN EARLY PLAYABLE PROTOTYPE</small></div>';
   const settingsButton=document.createElement('button');settingsButton.id='splash-settings';settingsButton.setAttribute('aria-label','Open settings');settingsButton.innerHTML=icon('settings');settingsButton.onclick=()=>settings.open();overlay.querySelector('.splash-actions').append(settingsButton);
   document.body.append(overlay);
   const scene=new THREE.Scene();scene.background=new THREE.Color('#dce5dc');

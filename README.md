@@ -139,6 +139,13 @@ Eating uses lowered hands that draw closer together below the eyes, and defaults
 
 Companion debugging is world-independent: use **Dev playground → Companions** to add a follower in the current map, pet or rename it, toggle Rest/Follow, loop animations, or reset it. No Willowbank visit is required. **Shared model preview → Corgi** uses the same prefab and animation code. The app-owned runtime lives in `src/companions.js`; maps only configure placement and quest-specific rescue events.
 
+## Brand art and icons
+
+- `brand/` holds the full-size source art and is not shipped: both logos, the app-icon export set (`brand/app-icon/`, including `icon-master.png` and the generation prompt).
+- `src/assets/brand/` holds the web-sized logos the game imports (trimmed of transparent margins and exported as WebP with `cwebp`, about 64 KB each). The splash shows the wide logo, or the square one on phones.
+- `src/assets/icons/` holds the browser icons linked from `index.html` (favicon, 32px, and the 180px Apple touch icon). Vite fingerprints them in both builds. The 192/512 sizes stay in `brand/app-icon/` until there is an install manifest.
+- `public/` is for the dev logs only (builds skip it), so game assets never go there.
+
 ## Development logs
 
 Public dev logs live at `/dev-logs/`, with dated entries at `/dev-logs/YYYY-MM-DD/title/`. These are standalone HTML pages in `public/dev-logs/`; `npm run dev` serves them locally, but neither game build includes them. They deploy as their own static site from `dist-dev-logs/` (built by the local `scripts/build-dev-logs.js`). They do not load the game or developer tooling, so no playground control is needed for this editorial content.

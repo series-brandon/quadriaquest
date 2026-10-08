@@ -20,6 +20,11 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Brand logos and icons — 2026-10-08
+- User-supplied art: originals in `brand/` (not shipped); web logos in `src/assets/brand/` (trimmed WebP); favicon/32px/Apple touch icon in `src/assets/icons/`, linked from `index.html`. See README "Brand art and icons".
+- Splash: the `h1` is the logo (`<picture>`: wide, square at ≤700px; alt "QuadriaQuest"), tagline under it. The Georgia title styles are gone.
+- Verified: both builds (assets fingerprinted, icon links rewritten), splash screenshots at 1280×800 and 390×844, 394 tests, smoke, debug isolation, UI check.
+
 ### Guided menus never drill down for the player — 2026-10-08 (user rule)
 - **Rule (user):** lessons and "Show me how" teach the path through the menus. They highlight the tab, then what to pick, then what to press; they never open a page or choose a recipe/item for the player.
 - **Shared guide:** `menus.guide({page:'crafting',recipe})` (Crafting tab → `choose-<id>` → `craft-<id>`) and `menus.guide({page:'inventory',item,action})` (Inventory tab → stack → action), `menus.guide(null)` to end; starting the guided craft ends it. A recipe guide starts from the recipe list with nothing chosen. The Crafting page starts with no recipe chosen and asks for one.
@@ -573,13 +578,10 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
   - In the built playground: real gear equips into the slots on desktop, and at 375px there is no horizontal scroll and every button is at least 40px.
   - No console errors.
 
-### Required before the tutorial is complete: mode-aware "I don't want to fight" (user request, 2026-10-08; not started)
-In Cinderhold, when the player tells Bristle "Actually, no. I don't want to fight.", the unknown narrator ("???") currently gives one fixed speech about Threat Levels (`bristleIntroduction` in `cinderhold-dialogue.js`). Rework it to respond to the player's combat mode (`assistance.attacksPrevented` / `settings.mode`):
-- **Already Pacifist:** say that most creatures won't bother them now, BUT there are some very dangerous ones that will. These are the `attacksPacifists` creatures, which show "⚠ Hunts pacifists" on hover.
-- **Not Pacifist (Simple, Expert or Custom with attacks allowed):** suggest Pacifist and offer to switch to it right there, through the shared `assistance.setMode('pacifist')`, never a separate flag.
-  - If they accept, continue with the Pacifist version above.
-  - If they decline, talk about Threat Levels (today's speech).
-- **Rules:** keep it area narrative calling shared gameplay (AGENTS.md). Cover each branch in `cinderhold-dialogue.test.js` and in the playground (Cinderhold "refused"/"meet" checkpoints with each mode).
+### Mode-aware "I don't want to fight" — 2026-10-08 (was required before the tutorial is complete)
+- **Done:** after Bristle breaks and the `???` narrator's shared lines, `bristleIntroduction` branches on `pacifist()`. Already Pacifist: the "Hunts pacifists" warning. Otherwise an offer ("Shall I switch you to it?"): **Yes** calls `makePacifist()` (Cinderhold → `api.setCombatMode('pacifist')` → `assistance.setMode`) and gives the warning; **No** gives the Threat Level primer. The returning-player and Pacifist "Teach me!" paths are unchanged.
+- **Tests:** `cinderhold-dialogue.test.js` covers each branch and that only acceptance changes the mode.
+- **Playground/verified:** `cinderhold:meet` with the Combat page mode set to Pacifist or another mode; all three branches walked in the built playground (mode read from "Show assistance state"), no page errors. 394 tests, smoke, both builds, debug isolation.
 
 ### Opening rework backlog (user requests, 2026-10-08; not started)
 For the planned rework of the opening/tutorial (alongside the "???" item above):
