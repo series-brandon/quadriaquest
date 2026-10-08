@@ -1,8 +1,9 @@
-import {addNameDice} from './random-names.js';
+import {randomName} from './random-names.js';
 import {updateObjective,finishObjective} from './quests.js';
 import {SOCIAL_DURATIONS} from './slime-social.js';
 import {spawnMotion} from './slime-motion.js';
-import {mount} from './ui/dom.js';
+import {h} from './ui/dom.js';
+import {iconNode} from './ui/icon.js';
 import {modeChoice} from './ui/dialogs/mode-choice.js';
 const openingLines = [
   'Hello there!',
@@ -37,11 +38,7 @@ export function showGatheringCompletion(){
 }
 
 // onModeChosen(mode): the play style picked after naming (a combat mode preset).
-export function createOpening({player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel,onFirstQuest,onModeChosen=()=>{}}) {
-  const dialogue=document.getElementById('dialogue');
-  const line=document.getElementById('dialogue-line');
-  const prompt=document.getElementById('dialogue-prompt');
-  const controls=document.getElementById('dialogue-controls');
+export function createOpening({narrator,player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel,onFirstQuest,onModeChosen=()=>{}}) {
   const veil=document.getElementById('scene-fade');
   const tutorial=document.getElementById('gather-tutorial');
   const continueButton=document.createElement('button');
@@ -49,7 +46,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
   tutorial.append(continueButton);
   let finished=false,reaction=null,skillsPending=false;
   let phase='intro-wait',age=0,step=0,mode='line',next=null;
-  let name='Pip',color='#a4ce77',inClearing=false,playable=false,choiceView=null;
+  let name='Pip',color='#a4ce77',inClearing=false,playable=false;
   const lessons=[
     {id:'rotate',text:'Use the arrow keys or drag the screen to rotate the camera',success:'Nice! You can look around.'},
     {id:'zoom',text:'Use the scroll wheel or pinch-and-zoom to zoom in and out!',success:'Perfect! A closer look.'},
@@ -107,69 +104,63 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     else {tutorial.hidden=true;if(onComplete){finished=true;onComplete();}}
   });
   const transition=to=>{phase=to;age=0;};
-  function show(text,kind='line',advance=null){
-    dialogue.dataset.presentation=inClearing?'conversation':'customize';dialogue.dataset.input=String(kind!=='line');dialogue.hidden=false;line.textContent=text;mode=kind;next=advance;
-    choiceView?.dispose();choiceView=null;delete dialogue.dataset.size;controls.replaceChildren();prompt.hidden=kind!=='line';
-    dialogue.setAttribute('aria-label',text);
-    dialogue.tabIndex=kind==='line'?0:-1;
+  // The narrator box (ui/hud/narrator.js) owns the markup and input; the opening supplies lines,
+  // their controls and what follows. Lines advance through `advance`, which waits out reactions.
+  function show(text,kind='line',then=null,{controls=null,size=null}={}){
+    mode=kind;next=then;
+    narrator.show({text,presentation:inClearing?'conversation':'customize',input:kind!=='line',next:kind==='line'?advance:null,controls,size});
   }
-  function button(text,action,secondary=false){
-    const b=document.createElement('button');b.type='button';b.textContent=text;
-    if(secondary)b.className='secondary';
-    b.addEventListener('click',e=>{e.stopPropagation();action();});controls.append(b);return b;
-  }
+  const button=(text,action,secondary=false)=>h('button',{type:'button',class:secondary?'q-narrator__button q-narrator__button--quiet':'q-narrator__button',on:{click:event=>{event.stopPropagation();action();}}},text);
   function openingLine(){
     if(step<openingLines.length)show(openingLines[step++],'line',openingLine);
     else chooseColor();
   }
   function chooseColor(){
-    show('What do you look like?','color');dialogue.dataset.presentation='customize';
-    const label=document.createElement('label');label.className='color-choice';label.textContent='Your slime color';
-    const input=document.createElement('input');input.type='color';input.value=color;input.setAttribute('aria-label','Slime color');
-    input.addEventListener('input',()=>{color=input.value;setColor(color);});label.append(input);controls.append(label);
-    button('This is me',()=>{
-      show('So this is what you look like?','confirm');dialogue.dataset.presentation='customize';
-      button('Yes',()=>{reaction={kind:'Happy hop',time:0};show("Brilliant! You're a dashing little one!",'line',chooseName);});
-      button('No, try another color',chooseColor,true);
-    });
+    show('What do you look like?','color',null,{controls:()=>[
+      h('label',{class:'q-narrator__color'},'Your slime color',
+        h('input',{type:'color',value:color,'aria-label':'Slime color',on:{input:event=>{color=event.target.value;setColor(color);}}})),
+      button('This is me',()=>show('So this is what you look like?','confirm',null,{controls:()=>[
+        button('Yes',()=>{reaction={kind:'Happy hop',time:0};show("Brilliant! You're a dashing little one!",'line',chooseName);}),
+        button('No, try another color',chooseColor,true),
+      ]})),
+    ]});
   }
   function chooseName(){
-    show("What's your name?",'name');
-    const input=document.createElement('input');input.type='text';input.maxLength=24;
-    input.placeholder='Your name';input.value=name;input.autocomplete='off';input.setAttribute('aria-label','Your name');controls.append(input);addNameDice(input);
+    let input;
     const submit=()=>{
       const proposed=input.value.trim();
       if(!proposed){input.setCustomValidity('Please enter a name.');input.reportValidity();return;}
-      name=proposed;show(`So they call you ${name}?`,'confirm');
-      button('Yes',()=>{reaction={kind:'Wave',time:0};chooseMode();});
-      button('No, change my name',chooseName,true);
+      name=proposed;show(`So they call you ${name}?`,'confirm',null,{controls:()=>[
+        button('Yes',()=>{reaction={kind:'Wave',time:0};chooseMode();}),
+        button('No, change my name',chooseName,true),
+      ]});
     };
-    input.addEventListener('input',()=>input.setCustomValidity(''));
-    input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();submit();}});
-    button('That’s my name',submit);input.focus();
+    show("What's your name?",'name',null,{controls:()=>[
+      h('span',{class:'q-narrator__name'},
+        h('input',{type:'text',maxlength:24,placeholder:'Your name',value:name,autocomplete:'off','aria-label':'Your name',ref:element=>{input=element;},
+          on:{input:()=>input.setCustomValidity(''),keydown:event=>{if(event.key==='Enter'){event.preventDefault();event.stopPropagation();submit();}}}}),
+        h('button',{type:'button',class:'q-narrator__dice',title:'Generate a random name','aria-label':'Generate a random name',
+          on:{click:event=>{event.stopPropagation();input.value=randomName(input.value);input.setCustomValidity('');}}},iconNode('dice'))),
+      button('That’s my name',submit),
+    ]});
+    input.focus?.();
   }
   // How the player wants to play: Pacifist, Simple or Expert (changeable any time on the Combat page).
   function chooseMode(){
-    show('Before we get too far, how would you like your experience to go?','mode');dialogue.dataset.size='tall';
-    choiceView=mount(()=>modeChoice({onConfirm:mode=>{
+    show('Before we get too far, how would you like your experience to go?','mode',null,{size:'tall',controls:()=>modeChoice({onConfirm:mode=>{
       onModeChosen(mode);
-      show(`Well, ${name}, you're in for quite an adventure! Let's get you started!`,'line',()=>{dialogue.hidden=true;transition('fade-out');});
-    }}));
-    controls.append(choiceView.node);
+      show(`Well, ${name}, you're in for quite an adventure! Let's get you started!`,'line',()=>{narrator.hide();transition('fade-out');});
+    }})});
   }
   function clearingLine(){
     if(step<clearingLines.length){show(clearingLines[step++],'line',clearingLine);}
     else {
-      dialogue.hidden=true;
+      narrator.hide();
       const beginLessons=()=>{playable=true;transition('play');showLesson();document.querySelector('.character-card strong').textContent=name;};
       if(onFirstQuest)onFirstQuest(beginLessons);else beginLessons();
     }
   }
   function advance(){if(reaction)return;if(mode==='line'&&next){const action=next;next=null;action();}}
-  dialogue.addEventListener('click',e=>{if(!e.target.closest('button,input,label'))advance();});
-  dialogue.addEventListener('keydown',e=>{
-    if(e.target===dialogue&&(e.key==='Enter'||e.key===' ')){e.preventDefault();advance();}
-  });
   function landAnimation(t){
     const landing=inClearing?spawn:introSpawn;
     player.visible=true;player.position.copy(landing);
@@ -178,7 +169,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     visual.scale.set(1/Math.sqrt(squash),squash,1/Math.sqrt(squash));
     visual.position.y=-.07*squash;
   }
-  function enterFreePlay(){next=null;reaction=null;interruption=null;finished=true;playable=true;inClearing=true;lesson=3;briefing=awaitingContinue=skillsPending=false;controlsDone=null;continueButton.disabled=false;tutorial.hidden=true;dialogue.hidden=true;transition('play');}
+  function enterFreePlay(){next=null;reaction=null;interruption=null;finished=true;playable=true;inClearing=true;lesson=3;briefing=awaitingContinue=skillsPending=false;controlsDone=null;continueButton.disabled=false;tutorial.hidden=true;narrator.hide();transition('play');}
   player.visible=false;player.position.copy(introSpawn);player.position.y+=14;
   player.rotation.y=Math.PI/4;
   return {
@@ -195,7 +186,7 @@ export function createOpening({player,visual,face,setColor,showClearing,introSpa
     }:undefined,
     startLevelExplanation(){enterFreePlay();finished=false;collectedCount=6;xpExplained=levelExplained=true;showGatheringPrompt(6);explainSkill('level');},
     startGathering(){enterFreePlay();finished=false;collectedCount=0;xpExplained=levelExplained=false;interruption=null;showLesson();},
-    startControls(done){finished=false;playable=true;inClearing=true;lesson=0;awaitingContinue=false;rotationAmount=zoomAmount=0;moveGoal=null;controlsDone=done;dialogue.hidden=true;transition('play');showLesson();},
+    startControls(done){finished=false;playable=true;inClearing=true;lesson=0;awaitingContinue=false;rotationAmount=zoomAmount=0;moveGoal=null;controlsDone=done;narrator.hide();transition('play');showLesson();},
     get reaction(){return reaction;},
     get quiet(){return phase==='dialogue'&&!reaction;},
     get finished(){return finished;},

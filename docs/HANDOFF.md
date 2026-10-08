@@ -20,6 +20,35 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Dialogue boxes on the kit — 2026-10-08
+- **Narrator** (`ui/hud/narrator.js`): `createNarrator()` (main.js, before the opening) builds and owns `#dialogue` (`#dialogue-line`, `#dialogue-controls`, `#dialogue-prompt`) from `h()`; `index.html` no longer has the static markup.
+  - **API:** `show({text, speaker='???', presentation, input, prompt, size, next, controls})`, `setPrompt(on)`, `hide()`, and `visible` (a signal).
+  - **Single input path:** click (ignoring buttons and inputs) or Enter/Space on the box calls the current line's `next`; input lines never advance from the box. Controls are built in their own scope and disposed with the line.
+- **Callers converted:**
+  - `opening.js`: color, name with dice and Enter, play style, confirmations. It keeps its reaction-gated `advance`.
+  - `crafting-tutorial.js` `say`/hide and `tutorial-finale.js` `say`/prompt toggles keep their own pending-step variable, and the narrator calls a wrapper, so their cancel semantics are unchanged.
+  - `companion-menu.js`: the rename confirmation is an input line; the capture-phase guard against other modules' listeners is gone.
+  - `willowbank.js` hides through `api.narrator`; main.js ducks music on `narrator.visible`.
+  - Nothing else writes to or listens on the box.
+- **Character conversations** (`character-dialogue.js`): same API (`show`/`showPlayer`/`finish`/`hide`/`update`/`expressionFor`/`active`), now built with `h()`.
+  - Signals hold the line, mode, side and enter/exit/choosing states; choices are a keyed list (one key per install).
+  - The choice focus moves after the frame's flush.
+  - The portrait renderer and model mirroring are unchanged.
+- **CSS:** `ui/hud/dialogue.css` reproduces the effective look on tokens (new `--q-veil`, `--q-badge*`, `--q-dialogue-shadow`, `--q-choice-shadow`, `--q-font-display`).
+  - Removed `dialogue-presentation.css`, the `#dialogue*`/`.speaker-*`/`.dialogue-speaker` rules in `style.css`, `ui-theme.css` and `willowbank.css`, and dead `.willow-modal`/`.willow-actions`/`.name-entry`/`.name-dice`/`.color-choice` rules, plus the dead `addNameDice`.
+  - The body cutscene class is now `q-cutscene`.
+  - `player-interface.css` still centres both boxes in the game viewport by id.
+- **Verification:**
+  - 353 tests pass: `narrator.test.js`, the opening test (a fake narrator building real controls) and the crafting-tutorial tests (a real narrator, clicking `#dialogue`).
+  - `check:ui` passes; legacy debt fell and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - color, then confirm, then a real click past the reaction, then the name typed with Enter, the play style, the fade, clearing lines via Enter, and the quests lesson tip and its narrator line;
+    - Reed: portrait and right badge, then choices centred with the first focused, then the player's line on the left, then Reed's reply after the swap;
+    - companion rename: the box ignores clicks, and Yes renames;
+    - finale portal: the prompt hides during the pan back, then practice;
+    - phone: the name step uses 44px controls, Reed's portrait is 230px, no overflow.
+  - No console errors from the current build.
+
 ### Companions page rebuilt in the kit — 2026-10-08
 - **New page:** `ui/pages/companions-page.js`, mounted by `companion-menu.js` as `#companions-panel`. It replaces the legacy list/detail (one entry, a Back button), its HTML strings, `render()` and `companion-menu.css`.
   - **Card:** the live 3D portrait, name, "Corgi", description, a follow status ("Following you" / "Resting where you left them"), plus **Rename** and **Follow me / Rest here**.

@@ -3,18 +3,8 @@
     "innerHTML": 1,
     "propertyHandlers": 1
   },
-  "src/character-dialogue.js": {
-    "innerHTML": 1,
-    "propertyHandlers": 1
-  },
-  "src/companion-menu.js": {
-    "propertyHandlers": 2
-  },
   "src/crafting-tutorial.js": {
     "propertyHandlers": 4
-  },
-  "src/dialogue-presentation.css": {
-    "important": 1
   },
   "src/game-menus.js": {
     "innerHTML": 1
@@ -32,18 +22,11 @@
     "innerHTML": 2,
     "propertyHandlers": 1
   },
-  "src/random-names.js": {
-    "innerHTML": 1,
-    "propertyHandlers": 1
-  },
   "src/splash.js": {
     "innerHTML": 2,
     "propertyHandlers": 2
   },
   "src/ui-theme.css": {
     "important": 2
-  },
-  "src/willowbank.css": {
-    "important": 1
   }
 }

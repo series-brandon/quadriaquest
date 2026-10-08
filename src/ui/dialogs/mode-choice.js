@@ -42,5 +42,5 @@ export function modeChoice({value = signal('simple'), onConfirm}) {
           h('span', null, style.description),
           h('small', null, `You might like this mode if you like: ${style.like}`))))),
     h('p', {class: 'q-mode-choice__note'}, 'There’s no pressure! You can freely swap between any of these modes at any time, and you can even set up your own custom settings to play how you want.'),
-    h('button', {type: 'button', class: 'q-mode-choice__confirm', on: {click: () => onConfirm(value.value)}}, () => `Play as ${chosen().label}`));
+    h('button', {type: 'button', class: 'q-button q-mode-choice__confirm', on: {click: () => onConfirm(value.value)}}, () => `Play as ${chosen().label}`));
 }

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createCraftingTutorial as createTutorialController} from './crafting-tutorial.js';
 import {createGameMenus} from './game-menus.js';
+import {createNarrator} from './ui/hud/narrator.js';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
 import {createGatheringSkill} from './skills.js';
@@ -9,7 +10,7 @@ import {reactiveRecord} from './reactive.js';
 function createCraftingTutorial(options){let tutorial;const startCraft=id=>{const started=options.startCraft(id);if(started)tutorial.craftStarted(id);return started;};const menus=createGameMenus({...options,startCraft});
  // The journal registers Quests in the game; lessons guide its tab.
  menus.panels.register({id:'quests',label:'Quests',icon:'quests',order:10,returnTo:true,element:document.createElement('section')});
- tutorial=createTutorialController({...options,menus});return Object.assign(tutorial,{menus});}
+ tutorial=createTutorialController({narrator:createNarrator(),...options,menus});return Object.assign(tutorial,{menus});}
 
 // The game's real page markup on a lightweight DOM, so the tutorial drives the real menus.
 const PAGE=readFileSync(new URL('../index.html',import.meta.url),'utf8');

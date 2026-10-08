@@ -3,18 +3,7 @@
 /* The opening replaces the prototype HUD; keep the old panels available for later redesign. */
 body>header,body>.journal,body>footer,body>.controls-hint{display:none}
 [hidden]{display:none!important}
-#dialogue{position:fixed;z-index:30;left:50%;bottom:6vh;transform:translateX(-50%);width:min(620px,calc(100% - 36px));padding:24px 30px 18px;background:#fcfdf7f5;border:1px solid #fff;border-radius:18px;box-shadow:0 14px 60px #2d423519;backdrop-filter:blur(18px);cursor:pointer}
-.dialogue-speaker{font-size:12px;font-weight:700;letter-spacing:3px;color:#7c9564;margin-bottom:12px}
-#dialogue-line{font-size:18px;line-height:1.6;margin:0;color:#344637}
-#dialogue-prompt{display:block;margin-top:18px;text-align:right;font-size:10px;letter-spacing:1px;color:#8a9781}
-#dialogue-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px}
-#dialogue-controls:empty{display:none}
-#dialogue-controls button{background:#4d6948;color:#fff;padding:11px 17px;font-size:13px;border-radius:10px}
-#dialogue-controls button:hover{background:#3e5939}
-#dialogue-controls button.secondary{background:#e9eedf;color:#526449}
-#dialogue-controls input[type=text]{min-width:0;flex:1;border:1px solid #cbd6c2;border-radius:10px;padding:11px 14px;background:#fff;font:inherit;color:#344637}
-.color-choice{display:flex;align-items:center;gap:14px;font-size:13px;color:#63775b;flex:1}
-#dialogue-controls input[type=color]{width:58px;height:42px;padding:3px;background:#fff;border:1px solid #cbd6c2;border-radius:9px;cursor:pointer}
+
 #scene-fade{position:fixed;inset:0;background:#e7e8de;opacity:0;z-index:40;pointer-events:none}
 #gather-tutorial{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);width:min(600px,calc(100% - 32px));background:#fcfdf7ef;border:1px solid #fff;border-radius:16px;padding:19px 23px;box-shadow:0 8px 35px #29412d12;pointer-events:none}
 .tutorial-heading{display:flex;justify-content:space-between;gap:12px;font-size:11px;letter-spacing:1px;color:#536c44;font-weight:700;margin-bottom:8px}
@@ -22,7 +11,7 @@ body>header,body>.journal,body>footer,body>.controls-hint{display:none}
 #tutorial-copy{font-size:12px;line-height:1.7;color:#67765c}
 #gather-tutorial .progress-track{margin:12px 0 0}
 #gather-tutorial.complete{border-color:#a6bd86}
-@media(max-width:600px){#dialogue{padding:20px;bottom:24px}#dialogue-line{font-size:16px}#gather-tutorial{bottom:14px;padding:15px 18px}}
+@media(max-width:600px){#gather-tutorial{bottom:14px;padding:15px 18px}}
 #gather-tutorial.complete{pointer-events:auto}
 #tutorial-continue{display:block;margin:14px 0 0 auto;padding:10px 17px;background:#4d6948;color:#fff;font-size:12px;border-radius:9px;pointer-events:auto}
 #tutorial-continue:hover{background:#3e5939}

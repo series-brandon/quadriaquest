@@ -14,14 +14,13 @@ export function createTutorialFinale(api){
   let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null;
   const heldHat=makeTopHat();api.visual.add(heldHat);heldHat.visible=false;
   function busy(){return !!next||drops.length>0||!!celebration||!!crystalFocus;}
-  function hideDialogue(){next=null;$('dialogue').hidden=true;}
+  function hideDialogue(){next=null;api.narrator.hide();}
   function say(text,advance){
-    api.stop();$('gather-tutorial').hidden=true;$('dialogue').hidden=false;$('dialogue-line').textContent=text;
-    $('dialogue').setAttribute('aria-label',text);$('dialogue').tabIndex=0;$('dialogue-controls').replaceChildren();$('dialogue-prompt').hidden=false;next=advance;
+    api.stop();$('gather-tutorial').hidden=true;next=advance;
+    api.narrator.show({text,next:advanceLine});
   }
-  function advance(e){if(e.target.closest('button,input,label'))return;if(next){const action=next;next=null;action();}}
-  $('dialogue').addEventListener('click',advance);
-  $('dialogue').addEventListener('keydown',e=>{if(e.target===$('dialogue')&&['Enter',' '].includes(e.key)){e.preventDefault();advance(e);}});
+  // The narrator calls this on advance; `next` is cleared or replaced by the finale's own steps.
+  function advanceLine(){if(next){const action=next;next=null;action();}}
   function createActor(group,tile,kind,label,duration,parent=api.parent){
     const actor={group,tile,x:tile.x,z:tile.z,kind,label,duration,ready:false,opened:false};
     group.position.set(tile.x-6,tile.h,tile.z-6);parent.add(group);tile.blocked=true;
@@ -44,7 +43,7 @@ export function createTutorialFinale(api){
   function dropPortal(after=()=>{}){
     api.stop();removeActor(portal);const t=chooseTile({x:8,z:8});if(!t)return;
     portal=makePortal(t,false);stage='portal-drop';
-    updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel. You can practice here before leaving.');say(portalInstruction,null);$('dialogue-prompt').hidden=true;
+    updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel. You can practice here before leaving.');say(portalInstruction,null);api.narrator.setPrompt(false);
     drop(portal.group,t.h,0,()=>{portal.ready=true;stage='portal-focus';crystalFocus={age:0,phase:'in',position:new THREE.Vector3(t.x-6,t.h+1,t.z-6),after};});
   }
   function resetPractice(){
@@ -97,8 +96,8 @@ export function createTutorialFinale(api){
       if(crystalFocus){
         crystalFocus.age+=dt;
         if(crystalFocus.phase==='in'&&crystalFocus.age>=1){
-          crystalFocus.phase='hold';stage='portal-wait';$('dialogue-prompt').hidden=false;
-          next=()=>{crystalFocus.phase='out';crystalFocus.age=0;stage='portal-return';$('dialogue-prompt').hidden=true;};
+          crystalFocus.phase='hold';stage='portal-wait';api.narrator.setPrompt(true);
+          next=()=>{crystalFocus.phase='out';crystalFocus.age=0;stage='portal-return';api.narrator.setPrompt(false);};
         }else if(crystalFocus.phase==='out'&&crystalFocus.age>=1){
           const after=crystalFocus.after;crystalFocus=null;stage='practice';hideDialogue();after();
         }

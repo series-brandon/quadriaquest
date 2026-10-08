@@ -122,7 +122,7 @@ export function createWillowbank(api){
    api.say('These crystals are going to be invaluable during your time here in Quadria.',()=>{
     introFocus={position:reed.group.position.clone(),blend:0,returning:false};
     api.say('What’s this? It appears someone is having a bad day.',()=>
-     api.say('Perhaps you should go talk to them!',()=>{document.getElementById('dialogue').hidden=true;introFocus.returning=true;}));
+     api.say('Perhaps you should go talk to them!',()=>{api.narrator.hide();introFocus.returning=true;}));
    }));
  }
  function meetGoal(){goal('meet','Talk to Reed','Speak to the worried fisher near the arrival crystal.',phase==='meet'?0:1);}
@@ -148,7 +148,7 @@ reedFacing.update(dt);animateFisher(reed,time,dialogue.expressionFor('right')||(
   if(preview){preview.time=(preview.time+dt)%6;return preview;}
   return null;
  }
- function reset(){api.fishing.cancel();companions.reset();fishingFollowup=false;setBridgeRepairTarget(true);bridgeInjury.reset();injuryReaction=null;reedFacing.reset();hitFeedback.clear();companions.resetRoute();rescueGait=0;rescueWaiting=false;modelPreview=null;introActive=false;introFocus=null;document.getElementById('dialogue').hidden=true;resetObjectives('willow-');cancel();dialogue.hide();tip.hidden=true;phase='meet';api.health.restore();rescueAge=null;bridgeDone=false;caught=flintCollected=cooked=eaten=0;api.resourceActions.resetWhere(n=>map.get(key(n.x,n.z))===n.tile);preview=null;cancelPlacement();api.campfires.reset(map);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).water=true;t(x,WILLOWBANK.bridgeZ).blocked=true;}showBridge(0);group.attach(pet);pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);if(active)api.teleport(portalSpawn(map,crystal.tile));}
+ function reset(){api.fishing.cancel();companions.reset();fishingFollowup=false;setBridgeRepairTarget(true);bridgeInjury.reset();injuryReaction=null;reedFacing.reset();hitFeedback.clear();companions.resetRoute();rescueGait=0;rescueWaiting=false;modelPreview=null;introActive=false;introFocus=null;api.narrator.hide();resetObjectives('willow-');cancel();dialogue.hide();tip.hidden=true;phase='meet';api.health.restore();rescueAge=null;bridgeDone=false;caught=flintCollected=cooked=eaten=0;api.resourceActions.resetWhere(n=>map.get(key(n.x,n.z))===n.tile);preview=null;cancelPlacement();api.campfires.reset(map);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).water=true;t(x,WILLOWBANK.bridgeZ).blocked=true;}showBridge(0);group.attach(pet);pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);if(active)api.teleport(portalSpawn(map,crystal.tile));}
  return {restartWater:()=>water.restart(),group,tiles,crystal,grassMaterials,enter,interact,update,cancel,craftStarted:hideGuide,crafted(){if(active)checkProgress();},get active(){return active;},get cameraFocus(){return modelPreview?{position:reed.group.position.clone(),blend:1}:introFocus?{position:introFocus.position,blend:THREE.MathUtils.smoothstep(introFocus.blend,0,1)}:rescueAge===null?null:{position:pet.position.clone(),blend:Math.min(THREE.MathUtils.smoothstep(rescueAge,0,.6),1-THREE.MathUtils.smoothstep(rescueAge,3,4))};},get busy(){return busy();},
 
  foodEaten,get working(){return !!preview;},campfirePlaced,campfireCooked,get campfireGuide(){return active&&guided&&phase==='cook';},

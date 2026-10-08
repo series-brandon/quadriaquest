@@ -1,0 +1,233 @@
+/* Dialogue boxes: the narrator ("???", ui/hud/narrator.js) and character conversations
+   (character-dialogue.js). Short, stable reading cards; responses get their own centred view. */
+
+/* A veil behind conversations, except during character creation and camera cutscenes. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 54;
+  background: var(--q-veil);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s;
+}
+body:has(.q-conversation:not([hidden]))::after,
+body:has(.q-narrator:not([hidden]))::after { opacity: 1; visibility: visible; pointer-events: auto; }
+body.q-cutscene::after,
+body:has(.q-narrator[data-presentation='customize']:not([hidden]))::after { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.q-narrator,
+.q-conversation {
+  position: fixed;
+  z-index: 55;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  inline-size: min(700px, calc(100vw - 40px));
+  block-size: min(155px, calc(100dvh - 70px));
+  padding: 26px 28px 12px;
+  border: 1px solid var(--q-modal-border);
+  border-radius: 20px;
+  background: var(--q-paper);
+  color: var(--q-ink);
+  box-shadow: 0 18px 65px var(--q-dialogue-shadow);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.q-narrator[hidden],
+.q-conversation[hidden] { display: none; }
+.q-narrator:focus-visible,
+.q-conversation:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+
+/* Name badge riding the top edge. */
+.q-narrator__speaker,
+.q-conversation__name {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 24px;
+  z-index: 1;
+  max-inline-size: calc(100% - 48px);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 22px;
+  overflow: hidden;
+  border: 1px solid var(--q-badge-border);
+  border-radius: 12px;
+  background: var(--q-badge);
+  color: var(--q-badge-ink);
+  font: 600 16px var(--q-font-display);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  box-shadow: 0 3px 9px var(--q-badge-shadow);
+  transform: translateY(-50%);
+}
+
+.q-narrator__line,
+.q-conversation__line {
+  min-block-size: 0;
+  margin: 0 0 4px;
+  overflow: auto;
+  font-size: 17px;
+  line-height: 1.6;
+  text-align: start;
+}
+.q-narrator__line { flex-shrink: 1; }
+
+/* Narrator controls: buttons, the colour picker, the name entry, the play-style choice. */
+.q-narrator__controls { display: flex; flex-shrink: 0; align-items: center; gap: 8px; margin-block-start: 8px; min-block-size: 0; }
+.q-narrator__controls:empty { display: none; }
+.q-narrator__controls-content { display: contents; }
+.q-narrator[data-size='tall'] { block-size: auto; max-block-size: calc(100dvh - 70px); }
+.q-narrator[data-size='tall'] .q-narrator__controls { flex-shrink: 1; overflow: auto; padding: 4px; margin-inline: -4px; }
+.q-narrator__button {
+  min-block-size: var(--q-touch);
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--q-control-pressed);
+  color: var(--q-ink-on-dark);
+  font: 600 13px / 1.2 inherit;
+  cursor: pointer;
+}
+.q-narrator__button--quiet { background: var(--q-control-face); color: var(--q-ink); box-shadow: inset 0 0 0 1px var(--q-line); }
+.q-narrator__button:focus-visible,
+.q-narrator__dice:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+.q-narrator__color { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.q-narrator__color input { inline-size: 58px; block-size: 42px; padding: 3px; border: 1px solid var(--q-line); border-radius: 9px; background: var(--q-control-face); cursor: pointer; }
+.q-narrator__name { display: flex; flex: 1; align-items: center; gap: 8px; min-inline-size: 0; }
+.q-narrator__name input {
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: var(--q-touch);
+  padding: 0 12px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  font: inherit;
+  font-size: 16px;
+}
+.q-narrator__dice {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--q-touch);
+  block-size: var(--q-touch);
+  padding: 0;
+  border: 1px solid var(--q-line);
+  border-radius: 14px;
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  cursor: pointer;
+}
+.q-narrator__dice svg { inline-size: 22px; block-size: 22px; }
+.q-narrator .q-mode-choice__confirm { min-block-size: var(--q-touch); }
+.q-narrator__prompt {
+  flex-shrink: 0;
+  margin-block-start: auto;
+  padding-block-start: 12px;
+  color: var(--q-ink-muted);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-align: end;
+}
+.q-narrator__prompt[hidden] { display: none; }
+
+/* Character conversations: portrait above the card, choices in their own centred view. */
+.q-conversation { --portrait-size: min(300px, 35dvh); transition: opacity 0.2s ease; }
+.q-conversation[data-side='right'] { --portrait-dir: 250px; }
+.q-conversation[data-side='left'] { --portrait-dir: -250px; }
+.q-conversation--choosing { opacity: 0; pointer-events: none; }
+.q-conversation__portrait {
+  position: absolute;
+  inset-block-end: calc(100% - 8px);
+  inset-inline-start: 8px;
+  inline-size: var(--portrait-size);
+  block-size: var(--portrait-size);
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.q-conversation__portrait[hidden] { display: none; }
+.q-conversation[data-side='right'] .q-conversation__portrait { inset-inline: auto 8px; }
+.q-conversation__portrait canvas { display: block; inline-size: 100%; block-size: 100%; object-fit: contain; }
+.q-conversation[data-side='right'] .q-conversation__name { inset-inline: auto 24px; }
+.q-conversation--entering .q-conversation__portrait { animation: q-portrait-in 0.25s ease-out; }
+.q-conversation--exiting .q-conversation__portrait { animation: q-portrait-out 0.22s ease-in forwards; }
+body.q-cutscene .q-conversation__portrait { opacity: 0; animation: none; }
+.q-conversation__content { display: flex; flex-direction: column; block-size: 100%; min-block-size: 0; padding: 2px 3px 6px; box-sizing: border-box; overflow: auto; scrollbar-width: thin; }
+.q-conversation__choices { display: none; }
+.q-conversation__next {
+  flex-shrink: 0;
+  align-self: flex-end;
+  min-block-size: 32px;
+  margin-block-start: auto;
+  padding: 8px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--q-ink-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.q-conversation__next[hidden] { display: none; }
+.q-conversation[data-mode='choices'] {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  inline-size: min(460px, calc(100vw - 40px));
+  block-size: auto;
+  max-block-size: calc(100dvh - 48px);
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.q-conversation[data-mode='choices'] .q-conversation__portrait,
+.q-conversation[data-mode='choices'] .q-conversation__name,
+.q-conversation[data-mode='choices'] .q-conversation__line { display: none; }
+.q-conversation[data-mode='choices'] .q-conversation__content { block-size: auto; padding: 4px; }
+.q-conversation[data-mode='choices'] .q-conversation__choices { display: grid; gap: 12px; animation: q-choices-in 0.2s ease-out; }
+.q-conversation__choice {
+  min-block-size: 54px;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-pressed);
+  color: var(--q-ink-on-dark);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  box-shadow: 0 4px 12px var(--q-choice-shadow);
+}
+.q-conversation__choice:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+@keyframes q-portrait-in { from { transform: translateX(var(--portrait-dir)); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes q-portrait-out { to { transform: translateX(var(--portrait-dir)); opacity: 0; } }
+@keyframes q-choices-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 700px) {
+  .q-narrator,
+  .q-conversation {
+    inline-size: calc(100vw - 24px);
+    bottom: max(12px, env(safe-area-inset-bottom));
+    padding: 26px 18px 12px;
+    border-radius: 18px;
+  }
+  .q-conversation { --portrait-size: min(230px, 30dvh); }
+  .q-narrator__line,
+  .q-conversation__line { font-size: 16px; line-height: 1.5; }
+  .q-narrator__speaker,
+  .q-conversation__name { inset-inline-start: 18px; padding: 8px 18px; font-size: 15px; }
+  .q-conversation[data-side='right'] .q-conversation__name { inset-inline: auto 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after,
+  .q-conversation { transition: none; }
+  .q-conversation__portrait,
+  .q-conversation[data-mode='choices'] .q-conversation__choices { animation: none; }
+}

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {objectives,resetObjectives} from './quests.js';
 import {createOpening} from './opening.js';
+import {mount} from './ui/dom.js';
 
 // Minimal DOM for exercising lesson transitions without timing browser animations.
 class Element {
@@ -21,19 +22,22 @@ class Element {
 }
 test('XP and level explanations return to gathering and final success only after confirmation',()=>{
   const previous=globalThis.document,nodes=new Map();
-  globalThis.document={body:new Element(),getElementById(id){if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);},createElement(){return new Element();},createTextNode(data){return Object.assign(new Element(),{data});},querySelector(){return new Element();}};
+  globalThis.document={body:new Element(),getElementById(id){if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);},createElement(tag){return tag==='template'?{content:{firstElementChild:{cloneNode:()=>new Element()}}}:new Element();},createTextNode(data){return Object.assign(new Element(),{data});},querySelector(){return new Element();}};
   try{
     const get=id=>document.getElementById(id);
     let finishSkills,finishQuests;
     const modes=[];
-    const opening=createOpening({onModeChosen:mode=>modes.push(mode),onFirstQuest:done=>{finishQuests=done;},onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
-    const dialogue=()=>get('dialogue').click();
-    const button=label=>{const b=get('dialogue-controls').children.find(n=>n.textContent===label);assert.ok(b,label);b.click();};
+    // The narrator's surface: the current line and its built controls (the real box is ui/hud/narrator.js).
+    const narrator={line:null,controls:null,show(line){this.controls?.dispose();this.line=line;this.controls=line.controls?mount(()=>{const box=document.createElement('div');box.append(...[line.controls()].flat());return box;}):null;},hide(){this.controls?.dispose();this.controls=null;this.line=null;},setPrompt(){}};
+    const opening=createOpening({narrator,onModeChosen:mode=>modes.push(mode),onFirstQuest:done=>{finishQuests=done;},onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
+    const text=n=>n.data??(n.textContent||(n.children||[]).map(text).join(''));
+    const dialogue=()=>narrator.line?.next?.();
+    const button=label=>{const b=narrator.controls.node.find(n=>n.handlers?.click&&text(n)===label);assert.ok(b,label);b.click();};
     opening.update(1);opening.update(1.4);
     for(let i=0;i<4;i++)dialogue();
-    assert.equal(get('dialogue').dataset.presentation,'customize');button('This is me');assert.equal(get('dialogue').dataset.presentation,'customize');button('Yes');assert.equal(get('dialogue').dataset.presentation,'customize');assert.equal(opening.canOrbit,true);assert.equal(opening.reaction.kind,'Happy hop');dialogue();assert.equal(opening.reaction.kind,'Happy hop');opening.update(1.2);dialogue();button('That’s my name');button('Yes');assert.equal(opening.reaction.kind,'Wave');
+    assert.equal(narrator.line.presentation,'customize');button('This is me');assert.equal(narrator.line.presentation,'customize');button('Yes');assert.equal(narrator.line.presentation,'customize');assert.equal(opening.canOrbit,true);assert.equal(opening.reaction.kind,'Happy hop');dialogue();assert.equal(opening.reaction.kind,'Happy hop');opening.update(1.2);dialogue();button('That’s my name');button('Yes');assert.equal(opening.reaction.kind,'Wave');
     // Then the play style: Simple is preselected; picking Pacifist and confirming applies it.
-    const controls=get('dialogue-controls');controls.find(n=>n.handlers?.change&&n.value==='pacifist').handlers.change();controls.find(n=>n.handlers?.click&&/^Play as/.test(n.children?.[0]?.data??'')).click();
+    const controls=narrator.controls.node;controls.find(n=>n.handlers?.change&&n.value==='pacifist').handlers.change();controls.find(n=>n.handlers?.click&&/^Play as/.test(n.children?.[0]?.data??'')).click();
     assert.deepEqual(modes,['pacifist']);opening.update(2.3);dialogue();
     for(const dt of [1.3,.4,1.3,.9,1.4])opening.update(dt);
     for(let i=0;i<4;i++)dialogue();
