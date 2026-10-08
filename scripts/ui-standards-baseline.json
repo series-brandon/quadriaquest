@@ -8,8 +8,7 @@
     "propertyHandlers": 1
   },
   "src/companion-menu.js": {
-    "innerHTML": 1,
-    "propertyHandlers": 5
+    "propertyHandlers": 2
   },
   "src/crafting-tutorial.js": {
     "propertyHandlers": 4

@@ -20,6 +20,27 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Companions page rebuilt in the kit — 2026-10-08
+- **New page:** `ui/pages/companions-page.js`, mounted by `companion-menu.js` as `#companions-panel`. It replaces the legacy list/detail (one entry, a Back button), its HTML strings, `render()` and `companion-menu.css`.
+  - **Card:** the live 3D portrait, name, "Corgi", description, a follow status ("Following you" / "Resting where you left them"), plus **Rename** and **Follow me / Rest here**.
+  - **Always available (user decision):** the Companions tab shows from the start, even in the clearing. Until a companion joins, the page reads "No companions yet." The ownership-driven `setAvailable`, `menu.unlock` and `companions.showMenuTab` (and Willowbank's call to it) are gone. A reset companion just returns to the empty state.
+- **Source reactivity:** `createCompanionSystem` gained a `revision` signal bumped on every state change (owned, name, following); the page follows it. `renderMenu` is removed, along with Willowbank's call to it in `reset`.
+- **Kept in the host:**
+  - the Three.js portrait renderer (renders only while the page is visible, canvas size and camera aspect synced to its client size);
+  - the rename flow: the kit name dialog, then the legacy narrator confirmation ("Is X the name you're going with?"), until dialogue moves to the kit.
+  - Fixed a latent `tab.remove()` ReferenceError in `dispose`.
+- **CSS:** removed `#companions-panel`/`.companion-content` and the now-unused `journal-entry`/`journal-back`/`journal-browser`/`journal-list`/`journal-detail`/`viewing-detail` rules (Companions was their last user). About 1.3 KB.
+- **Verification:**
+  - 350 tests pass, including `companions-page.test.js` (empty, owned, name and follow updates, Rename callback, host portrait shown).
+  - `check:ui` passes; legacy debt fell and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - empty state, then after acquiring: the portrait renders at 260×195 (520×390 backing at 2×);
+    - Rest here set the world companion's `following` to false and the status followed;
+    - Rename opened "Name your companion";
+    - phone layout fits;
+    - the Willowbank rescue checkpoint (area reset) works.
+  - No console errors.
+
 ### Powers tab: Spells, Auras and Abilities — 2026-10-08
 - **User decisions:**
   - One journal tab, **Powers**, with sub-tabs Spells | Auras | Abilities.

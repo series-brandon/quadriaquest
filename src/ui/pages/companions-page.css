@@ -1,0 +1,10 @@
+/* Companions page (ui/pages/companions-page.js). */
+.q-companion { gap: 10px; }
+.q-companion[hidden] { display: none; }
+.q-companion__portrait canvas { display: block; inline-size: min(100%, 260px); aspect-ratio: 4 / 3; margin-inline: auto; }
+.q-companion__text { display: grid; gap: 2px; }
+.q-companion__text h3 { margin: 0; font-size: 18px; }
+.q-companion__text p { margin: 4px 0; font-size: 13px; line-height: 1.5; }
+.q-companion__status { color: var(--q-accent); font-size: 12px; }
+.q-companion__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.q-companion__actions .q-button { flex: 1 1 120px; }

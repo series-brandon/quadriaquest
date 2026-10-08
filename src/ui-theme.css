@@ -157,7 +157,7 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 #journal #game-menu-bar button{min-width:0;min-height:44px;flex:1 1 0;padding:8px 4px}
 #journal #game-menu-bar button span{white-space:nowrap}
 @container(max-width:560px){#journal #game-menu-bar button span{display:none}#journal #game-menu-bar button{min-height:44px}#journal #game-menu-bar .game-icon{width:22px;height:22px;flex-shrink:0}}
-#journal #companions-panel{min-height:180px;padding:18px 22px}
+
 @media(max-width:700px){#journal #game-menu-bar button{min-width:0;flex:1 1 0}}
 
 /* Compact always drills into one page; only expanded desktop splits the browser. */
@@ -165,20 +165,6 @@ body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial,
 #journal .journal-header>span{flex:1;min-width:0}
 #journal #journal-size,#journal #journal-close{flex:0 0 36px;margin:0}
 @media(min-width:701px){#journal:not(.expanded){width:min(390px,calc(100vw - 48px))}}
-
-#journal .journal-browser{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:20px}
-#journal .journal-list{display:flex;flex-direction:column;gap:8px;min-width:0}
-#journal .journal-entry{font:inherit;font-size:14px;min-height:48px;text-align:left;padding:12px;border:1px solid transparent;border-radius:8px;background:#eee3e8;color:var(--ui-ink);cursor:pointer;margin:0}
-#journal .journal-entry[aria-pressed=true]{border-color:var(--ui-accent);box-shadow:inset 0 0 0 1px var(--ui-accent)}
-#journal .journal-detail{min-width:0;border-left:1px solid var(--ui-border);padding-left:20px}
-#journal .journal-detail h3{margin-top:8px}
-#journal .journal-back{font:inherit;font-size:14px;min-height:44px;padding:8px 12px;border:1px solid var(--ui-border);border-radius:8px;background:#eee3e8;color:var(--ui-ink);cursor:pointer}
-#journal .journal-back{display:none}
-#journal:not(.expanded) .journal-browser{display:block}
-#journal:not(.expanded) .journal-detail{display:none;border:0;padding:0}
-#journal:not(.expanded) .viewing-detail .journal-list{display:none}
-#journal:not(.expanded) .viewing-detail .journal-detail{display:block}
-#journal:not(.expanded) .journal-back{display:block;margin:0 0 16px}
 
 @media(min-width:701px){#journal.expanded{top:max(24px,env(safe-area-inset-top));bottom:auto;max-height:calc(100dvh - 48px)}}
 

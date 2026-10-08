@@ -1,6 +1,7 @@
 import {companion,animateCompanion} from './companion-model.js';
 import {createCompanionFollower} from './companion-follow.js';
 import {createCompanionBehavior,PETTING_DURATION} from './companion-behavior.js';
+import {signal} from './reactive.js';
 
 // App-owned companion lifecycle. Worlds supply placement and quest context only.
 export function createCompanionSystem(api){
@@ -9,7 +10,9 @@ export function createCompanionSystem(api){
  const listeners=new Set();let actionAge=null,preview=null,menu=null;
  const actor={group:model,x:0,z:0,tile:null,kind:'companion',duration:0,ready:false,opened:false,get label(){return `Pet ${state.name}`;}};
  const meshes=[];model.traverse(m=>{if(m.isMesh&&!m.userData.nonInteractive&&!m.name.startsWith('pet-heart')){m.userData.actor=actor;meshes.push(m);api.pickables.push(m);}});
- const notify=()=>{for(const fn of listeners)fn(state);};
+ // `revision` changes with every state change (owned, name, following) for UI bindings.
+ const revision=signal(0);
+ const notify=()=>{revision.value++;for(const fn of listeners)fn(state);};
  function locate(){const tile=api.tileAtPosition(model.position);actor.tile=tile;actor.x=tile?.x??0;actor.z=tile?.z??0;actor.ready=state.owned&&!!tile;for(const m of meshes)m.userData.tile=tile;}
  function cancel(){if(actionAge!==null){behavior.reset();api.feedback.clearDestination();}actionAge=null;preview=null;}
  function acquire({name=state.name,at=null}={}){state.owned=true;state.following=true;state.name=name;api.scene.attach(model);model.visible=true;follower.reset(at);behavior.reset();locate();notify();}
@@ -31,7 +34,7 @@ export function createCompanionSystem(api){
   if(actionAge>=PETTING_DURATION){actionAge=null;api.feedback.complete();}
   return motion;
  }
- const system={model,actor,get state(){return {...state};},update,acquire,reset,cancel,pet,
+ const system={model,actor,revision,get state(){return {...state};},update,acquire,reset,cancel,pet,
   attachMenu(value){menu=value;},onChange(fn){listeners.add(fn);return ()=>listeners.delete(fn);},
   rename(name){const value=name.trim();if(!value)return false;state.name=value;notify();return true;},
   setFollowing(value){state.following=!!value;behavior.reset();notify();},
@@ -40,7 +43,7 @@ export function createCompanionSystem(api){
   cannotYield(tile){return system.occupies(tile)&&follower.yieldBlocked;},
   matches(target){return actionAge!==null&&target===actor;},get working(){return actionAge!==null;},
   scripted(time,options){if(!state.owned)animateCompanion(model,time,options);},
-  name(options){menu?.editName(options);},renderMenu(){menu?.render();},showMenuTab(){menu?.unlock();},
+  name(options){menu?.editName(options);},
   preview:typeof __PLAYGROUND__!=='undefined'&&__PLAYGROUND__?function(motion,expression='Default'){cancel();if(!state.owned){acquire();follower.update(0,api.world,api.tile(),api.reserved,api.occupied);}preview={motion,expression,age:0};}:undefined,
   get previewing(){return !!preview;},
   dispose(){cancel();menu?.dispose();for(const mesh of meshes){const i=api.pickables.indexOf(mesh);if(i>=0)api.pickables.splice(i,1);}model.removeFromParent();listeners.clear();}
