@@ -1,4 +1,6 @@
-import {createResourceOrb} from './resource-orb.js';
+import {mount} from './ui/dom.js';
+import {resourceMeter} from './ui/hud/meter.js';
+import {compactQuery} from './ui/viewport.js';
 import {mountMinimapControls} from './minimap-controls.js';
 import {icon} from './icons.js';
 import {ITEMS} from './items.js';
@@ -8,21 +10,20 @@ import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems,partitionMobile
 
 // Shared player chrome; every map supplies the same live world and player state.
 export function createPlayerInterface({menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styleMenu,auras,knowsAbility=()=>false,playerControl=null,assistance=null}){
- const $=id=>document.getElementById(id),mobile=matchMedia('(max-width:700px)');
+ const $=id=>document.getElementById(id),mobile=compactQuery();
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
  const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div><button id="quick-food">${icon('quickEat')}<span></span></button><small id="player-combat-status" role="status"></small>`;
  const heading=overview.querySelector('.overview-heading');
  const hud=document.createElement('aside');hud.id='player-mobile-hud';document.body.append(hud);
  menus.host.append(sidebar);sidebar.append(overview,$('journal'));$('overview-vitals').append($('player-health'),$('quick-food'));
- const resourceOrbs=[];
  for(const [kind,label,action,glyph] of [['mana','Mana','Quick restore','quickRestore'],['stamina','Stamina','Sprint','sprint'],['energy','Energy','Strong Strike','strongStrike'],['ki','Ki','Auras','aura']]){
-  const orb=createResourceOrb(label,resources[kind],'player-'+kind);orb.element.classList.add('resource-placeholder',kind);resourceOrbs.push(orb);
+  const meter=mount(()=>resourceMeter({id:'player-'+kind,kind,label,resource:resources[kind]})).node;meter.classList.add('resource-placeholder',kind);
   const button=document.createElement('button');button.id={stamina:'toggle-sprint',mana:'quick-restore',energy:'quick-strong-strike',ki:'open-auras'}[kind];button.className=`resource-placeholder-action ${kind}`;button.disabled=kind==='mana';button.setAttribute('aria-label',kind==='mana'?'Quick restore — not yet available':action);button.title=button.getAttribute('aria-label');button.innerHTML=icon(glyph);
   if(kind==='stamina'){button.setAttribute('aria-pressed','false');button.onclick=()=>{resources.toggle();clock=.15;};}
   // Strong Strike queues one use for the next eligible melee attack; pressing again withdraws it before it attaches.
   if(kind==='energy'){button.setAttribute('aria-pressed','false');button.onclick=()=>{combat.queue('strongStrike');clock=.15;};}
   if(kind==='ki'){button.setAttribute('aria-pressed','false');button.onclick=()=>{styleMenu.open();clock=.15;};}
-  $('overview-vitals').append(orb.element,button);
+  $('overview-vitals').append(meter,button);
  }
  const mapCanvas=overview.querySelector('canvas');let mapCenter={x:tile().x,z:tile().z};
  const mapControls=mountMinimapControls(mapCanvas,{center:()=>mapCenter,move,changed:()=>{clock=.15;drawMap();}});
@@ -113,7 +114,6 @@ export function createPlayerInterface({menus,journal,health,resources,food,inven
    const action=food.inventoryActions(quickFood)[0];const button=$('quick-food'),signature=[quickFood,inventory[quickFood],food.working,!!action?.disabled].join(':');if(signature!==foodSignature){foodSignature=signature;button.disabled=!inventory[quickFood]||!!action?.disabled;button.querySelector('span').textContent=food.working?'Eating…':'Eat';button.title=`${ITEMS[quickFood].name} ×${inventory[quickFood]||0}`;button.setAttribute('aria-label',`${food.working?'Eating':'Quick eat'} ${button.title}`);}
    // Control effects and their immunity windows are always shown; advisory danger comes from assistance.
    const control=playerControl?.summary||'',advice=assistance?.warning||'',status=[performance.now()<messageUntil?lastMessage:'',advice,control].filter(Boolean).join(' · ')||(combat.working?'In combat · '+(assistance?.modeLabel||'Auto-Retaliate '+(combat.autoRetaliate?'On':'Off')):'');if($('player-combat-status').textContent!==status)$('player-combat-status').textContent=status;
-   for(const orb of resourceOrbs)orb.update();
    const strike=$('quick-strong-strike'),queued=combat.pending==='strongStrike'||!!combat.committedAbility,known=knowsAbility('strongStrike'),strikeLabel=!known?'Strong Strike — not learned':queued?'Strong Strike queued for your next melee attack (press to withdraw)':'Strong Strike (50 Energy, next melee attack)';
    if(strike.disabled===known)strike.disabled=!known;if(strike.getAttribute('aria-pressed')!==String(queued))strike.setAttribute('aria-pressed',String(queued));if(strike.title!==strikeLabel){strike.title=strikeLabel;strike.setAttribute('aria-label',strikeLabel);}
    const auraButton=$('open-auras'),glowing=String(!!auras?.anyActive);if(auraButton.getAttribute('aria-pressed')!==glowing)auraButton.setAttribute('aria-pressed',glowing);const sprint=$('toggle-sprint'),pressed=String(resources.sprint);if(sprint.getAttribute('aria-pressed')!==pressed)sprint.setAttribute('aria-pressed',pressed);if(sprint.disabled!==(resources.stamina.value===0))sprint.disabled=resources.stamina.value===0;

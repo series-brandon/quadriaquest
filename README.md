@@ -59,6 +59,7 @@ Build and compare both variants:
 npm run build
 npm run build:debug
 npm run check:debug-isolation
+npm run check:ui
 ```
 
 `dist/` is the normal distributable. `dist-playground/` is explicitly debug-only. `npm run preview` serves the normal build on port 4173; `npm run preview:debug` serves the debug build on port 4174. Never deploy `dist-playground/` as the normal game.

@@ -12,6 +12,10 @@ Verify the new behavior in the playground and the normal flow as applicable. Kee
 
 See [README.md](README.md#development-playground) for local run/build commands and [docs/DESIGN.md](docs/DESIGN.md) for game design.
 
+## UI standards
+
+Build new UI with the plain-JS kit in `src/ui/`, following [docs/UI.md](docs/UI.md): signal-backed state instead of polling, `h()` instead of HTML strings, owned and keyed views, `--q-*` tokens, and one breakpoint. Run `npm run check:ui` after UI changes. Legacy debt may only fall. When substantially changing a legacy surface, move it into the kit instead of extending the old pattern.
+
 ## Portable world entities
 
 Treat tiles, ground items, resources, NPCs, enemies, companions, and other world objects as portable prefab-like entities. Their model factories, animations, standard interactions, feedback, and lifecycle behavior belong in shared implementations that work in any map. Maps define placement, configuration, and quest context, not copies of entity behavior. Reuse these implementations in gameplay, the splash, previews, and the dev playground wherever applicable. Fix shared behavior at its source; do not patch individual worlds with duplicate implementations. Verify affected entities across existing maps, including cancellation, completion, and reset/respawn where applicable.

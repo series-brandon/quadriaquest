@@ -38,7 +38,10 @@ import {heldTool} from './tool-models.js';
 import {createFishingSystem} from './fishing.js';
 import {createFishingSpots} from './fishing-spots.js';
 import {createFishingPresentation} from './fishing-presentation.js';
-import {createPlayerHealth,createFoodSystem,createHealthUI} from './player-health.js';
+import {createPlayerHealth,createFoodSystem} from './player-health.js';
+import {batch,signal} from './reactive.js';
+import {mount} from './ui/dom.js';
+import {resourceMeter} from './ui/hud/meter.js';
 import './player-health.css';
 import './campfires.css';
 import {createRecipeCrafting} from './recipe-crafting.js';
@@ -67,6 +70,7 @@ import {createWaterEffects,waterSettings} from './water-effects.js';
 import './ui-theme.css';
 import './dialogue-presentation.css';
 import './player-interface.css';
+import './ui/ui.css';
 import {createSlimeBend} from './slime-bend.js';
 import {createSplash} from './splash.js';
 import {socialMotion,createIdleClock,SLEEP_SETTLE} from './slime-social.js';
@@ -156,7 +160,8 @@ const fishingPresentation=createFishingPresentation({player,hands});
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
 const playerResources=createPlayerResources();
-const health=createPlayerHealth(),healthUI=createHealthUI(health);
+const health=createPlayerHealth(),healthVisible=signal(false);
+document.body.append(mount(()=>resourceMeter({id:'player-health',kind:'health',label:'Health',resource:health,hidden:()=>!healthVisible.value})).node);
 // Resource maxima follow capacity attributes; current amounts are kept and only clamped.
 const character=createCharacter({changed(){const m=character.maxima;health.max=m.health;for(const k of ['mana','stamina','energy','ki'])playerResources[k].max=m[k];}});
 // Player control effects (stun/immobilize/slow and protection) use the same shared state as enemies.
@@ -402,7 +407,8 @@ $('reset').onclick=()=>{cancelWork();Object.assign(gatheringSkill,{xp:0,level:1}
 function resize(){const {left,width,height}=measureGameViewport();document.documentElement.style.setProperty('--game-viewport-width',`${width}px`);document.documentElement.style.setProperty('--game-viewport-center',`${left+width/2}px`);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);}addEventListener('resize',resize);new ResizeObserver(resize).observe($('game'));resize();
 const clock=new THREE.Clock();let elapsed=0,actionProgressWidth='';
 const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=new THREE.Vector3(),focusLift=new THREE.Vector3(),cameraFocus=new THREE.Vector3();
-function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();frame();perfProbe.end();}else frame();}
+// One batch per frame: UI bindings flush once, after the frame's state changes.
+function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
 // Playground builds attribute frame time to these laps; normal builds compile them away.
 function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update(dt,opening.playable&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',!$('dialogue').hidden);if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('dialogue-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
@@ -433,7 +439,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);playerInterface?.update
  auras.update(dt);playerControl.update(dt);
  assistance.update(dt);
  playerResources.regenerate(dt,{health,attribute:character.attribute,inCombat:combat.inCombat,aurasActive:auras.anyActive});
- healthUI.update(opening.playable);
+ healthVisible.value=opening.playable;
  const resourceMotion=resourceActions.update(dt);
  gatherTime=resourceActions.state?.kind==='Gathering'?resourceActions.state.age:0;
  const carpentryMotion=carpentry.update(dt);

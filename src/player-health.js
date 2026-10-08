@@ -1,5 +1,4 @@
 import {createResource} from './player-resources.js';
-import {createResourceOrb} from './resource-orb.js';
 import {EATING_DURATION} from './eating-motion.js';
 
 export const FOODS={cookedFish:{healing:20,duration:EATING_DURATION}};
@@ -36,4 +35,3 @@ export function createFoodSystem(api){
   inventoryActions(id){return FOODS[id]?[{label:'Eat',disabled:!api.inventory[id]||cooldown>0||!!api.busy?.(),run:()=>start(id)}]:[];}};
 }
 
-export function createHealthUI(health){const ui=createResourceOrb('Health',health,'player-health');document.body.append(ui.element);return ui;}

@@ -1,0 +1,56 @@
+# UI architecture and standards
+
+The UI is being rebuilt on a small in-house kit (`src/ui/`) using plain JavaScript and no framework. Legacy surfaces move over one at a time. `npm run check:ui` enforces the rules below: new code follows them strictly, and legacy code may only get closer to them.
+
+## Direction
+
+- **Visual:** sleek and modern, with a bespoke look to come. Resource gauges and similar elements are squares with softened corners (rounded or chamfered) that echo the slime's silhouette. OSRS is a reference for gameplay, not for the look.
+- **Low-poly, flat-shaded objects:** match the world. Elements read as small objects whose faces are shaded by angle to an upper-left light, rather than as flat fills or glossy, soft-shaded glass. Colors are pastel.
+- **Rounded shapes:** clip with a vector mask or draw them as SVG; never clip a transformed layer with `border-radius`, which produced jagged corners.
+- **Depth:** comes from facet shading, a highlight shard and a soft dark rim, not from drop shadows or blur.
+- **Motion:** idle states are still. Motion conveys change and uses only transform or opacity on HTML layers; transforms inside SVG cause a layout every frame in Chrome. Constant ambient animation measurably raised browser CPU.
+- **Performance:** views are built once, and only the node whose data changed is updated. Nothing polls.
+
+## Kit
+
+| Module | Purpose |
+|---|---|
+| `src/reactive.js` | `signal`, `computed`, `effect`, `batch`, `untracked`. This is the only module that imports `@preact/signals-core`. |
+| `src/ui/dom.js` | `h(tag, props, ...children)` and `mount(build)`. Props and children that are signals or functions are bound to that node. |
+| `src/ui/scope.js` | Ownership. Each binding belongs to the view that built it and is disposed with that view. |
+| `src/ui/list.js` | `keyedList` keeps row nodes, focus and scopes across updates. |
+| `src/ui/viewport.js` | The single breakpoint (700px) and the `compactViewport()` signal. |
+| `src/ui/icon.js` | `iconNode(name)`, the shared icons as DOM nodes. |
+| `src/ui/tokens.css` | Every color, shape, size, font, shadow and motion value used by the kit (`--q-*`). |
+| `src/ui/ui.css` | The entry stylesheet. It imports tokens and every component sheet. |
+
+## Rules
+
+1. **State pushes; the UI never polls.** Gameplay state that a view shows is backed by signals at its source (`createResource` is the model). Gameplay code keeps its normal getters and setters; bindings that read those getters subscribe automatically. Do not add per-frame or timer-driven `update()` or `refresh()` calls to views.
+2. **One flush per frame.** `main.js` runs each frame inside `batch`, so bindings write once, after the frame's state changes.
+3. **Build with `h()`.** No HTML strings (`innerHTML` and friends), no `.onclick =` handlers and no DOM lookups by id or selector. A component keeps references to the nodes it creates. Icons come from `iconNode`.
+4. **Views are owned.** Build inside `mount`, `keyedList` or `runInScope`. Bindings write to the DOM; they never build views. Call `dispose()` when removing a view.
+5. **Lists are keyed.** Use `keyedList` and publish new item objects when data changes. Never clear a container and rebuild it.
+6. **Components are pure UI.** A component receives the shared gameplay objects it displays and calls their actions; it never reimplements gameplay rules (AGENTS.md: shared gameplay). Components work in any area and in the playground.
+7. **Styling:**
+   - Classes use the `q-` prefix (`q-block`, `q-block__part`, `q-block--variant`).
+   - Values come from tokens; color literals belong only in `tokens.css`.
+   - No `!important`.
+   - Breakpoints are 700px and 701px only.
+   - Animate with `transform` and `opacity`.
+   - Respect `prefers-reduced-motion`.
+   - Components do not import CSS; add each sheet to `src/ui/ui.css` so components stay loadable in node tests.
+8. **Breakpoints in JS** come from `ui/viewport.js`. Legacy code uses `compactQuery()`.
+9. **Accessibility:** use real roles (`meter`, `button`, `dialog`), keep labels and values current, give controls at least a 44px touch target (`--q-touch`), and keep focus stable across updates.
+10. **Tests:** each component has a `node --test` file that runs on linkedom (`src/ui/test-dom.js`). Cover its bindings: the values shown, updates when state changes, and that unchanged state causes no DOM writes.
+11. **Legacy ratchet:** `scripts/ui-standards-baseline.json` records the debt in legacy files: HTML strings, property event handlers, `matchMedia` and `!important`. Counts may fall but never rise. After reducing debt, run `node scripts/check-ui-standards.js --update`. To change a legacy surface substantially, move it into the kit rather than extending it.
+
+## Migration status
+
+| Surface | Status |
+|---|---|
+| Resource meters (Health, Mana, Stamina, Energy, Ki) | Kit (`ui/hud/meter.js`): low-poly bevelled tile, signal-backed resources, idle-still (in design review) |
+| Breakpoint (player interface, journal) | Shared `ui/viewport.js` |
+| Resource action buttons, combat status line | Legacy, polled in `player-interface.js`. To be replaced by the combat HUD: ability bar, target frame and effect icons. |
+| Panel registry and host (journal pages, utility dialogs, mobile nav) | Legacy, with id lists duplicated across `game-menus.js`, `journal.js` and `player-interface-policy.js`. This is the next foundation step. |
+| Combat page, equipment, skills, inventory, crafting, dialogue, toasts | Legacy |

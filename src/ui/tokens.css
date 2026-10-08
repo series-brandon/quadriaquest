@@ -1,0 +1,36 @@
+/* Design tokens for the new UI kit. Components use only these values for color, shape,
+   spacing, type and motion, so the visual direction can change in one place.
+   Legacy stylesheets keep their own --ui-* palette until each surface is migrated. */
+:root {
+  /* Ink */
+  --q-ink-on-dark: #fff;
+
+  /* Resources: pastel, to sit with the soft low-poly world. */
+  --q-health: #ef8a8f;
+  --q-mana: #a894ee;
+  --q-stamina: #7fc98d;
+  --q-energy: #f2cd6e;
+  --q-ki: #74cbd8;
+
+  /* Feedback tones for numbers (always drawn with a dark outline) */
+  --q-tone-warning: #ffb547;
+  --q-tone-danger: #ff6b6b;
+
+  /* Sizing */
+  --q-touch: 44px;
+  --q-meter-size: 48px;
+
+  /* Type */
+  --q-font-numeric: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif;
+
+  /* Low-poly gauges: flat-shaded plum frame around a dark well */
+  --q-meter-frame: #5a5068;
+  --q-meter-well: #2f2939;
+  --q-meter-well-band: #3a3346;
+  --q-meter-shard: #ffffff38;
+  --q-rim: #1f1a27;
+
+  /* Motion */
+  --q-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --q-meter-level-duration: 350ms;
+}

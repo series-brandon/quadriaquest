@@ -1,6 +1,7 @@
 import {createQuestPanel} from './quests.js';
 import {icon} from './icons.js';
 import {mountJournalTutorialLock} from './journal-tutorial-lock.js';
+import {compactQuery} from './ui/viewport.js';
 export function mountJournal(menus,controller,settings){
  const $=id=>document.getElementById(id),host=$('game-menus'),nav=$('game-menu-bar');
  const shell=document.createElement('section');shell.id='journal';shell.hidden=true;shell.setAttribute('aria-label','Adventurer’s journal');
@@ -17,13 +18,13 @@ export function mountJournal(menus,controller,settings){
  const settingsPanel=document.createElement('section');settingsPanel.id='settings-panel';settingsPanel.hidden=true;settingsPanel.setAttribute('aria-label','Settings');settingsPanel.innerHTML='<div class="crafting-heading"><button aria-label="Close settings">×</button></div>';settingsPanel.querySelector('button').onclick=()=>menus.closeMenus('dismiss');
  host.append(shell);shell.append(nav,questPanel,settingsPanel,$('inventory-panel'),$('skills-panel'),$('crafting-panel'));
  let expanded=false;try{expanded=(localStorage.getItem('quadriaquest-journal-expanded')??localStorage.getItem('quadra-journal-expanded'))==='true';}catch{}
- const desktop=matchMedia('(min-width:701px)');
+ const mobile=compactQuery(),desktop={get matches(){return !mobile.matches;}};
  function resize(){shell.classList.toggle('expanded',expanded&&desktop.matches);$('journal-size').setAttribute('aria-label',expanded?'Minimize journal':'Expand journal');}
- desktop.addEventListener('change',resize);resize();$('journal-size').onclick=()=>{expanded=!expanded;resize();try{localStorage.setItem('quadriaquest-journal-expanded',expanded);}catch{}};
+ mobile.addEventListener('change',resize);resize();$('journal-size').onclick=()=>{expanded=!expanded;resize();try{localStorage.setItem('quadriaquest-journal-expanded',expanded);}catch{}};
  $('game-menu-toggle').innerHTML=icon('inventory');$('game-menu-toggle').setAttribute('aria-label','Open adventurer’s journal');
  for(const name of ['skills','inventory','crafting'])$('open-'+name).innerHTML=icon(name)+`<span>${name[0].toUpperCase()+name.slice(1)}</span>`;
  const activeClose=()=>['inventory','skills','crafting','quests','companions','settings','combat','equipment'].map(name=>$(name+'-panel')).find(panel=>panel&&!panel.hidden)?.querySelector('.crafting-heading button');
- const mobile=matchMedia('(max-width:700px)'),tip=$('gather-tutorial'),tipParent=tip.parentElement;
+ const tip=$('gather-tutorial'),tipParent=tip.parentElement;
  function closePage(){if((docked&&desktop.matches)||tutorialLock.locked)return;const close=activeClose();if(close?.disabled)return;if(close)close.click();menus.closeMenus('dismiss');}
  $('journal-close').onclick=closePage;
  let last='quests',docked=false;

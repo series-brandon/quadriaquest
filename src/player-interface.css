@@ -75,9 +75,9 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
 }
 
 
- .resource-placeholder{grid-row:1;--health-fill:100%}
-.resource-placeholder.mana{--resource-rim:#6d507f;--resource-light:#aa78c8;--resource-dark:#57356e;--resource-edge:#774590;grid-column:2}
-.resource-placeholder.stamina{--resource-rim:#486752;--resource-light:#78aa80;--resource-dark:#345b3f;--resource-edge:#4f8059;grid-column:3}
+ .resource-placeholder{grid-row:1}
+.resource-placeholder.mana{grid-column:2}
+.resource-placeholder.stamina{grid-column:3}
 .resource-placeholder-action{width:44px;height:44px;min-width:44px;min-height:44px;grid-row:2;justify-self:center;display:grid;place-items:center;padding:10px;border:1px solid var(--ui-border);background:#eee1e6;opacity:.45;cursor:default}
 .resource-placeholder-action.mana{grid-column:2}.resource-placeholder-action.stamina{grid-column:3}.resource-placeholder-action .game-icon{width:22px;height:22px}
 @media(min-width:701px){body.player-sidebar-open #journal-close,body.player-sidebar-open #journal .crafting-heading>button[aria-label^="Close"]{display:none!important}}
@@ -104,15 +104,15 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
 .overview-heading[hidden],body:has(#splash:not([hidden])) .overview-heading{display:none!important}
 
 #toggle-sprint{opacity:1;cursor:pointer}#toggle-sprint:disabled{opacity:.45;cursor:default}#toggle-sprint[aria-pressed="true"]{background:#a6c69b;box-shadow:inset 0 0 0 2px #426d46}.overview-map canvas{touch-action:none;cursor:crosshair}.overview-map>span{pointer-events:none}
-.resource-placeholder.energy{--resource-rim:#7d6a3a;--resource-light:#d9b85a;--resource-dark:#8a6a1f;--resource-edge:#a9832c;grid-column:4;grid-row:1}
-.resource-placeholder.ki{--resource-rim:#3d6a78;--resource-light:#6fb8c9;--resource-dark:#245566;--resource-edge:#33788b;grid-column:5;grid-row:1}
+.resource-placeholder.energy{grid-column:4;grid-row:1}
+.resource-placeholder.ki{grid-column:5;grid-row:1}
 .resource-placeholder-action.energy{grid-column:4;grid-row:2}.resource-placeholder-action.ki{grid-column:5;grid-row:2}
 #quick-strong-strike,#open-auras{opacity:1;cursor:pointer}#quick-strong-strike:disabled{opacity:.45;cursor:default}
 #quick-strong-strike[aria-pressed="true"]{background:#e6cf86;box-shadow:inset 0 0 0 2px #8a6a1f}#open-auras[aria-pressed="true"]{background:#a9d6df;box-shadow:inset 0 0 0 2px #245566}
-/* Phones: 44px orbs (still touch-sized) keep the five pools on one row beside a smaller minimap. */
+/* Phones: 44px meters (still touch-sized) keep the five pools on one row beside a smaller minimap. */
 @media(max-width:700px){
  #player-mobile-hud #player-overview{grid-template-columns:max-content minmax(0,1fr)}
  #player-mobile-hud #overview-vitals{grid-template-columns:repeat(5,44px);grid-template-rows:44px 44px;gap:4px}
- #player-mobile-hud .resource-orb{width:44px;height:44px;font-size:15px}
+ #player-mobile-hud .q-meter{--q-meter-size:44px}
  #player-mobile-hud .overview-map{max-width:124px}
 }

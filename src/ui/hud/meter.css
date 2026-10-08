@@ -1,0 +1,106 @@
+/* Low-poly gauge: a flat-shaded bevelled tile. See meter.js for the layering.
+   Nothing moves while idle; a level change slides the well's window (transform only).
+   The well and base extend one unit under the bevel, and the moving layers stay composited,
+   so the bevel's anti-aliased inner edge never reveals a flickering seam mid-animation. */
+.q-meter {
+  --q-meter-color: var(--q-health);
+  /* Geometry fractions (travel, well inset) come from meter.js, derived from its bevel width. */
+  --q-meter-shift: calc((1 - var(--q-meter-level, 1)) * var(--q-meter-size) * var(--q-meter-travel));
+  position: relative;
+  inline-size: var(--q-meter-size);
+  block-size: var(--q-meter-size);
+}
+.q-meter[hidden] { display: none; }
+
+.q-meter--health { --q-meter-color: var(--q-health); }
+.q-meter--mana { --q-meter-color: var(--q-mana); }
+.q-meter--stamina { --q-meter-color: var(--q-stamina); }
+.q-meter--energy { --q-meter-color: var(--q-energy); }
+.q-meter--ki { --q-meter-color: var(--q-ki); }
+
+.q-meter__base,
+.q-meter__face {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+
+.q-meter__empty { fill: var(--q-meter-well); }
+.q-meter__empty-band { fill: var(--q-meter-well-band); }
+
+.q-meter__well {
+  position: absolute;
+  inset: calc(100% * var(--q-meter-well-inset));
+}
+.q-meter__window,
+.q-meter__contents {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  transition: transform var(--q-meter-level-duration) var(--q-ease-out);
+  will-change: transform;
+}
+/* The window's top edge is the surface; the essence counter-moves to stay put. */
+.q-meter__window { transform: translateY(var(--q-meter-shift)); }
+.q-meter__contents { transform: translateY(calc(-1 * var(--q-meter-shift))); }
+
+.q-meter__essence {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.q-meter__essence-lit { fill: color-mix(in srgb, var(--q-meter-color) 85%, white); }
+.q-meter__essence-shade { fill: color-mix(in srgb, var(--q-meter-color) 86%, black); }
+
+.q-meter__surface {
+  position: absolute;
+  inset: 0 0 auto;
+  block-size: calc(var(--q-meter-size) * 1.4 / 52);
+  margin-block-start: calc(var(--q-meter-size) * -0.7 / 52);
+  background: color-mix(in srgb, var(--q-meter-color) 35%, white);
+  transform: translateY(var(--q-meter-shift));
+  transition: transform var(--q-meter-level-duration) var(--q-ease-out);
+  will-change: transform;
+}
+.q-meter[data-full] .q-meter__surface,
+.q-meter[data-empty] .q-meter__surface { display: none; }
+
+/* Flat shading by face angle to a light at the upper left. */
+.q-meter__bevel--top-left { fill: color-mix(in srgb, var(--q-meter-frame) 82%, white); }
+.q-meter__bevel--top { fill: color-mix(in srgb, var(--q-meter-frame) 92%, white); }
+.q-meter__bevel--left { fill: var(--q-meter-frame); }
+.q-meter__bevel--top-right { fill: color-mix(in srgb, var(--q-meter-frame) 86%, black); }
+.q-meter__bevel--bottom-left { fill: color-mix(in srgb, var(--q-meter-frame) 78%, black); }
+.q-meter__bevel--right { fill: color-mix(in srgb, var(--q-meter-frame) 66%, black); }
+.q-meter__bevel--bottom { fill: color-mix(in srgb, var(--q-meter-frame) 60%, black); }
+.q-meter__bevel--bottom-right { fill: color-mix(in srgb, var(--q-meter-frame) 54%, black); }
+
+.q-meter__shard { fill: var(--q-meter-shard); }
+
+.q-meter__rim {
+  fill: none;
+  stroke: var(--q-rim);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.q-meter__value {
+  font: 700 15px var(--q-font-numeric);
+  font-variant-numeric: tabular-nums;
+  fill: var(--q-ink-on-dark);
+  paint-order: stroke;
+  stroke: var(--q-rim);
+  stroke-width: 3;
+  stroke-opacity: 0.85;
+  stroke-linejoin: round;
+}
+.q-meter[data-tone='medium'] .q-meter__value { fill: var(--q-tone-warning); }
+.q-meter[data-tone='low'] .q-meter__value { fill: var(--q-tone-danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .q-meter__window,
+  .q-meter__contents,
+  .q-meter__surface { transition: none; }
+}

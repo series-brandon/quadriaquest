@@ -15,13 +15,16 @@
     "perf": "node perf/run.mjs",
     "perf:full": "node perf/run.mjs --full",
     "perf:ab": "node perf/ab.mjs",
-    "perf:baseline": "node perf/run.mjs --full --update-baseline"
+    "perf:baseline": "node perf/run.mjs --full --update-baseline",
+    "check:ui": "node scripts/check-ui-standards.js"
   },
   "dependencies": {
+    "@preact/signals-core": "^1.14.4",
     "three": "^0.180.0",
     "vite": "^7.1.0"
   },
   "devDependencies": {
+    "linkedom": "^0.18.13",
     "playwright": "^1.63.0"
   }
 }

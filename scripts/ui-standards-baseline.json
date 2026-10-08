@@ -1,0 +1,80 @@
+{
+  "src/audio.js": {
+    "innerHTML": 2,
+    "propertyHandlers": 3
+  },
+  "src/campfires.js": {
+    "innerHTML": 1,
+    "propertyHandlers": 1
+  },
+  "src/character-dialogue.js": {
+    "innerHTML": 1,
+    "propertyHandlers": 1
+  },
+  "src/combat-style-menu.js": {
+    "innerHTML": 1,
+    "propertyHandlers": 9
+  },
+  "src/companion-menu.js": {
+    "innerHTML": 3,
+    "propertyHandlers": 8
+  },
+  "src/cooking-menu.js": {
+    "innerHTML": 3,
+    "propertyHandlers": 6
+  },
+  "src/crafting-tutorial.js": {
+    "propertyHandlers": 4
+  },
+  "src/destination-menu.js": {
+    "innerHTML": 1,
+    "propertyHandlers": 4
+  },
+  "src/dialogue-presentation.css": {
+    "important": 1
+  },
+  "src/game-menus.js": {
+    "innerHTML": 7,
+    "propertyHandlers": 11
+  },
+  "src/inventory-menu.js": {
+    "innerHTML": 2,
+    "propertyHandlers": 5
+  },
+  "src/item-feedback.js": {
+    "innerHTML": 1
+  },
+  "src/journal.js": {
+    "innerHTML": 6,
+    "propertyHandlers": 5
+  },
+  "src/main.js": {
+    "innerHTML": 1,
+    "propertyHandlers": 7
+  },
+  "src/player-interface.css": {
+    "important": 9
+  },
+  "src/player-interface.js": {
+    "innerHTML": 11,
+    "propertyHandlers": 11
+  },
+  "src/quests.js": {
+    "innerHTML": 1,
+    "propertyHandlers": 4
+  },
+  "src/random-names.js": {
+    "innerHTML": 1,
+    "propertyHandlers": 1
+  },
+  "src/splash.js": {
+    "innerHTML": 2,
+    "propertyHandlers": 2
+  },
+  "src/ui-theme.css": {
+    "important": 3
+  },
+  "src/willowbank.css": {
+    "important": 1
+  }
+}

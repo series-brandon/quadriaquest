@@ -20,6 +20,29 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### UI rework foundation — 2026-10-07
+- The user chose a plain-JS rebuild of the UI (no framework for now), an open visual direction (sleek and modern, rounded-square "slime" gauges, OSRS gameplay but not its look), and a foundation-first rollout with strict standards. Rules and migration status: `docs/UI.md`. Gate: `npm run check:ui`.
+- **Kit:**
+  - `src/reactive.js` re-exports `@preact/signals-core` (a new runtime dependency, about 1.5 KB).
+  - `src/ui/` contains `dom.js`, `scope.js`, `list.js`, `viewport.js`, `icon.js`, `tokens.css` and `ui.css`.
+  - Tests run on linkedom, a new dev dependency.
+- **Signal-backed resources:** `createResource` (health and all four pools) stores `value` and `max` in signals; its API is unchanged. `main.js` runs each frame inside `batch`, so UI bindings flush once per frame.
+- **Resource meters** (`ui/hud/meter.js`) replace `resource-orb.js` (deleted) and the old orb CSS. They update only when the displayed whole number or the maximum changes, and are no longer polled.
+  - **Current design, in review: a low-poly bevelled tile** (mockup option B). The user called it "close, not perfect."
+    - Geometry derives from one `BEVEL` width in `meter.js` (3.5 of 52 units, thinned at the user's request). The well extends 1 unit under the bevel and is clipped to the tile's outline. That prevents a flickering light seam at the bevel's anti-aliased inner edge while the level animates, and stops square well corners showing past the chamfers.
+    - Look: a chamfered square whose 8 bevel faces are flat-shaded by angle to an upper-left light, in a plum frame. The well is dark. The essence is two-tone, split on the diagonal into lit and shaded faces, with a flat lit surface line, a highlight shard, a soft dark rim and the number inside.
+    - Colors are pastel (`--q-health` and the others in `tokens.css`), at the user's request.
+    - Nothing animates while idle. A level change slides the well's window over counter-transformed contents (transform only, 350 ms). Everything else is static SVG.
+  - **Rejected along the way:**
+    - flat circle-style fills;
+    - SVG "jelly" waves (jagged clip, and a layout every frame);
+    - a dimensional glass "essence" orb with always-rising smoke. It looked good, but the user moved to flat shading to match the game, and the constant animation raised browser CPU about 15 points in every perf scenario (perf run, 2026-10-07).
+  - The last perf run measured the essence version: `willowbank-river` passed (the layout issue was fixed), `cinderhold-combat` still fails on its old baseline (unrelated), and `menus` gave a CPU WARN from the smoke. The low-poly version (with the thinner bevel) measured clean: 8/9 PASS, clearing-idle CPU 31%. The only failure is the old `cinderhold-combat` baseline; see the PERFORMANCE ledger.
+  - Playground coverage: the Player health → Resource set/reset controls exercise the levels, tones and the full/empty states.
+- `player-interface.js` and `journal.js` use the shared breakpoint (`compactQuery()`) instead of their own `matchMedia` calls.
+- **Ratchet:** `scripts/ui-standards-baseline.json` records legacy debt (innerHTML, property handlers, `!important`). Counts may only fall.
+- **Next foundation step:** a panel registry and host to replace the duplicated id lists in `game-menus.js`, `journal.js` and `player-interface-policy.js`, and to unify journal pages with utility dialogs.
+
 ### XP base 15 and until-level XP modifiers — 2026-10-07
 
 - `XP_BASE` is now **15** (was 50; user decision), with `XP_PER_HP = 1`. Level-100 pace at starting damage is about 3.2 h unarmed, 2.4 h dagger and 3.1 h Energy Strike, within the few-hours goal.

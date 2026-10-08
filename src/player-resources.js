@@ -1,11 +1,13 @@
 import {regenRate} from './combat-formulas.js';
+import {batch,signal} from './reactive.js';
 
 // Fractional internal amounts; displays round up. A maximum change keeps the current
 // absolute amount, clamping only above the new maximum (no refill, not damage).
-export function createResource(max=100){
- let value=max;
- return {get max(){return max;},set max(next){max=Math.max(0,next);value=Math.min(value,max);},
-  get value(){return value;},set value(next){value=Math.max(0,Math.min(max,next));},heal(amount){this.value=value+amount;},restore(){value=max;}};
+// Signal-backed so UI bindings that read `value`/`max` update without polling.
+export function createResource(initial=100){
+ const max=signal(Math.max(0,initial)),value=signal(max.peek());
+ return {get max(){return max.value;},set max(next){batch(()=>{max.value=Math.max(0,next);value.value=Math.min(value.peek(),max.peek());});},
+  get value(){return value.value;},set value(next){value.value=Math.max(0,Math.min(max.peek(),next));},heal(amount){this.value=value.peek()+amount;},restore(){value.value=max.peek();}};
 }
 export function resourceTone(value,max){const ratio=max>0?value/max:0;return ratio>.5?'high':ratio>=.25?'medium':'low';}
 export function createPlayerResources(){
