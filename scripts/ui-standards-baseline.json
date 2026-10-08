@@ -25,10 +25,6 @@
     "innerHTML": 7,
     "propertyHandlers": 5
   },
-  "src/inventory-menu.js": {
-    "innerHTML": 2,
-    "propertyHandlers": 4
-  },
   "src/item-feedback.js": {
     "innerHTML": 1
   },
@@ -55,7 +51,7 @@
     "propertyHandlers": 2
   },
   "src/ui-theme.css": {
-    "important": 3
+    "important": 2
   },
   "src/willowbank.css": {
     "important": 1

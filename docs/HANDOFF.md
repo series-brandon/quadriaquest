@@ -20,6 +20,32 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Inventory page rebuilt in the kit — 2026-10-08
+- **New page:** `ui/pages/inventory-page.js`, hosted by `inventory-menu.js` (`createInventoryMenu({host, inventory, actions, settings, isEquipped, track, onSelect})`). It replaces the legacy signature-diffing `refresh`, the HTML strings, the rAF tutorial overlay and about 6 KB of `#inventory-panel` CSS in `ui-theme.css` / `player-interface.css`.
+  - **Search:** filters the stacks.
+  - **Stack grid** in catalogue order: icon, name, ×count, and an Equipped badge.
+  - **Detail of the chosen item** (the first stack until you choose): quantity, description, actions as buttons and per-item permissions as switches.
+  - **Layout:** a flex-wrap puts the detail beside the stacks when there's room (expanded journal) and below them otherwise (docked); choosing scrolls the detail into view. Phones show the stacks, then the detail with "Back to items".
+- **Reactivity:**
+  - The reactive inventory, plus `items.track()` in main.js. `track` reads `equipment.revision`, `assistance.revision` and an `itemSystems` signal that turns true once food, campfires, equipment and assistance exist, since they're created after the menus.
+  - The food permission's `checked` is now a function.
+- **Action contract** (`actions(id)` → `[{label, disabled, run}]`): `disabled` covers only state the page can follow; a busy refusal is `run() === false`, and the page then says "Finish what you're doing first."
+  - Food `Eat`, equipment and campfire `Place` dropped `busy()` from `disabled`.
+  - Campfire `begin` returns false when busy.
+  - Food readiness is a `computed`, so the menu doesn't recompute every frame during the cooldown.
+- **Tutorial compatibility:** stacks keep `data-item` (the journal tutorial lock and the crafting tutorial's playground skip). `inventoryMenu.guide(true)` resets the view (`inventoryView().reset`) and highlights Sticks with `data-guide`. `lock` drives the journal close lock.
+- **Verification:**
+  - 326 tests pass. `inventory-page.test.js` (it replaces `inventory-menu.test.js`) covers reactive stacks, the same row node on count changes, catalogue order, actions with a busy refusal, permissions, the equip badge and label through `track`, search, the phone view switch and guidance.
+  - `check:ui` passes; legacy debt fell and the baseline was updated. Both builds and `check:debug-isolation` pass.
+  - In the built playground:
+    - expanded desktop is side by side; docked, choosing Top Hat scrolls its detail into view;
+    - Equip sets the badge and the Unequip label;
+    - Allow auto eating toggles; Eat goes through the full-health confirm, the count drops, and Eat is disabled during the cooldown, then re-enabled;
+    - campfire Place starts placement;
+    - at 375px: no overflow and 44px controls;
+    - tutorial checkpoints Inventory stacks → Select Sticks (highlighted, other stacks locked, close disabled) → a real tap → Item details → Got it → done.
+  - No console errors.
+
 ### Modal host for utility dialogs — 2026-10-08
 - **New kit module:** `src/ui/modal.js`.
   - `createModalHost()` (one instance in main.js, `modals`) owns every utility dialog. `open({id, title, size, flush, required, onClose, build})` builds the content in its own scope inside the shared `<dialog class="q-modal">` frame (title, close button, Escape), and closing disposes the scope and removes the dialog.

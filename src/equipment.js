@@ -73,7 +73,8 @@ export function createEquipment({inventory,busy=()=>false,changed:notify=()=>{}}
   setDamageType(hand,type){const attack=handAttack(hand);if(!attack?.damageTypes?.includes(type))return false;damageTypes[hand]=type;changed();return true;},
   get state(){refresh();return Object.fromEntries(Object.keys(GEAR).map(id=>[id,Object.values(slots).includes(id)]));},
   reset(){for(const slot of Object.keys(slots))slots[slot]=null;attackHands=null;damageTypes.main=damageTypes.off=null;changed();},
-  inventoryActions(id){if(!(id in GEAR))return [];const disabled=busy()||!(inventory[id]>0);
+  // Busy refusals come back from run() (false), not `disabled`, which menus show reactively.
+  inventoryActions(id){if(!(id in GEAR))return [];const disabled=!(inventory[id]>0);
    if(!GEAR[id].offHand)return [{label:api.isEquipped(id)?'Unequip':'Equip',disabled,run:()=>toggle(id)}];
    return [{label:slots.main===id?'Unequip main hand':'Equip main hand',disabled,run:()=>toggle(id,'main')},{label:slots.off===id?'Unequip off hand':'Equip off hand',disabled,run:()=>toggle(id,'off')}];}
  };

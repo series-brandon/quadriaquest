@@ -1,5 +1,5 @@
 import {createResource} from './player-resources.js';
-import {signal} from './reactive.js';
+import {computed,signal} from './reactive.js';
 import {EATING_DURATION} from './eating-motion.js';
 
 export const FOODS={cookedFish:{healing:20,duration:EATING_DURATION}};
@@ -13,6 +13,8 @@ export const CONSUMABLE_COOLDOWN=2;
 export function createFoodSystem(api){
  // Signal-backed so the HUD's Eat control follows eating and the cooldown without polling.
  const eating=signal(null),cooldown=signal(0);let confirmation=null;
+ // Menus follow readiness, which flips once per cooldown, not the per-frame countdown.
+ const ready=computed(()=>cooldown.value<=0);
  function cancel(){eating.value=null;confirmation?.();confirmation=null;}
  function start(id,confirmed=false){
   const food=FOODS[id];
@@ -34,6 +36,7 @@ export function createFoodSystem(api){
   return {kind:'Eating',time:current.age};
  }
  return {start,update,cancel,get working(){return !!eating.value;},get cooldown(){return cooldown.value;},
-  inventoryActions(id){return FOODS[id]?[{label:'Eat',disabled:!api.inventory[id]||cooldown.value>0||!!api.busy?.(),run:()=>start(id)}]:[];}};
+  // Busy refusals come back from run() (false) rather than a disabled state the menu can't follow.
+  inventoryActions(id){return FOODS[id]?[{label:'Eat',disabled:!api.inventory[id]||!ready.value,run:()=>{if(api.busy?.())return false;start(id);}}]:[];}};
 }
 

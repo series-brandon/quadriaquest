@@ -64,6 +64,10 @@
   --q-missing: #a23b4a;
   --q-missing-wash: #a23b4a14;
 
+  /* Tutorial guidance highlight */
+  --q-guide: #eac35f;
+  --q-guide-glow: #f6d87b59;
+
   /* Modal host (ui/modal.js) */
   --q-paper: #faf1e7;
   --q-modal-border: #c7abc1;

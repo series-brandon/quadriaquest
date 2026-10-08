@@ -13,7 +13,7 @@ import {bind} from './ui/scope.js';
 
 // Shared journal pages. Tutorial guidance is optional and does not own recipes or skills.
 // Page visibility, the tab bar and tab availability belong to the panel host (`panels`).
-export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,startCraft,craftState=()=>null,craftBusy=()=>false,equipment={},itemSettings=()=>[]}){
+export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,startCraft,craftState=()=>null,craftBusy=()=>false,items={}}){
  const $=id=>document.getElementById(id),events={};
  const host=document.createElement('div');host.id='game-menus';
  host.innerHTML=`<button id="game-menu-toggle" aria-label="Open game menu" aria-expanded="false">☰</button>
@@ -37,8 +37,9 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
  function openCrafting(id){if(id)selectRecipe(id);else selectRecipe(selectedRecipe);panels.open('crafting');refresh();}
  const skillsPanel=document.createElement('section');skillsPanel.id='skills-panel';skillsPanel.hidden=true;skillsPanel.setAttribute('aria-label','Skills');
  skillsPanel.innerHTML='<div class="crafting-heading"><h2>Skills</h2><button id="close-skills" aria-label="Close skills menu">×</button></div><input id="skills-search" class="journal-search" type="search" placeholder="Search skills…" aria-label="Search skills"><section id="character-summary" aria-label="Core level and attributes"></section><div id="skills-list"></div>';host.append(skillsPanel);
- const inventoryMenu=createInventoryMenu(host,getInventory,id=>events.inventorySelected?.(id),()=>panels.dismiss(),equipment,itemSettings);
- function openInventory(){panels.open('inventory');inventoryMenu.open();}
+ // items: {actions, settings, isEquipped, track} from the systems that own each item.
+ const inventoryMenu=createInventoryMenu({host,inventory:getInventory(),...items,onSelect:id=>events.inventorySelected?.(id)});
+ function openInventory(){panels.open('inventory');}
  const guidance=signal({});
  $('skills-search').oninput=()=>renderSkills();
   const skillRows=new Map();let characterSignature='';
@@ -97,7 +98,7 @@ export function createGameMenus({getInventory,getSkills,getCharacter=()=>null,st
    $(id+'-duration').textContent=`Time · ${Number(durationFor(recipe.duration,skills[recipe.skill]?.level||level).toFixed(2))} seconds`;
   }
   if($('recipe-error').textContent)$('recipe-error').textContent='';}
-  if(!inventoryMenu.panel.hidden)inventoryMenu.refresh();if(!skillsPanel.hidden)renderSkills();
+  if(!skillsPanel.hidden)renderSkills();
  }
  // Tutorials may intercept a tab (events.open*) to run a lesson step instead.
  panels.register({id:'skills',label:'Skills',icon:'skills',order:20,primary:true,element:skillsPanel,select:()=>{if(!events.openSkills?.())openSkills();},closeLocked:computed(()=>!!guidance.value.locked)});

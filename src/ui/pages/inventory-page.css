@@ -1,0 +1,109 @@
+/* Inventory page (ui/pages/inventory-page.js): item stacks and the chosen item's detail. */
+.q-inventory__search { inline-size: 100%; }
+
+/* The detail sits beside the stacks when there is room, below them otherwise. */
+.q-inventory__body { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+.q-inventory__stacks { display: grid; gap: 8px; flex: 1 1 260px; min-inline-size: 0; }
+.q-inventory__detail { flex: 1 1 240px; min-inline-size: 0; }
+.q-inventory__detail:empty { display: none; }
+
+.q-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.q-item {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  min-block-size: 76px;
+  padding: 10px 4px 8px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.q-item[aria-pressed='true'] { border-color: var(--q-control-pressed); background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); }
+.q-item:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+.q-item[data-guide] { border-color: var(--q-guide); box-shadow: inset 0 0 0 2px var(--q-guide), 0 0 0 4px var(--q-guide-glow); }
+.q-item__icon svg { inline-size: 26px; block-size: 26px; }
+.q-item__name {
+  display: -webkit-box;
+  max-inline-size: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.q-item__count {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 5px;
+  font: 700 11px / 1 var(--q-font-numeric);
+  color: var(--q-ink-muted);
+}
+.q-item__worn {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 4px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--q-control-pressed);
+  color: var(--q-ink-on-dark);
+  font-size: 9px;
+  font-weight: 700;
+}
+.q-item__worn[hidden] { display: none; }
+
+.q-item-detail {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-card);
+}
+.q-item-detail__head { display: flex; align-items: center; gap: 10px; }
+.q-item-detail__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-selected);
+}
+.q-item-detail__icon svg { inline-size: 28px; block-size: 28px; }
+.q-item-detail__title { display: grid; min-inline-size: 0; }
+.q-item-detail__title h3 { margin: 0; font-size: 16px; }
+.q-item-detail__title small { color: var(--q-ink-muted); font-size: 12px; }
+.q-item-detail__copy { margin: 0; font-size: 13px; line-height: 1.5; color: var(--q-ink); }
+.q-item-detail__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.q-item-detail__actions:empty,
+.q-item-detail__settings:empty { display: none; }
+.q-item-detail__actions .q-button { flex: 1 1 120px; }
+.q-inventory__back { display: none; }
+
+/* Phones: the stacks, then the chosen item with a way back. */
+@media (max-width: 700px) {
+  .q-inventory-page[data-view='list'] .q-inventory__detail,
+  .q-inventory-page[data-view='detail'] .q-inventory__stacks,
+  .q-inventory-page[data-view='detail'] .q-inventory__search { display: none; }
+  /* In the list nothing is open yet, so no stack looks chosen. */
+  .q-inventory-page[data-view='list'] .q-item[aria-pressed='true']:not([data-guide]) { border-color: var(--q-line); background: var(--q-control-face); box-shadow: none; }
+  .q-inventory__back {
+    display: block;
+    justify-self: start;
+    min-block-size: var(--q-touch);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--q-ink-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+}

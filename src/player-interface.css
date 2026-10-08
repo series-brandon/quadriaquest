@@ -15,15 +15,8 @@ body #player-sidebar #journal.expanded{position:fixed;left:24px;right:calc(var(-
 body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sidebar-open>header,body.player-sidebar-open>footer{right:calc(var(--player-panel-width) + 28px)}body.player-sidebar-open #game-menu-toggle{position:fixed;right:calc(var(--player-panel-width) + 14px);bottom:20px}
 #journal #game-menu-bar{flex-wrap:wrap;overflow:visible;justify-content:flex-start}#journal #game-menu-bar button{flex:0 0 44px;min-width:44px}
 #journal.expanded #game-menu-bar button{flex:1 0 auto}
-#journal #combat-panel,#journal #equipment-panel{position:static;inset:auto;transform:none;width:100%;max-width:none;min-width:0;min-height:0;max-height:none;margin:0;padding:16px;overflow:auto;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper);color:var(--ui-ink)}
+#journal #combat-panel,#journal #equipment-panel,#journal #inventory-panel{position:static;inset:auto;transform:none;width:100%;max-width:none;min-width:0;min-height:0;max-height:none;margin:0;padding:16px;overflow:auto;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper);color:var(--ui-ink)}
 
-body #player-sidebar #journal:not(.expanded) #inventory-panel{display:flex;flex-direction:column;gap:12px;overflow:auto;padding:12px}
-body #player-sidebar #journal:not(.expanded) #inventory-panel>.inventory-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-height:210px;min-height:58px;flex-shrink:0;overflow:auto}
-body #player-sidebar #journal:not(.expanded) #inventory-panel>.journal-search{display:block;flex-shrink:0}
-body #player-sidebar #journal:not(.expanded) #inventory-panel>.inventory-detail{display:block;overflow:visible;border:0;border-top:1px solid var(--ui-border);padding:12px 0;margin:0;flex-shrink:0}
-body #player-sidebar #journal:not(.expanded) #inventory-panel>.inventory-detail[hidden]{display:none}
-body #player-sidebar #journal:not(.expanded) .inventory-back{display:none}
-body #player-sidebar #journal:not(.expanded) .inventory-stack{min-width:0;min-height:60px;padding:5px}body #player-sidebar #journal:not(.expanded) .inventory-stack strong{display:none}body #player-sidebar #journal:not(.expanded) .inventory-stack b{font-size:11px}body #player-sidebar #journal:not(.expanded) .inventory-stack .game-icon{width:24px;height:24px}
 #player-mobile-hud{position:fixed;top:12px;right:12px;left:auto;width:var(--player-panel-width);z-index:30}#player-mobile-hud #player-overview{border:1px solid var(--ui-border);border-radius:14px}
 #player-mobile-nav{display:none}
 @media(max-width:700px){
@@ -73,7 +66,6 @@ body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) 
  .more-heading{display:flex;align-items:center;justify-content:space-between;padding-left:8px}.more-heading button{min-width:44px;min-height:44px}
  .more-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.more-tabs button{display:flex;align-items:center;gap:10px;min-height:56px;padding:10px;text-align:left;background:#eee3e8}.more-tabs .game-icon{width:24px;height:24px;flex-shrink:0}.more-tabs button[aria-current=true]{background:#dac8dc}
 }
-
 
  .resource-placeholder{grid-row:1}
 .resource-placeholder.mana{grid-column:2}

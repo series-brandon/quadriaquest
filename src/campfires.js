@@ -23,7 +23,7 @@ export function createCampfires(api){
  }
  function showGhost(tile,valid){ghost.visible=!!tile;if(tile){ghost.position.copy(position(tile));ghost.traverse(m=>{if(m.isMesh)m.material.color.set(valid?'#88dc94':'#ed7777');});}}
  function begin(){
-  if(api.busy()||!api.inventory.campfires)return;
+  if(api.busy()||!api.inventory.campfires)return false;
   if(fire()){api.toast('Pack up your existing Campfire first.');return;}
   if(api.defer?.(begin,'Place Campfire'))return;
   api.stop();api.closeMenus();placing=true;controls.hidden=false;
@@ -58,7 +58,7 @@ export function createCampfires(api){
  return {begin,place,open,cancel,hoverPlacement,selectPlacement,
   get placing(){return placing;},get placementTile(){return pending;},get current(){return fire();},
   interact(a){if(a.kind==='place')place(a.tile);else open(a);},
-  inventoryActions:id=>id==='campfires'?[{label:'Place',disabled:api.busy()||!!fire(),run:begin}]:[],
+  inventoryActions:id=>id==='campfires'?[{label:'Place',disabled:!!fire(),run:begin}]:[],
   reset(tiles){cancel();for(const a of [...stations])if(!tiles||tiles.get(key(a.x,a.z))===a.tile)remove(a);},
   update(time){for(const a of stations){a.group.visible=current(a);if(a.group.visible){animateCampfire(a.group,time);a.highlight.update(!!api.guide?.(),time,api.hover()===a);}}}
  };
