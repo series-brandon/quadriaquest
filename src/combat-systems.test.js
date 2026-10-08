@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Group} from 'three';
 import {createControlState} from './control-effects.js';
-import {createEquipment} from './equipment.js';
+import {createEquipment,GEAR} from './equipment.js';
+const GEAR_SHIELD=id=>!!GEAR[id]?.shield;
 import {createCombatStyles,SPELLS} from './combat-styles.js';
 import {createCharacter} from './character.js';
 import {createAuras} from './auras.js';
@@ -12,7 +13,8 @@ import {createCombatSystem} from './combat.js';
 import {createAssistance} from './assistance.js';
 import {playerAttackProfile,playerDefense,armorAwards} from './combat-profile.js';
 import {ENEMIES} from './combat-rules.js';
-import {XP_BASE} from './combat-formulas.js';
+import {XP_BASE,roundFinal} from './combat-formulas.js';
+import {OFF_HAND_DAMAGE,FOLLOW_UP_DELAY,offHandFactor} from './combat-profile.js';
 const close=(a,b,eps=1e-6)=>assert.ok(Math.abs(a-b)<eps,`${a} ≈ ${b}`);
 
 test('stun and immobilize share movement control with protection; slows take the strongest, capped at 90%',()=>{
@@ -30,13 +32,14 @@ test('stun and immobilize share movement control with protection; slows take the
 
 test('dual wielding: off-hand eligibility, owned copies, default hands and per-hand damage types',()=>{
  const inventory={copperDagger:1,swords:1,copperShield:1},e=createEquipment({inventory});
- e.toggle('copperDagger','main');assert.equal(e.attackHands,'main');assert.equal(e.handAttack('off').style,'unarmed');
- e.toggle('copperDagger','off');assert.equal(e.slots.main,null,'only one owned copy moves');assert.equal(e.slots.off,'copperDagger');assert.equal(e.attackHands,'off');
- inventory.copperDagger=2;e.toggle('copperDagger','main');assert.deepEqual([e.slots.main,e.slots.off],['copperDagger','copperDagger']);assert.equal(e.attackHands,'alternate');
+ e.toggle('copperDagger','main');assert.equal(e.attackHands,'both','a weapon and a free fist both strike');assert.equal(e.handAttack('off').style,'unarmed');
+ e.toggle('copperDagger','off');assert.equal(e.slots.main,null,'only one owned copy moves');assert.equal(e.slots.off,'copperDagger');assert.equal(e.attackHands,'both');
+ inventory.copperDagger=2;e.toggle('copperDagger','main');assert.deepEqual([e.slots.main,e.slots.off],['copperDagger','copperDagger']);assert.equal(e.attackHands,'both');
  assert.equal(e.inventoryActions('swords').length,1,'swords are not off-hand eligible');
  assert.equal(e.damageTypeFor('main'),'piercing');assert.ok(e.setDamageType('off','slashing'));assert.equal(e.damageTypeFor('off'),'slashing');assert.equal(e.setDamageType('off','bludgeoning'),false);
  e.toggle('copperShield');assert.equal(e.handAttack('off'),null,'a shield hand is not a free fist');assert.deepEqual(e.eligibleHands(),['main']);
- e.reset();assert.equal(e.attackHands,'alternate','two free fists alternate');
+ e.reset();assert.equal(e.attackHands,'both','two free hands strike both');
+ e.setAttackHands('alternate');assert.equal(e.attackHandsChoice,'both','a saved Alternate choice reads as Both');
 });
 
 // openingWindup: null pins full-windup timing for tests of other mechanics.
@@ -49,12 +52,39 @@ function combatFixture(kind='target',control=null,{openingWindup}={}){
  return {system,a,equipment,styles,character,health,mana,toasts,inventory,set roll(v){roll=v;}};
 }
 
-test('alternating dual-wield strikes share one sequential timer and train the striking weapon',()=>{
+test('dual wielding strikes both hands each attack: the off hand a beat later at reduced damage, training its own weapon',()=>{
  const f=combatFixture();f.equipment.toggle('copperDagger','main');f.equipment.toggle('copperDagger','off');f.system.start(f.a);
- assert.equal(f.system.nextHand,'main');f.system.update(2.5,2.5);assert.equal(f.system.nextHand,'off');f.system.update(2.5,5);assert.equal(f.system.nextHand,'main');
- // Two dagger hits at roll .5 (6–22 → 14 each); both train Dagger proficiency once per strike.
- assert.equal(f.a.hp,ENEMIES.target.health-28);assert.equal(f.character.tracks['prof.dagger'].xp,2*.5*(XP_BASE+14));
- f.system.update(2.5,7.5);f.system.cancel();f.system.update(6,13.5);assert.equal(f.system.nextHand,'main','sequence resets after the 5s exit');
+ const H=ENEMIES.target.health;
+ // Main-hand dagger at roll .5 (6–22 → 14); the off hand follows FOLLOW_UP_DELAY later at 75%.
+ f.system.update(2.5,2.5);assert.equal(f.a.hp,H-14);assert.equal(f.system.state.followUps,1);
+ f.system.update(FOLLOW_UP_DELAY,2.5+FOLLOW_UP_DELAY);const off=roundFinal(14*OFF_HAND_DAMAGE);assert.equal(f.a.hp,H-14-off);assert.equal(f.system.state.followUps,0);
+ // Each strike trains Dagger proficiency for its own damage.
+ assert.equal(f.character.tracks['prof.dagger'].xp,.5*(XP_BASE+14)+.5*(XP_BASE+off));
+ // One cycle per interval: the next pair lands after another full interval.
+ f.system.update(2.5-FOLLOW_UP_DELAY,5);assert.equal(f.a.hp,H-28-off);
+});
+
+test('Dual Wield proficiency: trained once per two-weapon attack, it shrinks the off-hand penalty; fists never train it',()=>{
+ const f=combatFixture();f.equipment.toggle('copperDagger','main');f.equipment.toggle('copperDagger','off');f.system.start(f.a);
+ const H=ENEMIES.target.health,off=roundFinal(14*OFF_HAND_DAMAGE);
+ f.system.update(2.5,2.5);assert.equal(f.character.tracks['prof.dualWield'].xp,0,'not from the main-hand strike');
+ f.system.update(FOLLOW_UP_DELAY,2.75);assert.equal(f.character.tracks['prof.dualWield'].xp,.5*(XP_BASE+off),'once, with the off-hand strike');
+ assert.equal(offHandFactor(1),OFF_HAND_DAMAGE);assert.equal(offHandFactor(100),1);close(offHandFactor(50),.75+.25*49/99);
+ f.character.setLevel('prof.dualWield',100);f.system.cancel();f.system.start(f.a);const before=f.a.hp;
+ f.system.update(2.5,5.25);f.system.update(FOLLOW_UP_DELAY,5.5);assert.equal(before-f.a.hp,28,'level 100: the off hand hits as hard as the main hand');
+ const fists=combatFixture();fists.system.start(fists.a);fists.system.update(2.5,2.5);fists.system.update(FOLLOW_UP_DELAY,2.75);
+ assert.equal(fists.character.tracks['prof.dualWield'].xp,0,'two free hands train Unarmed, not Dual Wield');
+});
+
+test('the off-hand follow-up survives moving away but a stun cancels it',()=>{
+ const control=createControlState();
+ const f=combatFixture('target',control);f.equipment.toggle('copperDagger','main');f.equipment.toggle('copperDagger','off');f.system.start(f.a);
+ const H=ENEMIES.target.health;
+ // Disengaging resets the inert practice target, and the committed follow-up still lands on it.
+ f.system.update(2.5,2.5);f.system.disengage();assert.equal(f.system.state.followUps,1);f.system.update(FOLLOW_UP_DELAY,2.75);
+ assert.equal(f.system.state.followUps,0);assert.equal(f.a.hp,H-roundFinal(14*OFF_HAND_DAMAGE),'committed follow-up lands after disengaging');
+ f.system.start(f.a);f.system.update(2.5,5.25);const before=f.a.hp;control.apply({kind:'stun',duration:1});f.system.update(FOLLOW_UP_DELAY,5.5);
+ assert.equal(f.a.hp,before,'stun cancels it');assert.equal(f.system.state.followUps,0);
 });
 
 test('backfire replaces an under-level cast, hurts only the caster through resistances and gives base XP',()=>{
@@ -126,9 +156,41 @@ test('Auto spells skip any backfire risk unless explicitly allowed',()=>{
 });
 
 test('Optimize ranks owned gear by DPS, then reduction, then current gear, and runs on Class change',()=>{
- const f=assistFixture();assert.match(f.assistance.optimize('melee'),/Copper Dagger \(main\).*Copper Shield \(off\)/);assert.equal(f.assistance.optimize('melee'),'No better setup found.');
+ // Dual wielding outdamages a shield, so a sword plus an off-hand dagger beats dagger and shield.
+ const f=assistFixture();assert.match(f.assistance.optimize('melee'),/Stone Sword \(main\).*Copper Dagger \(off\)/);assert.equal(f.assistance.optimize('melee'),'No better setup found.');
+ f.inventory.copperDagger=0;f.inventory.swords=0;f.inventory.copperDagger=1;f.equipment.setSlots({main:null,off:null});
+ assert.equal(f.assistance.optimize('melee'),'Equipped Copper Dagger (main).','with one weapon, the free fist outdamages a shield');
+ f.assistance.setOptimizePriority('defense');assert.match(f.assistance.optimize('melee'),/Copper Shield \(off\)/,'Defense takes the shield');f.assistance.setOptimizePriority('damage');
  assert.equal(f.assistance.setStyle('ranged'),'No ranged weapon owned.');
  f.inventory.bows=1;f.assistance.setStyle('melee');assert.match(f.assistance.setStyle('ranged'),/Training Bow \(main\).*no arrows/);assert.equal(f.equipment.slots.off,null);
+});
+
+test('Optimize priority: Damage takes the dual wield, Defense and Balanced take the shield when it outweighs the lost damage',()=>{
+ const f=assistFixture();
+ assert.equal(f.assistance.settings.optimizePriority,'damage');f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperDagger','damage: sword + dagger');
+ assert.equal(f.assistance.setOptimizePriority('fastest'),false);
+ f.assistance.setOptimizePriority('defense');f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperShield','defense: the shield');
+ // Balanced compares DPS / (1 − reduction): a 5% shield is worth ~5% more damage, far less than the off-hand strike adds.
+ f.assistance.setOptimizePriority('balanced');f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperDagger','balanced: the off-hand strike outweighs a 5% shield');
+ f.assistance.reset();assert.equal(f.assistance.settings.optimizePriority,'damage');
+});
+
+test('Optimize respects a locked Attack hands choice; Auto chooses hands freely',()=>{
+ const f=assistFixture();f.inventory.copperDagger=2;
+ // Auto: dual wielding beats a shield on damage (two daggers outdamage Stone Sword + dagger).
+ f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperDagger']);
+ // Main hand only: the best striking weapon in the main hand; the off hand won't attack, so it defends.
+ f.equipment.setAttackHands('main');f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperShield']);
+ // Off hand only: the best off-hand weapon there; the main hand is left as it is.
+ f.equipment.setAttackHands('off');f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperDagger']);
+ // Both, locked: never a shield, even under Defense.
+ f.equipment.setAttackHands('both');f.assistance.setOptimizePriority('defense');f.assistance.optimize('melee');assert.equal(GEAR_SHIELD(f.equipment.slots.off),false);
+ f.equipment.setAttackHands('auto');assert.equal(f.equipment.attackHandsChoice,null,'Auto clears the lock');
+});
+
+test('Optimize says so when equipment is busy instead of reporting no better setup',()=>{
+ const f=assistFixture();f.equipment.setSlots({main:null,off:null});const original=f.equipment.setSlots;f.equipment.setSlots=()=>[];
+ try{assert.equal(f.assistance.optimize('melee'),'Finish what you’re doing before changing equipment.');}finally{f.equipment.setSlots=original;}
 });
 
 test('Optimize with two daggers and no shield fills both hands, main hand first, even from an off-hand-only setup',()=>{
@@ -136,7 +198,7 @@ test('Optimize with two daggers and no shield fills both hands, main hand first,
  f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperDagger']);
  f.equipment.setSlots({main:null,off:'copperDagger'});
  f.assistance.optimize('melee');assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperDagger'],'empty slots are not "kept"');
- f.inventory.copperShield=1;f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperShield','a shield still wins the off hand on defense');
+ f.inventory.copperShield=1;f.assistance.optimize('melee');assert.equal(f.equipment.slots.off,'copperDagger','dual wielding outdamages a shield');
 });
 
 test('Auto auras: Harden in danger, Rush while moving in combat, 25% Ki floor, exhaustion recovery threshold and grace',()=>{
@@ -188,12 +250,13 @@ test('a lethal hit at fractional health reports the visible health, as a whole n
  const lethal=shown.find(([,o])=>o==='hit');assert.deepEqual(lethal,[6,'hit']);assert.equal(g.health.value,0);
 });
 
-test('the follow-through after a release keeps the attack that struck; the next attack shows after recovery',()=>{
- const f=combatFixture('target',null,{openingWindup:null});f.inventory.copperDagger=1;f.equipment.toggle('copperDagger','main');f.equipment.setAttackHands('alternate');f.system.start(f.a);
- assert.equal(f.equipment.attackHands,'alternate');
+test('the follow-through after a release keeps the attack that struck (with its follow-up); the next attack shows after recovery',()=>{
+ const f=combatFixture('target',null,{openingWindup:null});f.inventory.copperDagger=1;f.equipment.toggle('copperDagger','main');f.equipment.setAttackHands('both');f.system.start(f.a);
+ assert.equal(f.equipment.attackHands,'both','dagger and a free hand');
  const struck=f.system.update(2.5,2.5);assert.equal(struck.profile.hand,'main');assert.equal(struck.profile.item,'copperDagger','recovery shows the dagger stab');
- const windup=f.system.update(2.0,4.5);assert.equal(windup.kind,'Combat');assert.equal(windup.profile.hand,'off','the next windup is the off-hand punch');assert.equal(windup.profile.item,null);
- assert.equal(f.system.nextHand,'off');
+ assert.equal(struck.profile.followUp.hand,'off');assert.equal(struck.profile.followUp.item,null,'then the off-hand punch');
+ const follow=f.system.update(FOLLOW_UP_DELAY+.1,2.85);assert.ok(follow.profile.followUp,'the pair keeps showing through the follow-up');
+ const windup=f.system.update(1.5,4.35);assert.equal(windup.kind,'Combat');assert.equal(windup.profile.hand,'main','each attack starts with the main hand');
 });
 
 test('modes are presets; editing a policy moves to Custom, which remembers its settings',()=>{

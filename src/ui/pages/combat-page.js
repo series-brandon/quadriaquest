@@ -11,7 +11,7 @@ import {TRAINING_GOALS, MODES} from '../../assistance.js';
 
 const title = s => s[0].toUpperCase() + s.slice(1);
 const STRATEGY_HELP = {technical: 'No modifiers', accurate: '+10 Accuracy', strong: '+10 Power', fast: '+10 Speed', defensive: '+10 Resistance', agile: '+10 Dodge'};
-const HAND_LABEL = {main: 'Main hand', off: 'Off hand', alternate: 'Alternate'};
+const HAND_LABEL = {auto: 'Auto', both: 'Both hands', main: 'Main hand', off: 'Off hand'};
 const STYLES = ['melee', 'ranged', 'magic'];
 const MODE_HELP = {
   simple: 'Auto picks strategy, attacks, abilities and auras for you. You always control movement.',
@@ -53,7 +53,10 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
   const attackFacts = computed(() => {
     const p = preview.value;
     const hand = p.hand && !p.spell ? ` · ${p.hand} hand${p.damageType ? `, ${p.damageType}` : ''}` : '';
-    return `${p.min}–${p.max} damage every ${+p.interval.toFixed(2)}s${hand} · trains ${title(p.combatStyle)} ${title(STRATEGIES[p.strategy].skill)}`;
+    // Dual wielding: the off hand's follow-up (reduced damage) in the same cycle.
+    const f = p.followUp, scale = f?.offHandPenalty ?? 1;
+    const second = f ? `, then ${Math.round(f.min * scale)}–${Math.round(f.max * scale)} off hand${f.damageType ? `, ${f.damageType}` : ''}` : '';
+    return `${p.min}–${p.max} damage${f ? ' main hand' : ''}${second} every ${+p.interval.toFixed(2)}s${f ? '' : hand} · trains ${title(p.combatStyle)} ${title(STRATEGIES[p.strategy].skill)}`;
   });
   // Under-level casting shows its backfire chance and whether it could defeat you.
   const backfire = computed(() => {
@@ -137,7 +140,8 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
   const hands = track(equipment, () => {
     if (!equipment) return [];
     const eligible = equipment.eligibleHands();
-    return ['main', 'off', 'alternate'].filter(hand => (hand === 'alternate' ? eligible.length > 1 : eligible.includes(hand)));
+    // Auto (default): every hand that can strike, and Optimize may choose the hands.
+    return ['auto', 'both', 'main', 'off'].filter(hand => (hand === 'auto' ? true : hand === 'both' ? eligible.length > 1 : eligible.includes(hand)));
   });
   const damageChoices = track(equipment, () => (equipment ? equipment.eligibleHands().flatMap(hand => {
     const attack = equipment.handAttack(hand);
@@ -153,7 +157,7 @@ export function combatPage({styles, combat, auras, assistance, equipment, charac
       options => segmented({label: 'Attack with', options: options.peek(), value: track(styles, () => styles.state.selected), onChange: selectAttack})),
     h('span', {class: 'q-label', hidden: () => hands.value.length < 2}, 'Hands'),
     keyedList(h('div', {class: 'q-stack'}), computed(() => (hands.value.length < 2 ? [] : [hands.value])), list => list.join(),
-      list => segmented({label: 'Attack hands', options: list.peek().map(hand => ({value: hand, label: HAND_LABEL[hand]})), value: track(equipment, () => equipment.attackHands), onChange: hand => equipment.setAttackHands(hand)})),
+      list => segmented({label: 'Attack hands', options: list.peek().map(hand => ({value: hand, label: HAND_LABEL[hand]})), value: track(equipment, () => { const choice = equipment.attackHandsChoice; return choice == null ? 'auto' : hands.peek().includes(choice) ? choice : equipment.attackHands; }), onChange: hand => equipment.setAttackHands(hand)})),
     keyedList(h('div', {class: 'q-stack'}), damageChoices, choice => `${choice.hand}:${choice.types.join()}`,
       choice => h('div', null,
         h('span', {class: 'q-label'}, `${title(choice.peek().hand)} hand damage`),

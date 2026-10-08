@@ -27,6 +27,20 @@ export function playerAttackProfile(character,attack=UNARMED,strategy='technical
   xpTrack:`${combatStyle}.${STRATEGIES[strategy]?.skill||'technique'}`,proficiencyTrack:attack.spell?null:`prof.${attack.proficiency||'unarmed'}`};
 }
 
+// Dual wielding (docs/COMBAT.md): both hands strike each attack, the off hand a beat after the main
+// hand, on one cycle at the slower weapon's interval. The non-dominant off hand deals reduced damage.
+export const OFF_HAND_DAMAGE=.75,FOLLOW_UP_DELAY=.25;
+// Off-hand damage with two weapons: 75% at Dual Wield proficiency 1, rising evenly to 100% at 100.
+// Fists (two free hands) keep the base 75%.
+export const offHandFactor=(dualWieldLevel=null)=>dualWieldLevel==null?OFF_HAND_DAMAGE:Math.min(1,OFF_HAND_DAMAGE+(1-OFF_HAND_DAMAGE)*(Math.max(1,dualWieldLevel)-1)/99);
+// The off-hand follow-up for a committed main-hand attack (its own weapon, XP and damage roll). With
+// two weapons (`dualWieldLevel` given) it also trains Dual Wield, once per attack.
+export function offHandFollowUp(offProfile,dualWieldLevel=null){const factor=offHandFactor(dualWieldLevel);return {...offProfile,damageScale:(offProfile.damageScale??1)*factor,offHandPenalty:factor,dualWieldTrack:dualWieldLevel==null?null:'prof.dualWield'};}
+// Pairs a main-hand attack with its follow-up: one cycle at the slower interval.
+export function pairStrikes(main,followUp){const interval=Math.max(main.interval,followUp.interval);return {...main,interval,followUp:{...followUp,interval}};}
+// Average damage per second of a committed attack (both strikes when paired), for Optimize and Auto.
+export function attackDps(p){const avg=x=>(x.min+x.max)/2*(x.damageScale??1);return (avg(p)+(p.followUp?avg(p.followUp):0))/p.interval;}
+
 // Player defenses evaluated when an incoming hit resolves.
 // bonusResistancePct: flat percentage points added once per incoming portion (Harden).
 // Armor: each piece's positive bonuses scale by its own armor-skill effectiveness; equipped slots add their

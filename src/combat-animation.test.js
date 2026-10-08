@@ -208,3 +208,14 @@ test('a waving hand brings its weapon upright; the other hand keeps its grip', a
   assert.equal(hands[1][3], 1.85, 'resting hand keeps its grip');
   assert.equal(withGrip(socialMotion('Wave', 0).hands, carry, socialMotion('Wave', 0).grip)[0][3], 1.85, 'before raising: resting grip');
 });
+
+test('dual wielding animates one-two: the main hand thrusts first, the off hand a beat later', async () => {
+  const {FOLLOW_UP_DELAY} = await import('./combat-profile.js');
+  const dagger = {item: 'copperDagger', style: 'melee', damageTypes: ['piercing'], damageType: 'piercing', interval: 1.5};
+  const pair = {...dagger, hand: 'main', mainHand: 'copperDagger', offHand: 'copperDagger', followUp: {...dagger, hand: 'off'}};
+  const reach = (t, i) => attackAnimation(pair, t).hands[i][2];
+  const rest = equipmentIdleHands(pair);
+  assert.ok(reach(1.5, 0) > rest[0][2] + 0.4, 'main hand extended at its release');
+  assert.ok(Math.abs(reach(1.5, 1) - rest[1][2]) < 0.2, 'off hand still winding up');
+  assert.ok(reach(1.5 + FOLLOW_UP_DELAY, 1) > rest[1][2] + 0.4, 'off hand extended a beat later');
+});

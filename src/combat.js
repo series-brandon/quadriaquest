@@ -3,7 +3,7 @@ import {Vector3} from 'three';
 import {findPath,key} from './world.js';
 import {withinAttackRange} from './combat-range.js';
 import {resolveAttack,resolvePortions,rollDamage,actionXp,backfireBaseDamage,displayedLoss,xpModifiers} from './combat-formulas.js';
-import {playerAttackProfile,playerDefense,strongStrikeProfile,armorAwards} from './combat-profile.js';
+import {playerAttackProfile,playerDefense,strongStrikeProfile,armorAwards,offHandFollowUp,pairStrikes,FOLLOW_UP_DELAY} from './combat-profile.js';
 import {ABILITIES,SPELLS} from './combat-styles.js';
 import {signal} from './reactive.js';
 import {createControlState} from './control-effects.js';
@@ -23,22 +23,28 @@ export const OPENING_WINDUP=.5;
 
 // Shared targeting, aggression, walking and recovery; maps provide encounter configuration.
 export function createCombatSystem(api){
- const enemies=new Set(),fleeing=new Map(),projected=new Vector3(),LABEL_LIFT=new Vector3(0,1.7,0),returningAfterWin=new Map(),shots=[];
+ const enemies=new Set(),fleeing=new Map(),projected=new Vector3(),LABEL_LIFT=new Vector3(0,1.7,0),returningAfterWin=new Map(),shots=[],followUps=[];
  let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true,sinceActivity=Infinity,pending=null,sinceRelease=Infinity;
  // `openingWindup` may be null to pin full-windup timing in tests of other mechanics.
  const opening=api.openingWindup===undefined?OPENING_WINDUP:api.openingWindup;
  // UI bindings follow `revision` (pending/committed actions, fights) and `inCombatState`.
  const revision=signal(0),inCombatState=signal(false),notify=()=>{revision.value++;api.changed?.();};const random=api.random||Math.random,character=api.character;
- let nextHand='main';
- // Spells use no hand. Weapon and fist attacks follow the Attack hands choice on one sequential timer:
- // the pending hand advances only when an attack strikes or releases, and resets when combat ends.
+ // Spells use no hand. Weapon and fist attacks follow the Attack hands choice: Main only, Off only,
+ // or Both (dual wielding: the main hand strikes, then the off hand a beat later, each attack).
  const attack=()=>{
   const selected=api.attack?.()||api.equipment.attack;if(selected.spell||!api.equipment.handAttack)return selected;
-  const choice=api.equipment.attackHands,hand=choice==='alternate'?(api.equipment.handAttack(nextHand)?nextHand:'main'):choice;
-  return api.equipment.handAttack(hand)||selected;
+  const choice=api.equipment.attackHands;
+  return api.equipment.handAttack(choice==='both'?'main':choice)||selected;
+ };
+ const dualWielding=a=>!a.spell&&a.hand==='main'&&api.equipment.attackHands==='both'&&!!api.equipment.handAttack?.('off');
+ // Both hands: the main-hand attack carries the off hand's follow-up on one cycle (combat-profile.js).
+ const withOffHand=(main,a,strategy)=>{
+  if(!dualWielding(a))return main;
+  const off=api.equipment.handAttack('off'),twoWeapons=!!(a.item&&off.item);
+  return pairStrikes(main,offHandFollowUp({...playerAttackProfile(character,off,strategy),mainHand:main.mainHand,offHand:main.offHand},twoWeapons?character.level('prof.dualWield'):null));
  };
  // Commit-time snapshot: later equipment, strategy or spell changes affect only the next attack.
- const profile=()=>({...playerAttackProfile(character,attack(),api.strategy?.()||'technical'),mainHand:api.equipment.slots?.main||null,offHand:api.equipment.slots?.off||null});
+ const profile=()=>{const a=attack(),strategy=api.strategy?.()||'technical';return withOffHand({...playerAttackProfile(character,a,strategy),mainHand:api.equipment.slots?.main||null,offHand:api.equipment.slots?.off||null},a,strategy);};
  const reward=(result,a)=>{if(result.tracks.length||result.core.xp)api.reward?.(result,a);};
  // One shared pending combat-action slot. An ability attaches to the next attack when its windup begins;
  // a cancelled attack takes its ability with it (never restored).
@@ -56,7 +62,9 @@ export function createCombatSystem(api){
   const ability=ABILITIES[pending.ability],reason=c.profile.combatStyle!==ability.style||c.profile.spell?`${ability.name} needs a melee attack.`:!(api.energy?.value>=ability.energy)?`Not enough Energy for ${ability.name} (${ability.energy} needed).`:null;
   pending=null;notify();
   if(reason){api.toast?.(reason);return;}
-  c.profile={...strongStrikeProfile(character,attack(),ability),mainHand:c.profile.mainHand,offHand:c.profile.offHand};c.ability=ability;notify();
+  // The ability empowers the main-hand strike; a dual-wield follow-up still lands as normal.
+  const strong={...strongStrikeProfile(character,attack(),ability),mainHand:c.profile.mainHand,offHand:c.profile.offHand};
+  c.profile=c.profile.followUp?pairStrikes(strong,c.profile.followUp):strong;c.ability=ability;notify();
  }
  // A queued quick spell turns this attack into one cast (docs/COMBAT.md, Quick slots). It is
  // refused at attach time when unaffordable; afterwards the selected attack resumes.
@@ -107,7 +115,7 @@ export function createCombatSystem(api){
  }
  function cancel(){if(fight){const a=fight.enemy;fight=null;if(a.rules.inert)resetEnemy(a);else if(a.aggro)returnHome(a);}api.complete?.();}
  function clearChase(){if(chase)returnHome(chase.enemy);}
- function clear(){pending=null;sinceRelease=Infinity;const affected=new Set(shots.map(s=>s.enemy));if(fight)affected.add(fight.enemy);if(chase)affected.add(chase.enemy);for(const a of enemies)if(a.returning||a.aggro)affected.add(a);shots.length=0;fight=chase=null;defense=null;for(const a of affected)resetEnemy(a);if(defeated)api.fade?.(0);defeated=0;api.clearFeedback?.();api.clearProjectiles?.();}
+ function clear(){pending=null;sinceRelease=Infinity;const affected=new Set(shots.map(s=>s.enemy));if(fight)affected.add(fight.enemy);if(chase)affected.add(chase.enemy);for(const a of enemies)if(a.returning||a.aggro)affected.add(a);shots.length=0;followUps.length=0;fight=chase=null;defense=null;for(const a of affected)resetEnemy(a);if(defeated)api.fade?.(0);defeated=0;api.clearFeedback?.();api.clearProjectiles?.();}
  function disengage(){if(!fight)return;const a=fight.enemy;fight=null;if(a.rules.inert){resetEnemy(a);return;}if(a.aggro)chase={enemy:a,age:0};}
  function start(a){
   if(fight?.enemy===a||!enemies.has(a)||!current(a)||a.opened||a.returning||defeated||api.health.value<=0||api.blocked()||!api.inReach(a))return false;
@@ -162,6 +170,7 @@ export function createCombatSystem(api){
   // Strategy skill and weapon/elemental proficiency each receive the full base award, capped per track.
   const awards=[{track:weapon.xpTrack,amount:xp}];
   if(weapon.proficiencyTrack)awards.push({track:weapon.proficiencyTrack,amount:xp});
+  if(weapon.dualWieldTrack)awards.push({track:weapon.dualWieldTrack,amount:xp});
   for(const [element,share] of Object.entries(weapon.elements||{}))awards.push({track:`prof.${element}`,amount:xp*share});
   reward(character.award(awards,xpModifiers(rules)),a);
   if(!a.hp)win(a,weapon);
@@ -196,9 +205,13 @@ export function createCombatSystem(api){
  function update(dt,time,camera){
    sinceRelease+=dt;
   sinceActivity=fight||chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened)?0:sinceActivity+dt;
-  if(sinceActivity>=5)nextHand='main';inCombatState.value=sinceActivity<5;
+  inCombatState.value=sinceActivity<5;
   if(defense){defense.age+=dt;if(defense.age>=BLOCK_DURATION)defense=null;}
   for(let i=shots.length-1;i>=0;i--){const shot=shots[i];shot.left-=dt;if(shot.left<=0){shots.splice(i,1);strike(shot.enemy,shot.profile);}}
+  // Off-hand follow-ups are committed once the main hand releases: moving away doesn't lose them, but a
+  // stun or other effect preventing attacks cancels them (as it does an unreleased windup).
+  if(followUps.length&&(defeated||api.control&&!api.control.can('attack')))followUps.length=0;
+  for(let i=followUps.length-1;i>=0;i--){const f=followUps[i];f.left-=dt;if(f.left<=0){followUps.splice(i,1);strike(f.enemy,f.profile);}}
   if(fight&&(!current(fight.enemy)||api.blocked())){const a=fight.enemy;fight=null;resetEnemy(a);}
   if(chase&&!current(chase.enemy)){const a=chase.enemy;chase=null;resetEnemy(a);}
   if(fight&&!api.inReach(fight.enemy))disengage();
@@ -260,13 +273,13 @@ export function createCombatSystem(api){
      if(weapon.energyCost)api.energy.value-=weapon.energyCost;
      if(weapon.backfirePercent>0&&random()*100<weapon.backfirePercent)backfire(a,weapon);
      else if(['ranged','magic'].includes(weapon.style)){api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),weapon.style,weapon);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
-     if(!weapon.spell&&weapon.hand&&api.equipment.attackHands==='alternate')nextHand=weapon.hand==='main'?'off':'main';
+     if(weapon.followUp)followUps.push({enemy:a,profile:weapon.followUp,left:FOLLOW_UP_DELAY});
      // The follow-through belongs to the attack that just released, even though the next one is committed.
      c.released=weapon;c.struck=true;if(fight===c)commit(c);
     }
    }
    // Animation time follows the committed attack clock, including recovery after each release.
-   const shown=c.struck&&c.released&&c.playerClock<RECOVERY?c.released:c.profile;
+   const shown=c.struck&&c.released&&c.playerClock<RECOVERY+(c.released.followUp?FOLLOW_UP_DELAY:0)?c.released:c.profile;
    c.age=(c.struck?shown.interval:0)+c.playerClock;
    if(fight){api.interacting?.();if(!defense||attackWindow(shown,c.age))return {kind:shown.style==='ranged'?'Archery':shown.style==='magic'?'Casting':'Combat',time:c.age,profile:shown};}
   }
@@ -285,12 +298,11 @@ export function createCombatSystem(api){
   resetWhere(predicate=()=>true){if(fight&&predicate(fight.enemy))fight=null;if(chase&&predicate(chase.enemy))chase=null;defense=null;for(const a of enemies)if(predicate(a))resetEnemy(a);},
   reset(){clear();for(const a of enemies)resetEnemy(a);},
   matches:a=>fight?.enemy===a,get working(){return !!fight||!!chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened);},get busy(){return defeated>0;},
-  get nextHand(){return nextHand;},
   nearestEnemy(){const p=api.tile();return [...enemies].filter(a=>current(a)&&!a.opened).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0]||null;},
   // The enemy currently fighting or pursuing the player (single-enemy assistance scope).
   get engagedEnemy(){return fight?.enemy||chase?.enemy||[...enemies].find(a=>current(a)&&a.aggro&&!a.opened&&!a.returning)||null;},
   // Pacifist switch: cancel the unreleased windup and pending action; released projectiles still land.
   stopAttacking(){pending=null;disengage();notify();},
-  get state(){return {nextHand,pending:pending?.ability||null,queuedSpell:pending?.spell||null,committedAbility:fight?.ability?.name||null,autoRetaliate,fight:fight?.enemy.kind||null,chase:chase?.enemy.kind||null,defeated:!!defeated,blocking:!!defense,enemies:[...enemies].filter(current).map(a=>({kind:a.kind,x:a.x,z:a.z,hp:a.hp,opened:a.opened,aggressive:!!(a.aggressive??a.rules.aggressive),aggroRange:a.aggroRange??a.rules.aggroRange??3,aggro:!!a.aggro,returning:!!a.returning,moving:!settled(a),position:a.group.position.toArray()}))};}
+  get state(){return {followUps:followUps.length,pending:pending?.ability||null,queuedSpell:pending?.spell||null,committedAbility:fight?.ability?.name||null,autoRetaliate,fight:fight?.enemy.kind||null,chase:chase?.enemy.kind||null,defeated:!!defeated,blocking:!!defense,enemies:[...enemies].filter(current).map(a=>({kind:a.kind,x:a.x,z:a.z,hp:a.hp,opened:a.opened,aggressive:!!(a.aggressive??a.rules.aggressive),aggroRange:a.aggroRange??a.rules.aggroRange??3,aggro:!!a.aggro,returning:!!a.returning,moving:!settled(a),position:a.group.position.toArray()}))};}
  };
 }

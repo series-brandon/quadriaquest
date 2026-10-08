@@ -110,3 +110,24 @@ test('abilities queue from the Powers section', () => {
   press(queue);
   assert.equal(queue.textContent, 'Queued');
 });
+
+test('dual wielding: Both hands is offered and the summary describes both strikes', async () => {
+  const {createEquipment} = await import('../../equipment.js');
+  const systems = combatSystems();
+  const inventory = {copperDagger: 2};
+  const equipment = createEquipment({inventory});
+  equipment.toggle('copperDagger', 'main');
+  equipment.toggle('copperDagger', 'off');
+  const combat = {...systems.combat, preview: () => ({name: 'Copper Dagger', item: 'copperDagger', hand: 'main', min: 6, max: 22, interval: 2.5, combatStyle: 'melee', strategy: 'technical', backfirePercent: 0,
+    followUp: {item: 'copperDagger', hand: 'off', min: 6, max: 22, interval: 2.5, offHandPenalty: 0.75}})};
+  const {node} = mount(() => combatPage({...systems, combat, equipment, openPowers: () => {}}));
+  assert.match(node.querySelector('.q-card').textContent, /6–22 damage main hand, then 5–17 off hand every 2\.5s/);
+  const hands = node.querySelector('[aria-label="Attack hands"]');
+  assert.deepEqual([...hands.querySelectorAll('.q-segmented__option')].map(b => b.textContent), ['Auto', 'Both hands', 'Main hand', 'Off hand']);
+  assert.equal(option(hands, 'Auto').getAttribute('aria-pressed'), 'true', 'Auto by default (every hand that can strike)');
+  press(option(hands, 'Main hand'));
+  assert.equal(equipment.attackHandsChoice, 'main');
+  assert.equal(option(hands, 'Main hand').getAttribute('aria-pressed'), 'true');
+  press(option(hands, 'Auto'));
+  assert.equal(equipment.attackHandsChoice, null);
+});

@@ -67,6 +67,19 @@ test('with assistance, Optimize equips for the current class and reports what ch
   assert.equal(button.textContent, 'Optimize for Ranged');
 });
 
+test('the Optimize priority choice follows and sets assistance', async () => {
+  const {combatSystems} = await import('./test-systems.js');
+  const {assistance} = combatSystems();
+  const inventory = reactiveRecord({});
+  const {node} = mount(() => equipmentPage({equipment: createEquipment({inventory, busy: () => false}), inventory, assistance}));
+  const priority = node.querySelector('[aria-label="Optimize priority"]');
+  const pressed = () => [...priority.querySelectorAll('.q-segmented__option')].find(b => b.getAttribute('aria-pressed') === 'true').textContent;
+  assert.equal(pressed(), 'Damage', 'damage by default');
+  press([...priority.querySelectorAll('.q-segmented__option')].find(b => b.textContent === 'Defense'));
+  assert.equal(assistance.settings.optimizePriority, 'defense');
+  assert.equal(pressed(), 'Defense');
+});
+
 test('without assistance there is no Optimize button', () => {
   const s = setup();
   assert.equal([...s.node.querySelectorAll('.q-button')].some(b => b.textContent.startsWith('Optimize')), false);

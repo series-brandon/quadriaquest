@@ -1,5 +1,6 @@
 import {punchMotion,castMotion,PUNCH_GUARD} from './combat-motion.js';
 import {idlePose} from './slime-motion.js';
+import {FOLLOW_UP_DELAY} from './combat-profile.js';
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
 const arc=(a,control,b,t)=>a.map((v,i)=>(1-t)*(1-t)*v+2*(1-t)*t*control[i]+t*t*b[i]);
@@ -27,7 +28,14 @@ export function equipmentIdleHands(profile={}){
 export function withGrip(hands,carry,grip=[1,1]){
  return hands.map((h,i)=>{const g=grip[i]??1;return [h[0],h[1],h[2],(carry[i][3]||0)*g||h[3]||0,h[4]||0,(carry[i][5]||0)*g||h[5]||0];});
 }
+// Dual wielding: the main hand's motion on the right hand, then the off hand's own motion a beat
+// later (mirrored onto the left), so a pair of weapons or fists strikes one-two.
 export function attackAnimation(profile={},time=0){
+ if(profile.followUp){
+  const {followUp,...main}=profile;
+  const first=attackAnimation(main,time),second=attackAnimation({...followUp,hand:'off'},Math.max(0,time-FOLLOW_UP_DELAY));
+  return {...first,hands:[first.hands[0],second.hands[1]],pose:{...first.pose,twist:(first.pose.twist||0)+(second.pose.twist||0),lean:Math.max(first.pose.lean||0,second.pose.lean||0)}};
+ }
  const motion=resolveAttackMotion(profile),interval=profile.interval||1.5,clock=time%interval,after=time>=interval&&clock<.28;
  const ready=equipmentIdleHands(profile);
  let hands=ready.map(h=>[...h]),pose=idlePose(time),bowDraw=0,nocked=false,arrowRaise=0,charge=0,orbScale=0,instability=0;

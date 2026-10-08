@@ -2,7 +2,7 @@ import {computed, signal} from '../../reactive.js';
 import {h} from '../dom.js';
 import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
-import {row} from '../controls.js';
+import {row, segmented} from '../controls.js';
 import {GEAR, ARMOR_SLOTS} from '../../equipment.js';
 import {ITEMS} from '../../items.js';
 import {ICON_NAMES} from '../../icons.js';
@@ -28,7 +28,8 @@ export function gearFacts(item) {
 // actions). Equip rules, copies and busy checks belong to the shared equipment system; the page
 // only calls its actions and follows its revision and the reactive inventory. With `assistance`, an
 // Optimize button equips the best gear for the current class (the same optimize that switching
-// class on the Combat page runs) and shows what it changed.
+// class on the Combat page runs) by the chosen priority (Damage, Balanced or Defense) and shows what
+// it changed.
 export function equipmentPage({equipment, inventory, assistance = null}) {
   const status = signal('');
   const slots = computed(() => (equipment.revision.value, equipment.slots));
@@ -70,7 +71,10 @@ export function equipmentPage({equipment, inventory, assistance = null}) {
   const optimizer = () => {
     const tuned = computed(() => (assistance.revision.value, assistance.settings.style));
     const report = computed(() => (assistance.revision.value, assistance.optimizeReport));
+    const priority = computed(() => (assistance.revision.value, assistance.settings.optimizePriority ?? 'damage'));
     return h('div', {class: 'q-page__group'},
+      h('span', {class: 'q-label'}, 'Optimize priority'),
+      segmented({label: 'Optimize priority', options: [{value: 'damage', label: 'Damage'}, {value: 'balanced', label: 'Balanced'}, {value: 'defense', label: 'Defense'}], value: () => priority.value, onChange: next => assistance.setOptimizePriority(next)}),
       h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => assistance.optimize()}}, () => `Optimize for ${title(tuned.value)}`),
       h('p', {class: 'q-page__status', role: 'status', hidden: () => !report.value}, report));
   };

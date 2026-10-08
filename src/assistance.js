@@ -1,6 +1,6 @@
 import {STRATEGIES,hitsToDefeat,dangerBand,roundFinal} from './combat-formulas.js';
 import {signal} from './reactive.js';
-import {playerAttackProfile,playerDefense} from './combat-profile.js';
+import {playerAttackProfile,playerDefense,attackDps,pairStrikes,offHandFollowUp} from './combat-profile.js';
 import {GEAR,ARMOR_SLOTS} from './equipment.js';
 import {SPELLS,ABILITIES} from './combat-styles.js';
 import {AURAS} from './auras.js';
@@ -85,26 +85,41 @@ export function createAssistance(api){
 
  // Optimize: within the chosen style, rank owned setups by expected damage per second, then incoming
  // damage reduction, then the current gear. Armor slots take the most effective owned piece.
- // Lexicographic score comparison; the first two (damage, defense) are real numbers.
+ // Optimize priority: Damage (default: damage per second first), Defense (damage reduction first) or
+ // Balanced (damage per second × 1/(1 − reduction): kill speed against how long you last, no enemy needed).
+ const OPTIMIZE_PRIORITIES=['damage','balanced','defense'];let optimizePriority='damage';
+ // Lexicographic score comparison; the leading values are real numbers.
  const better=(a,b)=>{for(let i=0;i<a.length;i++){const d=a[i]-b[i];if(Math.abs(d)>1e-9)return d>0;}return false;};
  function optimize(forStyle=style){
   if(combat.working){optimizeReport='Optimize waits until you are out of a fight.';changed();return optimizeReport;}
   const owned=id=>(inventory[id]||0)>0,slots=equipment.slots,strategy=styles.strategy;
-  const mains=forStyle==='magic'?[slots.main]:[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].style&&STYLE_OF(id)===forStyle&&GEAR[id].slot==='main')];
+  // A locked Attack hands choice (Main, Off or Both) is respected: gear is fitted around it, and a hand
+  // that won't attack takes the best defensive item. Auto (null) lets Optimize choose hands freely.
+  const hands=equipment.attackHandsChoice;
+  let mains=forStyle==='magic'?[slots.main]:[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].style&&STYLE_OF(id)===forStyle&&GEAR[id].slot==='main')];
   if(forStyle==='ranged'&&mains.length===1){optimizeReport='No ranged weapon owned.';changed();return optimizeReport;}
-  const offs=[null,...Object.keys(GEAR).filter(id=>owned(id)&&(GEAR[id].shield||GEAR[id].offHand))];
+  let offs=[null,...Object.keys(GEAR).filter(id=>owned(id)&&(GEAR[id].shield||GEAR[id].offHand))];
+  if(forStyle!=='magic'){
+   if(hands==='main')offs=offs.filter(id=>!GEAR[id]?.style);            // the off hand only defends
+   if(hands==='both')offs=offs.filter(id=>!GEAR[id]?.shield);           // both hands must stay free to strike
+   if(hands==='off')mains=[GEAR[slots.main]?.twoHanded?null:slots.main]; // the main hand is left as it is
+  }
   let best=null;
   for(const main of mains)for(const off of offs){
    if(GEAR[main]?.twoHanded&&off)continue;if(main&&main===off&&inventory[main]<2)continue;if(forStyle!=='melee'&&GEAR[off]?.style)continue;
-   // Same default hands as equipment: one weapon strikes alone; two weapons or two free fists alternate.
+   // Same default hands as equipment: every hand that can strike does (a free hand punches); the off
+   // hand's follow-up at reduced damage, one cycle at the slower interval. Shields and two-handed
+   // weapons leave one striking hand.
    const fist={style:'unarmed',baseInterval:2.55,proficiency:'unarmed'},weapons=[main,off].filter(id=>GEAR[id]?.style);
-   const attacks=weapons.length?weapons.map(id=>GEAR[id]):GEAR[off]?.shield?[fist]:[fist,fist];
+   const offAttack=GEAR[main]?.twoHanded||GEAR[off]?.shield?null:GEAR[off]?.style?GEAR[off]:fist,mainAttack=GEAR[main]?.style?GEAR[main]:fist;
+   const attacks=hands==='main'?[mainAttack]:hands==='off'?[offAttack].filter(Boolean):[mainAttack,offAttack].filter(Boolean);
    // Spells ignore held weapons, so magic setups differ only in survivability.
    const profiles=forStyle==='magic'?[]:attacks.map(a=>playerAttackProfile(character,a,strategy));
-   const dps=profiles.length?profiles.reduce((s,p)=>s+(p.min+p.max)/2,0)/profiles.reduce((s,p)=>s+p.interval,0):0;
+   const dps=!profiles.length?0:attackDps(profiles.length>1?pairStrikes(profiles[0],offHandFollowUp(profiles[1],weapons.length===2&&attacks.length===2?character.level('prof.dualWield'):null)):profiles[0]);
    const reduction=playerDefense(character,{shield:GEAR[off]?.shield?GEAR[off]:null}).resistancePct;
    // Ties: keep gear already equipped (empty slots don't count), then fill more hands, main hand first.
-   const keep=(main&&main===slots.main?1:0)+(off&&off===slots.off?1:0),score=[dps,reduction,keep,(main?1:0)+(off?1:0),main?1:0];
+   const keep=(main&&main===slots.main?1:0)+(off&&off===slots.off?1:0),lead=optimizePriority==='defense'?[reduction,dps]:optimizePriority==='balanced'?[dps/Math.max(.01,1-reduction/100),dps,reduction]:[dps,reduction];
+   const score=[...lead,keep,(main?1:0)+(off?1:0),main?1:0];
    if(!best||better(score,best.score))best={main,off,score};
   }
   const next={main:best.main,off:best.off};
@@ -114,8 +129,8 @@ export function createAssistance(api){
    const value=id=>playerDefense(character,{armor:[{...GEAR[id],item:id}]}).resistancePct;
    next[slot]=pieces.reduce((a,b)=>value(b)>value(a)+1e-9?b:a,pieces.includes(slots[slot])?slots[slot]:pieces[0]);
   }
-  const changes=equipment.setSlots(next);
-  optimizeReport=changes.length?'Equipped '+changes.map(c=>`${c.name} (${c.slot})`).join(', ')+'.':'No better setup found.';
+  const changes=equipment.setSlots(next),refused=!changes.length&&Object.entries(next).some(([slot,id])=>slots[slot]!==id);
+  optimizeReport=changes.length?'Equipped '+changes.map(c=>`${c.name} (${c.slot})`).join(', ')+'.':refused?'Finish what you’re doing before changing equipment.':'No better setup found.';
   if(forStyle==='ranged'&&!(inventory.arrows>0))optimizeReport+=' You have no arrows.';
   changed();return optimizeReport;
  }
@@ -231,11 +246,12 @@ export function createAssistance(api){
   // A player-selected style change runs Optimize for that style (no extra confirmation).
   setStyle(next){if(next===style)return optimizeReport;style=next;overrides.attack=false;const report=optimize(next);changed();return report;},
   setGoal(next){goal=TRAINING_GOALS.includes(next)?next:null;changed();},
+  setOptimizePriority(next){if(!OPTIMIZE_PRIORITIES.includes(next))return false;optimizePriority=next;changed();return true;},
   get warning(){return warning.value;},get danger(){return danger;},get optimizeReport(){return optimizeReport;},
-  get settings(){return {mode,policies:{...policies()},custom:{...custom},retaliate,style,goal,
+  get settings(){return {mode,policies:{...policies()},custom:{...custom},retaliate,style,goal,optimizePriority,
    permissions:{food:[...permissions.food],spell:[...permissions.spell],aura:[...permissions.aura]},
    overrides:{strategy:overrides.strategy,attack:overrides.attack,auras:{...overrides.auras}},override:override?.kind||null};},
-  reset(){mode='simple';custom={...BASE};retaliate='smart';style='melee';goal=null;permissions={food:[],spell:[],aura:[]};
+  reset(){mode='simple';custom={...BASE};retaliate='smart';style='melee';goal=null;optimizePriority='damage';permissions={food:[],spell:[],aura:[]};
    overrides={strategy:false,attack:false,auras:{}};overrideFight=false;wasInCombat=false;tipped.clear();for(const k of OVERRIDE_KINDS)streak[k]=0;
    override=null;warning.value='';exhausted=false;optimizeReport='';applyRetaliate();changed();},
  };

@@ -15,7 +15,7 @@ export function combatSystems() {
   };
   PRESETS.pacifist = {...PRESETS.simple, attacks: 'prevented', abilities: 'manual'};
   PRESETS.expert = {...PRESETS.simple, strategy: 'manual', attack: 'manual', abilities: 'manual', auras: 'manual', showEnergy: true, showKi: true};
-  const state = {mode: 'simple', custom: {...PRESETS.simple}, retaliate: 'smart', style: 'melee', goal: null, permissions: {food: [], spell: [], aura: []}, overrides: {strategy: false, attack: false, auras: {}}};
+  const state = {mode: 'simple', custom: {...PRESETS.simple}, retaliate: 'smart', style: 'melee', goal: null, optimizePriority: 'damage', permissions: {food: [], spell: [], aura: []}, overrides: {strategy: false, attack: false, auras: {}}};
   const policies = () => (state.mode === 'custom' ? state.custom : PRESETS[state.mode]);
   const calls = [];
   const assistance = {
@@ -27,6 +27,7 @@ export function combatSystems() {
     setRetaliate(next) { state.retaliate = next; bump(); },
     setStyle(next) { state.style = next; bump(); },
     setGoal(next) { state.goal = next; bump(); },
+    setOptimizePriority(next) { state.optimizePriority = next; bump(); },
     setPermission(kind, id, on) { state.permissions[kind] = on ? state.permissions[kind].filter(x => x !== id) : [...state.permissions[kind], id]; bump(); },
     allowed: (kind, id) => !state.permissions[kind].includes(id),
     optimize() { this.optimizeReport = 'Equipped Copper Dagger.'; bump(); },

@@ -21,6 +21,8 @@ function trackDefinitions(){
  for(const style of STYLES)for(const skill of COMBAT_SKILLS)defs.push({id:`${style}.${skill}`,name:`${title(style)} ${title(skill)}`,group:'combat',icon:STYLE_ICON[style]});
  for(const armor of ['light','medium','heavy'])defs.push({id:`armor.${armor}`,name:`${title(armor)} Armor`,group:'armor',icon:'shields'});
  for(const p of WEAPON_PROFICIENCIES)defs.push({id:`prof.${p}`,name:`${title(p)} Proficiency`,group:'weapon',icon:PROFICIENCY_ICON[p]||'Combat'});
+ // Dual Wield: trained by attacking with two weapons; shrinks the off-hand damage penalty (combat-profile.js).
+ defs.push({id:'prof.dualWield',name:'Dual Wield Proficiency',group:'weapon',icon:'swords'});
  for(const p of ARMOR_PROFICIENCIES)defs.push({id:`prof.${p}`,name:`${title(p)} Proficiency`,group:'armorSlot',icon:'shields'});
  for(const e of ELEMENTS)defs.push({id:`prof.${e}`,name:`${title(e)} Proficiency`,group:'element',icon:'quickRestore'});
  return defs;

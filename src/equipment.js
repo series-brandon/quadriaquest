@@ -12,7 +12,8 @@ export const GEAR={
  hats:{slot:'head'}
 };
 export const ARMOR_SLOTS=['chest','hands','legs','feet','back','ward'];
-export const ATTACK_HANDS=['main','off','alternate'];
+// Both: dual wielding (two weapons or two free hands strike each attack, off hand second).
+export const ATTACK_HANDS=['both','main','off'];
 const isWeapon=id=>!!GEAR[id]?.style;
 
 export function createEquipment({inventory,busy=()=>false,changed:notify=()=>{}}){
@@ -46,18 +47,20 @@ export function createEquipment({inventory,busy=()=>false,changed:notify=()=>{}}
   return {...base,hand,damageType:types.includes(damageTypes[hand])?damageTypes[hand]:types[0]};
  }
  const eligibleHands=()=>['main','off'].filter(h=>handAttack(h));
- // Defaults: one weapon → its hand; two weapons or two fists → alternate.
- function defaultHands(){const weapons=['main','off'].filter(h=>isWeapon(slots[h]));return weapons.length===1?weapons[0]:'alternate';}
+ // Default: every hand that can strike does (Both): two weapons, a weapon and a free fist, or two fists.
+ // A shield or two-handed weapon leaves one striking hand.
+ function defaultHands(){return 'both';}
  const api={revision,refresh,toggle,handAttack,eligibleHands,isEquipped(id){refresh();return Object.values(slots).includes(id);},
   get slots(){refresh();return {...slots};},
   get attack(){return handAttack('main')||handAttack('off')||{...UNARMED,item:null,hand:'main'};},
   // Worn armor pieces (any slot whose item declares armor), for resistance, block and armor XP.
   get armorPieces(){refresh();return Object.values(slots).filter(id=>GEAR[id]?.armor).map(id=>({...GEAR[id],item:id}));},
   get shield(){refresh();return GEAR[slots.off]?.shield?{...GEAR[slots.off],item:slots.off}:null;},
-  // Attack hands: Main only, Off only or Alternate eligible hands; only eligible choices apply.
-  get attackHands(){const choice=attackHands||defaultHands(),hands=eligibleHands();if(choice==='alternate')return hands.length>1?'alternate':hands[0]||'main';return hands.includes(choice)?choice:hands[0]||'main';},
+  // Attack hands: Both (dual wielding), Main only or Off only; only eligible choices apply.
+  get attackHands(){const choice=attackHands||defaultHands(),hands=eligibleHands();if(choice==='both')return hands.length>1?'both':hands[0]||'main';return hands.includes(choice)?choice:hands[0]||'main';},
   get attackHandsChoice(){return attackHands;},
-  setAttackHands(choice){if(choice!==null&&!ATTACK_HANDS.includes(choice))return false;attackHands=choice;changed();return true;},
+  // null or 'auto': Auto (every hand that can strike; Optimize may choose the hands).
+  setAttackHands(choice){if(choice==='alternate')choice='both';if(choice==='auto')choice=null;if(choice!==null&&!ATTACK_HANDS.includes(choice))return false;attackHands=choice;changed();return true;},
   // Apply a whole setup at once (Optimize). Only owned copies; returns what changed for feedback.
   setSlots(next){
    if(busy())return [];refresh();const changes=[];

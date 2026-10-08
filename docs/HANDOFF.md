@@ -20,6 +20,31 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Attack hands Auto; Optimize respects locked hands — 2026-10-08
+- Attack hands on the Combat page: **Auto** (default; `attackHandsChoice === null`, resolves to every hand that can strike), Both, Main, Off. `setAttackHands('auto')` clears the lock. The control shows the choice (falling back to the resolved hand when a locked choice is unavailable).
+- Optimize reads `equipment.attackHandsChoice`. On Auto it picks gear and hands freely. **Main** keeps off-hand weapons out (that hand only defends, so it takes a shield). **Off** keeps the current main item and picks the best off-hand weapon. **Both** keeps shields out. Dual Wield level counts only when both hands strike with weapons. Tested in combat-systems and on the Combat page. COMBAT.md is updated.
+
+### Weapon + free fist; Optimize busy message — 2026-10-08
+- **Found while checking Optimize:** with fists punching one-two, two fists beat a lone starter dagger under Strong (7.55 vs 7.25 DPS), so Optimize left the player bare-handed. **User decision:** with one weapon and an empty hand, both hands strike by default (weapon, then fist). `equipment.defaultHands()` is now always `both` (shields and two-handed weapons still leave one striking hand), and Optimize's estimate pairs a weapon with a free fist the same way. Under Damage priority, a dagger plus a free fist beats dagger + shield; Defense still takes the shield. Dual Wield XP stays two-weapons-only.
+- **Bug:** when equipment was busy, Optimize reported "No better setup found." It now says "Finish what you’re doing before changing equipment." (tested).
+
+### Proficiency visibility; Optimize priority — 2026-10-08
+- **Proficiencies** (Unarmed included) now appear on Character → Proficiencies only once they have XP (`combatSkills()` in main.js dropped its Unarmed exception). Combat skills still always list.
+- **Optimize priority** (`assistance.setOptimizePriority`, `settings.optimizePriority`; reset → `damage`) is set on the Equipment page with Damage / Balanced / Defense. Damage keeps DPS first (Optimize can run without an enemy, so it never assumes one). Defense puts reduction first. Balanced uses DPS/(1 − reduction). With starter gear (a 5% Copper Shield) Balanced still picks dual wielding; Defense picks the shield. COMBAT.md is updated; tests cover all three priorities and the control.
+
+### Dual Wield proficiency — 2026-10-08
+- New track `prof.dualWield` ("Dual Wield Proficiency", group `weapon`, so it's on the Character → Proficiencies page and in the playground's skill controls).
+- **XP:** once per dual-wield attack, with the off-hand strike and its standard award, only with two weapons (`dualWieldTrack` on the follow-up profile). Fists don't train it.
+- **Effect:** off-hand damage `offHandFactor(level)` is 75% at 1, rising linearly to 100% at 100. Fists keep 75%. combat.js and Optimize pass the level when both hands hold weapons.
+- COMBAT.md is updated. combat-systems tests cover the XP timing, the factor and the level-100 equal hits.
+
+### Dual wielding strikes both hands — 2026-10-08 (design change)
+- **User decision:** dual wielding should add DPS at the cost of the off hand's defensive item. Both hands now strike each attack: main at release, off hand `FOLLOW_UP_DELAY` (0.25s) later at `OFF_HAND_DAMAGE` (75%), one cycle at the slower interval. Two free hands punch one-two by default too.
+- **Follow-up rules:** a committed follow-up survives moving away or disengaging, but a stun or other attack-preventing effect cancels it. Costs are paid once at the main release. Strong Strike empowers the main strike only. COMBAT.md is updated (unarmed, Attack hands, dual wielding, cancellation, stun).
+- **Code:** `offHandFollowUp`, `pairStrikes`, `attackDps` and the constants live in combat-profile.js. combat.js builds paired profiles and queues `followUps` (cleared by `clear()` and attack-preventing control); the old `nextHand` alternation is gone. Equipment's Attack hands are `both | main | off` (a saved `alternate` reads as `both`). `attackAnimation` plays a profile's `followUp` a beat later, mirrored onto the left hand. The Combat page offers Both hands and describes both strikes. The viewer's preview has Both hands (one-two). Optimize ranks with `attackDps`.
+- **Consequence:** because Optimize ranks DPS first, owning a second off-hand weapon now beats a shield (Stone Sword + Copper Dagger over Copper Dagger + Copper Shield). Flagged to the user.
+- **Tests:** combat-systems covers the pair, damage, XP, timing, disengage and stun. combat.test.js's mechanic tests pin `setAttackHands('main')`. There are viewer-preview and Combat page tests.
+
 ### Optimize tie-break, viewer armed poses, waving with a weapon — 2026-10-08
 - **Optimize:** two daggers alternating have the same DPS as one (COMBAT.md: no dual-wield speed bonus, weapon bonuses only when striking), so setups tied. The "keep current gear" tie-break counted empty slots as kept, which picked "off hand only". Ties now go to: gear already equipped (real items only), then more hands filled, then the main hand. Two daggers without a shield give both hands; a shield still wins the off hand on defense. Tested in combat-systems.
 - **Model viewer:** every motion that doesn't place the hands (Jump up/down, Walk, …) uses the armed rest pose, as gameplay does (it was Idle and Sliding only).
