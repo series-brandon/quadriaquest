@@ -33,6 +33,7 @@ import {createTravelSystem} from './travel.js';
 import {createCrystals} from './crystals.js';
 import {createWaking} from './waking.js';
 import {createWorldStart} from './world-start.js';
+import {tutorialChapter,TUTORIAL_CHAPTERS} from './tutorial-chapters.js';
 import {createEquipmentPresentation} from './equipment-presentation.js';
 import {portalSpawn} from './portal-spawn.js';
 import {createCombatSystem} from './combat.js';
@@ -375,6 +376,27 @@ waking=createWaking({narrator,inventory,items:ITEMS,skills:playerSkills,characte
  },
  arrive(id){const landing=travel.landingFor(id);areas.activate(id,{landing,arrival:false});return landing;},
 });
+// "Skip this part" on the tutorial tip (tutorial-chapters.js): each chapter's own skip marks it done
+// and starts the next with what it needs. The link follows the chapter the player is in.
+const topUp=items=>{for(const [id,n] of Object.entries(items))inventory[id]=Math.max(n,inventory[id]||0);};
+const SKIPS={
+ start(){craftingTutorial.reset();menus.host.hidden=false;opening.skipControls();},
+ journal(){craftingTutorial.skipJournal();topUp({sticks:3,stones:3});opening.skipGathering();},
+ tools(){topUp({axes:1,pickaxes:1});craftingTutorial.skipTools();},
+ finale(){const crystal=finale.skip();if(!travel.request('willowbank',{source:crystal}))toast('There’s no safe space beside the destination crystal.');},
+ willowbank(){willow.skip(()=>{if(!travel.request('cinderhold'))toast('There’s no safe space beside the destination crystal.');});},
+ cinderhold(){waking.start();},
+};
+let skipChapter=null;
+function syncTutorialSkip(){
+ const finaleState=finale.state,chapter=tutorialChapter({area:areas.id,woken:waking.isWoken,waking:waking.active||travel.busy,inClearing:opening.inClearing,lesson:opening.lesson,openingFinished:opening.finished,
+  craftingStage:craftingTutorial.stage,finaleStage:finaleState.stage,portalUsed:finaleState.portalUsed,willowPhase:willow.state.phase,cinderComplete:cinder.tutorialComplete});
+ if(chapter===skipChapter)return;
+ skipChapter=chapter;
+ tip.setSkip(chapter&&{label:'Skip this part',onPress:()=>confirmModal(modals,{id:'skip-chapter',title:'Skip this part?',
+  message:`Skip “${TUTORIAL_CHAPTERS[chapter]}”? It counts as done and the tutorial moves on.`,confirm:'Skip',cancel:'Keep playing',
+  onConfirm:()=>{if(skipChapter!==chapter)return;stopAll();SKIPS[chapter]();}})});
+}
 assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0,tip:text=>playerInterface?.tip(text)});
 styleMenu=createCombatStyleMenu({styles,combat,panels:menus.panels,auras,assistance,equipment,character,health,openPowers:()=>powersMenu.open(),busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
 // Powers (Spells, Auras, Abilities) after the Combat page, which links to it.
@@ -476,7 +498,7 @@ const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=n
 // One batch per frame: UI bindings flush once, after the frame's state changes.
 function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
 // Playground builds attribute frame time to these laps; normal builds compile them away.
-function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;

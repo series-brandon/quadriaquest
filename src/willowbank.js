@@ -41,7 +41,8 @@ export function createWillowbank(api){
  function t(x,z){return map.get(key(x,z));}
  function actor(model,x,z,kind,label){const tile=t(x,z),a={group:model,x,z,tile,kind,label,ready:true,opened:false,duration:0,willow:true};model.position.set(x-6,tile.h,z-6);group.add(model);setWorldOccupancy(a,true);
   const small=['sticks','stones','flint'].includes(kind);const hit=part(model,new THREE.BoxGeometry(small?.5:.65,small?.5:1,small?.5:.65),new THREE.MeshBasicMaterial({visible:false}),0,small?.25:.5);a.hitTarget=hit;hit.userData.actor=a;hit.userData.tile=tile;api.pickables.push(hit);model.traverse(o=>{if(o.isMesh&&o!==hit){o.userData.actor=a;o.userData.tile=tile;api.pickables.push(o);}});const originals=new Set(model.children);model.remove(hit);a.highlight=highlightResource(model,{height:kind==='tree'?2.8:small?.85:1.5});model.add(hit);for(const child of model.children)if(!originals.has(child)||child===hit)child.userData.portraitIgnore=true;actors.push(a);return a;}
- const crystal=api.crystals.add({tile:t(...WILLOWBANK.crystal),parent:group,destination:'clearing',label:'Return to the clearing'});
+ // Guided once the rescue story is done: onward to Cinderhold.
+ const crystal=api.crystals.add({tile:t(...WILLOWBANK.crystal),parent:group,destination:'clearing',label:'Return to the clearing',guide:()=>phase==='finished'});
  const reed=fisher(),reedActor=actor(reed.group,...WILLOWBANK.reed,'reed','Talk to Reed'),reedFacing=createConversationFacing(reed.group);
  const companions=api.companions,pet=companions.model;pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);group.add(pet);let rescueGait=0,rescueWaiting=false;
 
@@ -160,11 +161,13 @@ export function createWillowbank(api){
    api.say('These crystals are going to be invaluable during your time here in Quadria.',()=>{
     introFocus={position:reed.group.position.clone(),blend:0,returning:false};
     api.say('What’s this? It appears someone is having a bad day.',()=>
-     api.say('Perhaps you should go talk to them!',()=>{api.narrator.hide();introFocus.returning=true;}));
+     api.say('Perhaps you should go talk to them!',()=>{api.narrator.hide();introFocus.returning=true;meetPrompt();}));
    }));
  }
  function meetGoal(){goal('meet','Talk to Reed','Speak to the worried fisher near the arrival crystal.',phase==='meet'?0:1);}
- function enter(value,skipIntro=false){hitFeedback.clear();companions.resetRoute();active=value;group.visible=value;cancel();cancelPlacement();dialogue.hide();tip.hide();cookUI.close();introActive=false;introFocus=null;if(value){api.showTabs?.('inventory','crafting');if(skipIntro)introSeen=true;if(!introSeen)arrival();else if(phase==='meet')meetGoal();}}
+ // Before meeting Reed, a tip says what to do (and carries the tutorial's "Skip this part").
+ function meetPrompt(){meetGoal();if(phase==='meet')showTip('Someone needs help','Click or tap Reed, the worried fisher by the crystal, to see what is wrong.');}
+ function enter(value,skipIntro=false){hitFeedback.clear();companions.resetRoute();active=value;group.visible=value;cancel();cancelPlacement();dialogue.hide();tip.hide();cookUI.close();introActive=false;introFocus=null;if(value){api.showTabs?.('inventory','crafting');if(skipIntro)introSeen=true;if(!introSeen)arrival();else if(phase==='meet')meetPrompt();}}
  function update(dt,time,camera){hitFeedback.update(dt,camera);if(introFocus){introFocus.blend=THREE.MathUtils.clamp(introFocus.blend+(introFocus.returning?-1:1)*dt/.9,0,1);if(introFocus.hold!=null&&!introFocus.returning&&introFocus.blend===1&&(introFocus.hold-=dt)<=0)introFocus.returning=true;if(introFocus.returning&&introFocus.blend===0){const after=introFocus.after||meetGoal;introFocus=null;introActive=false;after();}}
 
   let petMoving=false;if(!companions.state.owned)pet.visible=active;
@@ -187,7 +190,20 @@ reedFacing.update(dt);animateFisher(reed,time,dialogue.expressionFor('right')||(
   return null;
  }
  function reset(){goalPhase=goalKey=null;api.fishing.cancel();companions.reset();fishingFollowup=false;setBridgeRepairTarget(true);bridgeInjury.reset();injuryReaction=null;reedFacing.reset();hitFeedback.clear();companions.resetRoute();rescueGait=0;rescueWaiting=false;introActive=false;introFocus=null;api.narrator.hide();resetObjectives('willow-');cancel();dialogue.hide();tip.hide();phase='meet';api.health.restore();rescueAge=null;bridgeDone=false;caught=flintCollected=cooked=eaten=0;api.resourceActions.resetWhere(n=>map.get(key(n.x,n.z))===n.tile);cancelPlacement();api.campfires.reset(map);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).water=true;t(x,WILLOWBANK.bridgeZ).blocked=true;}showBridge(0);group.attach(pet);pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);if(active)api.teleport(portalSpawn(map,crystal.tile));}
- return {restartWater:()=>water.restart(),group,tiles,crystal,grassMaterials,enter,interact,update,cancel,craftStarted(){if(!GOALS[phase])hideGuide();},crafted(){if(active)checkProgress();},get active(){return active;},get cameraFocus(){return introFocus?{position:introFocus.position,blend:THREE.MathUtils.smoothstep(introFocus.blend,0,1)}:rescueAge===null?null:{position:pet.position.clone(),blend:Math.min(THREE.MathUtils.smoothstep(rescueAge,0,.6),1-THREE.MathUtils.smoothstep(rescueAge,3,4))};},get busy(){return busy();},
+ // Skipping Willowbank (tutorial-chapters.js): the bridge is repaired, every step is done, the
+ // companion joins (named now if never met), and Cinderhold's tools are in hand; then `after` runs.
+ const WILLOW_GOALS=[['meet','Talk to Reed'],['bridge','Repair the bridge'],['rescue','Name your rescued companion'],['fish','Catch Raw Pondfish'],['flint','Collect Flint'],['fire','Prepare a Campfire'],['place','Place your Campfire'],['cook','Cook a Pondfish'],['eat','Eat a Cooked Pondfish']];
+ function skip(after=()=>{}){
+  hideGuide();cancel();tip.hide();dialogue.hide();introActive=false;introFocus=null;injuryReaction=null;rescueAge=null;rescueWaiting=false;fishingFollowup=false;
+  if(!bridgeDone){bridgeDone=true;showBridge(1);setBridgeRepairTarget(false);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){const tile=t(x,WILLOWBANK.bridgeZ);tile.water=false;tile.blocked=false;tile.h=1;}}
+  for(const [id,title] of WILLOW_GOALS){goal(id,title,'Skipped.',1,1);setObjectiveHelp('willow-'+id,null);}
+  phase='finished';
+  for(const id of ['hammers','pickaxes'])api.inventory[id]=Math.max(1,api.inventory[id]||0);
+  if(companions.state.owned)return after();
+  companions.acquire({at:t(WILLOWBANK.bridgeStart-1,WILLOWBANK.bridgeZ)});
+  companions.name({required:true,onComplete:after});
+ }
+ return {skip,restartWater:()=>water.restart(),group,tiles,crystal,grassMaterials,enter,interact,update,cancel,craftStarted(){if(!GOALS[phase])hideGuide();},crafted(){if(active)checkProgress();},get active(){return active;},get cameraFocus(){return introFocus?{position:introFocus.position,blend:THREE.MathUtils.smoothstep(introFocus.blend,0,1)}:rescueAge===null?null:{position:pet.position.clone(),blend:Math.min(THREE.MathUtils.smoothstep(rescueAge,0,.6),1-THREE.MathUtils.smoothstep(rescueAge,3,4))};},get busy(){return busy();},
 
  foodEaten,campfirePlaced,campfireCooked,get campfireGuide(){return active&&guided&&phase==='cook';},
   get expression(){return dialogue.expressionFor('left');},

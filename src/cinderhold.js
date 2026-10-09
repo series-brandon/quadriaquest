@@ -17,7 +17,8 @@ export function createCinderhold(api){
  const progress=createTrainingProgress(),state=progress.state,dialogue=api.dialogue,actors=[],nodes=[],enemies=[],mentors={};let active=false,speaker=null,lastOptional='',arrivalSeen=false;
  createTerrainBatch({tiles,map,factory:stoneTile,parent:group,pickables:api.pickables});
  for(const [x,z,rotation] of [[22,8,0],[22,17,0],[22,26,0],[8,19,Math.PI/2],[16,19,Math.PI/2]]){const g=stoneArch();g.position.set(x-6,1,z-6);g.rotation.y=rotation+Math.PI/2;group.add(g);}
- const crystal=api.crystals.add({tile:t(...POS.crystal),parent:group,destination:'willowbank'});
+ // Guided once the tutorial can end ("???" is on the crystal list).
+ const crystal=api.crystals.add({tile:t(...POS.crystal),parent:group,destination:'willowbank',guide:()=>state.phase==='finished'||state.refused});
  const addActor=(kind,pos,model,label,onInteract)=>{const a=createWorldActor({world:api.world,tile:t(...pos),parent:group,pickables:api.pickables,group:model,kind,label,onInteract});actors.push(a);return a;};
  const forge=addActor('furnace',POS.furnace,furnace(),'Smelt at furnace',a=>api.openStation(a));
  addActor('anvil',POS.anvil,anvil(),'Smith at anvil',a=>api.openStation(a));

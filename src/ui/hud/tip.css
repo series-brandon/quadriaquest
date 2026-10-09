@@ -46,6 +46,24 @@
 .q-tip__continue:hover,
 .q-tip__help:hover { background: var(--q-tip-button-hover); }
 .q-tip__continue:disabled { opacity: 0.45; cursor: not-allowed; background: var(--q-tip-button); }
+/* Skip this part: a quiet text link at the start of the row, away from Continue. */
+.q-tip__skip {
+  min-block-size: var(--q-touch);
+  margin: 0 auto 0 0;
+  padding: 9px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--q-tip-ink);
+  font-family: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.75;
+  cursor: pointer;
+}
+.q-tip__skip[hidden] { display: none; }
+.q-tip__skip:hover { opacity: 1; }
+.q-tip__skip:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 3px; }
 .q-tip__continue:focus-visible,
 .q-tip__help:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 3px; }
 /* Inside the phone journal the tip is a compact strip. */

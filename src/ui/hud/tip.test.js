@@ -55,3 +55,17 @@ test('updates patch the current tip: counts, progress, labels, disabled and help
   assert.equal(box.querySelector('#tutorial-count').textContent, '', 'show replaces everything');
   assert.equal(help.hidden, true);
 });
+
+test('the tutorial skip link belongs to the chapter, so a new tip keeps it', () => {
+  const tip = createTip(), box = tip.node, skips = [];
+  const link = () => box.querySelector('#tutorial-skip');
+  tip.show({title: 'One', text: 'First tip.'});
+  assert.equal(link().hidden, true, 'no chapter, no link');
+  tip.setSkip({label: 'Skip this part', onPress: () => skips.push(1)});
+  assert.equal(link().hidden, false);assert.equal(link().textContent, 'Skip this part');
+  tip.show({title: 'Two', text: 'Another tip.'});
+  assert.equal(link().hidden, false, 'replacing the tip keeps the link');
+  link().dispatchEvent(new window.Event('click'));
+  assert.deepEqual(skips, [1]);
+  tip.setSkip(null);assert.equal(link().hidden, true);
+});

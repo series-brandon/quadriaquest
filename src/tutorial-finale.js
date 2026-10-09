@@ -73,13 +73,18 @@ export function createTutorialFinale(api){
     const cameraAngle=chest?Math.atan2(p.x-chest.group.position.x,p.z-chest.group.position.z):api.getAngle();
     celebration={age:0,angle:cameraAngle,...options};stage='celebration';
   }
-  function makePortal(tile,ready=true){return api.crystals.add({tile,parent:api.parent,destination:api.destination,label:'Enter Iter Portal',ready,onArrive:()=>finishObjective('portal')});}
+  // Guided until first used (the "Find the Iter Crystal" objective).
+  let portalUsed=false;
+  function makePortal(tile,ready=true){return api.crystals.add({tile,parent:api.parent,destination:api.destination,label:'Enter Iter Portal',ready,guide:()=>!portalUsed,onArrive:()=>{portalUsed=true;finishObjective('portal');}});}
   function ensurePortal(){if(!portal){const t=chooseTile({x:8,z:8});if(t)portal=makePortal(t);}return portal;}
   return {
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,ensurePortal,
     debugCancel:__PLAYGROUND__?function(){hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;celebration=crystalFocus=null;practice=false;heldHat.visible=false;stage='inactive';$('scene-fade').style.opacity='0';$('scene-fade').hidden=true;}:undefined,
     get busy(){return busy();},get celebration(){return celebration;},get cameraFocus(){if(!crystalFocus)return null;const blend=crystalFocus.phase==='out'?1-THREE.MathUtils.smoothstep(crystalFocus.age,0,1):THREE.MathUtils.smoothstep(crystalFocus.age,0,1);return {position:crystalFocus.position,blend,zoom:7,elevation:.45};},get stage(){return stage;},
-    get state(){return {stage,practice,rewardTriggered};},
+    get state(){return {stage,practice,rewardTriggered,portalUsed};},
+    // Skipping the finale (tutorial-chapters.js): the crystal is ready, its objective and the reward
+    // hat are done, and the host travels on. Returns the crystal.
+    skip(){this.reset();const crystal=ensurePortal();portalUsed=true;updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel.',1,1);api.inventory.hats=Math.max(1,api.inventory.hats||0);return crystal;},
     openChest(){if(chest)api.approach(chest);},
     stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;}},
     interact(actor){
@@ -87,6 +92,7 @@ export function createTutorialFinale(api){
       if(actor.kind==='chest'){actor.opened=true;actor.lid.rotation.x=-1;actor.lid.position.set(0,.64,-.18);api.inventory.hats=(api.inventory.hats||0)+1;api.showItemChanges({hats:1});celebrate();}
     },
     reset(){
+      portalUsed=false;
       hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;
       celebration=null;crystalFocus=null;heldHat.visible=false;practice=false;rewardTriggered=false;stage='inactive';
       removeActor(portal);removeActor(chest);portal=chest=null;$('scene-fade').style.opacity='0';
@@ -102,7 +108,8 @@ export function createTutorialFinale(api){
           const after=crystalFocus.after;crystalFocus=null;stage='practice';hideDialogue();after();
         }
       }
-      if(stage==='resetting'&&!drops.length){practice=true;stage='practice';}
+      // Practice gets a tip: what to do, and where "Skip this part" lives during the finale.
+      if(stage==='resetting'&&!drops.length){practice=true;stage='practice';api.tip.show({title:'Practice time',text:'Gather, chop and mine as much as you like. When you are ready, use the Iter Crystal to travel on.',action:{label:'Dismiss',onPress:()=>api.tip.hide()}});}
       for(const a of actors)a.highlight.update(a.ready&&!a.opened,time,hover===a&&a.ready&&!a.opened);
       if(practice&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
       if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;const prop=holdUpMotion(t,'hat').prop;heldHat.visible=prop.visible;heldHat.position.set(0,prop.y,prop.z);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}

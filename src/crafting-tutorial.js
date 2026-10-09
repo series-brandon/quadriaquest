@@ -10,6 +10,8 @@ const introduction=[
   "So let's learn about crafting.",
   "Let's head to your Crafting tab. This time, we'll make something!"
 ];
+// The tools lessons' objectives, by the stage that assigns them.
+const TOOL_GOALS={'craft-menu':['axe','Craft a Crude Axe','Use the Crafting tab to make a Crude Axe with Sticks ×1 and Rocks ×1. Stay still until crafting finishes.'],chop:['chop','Chop a tree','With a Crude Axe in your inventory, click a tree in the clearing and wait to obtain Small Logs.'],pickaxe:['pickaxe','Craft a Crude Pickaxe','Use the Crafting tab to make a Crude Pickaxe with Sticks ×1 and Rocks ×1. Use Show me how if you need guidance.'],mine:['mine','Mine a boulder','With a Crude Pickaxe in your inventory, click a boulder in the clearing to obtain Stone. Stay still until mining finishes.']};
 // Item names the tips emphasise.
 const ITEM_TERMS=['Crude Pickaxe','Crude Axe','Small Logs','Sticks','Rocks','Stone','Boulder'];
 export function createCraftingTutorial({menus,narrator,tip,freePlay=false,onComplete=()=>{}}){
@@ -118,8 +120,7 @@ export function createCraftingTutorial({menus,narrator,tip,freePlay=false,onComp
       title:success?'Well done!':({chop:'Chop a tree',pickaxe:'Craft a Crude Pickaxe',mine:'Mine a boulder',recipe:'Craft a Crude Axe',crafting:'Crafting your axe','mining-craft':'Crafting your pickaxe'})[stage]||'Learning the ropes',
       text,emphasis:ITEM_TERMS,complete:success,action:{label:next?'Continue':'Dismiss',onPress:continueTip},
     });
-    const goals={'craft-menu':['axe','Craft a Crude Axe','Use the Crafting tab to make a Crude Axe with Sticks ×1 and Rocks ×1. Stay still until crafting finishes.'],chop:['chop','Chop a tree','With a Crude Axe in your inventory, click a tree in the clearing and wait to obtain Small Logs.'],pickaxe:['pickaxe','Craft a Crude Pickaxe','Use the Crafting tab to make a Crude Pickaxe with Sticks ×1 and Rocks ×1. Use Show me how if you need guidance.'],mine:['mine','Mine a boulder','With a Crude Pickaxe in your inventory, click a boulder in the clearing to obtain Stone. Stay still until mining finishes.']};
-    if(goals[stage])updateObjective(...goals[stage]);
+    if(TOOL_GOALS[stage])updateObjective(...TOOL_GOALS[stage]);
     if(stage.startsWith('skills-'))updateObjective('skills','Explore your skills',text);
     if(stage.startsWith('inventory-'))updateObjective('inventory','Check your inventory',text);
   }
@@ -204,6 +205,10 @@ export function createCraftingTutorial({menus,narrator,tip,freePlay=false,onComp
       }
       if(stage!==target)throw Error(`Could not load ${target}; stopped at ${stage}.`);
     }:undefined,
+    // Skipping tutorial chapters (tutorial-chapters.js). The journal lessons (skills, inventory) are
+    // marked done; or the tools lessons are, and the finale (onComplete) starts.
+    skipJournal(){reset();updateObjective('skills','Explore your skills','Open the Character tab to see your skills.',1,1);updateObjective('inventory','Check your inventory','Open the Inventory tab to see what you carry.',1,1);},
+    skipTools(){reset();for(const goal of Object.values(TOOL_GOALS))updateObjective(...goal,1,1);onComplete();},
     onStageChange(listener){stageListeners.add(listener);return ()=>stageListeners.delete(listener);},
     sayChapter(text,next){setStage('done');say(text,next);},
     showChapterTip(title,text,next=null,onHelp=null){setStage('done');tutorial(text,title==='Well done!'||title.includes('Complete'),next);tip.update({title});helpAction=onHelp||(()=>{});showHelp(!!onHelp);},

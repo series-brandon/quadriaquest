@@ -45,6 +45,7 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
     {id:'move',text:'Click/Tap to move to any location. Beware! You might not be able to go to some locations.',success:'You made it!'},
     {id:'gather',text:GATHER_TEXT}
   ];
+  const LESSON_TITLES=['Rotate the camera','Try zooming','Move to a new tile'];
   let briefing=false,controlsDone=null;
   let lesson=0,awaitingContinue=false,rotationAmount=0,zoomAmount=0,moveGoal=null;
   let collectedCount=0,interruption=null,xpExplained=false,levelExplained=false;
@@ -65,7 +66,7 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
   function showLesson(){
     briefing=lesson===3;
     if(lesson===3)updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',collectedCount,6);
-    else updateObjective(lessons[lesson].id,['Rotate the camera','Try zooming','Move to a new tile'][lesson],lessons[lesson].text);
+    else updateObjective(lessons[lesson].id,LESSON_TITLES[lesson],lessons[lesson].text);
     tip.show({
       title:lesson===3?'Gathering resources':['Rotate your view','Zoom in and out','Find your footing'][lesson],
       text:lesson===3?(collectedCount>0?'Finish collecting the items off the ground.':GATHER_TEXT):lessons[lesson].text,
@@ -192,6 +193,11 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
       if(step==='gather-complete'){collectedCount=6;showGatherSuccess();return;}
       collectedCount=step.startsWith('level')?6:1;xpExplained=true;levelExplained=step.startsWith('level');explainSkill(step);
     }:undefined,
+    // Skipping tutorial chapters (tutorial-chapters.js): the camera lessons are marked done and
+    // gathering starts; or gathering is marked done and the next lesson (onComplete) starts.
+    skipControls(){for(let i=0;i<3;i++)updateObjective(lessons[i].id,LESSON_TITLES[i],lessons[i].text,1,1);this.startGathering();},
+    skipGathering(){updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing.',6,6);enterFreePlay();onComplete?.();},
+    get lesson(){return lesson;},
     startLevelExplanation(){enterFreePlay();finished=false;collectedCount=6;xpExplained=levelExplained=true;showGatheringPrompt(tip,6);explainSkill('level');},
     startGathering(){enterFreePlay();finished=false;collectedCount=0;xpExplained=levelExplained=false;interruption=null;showLesson();},
     startControls(done){finished=false;playable=true;inClearing=true;lesson=0;awaitingContinue=false;rotationAmount=zoomAmount=0;moveGoal=null;controlsDone=done;narrator.hide();transition('play');showLesson();},
