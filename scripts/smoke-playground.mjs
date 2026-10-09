@@ -17,6 +17,8 @@ try {
   const page = await browser.newPage({viewport: {width: 1280, height: 800}});
   page.on('pageerror', error => errors.push(`pageerror: ${error.message}`));
   page.on('console', message => { if (message.type() === 'error') errors.push(`console: ${message.text()}`); });
+  // Offscreen passes (the shadow map) are counted so moving shadow casters can be checked.
+  await page.addInitScript(() => { const bind = WebGL2RenderingContext.prototype.bindFramebuffer; window.__offscreenPasses = 0; WebGL2RenderingContext.prototype.bindFramebuffer = function (target, framebuffer) { if (framebuffer) window.__offscreenPasses++; return bind.call(this, target, framebuffer); }; });
   await page.goto(server.url, {waitUntil: 'load'});
   await page.waitForFunction(() => !!window.quadriaquest, null, {timeout: 15000});
   await page.waitForTimeout(1500);
@@ -110,7 +112,11 @@ try {
   // the desktop journal docked beside the world.
   await page.evaluate(() => { const s = document.querySelector('#dev-checkpoint'); s.value = 'willowbank:fish'; s.dispatchEvent(new Event('change')); document.querySelector('[data-dev="checkpoint"]').click(); });
   await page.waitForTimeout(2500);
+  // Walking moves a shadow caster, so the shadow map must be redrawn along the way.
+  const passesBefore = await page.evaluate(() => window.__offscreenPasses);
   await walkAndClick(page, 16, 14);
+  await page.waitForTimeout(800);
+  const shadowsFollow = await page.evaluate(before => window.__offscreenPasses - before > 3, passesBefore);
   const followUp = await waitFor(page, () => /A fine catch/.test(document.getElementById('character-dialogue')?.textContent || ''), 45000);
   // Repair the bridge with a hammer in hand: Show me how brings the (off-screen) bridge into view.
   await page.evaluate(() => { const s = document.querySelector('#dev-checkpoint'); s.value = 'willowbank:bridge'; s.dispatchEvent(new Event('change')); document.querySelector('[data-dev="checkpoint"]').click(); });
@@ -120,8 +126,8 @@ try {
   await page.click('#tutorial-help').catch(() => {});
   await page.waitForTimeout(1500);
   const bridgeShown = await inView();
-  console.log(JSON.stringify({willowbankCatchFollowUp: followUp, bridgeHelpBringsBridgeIntoView: bridgeHidden && bridgeShown}));
-  if (!followUp || !bridgeShown) failed = true;
+  console.log(JSON.stringify({willowbankCatchFollowUp: followUp, bridgeHelpBringsBridgeIntoView: bridgeHidden && bridgeShown, shadowsFollowThePlayer: shadowsFollow}));
+  if (!followUp || !bridgeShown || !shadowsFollow) failed = true;
   await page.close();
 
   // The normal build (dist), when present: a new game from the splash, played as a player would,
