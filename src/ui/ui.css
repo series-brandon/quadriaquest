@@ -1,0 +1,25 @@
+/* Entry stylesheet for the UI kit, imported once by main.js. Components do not import CSS
+   themselves so they stay loadable in node tests; add each component sheet here. */
+@import './tokens.css';
+@import './hud/meter.css';
+@import './hud/action-button.css';
+@import './hud/health-plate.css';
+@import './hud/warning-chip.css';
+@import './hud/dialogue.css';
+@import './hud/tip.css';
+@import './hud/notices.css';
+@import './controls.css';
+@import './tabbar.css';
+@import './page.css';
+@import './modal.css';
+@import './dialogs/dialogs.css';
+@import './pages/combat-page.css';
+@import './pages/equipment-page.css';
+@import './pages/inventory-page.css';
+@import './pages/crafting-page.css';
+@import './pages/quests-page.css';
+@import './pages/settings-page.css';
+@import './pages/powers-page.css';
+@import './pages/companions-page.css';
+@import './pages/character-page.css';
+@import './pages/skills-page.css';

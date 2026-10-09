@@ -1,0 +1,144 @@
+:root{--player-panel-width:clamp(360px,35vw,420px)}
+#player-sidebar{position:fixed;inset:0 0 0 auto;width:var(--player-panel-width);display:flex;flex-direction:column;background:var(--ui-paper);border-left:1px solid var(--ui-border);color:var(--ui-ink);z-index:32;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+#player-sidebar[hidden],#player-mobile-hud[hidden],#player-mobile-nav[hidden]{display:none!important}
+#player-overview{position:relative;padding:14px;display:grid;grid-template-columns:156px minmax(0,1fr);gap:10px;border-bottom:1px solid var(--ui-border);background:var(--ui-paper);flex-shrink:0}
+.overview-heading{grid-column:1/-1;display:flex;justify-content:flex-end;align-items:center;min-height:44px}.overview-heading strong{font-size:17px}.overview-heading button{min-width:44px;min-height:44px}
+.overview-map{position:relative;grid-column:2;grid-row:2/4;align-self:start;justify-self:end;width:100%;max-width:212px}.overview-map canvas{width:100%;height:auto;aspect-ratio:1;border:4px solid #e6d8e0;border-radius:12px;image-rendering:pixelated}.overview-map>span{position:absolute;top:5px;left:9px;color:#fff7da;font-size:11px}
+/* All five pools share one row, each with its action directly below. */
+#overview-vitals{grid-column:1;grid-row:2;min-width:0;display:grid;grid-template-columns:repeat(5,48px);grid-template-rows:48px 44px;gap:6px;align-content:start;justify-content:start}
+#overview-vitals #player-health{position:relative;inset:auto;grid-column:1;grid-row:1;padding:0}
+.resource-placeholder-action.health{grid-column:1}
+/* The combat warning chip (ui/hud/warning-chip.js) styles itself and takes no space while idle. */
+#player-combat-status{grid-column:1/-1}
+body #player-sidebar #journal:not(.expanded){position:relative;inset:auto;transform:none;width:100%;max-width:none;flex:1;min-height:0;height:auto;max-height:none;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper)}
+/* Expanded: a near-full-screen journal over the world and the sidebar (never narrower than docked). */
+/* The sidebar's collapse control would float over it, so it steps aside while expanded. */
+/* Docked in the sidebar, the journal has no header row (the selected tab names the page); the pop-out
+   control sits on the sidebar's edge under the collapse control. */
+body.player-sidebar-open #player-sidebar #journal:not(.expanded) .journal-header{display:none}
+body.player-sidebar-open .overview-heading{flex-direction:column;gap:6px}
+body:has(#player-sidebar #journal.expanded:not([hidden])) .overview-heading{visibility:hidden}
+body #player-sidebar #journal.expanded{position:fixed;left:24px;right:24px;top:24px;bottom:24px;z-index:2;transform:none;width:auto;max-width:none;height:auto;max-height:none}
+body.player-sidebar-open #game{right:var(--player-panel-width)}body.player-sidebar-open>header,body.player-sidebar-open>footer{right:calc(var(--player-panel-width) + 28px)}
+
+
+#journal #combat-panel,#journal #powers-panel,#journal #equipment-panel,#journal #inventory-panel,#journal #character-panel,#journal #crafting-panel,#journal #quests-panel,#journal #settings-panel,#journal #companions-panel{position:static;inset:auto;transform:none;width:100%;max-width:none;min-width:0;min-height:0;max-height:none;margin:0;padding:16px;overflow:auto;border:0;border-radius:0;box-shadow:none;background:var(--ui-paper);color:var(--ui-ink)}
+/* Crafting's craft button sticks to the bottom edge, so nothing scrolls beneath it. */
+#journal #crafting-panel{padding-block-end:0}
+
+#player-mobile-hud{position:fixed;top:12px;right:12px;left:auto;width:var(--player-panel-width);z-index:30}#player-mobile-hud #player-overview{border:1px solid var(--ui-border);border-radius:14px}
+#player-mobile-nav{display:none}
+@media(max-width:700px){
+ #player-mobile-hud{top:env(safe-area-inset-top);left:0;right:0;width:100%;z-index:33;pointer-events:none}
+ #player-mobile-hud #player-overview{background:transparent;border:0;border-radius:0;padding:10px;grid-template-columns:minmax(0,170px) 1fr;gap:6px;align-items:start}
+ #player-mobile-hud .overview-heading{display:none}#player-mobile-hud .overview-map{grid-column:2;grid-row:1/4;justify-self:end;pointer-events:auto}#player-mobile-hud .overview-map canvas{width:100%;height:auto;border-radius:50%}
+ #player-mobile-hud #overview-vitals{grid-column:1;grid-row:1;background:transparent;padding:0;pointer-events:auto}
+ #player-mobile-hud #player-combat-status{grid-column:1/-1;grid-row:3}
+ body.player-ui-active #player-mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:36;overflow-x:auto;background:var(--ui-paper);border-top:1px solid var(--ui-border);padding:5px max(6px,env(safe-area-inset-right)) calc(5px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));gap:3px}
+ #player-mobile-nav button{display:flex;flex:1 0 47px;min-width:47px;min-height:52px;flex-direction:column;justify-content:center;align-items:center;gap:4px;padding:5px 2px;font-size:10px}#player-mobile-nav button span{max-width:70px;overflow:hidden;text-overflow:ellipsis}#player-mobile-nav .game-icon{width:20px;height:20px}#player-mobile-nav button[aria-current=true]{background:#eadbe5}
+ body.player-ui-active #journal,body.player-ui-active #journal:not(.expanded),body.player-ui-active #journal.expanded{position:fixed;inset:0 0 calc(63px + env(safe-area-inset-bottom));height:auto;max-height:none;padding-top:calc(54px + env(safe-area-inset-top));padding-bottom:0;z-index:34;background:var(--ui-paper);border-radius:0;transform:none}
+ /* An open journal page takes the whole screen above the tab bar; the HUD steps aside (attacks close the page). */
+ body.player-ui-active:has(#journal:not([hidden])) #player-mobile-hud{display:none}
+ 
+ 
+ body.player-ui-active #objective-update{top:160px}
+}
+body:has(#splash:not([hidden])) #player-sidebar,body:has(#splash:not([hidden])) #player-mobile-hud,body:has(#splash:not([hidden])) #player-mobile-nav{display:none!important}
+@media(max-width:700px){
+ body.player-ui-active #game-menus #journal{inset:0 0 calc(63px + env(safe-area-inset-bottom));height:auto;max-height:none;padding-top:env(safe-area-inset-top);padding-bottom:0}
+ body.player-ui-active #game-menus #journal .journal-header{min-height:52px;flex-shrink:0}
+}
+
+/* Phones: item receipts and the lesson tip sit above the bottom tab bar (lessons guide its tabs). */
+@media(max-width:700px){body.player-ui-active #item-feed{bottom:calc(76px + env(safe-area-inset-bottom))}body.player-ui-active:not(:has(#journal:not([hidden]))) #gather-tutorial{bottom:calc(76px + env(safe-area-inset-bottom))}body.player-ui-active:has(#journal:not([hidden])) #item-feed{bottom:calc(76px + env(safe-area-inset-bottom));z-index:31}}
+
+/* Shared world overlays follow the rendered viewport, including sidebar resizing. */
+@media(min-width:701px){
+ body #dialogue,body #character-dialogue,body #character-dialogue[data-mode=choices],body #toast,body #skill-rewards,body #placement-controls,body #gather-tutorial,body:has(#inventory-panel:not([hidden])) #gather-tutorial{left:var(--game-viewport-center,50%);max-width:calc(var(--game-viewport-width,100vw) - 40px)}
+ /* A tutorial embedded in the journal belongs to its page, rather than the world. */
+ body #journal #gather-tutorial{left:auto;max-width:100%;transform:none}
+ 
+ body.player-sidebar-open::after,body.player-sidebar-open #scene-fade{right:var(--player-panel-width)}
+ body.player-sidebar-open dialog{right:var(--player-panel-width);max-width:calc(var(--game-viewport-width,100vw) - 40px)}
+ body.player-sidebar-open dialog::backdrop{right:var(--player-panel-width)}
+ 
+}
+#player-mobile-more{display:none}
+@media(max-width:700px){
+ #player-mobile-hud #player-overview{grid-template-columns:156px minmax(0,1fr)}
+ #player-mobile-hud #overview-vitals{width:max-content}
+ body.player-ui-active #player-mobile-nav{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);overflow:visible}
+ #player-mobile-nav button{min-width:0;width:100%}
+ #player-mobile-nav button span{max-width:100%;white-space:nowrap}
+ 
+ #player-mobile-more:not([hidden]){display:block;position:fixed;z-index:37;left:8px;right:8px;bottom:calc(72px + env(safe-area-inset-bottom));max-height:calc(100dvh - 160px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain;padding:12px;border:1px solid var(--ui-border);border-radius:18px;background:var(--ui-paper);box-shadow:0 0 0 100vmax #241b3940;color:var(--ui-ink)}
+ .more-heading{display:flex;align-items:center;justify-content:space-between;padding-left:8px}.more-heading button{min-width:44px;min-height:44px}
+ .more-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.more-tabs button{display:flex;align-items:center;gap:10px;min-height:56px;padding:10px;text-align:left;background:#eee3e8}.more-tabs .game-icon{width:24px;height:24px;flex-shrink:0}.more-tabs button[aria-current=true]{background:#dac8dc}
+}
+
+ .resource-placeholder{grid-row:1}
+.resource-placeholder.mana{grid-column:2}
+.resource-placeholder.stamina{grid-column:3}
+/* Action tiles are kit components (ui/hud/action-button.css); this only places them under their meters. */
+.resource-placeholder-action{grid-row:2;justify-self:center}
+.resource-placeholder-action.mana{grid-column:2}.resource-placeholder-action.stamina{grid-column:3}
+@media(min-width:701px){body.player-sidebar-open #journal-close{display:none!important}}
+@media(max-width:700px){#player-mobile-hud .overview-map{max-width:172px}}
+
+/* Desktop overview: map above resources, with the panel toggle on its edge. */
+@media(min-width:701px){
+ #player-overview{grid-template-columns:1fr;justify-items:center;gap:12px}
+ .overview-map{grid-column:1;grid-row:1;justify-self:center;max-width:246px}
+ #overview-vitals{grid-column:1;grid-row:2;justify-content:center}
+ #player-combat-status{grid-row:3;justify-self:center}
+
+ .overview-heading{position:fixed;right:var(--player-panel-width);top:calc(18px + env(safe-area-inset-top));min-height:44px;z-index:56}
+ .overview-heading button{border:1px solid var(--ui-border);border-right:0;border-radius:10px 0 0 10px;background:var(--ui-paper);color:var(--ui-ink)}
+ body.player-ui-active:not(.player-sidebar-open) .overview-heading{position:fixed;left:auto;right:calc(12px + env(safe-area-inset-right));top:auto;bottom:calc(12px + env(safe-area-inset-bottom))}
+ body.player-ui-active:not(.player-sidebar-open) .overview-heading button{border:1px solid var(--ui-border);border-radius:10px}
+ #player-mobile-hud{width:300px;pointer-events:none}
+ #player-mobile-hud #player-overview{background:transparent;border:0;border-radius:0}
+ #player-mobile-hud .overview-map,#player-mobile-hud #overview-vitals{pointer-events:auto}
+}
+@media(max-width:700px){#player-sidebar>.overview-heading{display:none}}
+.overview-map canvas{max-width:100%;display:block;margin:auto}
+
+.overview-heading[hidden],body:has(#splash:not([hidden])) .overview-heading{display:none!important}
+
+.overview-map canvas{touch-action:none;cursor:crosshair}.overview-map>span{pointer-events:none}
+.resource-placeholder.energy{grid-column:4;grid-row:1}
+.resource-placeholder.ki{grid-column:5;grid-row:1}
+.resource-placeholder-action.energy{grid-column:4;grid-row:2}.resource-placeholder-action.ki{grid-column:5;grid-row:2}
+/* Phones: 44px meters (still touch-sized) keep the five pools on one row beside a smaller minimap. */
+@media(max-width:700px){
+ #player-mobile-hud #player-overview{grid-template-columns:max-content minmax(0,1fr)}
+ #player-mobile-hud #overview-vitals{grid-template-columns:repeat(5,44px);grid-template-rows:44px 44px;gap:4px}
+ #player-mobile-hud .q-meter{--q-meter-size:44px}
+ #player-mobile-hud .overview-map{max-width:124px}
+}
+/* Simple mode can hide Energy and/or Ki: the row shrinks to the visible columns, and Ki moves into
+   Energy's column when Energy is hidden. */
+#overview-vitals[data-columns="3"]{grid-template-columns:repeat(3,48px)}
+#overview-vitals[data-columns="4"]{grid-template-columns:repeat(4,48px)}
+#overview-vitals[data-energy-hidden] .resource-placeholder.ki,#overview-vitals[data-energy-hidden] .resource-placeholder-action.ki{grid-column:4}
+@media(max-width:700px){#player-mobile-hud #overview-vitals[data-columns="3"]{grid-template-columns:repeat(3,44px)}#player-mobile-hud #overview-vitals[data-columns="4"]{grid-template-columns:repeat(4,44px)}}
+
+/* Desktop overview (docked sidebar and the collapsed-sidebar HUD alike): the map on the left and each resource as a row beside it (meter, then its
+   quick action). The section is pinned to the height all five rows need (5 × 48px + 4 × 6px), in
+   every mode, so mode changes never move the journal; the map is a square filling that height,
+   shrinking only when the sidebar is too narrow. Fewer resources sit centred beside it. */
+@media(min-width:701px){
+ #player-mobile-hud{width:auto}
+ :is(#player-sidebar,#player-mobile-hud) #player-overview{grid-template-columns:minmax(0,264px) auto;justify-content:center;justify-items:start;align-items:center;column-gap:14px;row-gap:8px}
+ :is(#player-sidebar,#player-mobile-hud) .overview-map{grid-column:1;grid-row:1;justify-self:stretch;width:auto;max-width:264px}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals{grid-column:2;grid-row:1;grid-template-columns:48px 44px;grid-template-rows:none;grid-auto-rows:48px;align-items:center;justify-content:start;align-content:center;min-height:264px}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals #player-health,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.health{grid-row:1}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder.mana,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.mana{grid-row:2}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder.stamina,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.stamina{grid-row:3}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder.energy,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.energy{grid-row:4}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder.ki,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action.ki{grid-row:5}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals[data-energy-hidden] .resource-placeholder.ki,:is(#player-sidebar,#player-mobile-hud) #overview-vitals[data-energy-hidden] .resource-placeholder-action.ki{grid-row:4}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals #player-health,:is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder{grid-column:1}
+ :is(#player-sidebar,#player-mobile-hud) #overview-vitals .resource-placeholder-action{grid-column:2;justify-self:start}
+ :is(#player-sidebar,#player-mobile-hud) #player-combat-status{grid-column:1/-1;grid-row:2;justify-self:center}
+}

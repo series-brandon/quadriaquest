@@ -1,0 +1,32 @@
+/* Equipment page (ui/pages/equipment-page.js): worn slots, then owned gear. */
+.q-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.q-slot {
+  display: grid;
+  gap: 2px;
+  min-block-size: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-card);
+}
+.q-slot[data-empty] { background: transparent; border-style: dashed; }
+.q-slot__label { color: var(--q-ink-muted); font-size: 11px; font-weight: 600; }
+.q-slot__item { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; min-inline-size: 0; }
+.q-slot[data-empty] .q-slot__item { color: var(--q-ink-muted); font-weight: 400; }
+.q-slot__icon svg,
+.q-gear__icon svg { inline-size: 20px; block-size: 20px; flex: none; }
+
+.q-gear {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: var(--q-control-radius);
+}
+.q-gear[data-equipped] { background: var(--q-control-selected); }
+/* Buttons drop below the text when the row is too narrow for both. */
+.q-gear .q-row { flex: 1; flex-wrap: wrap; min-inline-size: 0; padding-block: 4px; }
+.q-gear .q-row__text { flex: 1 1 150px; }
+.q-gear .q-row__actions { margin-inline-start: auto; }
+.q-gear__icon { display: grid; }
+.q-row__buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }

@@ -1,0 +1,20 @@
+{
+  "src/campfires.js": {
+    "innerHTML": 1,
+    "propertyHandlers": 1
+  },
+  "src/player-interface.css": {
+    "important": 4
+  },
+  "src/player-interface.js": {
+    "innerHTML": 2,
+    "propertyHandlers": 1
+  },
+  "src/splash.js": {
+    "innerHTML": 2,
+    "propertyHandlers": 2
+  },
+  "src/ui-theme.css": {
+    "important": 1
+  }
+}

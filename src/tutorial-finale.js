@@ -1,8 +1,7 @@
 import {holdUpMotion} from './catch-motion.js';
 import {updateObjective,finishObjective} from './quests.js';
-import {portalSpawn} from './portal-spawn.js';
 import * as THREE from 'three';
-import {makeCrystal,makeChest,makeTopHat} from './finale-models.js';
+import {makeChest,makeTopHat} from './finale-models.js';
 import {highlightResource} from './resource-highlight.js';
 import {spawnMotion} from './slime-motion.js';
 import {practiceCleared} from './practice-goal.js';
@@ -11,20 +10,18 @@ import {findPath,key} from './world.js';
 const portalInstruction="I've taught you all I can here in this area, when you're ready to move on, move over to the Iter Portal and we'll move on to the next area.";
 
 export function createTutorialFinale(api){
-  const $=id=>document.getElementById(id),actors=[],drops=[],clearingTiles=new Map(api.world);
-  let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null,transition=null,inPlaceholder=false,equipped=false;
-  const hat=makeTopHat(),heldHat=makeTopHat();api.visual.add(hat,heldHat);hat.position.y=.79;hat.visible=false;heldHat.visible=false;
-  const placeholder=api.destination.group,tiles=api.destination.tiles,returnPortal=api.destination.crystal;
-  function busy(){return !!next||drops.length>0||!!celebration||!!crystalFocus||!!transition;}
-  function hideDialogue(){next=null;$('dialogue').hidden=true;}
+  const $=id=>document.getElementById(id),actors=[],drops=[];
+  let stage='inactive',next=null,portal=null,chest=null,practice=false,rewardTriggered=false,celebration=null,crystalFocus=null;
+  const heldHat=makeTopHat();api.visual.add(heldHat);heldHat.visible=false;
+  function busy(){return !!next||drops.length>0||!!celebration||!!crystalFocus;}
+  function hideDialogue(){next=null;api.narrator.hide();}
   function say(text,advance){
-    api.stop();$('gather-tutorial').hidden=true;$('dialogue').hidden=false;$('dialogue-line').textContent=text;
-    $('dialogue').setAttribute('aria-label',text);$('dialogue').tabIndex=0;$('dialogue-controls').replaceChildren();$('dialogue-prompt').hidden=false;next=advance;
+    api.stop();api.tip.hide();next=advance;
+    api.narrator.show({text,next:advanceLine});
   }
-  function advance(e){if(e.target.closest('button,input,label'))return;if(next){const action=next;next=null;action();}}
-  $('dialogue').addEventListener('click',advance);
-  $('dialogue').addEventListener('keydown',e=>{if(e.target===$('dialogue')&&['Enter',' '].includes(e.key)){e.preventDefault();advance(e);}});
-  function createActor(group,tile,kind,label,duration,parent=api.scene){
+  // The narrator calls this on advance; `next` is cleared or replaced by the finale's own steps.
+  function advanceLine(){if(next){const action=next;next=null;action();}}
+  function createActor(group,tile,kind,label,duration,parent=api.parent){
     const actor={group,tile,x:tile.x,z:tile.z,kind,label,duration,ready:false,opened:false};
     group.position.set(tile.x-6,tile.h,tile.z-6);parent.add(group);tile.blocked=true;
     group.traverse(object=>{if(object.isMesh){object.userData.actor=actor;object.userData.tile=tile;api.pickables.push(object);}});
@@ -34,26 +31,26 @@ export function createTutorialFinale(api){
     group.visible=true;group.position.y=y+14;group.scale.setScalar(1);drops.push({group,y,delay,age:0,complete});
   }
   function chooseTile(near){
-    return [...api.world.values()].filter(t=>!t.blocked&&!api.trees.some(tree=>tree.x===t.x&&tree.z===t.z)&&!api.resources.some(r=>r.x===t.x&&r.z===t.z)&&!(t.x===api.getTile().x&&t.z===api.getTile().z)&&findPath(api.world,api.getTile(),t)!==null)
+    return [...api.tiles.values()].filter(t=>!t.blocked&&!api.trees.some(tree=>tree.x===t.x&&tree.z===t.z)&&!api.resources.some(r=>r.x===t.x&&r.z===t.z)&&!(t.x===api.getTile().x&&t.z===api.getTile().z)&&findPath(api.tiles,api.active()?api.getTile():api.spawn,t)!==null)
       .sort((a,b)=>(a.x-near.x)**2+(a.z-near.z)**2-((b.x-near.x)**2+(b.z-near.z)**2))[0];
   }
   function removeActor(actor){
-    if(!actor)return;actor.tile.blocked=false;actor.group.removeFromParent();
+    if(!actor)return;if(actor.crystal){api.crystals.remove(actor);return;}actor.tile.blocked=false;actor.group.removeFromParent();
     for(let i=api.pickables.length-1;i>=0;i--)if(api.pickables[i].userData.actor===actor)api.pickables.splice(i,1);
     const geometries=new Set(),materials=new Set();actor.group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material&&!o.userData.actor)return;if(o.material)materials.add(o.material);});
     for(const g of geometries)g.dispose();for(const m of materials)m.dispose();actors.splice(actors.indexOf(actor),1);
   }
   function dropPortal(after=()=>{}){
     api.stop();removeActor(portal);const t=chooseTile({x:8,z:8});if(!t)return;
-    portal=createActor(makeCrystal(),t,'portal','Enter Iter Portal',0);stage='portal-drop';
-    updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel. You can practice here before leaving.');say(portalInstruction,null);$('dialogue-prompt').hidden=true;
+    portal=makePortal(t,false);stage='portal-drop';
+    updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel. You can practice here before leaving.');say(portalInstruction,null);api.narrator.setPrompt(false);
     drop(portal.group,t.h,0,()=>{portal.ready=true;stage='portal-focus';crystalFocus={age:0,phase:'in',position:new THREE.Vector3(t.x-6,t.h+1,t.z-6),after};});
   }
   function resetPractice(){
     hideDialogue();api.stop();api.clearFalling();practice=false;rewardTriggered=false;removeActor(chest);chest=null;
     api.ensureClearSpawn();
-    api.trees.forEach((tree,i)=>{tree.felled=false;tree.tile.blocked=true;tree.group.rotation.set(0,0,0);drop(tree.group,tree.tile.h,i*.06);});
-    api.resources.forEach((resource,i)=>{resource.collected=false;drop(resource.group,api.world.get(key(resource.x,resource.z)).h,i*.045);});
+    api.trees.forEach((tree,i)=>{drop(tree.group,tree.tile.h,i*.06);});
+    api.resources.forEach((resource,i)=>{drop(resource.group,api.tiles.get(key(resource.x,resource.z)).h,i*.045);});
     stage='resetting';
   }
   function begin(){
@@ -76,54 +73,47 @@ export function createTutorialFinale(api){
     const cameraAngle=chest?Math.atan2(p.x-chest.group.position.x,p.z-chest.group.position.z):api.getAngle();
     celebration={age:0,angle:cameraAngle,...options};stage='celebration';
   }
-  function travel(destination){
-    if(busy()||((destination==='placeholder')===inPlaceholder))return;
-    // Direct playground travel still needs a real return crystal in the clearing.
-    if(!portal&&!inPlaceholder){const t=chooseTile({x:8,z:8});if(t){portal=createActor(makeCrystal(),t,'portal','Enter Iter Portal',0);portal.ready=true;}}
-    const destinationMap=destination==='placeholder'?new Map(tiles.map(t=>[key(t.x,t.z),t])):clearingTiles;
-    const landing=portalSpawn(destinationMap,(destination==='placeholder'?returnPortal:portal)?.tile);
-    if(!landing){api.travelBlocked();return;}
-    api.stop();hideDialogue();transition={age:0,destination,landing,switched:false};$('scene-fade').hidden=false;
-  }
-  function refresh(){if(!(api.inventory.hats>0))equipped=false;hat.visible=equipped&&!celebration;}
+  // Guided until first used (the "Find the Iter Crystal" objective).
+  let portalUsed=false;
+  function makePortal(tile,ready=true){return api.crystals.add({tile,parent:api.parent,destination:api.destination,label:'Enter Iter Portal',ready,guide:()=>!portalUsed,onArrive:()=>{portalUsed=true;finishObjective('portal');}});}
+  function ensurePortal(){if(!portal){const t=chooseTile({x:8,z:8});if(t)portal=makePortal(t);}return portal;}
   return {
-    begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,travel,
-    get busy(){return busy();},get celebration(){return celebration;},get cameraFocus(){return crystalFocus;},get inPlaceholder(){return inPlaceholder;},get stage(){return stage;},
-    get state(){return {stage,practice,rewardTriggered,inPlaceholder,equipped,canEquip:!busy()};},
-    refresh,
-    bendHat(amount){hat.position.x=amount;},
-    usePortal(){const actor=inPlaceholder?returnPortal:portal;if(actor)api.approach(actor);},
+    begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,ensurePortal,
+    debugCancel:__PLAYGROUND__?function(){hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;celebration=crystalFocus=null;practice=false;heldHat.visible=false;stage='inactive';$('scene-fade').style.opacity='0';$('scene-fade').hidden=true;}:undefined,
+    get busy(){return busy();},get celebration(){return celebration;},get cameraFocus(){if(!crystalFocus)return null;const blend=crystalFocus.phase==='out'?1-THREE.MathUtils.smoothstep(crystalFocus.age,0,1):THREE.MathUtils.smoothstep(crystalFocus.age,0,1);return {position:crystalFocus.position,blend,zoom:7,elevation:.45};},get stage(){return stage;},
+    get state(){return {stage,practice,rewardTriggered,portalUsed};},
+    // Skipping the finale (tutorial-chapters.js): the crystal is ready, its objective and the reward
+    // hat are done, and the host travels on. Returns the crystal.
+    skip(){this.reset();const crystal=ensurePortal();portalUsed=true;updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel.',1,1);api.inventory.hats=Math.max(1,api.inventory.hats||0);return crystal;},
     openChest(){if(chest)api.approach(chest);},
-    stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;refresh();}},
-    equip(){if(api.inventory.hats>0&&!busy())equipped=!equipped;refresh();},
+    stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;}},
     interact(actor){
       if(!actor.ready||actor.opened||busy())return;
       if(actor.kind==='chest'){actor.opened=true;actor.lid.rotation.x=-1;actor.lid.position.set(0,.64,-.18);api.inventory.hats=(api.inventory.hats||0)+1;api.showItemChanges({hats:1});celebrate();}
-      else travel(actor.kind==='return'?'clearing':'placeholder');
     },
     reset(){
+      portalUsed=false;
       hideDialogue();for(const d of drops){d.group.position.y=d.y;d.group.scale.setScalar(1);}drops.length=0;
-      celebration=null;crystalFocus=null;transition=null;heldHat.visible=false;equipped=false;practice=false;rewardTriggered=false;stage='inactive';
-      if(inPlaceholder){api.switchArea(false,placeholder,tiles);inPlaceholder=false;}
-      removeActor(portal);removeActor(chest);portal=chest=null;$('scene-fade').style.opacity='0';refresh();
+      celebration=null;crystalFocus=null;heldHat.visible=false;practice=false;rewardTriggered=false;stage='inactive';
+      removeActor(portal);removeActor(chest);portal=chest=null;$('scene-fade').style.opacity='0';
     },
     update(dt,time,hover){
       for(let i=drops.length-1;i>=0;i--){const d=drops[i];d.age+=dt;if(d.age<d.delay)continue;const motion=spawnMotion(d.age-d.delay);d.group.position.y=d.y+motion.lift;d.group.scale.set(1/Math.sqrt(motion.squash),motion.squash,1/Math.sqrt(motion.squash));if(d.age-d.delay>=1.2){d.group.position.y=d.y;d.group.scale.setScalar(1);drops.splice(i,1);d.complete();}}
       if(crystalFocus){
         crystalFocus.age+=dt;
         if(crystalFocus.phase==='in'&&crystalFocus.age>=1){
-          crystalFocus.phase='hold';stage='portal-wait';$('dialogue-prompt').hidden=false;
-          next=()=>{crystalFocus.phase='out';crystalFocus.age=0;stage='portal-return';$('dialogue-prompt').hidden=true;};
+          crystalFocus.phase='hold';stage='portal-wait';api.narrator.setPrompt(true);
+          next=()=>{crystalFocus.phase='out';crystalFocus.age=0;stage='portal-return';api.narrator.setPrompt(false);};
         }else if(crystalFocus.phase==='out'&&crystalFocus.age>=1){
           const after=crystalFocus.after;crystalFocus=null;stage='practice';hideDialogue();after();
         }
       }
-      if(stage==='resetting'&&!drops.length){practice=true;stage='practice';}
-      for(const a of actors){const here=a.kind==='return'?inPlaceholder:!inPlaceholder;a.highlight.update(here&&a.ready&&!a.opened,time,here&&hover===a&&a.ready&&!a.opened);if(a.kind!=='chest'&&a.ready)a.group.position.y=a.tile.h+.12+Math.sin(time*1.8)*.10;}
-      if(practice&&!inPlaceholder&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
+      // Practice gets a tip: what to do, and where "Skip this part" lives during the finale.
+      if(stage==='resetting'&&!drops.length){practice=true;stage='practice';api.tip.show({title:'Practice time',text:'Gather, chop and mine as much as you like. When you are ready, use the Iter Crystal to travel on.',action:{label:'Dismiss',onPress:()=>api.tip.hide()}});}
+      for(const a of actors)a.highlight.update(a.ready&&!a.opened,time,hover===a&&a.ready&&!a.opened);
+      if(practice&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
       if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;const prop=holdUpMotion(t,'hat').prop;heldHat.visible=prop.visible;heldHat.position.set(0,prop.y,prop.z);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}
-      if(transition){transition.age+=dt;const t=transition.age;$('scene-fade').style.opacity=String(t<.8?t/.8:Math.max(0,1-(t-1)/.8));if(t>=.8&&!transition.switched){transition.switched=true;inPlaceholder=transition.destination==='placeholder';if(inPlaceholder)finishObjective('portal');api.switchArea(inPlaceholder,placeholder,tiles,transition.landing);if(portal)portal.group.visible=!inPlaceholder;if(chest)chest.group.visible=!inPlaceholder;}if(t>=1.8){transition=null;$('scene-fade').style.opacity='0';if(inPlaceholder)api.arrived();}}
-      refresh();$('game-menus').inert=busy();
+
     }
   };
 }

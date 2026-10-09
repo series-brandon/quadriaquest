@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {minimapTileAt} from './minimap-controls.js';
+test('minimap clicking matches tile centers at each zoom and map origin',()=>{const rect={left:14,top:30,width:204,height:204};for(const radius of [4,8,24]){const center={x:-8,z:30};assert.deepEqual(minimapTileAt(116,132,rect,center,radius),center);assert.deepEqual(minimapTileAt(14,30,rect,center,radius),{x:-8-radius,z:30-radius});assert.equal(minimapTileAt(218,132,rect,center,radius),null);}});

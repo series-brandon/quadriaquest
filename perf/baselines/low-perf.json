@@ -1,0 +1,996 @@
+{
+ "meta": {
+  "updated": "2026-10-06T00:44:45.996Z",
+  "note": "Initial baselines (2026-10-05): after 3D render pass and enemy-label mutation fix; combat scenario fights in the recruit yard",
+  "commit": "42b4143",
+  "dirty": true,
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "windows": 5,
+  "windowMs": 2500,
+  "calibrationMs": 26.400001525878906
+ },
+ "scenarios": {
+  "splash": {
+   "summary": {
+    "counters": {
+     "draws": 83.741,
+     "threeDrawCalls": 50,
+     "triangles": 4896,
+     "uploadsPerFrame": 2.018,
+     "uploadKBPerFrame": 2.365,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 10.091,
+     "mutationsPerSec": 0,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 0,
+     "objects": 407,
+     "visibleMeshes": 105,
+     "programs": 13,
+     "geometries": 165,
+     "textures": 4
+    },
+    "timing": {
+     "frameMs": 2.08,
+     "frameP95": 2.64,
+     "frameMax": 3.11,
+     "intervalP95": 33.335,
+     "fps": 43.938,
+     "cpuPercent": 712.14,
+     "gpuMs": 15.673,
+     "scriptMsPerSec": 97.644,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 1.81,
+     "other": 0.255,
+     "interface": 0.05
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 2.43499755859375,
+     "frameP95": 3.345001220703125,
+     "intervalP95": 33.335000000000946,
+     "fps": 37.53116785190393,
+     "cpuPercent": 633.2271931054686,
+     "draws": 83.11702127659575,
+     "gpuMs": 18.074
+    },
+    {
+     "frameMs": 2.3600006103515625,
+     "frameP95": 3.0849990844726562,
+     "intervalP95": 33.335000000000946,
+     "fps": 41.5577772830615,
+     "cpuPercent": 688.0420843266259,
+     "draws": 83.79807692307692,
+     "gpuMs": 16.453
+    },
+    {
+     "frameMs": 2.0800018310546875,
+     "frameP95": 2.6399993896484375,
+     "intervalP95": 33.335000000000946,
+     "fps": 44.761505078312396,
+     "cpuPercent": 720.4311696779499,
+     "draws": 83.74107142857143,
+     "gpuMs": 15.4
+    },
+    {
+     "frameMs": 2.075000762939453,
+     "frameP95": 2.625,
+     "intervalP95": 33.335000000000946,
+     "fps": 46.347534627576366,
+     "cpuPercent": 736.8483098816106,
+     "draws": 83.71551724137932,
+     "gpuMs": 15.197
+    },
+    {
+     "frameMs": 2.075000762939453,
+     "frameP95": 2.615001678466797,
+     "intervalP95": 33.33499999999913,
+     "fps": 43.93831064135913,
+     "cpuPercent": 712.1399910623337,
+     "draws": 83.75454545454545,
+     "gpuMs": 15.673
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 390,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 4,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 1,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 2,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 4,
+     "Mesh/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 15,
+     "Mesh/IcosahedronGeometry/MeshStandardMaterial/shadow": 30,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 20,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 4,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 6,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/RingGeometry/MeshBasicMaterial": 3
+    }
+   }
+  },
+  "clearing-idle": {
+   "summary": {
+    "counters": {
+     "draws": 181.236,
+     "threeDrawCalls": 108,
+     "triangles": 12406,
+     "uploadsPerFrame": 2.036,
+     "uploadKBPerFrame": 3.58,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 28.509,
+     "mutationsPerSec": 3.596,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 3.588,
+     "objects": 407,
+     "visibleMeshes": 105,
+     "programs": 12,
+     "geometries": 110,
+     "textures": 2
+    },
+    "timing": {
+     "frameMs": 4.53,
+     "frameP95": 5.27,
+     "frameMax": 5.705,
+     "intervalP95": 50.005,
+     "fps": 21.971,
+     "cpuPercent": 742.813,
+     "gpuMs": 39.423,
+     "scriptMsPerSec": 104.114,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 3.188,
+     "player": 0.67,
+     "world": 0.177,
+     "interface": 0.153,
+     "systems": 0.098,
+     "other": 0.07,
+     "feedback": 0.051,
+     "hover": 0.044
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 5.284999847412109,
+     "frameP95": 6.804996490478516,
+     "intervalP95": 66.66499999999996,
+     "fps": 20.365704161649923,
+     "cpuPercent": 708.7869779804471,
+     "draws": 181.49019607843138,
+     "gpuMs": 41.224
+    },
+    {
+     "frameMs": 4.655002593994141,
+     "frameP95": 5.270000457763672,
+     "intervalP95": 50.0049999999992,
+     "fps": 21.57583507130456,
+     "cpuPercent": 747.7981043008999,
+     "draws": 181.2962962962963,
+     "gpuMs": 39.454
+    },
+    {
+     "frameMs": 4.530002593994141,
+     "frameP95": 5.629997253417969,
+     "intervalP95": 50,
+     "fps": 21.97117383066228,
+     "cpuPercent": 757.7491942205696,
+     "draws": 181.23636363636365,
+     "gpuMs": 39.423
+    },
+    {
+     "frameMs": 4.099998474121094,
+     "frameP95": 4.9850006103515625,
+     "intervalP95": 50.0049999999992,
+     "fps": 22.37990285679632,
+     "cpuPercent": 728.4760499774968,
+     "draws": 181.17857142857142,
+     "gpuMs": 37.829
+    },
+    {
+     "frameMs": 4.170001983642578,
+     "frameP95": 5.159999847412109,
+     "intervalP95": 50.00500000000102,
+     "fps": 21.97723158673476,
+     "cpuPercent": 742.8132542534914,
+     "draws": 181.23636363636365,
+     "gpuMs": 38.698
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 390,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 4,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 1,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 2,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 4,
+     "Mesh/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 15,
+     "Mesh/IcosahedronGeometry/MeshStandardMaterial/shadow": 30,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 20,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 4,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 6,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/RingGeometry/MeshBasicMaterial": 3
+    }
+   }
+  },
+  "clearing-walk": {
+   "summary": {
+    "counters": {
+     "draws": 184.981,
+     "threeDrawCalls": 111.491,
+     "triangles": 12519,
+     "uploadsPerFrame": 2.034,
+     "uploadKBPerFrame": 3.576,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 31.534,
+     "mutationsPerSec": 4.782,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 3.988,
+     "objects": 407,
+     "visibleMeshes": 105,
+     "programs": 15,
+     "geometries": 123,
+     "textures": 5
+    },
+    "timing": {
+     "frameMs": 4.475,
+     "frameP95": 5.81,
+     "frameMax": 6.115,
+     "intervalP95": 50.005,
+     "fps": 23.095,
+     "cpuPercent": 735.02,
+     "gpuMs": 37.039,
+     "scriptMsPerSec": 105.118,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 3.242,
+     "player": 0.627,
+     "world": 0.191,
+     "interface": 0.149,
+     "systems": 0.092,
+     "other": 0.07,
+     "hover": 0.057,
+     "feedback": 0.05
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 4.935001373291016,
+     "frameP95": 5.840000152587891,
+     "intervalP95": 50.0049999999992,
+     "fps": 23.110654202390187,
+     "cpuPercent": 735.020029045352,
+     "draws": 183.67241379310346,
+     "gpuMs": 36.533
+    },
+    {
+     "frameMs": 4.354999542236328,
+     "frameP95": 5.215000152587891,
+     "intervalP95": 50,
+     "fps": 23.09542392329459,
+     "cpuPercent": 749.0533584720743,
+     "draws": 186.05172413793105,
+     "gpuMs": 37.039
+    },
+    {
+     "frameMs": 4.475002288818359,
+     "frameP95": 5.80999755859375,
+     "intervalP95": 66.66500000000087,
+     "fps": 21.173998332632245,
+     "cpuPercent": 700.368266676781,
+     "draws": 183.96226415094338,
+     "gpuMs": 37.483
+    },
+    {
+     "frameMs": 4.155002593994141,
+     "frameP95": 5,
+     "intervalP95": 50,
+     "fps": 23.17219336795845,
+     "cpuPercent": 760.5816670071205,
+     "draws": 185.43103448275863,
+     "gpuMs": 36.736
+    },
+    {
+     "frameMs": 4.474998474121094,
+     "frameP95": 5.845001220703125,
+     "intervalP95": 66.66500000000087,
+     "fps": 20.763207593609554,
+     "cpuPercent": 683.3193569859383,
+     "draws": 184.98076923076923,
+     "gpuMs": 37.851
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 390,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 3,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 2,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/PlaneGeometry/MeshBasicMaterial": 1,
+     "Sprite/BufferGeometry/SpriteMaterial": 1,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 4,
+     "Mesh/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 15,
+     "Mesh/IcosahedronGeometry/MeshStandardMaterial/shadow": 30,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 20,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 4,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 6,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/RingGeometry/MeshBasicMaterial": 3
+    }
+   }
+  },
+  "willowbank-river": {
+   "summary": {
+    "counters": {
+     "draws": 385.677,
+     "threeDrawCalls": 215,
+     "triangles": 45610,
+     "uploadsPerFrame": 2.063,
+     "uploadKBPerFrame": 79.156,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 35.063,
+     "mutationsPerSec": 2.382,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 2.378,
+     "objects": 1067,
+     "visibleMeshes": 212,
+     "programs": 15,
+     "geometries": 540,
+     "textures": 3
+    },
+    "timing": {
+     "frameMs": 9.635,
+     "frameP95": 11.66,
+     "frameMax": 12.88,
+     "intervalP95": 116.66,
+     "fps": 12.783,
+     "cpuPercent": 702.631,
+     "gpuMs": 64.719,
+     "scriptMsPerSec": 131.65,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 6.902,
+     "world": 1.411,
+     "player": 0.532,
+     "systems": 0.366,
+     "interface": 0.204,
+     "other": 0.096,
+     "feedback": 0.055,
+     "hover": 0.044
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 9.670001983642578,
+     "frameP95": 11.604999542236328,
+     "intervalP95": 116.65999999999985,
+     "fps": 12.783075201411378,
+     "cpuPercent": 708.8659042074762,
+     "draws": 385.6875,
+     "gpuMs": 62.462
+    },
+    {
+     "frameMs": 9.620002746582031,
+     "frameP95": 11.75,
+     "intervalP95": 133.32500000000073,
+     "fps": 12.307301396864679,
+     "cpuPercent": 691.7182870985093,
+     "draws": 385.6774193548387,
+     "gpuMs": 64.719
+    },
+    {
+     "frameMs": 9.634998321533203,
+     "frameP95": 11.65999984741211,
+     "intervalP95": 99.9950000000008,
+     "fps": 13.144975133289742,
+     "cpuPercent": 702.6308074676867,
+     "draws": 385.3333333333333,
+     "gpuMs": 65.186
+    },
+    {
+     "frameMs": 9.029998779296875,
+     "frameP95": 11.365001678466797,
+     "intervalP95": 99.99499999999898,
+     "fps": 13.979729392381048,
+     "cpuPercent": 753.3832700784515,
+     "draws": 384.6857142857143,
+     "gpuMs": 61.12
+    },
+    {
+     "frameMs": 10.104999542236328,
+     "frameP95": 14.28499984741211,
+     "intervalP95": 149.98999999999796,
+     "fps": 10.777001865521234,
+     "cpuPercent": 590.8652118637452,
+     "draws": 387.4074074074074,
+     "gpuMs": 75.213
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 1050,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 12,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 8,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 2,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 4,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 14,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 4,
+     "Mesh/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 41,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 2,
+     "Sprite/BufferGeometry/SpriteMaterial": 1,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 29,
+     "Line/BufferGeometry/LineBasicMaterial": 1,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 13,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 9,
+     "Mesh/IcosahedronGeometry/MeshStandardMaterial/shadow": 45,
+     "Mesh/RingGeometry/MeshBasicMaterial": 3,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 8,
+     "Mesh/ExtrudeGeometry/MeshStandardMaterial/shadow": 4,
+     "Mesh/TubeGeometry/MeshStandardMaterial/shadow": 1
+    }
+   }
+  },
+  "cinderhold-combat": {
+   "summary": {
+    "counters": {
+     "draws": 620.5,
+     "threeDrawCalls": 311,
+     "triangles": 69182,
+     "uploadsPerFrame": 0,
+     "uploadKBPerFrame": 0,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 38.25,
+     "mutationsPerSec": 17.579,
+     "layoutsPerSec": 6.775,
+     "styleRecalcsPerSec": 6.775,
+     "objects": 1938,
+     "visibleMeshes": 444,
+     "programs": 23,
+     "geometries": 477,
+     "textures": 5
+    },
+    "timing": {
+     "frameMs": 11.815,
+     "frameP95": 17.2,
+     "frameMax": 17.2,
+     "intervalP95": 216.66,
+     "fps": 6.389,
+     "cpuPercent": 759.569,
+     "gpuMs": 129.094,
+     "scriptMsPerSec": 84.406,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 9.467,
+     "systems": 1.112,
+     "player": 0.762,
+     "interface": 0.335,
+     "world": 0.249,
+     "feedback": 0.081,
+     "hover": 0.064,
+     "other": 0.064
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 12.52499771118164,
+     "frameP95": 18.439998626708984,
+     "intervalP95": 266.65999999999985,
+     "fps": 5.186277107292107,
+     "cpuPercent": 628.29559879485,
+     "draws": 628.9230769230769,
+     "gpuMs": 150.439
+    },
+    {
+     "frameMs": 12.455001831054688,
+     "frameP95": 17.199996948242188,
+     "intervalP95": 233.3249999999989,
+     "fps": 5.992760743924032,
+     "cpuPercent": 735.2580854599373,
+     "draws": 622.9333333333333,
+     "gpuMs": 137.545
+    },
+    {
+     "frameMs": 11.439998626708984,
+     "frameP95": 15.670001983642578,
+     "intervalP95": 166.66500000000087,
+     "fps": 6.792514656311225,
+     "cpuPercent": 783.8415483832074,
+     "draws": 618.3529411764706,
+     "gpuMs": 129.094
+    },
+    {
+     "frameMs": 11.46500015258789,
+     "frameP95": 18.265003204345703,
+     "intervalP95": 216.65999999999985,
+     "fps": 6.783164181533296,
+     "cpuPercent": 769.5072372667111,
+     "draws": 618.3529411764706,
+     "gpuMs": 125.266
+    },
+    {
+     "frameMs": 11.814998626708984,
+     "frameP95": 15.71500015258789,
+     "intervalP95": 199.99499999999898,
+     "fps": 6.388526212381509,
+     "cpuPercent": 759.5690227522448,
+     "draws": 620.5,
+     "gpuMs": 127.654
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 1921,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 47,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 32,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 9,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 10,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 63,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 31,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 30,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 53,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 2,
+     "Sprite/BufferGeometry/SpriteMaterial": 2,
+     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 27,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 13,
+     "Mesh/OctahedronGeometry/MeshStandardMaterial/shadow": 31,
+     "Mesh/IcosahedronGeometry/MeshStandardMaterial/shadow": 24,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 6,
+     "Mesh/RoundedBoxGeometry/MeshBasicMaterial": 14,
+     "Mesh/ConeGeometry/MeshBasicMaterial": 8,
+     "Mesh/CapsuleGeometry/MeshStandardMaterial/shadow": 24,
+     "Mesh/CapsuleGeometry/MeshBasicMaterial": 8
+    }
+   }
+  },
+  "menus": {
+   "summary": {
+    "counters": {
+     "draws": 181.296,
+     "threeDrawCalls": 108,
+     "triangles": 12406,
+     "uploadsPerFrame": 2.037,
+     "uploadKBPerFrame": 3.581,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 28.519,
+     "mutationsPerSec": 3.595,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 3.589,
+     "objects": 407,
+     "visibleMeshes": 105,
+     "programs": 12,
+     "geometries": 110,
+     "textures": 2
+    },
+    "timing": {
+     "frameMs": 4.395,
+     "frameP95": 5.345,
+     "frameMax": 6.385,
+     "intervalP95": 50.005,
+     "fps": 21.571,
+     "cpuPercent": 739.063,
+     "gpuMs": 39.309,
+     "scriptMsPerSec": 99.45,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 3.107,
+     "player": 0.681,
+     "world": 0.189,
+     "interface": 0.183,
+     "systems": 0.102,
+     "hover": 0.071,
+     "other": 0.07,
+     "feedback": 0.051
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 5.155002593994141,
+     "frameP95": 6.444999694824219,
+     "intervalP95": 66.66499999999996,
+     "fps": 20.327876671237576,
+     "cpuPercent": 693.2812854920859,
+     "draws": 181.49019607843138,
+     "gpuMs": 39.327
+    },
+    {
+     "frameMs": 4.395000457763672,
+     "frameP95": 5.104999542236328,
+     "intervalP95": 50.0049999999992,
+     "fps": 21.94364872614327,
+     "cpuPercent": 743.5484995887292,
+     "draws": 181.23636363636365,
+     "gpuMs": 39.196
+    },
+    {
+     "frameMs": 4.254997253417969,
+     "frameP95": 6.135002136230469,
+     "intervalP95": 66.66500000000087,
+     "fps": 20.76984221192671,
+     "cpuPercent": 710.6691061578906,
+     "draws": 181.42307692307693,
+     "gpuMs": 39.063
+    },
+    {
+     "frameMs": 4.459999084472656,
+     "frameP95": 5.344997406005859,
+     "intervalP95": 50,
+     "fps": 21.57540401966471,
+     "cpuPercent": 748.7842353990925,
+     "draws": 181.2962962962963,
+     "gpuMs": 39.309
+    },
+    {
+     "frameMs": 4.375,
+     "frameP95": 5.234996795654297,
+     "intervalP95": 50,
+     "fps": 21.571008559230034,
+     "cpuPercent": 739.0633064908693,
+     "draws": 181.2962962962963,
+     "gpuMs": 39.671
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 390,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 4,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 1,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 2,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 4,
+     "Mesh/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 15,
+     "Mesh/IcosahedronGeometry/MeshStandardMaterial/shadow": 30,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 20,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 4,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 6,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/RingGeometry/MeshBasicMaterial": 3
+    }
+   }
+  },
+  "dialogue": {
+   "summary": {
+    "counters": {
+     "draws": 339.094,
+     "threeDrawCalls": 161,
+     "triangles": 42760,
+     "uploadsPerFrame": 2.063,
+     "uploadKBPerFrame": 79.156,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 29.906,
+     "mutationsPerSec": 15.572,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 13.555,
+     "objects": 1067,
+     "visibleMeshes": 235,
+     "programs": 15,
+     "geometries": 318,
+     "textures": 3
+    },
+    "timing": {
+     "frameMs": 8.725,
+     "frameP95": 10.57,
+     "frameMax": 11.355,
+     "intervalP95": 99.995,
+     "fps": 12.777,
+     "cpuPercent": 732.747,
+     "gpuMs": 60.288,
+     "scriptMsPerSec": 119.879,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 5.108,
+     "world": 2.526,
+     "player": 0.53,
+     "interface": 0.204,
+     "other": 0.089,
+     "systems": 0.065,
+     "feedback": 0.062,
+     "hover": 0.042
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 8.825000762939453,
+     "frameP95": 10.569999694824219,
+     "intervalP95": 99.99499999999989,
+     "fps": 12.350868247618648,
+     "cpuPercent": 689.0850366419327,
+     "draws": 339.61290322580646,
+     "gpuMs": 59.85
+    },
+    {
+     "frameMs": 8.759998321533203,
+     "frameP95": 11.180000305175781,
+     "intervalP95": 99.99499999999898,
+     "fps": 13.180229655516724,
+     "cpuPercent": 741.3263275413884,
+     "draws": 338.7878787878788,
+     "gpuMs": 60.288
+    },
+    {
+     "frameMs": 8.375,
+     "frameP95": 10.025001525878906,
+     "intervalP95": 83.33499999999913,
+     "fps": 13.56792542512313,
+     "cpuPercent": 759.137217638574,
+     "draws": 338.6764705882353,
+     "gpuMs": 59.568
+    },
+    {
+     "frameMs": 8.724998474121094,
+     "frameP95": 10.574996948242188,
+     "intervalP95": 116.65999999999985,
+     "fps": 11.941296581631665,
+     "cpuPercent": 682.3375403888631,
+     "draws": 339.96666666666664,
+     "gpuMs": 61.639
+    },
+    {
+     "frameMs": 8.505001068115234,
+     "frameP95": 9.5,
+     "intervalP95": 100,
+     "fps": 12.776746325586586,
+     "cpuPercent": 732.7474576219623,
+     "draws": 339.09375,
+     "gpuMs": 61.383
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 1050,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 12,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 26,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 10,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 4,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 14,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 4,
+     "Mesh/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 41,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 2,
+     "Sprite/BufferGeometry/SpriteMaterial": 2,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 29,
+     "Line/BufferGeometry/LineBasicMaterial": 1,
+     "Mesh/CylinderGeometry/MeshBasicMaterial": 4,
+     "Mesh/RoundedBoxGeometry/MeshBasicMaterial": 2,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 6,
+     "Mesh/IcosahedronGeometry/MeshStandardMaterial/shadow": 45,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 6,
+     "Mesh/RingGeometry/MeshBasicMaterial": 3,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 8,
+     "Mesh/ExtrudeGeometry/MeshStandardMaterial/shadow": 4,
+     "Mesh/TubeGeometry/MeshStandardMaterial/shadow": 1
+    }
+   }
+  },
+  "travel": {
+   "summary": {
+    "counters": {
+     "draws": 301.88,
+     "threeDrawCalls": 155.269,
+     "triangles": 30700,
+     "uploadsPerFrame": 1.053,
+     "uploadKBPerFrame": 13.966,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 29.91,
+     "mutationsPerSec": 32.647,
+     "layoutsPerSec": 0.81,
+     "styleRecalcsPerSec": 11.863,
+     "objects": 412,
+     "visibleMeshes": 109,
+     "programs": 22,
+     "geometries": 625,
+     "textures": 3
+    },
+    "timing": {
+     "frameMs": 7.89,
+     "frameP95": 10.585,
+     "frameMax": 15.705,
+     "intervalP95": 100,
+     "fps": 13.496,
+     "cpuPercent": 751.928,
+     "gpuMs": 62.778,
+     "scriptMsPerSec": 106.09,
+     "longTasks": 5
+    },
+    "sections": {
+     "render": 7.385,
+     "world": 1.957,
+     "player": 0.562,
+     "interface": 0.195,
+     "systems": 0.171,
+     "other": 0.076,
+     "feedback": 0.046,
+     "hover": 0.039
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 7.8899993896484375,
+     "frameP95": 11.22500228881836,
+     "intervalP95": 149.9950000000008,
+     "fps": 11.414191283462209,
+     "cpuPercent": 639.9985978509512,
+     "draws": 303.2603550295858,
+     "gpuMs": 63.738
+    },
+    {
+     "frameMs": 8.260002136230469,
+     "frameP95": 10.585002899169922,
+     "intervalP95": 100,
+     "fps": 13.495797020496274,
+     "cpuPercent": 751.9281007662669,
+     "draws": 301.8796992481203,
+     "gpuMs": 62.778
+    },
+    {
+     "frameMs": 7.654998779296875,
+     "frameP95": 10.049999237060547,
+     "intervalP95": 100,
+     "fps": 13.61163845834998,
+     "cpuPercent": 756.0734903841751,
+     "draws": 301.83458646616543,
+     "gpuMs": 61.832
+    }
+   ],
+   "leak": [
+    {
+     "cycle": 0,
+     "objects": 412,
+     "geometries": 625,
+     "textures": 3,
+     "programs": 22,
+     "heapMB": 62.13
+    },
+    {
+     "cycle": 1,
+     "objects": 412,
+     "geometries": 625,
+     "textures": 3,
+     "programs": 22,
+     "heapMB": 62.23
+    },
+    {
+     "cycle": 2,
+     "objects": 412,
+     "geometries": 625,
+     "textures": 3,
+     "programs": 22,
+     "heapMB": 62.34
+    }
+   ],
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 395,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 4,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 1,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 2,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 4,
+     "Mesh/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 15,
+     "Mesh/IcosahedronGeometry/MeshStandardMaterial/shadow": 30,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 21,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 4,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 6,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/RingGeometry/MeshBasicMaterial": 3,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 2,
+     "Sprite/BufferGeometry/SpriteMaterial": 1
+    }
+   }
+  }
+ }
+}

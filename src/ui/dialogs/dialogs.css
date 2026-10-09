@@ -1,0 +1,82 @@
+/* Dialog contents on the modal host (ui/dialogs/). */
+
+/* Naming */
+.q-name { display: grid; gap: 12px; }
+.q-name__entry { display: flex; gap: 6px; }
+.q-name__entry .q-input { flex: 1; min-inline-size: 0; }
+.q-name__dice {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--q-touch);
+  block-size: var(--q-touch);
+  padding: 0;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  cursor: pointer;
+}
+.q-name__dice svg { inline-size: 22px; block-size: 22px; }
+
+/* Station recipe browser: list and detail side by side; one at a time on phones. */
+.q-station { display: flex; flex-direction: column; flex: 1; min-block-size: 0; }
+.q-station__search { padding: 12px var(--q-modal-pad) 0; }
+.q-station__browser { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); flex: 1; min-block-size: 0; }
+.q-station__recipes {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-block-size: 0;
+  padding: 12px;
+  border-inline-end: 1px solid var(--q-line);
+  overflow: auto;
+}
+.q-station__detail { display: flex; flex-direction: column; min-block-size: 0; min-inline-size: 0; }
+.q-station__footer:not(:has(button)) { display: none; }
+.q-station__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: none;
+  padding: 10px var(--q-modal-pad);
+  border-block-start: 1px solid var(--q-line);
+}
+
+@media (max-width: 700px) {
+  .q-station__browser { display: flex; flex-direction: column; }
+  .q-station__recipes { flex: 1; border: 0; }
+  .q-station__detail { flex: 1; }
+  .q-station[data-view='list'] .q-station__detail,
+  .q-station[data-view='detail'] .q-station__recipes { display: none; }
+  .q-station .q-recipe-detail__back { display: flex; }
+  .q-station[data-view='list'] .q-recipe-tile[aria-pressed='true'] { border-color: var(--q-line); background: var(--q-control-face); box-shadow: none; }
+  .q-station__footer { padding-block-end: max(10px, env(safe-area-inset-bottom)); }
+}
+
+/* Opening play-style choice (mode-choice.js), shown in the narrator's dialogue box. */
+.q-mode-choice { display: grid; gap: 10px; flex: 1 1 100%; min-inline-size: 0; }
+.q-mode-choice__options { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+.q-mode-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 4px 10px;
+  min-block-size: var(--q-touch);
+  padding: 10px 12px;
+  border: 1px solid var(--q-line);
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-face);
+  color: var(--q-ink);
+  cursor: pointer;
+}
+.q-mode-option[data-selected] { border-color: var(--q-control-pressed); background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); }
+.q-mode-option input { inline-size: 18px; block-size: 18px; margin: 2px 0 0; accent-color: var(--q-control-pressed); }
+.q-mode-option__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; font-size: 14px; }
+.q-mode-option__mode { color: var(--q-ink-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.q-mode-option__more { display: grid; gap: 4px; grid-column: 2; font-size: 13px; line-height: 1.45; }
+.q-mode-option__more[hidden] { display: none; }
+.q-mode-option__more small { color: var(--q-ink-muted); font-size: 12px; }
+.q-mode-choice__note { margin: 0; color: var(--q-ink-muted); font-size: 12px; line-height: 1.4; }
+.q-mode-choice__confirm { justify-self: end; min-block-size: var(--q-touch); }

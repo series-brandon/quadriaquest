@@ -1,0 +1,18 @@
+/* Transient combat warning chip. Hidden (no space) while idle; fades out after its message. */
+.q-chip {
+  justify-self: start;
+  margin: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--q-plate-bg);
+  color: var(--q-tone-warning);
+  font: 600 11px / 1.4 var(--q-font-numeric);
+  opacity: 0;
+  transition: opacity var(--q-chip-fade) var(--q-ease-out);
+}
+.q-chip[hidden] { display: none; }
+.q-chip[data-shown] { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .q-chip { transition: none; }
+}

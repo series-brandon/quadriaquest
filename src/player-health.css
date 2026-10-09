@@ -1,0 +1,2 @@
+body:has(#player-health:not([hidden])) #objective-update{top:110px}
+

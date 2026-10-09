@@ -1,0 +1,38 @@
+/* Development model viewer (dev/model-viewer.js) inside the modal host's large frame. */
+.q-viewer { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; flex: 1; min-block-size: 0; }
+.q-viewer__controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px 16px;
+  max-block-size: 48dvh;
+  padding: 16px 20px;
+  overflow: auto;
+}
+.q-viewer__field { display: grid; gap: 6px; min-inline-size: 0; font-size: 13px; font-weight: 600; }
+.q-viewer__field[hidden] { display: none; }
+.q-viewer__field .q-select { inline-size: 100%; }
+.q-viewer__playback { display: flex; grid-column: 1 / -1; flex-wrap: wrap; gap: 8px; }
+.q-viewer__playback .q-button { flex: 1 1 120px; }
+.q-viewer__loadout {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid var(--q-line);
+}
+.q-viewer__loadout[hidden] { display: none; }
+.q-viewer__loadout .q-page__help { grid-column: 1 / -1; }
+.q-viewer__stage { position: relative; min-block-size: 0; min-inline-size: 0; background: radial-gradient(ellipse at center, var(--q-card), var(--q-control-track)); }
+.q-viewer__stage canvas { display: block; inline-size: 100%; block-size: 100%; cursor: grab; touch-action: none; }
+.q-viewer__stage canvas:active { cursor: grabbing; }
+.q-viewer__hint { margin: 0; padding: 12px 20px; color: var(--q-ink-muted); font-size: 13px; }
+
+@media (max-width: 700px) {
+  .q-viewer__controls,
+  .q-viewer__loadout { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
+  .q-viewer__controls > .q-viewer__field:first-child { grid-column: 1 / -1; }
+  .q-viewer__hint { padding: 10px 12px; font-size: 12px; }
+}

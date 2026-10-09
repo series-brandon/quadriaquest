@@ -6,7 +6,7 @@ export function companionRoute(world,start,player,reserved=()=>false,occupied=()
  if(Math.abs(start.x-player.x)+Math.abs(start.z-player.z)===1&&!reserved(start)&&!start.blocked&&!start.water)return [];
  const queue=[start],previous=new Map([[key(start.x,start.z),null]]),candidates=[];
  for(let i=0;i<queue.length;i++){
-  const tile=queue[i],k=key(tile.x,tile.z);
+  const tile=queue[i];
   if(!same(tile,player)&&!reserved(tile)&&!tile.blocked&&!tile.water)candidates.push(tile);
   for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=world.get(key(tile.x+dx,tile.z+dz));if(!n||n.blocked||n.water||(same(n,player)||occupied(n))||Math.abs(n.h-tile.h)>.5||previous.has(key(n.x,n.z)))continue;previous.set(key(n.x,n.z),tile);queue.push(n);}
  }

@@ -1,0 +1,120 @@
+/* Design tokens for the new UI kit. Components use only these values for color, shape,
+   spacing, type and motion, so the visual direction can change in one place.
+   Legacy stylesheets keep their own --ui-* palette until each surface is migrated. */
+:root {
+  /* Ink */
+  --q-ink-on-dark: #fff;
+
+  /* Resources: pastel, to sit with the soft low-poly world. */
+  --q-health: #ef8a8f;
+  --q-mana: #a894ee;
+  --q-stamina: #7fc98d;
+  --q-energy: #f2cd6e;
+  --q-ki: #74cbd8;
+
+  /* Feedback tones for numbers (always drawn with a dark outline) */
+  --q-tone-warning: #ffb547;
+  --q-tone-danger: #ff6b6b;
+
+  /* Sizing */
+  --q-touch: 44px;
+  --q-meter-size: 48px;
+
+  /* Type */
+  --q-font-numeric: ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif;
+
+  /* Low-poly gauges: flat-shaded plum frame around a dark well */
+  --q-meter-frame: #5a5068;
+  --q-meter-well: #2f2939;
+  --q-meter-well-band: #3a3346;
+  --q-meter-shard: #ffffff38;
+  --q-rim: #1f1a27;
+
+  /* HUD action tiles */
+  --q-ink: #382b49;
+  --q-action-face: #f6efe8;
+  --q-action-border: #c7abc1;
+  --q-action-edge-light: #ffffffb3;
+  --q-action-edge-dark: #5a506833;
+  --q-action-radius: 10px;
+
+  /* Health plates and combat chip */
+  --q-plate-bg: #1f1a27e0;
+  --q-plate-track: #3a3346;
+  --q-plate-width: 48px;
+  --q-plate-height: 5px;
+  --q-plate-player-width: 44px;
+  --q-plate-player-height: 4px;
+  --q-plate-symbol: 14px;
+  --q-plate-effect: 11px;
+
+  /* Pages and controls (kit pages sit on the journal's paper) */
+  --q-ink-muted: #79677f;
+  --q-accent: #a55b55;
+  --q-line: #d9c6d3;
+  --q-card: #fffaf3;
+  --q-control-face: #fffaf3;
+  --q-control-track: #eadfe6;
+  --q-control-thumb: #ffffff;
+  --q-control-pressed: #5a5068;
+  --q-control-selected: #efe6ee;
+  --q-control-radius: 10px;
+  --q-ready: #376a46;
+  --q-ready-wash: #376a4614;
+  --q-missing: #a23b4a;
+  --q-missing-wash: #a23b4a14;
+
+  /* Tutorial guidance highlight */
+  --q-guide: #eac35f;
+  --q-guide-glow: #f6d87b59;
+
+  /* Dialogue boxes (ui/hud/dialogue.css): narrator and character conversations */
+  --q-veil: #20172e7a;
+  --q-dialogue-shadow: #1c12264d;
+  --q-choice-shadow: #21172b33;
+  --q-badge: #e8c68e;
+  --q-badge-border: #be9865;
+  --q-badge-ink: #372a42;
+  --q-badge-shadow: #22192b20;
+  --q-font-display: Georgia, serif;
+
+  /* Tutorial tip (ui/hud/tip.css): a dark card; green once a step is done */
+  --q-tip-bg: #493452f5;
+  --q-tip-ink: #fff0db;
+  --q-tip-muted: #dbcadd;
+  --q-tip-border: #ad8dba;
+  --q-tip-accent: #dbb878;
+  --q-tip-item: #f3cc88;
+  --q-tip-shadow: #382b4920;
+  --q-tip-button: #f4e6d5;
+  --q-tip-button-hover: #fff5e7;
+  --q-tip-button-ink: #493452;
+  --q-tip-done-bg: #304e40f7;
+  --q-tip-done-border: #739c7d;
+  --q-tip-done-accent: #b3e6ac;
+  --q-tip-done-title: #c4f2b9;
+
+  /* Notices (ui/hud/notices.css) */
+  --q-notice-shadow: #382b491c;
+  --q-gain: #46694e;
+  --q-cost: #806c7e;
+  --q-level: #fffae8;
+  --q-level-border: #e7c86e;
+  --q-level-ink: #80601b;
+  --q-level-shadow: #345b2420;
+
+  /* Modal host (ui/modal.js) */
+  --q-paper: #faf1e7;
+  --q-modal-border: #c7abc1;
+  --q-modal-radius: 18px;
+  --q-modal-pad: 20px;
+  --q-modal-edge: 16px;
+  --q-backdrop: #29203177;
+
+  /* Motion */
+  --q-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --q-duration-fast: 150ms;
+  --q-meter-level-duration: 350ms;
+  --q-action-wait-duration: 700ms;
+  --q-chip-fade: 300ms;
+}

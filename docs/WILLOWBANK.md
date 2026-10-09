@@ -1,6 +1,6 @@
 # Willowbank: Broken Bridge Rescue
 
-The second tutorial focuses on dialogue, carpentry, followers, fishing, cooking, and eating. Reed is a worried fisher slime: the bridge collapsed unexpectedly while a local animal was playing on the island. The animal is a visitor, not Reed’s pet. Combat and sword/shield instruction belong to the planned third area.
+The second tutorial focuses on dialogue, carpentry, followers, fishing, cooking, and eating. Reed is a worried fisher slime: the bridge collapsed unexpectedly while a local animal was playing on the island. The animal is a visitor, not Reed’s pet. Combat and equipment instruction belong to the planned third area, [Cinderhold](CINDERHOLD.md).
 
 ## Flow
 
@@ -19,18 +19,20 @@ After the rescue and companion naming, Reed says:
 - “Here—let me teach you how to catch yourself a meal. A little food should help you feel better.”
 - “First, you’ll need a fishing rod. A simple one will do.”
 
+The shared Campfire recipe picker lists all recipes tagged with the fire station, with search, ingredient availability, and selected recipe details. Desktop uses a split pane; mobile uses a full-screen list/detail flow. Cook one consumes the selected recipe’s ingredients and produces one item; batch cooking is deferred.
+
 Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. Full-health eating still requires confirmation.
 
 ## Rules and materials
 
 - Health starts at 30. Carpentry, Fishing, and Culinary use 120 XP per level; skill levels reduce activity duration.
-- All required materials can be replenished locally through respawning ground bundles, trees, boulders, and Flint. Axes and pickaxes remain craftable.
+- All required materials can be replenished locally through respawning ground bundles, trees, boulders, and Flint. Axes and pickaxes remain craftable. These are shared resource prefabs/actions: trees and boulders use a 3–6 second base duration (reduced by skill level), yield 1–3 materials and 20 XP, and respawn after eight seconds when their tile is free. Ground bundles remain walkable.
 - Repair requires a Crude Hammer in inventory and consumes Small Logs ×3 on completion; six seconds with three construction stages and 40 Carpentry XP.
-- Fishing waits four seconds (skill-adjusted), then plays a hook pull followed by the shared acquire celebration before returning to idle. Each completed catch awards one Raw Pondfish and 20 Fishing XP; click the spot again for another. Movement can interrupt the wait, but the catch celebration completes before control returns. The lesson requires two fish.
+- Fishing waits four seconds (skill-adjusted), then plays a hook pull followed by the shared acquire celebration before returning to idle. Each bite commits one Raw Pondfish and 20 Fishing XP exactly once; click the spot again for another. Movement can interrupt the wait for no reward, or skip the flourish after the catch while retaining its fish and XP. The lesson requires one Raw Pondfish.
 - Cooking is guaranteed, takes three seconds per fish, and grants 20 Culinary XP.
 - Campfires use clear buildable tiles, explicit placement confirmation, and can be packed up. Flint and Stone is reusable; no fuel/bait system yet.
 - Companion name defaults to Pebble (1–20 characters). Rename and Follow/Rest use the Companions tab. The follower is cosmetic and cannot take damage.
-- Sword/shield recipes and Combat skill are not exposed by the Willowbank lesson. The explicit dev combat sandbox enables them for testing.
+- Sword/shield recipes, equipment actions, and Combat skill are shared and available without an area prerequisite. Willowbank does not teach or require combat.
 - Completion leaves the area explorable and the return crystal usable. There is no third destination or prototype-ending message here while area three awaits design.
 
 ## Recipes
@@ -52,7 +54,7 @@ Crafting awards 20 Crafting XP; cooking awards Culinary XP instead.
 - **Hammer injury** animation: repeatable recoil/hand-shake preview with no damage.
 - Later checkpoints start with the repaired bridge, owned companion, 25 health, and the injury marked consumed so cooking/eating has the proper context.
 - **Reset Willowbank**: removes combat fixtures and clears injury, repair, companion, effects, health, and quests.
-- **Load combat sandbox (deferred area 3)**: explicitly spawns existing goblins and enables combat recipes/skill; fight, pursuit, defeat, equipment, splat, wander, and model controls remain available. This does not add combat objectives to Willowbank.
+- **Combat → Combat practice**: explicitly spawns portable goblins in the current area; provides approach/fight, reset, remove, and actual defeat/respawn controls. Use normal recipe/inventory actions for equipment and the shared model viewer for animations. This adds no combat objectives to Willowbank.
 
 ## Shared presentation and map layout
 
@@ -68,7 +70,7 @@ Dialogue uses a short fixed-height card. Advance a question to reveal standalone
 
 The corgi uses the same shared model and walk cycle for rescue, following, previews, and its journal portrait. Its trapped expression lowers its ears, head, and tail; after rescue it trots across the repaired bridge, approaches the player, and becomes their first companion.
 
-Combat models, equipment, damage rules, pursuit, defeat, hit splats, and animation previews remain available through the explicit dev combat sandbox. No goblin actors are created for ordinary Willowbank play. These mechanics are reserved for area three; see the implementation handoff in [DESIGN.md](DESIGN.md#area-three-combat-tutorial-outline).
+Combat models, equipment, damage rules, pursuit, defeat, hit splats, and animation previews remain available through the explicit dev combat sandbox. No goblin actors are created for ordinary Willowbank play. The combat narrative is reserved for area three; see the implementation handoff in [DESIGN.md](DESIGN.md#area-three-combat-tutorial-outline).
 
 ## Presentation polish
 
@@ -136,3 +138,7 @@ Sad corgi ears now rotate outward into a sideways droop. The tail nub sits sligh
 Player and companion naming share a dice button with separate pools: the original 58 player names and the 33 corgi names use title case (each word starts uppercase, with its remaining letters lowercase) (such as Sass Potato and Sir Nubsalot). Rolls avoid the current name. Opening input dialogues use the same compact height as other dialogue; the introductory island supports drag/arrow rotation and scroll/pinch zoom without unlocking movement. Playground → Tutorials & objectives → Replay color & name setup replays the real opening customization, and the Willowbank name action covers companion naming.
 
 Opening camera framing follows the area, not dialogue presentation: the single-tile island keeps its customization framing from before the drop through naming, and the clearing switches to its normal framing during the fully obscured transition. Showing the first dialogue no longer changes the camera aim. The customization replay uses the same camera path.
+
+Cooking execution is app-owned in `src/cooking.js`, with shared recipes in `src/recipes.js`. Willowbank supplies a campfire availability/pack adapter and a quest-completion callback; it does not own the cooking timer, item conversion, or Culinary XP. Debug UI preview opens the shared menu without teleporting, granting items, or attaching a fake station.
+
+Fishing is app-owned in `fishing.js`, with portable spots in `fishing-spots.js`, the shared ripple model in `fishing-spot-model.js`, and rod/fish presentation in `fishing-presentation.js`. Willowbank configures its pond placement, hides its lesson tip when work starts, and observes the first catch for quest progression. Reed waits until shared actions, movement, and journal use finish before giving his follow-up.

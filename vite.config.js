@@ -4,7 +4,8 @@ import {cp, readdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-// Vite's SPA fallback otherwise serves the game for public directory URLs.
+// Dev logs (public/dev-logs) are served by `npm run dev` only; they deploy as their own site
+// (dist-dev-logs). Vite's SPA fallback otherwise serves the game for their directory URLs.
 function devLogDirectories(){
   const install=server=>{server.middlewares.use((req,res,next)=>{
     const url=new URL(req.url,'http://localhost');
@@ -20,7 +21,7 @@ function devLogDirectories(){
   return {name:'dev-log-directories',configureServer:install};
 }
 
-// Keep local editorial content out of game builds while retaining other public assets.
+// Builds copy public/ except the dev logs: RUN needs public/thumbnail.jpg in dist.
 function gamePublicAssets(){
   let config;
   return {

@@ -10,6 +10,18 @@ ctx.lineJoin='round';ctx.strokeStyle='#fff3be';ctx.lineWidth=12;ctx.stroke();ctx
 const gradient=ctx.createLinearGradient(0,20,0,165);gradient.addColorStop(0,'#ffe798');gradient.addColorStop(1,'#e9a92d');ctx.fillStyle=gradient;ctx.fill();
 const arrowTexture=new THREE.CanvasTexture(canvas);arrowTexture.colorSpace=THREE.SRGBColorSpace;
 
+// Inflated copies (hulls) of a geometry, cached per geometry and amount, so many instances of one
+// shared model share their outlines too.
+const hulls=new WeakMap();
+function hull(source,amount){
+ let byAmount=hulls.get(source);if(!byAmount)hulls.set(source,byAmount=new Map());
+ if(!byAmount.has(amount)){
+  const geometry=source.clone(),positions=geometry.attributes.position,normals=geometry.attributes.normal;
+  for(let i=0;i<positions.count;i++)positions.setXYZ(i,positions.getX(i)+normals.getX(i)*amount,positions.getY(i)+normals.getY(i)*amount,positions.getZ(i)+normals.getZ(i)*amount);
+  geometry.userData.shared=!!source.userData.shared;byAmount.set(amount,geometry);
+ }
+ return byAmount.get(amount);
+}
 export function highlightResource(group,{height=.95}={}){
   const borders=[],glows=[];
   // Inverted hulls outline the item itself, with a softer outer gold edge.
@@ -17,8 +29,7 @@ export function highlightResource(group,{height=.95}={}){
   for(const item of meshes){
     if(!item.isMesh)continue;
     for(const [material,amount]of [[glow,.032],[gold,.014]]){
-      const geometry=item.geometry.clone(),positions=geometry.attributes.position,normals=geometry.attributes.normal;
-      for(let i=0;i<positions.count;i++)positions.setXYZ(i,positions.getX(i)+normals.getX(i)*amount,positions.getY(i)+normals.getY(i)*amount,positions.getZ(i)+normals.getZ(i)*amount);
+      const geometry=item.geometry.userData.shared?hull(item.geometry,amount):hull(item.geometry.clone(),amount);
       const outline=new THREE.Mesh(geometry,material);outline.position.copy(item.position);outline.rotation.copy(item.rotation);outline.scale.copy(item.scale);outline.userData.portraitIgnore=true;item.parent.add(outline);outline.visible=false;(material===gold?borders:glows).push(outline);
     }
   }

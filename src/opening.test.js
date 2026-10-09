@@ -3,11 +3,15 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {objectives,resetObjectives} from './quests.js';
 import {createOpening} from './opening.js';
+import {mount} from './ui/dom.js';
 
 // Minimal DOM for exercising lesson transitions without timing browser animations.
 class Element {
-  constructor(){this.children=[];this.dataset={};this.handlers={};this.style={};this.classList={add(){},remove(){},toggle(){}};this.hidden=false;this.textContent='';}
-  append(...nodes){for(const node of nodes)node.parentElement=this;this.children.push(...nodes);}
+  constructor(){this.nodeType=1;this.children=[];this.dataset={};this.handlers={};this.style={};this.classList={add(){},remove(){},toggle(){}};this.hidden=false;this.textContent='';}
+  append(...nodes){nodes=nodes.map(node=>typeof node==='string'?Object.assign(new Element(),{textContent:node}):node);for(const node of nodes)node.parentElement=this;this.children.push(...nodes);}
+  removeAttribute(){}
+  remove(){}
+  find(test){for(const child of this.children){if(test(child))return child;const found=child.find?.(test);if(found)return found;}return null;}
   replaceWith(node){const parent=this.parentElement;parent.children.splice(parent.children.indexOf(this),1,node);node.parentElement=parent;}
   replaceChildren(){this.children=[];}
   setAttribute(){}
@@ -18,16 +22,34 @@ class Element {
 }
 test('XP and level explanations return to gathering and final success only after confirmation',()=>{
   const previous=globalThis.document,nodes=new Map();
-  globalThis.document={body:new Element(),getElementById(id){if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);},createElement(){return new Element();},querySelector(){return new Element();}};
+  globalThis.document={body:new Element(),getElementById(id){if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);},createElement(tag){return tag==='template'?{content:{firstElementChild:{cloneNode:()=>new Element()}}}:new Element();},createTextNode(data){return Object.assign(new Element(),{data});},querySelector(){return new Element();}};
   try{
     const get=id=>document.getElementById(id);
     let finishSkills,finishQuests;
-    const opening=createOpening({onFirstQuest:done=>{finishQuests=done;},onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
-    const dialogue=()=>get('dialogue').click();
-    const button=label=>{const b=get('dialogue-controls').children.find(n=>n.textContent===label);assert.ok(b,label);b.click();};
+    const modes=[];
+    // The narrator's surface: the current line and its built controls (the real box is ui/hud/narrator.js).
+    const narrator={line:null,controls:null,show(line){this.controls?.dispose();this.line=line;this.controls=line.controls?mount(()=>{const box=document.createElement('div');box.append(...[line.controls()].flat());return box;}):null;},hide(){this.controls?.dispose();this.controls=null;this.line=null;},setPrompt(){}};
+    // The tip's surface (the real card is ui/hud/tip.js), exposed under the ids the assertions read.
+    const tipState={visible:false,state:{title:'',text:'',count:'',progress:null,action:null}};
+    const tip={get state(){return tipState.state;},show(next){tipState.state={title:'',text:'',count:'',progress:null,complete:false,action:null,help:null,...next};tipState.visible=true;},update(patch){tipState.state={...tipState.state,...patch};},updateAction(patch){tipState.state={...tipState.state,action:patch&&{...tipState.state.action,...patch}};},hide(){tipState.visible=false;}};
+    const continueButton={id:'tutorial-continue',get disabled(){return !!tipState.state.action?.disabled;},get textContent(){return tipState.state.action?.label??'';},click(){const action=tipState.state.action;if(action&&!action.disabled)action.onPress();}};
+    nodes.set('gather-tutorial',{get hidden(){return !tipState.visible;},set hidden(on){tipState.visible=!on;},children:[continueButton]});
+    nodes.set('tutorial-copy',{get textContent(){return tipState.state.text;}});
+    nodes.set('tutorial-title',{get textContent(){return tipState.state.title;}});
+    nodes.set('tutorial-count',{get textContent(){return tipState.state.count;},set textContent(value){tipState.state.count=value;}});
+    nodes.set('tutorial-progress',{style:{get width(){return tipState.state.progress===null?'':`${tipState.state.progress*100}%`;},set width(value){tipState.state.progress=parseFloat(value)/100;}}});
+    const hands=[];const opening=createOpening({narrator,tip,onHandChosen:side=>hands.push(side),onModeChosen:mode=>modes.push(mode),onFirstQuest:done=>{finishQuests=done;},onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
+    const text=n=>n.data??(n.textContent||(n.children||[]).map(text).join(''));
+    const dialogue=()=>narrator.line?.next?.();
+    const button=label=>{const b=narrator.controls.node.find(n=>n.handlers?.click&&text(n)===label);assert.ok(b,label);b.click();};
     opening.update(1);opening.update(1.4);
     for(let i=0;i<4;i++)dialogue();
-    assert.equal(get('dialogue').dataset.presentation,'customize');button('This is me');assert.equal(get('dialogue').dataset.presentation,'customize');button('Yes');assert.equal(get('dialogue').dataset.presentation,'customize');assert.equal(opening.canOrbit,true);assert.equal(opening.reaction.kind,'Happy hop');dialogue();assert.equal(opening.reaction.kind,'Happy hop');opening.update(1.2);dialogue();button('That’s my name');button('Yes');assert.equal(opening.reaction.kind,'Wave');opening.update(2.3);dialogue();
+    assert.equal(narrator.line.presentation,'customize');button('This is me');assert.equal(narrator.line.presentation,'customize');button('Yes');assert.equal(narrator.line.presentation,'customize');assert.equal(opening.canOrbit,true);assert.equal(opening.reaction.kind,'Happy hop');dialogue();assert.equal(opening.reaction.kind,'Happy hop');opening.update(1.2);dialogue();button('That’s my name');button('Yes');assert.equal(opening.reaction.kind,'Wave');
+    // The dominant hand comes next; it reaches the shared equipment through onHandChosen.
+    button('Left hand');assert.deepEqual(hands,['left']);assert.match(narrator.line.text,/lefty/);opening.update(3);dialogue();
+    // Then the play style: Simple is preselected; picking Pacifist and confirming applies it.
+    const controls=narrator.controls.node;controls.find(n=>n.handlers?.change&&n.value==='pacifist').handlers.change();controls.find(n=>n.handlers?.click&&/^Play as/.test(n.children?.[0]?.data??'')).click();
+    assert.deepEqual(modes,['pacifist']);opening.update(2.3);dialogue();
     for(const dt of [1.3,.4,1.3,.9,1.4])opening.update(dt);
     for(let i=0;i<4;i++)dialogue();
     assert.equal(typeof finishQuests,'function');assert.equal(opening.playable,false);finishQuests();assert.equal(opening.playable,true);

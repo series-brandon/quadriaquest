@@ -1,0 +1,18 @@
+/* Combat page (ui/pages/combat-page.js): compact essentials, then collapsible sections. */
+.q-card__warning { display: flex; gap: 4px; align-items: center; color: var(--q-accent); }
+.q-card__warning svg { inline-size: 14px; block-size: 14px; flex: none; fill: var(--q-tone-warning); stroke: var(--q-rim); }
+
+/* One-time overrides: what you're choosing yourself this fight, with Return to Auto. */
+.q-note {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--q-control-radius);
+  background: var(--q-control-selected);
+  box-shadow: inset 3px 0 0 var(--q-control-pressed);
+}
+.q-note[hidden] { display: none; }
+.q-note > strong { font-size: 13px; }
+
+/* Guided from a tip ("Show me how"): the mode dropdown. */
+.q-select[data-guide] { border-color: var(--q-guide); box-shadow: 0 0 0 3px var(--q-guide-glow); }
