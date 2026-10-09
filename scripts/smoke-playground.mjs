@@ -128,6 +128,18 @@ try {
   const bridgeShown = await inView();
   console.log(JSON.stringify({willowbankCatchFollowUp: followUp, bridgeHelpBringsBridgeIntoView: bridgeHidden && bridgeShown, shadowsFollowThePlayer: shadowsFollow}));
   if (!followUp || !bridgeShown || !shadowsFollow) failed = true;
+
+  // Streaming test (playground): enter the generated world, teleport far, and expect a loaded
+  // neighborhood around the player with its resources.
+  await page.evaluate(() => document.querySelector('[data-dev="stream-enter"]').click());
+  await waitFor(page, () => window.quadriaquest.getState().area === 'stream-test', 10000);
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => document.querySelector('[data-dev="stream-far"]').click());
+  await page.waitForTimeout(2500);
+  const stream = await page.evaluate(() => { document.querySelector('[data-dev="stream-stats"]').click(); try { return JSON.parse(document.querySelector('#dev-status')?.textContent || 'null'); } catch { return null; } });
+  const streamed = !!stream && stream.chunks >= 25 && stream.entities > 100 && !!stream.player;
+  console.log(JSON.stringify({streamingTest: streamed, chunks: stream?.chunks, entities: stream?.entities}));
+  if (!streamed) failed = true;
   await page.close();
 
   // The normal build (dist), when present: a new game from the splash, played as a player would,

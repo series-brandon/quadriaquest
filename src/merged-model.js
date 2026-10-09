@@ -12,6 +12,13 @@ export function sharedVertexColorMaterial({roughness=.9,flatShading=false}={}){
  return materials.get(key);
 }
 const matrix=new THREE.Matrix4(),quaternion=new THREE.Quaternion(),euler=new THREE.Euler(),position=new THREE.Vector3(),scale=new THREE.Vector3(),color=new THREE.Color();
+// The same model built many times (every tree, every boulder) shares one geometry: built once per
+// `key`, marked shared so disposers leave it alone.
+const cached=new Map();
+export function cachedMergedMesh(key,parts,options={}){
+ if(!cached.has(key)){const geometry=mergedMesh(parts(),options).geometry;geometry.userData.shared=true;cached.set(key,geometry);}
+ const mesh=new THREE.Mesh(cached.get(key),sharedVertexColorMaterial(options));mesh.castShadow=mesh.receiveShadow=true;return mesh;
+}
 export function mergedMesh(parts,options={}){
  const geometries=parts.map(part=>{
   // Mixed indexed (cylinders) and non-indexed (polyhedra) parts merge as non-indexed triangles.

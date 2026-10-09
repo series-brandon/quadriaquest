@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import {tileTopGeometry} from './tile-top.js';
 import {key} from './world.js';
-import {mergedMesh} from './merged-model.js';
+import {cachedMergedMesh} from './merged-model.js';
 const material=color=>new THREE.MeshStandardMaterial({color,roughness:.9});
 function add(parent,geometry,mat,x=0,y=0,z=0){const mesh=new THREE.Mesh(geometry,typeof mat==='string'?material(mat):mat);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);return mesh;}
 // One merged mesh (trunk and three crowns): a single draw and shadow draw per tree.
 export function makeTree(){
  const group=new THREE.Group();
- group.add(mergedMesh([{geometry:new THREE.CylinderGeometry(.09,.15,1.3,7),color:'#a68c6b',position:[0,.65,0]},
+ group.add(cachedMergedMesh('tree',()=>[{geometry:new THREE.CylinderGeometry(.09,.15,1.3,7),color:'#a68c6b',position:[0,.65,0]},
   ...[0,1,2].map(j=>({geometry:new THREE.IcosahedronGeometry(.72-j*.13,1),color:['#799b62','#95b575','#a9c589'][j],position:[Math.sin(j*3)*.19,1.25+j*.38,Math.cos(j*3)*.12],scale:[1,.95,1]}))]));
  return group;
 }

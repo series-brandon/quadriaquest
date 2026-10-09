@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {mergedMesh} from './merged-model.js';
+import {cachedMergedMesh} from './merged-model.js';
 export const BOULDER_TILES=new Set(['7,1','1,7','10,9']);
 // The boulder's three rocks, for merged models (main rock and side rocks colors).
 export function boulderParts(main='#84939e',side='#9aa8ae'){
@@ -7,7 +7,7 @@ export function boulderParts(main='#84939e',side='#9aa8ae'){
 }
 // One merged mesh: a single draw and shadow draw per boulder.
 export function makeBoulder(){
- const group=new THREE.Group();group.add(mergedMesh(boulderParts(),{roughness:.95,flatShading:true}));
+ const group=new THREE.Group();group.add(cachedMergedMesh('boulder',boulderParts,{roughness:.95,flatShading:true}));
  return group;
 }
 export function makePickaxe(){

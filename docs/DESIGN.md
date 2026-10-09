@@ -207,6 +207,20 @@ Confirmed direction, 2026-10-05: each tutorial area expands the player's sense o
 
 The open world should feel continuous as the player moves. Chunks are a shared loading/simulation boundary, not separate tutorial areas, gameplay variants or visible teleport steps. Keep nearby terrain/entities resident, preload ahead of movement, and release distant runtime objects within a bounded budget. The game must not need the entire world's meshes, actors, collision grid or pathfinding graph in memory. Actual chunk dimensions, preload/unload distances, simulation radius, device budgets and storage format require profiling and a dedicated implementation plan.
 
+### Streaming experiment (2026-10-09, playground only)
+
+A first prototype answers the performance questions before the real world exists. In the playground's **Streaming test**, a generated 512 × 512 landscape (`src/dev/stream-world-gen.js`) streams through the shared `chunk-streamer.js` in **16 × 16-tile chunks**: the 5 × 5 chunks around the player stay loaded (radius 2), nearer chunks load first within a 4 ms per-frame budget, and chunks are released one ring beyond that (hysteresis). Loaded tiles go into the live world map, so pathfinding, picking, the minimap and occupancy work unchanged, and unloaded tiles are unwalkable. Resources (trees, rocks, ground items) stream with their chunk; their depletion and respawn timers are kept by stable id while away (timers keep running), and a chunk with a busy resource (being worked or falling) is not released.
+
+Findings:
+- **Chunk build cost** went from about 18 ms to about 1.5 ms (browser): `chunk-terrain.js` writes each chunk as one vertex-colored mesh, copying the 16 precomputed tile-top shapes and drawing only visible sides (about 30% fewer triangles than per-tile boxes), and identical models and their highlight outlines share geometry (`cachedMergedMesh`).
+- **Walking across chunk borders is smooth; a 100-tile teleport** (25 chunks loaded at once) is a 67–83 ms hitch, down from about 380 ms.
+- **The sun's shadow area now follows the player** in 4-tile steps (it covered only ±24 tiles around the origin), which large hand-built areas such as Cinderhold also needed.
+- **A one-time ~300 ms pause on the first click** is the browser creating the audio context; in the real game it falls behind the splash's Play button, and it could move to load time.
+
+Sizes considered: Old School RuneScape uses 8 × 8-tile zones and 64 × 64-tile regions (8 × 8 zones) as its map storage unit, and rebuilds a ~104 × 104 scene when the player nears its edge. Our 16 × 16 chunks sit between those and are built incrementally instead. When the world becomes authored, saved content, **64 × 64 regions are a sensible storage unit** (they divide evenly into 16 × 16 chunks); drawing 8 × 8 pieces individually would cost more draw calls than it saves.
+
+Next steps for the prototype: enemies and NPCs streaming with their chunk (with the simulation-sleep policy below), crystal travel landing in a streamed area, and a perf scenario that walks across chunk borders.
+
 ### Shared infrastructure requirements for streaming
 
 - **Content ownership stays unchanged:** regions/chunks declare terrain, entity placements and story context. Shared systems own gameplay, models, animation, interaction, rewards and lifecycle. Crossing a chunk boundary cannot change how a furnace, goblin, spell or ore vein works.

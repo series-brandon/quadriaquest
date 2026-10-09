@@ -502,7 +502,11 @@ const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=n
 // One batch per frame: UI bindings flush once, after the frame's state changes.
 function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
 // Playground builds attribute frame time to these laps; normal builds compile them away.
-function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+// The sun's shadow area (±24 tiles) follows the player in 4-tile steps, so large areas and streamed
+// worlds keep shadows everywhere; each step redraws the shadow map once.
+let sunAnchor='';
+function followSun(){const fx=Math.round(player.position.x/4)*4,fz=Math.round(player.position.z/4)*4,anchor=`${fx},${fz}`;if(anchor===sunAnchor)return;sunAnchor=anchor;sun.target.position.set(fx,0,fz);sun.position.set(fx-8,19,fz+5);sun.target.updateMatrixWorld();quality.shadowsChanged();}
+function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);followSun();quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
@@ -657,8 +661,41 @@ if(__PLAYGROUND__){
  combatFixtures=playground.createCombatFixtures({combat,world,scene,pickables,tile:()=>tile,stop:stopAll,approach:selectActor,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  carpentryFixture=playground.addCarpentryFixture({world:clearingTiles,currentWorld:world,scene:clearingGroup,pickables,clearingObjects});
  playground.addFishingFixture({world:clearingTiles,scene:clearingGroup,fishingSpots,clearingObjects});
+ // Streaming test (playground only): a generated 512 × 512 world streamed in 16 × 16 chunks through the
+ // shared chunk streamer. Created on first use; dynamic imports keep it out of the normal build.
+ let streamSandbox=null;
+ async function streamSandboxReady(){
+  if(streamSandbox)return streamSandbox;
+  const [{createStreamWorld},{createChunkStreamer}]=await Promise.all([import('./dev/stream-world-gen.js'),import('./chunk-streamer.js')]);
+  const source=createStreamWorld(),group=new THREE.Group(),tiles=new Map(),water=new THREE.Color('#6fa8d6');scene.add(group);
+  const streamer=createChunkStreamer({source,maps:[world,tiles],parent:group,pickables,resources:resourceActions,topColor:t=>t.water?water:grass[(t.x*7+t.z)%4].color});
+  const spawn=source.spawn();
+  areas.register({id:'stream-test',name:'Streaming test',description:'Playground: a generated world streamed in chunks',listed:()=>false,group,tiles,
+   camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>tiles.get(key(spawn.x,spawn.z)),update:dt=>streamer.update(dt,tile)});
+  return streamSandbox={source,streamer,tiles,spawn};
+ }
+ // Lands on a loaded tile at (x, z) or the nearest land around it, loading its neighborhood first.
+ function streamLand(x,z){
+  const {streamer,tiles,source}=streamSandbox;
+  for(let r=0;r<12;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const t=source.tile(x+dx,z+dz);if(!t||t.water)continue;streamer.prime(t.x,t.z);const landing=tiles.get(key(t.x,t.z));if(landing&&!landing.blocked)return landing;}
+  return null;
+ }
  playgroundApi={
   companions,
+  async enterStreamTest(){
+   const {spawn}=await streamSandboxReady();stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
+   const landing=streamLand(spawn.x,spawn.z);if(!landing)return false;
+   areas.activate('stream-test',{landing,arrival:false});companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
+  },
+  streamTeleport(dx,dz){
+   if(areas.id!=='stream-test')return false;stopAll();
+   const landing=streamLand(tile.x+dx,tile.z+dz);if(!landing)return false;
+   tile=landing;player.position.set(landing.x-6,landing.h,landing.z-6);companions.resetRoute(landing);return true;
+  },
+  get streamStats(){return streamSandbox?{...streamSandbox.streamer.stats,radius:streamSandbox.streamer.radius,player:areas.id==='stream-test'?{x:tile.x,z:tile.z}:null}:null;},
+  set streamRadius(value){if(streamSandbox)streamSandbox.streamer.radius=value;},
+  set streamBounds(value){if(streamSandbox)streamSandbox.streamer.showBounds=value;},
+  streamStall(seconds){streamSandbox?.streamer.stall(seconds);},
   trainingAction:action=>trainingFixtures.run(action),
   landmark(name){stopAll();areas.notify('clearUI');opening.enterFreePlay();finale.ensurePortal();if(areas.id!=='cinderhold')areas.activate('cinderhold',{landing:travel.landingFor('cinderhold'),arrival:false});cinder.clearUI();const [x,z]=CINDERHOLD[name],targetTile=cinder.tiles.get(key(x,z)),route=interactionRoute(world,tile,{tile:targetTile,x,z});if(route){tile=route.at;player.position.set(tile.x-6,tile.h,tile.z-6);}},
   combatAction:action=>combatFixtures.run(action),

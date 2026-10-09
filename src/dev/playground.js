@@ -55,6 +55,10 @@ export function mountPlayground(api){
   const panel=document.createElement('details');panel.id='quadriaquest-dev-playground';panel.open=false;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>close</small></summary>
     <fieldset><legend>Training systems</legend><p class="dev-note">Portable production copper/stations/supplies/targets work in this map before visiting any tutorial. Add pickaxe/hammer and materials through Inventory. Use Combat for bow/Energy Strike. Move to cancel; reset to repeat. Crystal and station interface previews never grant items or teleport.</p><label>Action<select id="dev-training">${[['spawn','Spawn portable fixtures'],['copper','Mine copper'],['furnace','Use furnace'],['anvil','Use anvil'],['supplies','Use provision shelf'],['target','Fight practice target'],['scrapper','Fight live enemy'],['kit','Bow and arrow supply offers'],['learn','Learn Energy Strike'],['forget','Reset spells'],['reset','Reset fixtures'],['remove','Remove fixtures']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label><button data-dev="training">Run</button><label>Cinderhold landmark<select id="dev-landmark">${['crystal','sarge','smith','ranger','mage','ki','scrapper','bruiser','furnace','anvil'].map(id=>`<option>${id}</option>`).join('')}</select></label><button data-dev="landmark">Visit landmark</button></fieldset>
+    <fieldset><legend>Streaming test</legend><p class="dev-note">A generated 512 × 512 world streamed in 16 × 16 chunks (shared chunk streamer). Loads nearest first within a 4 ms per-frame budget, keeps one ring extra before unloading, and remembers depleted resources by id. Not listed on crystals; Back to the dream or a checkpoint leaves it.</p>
+      <div><button data-dev="stream-enter">Enter streaming test</button><button data-dev="stream-far">Teleport ~100 tiles</button><button data-dev="stream-stall">Stall loading 3 s</button><button data-dev="stream-stats">Show stats</button></div>
+      <label>Load radius (chunks)<select id="dev-stream-radius">${[1,2,3,4].map(r=>`<option value="${r}"${r===2?' selected':''}>${r} (${(2*r+1)**2} chunks)</option>`).join('')}</select></label>
+      <label class="dev-toggle"><input type="checkbox" id="dev-stream-bounds"> Show chunk bounds</label></fieldset>
     <fieldset><legend>Travel practice</legend><p class="dev-note">Uses shared travel and real crystals. Repeat trips, cancel during the fade, or reset the current area. Inventory and skills persist across travel.</p><label>Destination<select id="dev-travel"><option value="willowbank">Willowbank</option><option value="clearing">Clearing</option><option value="cinderhold">Cinderhold</option></select></label><button data-dev="travel">Travel</button><button data-dev="use-crystal">Walk to crystal</button><button data-dev="cancel-travel">Cancel travel</button></fieldset>
     <fieldset><legend>Tutorial checkpoints</legend><p class="dev-note">Loads the selected area and tutorial with its prerequisites. Replaces the current test session. Cinderhold arrival/meet replay Bristle’s greeting and both responses; refused loads his flustered state. Visit the sarge landmark, then talk to leave or resume training. Reset current area to repeat.</p><label>Tutorial step<select id="dev-checkpoint">${TUTORIAL_CHECKPOINTS.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select></label><button data-dev="checkpoint">Load step</button><button data-dev="reset-area">Reset current area</button>
       <p class="dev-note">Leaving the tutorial (production waking): Cinderhold finished or refused adds "???" to the crystal list. Wake up runs the farewell, reset, starter kit and arrival in the placeholder world; Back to the dream fully resets the session.</p><div><button data-dev="wake">Wake up now</button><button data-dev="wake-skip">Wake up (skip lines)</button><button data-dev="dream">Back to the dream</button></div></fieldset>
@@ -156,6 +160,10 @@ export function mountPlayground(api){
         if(action==='landmark')api.landmark($('landmark').value);
         if(action==='travel')status(api.travelTo($('travel').value)?'Travel started.':'Travel unavailable.');
         if(action==='use-crystal')api.usePortal();
+        if(action==='stream-enter'){stop();status(await api.enterStreamTest()?'Entered the streaming test.':'Could not find a landing tile.');api.streamRadius=+$('stream-radius').value;api.streamBounds=$('stream-bounds').checked;}
+        if(action==='stream-far'){const a=Math.random()*Math.PI*2;status(api.streamTeleport(Math.round(Math.cos(a)*100),Math.round(Math.sin(a)*100))?'Teleported.':'Enter the streaming test first.');}
+        if(action==='stream-stall'){api.streamStall(3);status('Loading stalled for 3 s.');}
+        if(action==='stream-stats')status(JSON.stringify(api.streamStats));
         if(action==='cancel-travel'){api.cancelTravel();status('Travel cancelled.');}
         if(action==='wake'||action==='wake-skip'){stop();status(api.wakeUp({skip:action==='wake-skip'})?'Waking up…':'Already awake. Use Back to the dream first.');}
         if(action==='dream'){stop();api.reset('all');status('Back in the dream: full test session reset.');}
@@ -260,6 +268,8 @@ export function mountPlayground(api){
     }catch(error){status(error.message);console.error(error);}
   });
   for(const [id,key,max] of [['roughness','roughness',1],['reflection','reflectionStrength',5]])$('water-'+id).addEventListener('input',()=>{const value=Number($('water-'+id).value);if(Number.isFinite(value))api.waterSettings[key]=Math.max(0,Math.min(max,value));});
+  $('stream-radius').addEventListener('change',()=>{api.streamRadius=+$('stream-radius').value;});
+  $('stream-bounds').addEventListener('change',()=>{api.streamBounds=$('stream-bounds').checked;});
   $('water-shimmers').addEventListener('change',()=>api.waterSettings.shimmers=$('water-shimmers').checked);
   $('water-shoreline').addEventListener('change',()=>api.waterSettings.fixedShoreline=$('water-shoreline').checked);
   $('grass-color').addEventListener('input',()=>api.grassPalette.set($('grass-color').value));

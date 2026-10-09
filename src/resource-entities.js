@@ -14,6 +14,6 @@ export function createResourceEntity({kind,tile,parent,pickables,id,respawn=null
  group.traverse(mesh=>{if(mesh.isMesh){mesh.userData.tile=tile;mesh.userData[solid?'tree':'resource']=entity;pickables.push(mesh);}});
  entity.highlight=highlightResource(group,{height:solid?(kind==='tree'?2.9:1.6):.95});
  if(!solid){entity.hitbox=createResourceHitbox(entity,tile);pickables.push(entity.hitbox);}
- entity.dispose=()=>{setWorldOccupancy(entity,false);group.removeFromParent();for(let i=pickables.length-1;i>=0;i--)if(pickables[i].userData.resource===entity||pickables[i].userData.tree===entity)pickables.splice(i,1);const mats=new Set();group.traverse(m=>{m.geometry?.dispose();for(const mat of [m.material].flat())if(mat)mats.add(mat);});for(const m of mats)if(!m.userData.shared)m.dispose();};
+ entity.dispose=()=>{setWorldOccupancy(entity,false);group.removeFromParent();for(let i=pickables.length-1;i>=0;i--)if(pickables[i].userData.resource===entity||pickables[i].userData.tree===entity)pickables.splice(i,1);const mats=new Set();group.traverse(m=>{if(!m.geometry?.userData.shared)m.geometry?.dispose();for(const mat of [m.material].flat())if(mat)mats.add(mat);});for(const m of mats)if(!m.userData.shared)m.dispose();};
  return entity;
 }

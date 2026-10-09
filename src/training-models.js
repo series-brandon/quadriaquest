@@ -3,11 +3,11 @@ import * as THREE from 'three';
 import {part} from './model-parts.js';
 import {makeSlime} from './slime-model.js';
 import {boulderParts} from './mining.js';
-import {mergedMesh} from './merged-model.js';
+import {cachedMergedMesh} from './merged-model.js';
 import {makeTerrainTile} from './world-models.js';
 const box=(g,w,h,d,color,x=0,y=0,z=0)=>part(g,new THREE.BoxGeometry(w,h,d),color,x,y,z);
 // A dark boulder with copper nuggets, merged into one mesh (one draw and shadow draw).
-export function copperOutcrop(){const g=new THREE.Group();g.add(mergedMesh([...boulderParts('#62616d','#62616d'),...[0,1,2,3,4].map(i=>({geometry:new THREE.OctahedronGeometry(.13,0),color:'#d18c53',position:[Math.sin(i*2.4)*.30,.93+Math.cos(i)*.08,Math.cos(i*2.4)*.25],rotation:[0,0,i*.6]}))],{roughness:.95,flatShading:true}));return g;}
+export function copperOutcrop(){const g=new THREE.Group();g.add(cachedMergedMesh('copper',()=>[...boulderParts('#62616d','#62616d'),...[0,1,2,3,4].map(i=>({geometry:new THREE.OctahedronGeometry(.13,0),color:'#d18c53',position:[Math.sin(i*2.4)*.30,.93+Math.cos(i)*.08,Math.cos(i*2.4)*.25],rotation:[0,0,i*.6]}))],{roughness:.95,flatShading:true}));return g;}
 export function ingot(){const g=new THREE.Group();box(g,.48,.19,.24,'#cb8955',0,.12);return g;}
 export function trainingTool(kind){const g=new THREE.Group();
  if(kind==='copperDagger'){box(g,.11,.38,.06,'#e0a06b',0,.22);part(g,new THREE.ConeGeometry(.07,.17,4),'#ffd1a0',0,.49);box(g,.27,.05,.10,'#816149',0,.035);box(g,.075,.19,.075,'#694437',0,-.075);}
