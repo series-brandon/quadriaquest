@@ -49,6 +49,7 @@ const paths={
  stone:'<path d="m3 16 3-10 10-3 6 9-5 9H7zM6 6l6 7 10-1M12 13l-5 8"/>',
  logs:'<path d="m3 15 12-9q5-1 6 4L8 20zM4 10l10-7 4 1"/><ellipse cx="6" cy="17" rx="3" ry="4"/><path d="m10 14 7-5"/>',
  hats:'<path d="m7 16-2-12q7-3 14 0l-2 12M7 12h10"/><ellipse cx="12" cy="17" rx="10" ry="4"/>',
+ companionHats:'<path d="m8.5 17-1.5-8q5-2 10 0l-1.5 8M8 13.5h8"/><ellipse cx="12" cy="17.5" rx="7.5" ry="3"/><circle cx="15.5" cy="13.5" r="1.4"/>',
  sound:'<path d="M3 9h4l5-5v16l-5-5H3zM16 8q5 4 0 8M19 4q8 8 0 16"/>',
  close:'<path d="m6 6 12 12M6 18 18 6"/>',
  back:'<path d="M15 5 8 12l7 7"/>',

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {buildChunkTerrain} from './chunk-terrain.js';
-import {createResourceEntity} from './resource-entities.js';
+import {createResourceEntity,RESOURCE_RESPAWN} from './resource-entities.js';
 import {key} from './world.js';
 
 // Chunk streaming (docs/DESIGN.md, World scale and streaming): keeps the chunks around the player
@@ -15,7 +15,7 @@ import {key} from './world.js';
 //   resources the shared resource actions (add/remove/snapshot/restore)
 export const CHUNK_SIZE=16;
 export const chunkOf=(x,z)=>[Math.floor(x/CHUNK_SIZE),Math.floor(z/CHUNK_SIZE)];
-export function createChunkStreamer({source,maps,parent,pickables,resources,topColor,radius=2,keep=1,budgetMs=4,now=()=>performance.now(),respawn=8}){
+export function createChunkStreamer({source,maps,parent,pickables,resources,topColor,radius=2,keep=1,budgetMs=4,now=()=>performance.now(),respawn=RESOURCE_RESPAWN}){
  const chunks=new Map(),state=new Map(),group=new THREE.Group();parent.add(group);
  let time=0,lastBuildMs=0,builtTotal=0,center=null,delay=0,bounds=false;
  const boundsMaterial=new THREE.LineBasicMaterial({color:'#ff4fa3',transparent:true,opacity:.85,depthTest:false});

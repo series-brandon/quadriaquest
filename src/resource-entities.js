@@ -6,8 +6,10 @@ import {createResourceHitbox} from './resource-hitbox.js';
 import {highlightResource} from './resource-highlight.js';
 import {setWorldOccupancy} from './world-occupancy.js';
 
+// Seconds before a depleted resource grows back; the same in every area. Pass respawn:null for a finite node.
+export const RESOURCE_RESPAWN=8;
 // Picking, models, occupancy and depletion state are identical in every area.
-export function createResourceEntity({kind,tile,parent,pickables,id,respawn=null,onStart,onReward}){
+export function createResourceEntity({kind,tile,parent,pickables,id,respawn=RESOURCE_RESPAWN,onStart,onReward}){
  const solid=kind==='tree'||kind==='boulder'||kind==='copper',group=kind==='copper'?copperOutcrop():kind==='tree'?makeTree():kind==='boulder'?makeBoulder():createGroundItemModel(kind);
  const entity={depleted:false,kind,id,tile,x:tile.x,z:tile.z,group,resourceNode:true,ready:true,duration:0,label:solid?(kind==='tree'?'Chop tree':kind==='copper'?'Mine copper':'Mine boulder'):'Gather '+kind,respawn,onStart,onReward};
  group.position.set(tile.x-6,tile.h,tile.z-6);parent.add(group);setWorldOccupancy(entity,true);

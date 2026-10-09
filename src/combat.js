@@ -2,6 +2,7 @@ import {gameViewport} from './game-viewport.js';
 import {Vector3} from 'three';
 import {findPath,key} from './world.js';
 import {withinAttackRange} from './combat-range.js';
+import {sizeOf,footprint,footprintGap,canStand,findFootprintPath} from './footprint.js';
 import {resolveAttack,resolvePortions,rollDamage,actionXp,backfireBaseDamage,displayedLoss,xpModifiers} from './combat-formulas.js';
 import {playerAttackProfile,playerDefense,strongStrikeProfile,armorAwards,offHandFollowUp,pairStrikes,FOLLOW_UP_DELAY} from './combat-profile.js';
 import {ABILITIES,SPELLS} from './combat-styles.js';
@@ -23,7 +24,7 @@ export const OPENING_WINDUP=.5;
 
 // Shared targeting, aggression, walking and recovery; maps provide encounter configuration.
 export function createCombatSystem(api){
- const enemies=new Set(),fleeing=new Map(),projected=new Vector3(),LABEL_LIFT=new Vector3(0,1.7,0),returningAfterWin=new Map(),shots=[],followUps=[];
+ const enemies=new Set(),fleeing=new Map(),projected=new Vector3(),returningAfterWin=new Map(),shots=[],followUps=[];
  let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true,sinceActivity=Infinity,pending=null,sinceRelease=Infinity;
  // `openingWindup` may be null to pin full-windup timing in tests of other mechanics.
  const opening=api.openingWindup===undefined?OPENING_WINDUP:api.openingWindup;
@@ -93,25 +94,34 @@ export function createCombatSystem(api){
  function consumableUsed(){
   pending=null;if(fight){fight.playerClock=0;fight.struck=false;commit(fight);}notify();
  }
- const animate=(a,time,options)=>a.rules.inert?animateTarget(a.group,time,options.hit):animateGoblin(a.group,time,options);
+ const animate=(a,time,options)=>a.rules.inert?animateTarget(a.group,time,options.hit):(a.animate||animateGoblin)(a.group,time,options);
+ // A territory (boss arena) bounds both the enemy's steps and how far it pursues.
+ const inTerritory=(a,t)=>!a.territory||!!t&&t.x>=a.territory.minX&&t.x<=a.territory.maxX&&t.z>=a.territory.minZ&&t.z<=a.territory.maxZ;
  const current=a=>api.world.get(key(a.home.x,a.home.z))===a.home;
  const position=t=>new Vector3(t.x-6,t.h,t.z-6);
+ // Multi-tile enemies (size > 1, footprint.js): `tile` is the anchor corner, the body covers size×size
+ // tiles and the model stands at the body's centre. Size 1 keeps the one-tile rules.
+ const cellsOf=(a,t=a.tile)=>footprint(api.world,t,sizeOf(a))||[t];
+ const bodyPosition=(a,t=a.tile)=>{const v=position(t),offset=(sizeOf(a)-1)/2;v.x+=offset;v.z+=offset;return v;};
+ const bodyReserved=(a,t)=>cellsOf(a,t).some(c=>reserved(c));
+ const bodyInTerritory=(a,t)=>cellsOf(a,t).every(c=>inTerritory(a,c));
+ function release(a){if(a.occupying){for(const c of a.cells||[a.tile])c.blocked=false;a.occupying=false;}}
  const reserved=t=>t===api.tile()||api.reserved(t);
- const settled=a=>a.group.position.distanceTo(position(a.tile))<.001;
- const adjacent=a=>settled(a)&&Math.abs(a.x-api.tile().x)+Math.abs(a.z-api.tile().z)===1&&Math.abs(a.tile.h-api.tile().h)<=.5;
- function move(a,t){if(a.occupying)a.tile.blocked=false;a.tile=t;a.x=t.x;a.z=t.z;t.blocked=true;a.occupying=true;a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=t;});}
+ const settled=a=>a.group.position.distanceTo(bodyPosition(a))<.001;
+ const adjacent=a=>settled(a)&&footprintGap(a.tile,sizeOf(a),api.tile())===1&&Math.abs(a.tile.h-api.tile().h)<=.5;
+ function move(a,t){release(a);a.cells=cellsOf(a,t);a.tile=t;a.x=t.x;a.z=t.z;for(const c of a.cells)c.blocked=true;a.occupying=true;a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=t;});}
  function resetEnemy(a){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);
-  returningAfterWin.delete(a);fleeing.delete(a);if(a.occupying){a.tile.blocked=false;a.occupying=false;}
+  returningAfterWin.delete(a);fleeing.delete(a);release(a);
   a.patrolRoute=[];a.patrolClock=wanderDelay(random);a.hitAge=a.attackAge=a.enemyClock=0;a.sinceStrike=Infinity;a.hp=a.rules.health;a.opened=false;a.aggro=false;(a.control||=createControlState()).reset();
   a.group.scale.setScalar(a.scale);a.group.rotation.set(0,0,0);
-  a.waitingRespawn=!!(a.home.blocked||reserved(a.home));a.returning=a.waitingRespawn;a.group.visible=current(a)&&!a.waitingRespawn;
-  if(!a.waitingRespawn){move(a,a.home);a.group.position.copy(position(a.home));}
+  a.waitingRespawn=cellsOf(a,a.home).some(c=>c.blocked||reserved(c));a.returning=a.waitingRespawn;a.group.visible=current(a)&&!a.waitingRespawn;
+  if(!a.waitingRespawn){move(a,a.home);a.group.position.copy(bodyPosition(a,a.home));}
  }
  function returnHome(a){
   if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;
   a.aggro=false;a.returning=true;a.enemyClock=a.attackAge=0;a.patrolRoute=[];
-  if(settled(a)&&a.tile===a.home&&!reserved(a.home)){a.returning=false;a.hp=a.rules.health;}
+  if(settled(a)&&a.tile===a.home&&!bodyReserved(a,a.home)){a.returning=false;a.hp=a.rules.health;}
  }
  function cancel(){if(fight){const a=fight.enemy;fight=null;if(a.rules.inert)resetEnemy(a);else if(a.aggro)returnHome(a);}api.complete?.();}
  function clearChase(){if(chase)returnHome(chase.enemy);}
@@ -154,7 +164,7 @@ export function createCombatSystem(api){
   if(retaliate&&!fight){if(api.inReach(a))start(a);else api.retaliate?.(a);}
  }
  function win(a,weapon){
-  if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;a.aggro=false;a.opened=true;if(a.occupying){a.tile.blocked=false;a.occupying=false;}
+  if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;a.aggro=false;a.opened=true;release(a);
   const at=api.tile(),escape=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>api.world.get(key(a.x+dx,a.z+dz))).filter(t=>t&&!t.water&&!t.blocked&&!reserved(t)&&Math.abs(t.h-a.tile.h)<=.5).sort((x,y)=>Math.hypot(y.x-at.x,y.z-at.z)-Math.hypot(x.x-at.x,x.z-at.z))[0];
   fleeing.set(a,{age:0,destination:!a.rules.inert&&escape&&position(escape)});api.won?.(a,weapon);if(a.respawn!=null)returningAfterWin.set(a,a.respawn+1.2);api.complete?.();
  }
@@ -188,19 +198,28 @@ export function createCombatSystem(api){
   reward(character.award(awards,xpModifiers(a.rules)),a);
   if(api.health.value<=0)lose();
  }
+ // A large body's wander: one step to a neighbouring spot inside its patrol bounds that it fits.
+ function wanderStep(a){
+  const size=sizeOf(a),options=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>api.world.get(key(a.tile.x+dx,a.tile.z+dz))).filter(t=>t&&t.x>=a.patrol.minX&&t.x<=a.patrol.maxX&&t.z>=a.patrol.minZ&&t.z<=a.patrol.maxZ&&Math.abs(t.h-a.tile.h)<=.5&&canStand(api.world,t,size,a.cells)&&!bodyReserved(a,t)&&bodyInTerritory(a,t));
+  return options.length?[options[Math.floor(random()*options.length)]]:[];
+ }
  function walkHome(a){
   if(!settled(a))return;
-  if(a.tile===a.home){if(reserved(a.home))return;a.returning=false;a.hp=a.rules.health;a.patrolClock=wanderDelay(random);return;}
+  if(a.tile===a.home){if(bodyReserved(a,a.home))return;a.returning=false;a.hp=a.rules.health;a.patrolClock=wanderDelay(random);return;}
+  if(sizeOf(a)>1){const next=findFootprintPath(api.world,a.tile,sizeOf(a),t=>t===a.home,{own:a.cells,allow:(t,cells)=>!cells.some(c=>reserved(c))})?.[0];if(next)move(a,next);return;}
   if(a.home.blocked||reserved(a.home))return;
   const route=findPath(api.world,a.tile,a.home),next=route?.[0];if(next&&!reserved(next))move(a,next);
  }
  function pursue(a){
   const p=api.tile();
-  if(Math.abs(p.x-a.home.x)+Math.abs(p.z-a.home.z)>(a.leash??6)||api.safe?.(p)||api.blocked()){returnHome(a);return;}
+  if((a.territory?!inTerritory(a,p):Math.abs(p.x-a.home.x)+Math.abs(p.z-a.home.z)>(a.leash??6))||api.safe?.(p)||api.blocked()){returnHome(a);return;}
   if(!settled(a)||adjacent(a))return;
+  // A large body steps toward the nearest spot beside the player that it fits, inside its territory.
+  if(sizeOf(a)>1){const size=sizeOf(a),route=findFootprintPath(api.world,a.tile,size,t=>footprintGap(t,size,p)===1,{own:a.cells,allow:(t,cells)=>!cells.some(c=>reserved(c)||api.safe?.(c))&&bodyInTerritory(a,t)});
+   if(!route){returnHome(a);return;}if(route[0])move(a,route[0]);return;}
   const route=findPath(api.world,a.tile,p),next=route?.[0];
   if(!route){returnHome(a);return;}
-  if(route.length>1&&next&&!next.blocked&&!reserved(next)&&!api.safe?.(next))move(a,next);
+  if(route.length>1&&next&&!next.blocked&&!reserved(next)&&!api.safe?.(next)&&inTerritory(a,next))move(a,next);
  }
  function update(dt,time,camera){
    sinceRelease+=dt;
@@ -227,28 +246,30 @@ export function createCombatSystem(api){
    // Players whose attacks are prevented (Pacifist) draw no aggression, except from creatures configured
    // to attack pacifists. Aggression that already started is kept until it ends normally (leash, safety, defeat).
    if(!a.aggro&&!a.returning&&!a.rules.inert&&(a.aggressive??a.rules.aggressive)&&(!api.passive?.()||(a.attacksPacifists??a.rules.attacksPacifists))&&!defeated&&!api.blocked()&&!api.safe?.(api.tile())&&settled(a)){
-    const p=api.tile();if(withinAttackRange(api.world,a.tile,{x:p.x,z:p.z,tile:p},a.aggroRange??a.rules.aggroRange??3)&&findPath(api.world,a.tile,p))engage(a);
+    const p=api.tile(),target={x:p.x,z:p.z,tile:p},range=a.aggroRange??a.rules.aggroRange??3;
+    if(inTerritory(a,p)&&(sizeOf(a)>1?cellsOf(a).some(c=>withinAttackRange(api.world,c,target,range)):withinAttackRange(api.world,a.tile,target,range)&&findPath(api.world,a.tile,p)))engage(a);
    }
    // Stun and immobilize hold the enemy in place; slows scale its walking below.
    if(canMove){if(a.returning)walkHome(a);else if(a.aggro)pursue(a);}
    const targeted=fight?.enemy===a||chase?.enemy===a;
    if(a.rules.inert||targeted||a.aggro||a.returning||api.blocked()||defeated||api.approaching?.()===a||!canMove)a.patrolRoute=[];
-   else if(settled(a)){if(!a.patrolRoute.length){a.patrolClock-=dt;if(a.patrolClock<=0){a.patrolClock=wanderDelay(random);if(shouldWander(random))a.patrolRoute=wanderRoute(api.world,a.tile,a.patrol,reserved,random);}}
-    const next=a.patrolRoute[0];if(next){if(next.blocked||next.water||reserved(next))a.patrolRoute=[];else{a.patrolRoute.shift();move(a,next);}}
+   else if(settled(a)){if(!a.patrolRoute.length){a.patrolClock-=dt;if(a.patrolClock<=0){a.patrolClock=wanderDelay(random);if(shouldWander(random))a.patrolRoute=sizeOf(a)>1?wanderStep(a):wanderRoute(api.world,a.tile,a.patrol,reserved,random);}}
+    const next=a.patrolRoute[0];if(next){if(sizeOf(a)>1?!canStand(api.world,next,sizeOf(a),a.cells)||bodyReserved(a,next)||!bodyInTerritory(a,next):next.blocked||next.water||reserved(next)||!inTerritory(a,next))a.patrolRoute=[];else{a.patrolRoute.shift();move(a,next);}}
    }
-   const destination=position(a.tile),distance=a.group.position.distanceTo(destination),moving=distance>.001;
+   const destination=bodyPosition(a),distance=a.group.position.distanceTo(destination),moving=distance>.001;
    if(moving)a.group.rotation.y=Math.atan2(destination.x-a.group.position.x,destination.z-a.group.position.z);
    else if(a.aggro)a.group.rotation.y=Math.atan2(api.player.position.x-a.group.position.x,api.player.position.z-a.group.position.z);
    // Every path mode reserves one destination and physically finishes it before taking another.
-   if(distance)a.group.position.lerp(destination,Math.min(1,dt*(a.aggro||a.returning?2:1.6)*(1-a.control.slowFraction)/distance));
+   if(distance)a.group.position.lerp(destination,Math.min(1,dt*(a.aggro||a.returning?2:1.6)*(a.rules.moveSpeed??1)*(1-a.control.slowFraction)/distance));
    a.sinceStrike=(a.sinceStrike??Infinity)+dt;
    if(a.aggro&&adjacent(a)&&!defeated&&a.control.can('attack')){
-    // Opening attack: a ready enemy swings after OPENING_WINDUP rather than a full interval.
-    if(opening&&a.enemyClock===0&&a.sinceStrike>=a.rules.interval)a.enemyClock=Math.max(0,a.rules.interval-opening);
+    // Opening attack: a ready enemy swings after OPENING_WINDUP rather than a full interval. Telegraphed
+    // attacks (bosses) always wind up in full; leaving reach resets the windup below.
+    if(opening&&!a.rules.telegraphed&&a.enemyClock===0&&a.sinceStrike>=a.rules.interval)a.enemyClock=Math.max(0,a.rules.interval-opening);
     a.enemyClock+=dt;if(a.enemyClock>=a.rules.interval){a.enemyClock-=a.rules.interval;a.sinceStrike=0;a.attackAge=.28;hitPlayer(a);}}
    else a.enemyClock=0;
-   animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,a.rules.interval):0,hit:Math.sin(Math.PI*a.hitAge/.25)});
-   if(labelled){projected.copy(a.group.position).add(LABEL_LIFT).project(camera);const view=gameViewport();a.plate.place(view.left+(projected.x+1)*view.width/2,view.top+(1-projected.y)*view.height/2);a.plate.effects.value=a.control.kinds.join(',');a.plate.danger.value=api.danger?.(a)||null;}
+   animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,a.rules.interval):0,hit:Math.sin(Math.PI*a.hitAge/.25),charge:a.aggro?a.enemyClock/a.rules.interval:0,slam:a.attackAge/.28});
+   if(labelled){projected.copy(a.group.position);projected.y+=a.plateLift??1.7;projected.project(camera);const view=gameViewport();a.plate.place(view.left+(projected.x+1)*view.width/2,view.top+(1-projected.y)*view.height/2);a.plate.effects.value=a.control.kinds.join(',');a.plate.danger.value=api.danger?.(a)||null;}
   }
   for(const [a,f] of fleeing)if(current(a)){f.age+=dt;animate(a,time,{walk:1});if(f.destination){a.group.rotation.y=Math.atan2(f.destination.x-a.group.position.x,f.destination.z-a.group.position.z);a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}a.group.scale.setScalar(a.scale*Math.max(.01,1-Math.max(0,(f.age-.8)/.4)));if(f.age>=1.2){a.group.visible=false;fleeing.delete(a);}}
   if(defeated){defeated+=dt;api.fade?.(Math.max(0,Math.min(1,(defeated-FAINT_FADE_START)/(FAINT_RESPAWN_TIME-FAINT_FADE_START))));if(defeated>=FAINT_RESPAWN_TIME&&api.respawn()){defeated=0;api.health.restore();api.fade?.(0);api.respawned?.();return null;}return {kind:'Defeated',time:Math.min(defeated,FAINT_RESPAWN_TIME)};}
@@ -295,7 +316,7 @@ export function createCombatSystem(api){
    inCombatState,revision,
   get autoRetaliate(){return autoRetaliate;},setAutoRetaliate(value){autoRetaliate=!!value;},
   add(a){enemies.add(a);a.patrolPhase=random()*10;resetEnemy(a);return a;},
-  remove(a){if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;fleeing.delete(a);returningAfterWin.delete(a);for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);enemies.delete(a);if(a.occupying)a.tile.blocked=false;a.dispose?.();},
+  remove(a){if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;fleeing.delete(a);returningAfterWin.delete(a);for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);enemies.delete(a);release(a);a.dispose?.();},
   resetWhere(predicate=()=>true){if(fight&&predicate(fight.enemy))fight=null;if(chase&&predicate(chase.enemy))chase=null;defense=null;for(const a of enemies)if(predicate(a))resetEnemy(a);},
   reset(){clear();for(const a of enemies)resetEnemy(a);},
   matches:a=>fight?.enemy===a,get working(){return !!fight||!!chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened);},get busy(){return defeated>0;},

@@ -7,8 +7,7 @@ import {icon} from './icons.js';
 import {createWaterEffects} from './water-effects.js';
 import * as THREE from 'three';
 import {createSleepFeedback} from './sleep-feedback.js';
-import {socialMotion} from './slime-social.js';
-import {createSlimeBend} from './slime-bend.js';
+import {createSlimeActor} from './slime-presentation.js';
 import logoWide from './assets/brand/logo-wide.webp';
 import logoSquare from './assets/brand/logo-square.webp';
 
@@ -36,7 +35,7 @@ export function createSplash(renderer,enabled,settings){
   createTerrainBatch({tiles:land,map:tiles,factory:t=>makeTerrainTile(t,tiles,grassFor.get(t)),parent:garden,pickables:[],offset:0,batchSize:16,preserve:grassMaterials,roughness:.9,
    decorate(t,model){if(flowerTiles.has(key(t.x,t.z))){const flowers=makeFlowers();flowers.position.y=t.h;model.add(flowers);}}});
   for(const [x,z]of [[-2,-2],[2,-2],[3,0]]){const tree=makeTree();tree.position.set(x,tiles.get(key(x,z)).h,z);garden.add(tree);}
-  const {group:slime,body,face,hands}=makeSlime();scene.add(slime);slime.rotation.y=.35;face.set('sleeping');for(const hand of hands)hand.position.y=.2;
+  const rig=makeSlime(),{group:slime,body,face}=rig;scene.add(slime);slime.rotation.y=.35;
   // Splash appearance is independent of the player's chosen character.
   // Future cosmetic randomization belongs in this same entry point.
   function randomizeAppearance(){
@@ -44,14 +43,15 @@ export function createSplash(renderer,enabled,settings){
     body.material.color.copy(color);face.setBodyColor(color);
   }
   randomizeAppearance();
-  const bend=createSlimeBend(slime,[body,face.group]);
+  // Asleep in the garden through the shared slime presentation (the same Sleeping motion as gameplay).
+  const sleeper=createSlimeActor(rig);sleeper.play('Sleeping');sleeper.update(2,2);
   const zs=createSleepFeedback(scene);let age=2;
   let blocked=[];
   function show(){if(!overlay.hidden)return;overlay.hidden=false;blocked=[...document.body.children].filter(el=>el!==overlay&&!el.classList?.contains('q-modal')&&!(__PLAYGROUND__&&el.id==='quadriaquest-dev-playground')&&!el.inert);for(const el of blocked)el.inert=true;}
   const close=()=>{overlay.hidden=true;for(const el of blocked)el.inert=false;blocked=[];};overlay.querySelector('#splash-play').onclick=close;
   if(enabled)show();
   return {grassMaterials,randomizeAppearance,restartWater(){gardenWater.restart();},get active(){return !overlay.hidden;},show,close,render(dt){
-    gardenWater.update(dt);age+=dt;const {pose}=socialMotion('Sleeping',age);bend(pose.bend);const width=1/Math.sqrt(pose.squash);slime.scale.set(width,pose.squash,width);slime.position.y=.002-.07*pose.squash;
+    gardenWater.update(dt);age+=dt;sleeper.update(dt,age);
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();const distance=camera.aspect<.8?17:14;
     camera.position.set(distance*.4, distance*.5,distance*.85);camera.lookAt(0,1.4,0);camera.updateMatrixWorld();
     zs.update(dt,true,slime.position,camera);renderer.render(scene,camera);

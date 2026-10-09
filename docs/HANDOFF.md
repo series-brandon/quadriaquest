@@ -1,6 +1,6 @@
 # QuadriaQuest development handoff
 
-Snapshot: 2026-10-06. This is a restart aid, not a claim that all architecture work is finished. Read `AGENTS.md` first and verify current code/worktree state before editing. The latest cleanup status is recorded below; older dated verification sections are historical snapshots.
+Snapshot: 2026-10-09. This is a restart aid, not a claim that all architecture work is finished. Read `AGENTS.md` first and verify current code/worktree state before editing. The latest cleanup status is recorded below; older dated verification sections are historical snapshots.
 
 ## Project and working conventions
 
@@ -19,6 +19,43 @@ Only layout and narrative belong to a particular area. Gameplay systems must wor
 Use shared action completion/progress callbacks for tutorial updates. Normal gameplay must not require that a tutorial objective is active. Avoid copying the same action into the next map. Do not use a debugging shortcut that teleports the player just to preview shared UI.
 
 ## Recent fixes already made
+
+### Shared slime presentation: every slime can hold anything and do anything — 2026-10-09 (user rule)
+
+- New `src/slime-presentation.js` (rule in AGENTS.md, *Shared slime presentation*). `createSlimePresentation(rig,{equipment,tools,carry})` does everything the player loop used to do after choosing a motion: action blending, bend, face, squash/lean, grounding, hand targets/smoothing, held gear (`equipment-presentation.js`, including the bow), axe/pickaxe/hammer, casting and fishing. `createSlimeActor(rig,{loadout,carry,idleRate})` is the NPC/scripted driver: shared idle, plus `play(kind,{profile,loop,duration})`/`stop()` for any action or social motion (`SLIME_ACTOR_MOTIONS`). A combat motion without a profile uses the character's own gear.
+- Converted: the player (main.js keeps motion choice, movement and facing), mentors (`createMentor`; `animateMentor` deleted; `MENTORS[kind]` has `loadout`/`idleRate`), Reed (`animateFisher` and his hand-placed rod deleted; `carry:'rods'` via `carriedTool` in tool-models.js), the splash slime (plays Sleeping), and the model viewer's `slimePreview` (one equipment instance kept in sync by `syncPreviewEquipment`).
+- Tool model names: `slime-tool-axe|pickaxe|hammer|rod`, `slime-carry-<id>`, held gear `equipment-<side>-<id>`.
+- Playground: **NPC slimes** section (any mentor or Reed plays any shared motion in the world). The model viewer previews every slime through the same presentation.
+- Tests: `slime-presentation.test.js` (every motion on every slime, NPC/player pose parity, gear/tool/carry visibility); the model-catalog tests were updated to the shared structure.
+- Verified live: player gear and the chop cycle; Fletch idling with his bow, then drawing it with an arrow nocked (Archery); Reed's shoulder rod, put away while waving; the splash sleeping slime; no console errors.
+
+### Arrow chime fix; Fletch's bow — 2026-10-09
+
+- Spending an arrow no longer plays the "complete" chime. combat's `items` callback passes `sound:null` to `showItemChanges` (any negative change chimes by default). The item feed still shows −1. There's no bow-release sound yet; impact plays hit/whiff.
+- Mentors can carry held gear via `MENTORS[kind].loadout` (Fletch: `{leftHand:'bows'}`). `mentorModel` attaches the gameplay `handModel` and `animateMentor` applies the player's `equipmentIdleHands` carry pose, so mentors and the player hold items identically. No mentor-specific orientation code. Verified side by side with the player slime in the model viewer.
+
+### Multi-tile creatures and the reference ranger hat — 2026-10-09
+
+- `footprint.js` (body cells, gap, nearest cell, `canStand`, `findFootprintPath`); `combat-range.js` measures to the nearest body tile; combat.js branches on `sizeOf(a)>1` for occupancy (`release`, `cellsOf`), centre positioning, adjacency, pursuit, walk home and wandering, and a per-enemy `plateLift`. `enemy-entity.js` `MODELS.golem` has `size:2, scale:1.25`. The portable golem spawn picks a spot where the whole body fits. Tests: `footprint.test.js` and the 2×2 case in combat.test.js.
+- Ranger hat rebuilt after the user's reference: `rangerCrown` (a custom pinched, swept-back crown) and `rangerBrim` (a curled strip, flipped high behind with a pointed beak in front, double-sided), with one feather on the right and no band.
+- Verified live: the Fletch viewer from three angles; the 2×2 golem engaging, moving and slamming in its arena; the portable spawn in the clearing; no console errors. Perf was not rerun: the change is limited to one enemy's pathing, and this session's earlier run covers the batch.
+
+### Cinderhold boss path: Fletch's gate and the Cinder Golem — 2026-10-09
+
+- Design and lines: CINDERHOLD.md, *Something Bigger*. Map: `CREVICE_TILES`, `GOLEM_TERRITORY` and a ring-walled cavern in `makeCinderholdTiles` (the area now extends to z=50, x 25–45 below the south wall). Story state: `progress.state.crevice` ('closed'/'warned'/'cleared') and `golem` ('unmet'/'met'/'done').
+- Shared combat additions: `telegraphed`, `moveSpeed` and `territory` (combat.js, combat-rules.js), and per-kind models/animations in `enemy-entity.js` (`MODELS`, `a.animate`). `animateGolem` receives `charge`/`slam` from combat. Tests are in combat.test.js (windup reset, one-slam defeat, territory, speed), training.test.js (sealed cavern, territory vs crevice) and cinderhold-dialogue.test.js.
+- Cinderhold now gets `tile()` and `teleport()` from main.js (Fletch's trigger, checkpoints).
+- **Verified live:** Fletch's stop and tip; Borin's and Bristle's topics opening the gap; the golem engaging a **Pacifist**, approaching slowly, winding up and flattening (100 → 0); recovery at the crystal; the quest completing and the boss tip. **Not verified live:** a successful escape, because tool latency exceeded the windup. It is covered by unit tests instead.
+- Open: consider a slam sound and camera shake later; the minimap marks a multi-tile enemy with a single dot.
+
+### Tutorial wrap-up: mentor hats, clearing respawn, finale Top Hat, Companion Top Hat — 2026-10-09
+
+- **Mentor hats:** `hat-models.js` holds `rangerHat()` (Fletch: a peaked archer's cap with an upturned back brim, leather band and red feather) and `mageHat()` (Wisp: one smoothly bent cone with a curled tip, drooping lathe brim, gold band and stars). `mentorModel` in `training-models.js` uses them; check them in the model viewer under Fletch / Wisp.
+- **Clearing respawn:** `RESOURCE_RESPAWN` (8 s) is now the default `respawn` in `createResourceEntity`, so every area (clearing, Willowbank, Cinderhold, world start, streaming chunks, training fixtures) shares one value; pass `respawn:null` for a deliberately finite node. Clearing checkpoints that pre-deplete ground items use `restore(...,{respawnIn})` so the items still grow back. `practice-goal.js` (the "clear everything" test) is gone, along with the playground's dead *Complete practice* action.
+- **Finale Top Hat (user decision):** in `tutorial-finale.js` the reward dialogue starts as soon as the practice reset's drops finish (stage `reward-dialogue`), then chest → celebration → `startPractice()` (the *Practice time* tip). Playground previews of the celebration do not start practice.
+- **Companion Top Hat:** item `companionHats`; `COMPANION_GEAR`, `wear`, `owns` and `inventoryActions` live in `companions.js`, and `setCompanionOutfit` in `companion-model.js`. Shown on the Companions page (Outfit list) and in inventory actions. Reed grants it in `willowbank.js` (`giftCompanionHat`, once per reset; also on skip and the *finished* checkpoint). It is in the waking `STARTER_KIT`. Tests: `companions.test.js`, `ui/pages/companions-page.test.js`.
+- **Slime outfits:** this is a design proposal only (DESIGN.md, *Slime outfits*), awaiting the user's review. No slot code has changed.
+- **Verified** in the playground (GPU browser, bounded): the hats in the viewer; the corgi hat in the world, portrait and inventory; clearing sticks regrowing; the full finale from the practice checkpoint to the chest, celebration and practice tip; Willowbank eat → Reed's gift. Perf not yet run for this batch (it is small model work; run it with the next milestone batch).
 
 ### Sound effects, cues and ambience — 2026-10-09
 - **Second listening pass (user):**

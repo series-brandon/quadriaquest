@@ -60,3 +60,30 @@ export function bristleIntroduction({say,choose,refuse,train,leave,refused=false
   ['Sir, yes, sir!',()=>sequence([bristle('FINALLY! Some respect!'),bristle('There might be hope for you yet!')],offer)]
  ]));
 }
+
+// The smashed wall near Fletch. He stops the player at the crevice until they have asked Bristle or
+// Borin about the monster. Lines are [text, expression]; Borin is the realist, Bristle bluffs.
+export const CREVICE_WARNING=[
+ ['Hey, be careful going that way! A giant monster smashed through there a couple days ago.','idle'],
+ ['It took Bristle and Borin both, pushed to the brink, to drive it back. And I’m still not sure they made it leave, or it just got bored.','idle'],
+ ['You should talk to Bristle or Borin about it, first.','idle']
+];
+export const CREVICE_REMINDER=[['Talk to Bristle or Borin before you go poking around down there. Please.','idle']];
+export const CREVICE_CLEARED=[['You talked to them? Then I won’t stop you.','idle'],['Stay light on your feet. If it moves, you run.','idle']];
+export const WALL_TOPIC={smith:'About that smashed wall by Fletch...',sarge:'About that smashed wall by Fletch...'};
+export const BORIN_WALL=[
+ ['The wall. Aye. That was a Cinder Golem. Rock and fire, taller than the forge chimney.','idle'],
+ ['Bristle and I threw everything we had at it. Barely scratched it. It nearly flattened the both of us.','idle'],
+ ['It hits hard enough to crack an anvil in half, and it doesn’t care whether you came to fight or not. Pacifist or no, it’ll come for you all the same.','idle'],
+ ['My advice? Don’t go down there. Not now. Maybe not for a long, long time.','idle'],
+ ['If you go anyway... the moment it moves, you turn around and run. Don’t stop to be brave.','idle']
+];
+export const BRISTLE_WALL=[
+ ['THAT pebble? HA! I’ve had worse BLISTERS!','angry'],
+ ['Borin and I sent it packing in no time flat! Didn’t even break a sweat! I don’t even HAVE sweat! I’m GELATIN!','angry'],
+ ['...Fine. It MIGHT have bounced Borin off three walls. And me off four.','distraught'],
+ ['POINT IS, you are NOT ready, SLIME! But I can’t stop you from being stupid. Go see for yourself!','angry'],
+ ['And when it moves... RUN!','angry']
+];
+// After the first encounter (flattened or escaped), a short lesson tip.
+export const BOSS_LESSON={title:'Some fights can’t be won (yet)',text:'That was a boss: far above your Threat Level, and one of the rare creatures that hunts even pacifists. When you meet one, don’t stand and fight. Run, and come back much stronger someday.'};

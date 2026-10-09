@@ -1,4 +1,5 @@
 import {findPath,key} from './world.js';
+import {sizeOf,nearestCell} from './footprint.js';
 // Grid supercover: a shot cannot cut diagonally through a pair of solid corners.
 export function lineOfSight(world,from,to){
  let x=from.x,z=from.z;const dx=to.x-x,dz=to.z-z,nx=Math.abs(dx),nz=Math.abs(dz),sx=Math.sign(dx),sz=Math.sign(dz);let ix=0,iz=0;
@@ -9,9 +10,11 @@ export function lineOfSight(world,from,to){
   if(!clear(x,z))return false;
  }return true;
 }
+// A multi-tile target (size > 1, anchored at target.tile) is measured to its body tile nearest `from`.
 export function withinAttackRange(world,from,target,range=1){
- const distance=Math.abs(from.x-target.x)+Math.abs(from.z-target.z);
- return distance>0&&distance<=range&&Math.abs(from.h-target.tile.h)<=.5&&lineOfSight(world,from,target);
+ const size=sizeOf(target),cell=size>1?nearestCell(target.tile,size,from):target,tile=size>1?world.get(key(cell.x,cell.z)):target.tile;
+ const distance=Math.abs(from.x-cell.x)+Math.abs(from.z-cell.z);
+ return !!tile&&distance>0&&distance<=range&&Math.abs(from.h-tile.h)<=.5&&lineOfSight(world,from,cell);
 }
 export function attackRoute(world,start,target,range=1){
  if(withinAttackRange(world,start,target,range))return {at:start,route:[]};

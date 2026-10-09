@@ -12,5 +12,8 @@ export function tool(kind){
  return g;
 }
 // Inventory slots and physical gripping hands differ for a two-handed bow.
+// A tool carried while idle, in the right hand. A fishing rod rests over the shoulder: the grip is
+// the pivot and the shaft rises backward across that shoulder.
+export function carriedTool(kind){const group=tool(kind);if(kind==='rods'){group.rotation.set(-.95,0,-.12);group.position.set(0,-.1,0);}return group;}
 export function heldToolHand(kind){return ['shields','copperShield','bows'].includes(kind)?1:0;}
 export function heldTool(kind){const group=tool(kind);if(kind==='bows')group.position.z=-.22;if(['swords','shields','hammers','copperDagger','copperShield'].includes(kind))group.rotation.y=Math.PI/2;return group;}

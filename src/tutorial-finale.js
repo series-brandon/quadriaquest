@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import {makeChest,makeTopHat} from './finale-models.js';
 import {highlightResource} from './resource-highlight.js';
 import {spawnMotion} from './slime-motion.js';
-import {practiceCleared} from './practice-goal.js';
 import {findPath,key} from './world.js';
 
 const portalInstruction="I've taught you all I can here in this area, when you're ready to move on, move over to the Iter Portal and we'll move on to the next area.";
@@ -65,8 +64,13 @@ export function createTutorialFinale(api){
     drop(chest.group,t.h,0,()=>{chest.ready=true;stage='reward';});
   }
   function revealReward(){
-    rewardTriggered=true;practice=false;
-    say('Wow! Well practiced! I feel like you deserve a reward!',()=>say('Hmmm... let me think. Here, what do you think about this?',dropChest));
+    rewardTriggered=true;practice=false;stage='reward-dialogue';
+    say('Oh, before I forget! You worked so hard here, I feel like you deserve a reward!',()=>say('Hmmm... let me think. Here, what do you think about this?',dropChest));
+  }
+  // Practice follows the reward. The clearing's resources grow back, so it has no end of its own.
+  function startPractice(){
+    practice=true;stage='practice';
+    api.tip.show({title:'Practice time',text:'Gather, chop and mine as much as you like. Everything here grows back. When you are ready, use the Iter Crystal to travel on.',action:{label:'Dismiss',onPress:()=>api.tip.hide()}});
   }
   function celebrate(options={}){
     api.stop();hideDialogue();const p=api.player.position;
@@ -108,11 +112,10 @@ export function createTutorialFinale(api){
           const after=crystalFocus.after;crystalFocus=null;stage='practice';hideDialogue();after();
         }
       }
-      // Practice gets a tip: what to do, and where "Skip this part" lives during the finale.
-      if(stage==='resetting'&&!drops.length){practice=true;stage='practice';api.tip.show({title:'Practice time',text:'Gather, chop and mine as much as you like. When you are ready, use the Iter Crystal to travel on.',action:{label:'Dismiss',onPress:()=>api.tip.hide()}});}
+      // Once everything has dropped back in, the reward comes straight away.
+      if(stage==='resetting'&&!drops.length)revealReward();
       for(const a of actors)a.highlight.update(a.ready&&!a.opened,time,hover===a&&a.ready&&!a.opened);
-      if(practice&&!busy()&&practiceCleared(api.resources,api.trees))revealReward();
-      if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;const prop=holdUpMotion(t,'hat').prop;heldHat.visible=prop.visible;heldHat.position.set(0,prop.y,prop.z);if(t>4.3){celebration=null;heldHat.visible=false;stage='reward-complete';}}
+      if(celebration){celebration.age+=dt*(celebration.rate?.()??1);const t=celebration.age;const prop=holdUpMotion(t,'hat').prop;heldHat.visible=prop.visible;heldHat.position.set(0,prop.y,prop.z);if(t>4.3){const preview=celebration.preview;celebration=null;heldHat.visible=false;stage='reward-complete';if(!preview&&chest?.opened)startPractice();}}
 
     }
   };

@@ -5,7 +5,7 @@ import {createEquipment} from './equipment.js';
 import {createCombatStyles} from './combat-styles.js';
 import {createSupplyOffers} from './supply-offers.js';
 import {withinAttackRange,lineOfSight,attackRoute} from './combat-range.js';
-import {makeCinderholdTiles,CINDERHOLD,createTrainingProgress} from './cinderhold-rules.js';
+import {makeCinderholdTiles,CINDERHOLD,createTrainingProgress,CREVICE_TILES,GOLEM_TERRITORY} from './cinderhold-rules.js';
 import {makeWillowbankTiles} from './willowbank-rules.js';
 import {findPath} from './world.js';
 import {interactionRoute} from './interaction-route.js';
@@ -17,7 +17,7 @@ test('spell learning/selection is portable, idempotent and blocked only by share
 test('supply offers refill only when eligible and never repeat a one-time starter grant',()=>{const inventory={};let changes=0;const supplies=createSupplyOffers({inventory,changed:()=>changes++});assert.ok(supplies.claim('archerKit'));assert.equal(supplies.claim('archerKit'),false);assert.equal(supplies.claim('arrows'),false);inventory.arrows=0;assert.ok(supplies.claim('arrows'));assert.equal(inventory.arrows,20);assert.ok(supplies.claim('meal'));assert.equal(supplies.claim('meal'),false);inventory.cookedFish=0;assert.ok(supplies.claim('meal'));assert.equal(changes,4);});
 function grid(){return new Map(Array.from({length:49},(_,i)=>{const t={x:i%7,z:Math.floor(i/7),h:1,blocked:false};return [`${t.x},${t.z}`,t];}));}
 test('ranged routes respect distance, solid sightlines, missing terrain and blocked corners',()=>{const world=grid(),from=world.get('1,3'),tile=world.get('5,3'),target={...tile,tile};tile.blocked=true;assert.ok(withinAttackRange(world,from,target,4));assert.equal(withinAttackRange(world,from,target,1),false);world.get('3,3').blocked=true;assert.equal(lineOfSight(world,from,target),false);const route=attackRoute(world,from,target,4);assert.ok(route?.route.length>0);assert.ok(withinAttackRange(world,route.at,target,4));world.delete('3,3');assert.equal(lineOfSight(world,from,target),false);world.get('2,3').blocked=true;assert.equal(lineOfSight(world,from,{x:2,z:4}),false);});
-test('Cinderhold exceeds earlier reachable area and all landmarks have connected approach tiles',()=>{const tiles=makeCinderholdTiles(),world=new Map(tiles.map(t=>[`${t.x},${t.z}`,t])),start=world.get('7,28');const walkable=tiles.filter(t=>!t.blocked);assert.ok(walkable.length>=makeWillowbankTiles().filter(t=>!t.blocked).length*2);for(const t of walkable)assert.ok(findPath(world,start,t),`${t.x},${t.z}`);for(const [name,[x,z]] of Object.entries(CINDERHOLD)){const t=world.get(`${x},${z}`);assert.ok(!t.blocked,name);t.blocked=true;assert.ok(interactionRoute(world,start,{tile:t,x,z}),name);}assert.ok(Math.max(...tiles.map(t=>t.x))===40);});
+test('Cinderhold exceeds earlier reachable area and all landmarks have connected approach tiles',()=>{const tiles=makeCinderholdTiles(),world=new Map(tiles.map(t=>[`${t.x},${t.z}`,t])),start=world.get('7,28');const walkable=tiles.filter(t=>!t.blocked);assert.ok(walkable.length>=makeWillowbankTiles().filter(t=>!t.blocked).length*2);for(const t of walkable)assert.ok(findPath(world,start,t),`${t.x},${t.z}`);for(const [name,[x,z]] of Object.entries(CINDERHOLD)){const t=world.get(`${x},${z}`);assert.ok(!t.blocked,name);t.blocked=name!=='crevice';assert.ok(interactionRoute(world,start,{tile:t,x,z}),name);}assert.ok(Math.max(...tiles.filter(t=>t.z<=32).map(t=>t.x))===40);});
 test('tutorial observes early portable work, retains counts after consumption and optional lessons stay independent',()=>{const p=createTrainingProgress(),s=p.state;p.event('crafted','copperIngots');assert.equal(s.ingots,0);s.entered=true;for(let i=0;i<4;i++){p.event('resource',{copperOre:1});p.event('crafted','copperIngots');}p.event('crafted','copperDagger');p.event('crafted','copperShield');p.event('victory',{id:'proving',style:'unarmed'});s.phase='mine';p.advance(true);assert.equal(s.phase,'return');s.phase='bruiser';p.advance(true);assert.equal(s.phase,'graduate');s.phase='finished';s.ranged='target';p.event('victory',{id:'ranged-target',style:'magic'});assert.equal(s.ranged,'target');p.event('victory',{id:'ranged-target',style:'ranged'});p.event('victory',{id:'ranged-enemy',style:'ranged'});assert.equal(s.ranged,'done');assert.equal(s.magic,'offer');assert.equal(s.phase,'finished');p.reset();assert.equal(s.entered,false);});
 
 test('batched terrain ray hits resolve the original logical tile across batch boundaries',async()=>{
@@ -28,11 +28,22 @@ test('batched terrain ray hits resolve the original logical tile across batch bo
 });
 
 test('Cinderhold has a continuous tall perimeter including every corner',()=>{
- const tiles=makeCinderholdTiles(),world=new Map(tiles.map(t=>[`${t.x},${t.z}`,t]));
- for(let z=1;z<=32;z++)for(let x=1;x<=40;x++)if(x===1||x===40||z===1||z===32){
+ const tiles=makeCinderholdTiles(),world=new Map(tiles.map(t=>[`${t.x},${t.z}`,t])),crevice=new Set(CREVICE_TILES.map(([x,z])=>`${x},${z}`));
+ // Sealed except the smashed gap into the crevice; the crevice and golem arena are sealed by rock.
+ for(let z=1;z<=32;z++)for(let x=1;x<=40;x++)if((x===1||x===40||z===1||z===32)&&!crevice.has(`${x},${z}`)){
   const wall=world.get(`${x},${z}`);assert.ok(wall?.blocked&&wall.blocksSight,`sealed boundary ${x},${z}`);
  }
+ assert.deepEqual(tiles.filter(t=>(t.x===1||t.x===40||t.z===1||t.z===32)&&t.x<=40&&t.z<=32&&!t.blocked).map(t=>`${t.x},${t.z}`),[`${CINDERHOLD.crevice[0]},${CINDERHOLD.crevice[1]}`]);
+ for(const t of tiles.filter(t=>!t.blocked))for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]])assert.ok(world.get(`${t.x+dx},${t.z+dz}`),`no hole beside ${t.x},${t.z}`);
  for(const wall of tiles.filter(t=>t.blocksSight))for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
   const floor=world.get(`${wall.x+dx},${wall.z+dz}`);if(floor&&!floor.blocked)assert.ok(wall.h-floor.h>=2.5,`wall height at ${wall.x},${wall.z}`);
  }
+});
+
+test('the golem territory covers its arena but not the crevice, and the crevice joins the arena',()=>{
+ const tiles=makeCinderholdTiles(),world=new Map(tiles.map(t=>[`${t.x},${t.z}`,t])),inside=t=>t.x>=GOLEM_TERRITORY.minX&&t.x<=GOLEM_TERRITORY.maxX&&t.z>=GOLEM_TERRITORY.minZ&&t.z<=GOLEM_TERRITORY.maxZ;
+ for(const [x,z] of CREVICE_TILES)assert.equal(inside({x,z}),false,`crevice ${x},${z} is outside the arena`);
+ const arena=tiles.filter(t=>!t.blocked&&t.z>32&&!CREVICE_TILES.some(([x,z])=>x===t.x&&z===t.z));
+ assert.ok(arena.length>=80);for(const t of arena)assert.ok(inside(t),`arena ${t.x},${t.z} is inside the territory`);
+ const [gx,gz]=CINDERHOLD.golem;assert.ok(inside({x:gx,z:gz}));assert.ok(findPath(world,world.get('33,31'),world.get(`${gx},${gz}`)));
 });

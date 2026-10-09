@@ -25,6 +25,17 @@ export function previewEquipment(options={}){
  for(const side of ['right','left'])if(options[side+'DamageType'])equipment.setDamageType(side,options[side+'DamageType']);
  return equipment;
 }
+// Keeps one equipment instance (shown by the shared slime presentation) in step with the viewer's
+// choices, through the production setters. Returns the resolved loadout.
+export function syncPreviewEquipment(equipment,inventory,options={}){
+ const loadout=previewLoadout(options);
+ for(const id of Object.keys(inventory))inventory[id]=0;
+ for(const id of [loadout.rightHand,loadout.leftHand])if(id)inventory[id]=(inventory[id]||0)+1;
+ equipment.setHandedness(options.handedness||'right');equipment.setSlots({right:loadout.rightHand,left:loadout.leftHand});
+ equipment.setAttackHands(options.attackHands||null);
+ for(const side of ['right','left'])if(options[side+'DamageType'])equipment.setDamageType(side,options[side+'DamageType']);
+ return loadout;
+}
 // Choices per hand, only where the striking weapon supports more than one damage type.
 export function previewDamageTypes(options={}){
  const equipment=previewEquipment(options),out={};

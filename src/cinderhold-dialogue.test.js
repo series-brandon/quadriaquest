@@ -40,3 +40,12 @@ test('a Pacifist "Teach me!" gets turned away, and Bristle skips to his offer ne
  again.pick('Yes! Teach me!');assert.equal(again.trained,1,'after switching modes, training starts');
  const changedMind=run({pacifist:()=>true,refused:true});changedMind.pick('I changed my mind, teach me!');assert.equal(changedMind.away,1);
 });
+
+test('the smashed-wall lines: Fletch points to both mentors, Borin warns, Bristle bluffs then admits it', async () => {
+ const d = await import('./cinderhold-dialogue.js');
+ for (const lines of [d.CREVICE_WARNING, d.CREVICE_REMINDER, d.CREVICE_CLEARED, d.BORIN_WALL, d.BRISTLE_WALL]) for (const line of lines) { assert.equal(typeof line[0], 'string'); assert.ok(line[1]); }
+ assert.match(d.CREVICE_WARNING.at(-1)[0], /Bristle or Borin/);
+ assert.match(d.BORIN_WALL.map(l => l[0]).join(' '), /Pacifist or no/);
+ assert.ok(d.BRISTLE_WALL.some(([, expression]) => expression === 'distraught'), 'the bluff cracks');
+ assert.match(d.BOSS_LESSON.text, /pacifists/);
+});

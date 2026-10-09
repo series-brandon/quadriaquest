@@ -5,7 +5,7 @@ import {signal} from './reactive.js';
 // so both arrive in the world identically. Kept: name, color, dominant hand, combat mode and the
 // companion (named on arrival if the player never met it).
 export const STARTER_KIT={
- items:{copperDagger:1,copperShield:1,bows:1,arrows:20,hats:1,axes:1,pickaxes:1,hammers:1,rods:1,firestarters:1,cookedFish:3,sticks:5,stones:5},
+ items:{copperDagger:1,copperShield:1,bows:1,arrows:20,hats:1,companionHats:1,axes:1,pickaxes:1,hammers:1,rods:1,firestarters:1,cookedFish:3,sticks:5,stones:5},
  equip:['copperDagger','copperShield'],
  spells:['energyStrike'],abilities:['strongStrike'],auras:['rush','harden'],
 };

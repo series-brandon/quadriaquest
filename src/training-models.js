@@ -1,10 +1,10 @@
-import {playerActionMotion} from './player-action-motion.js';
 import * as THREE from 'three';
 import {part} from './model-parts.js';
 import {makeSlime} from './slime-model.js';
 import {boulderParts} from './mining.js';
 import {cachedMergedMesh} from './merged-model.js';
 import {makeTerrainTile} from './world-models.js';
+import {rangerHat,mageHat} from './hat-models.js';
 const box=(g,w,h,d,color,x=0,y=0,z=0)=>part(g,new THREE.BoxGeometry(w,h,d),color,x,y,z);
 // A dark boulder with copper nuggets, merged into one mesh (one draw and shadow draw).
 export function copperOutcrop(){const g=new THREE.Group();g.add(cachedMergedMesh('copper',()=>[...boulderParts('#62616d','#62616d'),...[0,1,2,3,4].map(i=>({geometry:new THREE.OctahedronGeometry(.13,0),color:'#d18c53',position:[Math.sin(i*2.4)*.30,.93+Math.cos(i)*.08,Math.cos(i*2.4)*.25],rotation:[0,0,i*.6]}))],{roughness:.95,flatShading:true}));return g;}
@@ -25,7 +25,9 @@ export function trainingTarget(){const g=new THREE.Group();box(g,.08,1,.08,'#997
 export function animateTarget(g,time,hit=0){g.rotation.x=Math.sin(time*30)*hit*.12;}
 export function stoneArch(){const g=new THREE.Group();for(const x of [-1.5,1.5]){box(g,.6,2.1,.7,'#595767',x,1.05);box(g,.8,.17,.85,'#777384',x,2.05);}box(g,3.5,.48,.72,'#686473',0,2.35);return g;}
 export function stoneTile(t,world){const material=new THREE.MeshStandardMaterial({color:new THREE.Color(['#64606f','#676271','#615e6b','#686471'][(t.x*17+t.z*13+t.x*t.z)%4]),roughness:.95});return makeTerrainTile(t,world,material,{sideColor:'#464151',seamColor:'#a199ad'});}
-export const MENTORS={sarge:{name:'Sergeant Bristle',color:'#c85745',expression:'angry'},smith:{name:'Borin Copperbelly',color:'#c9904f',expression:'idle'},ranger:{name:'Fletch',color:'#74996a',expression:'idle'},mage:{name:'Wisp',color:'#ad8acb',expression:'idle'},ki:{name:'Ember',color:'#5fa9a8',expression:'idle'}};
+// Mentors are slimes like the player: a look (colour, hat, accessories), a default face, an optional
+// loadout and idle pace. They animate through createSlimeActor (slime-presentation.js).
+export const MENTORS={sarge:{name:'Sergeant Bristle',color:'#c85745',expression:'angry',idleRate:1.8},smith:{name:'Borin Copperbelly',color:'#c9904f',expression:'idle'},ranger:{name:'Fletch',color:'#74996a',expression:'idle',loadout:{leftHand:'bows'}},mage:{name:'Wisp',color:'#ad8acb',expression:'idle'},ki:{name:'Ember',color:'#5fa9a8',expression:'idle'}};
 export function mentorModel(kind){const def=MENTORS[kind],rig=makeSlime(def.color),g=rig.group;
  if(kind==='smith'){part(g,new THREE.SphereGeometry(.36,16,8,0,Math.PI*2,0,Math.PI/2),'#807458',0,.77);box(g,.75,.07,.7,'#998462',0,.77,.03);}
  if(kind==='sarge'){
@@ -36,13 +38,12 @@ export function mentorModel(kind){const def=MENTORS[kind],rig=makeSlime(def.colo
   for(const x of [-.33,.33]){const cheek=box(g,.075,.28,.22,'#657180',x,.68,.08);cheek.rotation.z=x<0?-.14:.14;box(g,.17,.06,.22,'#a3abb2',x,.50,.02);}
  }
  if(kind==='smith'){box(g,.66,.24,.04,'#6a4b39',0,.21,.37);for(let i=0;i<5;i++){const b=part(g,new THREE.SphereGeometry(.075,10,8),'#e2c7a1',(i-2)*.065,.39-Math.abs(2-i)*.02,.40);b.scale.y=1.6;}for(let i=0;i<3;i++)part(g,new THREE.SphereGeometry(.067,10,8),'#d9b88d',0,.25-i*.065,.43);part(g,new THREE.SphereGeometry(.075,12,8),'#f9d885',0,.9,.32);}
- if(kind==='ranger'){part(g,new THREE.ConeGeometry(.4,.4,8),'#405f46',0,.87);const feather=box(g,.08,.4,.025,'#e0cf9e',.23,1.12,0);feather.rotation.z=-.4;}
- if(kind==='mage'){part(g,new THREE.ConeGeometry(.32,.65,10),'#5b477e',0,1.02);part(g,new THREE.CylinderGeometry(.44,.44,.04,16),'#6e558d',0,.75);part(g,new THREE.OctahedronGeometry(.06),'#ffe0a0',0,1.02,.22);}
+ if(kind==='ranger'){const hat=rangerHat();hat.position.y=.76;g.add(hat);}
+ if(kind==='mage'){const hat=mageHat();hat.position.y=.8;g.add(hat);}
  // Ember (draft Ki mentor): cloth headband with trailing ties and a floating ring of breath.
  if(kind==='ki'){part(g,new THREE.CylinderGeometry(.43,.43,.08,18),'#e8dcc0',0,.62);for(const x of [-.08,.08]){const tie=box(g,.05,.2,.02,'#e8dcc0',x,.52,-.42);tie.rotation.x=.4;}const ring=part(g,new THREE.TorusGeometry(.3,.025,8,28),'#bfe8e4',0,1.08);ring.rotation.x=Math.PI/2;}
  rig.kind=kind;rig.face.set(def.expression);return rig;
 }
-export function animateMentor(rig,time,motion='Idle',expression){const angry=rig.kind==='sarge';rig.group.scale.set(1,1+Math.sin(time*(angry?5:2.8))*.025,1);rig.hands.forEach((h,i)=>{h.position.set(i===0?-.46:.46,.33+Math.sin(time*2.8+i)*.015,.08);h.rotation.set(0,0,0);});if(motion==='Point'||motion==='Stomp'){const {pose,hands}=playerActionMotion(motion,time);rig.group.scale.set(1/Math.sqrt(pose.squash),pose.squash,1/Math.sqrt(pose.squash));rig.hands.forEach((hand,i)=>{const [x,y,z,pitch,roll,yaw=0]=hands[i];hand.position.set(x,y,z);hand.rotation.set(pitch,yaw,roll);});}rig.face.set(expression||MENTORS[rig.kind].expression);}
 
 export function animateBow(group,draw=0,nocked=false){
  const string=group.getObjectByName('bow-string'),arrow=group.getObjectByName('nocked-arrow');

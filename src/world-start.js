@@ -25,7 +25,7 @@ export function createWorldStart(api){
  const t=(x,z)=>map.get(key(x,z)),nodes=[];
  const grassMaterials=createGrassColors().map(color=>new THREE.MeshStandardMaterial({color,roughness:.9}));
  const crystal=api.crystals.add({tile:t(...WORLD_START.crystal),parent:group,destination:'world',label:'Use Iter Crystal'});
- const resource=(kind,x,z)=>{const node=api.resourceActions.add(createResourceEntity({kind,tile:t(x,z),parent:group,pickables:api.pickables,respawn:8}));nodes.push(node);return node;};
+ const resource=(kind,x,z)=>{const node=api.resourceActions.add(createResourceEntity({kind,tile:t(x,z),parent:group,pickables:api.pickables}));nodes.push(node);return node;};
  for(const [x,z] of [[3,4],[5,15],[16,14],[17,9],[4,10],[13,17]])resource('tree',x,z);
  for(const [x,z] of [[15,3],[7,17]])resource('boulder',x,z);
  for(const [x,z,kind] of [[8,5,'sticks'],[12,14,'sticks'],[6,8,'stones'],[14,11,'stones']])resource(kind,x,z);

@@ -8,6 +8,7 @@ import {createPlayerHealth,createFoodSystem} from './player-health.js';
 import {cancelPlayerActions} from './action-interruption.js';
 import {createRecipeCrafting} from './recipe-crafting.js';
 import {ENEMIES} from './combat-rules.js';
+import {footprintGap} from './footprint.js';
 import {createCharacter} from './character.js';
 import {createResource} from './player-resources.js';
 import {totalXpForLevel,XP_BASE} from './combat-formulas.js';
@@ -257,4 +258,36 @@ test('an aggressive enemy opens with a short windup once in reach, then keeps it
  assert.equal(hits.length,2);
  assert.ok(hits[0].time<=OPENING_WINDUP+.1,`first enemy hit at ${hits[0].time.toFixed(2)}s`);
  assert.ok(hits[1].time-hits[0].time>=ENEMIES.bruiser.interval-.03,'then a full interval between hits');
+});
+
+test('a telegraphed boss winds up its full interval, one slam defeats, and stepping away resets the windup',()=>{
+ const f=fixture('golem');f.a.aggressive=true;let time=0;const step=(s)=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ step(3.2);assert.equal(f.health.value,30,'no quick opening swing');
+ // Step out of reach (the vacated tile stays reserved, so the golem holds its ground), then come back.
+ const back=f.world.get('3,4');f.reserved.add(back);f.tile=f.world.get('3,6');step(.3);f.reserved.delete(back);f.tile=back;step(.4);
+ step(2.5);assert.equal(f.health.value,30,'leaving reach restarted the windup');
+ step(1.2);assert.equal(f.health.value,0,'one slam ends a tutorial player');
+ assert.ok(ENEMIES.golem.max>=450&&ENEMIES.golem.attacksPacifists&&ENEMIES.golem.xpMultiplier===0);
+});
+test('a territory bounds aggression and pursuit; moveSpeed slows walking',()=>{
+ const f=fixture('golem');Object.assign(f.a,{aggressive:true,territory:{minX:2,maxX:4,minZ:2,maxZ:4}});let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ f.tile=f.world.get('3,6');step(.5);assert.equal(f.a.aggro,false,'within awareness range but outside the territory');
+ f.tile=f.world.get('3,4');step(.1);assert.equal(f.a.aggro,true);
+ f.tile=f.world.get('3,6');step(.1);assert.equal(f.a.aggro,false,'leaving the territory ends pursuit');
+ assert.ok(f.a.returning||f.a.tile===f.home);
+ // Walking speed: a slow boss covers less ground than a goblin in the same time.
+ const travelled=kind=>{const g=fixture(kind);Object.assign(g.a,{aggressive:true});g.tile=g.world.get('3,6');let t=0;for(let i=0;i<10;i++)g.system.update(.02,t+=.02);return g.a.group.position.distanceTo({x:g.home.x-6,y:g.home.h,z:g.home.z-6});};
+ assert.ok(travelled('golem')<travelled('bruiser')*.7);
+});
+test('a 2×2 enemy blocks its four tiles, fights from any side, pursues as a body and frees its tiles when removed',()=>{
+ const f=fixture('bruiser');f.system.remove(f.a);f.tile=f.world.get('3,6');
+ const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressive:true,rules:ENEMIES.golem,group:new Group(),tile:home,home,x:2,z:1,scale:1,patrol:{minX:1,maxX:3,minZ:0,maxZ:2}});
+ const cells=['2,1','3,1','2,2','3,2'].map(k=>f.world.get(k));assert.ok(cells.every(c=>c.blocked));
+ assert.equal(a.group.position.x,2.5-6,'the model stands at the body centre');
+ let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ step(4);assert.equal(a.aggro,true);
+ assert.equal(footprintGap(a.tile,2,f.world.get('3,6')),1,'it came to stand beside the player');
+ const body=new Set(['0','1'].flatMap(dx=>['0','1'].map(dz=>`${a.tile.x+ +dx},${a.tile.z+ +dz}`)));
+ for(const t of f.world.values())assert.equal(t.blocked,body.has(`${t.x},${t.z}`),`only the current body is blocked (${t.x},${t.z})`);
+ f.system.remove(a);assert.ok([...f.world.values()].every(t=>!t.blocked),'removal frees every body tile');
 });

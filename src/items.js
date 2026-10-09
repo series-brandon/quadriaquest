@@ -20,7 +20,8 @@ export const ITEMS={
  stone:{name:'Stone',icon:'⬟',description:'A larger piece of mined stone, useful for making stone equipment.'},
  axes:{name:'Crude Axe',icon:'⚒',description:'A simple axe for chopping trees. Keep it in your inventory to use it.'},
  logs:{name:'Small Logs',icon:'▰',description:'Freshly chopped wood. A useful crafting material.'},
- hats:{name:'Top Hat',icon:'🎩',description:'A rather fancy reward for a well-practiced adventurer. Equip it here to wear it.'}
+ hats:{name:'Top Hat',icon:'🎩',description:'A rather fancy reward for a hard-working adventurer. Equip it here to wear it.'},
+ companionHats:{name:'Companion Top Hat',description:'A tiny, very dapper top hat with a flower on the band. Put it on your companion here.'}
 };
 
 export function itemStack(id,quantity){return `${ITEMS[id]?.name||id} ×${quantity}`;}
