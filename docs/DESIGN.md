@@ -180,11 +180,32 @@ Menu, skill, and item illustrations share rounded SVG strokes from `src/icons.js
 
 Item gains and losses use a separate four-entry loot feed. Consecutive changes to the same item and sign merge while visible. Crafting shows an output receipt with its material costs. Movement errors retain their separate click/location feedback. Item feedback remains available through inventory edits, gain/loss previews, a crafting receipt preview, and a clear-feed control in the playground.
 
-## Audio sketch
+## Audio
 
-The current sound layer is an original procedural Web Audio sketch, not a finished recorded acoustic score. Music uses sparse melodic phrases with pauses and different pacing for splash, introduction, and clearing; dialogue lowers the music. Effects include pickup, crafting taps/completion, animation-timed chopping/mining impacts, resource collapse, levels, portals, and UI/error cues. Wind, birds, and insects are sparse randomized ambient sketches. Audio begins only after a gesture and suspends when the page is hidden. Separate Music, Effects, and Ambience sliders plus Mute are saved locally.
+Everything is synthesized with Web Audio: no audio files or external services. Effects (pickup, crafting taps/completion, animation-timed chopping/mining impacts, resource collapse, levels, portals, UI/error cues) and ambience (sparse randomized wind, birds and insects) are short procedural sketches in `audio.js`. Audio begins only after a gesture and suspends when the page is hidden. Separate Music, Effects and Ambience sliders plus Mute are saved locally; dialogue lowers the music.
 
-The playground exposes each effect individually, music-context selection, all shared sound settings, and existing real interactions for timing checks. Future work can replace the synthesized voices with recorded material sounds and composed acoustic tracks without changing gameplay events. Spatial attenuation and distinct destination soundscapes remain future audio refinements.
+**Music direction:** upbeat and cozy, with Stardew Valley as the reference (chosen 2026-10-09, replacing the first direction, a Minecraft/RuneScape mix). Cozy arrangements (`COZY_SONGS`) use brisk tempos (~100–110 BPM) with a light swing, fingerpicked strings and soft piano chords (strummed guitar was tried and found grating), a bouncy root–fifth bass, soft kit percussion (kick, woodblock, shaker, brush), coloured chords (add9, 7ths, sus) and a close room instead of the hall. A recorder or flute carries the tune (the user likes the flute line). Drift is reduced to short fingerpicked breathers and there are no silent rests. The user approved the cozy clearing (*Sunny Clearing*, G major), and every song now has a cozy version in the same style:
+
+- *Over Quadria (Cozy)* (splash): the original title tune on flute, with a B section quoting the clearing's melody;
+- *Waking (Cozy)* (opening): airy, 76 BPM, previews the clearing tune's first line;
+- *Willow Waters (Cozy)*: the 6/8 flute jig with an oom-pah piano;
+- *Cinderhold Embers (Cozy)*: an A dorian tavern tune at 116 BPM.
+
+Each new cozy song still awaits the user's review.
+
+The first direction mixed sparse, contemplative passages (Minecraft's music) with folky themes (RuneScape's). Songs are original compositions stored as compact data (`music-songs.js`): key, mode, tempo, chords, and melody/bass/arpeggio patterns in a small step notation (`music-theory.js`). Each song's form alternates (the cozy ones lean on themes):
+
+- **themes:** written melodies; repeats marked `~` get seeded ornaments, thinning and sometimes the alternate instrument;
+- **drift:** generated phrases of chord tones and colour notes over slow chords;
+- **rests:** silence, so ambience comes through.
+
+`music-player.js` schedules notes on the audio clock (lookahead timer, independent of frame rate) through layer gains (pad, bass, arp, melody, drift, combat), a generated hall reverb, a gentle low-pass and a compressor. Voices (`music-voices.js`): Karplus–Strong plucked string (harp/lute; a smooth excitation with a little noise and a 6 ms fade-in, so it has no pick tick), FM electric-piano keys, FM bell, flute and recorder, bass, detuned-saw pad, hand drums and shaker, plus a light kit (soft kick, woodblock, brush). Songs may set `swing`, `reverb` (room size) and `mix` (per-layer level multipliers; the cozy clearing keeps its accompaniment well under the melody). Every envelope must reach silence before its oscillator stops and attacks stay at 4 ms or longer (18 ms for the shaker): offline renders of the cozy clearing are checked for discontinuities (second-difference spikes) per layer.
+
+Songs: splash *Over Quadria* (D major, harp and flute), the opening *Waking* (D dorian bells, no melody), *Morning Clearing* (D major), *Willow Waters* (G major jig in 6/8) and *Cinderhold Embers* (A minor). Areas choose theirs through their `music` field; others fall back to the clearing's. Combat fades in a hand-drum and bass-pulse layer on the current song (skipping rests) rather than switching tracks. Songs crossfade on travel.
+
+**Playground:** Interface & audio has every effect individually, all shared sound settings and a **Music lab**: arrangement (Cozy or Original, crossfading on the same song), song (or follow the game), style (Mix, Themes only, Drift only), combat layer (Follow, On, Off), per-layer mutes, a seed to lock or reroll (it reproduces the drift and variations), restart, and a readout of the song, section, bar and seed. Real travel and combat drive the same player.
+
+**Open directions:** more songs per area and day/night variants, stingers in the current song's key for levels and quests, tiny recorded samples if synthesis hits a ceiling, spatial attenuation and per-destination soundscapes.
 
 **Phone journal layout.** At widths up to 700px the journal fills the safe viewport, with persistent tabs and an explicit close control. Inventory is a list/detail drill-down with Back to items; it does not split limited phone height between two scrolling panes. The same tutorial card docks inside the journal during menu lessons and returns to the world overlay when the journal closes. Crafting text wraps, inputs avoid mobile focus zoom, and primary touch targets are at least 44px. Desktop compact/expanded layouts remain separate. Existing playground menu and tutorial replay controls exercise both layouts; its collapsed mobile launcher moves away from the journal header.
 

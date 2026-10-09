@@ -93,7 +93,7 @@ export function createCinderhold(api){
  }
  function clearUI(){dialogue.hide();speaker=null;api.hideTip();}
  function reset(){clearUI();progress.reset();state.entered=active;arrivalSeen=false;lastOptional='';resetObjectives('cinder-');resetObjectives('ranged-');resetObjectives('magic-');for(const n of nodes)api.resources.reset(n);api.combat.resetWhere(a=>enemies.includes(a));for(const m of Object.values(mentors))m.reset();}
- return {id:'cinderhold',name:'Cinderhold',description:'Combat & equipment · Optional archery and magic',group,tiles:map,crystal,actors,nodes,enemies,mentors,progress,
+ return {id:'cinderhold',name:'Cinderhold',music:'cinderhold',description:'Combat & equipment · Optional archery and magic',group,tiles:map,crystal,actors,nodes,enemies,mentors,progress,
   arrival:()=>crystal.tile,camera:{zoom:22,angle:Math.PI/4,elevation:.65,background:'#35313f'},
   enter(){active=true;state.entered=true;if(!arrivalSeen){arrivalSeen=true;lines('sarge',['Front and center, maggot!'],prompt);}else prompt();},
   leave(){active=false;clearUI();},clearUI,reset,

@@ -18,6 +18,21 @@
         "preview:debug"
       ],
       "port": 4174
+    },
+    {
+      "name": "playground-alt",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--mode",
+        "playground",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
     }
   ]
 }

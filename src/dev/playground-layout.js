@@ -11,7 +11,7 @@ export function organizePlayground(panel){
  section('Character & abilities',['Character & combat profile']);
  section('Combat',['Combat practice','Training systems','Assistance, dual wield, armor, control & backfire']);
  section('World & water',['Travel practice','Terrain colors','Water animation','Resource picking','Fishing practice','Carpentry practice']);
- const ui=section('Interface & audio',['UI & audio polish']);
+ const ui=section('Interface & audio',['UI & audio polish','Music lab']);
  const feedback=section('Visual feedback',['Visual feedback only']);
  section('Performance',['Performance']);
  // Any fieldset not listed above still collapses, so new controls never sit loose at the top level.

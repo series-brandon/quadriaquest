@@ -20,6 +20,27 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Music engine — 2026-10-09
+- **All songs cozy (same day; the user loved Sunny Clearing and is reviewing the rest one by one):** `COZY_SONGS` now also has `splash`, `intro`, `willowbank` and `cinderhold`.
+  - They follow the clearing's recipe: flute or recorder lead, per-song `mix` to keep the accompaniment about 7–8 dB under the melody, coloured chords, no strums.
+  - Melodies were checked for strong-beat clashes with their chords; one sus4 clash in the splash is fixed. The rest are deliberate 7ths, raised 4ths and appoggiaturas, as in the clearing.
+  - Measured while the melody plays: melody about .026–.028; accompaniment about .009–.012; bass about .017–.022 (Waking's long bass notes reduced to .45).
+  - No discontinuities except a negligible detector artifact at the render's first 50 ms, during the fade-in.
+  - Each plays live from the lab.
+- **Tempo and balance (same day, user: "dragging", wants the recorder/flute on top):** Sunny Clearing is now 112 BPM (was 104) with swing .05 (was .1). Wind instruments swell in 25 ms (was 60), so notes land on the beat. Songs can set `mix` (per-layer multipliers); Sunny Clearing uses melody 1.35, arp .2, comp .45, bass .8. Measured while the melody plays: melody RMS .025, fingerpicking .010 (about 7.5 dB under).
+- **Click fixes and no strum (same day, user feedback: strumming grating, flute nice, audible clicking):**
+  - Measured by offline-rendering each voice and the cozy song per layer, without reverb or compressor, and flagging second-difference spikes against the local peak.
+  - Causes: keys oscillators stopped before the release finished (also a ramp-after-setTarget jump); plucks started at full amplitude from a noise burst; 1 ms woodblock and kick attacks; a 4 ms high-passed shaker.
+  - Fixes: keys decay and release are setTargetAtTime with oscillators running 2 s past release; plucks get a smooth excitation plus a 6 ms fade-in; kit attacks are 4–6 ms; the shaker is band-passed with an 18 ms swell.
+  - The strum voice is removed. `comp` now takes `c` (whole chord) and `l` (light upper notes) on any melodic voice, expanded to one event per note. Sunny Clearing uses fingerpicked plucks (A), flute with soft piano chords (B) and a flute alternate.
+  - After the fixes, melody, comp, drift, arp, kick and woodblock render with no flags. The remaining flags are the shaker's own noise texture.
+- **Cozy pilot (same day):** the user chose Stardew Valley as the direction. The engine gained swing, chord colours (`'4:7'`, `'1:add9'`, `'5:sus4'`, and the `e` chord-tone token), a `comp` layer (originally a strum voice; see above), a `perc` layer (k/w/h/s), the recorder voice and per-song `reverb`. `COZY_SONGS.clearing` (*Sunny Clearing*) is the pilot; the player prefers cozy versions through `options.arrangement` (default `cozy`), and the lab has an Arrangement switch. Next step: confirm the direction by ear, then write cozy Splash, Willowbank (accordion-like voice for the village?) and Cinderhold (a bouncy minor tavern tune). Verified: 425 tests; offline renders balanced (raw RMS: melody .047, guitar .031, bass .027, perc .012) with no NaNs; live Cozy↔Original crossfade; travel to Willowbank (original) and reset to the clearing (cozy).
+- **What:** the single looping 12-note sine phrase is replaced by composed, synthesized songs. Design and notation: DESIGN.md "Audio". Code: `music-theory.js` (pure: modes, patterns, section rendering, seeded variation/drift, styles), `music-songs.js` (5 songs), `music-voices.js` (instruments, generated reverb impulse), `music-player.js` (lookahead scheduler on a 50 ms timer, layers, crossfades, combat layer, `createMusicState` for lab signals). `audio.js` creates the player on unlock; `update(dt, songId, dialogue, combat)`; areas declare `music` (clearing, willowbank, cinderhold; others fall back to clearing).
+- **Playground:** `dev/music-lab.js` (kit, in Interface & audio) replaces the old Music preview select.
+- **Verified:** 423 tests (new `music-theory.test.js`, `dev/music-lab.test.js`), both builds, debug isolation, UI check. Offline renders of every song: no NaNs, peaks ≤ .85 before the Music slider. Live: lab song/style/seed/combat/layers; travel clearing → Cinderhold crossfades; a real fight fades the combat layer in and out; the splash plays *Over Quadria*.
+- **Not measured:** `npm run perf`. The harness never makes a trusted gesture, so audio never starts there; music no longer does any per-frame work.
+- **Known:** the music is still being explored with the user. Levels are tuned by measurement, not yet by ear.
+
 ### Streaming experiment — 2026-10-09 (playground only)
 - **Design and findings:** DESIGN.md "Streaming experiment". Playground → Streaming test (enter, teleport ~100 tiles, stall loading, stats, load radius, chunk bounds).
 - **Code:** `chunk-streamer.js` (shared: `CHUNK_SIZE` 16, `prime`, `update(dt, tile)`, budgeted nearest-first loading, hysteresis, entity state by id, busy chunks kept); `chunk-terrain.js` (`buildChunkTerrain`, one mesh + seam lines per chunk, `tileForFace` picking); `resource-actions` `snapshot`/`restore`; `cachedMergedMesh` and cached highlight hulls (`userData.shared` geometry is skipped by disposers); `src/dev/stream-world-gen.js` (512 × 512 generated test world). main.js `followSun()` moves the sun's shadow area with the player. The sandbox loads through dynamic imports behind the playground flag.
