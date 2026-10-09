@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {arrangement,chordTone,degreeMidi,parseChord,parseTokens,renderSection,seededRandom,stepsToNotes,voiceChord} from './music-theory.js';
 import {COZY_SONGS,SONGS} from './music-songs.js';
+import {DRUM_KIT,INSTRUMENTS} from './music-voices.js';
 
 test('degrees map through the mode and wrap octaves', () => {
   assert.equal(degreeMidi(62, 'ionian', 1), 62);
@@ -69,11 +70,9 @@ test('a seed reproduces drift and variations; repeats differ from the written th
   assert.ok(varied.some(events => JSON.stringify(events) !== JSON.stringify(plain)));
 });
 
-test('cozy songs replace originals by id and use the new layers', () => {
-  for (const [id, song] of Object.entries(COZY_SONGS)) {
-    assert.ok(SONGS[id], `${id} has an original`);
-    assert.equal(song.id, id);
-  }
+test('cozy songs replace originals by id (or are cozy-only) and use the new layers', () => {
+  for (const [id, song] of Object.entries(COZY_SONGS)) assert.equal(song.id, id);
+  for (const id of Object.keys(SONGS)) assert.ok(COZY_SONGS[id], `${id} has a cozy version`);
   const layers = new Set(renderSection(COZY_SONGS.clearing, 'a', {rng: seededRandom(3)}).events.map(e => e.layer));
   for (const layer of ['arp', 'bass', 'perc', 'melody']) assert.ok(layers.has(layer), layer);
   // Comp hits become one note per chord tone, so any melodic voice can play them.
@@ -81,6 +80,26 @@ test('cozy songs replace originals by id and use the new layers', () => {
   assert.equal(comp.length, 5);
   assert.ok(comp.every(e => e.voice === 'keys' && Number.isFinite(e.midi) && e.vel < 1));
   assert.ok(!layers.has('pad'));
+});
+
+test('songs only use instruments and drums that exist', () => {
+  for (const song of [...Object.values(SONGS), ...Object.values(COZY_SONGS)]) {
+    for (const name of Object.keys(song.sections)) {
+      for (const event of renderSection(song, name, {rng: seededRandom(2), varied: true}).events) {
+        if (event.voice === 'drum') assert.ok(DRUM_KIT[event.drum], `${song.id}.${name}: drum ${event.drum}`);
+        else if (event.voice !== 'pad') assert.ok(INSTRUMENTS[event.voice], `${song.id}.${name}: ${event.voice}`);
+      }
+    }
+  }
+});
+
+test('areas get distinct bands: no two cozy songs share a lead and key', () => {
+  const seen = new Set();
+  for (const song of Object.values(COZY_SONGS)) {
+    const id = `${song.voices.melody}@${song.root}`;
+    assert.ok(!seen.has(id), `${song.id} repeats ${id}`);
+    seen.add(id);
+  }
 });
 
 test('styles narrow the form but keep rests, falling back when nothing would play', () => {

@@ -32,7 +32,7 @@ export function createWorldStart(api){
  createTerrainBatch({tiles,map,factory:tile=>makeTerrainTile(tile,map,grassMaterials[(tile.x*7+tile.z)%4]),parent:group,pickables:api.pickables,preserve:grassMaterials,roughness:.9,
   decorate(tile,model){if(!tile.blocked&&!nodes.some(n=>n.tile===tile)&&(tile.x*11+tile.z*5)%9===0){const flowers=makeFlowers();flowers.position.y=tile.h;model.add(flowers);}}});
  return {
-  id:'world',name:'Quadria',description:'The open world',group,tiles:map,crystal,
+  id:'world',name:'Quadria',music:'world',ambience:'meadow',description:'The open world',group,tiles:map,crystal,
   camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},
   arrival:()=>crystal.tile,
   reset(){api.resourceActions.resetWhere(node=>nodes.includes(node));},

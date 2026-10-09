@@ -6,7 +6,8 @@
 //   bass/arp      chord tones: r root, t third, f fifth, o octave, e the chord's extension (7th/9th,
 //                 or the octave on a plain triad); same ' and , marks
 //   comp          c the whole chord (root below, the rest in one octave), l a light hit on its upper notes
-//   drums         x low drum, o high drum, s shaker, k soft kick, w woodblock, h brush
+//   drums         x low drum, o high drum, s shaker, k soft kick, w woodblock, h brush,
+//                 t tambourine, g triangle (music-voices.js DRUM_KIT)
 //   -  holds the previous note    .  rest
 //
 // Chords are scale degrees, optionally with a colour: 4 · '4:7' (diatonic 7th) · '2:9' · '1:add9'
@@ -17,7 +18,7 @@ export const MODES={
  mixolydian:[0,2,4,5,7,9,10],aeolian:[0,2,3,5,7,8,10]
 };
 const CHORD_TONES=new Set(['r','t','f','o','e']);
-const DRUMS=new Set(['x','o','s','k','w','h']);
+const DRUMS=new Set(['x','o','s','k','w','h','t','g']);
 const HITS=new Set(['c','l']);
 const COLOURS={'':[0,2,4],7:[0,2,4,6],9:[0,2,4,6,8],add9:[0,2,4,8],sus4:[0,3,4],sus2:[0,1,4],6:[0,2,4,5]};
 // Each layer has its own gain in the player, so the lab can mute it and combat can fade in.
@@ -157,7 +158,7 @@ export function renderSection(song,name,{rng=Math.random,varied=false}={}){
   let notes=stepsToNotes(parseTokens(section.melody.join(' '),'melody'));
   let voice=section.voice||voices.melody||'pluck';
   if(varied){notes=varyMelody(notes,rng);if(voices.alt&&rng()<.5)voice=voices.alt;}
-  for(const note of notes)events.push({layer:'melody',voice,step:note.step,len:note.len,midi:degreeMidi(song.root,song.mode,note.degree),vel:note.step%(shape.meter===6?3:4)===0?1:.82});
+  for(const note of notes)events.push({layer:'melody',voice,step:note.step,len:note.len,midi:degreeMidi(song.root,song.mode,note.degree),vel:note.step%accentEvery(song)===0?1:.82});
  }
  if(section.kind==='drift'||section.drift){
   for(const note of driftNotes(song,section,shape,rng)){
@@ -178,6 +179,10 @@ export function arrangement(song,style='mix'){
  const kept=entries.filter(({name})=>{const kind=song.sections[name].kind||'theme';return kind==='rest'||kind===style;});
  return kept.some(({name})=>song.sections[name].kind!=='rest')?kept:entries;
 }
+
+// Steps between accented melody notes: half bars in 4/4, beats in 6/8, whole bars in a 3/4 waltz
+// (6 eighths, two per beat), or a song's own `accent`.
+export const accentEvery=song=>song.accent??((song.meter||8)===8?4:(song.stepsPerBeat||2)===3?3:6);
 
 export const stepSeconds=song=>60/song.bpm/(song.stepsPerBeat||2);
 

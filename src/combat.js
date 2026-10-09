@@ -147,7 +147,7 @@ export function createCombatSystem(api){
   if(shield&&(r.outcome==='hit'||r.outcome==='block'))defensive.push({track:'prof.shield',amount:actionXp(r.outcome==='hit'?r.raw:rollDamage(rules.min,rules.max,random))});
   if(r.outcome==='hit')defensive.push(...armorAwards(armor,actionXp(r.raw)));
   if(defensive.length)reward(character.award(defensive,xpModifiers(rules)),a);
-  api.hit(api.player.position,r.outcome==='hit'?displayedLoss(before,api.health.value):null,r.outcome);api.sound('blocked');
+  api.hit(api.player.position,r.outcome==='hit'?displayedLoss(before,api.health.value):null,r.outcome);api.sound(r.outcome==='hit'?'hurt':'whiff');
   if(api.health.value<=0){lose();return;}
   // Assistance decides retaliation when present (Pacifist, Adaptive danger); otherwise the Auto-Retaliate preference.
   const retaliate=api.shouldRetaliate?api.shouldRetaliate(a):autoRetaliate;
@@ -165,8 +165,8 @@ export function createCombatSystem(api){
   const r=resolveAttack({dodgePercent:rules.canDodge?rules.dodgePercent||0:0,canCritical:true,criticalPercent:weapon.critPercent,min:weapon.min,max:weapon.max,random,
    mitigate:raw=>resolvePortions([{amount:raw*(weapon.damageScale??1),resistancePct}])});
   const before=a.hp;a.hp=Math.max(0,a.hp-r.damage);const removed=before-a.hp,xp=actionXp(removed);
-  if(r.outcome==='hit'){a.hitAge=.25;api.hit(a.group.position,removed,r.critical?'critical':'hit');api.sound('chop');api.struck?.(a,weapon);}
-  else api.hit(a.group.position,null,r.outcome);
+  if(r.outcome==='hit'){a.hitAge=.25;api.hit(a.group.position,removed,r.critical?'critical':'hit');api.sound(r.critical?'crit':'hit');api.struck?.(a,weapon);}
+  else{api.hit(a.group.position,null,r.outcome);api.sound('whiff');}
   // Strategy skill and weapon/elemental proficiency each receive the full base award, capped per track.
   const awards=[{track:weapon.xpTrack,amount:xp}];
   if(weapon.proficiencyTrack)awards.push({track:weapon.proficiencyTrack,amount:xp});
@@ -183,7 +183,7 @@ export function createCombatSystem(api){
   const d=playerDefense(character,{activeStyle:current.combatStyle,strategy:current.strategy,incomingStyle:'magic',shield:api.equipment.shield||null,armor:api.equipment.armorPieces||[],bonusResistancePct:api.resistanceBonus?.()||0});
   const base=backfireBaseDamage(weapon.max),portions=Object.entries(weapon.elements||{none:1}).map(([,share])=>({amount:base*share,resistancePct:d.resistancePct}));
   const damage=resolvePortions(portions);api.health.value=Math.max(0,before-damage);
-  api.hit(api.player.position,displayedLoss(before,api.health.value),'backfire');api.sound('blocked');api.toast?.(`${weapon.name} backfired!`);
+  api.hit(api.player.position,displayedLoss(before,api.health.value),'backfire');api.sound('hurt');api.toast?.(`${weapon.name} backfired!`);
   const awards=[{track:weapon.xpTrack,amount:actionXp(0)}];for(const [element,share] of Object.entries(weapon.elements||{}))awards.push({track:`prof.${element}`,amount:actionXp(0)*share});
   reward(character.award(awards,xpModifiers(a.rules)),a);
   if(api.health.value<=0)lose();

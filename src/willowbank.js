@@ -48,7 +48,7 @@ export function createWillowbank(api){
 
  const bridge=createCarpentryBridge({tiles:Array.from({length:WILLOWBANK.bridgeEnd-WILLOWBANK.bridgeStart+1},(_,i)=>t(WILLOWBANK.bridgeStart+i,WILLOWBANK.bridgeZ)),parent:group,world:api.world,pickables:api.pickables,
  available:()=>active&&phase==='bridge',onStart:()=>{tip.hide();},paused:()=>!!injuryReaction,
- onProgress(progress){const injury=bridgeInjury.atProgress(progress,api.health.value);if(injury){api.health.value=injury.health;hitFeedback.show(api.player.position,injury.damage);api.sound('blocked');injuryReaction={age:0,spoken:false};}},onComplete:bridgeCompleted});
+ onProgress(progress){const injury=bridgeInjury.atProgress(progress,api.health.value);if(injury){api.health.value=injury.health;hitFeedback.show(api.player.position,injury.damage);api.sound('hurt');injuryReaction={age:0,spoken:false};}},onComplete:bridgeCompleted});
  bridge.willow=true;actors.push(bridge);
  function setBridgeRepairTarget(enabled){if(enabled)bridge.reset();else bridge.complete();}
  for(const [x,z]of [[2,8],[4,12],[7,10],[9,3],[12,3],[13,12],[16,6],[2,14],[9,15]])resource('tree',x,z);

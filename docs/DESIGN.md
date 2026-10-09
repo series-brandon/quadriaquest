@@ -182,7 +182,39 @@ Item gains and losses use a separate four-entry loot feed. Consecutive changes t
 
 ## Audio
 
-Everything is synthesized with Web Audio: no audio files or external services. Effects (pickup, crafting taps/completion, animation-timed chopping/mining impacts, resource collapse, levels, portals, UI/error cues) and ambience (sparse randomized wind, birds and insects) are short procedural sketches in `audio.js`. Audio begins only after a gesture and suspends when the page is hidden. Separate Music, Effects and Ambience sliders plus Mute are saved locally; dialogue lowers the music.
+Everything is synthesized with Web Audio: no audio files or external services. Audio begins only after a gesture and suspends when the page is hidden. Separate Music, Effects and Ambience sliders plus Mute are saved locally; dialogue lowers the music.
+
+**Effects and cues (`sound-effects.js`, user direction 2026-10-09).** Short procedural effects, plus **cues**: phrases played on the current song's cue instrument (`voices.cue`) in its key, so rewards sound like part of each area's music. Level-up and quest-complete cues briefly duck the music.
+
+| Event | Sound |
+|---|---|
+| Pick up | rustle and a soft in-key note |
+| Crafting | taps while working, then a two-note in-key chime when done |
+| Eat | crunches |
+| Chop, mine, fall | wood, stone and collapse |
+| Carpentry | hammer knock |
+| Fishing | cast whoosh and plop; catch splash and in-key chime |
+| Campfire | whoomp |
+| Cooking | sizzle |
+| Smithing | anvil clang or furnace roar |
+| Combat | hit, critical, miss whoosh, player hurt (previously the error buzz); defeating an enemy plays an in-key flourish |
+| Quest progress | a note that climbs the scale with the count (3/6 is halfway up) |
+| Quest complete | a fanfare with a bass note |
+| Level up | arpeggio and chord |
+| Portal | rising scale over a whoosh |
+| Errors, buttons | blocked buzz, UI tick |
+
+**Ambience (`ambience.js`).** A profile per place, made of one-shots on randomized timers and an optional continuous bed that crossfades between places. Birds go quiet during fights.
+
+| Place | Profile |
+|---|---|
+| Splash | breeze |
+| Opening scene (before the clearing appears) | silence (user: no ambience there) |
+| Clearing, open world | meadow: wind gusts, three bird calls, crickets |
+| Willowbank | river: a babbling brook of random bubbles (a slowly wandering flow) over a soft low wash, birds; no wind |
+| Cinderhold | stone town in a generated cave reverb: single water drips, trickling stones and dirt, a distant anvil; no wind |
+
+Areas set `ambience`. Nothing in ambience is periodic: user feedback found a steady wobble "repeating every half second". Movement comes from random walks and randomized one-shots.
 
 **Music direction:** upbeat and cozy, with Stardew Valley as the reference (chosen 2026-10-09, replacing the first direction, a Minecraft/RuneScape mix). Cozy arrangements (`COZY_SONGS`) use brisk tempos (~100–110 BPM) with a light swing, fingerpicked strings and soft piano chords (strummed guitar was tried and found grating), a bouncy root–fifth bass, soft kit percussion (kick, woodblock, shaker, brush), coloured chords (add9, 7ths, sus) and a close room instead of the hall. A recorder or flute carries the tune (the user likes the flute line). Drift is reduced to short fingerpicked breathers and there are no silent rests. The user approved the cozy clearing (*Sunny Clearing*, G major), and every song now has a cozy version in the same style:
 
@@ -204,6 +236,38 @@ The first direction mixed sparse, contemplative passages (Minecraft's music) wit
 Songs: splash *Over Quadria* (D major, harp and flute), the opening *Waking* (D dorian bells, no melody), *Morning Clearing* (D major), *Willow Waters* (G major jig in 6/8) and *Cinderhold Embers* (A minor). Areas choose theirs through their `music` field; others fall back to the clearing's. Combat fades in a hand-drum and bass-pulse layer on the current song (skipping rests) rather than switching tracks. Songs crossfade on travel.
 
 **Playground:** Interface & audio has every effect individually, all shared sound settings and a **Music lab**: arrangement (Cozy or Original, crossfading on the same song), song (or follow the game), style (Mix, Themes only, Drift only), combat layer (Follow, On, Off), per-layer mutes, a seed to lock or reroll (it reproduces the drift and variations), restart, and a readout of the song, section, bar and seed. Real travel and combat drive the same player.
+
+**Per-area bands (user, 2026-10-09).** Sharing one band made the songs sound alike, so each area now has its own instruments, key and feel. The user wants a broad palette of instruments, styles and keys to draw on as themes are added.
+
+| Song | Lead | Band | Key and feel |
+|---|---|---|---|
+| Over Quadria (splash) | flute | harp, celesta, triangle | D major, 4/4 |
+| Waking (opening) | ocarina | harp, celesta | G major, slow 4/4 |
+| Sunny Clearing | recorder (flute B) | nylon guitar, electric piano, kick and woodblock | G major, 112 BPM, light swing |
+| Willow Waters | accordion (whistle repeats) | banjo, tuba, tambourine | F major, 6/8 jig |
+| Cinderhold Embers | clarinet (marimba repeats) | marimba oom-pah, upright bass, hand drums | A dorian, 116 BPM |
+| Open Road (world) | tin whistle (kalimba repeats) | vibraphone oom-pah-pah, upright bass | E-flat major, 3/4 waltz |
+
+The palette (`music-voices.js` `INSTRUMENTS`) is presets over shared engines:
+
+- strings: guitar, harp, banjo;
+- FM: electric piano, celesta, vibraphone, kalimba, bell;
+- winds: flute, recorder, ocarina, tin whistle;
+- reeds: clarinet, accordion, tuba;
+- marimba, upright bass, pad;
+- a kit: frame and hand drums, shaker, soft kick, woodblock, brush, tambourine, triangle.
+
+Levels are normalized to the flute's loudness, so instruments can swap roles; songs balance roles with `mix`. A song's `accent` follows its meter (half bars, 6/8 beats, waltz bars).
+
+Still open: a short shared leitmotif across songs.
+
+**Lab (Music & sound lab):**
+
+- **Audition:** plays any instrument (or the kit) through the music mix.
+- **Effects and ambient sounds:** each plays on its own (cues use the current song's key and instrument), each has a click check, and an ambience override plus a readout show the current profile.
+- **Check instrument / Check song:** renders offline, dry, and flags waveform discontinuities per layer (`dev/audio-check.js`; percussion is noise and is skipped).
+
+**Click rules for new instruments and effects:** gains start at 0 when created, since a scheduled 0 at a source's start lands a sample late; noise sources loop, so they can't run off the end of their buffer; envelopes reach silence before stopping; attacks are at least 4 ms for tones and 8 ms for noise; string tables fade at their end; plucked brightness comes from the pick shape rather than noise.
 
 **Open directions:** more songs per area and day/night variants, stingers in the current song's key for levels and quests, tiny recorded samples if synthesis hits a ceiling, spatial attenuation and per-destination soundscapes.
 

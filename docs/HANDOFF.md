@@ -20,7 +20,55 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Sound effects, cues and ambience — 2026-10-09
+- **Second listening pass (user):**
+  - **Willowbank's swirl repeated.** The old bed's oscillator wobbles (1.7, 3.1 and 0.4 Hz) and its bright band are gone. The river is now a brook of bubble one-shots (random pitch, time, level and pan; a slowly wandering `flow`) over a soft low-passed wash whose cutoff and level random-walk. Measured envelope self-similarity at 0.3–3 s delays: the old bed peaked at 0.60 every 2.35 s; the new water has no peaks (0.30 → 0.12 at 1 s → ~0 at 2 s).
+  - **The Cinderhold drip sounded like three chirps.** It's now one plink. The profile's `reverb` (.75) sends all its ambience into a generated cave impulse (early reflections plus a ~2 s dark tail); a drip rings about 1 s.
+  - Profiles click-free over 40 s, with similar loudness (RMS: meadow .0034, river .0024, Cinderhold .0023).
+- **Fixes after the user listened:**
+  - **Clearing wind swelled, then cut off.** Cause: a non-looping 4 s noise buffer, a random offset and gusts up to 6 s. Every noise source now loops (ambience, effects, wind-instrument breath, drums).
+  - **Every noise-based sound started with a one-sample spike, likely part of the clicking the user heard.** Cause: a gain node starts at 1, and `setValueAtTime(0)` at the source's start frame lands a sample late in Chrome. Every envelope now sets `gain.value=0` when created.
+  - **Willowbank's bed was far too loud.** It's now a quieter brook (about the meadow's overall level) with bubble one-shots and no wind.
+  - **Cinderhold had wind and an ember rumble.** Both are replaced by drips with stone echoes, falling stones and dirt (dull and low-passed), and the distant anvil.
+  - **Checker:** it also flags cut-offs, meaning a drop of more than 20 dB over ~23 ms windows while the sound was steady (not a fade's tail or a percussive decay). Spike roughness is relative to level, so noise swelling in isn't flagged. It still catches the old piano cut-off, the old wind bug and a full-level start.
+  - **Verified:** every effect and ambient sound over six randomized runs, every instrument twice, and all six songs: no clicks or cut-offs.
+- **Design:** DESIGN.md "Audio" (effects table, ambience profiles).
+- **Code:**
+  - `sound-effects.js` `createSoundEffects(ctx, out, {voices, palette})`: `EFFECTS` (25; `cue` marks in-key phrases); `play(kind, arg)` returns seconds of music ducking.
+  - `ambience.js` `createAmbience(ctx, out)`: `AMBIENCE_PROFILES` (none, breeze, meadow, river, forge); `AMBIENT_SOUNDS` (wind, chirp, call, trill, insect, clink); water and embers beds.
+  - The player exposes `voices` and `palette()` (current key and cue instrument; songs set `voices.cue`).
+  - `audio.js`: `play(kind, arg)`, `update(dt, song, dialogue, combat, place)`, `ambience.override` and `ambience.profile` signals.
+- **Wiring (main.js and shared systems):**
+  - `showItemChanges(changes, {sound})`.
+  - Food → eat; fishing → cast and catch; carpentry → hammer; cooking → sizzle; anvil and furnace starts; campfire placed → ignite; combat `won` → victory.
+  - Quest notice effect → objective note (by progress) or quest cue.
+  - `combat.js`: hit or crit on enemies, whiff on misses (both sides), hurt for the player.
+  - Willowbank's bridge injury → hurt.
+  - Ambience place: splash → breeze; `!opening.inClearing` → none; otherwise `areas.active.ambience` (clearing, world: meadow; Willowbank: river; Cinderhold: forge).
+- **Playground:** the lab (now "Music & sound lab") replaces the legacy sound buttons. It has an Effect picker with Play and Check, an Ambience override and ambient sound picker with Play and Check, and the ambience profile in the readout. `dev/audio-check.js` adds `checkEffect` and `checkAmbient`.
+- **Verified:**
+  - 432 tests (new `ambience.test.js`; lab test); both builds; debug isolation; UI check.
+  - Effects and ambient sounds click-free over six randomized offline runs each.
+  - Loudness balanced: cues ≈ 1.5–2.5× combat hits, eat and whiff now audible.
+  - Live: ambience splash breeze → opening silence → clearing meadow → Willowbank river → Cinderhold forge; real quest add, progress and complete plus a fight fire their sounds without errors.
+- **Known:**
+  - Tutorial checkpoints restart the opening, so the opening's music plays during checkpoint travel (pre-existing; normal play finishes the opening first).
+  - The music's tutorial "Waking" song covers the whole opening, including the clearing lessons.
+
 ### Music engine — 2026-10-09
+- **Per-area bands (same day; the user wants many instruments, styles and keys):** see DESIGN.md "Per-area bands".
+  - **Instruments:** `music-voices.js` presets over engines (string, FM, wind, reed with PeriodicWave recipes, mallet). There are 17 instruments plus 8 kit pieces. `INSTRUMENTS` and `DRUM_KIT` are exported for songs, tests and the lab.
+  - **Normalized levels:** a mid note at full velocity is about the flute's RMS (~.06). The flute and recorder keep their levels, and Sunny Clearing's `mix` is scaled so it sounds unchanged.
+  - **Songs:** new world waltz `COZY_SONGS.world` (*Open Road*; `world-start.js` has `music:'world'`). Willowbank moved to F major. Cozy-only songs play in either arrangement.
+  - **Fixes found by the new checker:** string tables could run out while audible, so each preset has a `length`, the table fades out at its end, and the ring is capped. The banjo is bright from a narrow pick shape instead of noise. The guitar's noise is trimmed (.35 → .25).
+  - **Lab:** instrument audition (`player.audition`), Check instrument and Check song (`dev/audio-check.js` `findClicks`, unit-tested on synthetic cuts and fades).
+  - **Verified:**
+    - 430 tests; both builds; debug isolation (the checker isn't in normal builds); UI check.
+    - Every instrument's audition is click-free except one guitar onset at .026, just over the threshold; songs are clean.
+    - Every song's layers are click-free.
+    - Balance measured while the melody plays: melody about .025, accompaniment .008–.014, bass .016–.021.
+    - Live: lab audition and checks, the world song from the lab, and from a real wake-up into the world.
+  - **Tooling note:** the dev server sometimes misses file edits; restart it before measuring or listening.
 - **All songs cozy (same day; the user loved Sunny Clearing and is reviewing the rest one by one):** `COZY_SONGS` now also has `splash`, `intro`, `willowbank` and `cinderhold`.
   - They follow the clearing's recipe: flute or recorder lead, per-song `mix` to keep the accompaniment about 7–8 dB under the melody, coloured chords, no strums.
   - Melodies were checked for strong-beat clashes with their chords; one sus4 clash in the splash is fixed. The rest are deliberate 7ths, raised 4ths and appoggiaturas, as in the clearing.
