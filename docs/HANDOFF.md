@@ -596,10 +596,17 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 - **Tests:** `cinderhold-dialogue.test.js` covers each branch and that only acceptance changes the mode.
 - **Playground/verified:** `cinderhold:meet` with the Combat page mode set to Pacifist or another mode; all three branches walked in the built playground (mode read from "Show assistance state"), no page errors. 394 tests, smoke, both builds, debug isolation.
 
-### Opening rework backlog (user requests, 2026-10-08; not started)
-For the planned rework of the opening/tutorial (alongside the "???" item above):
-- **Skip the tutorial:** offer a way to skip parts of the tutorial, or all of it.
-- **Handedness at character creation:** ask right- or left-handed during customization. It's also settable any time under Combat → Attack setup.
+### Opening rework, phase 1: the tutorial is a dream — 2026-10-08
+- **Design:** see DESIGN.md "The tutorial is a dream". User decisions: skipping is offered upfront and per chapter; waking replaces items, skills and XP with one fixed starter kit for everyone (played or skipped); the tutorial is the clearing, Willowbank and Cinderhold; dominant hand is asked right after the name; "???" appears on crystals once Cinderhold is complete (graduated or refused); tutorial areas are hidden after waking; the real world doesn't exist yet, so players wake in a placeholder.
+- **Code:**
+  - `opening.js`: `chooseHand` (→ `onHandChosen` → `equipment.setHandedness`) and `chooseTutorial` (Play / Skip with a confirmation → `onSkipTutorial`). Checkpoints `clearing:hand`, `clearing:tutorial`.
+  - `waking.js`: `STARTER_KIT`, `WAKING_LINES`/`SKIP_LINES`, `createWaking` (farewell on the narrator, fade, `endTutorial` host cleanup, `resetProgress`, kit, `arrive('world')`, companion acquire+name or follow, welcome toast). It keeps handedness across `equipment.reset()` and leaves the combat mode alone.
+  - `world-start.js`: the placeholder `world` area ("Quadria"): a meadow with a crystal, trees, boulders and ground items. `WORLD_START.crystal` is the only thing to move when the real world arrives.
+  - `destination-menu.js`: areas list while `listed()` isn't false; `extras()` adds non-place entries (the "???" ending). Tutorial areas: `listed:()=>!waking.isWoken`; world: the reverse. `cinder.tutorialComplete`.
+  - Playground: Tutorial checkpoints fieldset has Wake up now / Wake up (skip lines) / Back to the dream; `reset('all')` (and so Load step) also resets waking and the world area.
+- **Verified:** 401 tests (new `waking.test.js` on the real equipment/styles/auras/character; opening test covers the hand step); smoke (new game picks Play), both builds, debug isolation, UI check. Browser: a new game in the normal build choosing Left hand and Skip (farewell, fade, arrival, companion naming, exact kit, dagger in the left hand); in the playground, `???` absent mid-training and present after Basic Training, the confirmation, the full farewell, arrival with the kit, and the world crystal listing only Quadria.
+- **Phase 2 (next):** "Skip this part" per chapter (clearing: controls, journal basics, tools, finale; Willowbank; Cinderhold), each jumping to the next chapter's start with what it needs.
+- **Backlog:** a **Guide** tab (a small in-game wiki of short informational entries) that also holds a **replay tutorial** action.
 
 ### Per-item Simple permissions — 2026-10-08
 - **User decision:** settings lists don't scale to dozens of foods or spells, so permissions now live on the items. The old "Never auto-use X" checkboxes in Simple settings are gone.

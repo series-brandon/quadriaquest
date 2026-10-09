@@ -31,6 +31,8 @@ import {levelNotice} from './skills.js';
 import {createAreaRuntime} from './area-runtime.js';
 import {createTravelSystem} from './travel.js';
 import {createCrystals} from './crystals.js';
+import {createWaking} from './waking.js';
+import {createWorldStart} from './world-start.js';
 import {createEquipmentPresentation} from './equipment-presentation.js';
 import {portalSpawn} from './portal-spawn.js';
 import {createCombatSystem} from './combat.js';
@@ -164,11 +166,11 @@ const tip=createTip();
 // Brief notices: blocked-action messages, quest progress and level-ups (item receipts: createItemFeed).
 let messages;
 for(const build of [()=>(messages=messageToast()).node,()=>objectiveToast({notice:objectiveNotice}),()=>levelUps({notice:levelNotice})])document.body.append(mount(build).node);
-const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,player,visual,face:expressionFace,introSpawn,spawn:clearingSpawn,onComplete:()=>craftingTutorial.start(),onModeChosen:mode=>assistance?.setMode(mode),onFirstLevel:done=>craftingTutorial.startSkills(done),onFirstQuest:done=>craftingTutorial.startQuests(done),
+const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,player,visual,face:expressionFace,introSpawn,spawn:clearingSpawn,onComplete:()=>craftingTutorial.start(),onHandChosen:side=>equipment.setHandedness(side),onModeChosen:mode=>assistance?.setMode(mode),onSkipTutorial:()=>waking.start({skip:true}),onFirstLevel:done=>craftingTutorial.startSkills(done),onFirstQuest:done=>craftingTutorial.startQuests(done),
  setColor(color){body.material.color.set(color);expressionFace.setBodyColor(color);},
  showClearing(){clearingGroup.visible=true;for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
-let assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
+let waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const hammerTool=heldTool('hammers');hands[0].add(hammerTool);hammerTool.visible=false;
 const fishingPresentation=createFishingPresentation({player,hands});
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
@@ -226,7 +228,11 @@ function crystalRestore(){health.max=character.maxima.health;health.restore();pl
 // Utility dialogs (stations, destinations, naming, confirmations) share one modal host.
 const modals=createModalHost();
 const settingsUI=createSettingsMenu({audio:gameAudio,modals});
-destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,services:{
+// Once Cinderhold is complete, the crystals offer "???": ending the tutorial (waking.js).
+destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,
+ extras:()=>cinder?.tutorialComplete&&!waking?.isWoken?[{id:'awaken',name:'???',description:'Somewhere beyond the dream',
+  choose(){confirmModal(modals,{id:'end-tutorial',title:'???',message:'Do you wish to end the tutorial now?',confirm:'Yes',cancel:'Not yet',onConfirm:()=>waking.start()});}}]:[],
+ services:{
  restore(){if(combat.inCombat)return 'Not available during combat.';crystalRestore();toast('You have been fully restored!');return null;},
  respec(){if(combat.inCombat)return 'Not available during combat.';auras.deactivateAll();const refund=character.redistribute();crystalRestore();return `${refund} attribute point${refund===1?'':'s'} returned to spend in Skills. Auras turned off; resources restored.`;}}});
 const crystals=createCrystals({world,pickables,travel,choose:(a,after)=>destinations.open(a,after),hover:()=>hover?.actor});
@@ -334,7 +340,7 @@ finale=createTutorialFinale({narrator,tip,destination:'willowbank',parent:cleari
  clearFalling(){resourceActions.resetWhere(n=>clearingTiles.get(key(n.x,n.z))===n.tile);},
  ensureClearSpawn(){if(trees.some(t=>t.x===tile.x&&t.z===tile.z)){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}},
  });
-areas.register({id:'clearing',name:'The Clearing',description:'Resources & crafting',camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},group:clearingGroup,tiles:clearingTiles,arrival:()=>finale.ensurePortal()?.tile,
+areas.register({id:'clearing',name:'The Clearing',listed:()=>!waking?.isWoken,description:'Resources & crafting',camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},group:clearingGroup,tiles:clearingTiles,arrival:()=>finale.ensurePortal()?.tile,
  get busy(){return finale.busy;},get canMove(){return opening.canMove&&!craftingTutorial.blocksMovement;},get canOrbit(){return opening.canOrbit;},
  get cameraFocus(){return finale.cameraFocus;},get celebration(){return finale.celebration;},
  enter(){ground.visible=true;introTile.visible=false;},
@@ -342,7 +348,7 @@ areas.register({id:'clearing',name:'The Clearing',description:'Resources & craft
  craftStarted:id=>craftingTutorial.craftStarted(id),crafted:id=>craftingTutorial.craftComplete(id),craftCancelled:()=>craftingTutorial.craftCancelled(),
  interact:a=>finale.interact(a),clearUI:()=>finale.debugCancel?.(),
 });
-areas.register({id:'willowbank',name:'Willowbank',recommendedDestination:'cinderhold',description:'Fishing, cooking & healing',group:willow.group,tiles:new Map(willow.tiles.map(t=>[key(t.x,t.z),t])),arrival:()=>willow.crystal.tile,
+areas.register({id:'willowbank',name:'Willowbank',listed:()=>!waking?.isWoken,recommendedDestination:'cinderhold',description:'Fishing, cooking & healing',group:willow.group,tiles:new Map(willow.tiles.map(t=>[key(t.x,t.z),t])),arrival:()=>willow.crystal.tile,
  camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},
  enter:({arrival})=>willow.enter(true,!arrival),leave:()=>willow.enter(false),cancel:()=>willow.cancel(),update:(dt,time,camera)=>willow.update(dt,time,camera),
  get busy(){return willow.busy;},get cameraFocus(){const focus=willow.cameraFocus;return focus&&{...focus,position:focus.position.clone().add(new THREE.Vector3(0,.4,0)),zoom:7};},get expression(){return willow.expression;},
@@ -353,7 +359,22 @@ cinder=createCinderhold({auras,scene,world,pickables,crystals,dialogue:character
  hover:()=>hover?.actor||hover?.tree||hover?.resource,approach:selectActor,guideMenu:value=>menus.guide(value),tip:(...args)=>craftingTutorial.showChapterTip(...args),hideTip(){tip.hide();},attacksPrevented:()=>!!assistance?.attacksPrevented,setCombatMode:mode=>assistance?.setMode(mode),abilitiesAuto:()=>assistance?.settings.policies.abilities==='auto',showCombatModes:()=>styleMenu.showModes(),
  working:()=>!!actorTarget||!!segment||path.length>0||combat.working||smithing.working||resourceActions.working||food.working||recipeCrafting.working
 });
-areas.register(cinder);
+cinder.listed=()=>!waking?.isWoken;areas.register(cinder);
+// The world (a placeholder start location for now) appears once the player wakes from the tutorial.
+const worldStart=createWorldStart({scene,crystals,resourceActions,pickables});
+areas.register({...worldStart,listed:()=>!!waking?.isWoken});
+// Leaving the tutorial (waking.js): one shared reset and starter kit, after the "???" farewell.
+waking=createWaking({narrator,inventory,items:ITEMS,skills:playerSkills,character,styles,auras,equipment,health,resources:playerResources,companions,
+ resetObjectives,toast,
+ fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},
+ endTutorial(){
+  travel.cancel();stopAll();combat.clear();modals.closeAll('replaced');areas.notify('clearUI');
+  craftingTutorial.reset();opening.enterFreePlay();finale.reset();destinations.reset();
+  clearSkillRewards();itemFeed.clear();tip.hide();
+  menus.host.hidden=false;introTile.visible=false;player.visible=true;visual.scale.setScalar(1);
+ },
+ arrive(id){const landing=travel.landingFor(id);areas.activate(id,{landing,arrival:false});return landing;},
+});
 assistance=createAssistance({combat,character,equipment,styles,auras,food,inventory,health,resources:playerResources,toast,moving:()=>!!segment||path.length>0,tip:text=>playerInterface?.tip(text)});
 styleMenu=createCombatStyleMenu({styles,combat,panels:menus.panels,auras,assistance,equipment,character,health,openPowers:()=>powersMenu.open(),busy:()=>combat.working||combat.busy||smithing.working||recipeCrafting.working});
 // Powers (Spells, Auras, Abilities) after the Combat page, which links to it.
@@ -455,7 +476,7 @@ const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=n
 // One batch per frame: UI bindings flush once, after the frame's state changes.
 function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
 // Playground builds attribute frame time to these laps; normal builds compile them away.
-function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
@@ -703,9 +724,10 @@ if(__PLAYGROUND__){
    travel.cancel();if(areas.id!=='clearing'||kind==='all'){areas.activate('clearing',{landing:clearingTiles.get(key(SPAWN.x,SPAWN.z)),arrival:false});finale.reset();}if(kind==='all'){craftingTutorial.reset();opening.enterFreePlay();resetObjectives();for(const object of clearingObjects)object.visible=true;introTile.visible=false;player.visible=true;}
    clearSkillRewards();itemFeed.clear();messages?.clear();
    resourceActions.resetWhere(n=>clearingTiles.get(key(n.x,n.z))===n.tile&&(kind==='all'||kind==='items'&&!['tree','boulder'].includes(n.kind)||kind==='trees'&&n.kind==='tree'||kind==='boulders'&&n.kind==='boulder'));
-   if(kind==='all'){character.reset();auras.reset();playerControl.reset();assistance.reset();if(__PLAYGROUND__)SPELLS.energyStrike.requirements['magic.technique']=1;playerResources.reset();health.restore();playerInterface?.reset();combat.setAutoRetaliate(true);trainingFixtures.clear();cinder.reset();styles.reset();supplies.reset();destinations.reset();combatFixtures.clear();combat.clear();equipment.reset();carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of Object.values(playerSkills()))Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
+   if(kind==='all'){character.reset();auras.reset();playerControl.reset();assistance.reset();if(__PLAYGROUND__)SPELLS.energyStrike.requirements['magic.technique']=1;playerResources.reset();health.restore();playerInterface?.reset();combat.setAutoRetaliate(true);trainingFixtures.clear();cinder.reset();waking.reset();worldStart.reset();styles.reset();supplies.reset();destinations.reset();combatFixtures.clear();combat.clear();equipment.reset();carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of Object.values(playerSkills()))Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
    if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}
   },
+  wakeUp(options){return waking.start(options);},
   refresh:()=>{equipment.refresh();},
   showItemChanges,
   color(value){body.material.color.set(value);expressionFace.setBodyColor(value);},

@@ -38,13 +38,15 @@ test('XP and level explanations return to gathering and final success only after
     nodes.set('tutorial-title',{get textContent(){return tipState.state.title;}});
     nodes.set('tutorial-count',{get textContent(){return tipState.state.count;},set textContent(value){tipState.state.count=value;}});
     nodes.set('tutorial-progress',{style:{get width(){return tipState.state.progress===null?'':`${tipState.state.progress*100}%`;},set width(value){tipState.state.progress=parseFloat(value)/100;}}});
-    const opening=createOpening({narrator,tip,onModeChosen:mode=>modes.push(mode),onFirstQuest:done=>{finishQuests=done;},onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
+    const hands=[];const opening=createOpening({narrator,tip,onHandChosen:side=>hands.push(side),onModeChosen:mode=>modes.push(mode),onFirstQuest:done=>{finishQuests=done;},onFirstLevel:done=>{finishSkills=done;},player:new THREE.Group(),visual:new THREE.Group(),face:{set(){}},setColor(){},showClearing(){},spawn:new THREE.Vector3(),introSpawn:new THREE.Vector3()});
     const text=n=>n.data??(n.textContent||(n.children||[]).map(text).join(''));
     const dialogue=()=>narrator.line?.next?.();
     const button=label=>{const b=narrator.controls.node.find(n=>n.handlers?.click&&text(n)===label);assert.ok(b,label);b.click();};
     opening.update(1);opening.update(1.4);
     for(let i=0;i<4;i++)dialogue();
     assert.equal(narrator.line.presentation,'customize');button('This is me');assert.equal(narrator.line.presentation,'customize');button('Yes');assert.equal(narrator.line.presentation,'customize');assert.equal(opening.canOrbit,true);assert.equal(opening.reaction.kind,'Happy hop');dialogue();assert.equal(opening.reaction.kind,'Happy hop');opening.update(1.2);dialogue();button('That’s my name');button('Yes');assert.equal(opening.reaction.kind,'Wave');
+    // The dominant hand comes next; it reaches the shared equipment through onHandChosen.
+    button('Left hand');assert.deepEqual(hands,['left']);assert.match(narrator.line.text,/lefty/);opening.update(3);dialogue();
     // Then the play style: Simple is preselected; picking Pacifist and confirming applies it.
     const controls=narrator.controls.node;controls.find(n=>n.handlers?.change&&n.value==='pacifist').handlers.change();controls.find(n=>n.handlers?.click&&/^Play as/.test(n.children?.[0]?.data??'')).click();
     assert.deepEqual(modes,['pacifist']);opening.update(2.3);dialogue();

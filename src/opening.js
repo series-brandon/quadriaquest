@@ -30,8 +30,11 @@ export function showGatheringCompletion(tip,onPress){
   tip.show({title:'All six collected!',text:'A brilliant start. Your first resources are safely gathered.',count:'6 / 6 collected',progress:1,complete:true,action:{label:'Click to continue',onPress}});
 }
 
-// onModeChosen(mode): the play style picked after naming (a combat mode preset).
-export function createOpening({narrator,tip,player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel,onFirstQuest,onModeChosen=()=>{}}) {
+// onHandChosen(side): the dominant hand picked after naming ('right' or 'left').
+// onModeChosen(mode): the play style picked next (a combat mode preset).
+// onSkipTutorial(): the player chose to skip the tutorial after picking a play style; the host wakes
+// them into the world (waking.js) instead of starting the clearing.
+export function createOpening({narrator,tip,player,visual,face,setColor,showClearing,introSpawn,spawn,onComplete,onFirstLevel,onFirstQuest,onHandChosen=()=>{},onModeChosen=()=>{},onSkipTutorial=null}) {
   const veil=document.getElementById('scene-fade');
   let finished=false,reaction=null,skillsPending=false;
   let phase='intro-wait',age=0,step=0,mode='line',next=null;
@@ -117,7 +120,7 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
       const proposed=input.value.trim();
       if(!proposed){input.setCustomValidity('Please enter a name.');input.reportValidity();return;}
       name=proposed;show(`So they call you ${name}?`,'confirm',null,{controls:()=>[
-        button('Yes',()=>{reaction={kind:'Wave',time:0};chooseMode();}),
+        button('Yes',()=>{reaction={kind:'Wave',time:0};chooseHand();}),
         button('No, change my name',chooseName,true),
       ]});
     };
@@ -131,12 +134,31 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
     ]});
     input.focus?.();
   }
+  // The dominant hand leads two-handed attacks (changeable any time on the Combat page).
+  function chooseHand(){
+    const pick=side=>{onHandChosen(side);show(side==='left'?'A lefty! Noted.':'Right it is!','line',chooseMode);};
+    show('Which hand do you favor?','hand',null,{controls:()=>[
+      button('Right hand',()=>pick('right')),
+      button('Left hand',()=>pick('left')),
+    ]});
+  }
   // How the player wants to play: Pacifist, Simple or Expert (changeable any time on the Combat page).
   function chooseMode(){
     show('Before we get too far, how would you like your experience to go?','mode',null,{size:'tall',controls:()=>modeChoice({onConfirm:mode=>{
       onModeChosen(mode);
-      show(`Well, ${name}, you're in for quite an adventure! Let's get you started!`,'line',()=>{narrator.hide();transition('fade-out');});
+      if(onSkipTutorial)chooseTutorial();else beginTutorial();
     }})});
+  }
+  function beginTutorial(){show(`Well, ${name}, you're in for quite an adventure! Let's get you started!`,'line',()=>{narrator.hide();transition('fade-out');});}
+  // Play the guided tutorial, or skip straight to waking up in the world.
+  function chooseTutorial(){
+    show('Would you like to learn the ropes first, or jump straight into the world?','tutorial',null,{controls:()=>[
+      button('Play the tutorial',beginTutorial),
+      button('Skip the tutorial',()=>show('Skip the tutorial and wake up in the world? You will start with a full set of supplies.','confirm',null,{controls:()=>[
+        button('Yes, skip it',()=>{narrator.hide();onSkipTutorial();}),
+        button('No, go back',chooseTutorial,true),
+      ]}),true),
+    ]});
   }
   function clearingLine(){
     if(step<clearingLines.length){show(clearingLines[step++],'line',clearingLine);}
@@ -162,7 +184,7 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
     enterFreePlay,
     debugCheckpoint:typeof __PLAYGROUND__!=='undefined'&&__PLAYGROUND__?function(step){
       enterFreePlay();interruption=null;reaction=null;collectedCount=0;xpExplained=levelExplained=false;
-      if(step==='color'||step==='name'||step==='mode'){this.startCustomization();if(step==='name')chooseName();if(step==='mode')chooseMode();return;}
+      if(['color','name','hand','mode','tutorial'].includes(step)){this.startCustomization();({name:chooseName,hand:chooseHand,mode:chooseMode,tutorial:chooseTutorial})[step]?.();return;}
       finished=false;
       if(['rotate','zoom','move'].includes(step)){this.startControls(null);lesson=['rotate','zoom','move'].indexOf(step);showLesson();return;}
       if(step==='gather'){this.startGathering();return;}
