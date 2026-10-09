@@ -30,3 +30,17 @@ test('sliders and mute read and write the shared audio settings; two copies agre
   audio.settings.effects = 0;
   assert.equal(page.querySelectorAll('.q-slider__value')[1].textContent, '0%', 'external changes (reset) show too');
 });
+
+test('graphics quality shows the mode, Auto’s current tier, and writes through setMode', async () => {
+  const {signal} = await import('../../reactive.js');
+  const mode = signal('auto'), tier = signal('high'), set = [];
+  const quality = {mode, tier, antialiasMismatch: false, setMode(next) { set.push(next); mode.value = next; tier.value = next === 'auto' ? 'high' : next; }};
+  const page = mount(() => settingsPage({audio: fakeAudio(), quality})).node;
+  const options = [...page.querySelectorAll('[aria-label="Graphics quality"] button')];
+  assert.deepEqual(options.map(b => b.textContent), ['Auto', 'High', 'Medium', 'Low', 'Lowest']);
+  assert.match(page.textContent, /Now: High/);
+  options[3].dispatchEvent(new window.Event('click'));
+  assert.deepEqual(set, ['low']);assert.equal(options[3].getAttribute('aria-pressed'), 'true');
+  assert.doesNotMatch(page.textContent, /Now:/);
+  assert.equal(mount(() => settingsPage({audio: fakeAudio()})).node.querySelector('[aria-label="Graphics quality"]'), null, 'no renderer, no graphics section');
+});

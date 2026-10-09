@@ -20,6 +20,18 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Adaptive render quality for weak GPUs — 2026-10-08
+- **`render-quality.js`:** tiers `high` (the previous settings: pixel ratio ≤2, 2048 PCF-soft shadows, MSAA), `medium` (≤1.5, 1024 PCF), `low` (1 × 0.75 scale, 512 PCF redrawn every other frame, no MSAA). MSAA is fixed at renderer creation, so it follows the saved tier at load (`initialTier`); the Settings page says when that applies next time.
+- **Auto (default):** software renderers (SwiftShader, llvmpipe…) start on Low; otherwise it steps down one tier after two consecutive 5 s windows averaging over 28 ms per frame, after a 6 s warm-up at start and on every area arrival (`settle`). Hitches over 250 ms (background tabs) are ignored. It never steps up during play; the saved tier is used next load. Storage failures fall back to Auto.
+- **UI:** Settings → Graphics (Auto/High/Medium/Low, Auto's current tier). `?quality=` forces a tier without saving (perf: `npm run perf -- --quality low`).
+- **Results:** see the PERFORMANCE.md ledger. dev-gpu unchanged (9/9 PASS); low-perf clearing-idle 5.5 fps on High vs 31.5 on Auto/Low (noisy); without CPU throttling Low triples GPU throughput (14 → 41 fps vs Medium).
+- **Verified:** 409 tests (new render-quality and Settings graphics tests), smoke, both builds, debug isolation, UI check.
+- **Tiers for the minimum devices (user: 30 fps on a ~10-year-old integrated-graphics laptop and a 2020 mid-range phone; PERFORMANCE.md "Minimum devices"):** Low = 0.75 scale, hard (`BasicShadowMap`) 1024 shadows with larger offsets (`normalBias .04`, `bias -.0015`, which remove the self-shadowing stripes hard shadows show); Lowest = 0.5 scale, the same hard shadows, Lambert lighting via `simple-materials.js` (reversible, swept every 60 frames for new objects). Software renderers start on Lowest. A lever study showed the soft-shadow filtering was the main cost on weak GPUs. low-perf: Lowest 59.5 / 59.5 / 38.6 fps (clearing / Willowbank / Cinderhold). Settings lists Lowest.
+- **Follow-up, same day: merged models and shadow redraws on movement.**
+  - `merged-model.js` `mergedMesh(parts)`: a model's parts become one mesh with per-vertex colors and a shared, cached material (`userData.shared`, which disposers skip). Used by `makeTree`, `makeBoulder`/`boulderParts`, `copperOutcrop` and `createGroundItemModel`; each entity is still its own group, so hit/fall/respawn animations, picking and highlights are unchanged.
+  - Shadows: the map is never auto-updated. `quality.afterRender(scene)` runs `castersChanged` (visible shadow-casting meshes vs their matrices at the last redraw; ~3 cm translation, 0.06 rotation/scale tolerance; appear/disappear always counts), and `frame()` redraws when due, at most every `shadowEvery` frames. The splash redraws every frame (its own small scene).
+  - Results in the PERFORMANCE.md ledger: draws roughly halved in every dev-gpu scenario (cinderhold 604 → 248), all PASS. 411 tests (new merged-model and caster-movement tests), smoke, both builds, debug isolation, UI check; before/after screenshots of the clearing match.
+
 ### Polish batch: restore toast, XP notices, victory face, station labels, Simple-mode fixes — 2026-10-08
 - **Crystal Restore:** closes the dialog and toasts "You have been fully restored!" (a service returning `null` closes `destinationDialog`); the aura note is gone. Redistribute is unchanged.
 - **XP notices:** `showSkillReward` merges awards for the same skill within 0.8s into one notice (with a small pop) and stacks a different skill in its own lane, so dual-wield one-twos don't jitter.

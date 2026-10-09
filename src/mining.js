@@ -1,11 +1,13 @@
 import * as THREE from 'three';
+import {mergedMesh} from './merged-model.js';
 export const BOULDER_TILES=new Set(['7,1','1,7','10,9']);
+// The boulder's three rocks, for merged models (main rock and side rocks colors).
+export function boulderParts(main='#84939e',side='#9aa8ae'){
+ return [[0,.52,0,.63,1],[-.29,.22,.22,.3,.85],[.32,.2,-.18,.28,.8]].map(([x,y,z,r,s])=>({geometry:new THREE.IcosahedronGeometry(r,0),color:s===1?main:side,position:[x,y,z],rotation:[.12,x+.4,.15],scale:[1,s,.87]}));
+}
+// One merged mesh: a single draw and shadow draw per boulder.
 export function makeBoulder(){
- const group=new THREE.Group();
- for(const [x,y,z,r,s] of [[0,.52,0,.63,1],[-.29,.22,.22,.3,.85],[.32,.2,-.18,.28,.8]]){
-  const mesh=new THREE.Mesh(new THREE.IcosahedronGeometry(r,0),new THREE.MeshStandardMaterial({color:s===1?'#84939e':'#9aa8ae',roughness:.95,flatShading:true}));
-  mesh.position.set(x,y,z);mesh.scale.set(1,s, .87);mesh.rotation.set(.12,x+.4,.15);mesh.castShadow=mesh.receiveShadow=true;group.add(mesh);
- }
+ const group=new THREE.Group();group.add(mergedMesh(boulderParts(),{roughness:.95,flatShading:true}));
  return group;
 }
 export function makePickaxe(){

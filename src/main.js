@@ -32,6 +32,7 @@ import {createAreaRuntime} from './area-runtime.js';
 import {createTravelSystem} from './travel.js';
 import {createCrystals} from './crystals.js';
 import {createWaking} from './waking.js';
+import {createRenderQuality,QUALITY_TIERS,initialTier} from './render-quality.js';
 import {createWorldStart} from './world-start.js';
 import {tutorialChapter,TUTORIAL_CHAPTERS} from './tutorial-chapters.js';
 import {createEquipmentPresentation} from './equipment-presentation.js';
@@ -100,7 +101,8 @@ import {createGameMenus} from './game-menus.js';
 import {createGatheringSkill,showSkillReward,updateSkillRewards,clearSkillRewards,onSkillXp} from './skills.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,chopMotion} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
+// Antialiasing is fixed at creation, so it follows the saved quality tier (render-quality.js).
+const renderer=new THREE.WebGLRenderer({antialias:QUALITY_TIERS[initialTier()].antialias});renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
 const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,120),raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let angle=Math.PI/4,elevation=THREE.MathUtils.degToRad(35.264),zoom=22,introZoom=6.5,hover=null;
 const rotationKeys = new Set();
 const keyboardRotationSpeed = Math.PI / 2; // 90 degrees per second, independent of key repeat.
@@ -114,6 +116,8 @@ addEventListener('keyup', event => rotationKeys.delete(event.key));
 addEventListener('blur', () => rotationKeys.clear());
 document.addEventListener('visibilitychange', () => { if (document.hidden) rotationKeys.clear(); });
 scene.add(new THREE.HemisphereLight('#fffce8','#879981',2.6));const sun=new THREE.DirectionalLight('#fff3d3',3);sun.position.set(-8,19,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,far:80});sun.shadow.normalBias=.008;scene.add(sun);
+// Resolution, shadow map and shadow cadence by tier; Auto starts software rendering on Low and steps down when slow.
+const quality=createRenderQuality({renderer,light:sun,rendererName:(()=>{const gl=renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'';})(),onChange:()=>resize?.()});
 const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.9,...extra});
 const grass=createGrassColors().map(color=>mat(color)),rock=mat('#a5ada6'),wood=mat('#a98a64');
 function mesh(geometry,material,parent=scene){const m=new THREE.Mesh(geometry,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
@@ -220,7 +224,7 @@ function combatSkills(){const out={};for(const d of TRACKS){const t=character.tr
 function playerSkills(){return {Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,...(fishing?{Fishing:fishing.skill}:{}),...(carpentry?{Carpentry:carpentry.skill}:{}),...combatSkills(),...(cooking?{Culinary:cooking.skill}:{}),...(smithing?{Smithing:smithing.skill}:{})};}
 
 const clearingTiles=new Map(world);
-const areas=createAreaRuntime({world,beforeSwitch(){combat?.clear();stopAll();},placePlayer(landing){tile=landing;player.position.set(tile.x-6,tile.h,tile.z-6);},applyCamera(view){zoom=view.zoom;angle=view.angle;elevation=view.elevation;scene.background.set(view.background||'#e5e9df');ground.material.color.copy(scene.background);}});
+const areas=createAreaRuntime({world,beforeSwitch(){combat?.clear();stopAll();},placePlayer(landing){tile=landing;player.position.set(tile.x-6,tile.h,tile.z-6);},applyCamera(view){quality.settle();zoom=view.zoom;angle=view.angle;elevation=view.elevation;scene.background.set(view.background||'#e5e9df');ground.material.color.copy(scene.background);}});
 const travel=createTravelSystem({areas,stop:stopAll,blocked:()=>!areas.canMove||combat?.busy||combat?.working,
  occupied:t=>companions?.occupies(t),fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},failed:()=>toast('There’s no safe space beside the destination crystal.')});
 // Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
@@ -228,7 +232,7 @@ const travel=createTravelSystem({areas,stop:stopAll,blocked:()=>!areas.canMove||
 function crystalRestore(){health.max=character.maxima.health;health.restore();playerResources.restoreAll();}
 // Utility dialogs (stations, destinations, naming, confirmations) share one modal host.
 const modals=createModalHost();
-const settingsUI=createSettingsMenu({audio:gameAudio,modals});
+const settingsUI=createSettingsMenu({audio:gameAudio,quality,modals});
 // Once Cinderhold is complete, the crystals offer "???": ending the tutorial (waking.js).
 destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,
  extras:()=>cinder?.tutorialComplete&&!waking?.isWoken?[{id:'awaken',name:'???',description:'Somewhere beyond the dream',
@@ -498,7 +502,7 @@ const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=n
 // One batch per frame: UI bindings flush once, after the frame's state changes.
 function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
 // Playground builds attribute frame time to these laps; normal builds compile them away.
-function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);gameAudio.update(dt,splash.active?'splash':opening.finished?'clearing':'intro',narrator.visible.peek());if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
@@ -514,7 +518,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);healthVisible.value=pla
   }
   const focus=(opening.inClearing?clearingSpawn:introSpawn).clone().add(new THREE.Vector3(0,.35,0)),distance=opening.inClearing?22:introZoom;
   camera.position.set(focus.x+Math.sin(angle)*distance*Math.cos(elevation),focus.y+Math.sin(elevation)*distance,focus.z+Math.cos(angle)*distance*Math.cos(elevation));
-  camera.lookAt(focus.clone().add(new THREE.Vector3(0,opening.inClearing?0:-distance*.09,0)));camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale,player.visible);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);return;
+  camera.lookAt(focus.clone().add(new THREE.Vector3(0,opening.inClearing?0:-distance*.09,0)));camera.updateMatrixWorld();contactShadow.update(player.position,visual.scale,player.visible);sleepFeedback.update(dt,sleeping,player.position,camera);renderer.render(scene,camera);quality.afterRender(scene);return;
  }
  campfires.update(elapsed);
  fishingSpots.update(elapsed);

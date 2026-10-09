@@ -1,6 +1,6 @@
 // Performance runner: `npm run perf` (quick, dev-gpu) / `npm run perf:full` (all local environments).
 // Options: --env a,b  --scenarios a,b  --windows N  --window-ms N  --no-build  --profile  --no-diagnose
-//          --no-gate  --update-baseline --note "why"
+//          --no-gate  --update-baseline --note "why"  --quality high|medium|low (force a render tier)
 // With --scenarios, --update-baseline replaces only those scenarios in the existing baseline; each keeps
 // its own note and calibration. Use --windows 5 to match full baselines.
 import {mkdir,writeFile,readFile} from 'node:fs/promises';import path from 'node:path';import {execFileSync} from 'node:child_process';
@@ -16,6 +16,7 @@ const full=flag('full');
 const envNames=(option('env')||(full?FULL_ENVIRONMENTS:QUICK_ENVIRONMENTS).join(',')).split(',');
 const scenarios=option('scenarios')?option('scenarios').split(',').map(id=>PERF_SCENARIOS.find(s=>s.id===id)||(()=>{throw Error('Unknown scenario '+id);})()):PERF_SCENARIOS;
 const windows=Number(option('windows',full?5:3)),windowMs=Number(option('window-ms',2500));
+const quality=option('quality');if(quality&&!['high','medium','low','lowest'].includes(quality))throw Error('--quality must be high, medium, low or lowest');
 if(flag('update-baseline')&&!option('note'))throw Error('--update-baseline requires --note "reason for the new baseline"');
 
 const git=args=>{try{return execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();}catch{return null;}};
@@ -34,7 +35,7 @@ try{
   session=await openEnvironment(envName);const results=[],calibrationStart=await calibrate(session);
   for(const scenario of scenarios){
    process.stdout.write(`  ${scenario.id} … `);
-   const result=await withTimeout(runScenario(session,{url:server.url,scenario,windows,windowMs,profile:flag('profile'),screenshot:path.join(outDir,`${envName}-${scenario.id}.jpg`)}),180000,scenario.id);
+   const result=await withTimeout(runScenario(session,{url:quality?`${server.url}?quality=${quality}`:server.url,scenario,windows,windowMs,profile:flag('profile'),screenshot:path.join(outDir,`${envName}-${scenario.id}.jpg`)}),180000,scenario.id);
    results.push(result);console.log(`${result.summary.timing.frameMs} ms, ${result.summary.timing.fps} fps, ${Math.round(result.summary.counters.draws)} draws`);
   }
   const calibrationMs=(calibrationStart+await calibrate(session))/2;
@@ -43,7 +44,7 @@ try{
   const speed=baseline?.meta?.calibrationMs?calibrationMs/baseline.meta.calibrationMs:null;console.log(`  calibration ${calibrationMs.toFixed(1)} ms${speed?` (×${speed.toFixed(2)} vs baseline; baseline timings scaled)`:''}`);
   if(!flag('no-diagnose')&&!flag('profile')&&env.browser==='chromium')for(const row of rows.filter(r=>r.status!=='PASS')){
    process.stdout.write(`  profiling ${row.scenario} for diagnosis … `);
-   const again=await withTimeout(runScenario(session,{url:server.url,scenario:scenarios.find(s=>s.id===row.scenario),windows:1,windowMs,profile:true}),180000,row.scenario);
+   const again=await withTimeout(runScenario(session,{url:quality?`${server.url}?quality=${quality}`:server.url,scenario:scenarios.find(s=>s.id===row.scenario),windows:1,windowMs,profile:true}),180000,row.scenario);
    const original=results.find(r=>r.scenario===row.scenario);original.top=again.top;original.cpuProfile=again.cpuProfile;row.diagnosis={...row.diagnosis,hotFunctions:again.top?.slice(0,10)};console.log('done');
   }
   await session.close();session=null;

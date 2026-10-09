@@ -9,6 +9,14 @@ All tooling is developer-only:
 - The in-game probe and scenarios live in `src/dev/` behind the compile-time playground flag.
 - `npm run check:debug-isolation` verifies that the normal build has no probe code, and that neither build contains the Playwright harness.
 
+## Minimum devices (user decision, 2026-10-08)
+
+The game must stay playable, **30 fps or better**, on:
+- a ~10-year-old laptop with **integrated graphics** (Intel HD 520-class);
+- a **2020 mid-range phone** (Snapdragon 720G / Adreno 618-class).
+
+Below 30 fps counts as unplayable. Capable devices keep 60 fps. A real data point: a ~10-year-old laptop running on integrated graphics measured about 20 fps before adaptive quality (2026-10-08). `low-perf` (software WebGL plus 4× CPU throttling) is a pessimistic stand-in and needs calibrating against such a device; numbers from real devices outrank it.
+
 ## Quick start
 
 ```sh
@@ -132,12 +140,15 @@ Each entry: change, then measured effect (environment and scenario).
 | 2026-10-08 | Dual wielding strikes both hands (one-two follow-ups); journal layout pass; sidebar overview beside the map | dev-gpu full suite: 9/9 PASS, 0.76–2.59 ms/frame, 59.5–59.9 fps. `cinderhold-combat` draws 604 → 568 (fights end sooner with the off-hand follow-up); objects unchanged at 2172. |
 | 2026-10-08 | Right/left hands: held gear models made per hand on first use (was every hand model created up front) | dev-gpu full suite: 9/9 PASS, 0.73–2.71 ms/frame, 59.3–59.8 fps. Objects 407 → 382 in the clearing scenarios (unused gear is no longer in the scene); a first attempt that created every model for both hands added +21 objects and failed five scenarios, so creation is lazy. |
 | 2026-10-08 | Milestone run for the polish batch: guided menus and step-following tips, merged XP notices, on-demand action labels, splash logo, Balanced Optimize, cast-over-block, anvil model | dev-gpu full suite: 9/9 PASS, 0.65–2.67 ms/frame, 59.4–59.8 fps. Objects stay at 382 in the clearing (lazy hand models); cinderhold-combat draws 557 (baseline 604). No low-perf run: nothing in the batch adds fill-rate or main-thread work. Baseline not updated. |
+| 2026-10-08 | Adaptive render quality (`render-quality.js`): High/Medium/Low tiers (pixel ratio and scale, shadow map size/filter/cadence, MSAA at load), Auto (software renderers start on Low; steps down after two slow 5 s windows past a warm-up), Settings → Graphics, `perf --quality` | dev-gpu full suite: 9/9 PASS, 59.4–59.8 fps (High = the previous settings). low-perf clearing-idle: forced High 5.5 fps; Medium 18.7; Low 18.8; default Auto (picked Low) 31.5 fps; SwiftShader timings vary run to run. Without CPU throttling (probe): Medium 14 fps, Low 41 fps, empty page 60: Low triples GPU throughput; under the 4× CPU throttle the cap becomes main-thread/draw overhead (see backlog 5, instancing). |
+| 2026-10-08 | Merged static models (`merged-model.js`: trees, boulders, copper outcrops, ground items are one vertex-colored mesh each, materials shared) and shadow redraws only when a caster visibly moves (`castersChanged`, ~3 cm / 6% tolerance; idle breathing and menus cost no shadow pass) | dev-gpu full suite 9/9 PASS. Draws: clearing-idle 179 → 79, clearing-walk 182 → 82, willowbank-river 376 → 166, cinderhold-combat 604 → 248, dialogue 324 → 137, travel 296 → 116, splash 84 → 65; frame ms clearing-idle 1.23 → 1.01, willowbank 2.67 → 1.84, cinderhold 2.52 → 2.06. low-perf (Auto → Low): clearing-idle 27.9 fps, clearing-walk 29.5 (PASS), willowbank-river 14.0 (PASS), cinderhold-combat 8.0 (PASS); under the 4× CPU throttle software timings stay noisy. Baseline not updated. |
+| 2026-10-08 | Tiers reshaped for the minimum devices: Low uses hard (Basic) 1024 shadows at 0.75 scale; new Lowest is 0.5 scale, hard shadows, Lambert lighting (`simple-materials.js`); software renderers start on Lowest | Lever study on low-perf willowbank-river at 0.5 scale: no shadows + standard 54.2 fps, filtered (PCF) shadows + Lambert 19.9, hard shadows + standard 51.9, no shadows + Lambert 57.4: the soft-shadow filtering, not shadows, was the cost. low-perf results: new Low clearing-idle 37.7, willowbank-river 19.9, cinderhold-combat 14.8 fps (old Low ~28/14/8); Lowest 59.5 / 59.5 / 38.6 fps, all above the 30 fps minimum. High and Medium unchanged (dev-gpu run above). |
 
-1. **Adaptive render quality for weak GPUs.** `low-perf` clearing-idle is about 17 fps while main-thread time is about 5 ms, so it is fill-rate bound. Options: lower pixel ratio and shadow map size, cheaper shadow filter, and antialias off when frame time stays high.
-2. **Redraw the shadow map only when shadow casters move.**
+1. ~~**Adaptive render quality for weak GPUs.**~~ Done 2026-10-08: `render-quality.js` tiers and Auto (ledger above). Remaining low-perf cost under 4× CPU throttling is main-thread/draw overhead: instancing (item 5) and shadow redraws only when casters move (item 2).
+2. ~~**Redraw the shadow map only when shadow casters move.**~~ Done 2026-10-08: `render-quality.js` `castersChanged` (ledger above).
 3. ~~**Remove the per-frame `document.querySelector('dialog[open]')` in the main loop.**~~ Done 2026-10-08: the main loop reads the modal host's `anyOpen` signal (every utility dialog is on the host; only the dev model viewer is a legacy `<dialog>`).
 4. **Skip or throttle the 3D render under opaque fullscreen menus** (mobile).
-5. **Instance trees, boulders and resource meshes per kind** (Willowbank ~1,000 and Cinderhold ~1,900 scene objects).
+5. **Instance trees, boulders and resource meshes per kind** — partly done 2026-10-08: each is now one merged mesh with a shared material (draws roughly halved everywhere). True instancing (one draw per kind) and merging Cinderhold's static architecture and characters are the remaining steps (Willowbank ~1,000 and Cinderhold ~1,900 scene objects).
 6. **Render the dialogue portrait at 30 fps.** `dialogue` spends ~0.9 ms/frame in `world` on dev-gpu versus ~0.1 ms when idle.
 
 ## CI (planned)
