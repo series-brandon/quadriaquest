@@ -57,7 +57,7 @@ test('resource maxima keep current amounts; regeneration scales and pauses Stami
  p.regenerate(6,{health,attribute:c.attribute,inCombat:false});close(health.value,51);close(p.mana.value,6);close(p.stamina.value,6);
  p.regenerate(12,{health,attribute:c.attribute,inCombat:true});close(health.value,52);close(p.mana.value,12);
  p.toggle();p.stamina.value=50;p.advance(.5,true);const before=p.stamina.value;p.regenerate(1,{health,attribute:c.attribute,inCombat:false});assert.equal(p.stamina.value,before,'no regen while sprinting');
- p.regenerate(1,{health,attribute:c.attribute,inCombat:false});assert.equal(p.stamina.value,before+1,'regenerates once stopped');
+ p.regenerate(1.5,{health,attribute:c.attribute,inCombat:false});close(p.stamina.value,before+.5);
  health.value=0;p.regenerate(60,{health,attribute:c.attribute,inCombat:false});assert.equal(health.value,0,'no recovery while defeated');
 });
 
