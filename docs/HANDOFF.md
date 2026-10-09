@@ -612,7 +612,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
   - Each module owns its skip: `opening.skipControls`/`skipGathering`, `craftingTutorial.skipJournal`/`skipTools`, `finale.skip` (crystal ready, objective and hat done), `willow.skip(after)` (bridge repaired, all steps done, companion acquired and named if never met, hammer/pickaxe). main's `SKIPS` chains them (start → gathering; journal → tools with 3 Sticks/Rocks; tools → finale with axe/pickaxe; finale → travel to Willowbank; Willowbank → travel to Cinderhold; Cinderhold → waking). A compact confirmation comes first.
   - Skips need a visible tip, so two stretches gained one: the finale's practice ("Practice time") and Willowbank before meeting Reed ("Someone needs help").
   - Verified in the normal build on desktop and phone: a new game played with "Play the tutorial" and every chapter skipped from the tip, through to waking in the world (companion named on the way), no page errors. 405 tests, smoke, both builds, debug isolation, UI check.
-- **Backlog:** a **Guide** tab (a small in-game wiki of short informational entries) that also holds a **replay tutorial** action.
+- **Backlog (low priority, user):** the **Guide** tab with its replay-tutorial action. Full plan in DESIGN.md "Guide (planned, low priority)": own journal tab, entries unlock on discovery, text plus optional Show me, and replay that revisits the dream with the real state set aside and restored.
 
 ### Per-item Simple permissions — 2026-10-08
 - **User decision:** settings lists don't scale to dozens of foods or spells, so permissions now live on the items. The old "Never auto-use X" checkboxes in Simple settings are gone.
