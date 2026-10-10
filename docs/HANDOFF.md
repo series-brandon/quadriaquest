@@ -20,6 +20,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Windups, magic sounds, mentor gear, facing large creatures — 2026-10-09
+
+- **Windups (user design):** `attackWindup(profile)` in combat.js. A ready attacker's first attack waits only for its windup: a weapon/spell `windup` field, otherwise melee 0.5 s, ranged 1.15 s (`RANGED_WINDUP`, the bow's raise, nock and draw) and magic the whole cast. It is capped at the interval; later attacks take the full interval. Fixes the long first-shot pause with the bow. COMBAT.md *Opening attack* is updated.
+- **Magic sounds:** `spellCharge` is a sustained gathering shimmer started with `gameAudio.start()` and returns a stoppable handle (`effects.start`). combat.js starts it when the hands visibly gather: from the cast's start, or `CAST_TIMING.recover` after a release (by then a lethal spell has landed and ended the fight). It lasts until the toss (`interval - CAST_TIMING.toss`) and stops on release, cancel, interruption, mana pause, defeat or fight end. `spellRelease` and `spellHit` (replaces `hit` for magic) are one-shots. All three pass the music lab's offline click check, including an early stop.
+- **Mentor dialogue:** Borin says "Don't forget what I taught you! Good luck out there!" once training is past his step. Bristle's wall bluff no longer admits being thrown around and never uses the distraught face (reserved for the no-combat path).
+- **Mentor gear (shared presentation):** Bristle `loadout` Copper Dagger + Copper Shield; Borin `carry:'hammers'`; Wisp `carry:'staffs'`, a new simple staff in tool-models.js (`tool('staffs')`, catalogue "Simple Staff"). `carriedTool` holds non-rod tools as when working. The staff is a carried prop, not an equippable weapon, so it is hidden during motions that use the hands (e.g. Casting).
+- **Large creatures:** `bodyCenter()` (footprint.js): the player faces the body centre when approaching and fighting, and shots aim at the centre at the enemy's `aimHeight` (golem 1.4).
+
 ### Shared slime presentation: every slime can hold anything and do anything — 2026-10-09 (user rule)
 
 - New `src/slime-presentation.js` (rule in AGENTS.md, *Shared slime presentation*). `createSlimePresentation(rig,{equipment,tools,carry})` does everything the player loop used to do after choosing a motion: action blending, bend, face, squash/lean, grounding, hand targets/smoothing, held gear (`equipment-presentation.js`, including the bow), axe/pickaxe/hammer, casting and fishing. `createSlimeActor(rig,{loadout,carry,idleRate})` is the NPC/scripted driver: shared idle, plus `play(kind,{profile,loop,duration})`/`stop()` for any action or social motion (`SLIME_ACTOR_MOTIONS`). A combat motion without a profile uses the character's own gear.

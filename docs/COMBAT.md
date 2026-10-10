@@ -597,8 +597,8 @@ Equipment changes are allowed during combat. An already-committed attack retains
 
 **Opening attack.**
 - An attacker is ready when it has not struck or released an attack within that attack's interval.
-- A ready player's melee attack (weapon or unarmed) skips to the last 0.5 seconds of its windup. The swing still plays in full and strikes 0.5 seconds after it begins; later attacks take their full interval.
-- Bows and spells keep their full draw and cast time.
+- Every attack has a **windup** (from starting the attack to the strike, release or cast) followed by a cooldown; together they make its interval. A ready attacker's first attack starts at once and waits only for its windup. Later attacks take their full interval.
+- The windup comes from the weapon or spell (`windup` on its definition). Without one, it comes from the style: melee is short (0.5 s), ranged moderate (1.15 s, the bow's raise, nock and draw), and magic is the whole cast time. Exceptions are expected: any weapon or spell may set its own. A windup is never longer than its interval.
 - Aggressive enemies follow the same rule when they begin attacking.
 - Stepping away and re-engaging cannot create extra openings, because readiness needs a full interval without a strike. A cancelled windup that never struck leaves the attacker ready.
 

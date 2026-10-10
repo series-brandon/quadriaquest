@@ -112,6 +112,8 @@ export function createCinderhold(api){
    if(state.phase==='graduate')return lines(kind,["Acceptable! ...That's a compliment. Don't get used to it.","Arrows in the southern gallery. Spells in the northern wing. Ember breathes in the forge corner. Less shouting. Suspicious. Visit if you like. You're cleared to leave!"],()=>{state.phase='finished';prompt();});
    return lines(kind,[state.phase==='finished'?'Dismissed! Practice, explore, or use the crystal. The other mentors are optional.':TASKS[state.phase][1]],prompt);
   }
+  // Borin teaches once; afterwards he sends you off rather than repeating the lesson.
+  if(kind==='smith'&&TRAINING_STEPS.indexOf(state.phase)>TRAINING_STEPS.indexOf('smith'))return lines(kind,["Don't forget what I taught you! Good luck out there!"],prompt);
   if(kind==='smith')return lines(kind,["Let me guess. Loud, red, called you a maggot? Aye. That's his welcome speech.",'Copper is the orange seam. Your pickaxe will do. Four pieces of ore become four ingots at the furnace.','Ingot on the anvil. Hammer in hand. One for the dagger, three for the shield. The hammer stays yours.','Missing tools? Gather Sticks and Rocks here. The provision shelf offers a meal when you need one.'],()=>{if(state.phase==='smith')state.phase='mine';prompt();});
   if(kind==='ki'){
    if(state.ki==='offer')return choice(kind,'Breathe. You carry more than Health and Mana. Want to learn to hold an aura?','Teach me.',()=>{

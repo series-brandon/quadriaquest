@@ -3,6 +3,8 @@ import {key} from './world.js';
 // Multi-tile bodies. A body of `size` covers size×size tiles; its anchor is the minimum-x, minimum-z
 // corner (the entity's `tile`). Size 1 is an ordinary one-tile entity.
 export const sizeOf=entity=>entity?.size||1;
+// The centre of an entity's body in tile coordinates (its tile for size 1): where to face and aim.
+export function bodyCenter(entity){const offset=(sizeOf(entity)-1)/2;return {x:entity.x+offset,z:entity.z+offset};}
 // The body's tiles with its anchor at `anchor`, or null when any is missing from the world.
 export function footprint(world,anchor,size=1){
  const cells=[];

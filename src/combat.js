@@ -2,14 +2,14 @@ import {gameViewport} from './game-viewport.js';
 import {Vector3} from 'three';
 import {findPath,key} from './world.js';
 import {withinAttackRange} from './combat-range.js';
-import {sizeOf,footprint,footprintGap,canStand,findFootprintPath} from './footprint.js';
+import {sizeOf,footprint,footprintGap,canStand,findFootprintPath,bodyCenter} from './footprint.js';
 import {resolveAttack,resolvePortions,rollDamage,actionXp,backfireBaseDamage,displayedLoss,xpModifiers} from './combat-formulas.js';
 import {playerAttackProfile,playerDefense,strongStrikeProfile,armorAwards,offHandFollowUp,pairStrikes,FOLLOW_UP_DELAY} from './combat-profile.js';
 import {ABILITIES,SPELLS} from './combat-styles.js';
 import {signal} from './reactive.js';
 import {createControlState} from './control-effects.js';
 import {wanderDelay,shouldWander,wanderRoute} from './wander.js';
-import {attackPose} from './combat-motion.js';
+import {attackPose,CAST_TIMING} from './combat-motion.js';
 import {attackWindow,BLOCK_DURATION,PROJECTILE_FLIGHT} from './combat-animation.js';
 // Follow-through window after a release (matches the attack animation's recovery).
 const RECOVERY=.28;
@@ -17,14 +17,25 @@ import {animateTarget} from './training-models.js';
 import {animateGoblin} from './enemy-model.js';
 import {FAINT_FADE_START,FAINT_RESPAWN_TIME} from './faint-motion.js';
 
-// Opening attack (docs/COMBAT.md): a ready attacker (no strike within its attack interval) opens with
-// this short windup instead of the full interval. Applies to player melee and to aggressive enemies;
-// bows and spells keep their full draw and cast time.
+// Opening attack (docs/COMBAT.md): a ready attacker (no strike within its attack interval) starts its
+// attack at once and waits only for its windup, not the full interval. Each attack's windup comes from
+// its weapon or spell (`windup`); otherwise from its style: melee is short (OPENING_WINDUP, also used by
+// aggressive enemies), ranged moderate (RANGED_WINDUP: the bow's raise, nock and draw), and magic is the
+// whole cast. Later attacks take their full interval (windup plus cooldown).
 export const OPENING_WINDUP=.5;
+export const RANGED_WINDUP=1.15;
+export function attackWindup(profile,melee=OPENING_WINDUP){
+ const interval=profile.interval||1.5,style=profile.combatStyle||profile.style;
+ const windup=profile.windup??(style==='melee'||style==='unarmed'?melee:style==='ranged'?RANGED_WINDUP:interval);
+ return Math.min(interval,windup);
+}
 
 // Shared targeting, aggression, walking and recovery; maps provide encounter configuration.
 export function createCombatSystem(api){
  const enemies=new Set(),fleeing=new Map(),projected=new Vector3(),returningAfterWin=new Map(),shots=[],followUps=[];
+ // The playing spell-gathering sound ({fight, sound}), stopped when its cast ends for any reason.
+ let gather=null;
+ const stopGather=()=>{gather?.sound?.stop();gather=null;};
  let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true,sinceActivity=Infinity,pending=null,sinceRelease=Infinity;
  // `openingWindup` may be null to pin full-windup timing in tests of other mechanics.
  const opening=api.openingWindup===undefined?OPENING_WINDUP:api.openingWindup;
@@ -52,8 +63,8 @@ export function createCombatSystem(api){
  function commit(c){commitAttack(c);openingWindup(c);}
  // The swing animation still plays in full: the clock skips to the last part of the windup.
  function openingWindup(c){
-  if(!opening||c.profile.combatStyle!=='melee'||c.profile.spell||sinceRelease<c.profile.interval)return;
-  c.playerClock=Math.max(c.playerClock,c.profile.interval-opening);
+  if(!opening||sinceRelease<c.profile.interval)return;
+  c.playerClock=Math.max(c.playerClock,c.profile.interval-attackWindup(c.profile,opening));
  }
  function commitAttack(c){
   const hadAbility=!!c.ability;
@@ -135,7 +146,7 @@ export function createCombatSystem(api){
   const reengaging=chase?.enemy===a;if(chase&&!reengaging)clearChase();if(reengaging)chase=null;
   api.stop();fight={enemy:a,age:0,playerClock:0,profile:next};commit(fight);a.patrolRoute=[];
   // Selection and windup never provoke a passive enemy; strike resolves that.
-  api.face(a.x,a.z);return true;
+  const centre=bodyCenter(a);api.face(centre.x,centre.z);return true;
  }
  function lose(){pending=null;if(api.defeatStop)api.defeatStop();else api.stop();clearChase();api.health.value=0;defense=null;defeated=.001;}
  function engage(a){
@@ -175,7 +186,7 @@ export function createCombatSystem(api){
   const r=resolveAttack({dodgePercent:rules.canDodge?rules.dodgePercent||0:0,canCritical:true,criticalPercent:weapon.critPercent,min:weapon.min,max:weapon.max,random,
    mitigate:raw=>resolvePortions([{amount:raw*(weapon.damageScale??1),resistancePct}])});
   const before=a.hp;a.hp=Math.max(0,a.hp-r.damage);const removed=before-a.hp,xp=actionXp(removed);
-  if(r.outcome==='hit'){a.hitAge=.25;api.hit(a.group.position,removed,r.critical?'critical':'hit');api.sound(r.critical?'crit':'hit');api.struck?.(a,weapon);}
+  if(r.outcome==='hit'){a.hitAge=.25;api.hit(a.group.position,removed,r.critical?'critical':'hit');api.sound(r.critical?'crit':weapon.combatStyle==='magic'?'spellHit':'hit');api.struck?.(a,weapon);}
   else{api.hit(a.group.position,null,r.outcome);api.sound('whiff');}
   // Strategy skill and weapon/elemental proficiency each receive the full base award, capped per track.
   const awards=[{track:weapon.xpTrack,amount:xp}];
@@ -223,6 +234,7 @@ export function createCombatSystem(api){
  }
  function update(dt,time,camera){
    sinceRelease+=dt;
+  if(gather&&gather.fight!==fight)stopGather(); // the cast ended: cancelled, defeated, won or interrupted
   sinceActivity=fight||chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened)?0:sinceActivity+dt;
   inCombatState.value=sinceActivity<5;
   if(defense){defense.age+=dt;if(defense.age>=BLOCK_DURATION)defense=null;}
@@ -274,7 +286,8 @@ export function createCombatSystem(api){
   for(const [a,f] of fleeing)if(current(a)){f.age+=dt;animate(a,time,{walk:1});if(f.destination){a.group.rotation.y=Math.atan2(f.destination.x-a.group.position.x,f.destination.z-a.group.position.z);a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}a.group.scale.setScalar(a.scale*Math.max(.01,1-Math.max(0,(f.age-.8)/.4)));if(f.age>=1.2){a.group.visible=false;fleeing.delete(a);}}
   if(defeated){defeated+=dt;api.fade?.(Math.max(0,Math.min(1,(defeated-FAINT_FADE_START)/(FAINT_RESPAWN_TIME-FAINT_FADE_START))));if(defeated>=FAINT_RESPAWN_TIME&&api.respawn()){defeated=0;api.health.restore();api.fade?.(0);api.respawned?.();return null;}return {kind:'Defeated',time:Math.min(defeated,FAINT_RESPAWN_TIME)};}
   // Eating no longer pauses attacks: an accepted consumable restarts the windup via consumableUsed().
-  if(fight){const c=fight,a=c.enemy;api.face(a.x,a.z);const weapon=c.profile;
+  // Face the body's centre, so large creatures are faced and aimed at squarely.
+  if(fight){const c=fight,a=c.enemy,centre=bodyCenter(a);api.face(centre.x,centre.z);const weapon=c.profile;
    // Unaffordable attacks pause with their target retained; any windup progress is lost.
    // Stun (or any effect preventing this action) cancels the unreleased windup and clears the pending action;
    // the target is kept and a fresh full windup starts when it ends.
@@ -282,18 +295,24 @@ export function createCombatSystem(api){
    if(prevented){pending=null;c.playerClock=0;c.struck=false;if(c.ability)commit(c);}
    const short=!prevented&&weapon.manaCost&&!(api.mana?.value>=weapon.manaCost);
    if(short){c.playerClock=0;if(!c.waiting){c.waiting=true;api.toast?.(`Not enough Mana for ${weapon.name} (${weapon.manaCost} needed).`);}}
-   else if(!prevented){c.waiting=false;c.playerClock+=dt;}
+   else if(!prevented){c.waiting=false;
+    c.playerClock+=dt;}
+   // A spell's gathering sound follows the visible gather: it starts once the previous cast's
+   // follow-through ends (by then a lethal spell has landed and ended the fight) and lasts until the toss.
+   if(prevented||short)stopGather();
+   else if(weapon.combatStyle==='magic'&&!gather&&c.playerClock>=(c.released?CAST_TIMING.recover:0)&&c.playerClock<weapon.interval-CAST_TIMING.toss)
+    gather={fight:c,sound:api.soundStart?.('spellCharge',weapon.interval-CAST_TIMING.toss-c.playerClock)||null};
    if(!prevented&&!short&&c.playerClock>=weapon.interval){
     if(weapon.ammo&&!(api.inventory?.[weapon.ammo]>0)){disengage();api.toast?.('Out of arrows. Visit a supply offer to refill.');}
     else if(weapon.energyCost&&!(api.energy?.value>=weapon.energyCost)){
      // Recheck at release: an unaffordable ability cancels this windup and the ability use (no cost, no XP).
      api.toast?.(`Not enough Energy for ${weapon.abilityName}. It was cancelled.`);c.playerClock=0;c.struck=false;commit(c);
     }
-    else{c.playerClock-=weapon.interval;sinceRelease=0;if(weapon.ammo){api.inventory[weapon.ammo]--;api.items?.({[weapon.ammo]:-1});}
+    else{c.playerClock-=weapon.interval;sinceRelease=0;stopGather();if(weapon.ammo){api.inventory[weapon.ammo]--;api.items?.({[weapon.ammo]:-1});}
      if(weapon.manaCost)api.mana.value-=weapon.manaCost;
      if(weapon.energyCost)api.energy.value-=weapon.energyCost;
      if(weapon.backfirePercent>0&&random()*100<weapon.backfirePercent)backfire(a,weapon);
-     else if(['ranged','magic'].includes(weapon.style)){api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,.55,0)),weapon.style,weapon);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
+     else if(['ranged','magic'].includes(weapon.style)){if(weapon.style==='magic')api.sound('spellRelease');api.projectile?.(api.player.position.clone().add(new Vector3(0,.55,0)),a.group.position.clone().add(new Vector3(0,a.aimHeight??.55,0)),weapon.style,weapon);shots.push({enemy:a,profile:weapon,left:PROJECTILE_FLIGHT});}else strike(a,weapon);
      if(weapon.followUp)followUps.push({enemy:a,profile:weapon.followUp,left:FOLLOW_UP_DELAY});
      // The follow-through belongs to the attack that just released, even though the next one is committed.
      c.released=weapon;c.struck=true;if(fight===c)commit(c);

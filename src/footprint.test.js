@@ -22,3 +22,7 @@ test('large bodies path around gaps they cannot fit, and melee reaches from besi
  assert.equal(withinAttackRange(world,world.get('4,4'),target,1),false,'diagonal corner');
  assert.equal(withinAttackRange(world,world.get('3,3'),target,1),false,'inside the body');
 });
+test('the body centre is where large creatures are faced and aimed',async()=>{
+ const {bodyCenter}=await import('./footprint.js');
+ assert.deepEqual(bodyCenter({x:5,z:7}),{x:5,z:7});assert.deepEqual(bodyCenter({x:5,z:7,size:2}),{x:5.5,z:7.5});
+});

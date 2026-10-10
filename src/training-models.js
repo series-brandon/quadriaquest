@@ -26,8 +26,8 @@ export function animateTarget(g,time,hit=0){g.rotation.x=Math.sin(time*30)*hit*.
 export function stoneArch(){const g=new THREE.Group();for(const x of [-1.5,1.5]){box(g,.6,2.1,.7,'#595767',x,1.05);box(g,.8,.17,.85,'#777384',x,2.05);}box(g,3.5,.48,.72,'#686473',0,2.35);return g;}
 export function stoneTile(t,world){const material=new THREE.MeshStandardMaterial({color:new THREE.Color(['#64606f','#676271','#615e6b','#686471'][(t.x*17+t.z*13+t.x*t.z)%4]),roughness:.95});return makeTerrainTile(t,world,material,{sideColor:'#464151',seamColor:'#a199ad'});}
 // Mentors are slimes like the player: a look (colour, hat, accessories), a default face, an optional
-// loadout and idle pace. They animate through createSlimeActor (slime-presentation.js).
-export const MENTORS={sarge:{name:'Sergeant Bristle',color:'#c85745',expression:'angry',idleRate:1.8},smith:{name:'Borin Copperbelly',color:'#c9904f',expression:'idle'},ranger:{name:'Fletch',color:'#74996a',expression:'idle',loadout:{leftHand:'bows'}},mage:{name:'Wisp',color:'#ad8acb',expression:'idle'},ki:{name:'Ember',color:'#5fa9a8',expression:'idle'}};
+// loadout (held gear) or carried tool, and an idle pace. They animate through createSlimeActor (slime-presentation.js).
+export const MENTORS={sarge:{name:'Sergeant Bristle',color:'#c85745',expression:'angry',idleRate:1.8,loadout:{rightHand:'copperDagger',leftHand:'copperShield'}},smith:{name:'Borin Copperbelly',color:'#c9904f',expression:'idle',carry:'hammers'},ranger:{name:'Fletch',color:'#74996a',expression:'idle',loadout:{leftHand:'bows'}},mage:{name:'Wisp',color:'#ad8acb',expression:'idle',carry:'staffs'},ki:{name:'Ember',color:'#5fa9a8',expression:'idle'}};
 export function mentorModel(kind){const def=MENTORS[kind],rig=makeSlime(def.color),g=rig.group;
  if(kind==='smith'){part(g,new THREE.SphereGeometry(.36,16,8,0,Math.PI*2,0,Math.PI/2),'#807458',0,.77);box(g,.75,.07,.7,'#998462',0,.77,.03);}
  if(kind==='sarge'){

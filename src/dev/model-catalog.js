@@ -81,7 +81,7 @@ function resource(name,factory,kind){return {name,motions:['Static','Hit','Deple
 function terrain(heights){const group=new THREE.Group(),tiles=heights.map((h,x)=>({x,z:0,h})),map=new Map(tiles.map(t=>[key(t.x,t.z),t])),colors=createGrassColors();for(const tile of tiles){const mesh=makeTerrainTile(tile,map,new THREE.MeshStandardMaterial({color:colors[tile.x%colors.length]}));mesh.position.x=tile.x;group.add(mesh);}return group;}
 
 export const MODEL_CATALOG=[
- ...Object.entries(MENTORS).map(([kind,def])=>({name:def.name,loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(()=>mentorModel(kind),{defaultExpression:def.expression,idleRate:def.idleRate,loadout:def.loadout})})),
+ ...Object.entries(MENTORS).map(([kind,def])=>({name:def.name,loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(()=>mentorModel(kind),{defaultExpression:def.expression,idleRate:def.idleRate,loadout:def.loadout,carry:def.carry})})),
  resource('Copper outcrop',copperOutcrop,'copper'),staticModel('Copper Ingot',ingot),
  ...[['copperDagger','Copper Dagger'],['copperShield','Copper Shield'],['bows','Training Bow'],['arrows','Training Arrow']].map(([id,name])=>staticModel(name,()=>tool(id))),
  {name:'Furnace',motions:['Burning','Static'],create(){const group=furnace();return {group,update:(time,motion)=>animateFurnace(group,motion==='Static'?0:time)};}},
@@ -101,7 +101,7 @@ export const MODEL_CATALOG=[
  ...['sticks','stones','flint'].map((id,i)=>staticModel(['Sticks','Rocks','Flint'][i],()=>createGroundItemModel(id))),
  staticModel('Crude Axe',makeAxe),staticModel('Crude Pickaxe',makePickaxe),
  staticModel('Raw Pondfish',makePondfish),
- ...[['swords','Stone Sword'],['shields','Wooden Shield'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod']].map(([id,name])=>staticModel(name,()=>tool(id))),
+ ...[['swords','Stone Sword'],['shields','Wooden Shield'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod'],['staffs','Simple Staff']].map(([id,name])=>staticModel(name,()=>tool(id))),
  staticModel('Top Hat',makeTopHat),staticModel('Companion Top Hat',makeCompanionTopHat),
  {name:'Campfire',motions:['Burning','Static'],create(){const group=campfire();return {group,update(time,motion){animateCampfire(group,motion==='Static'?0:time);}};}},
  staticModel('Campfire placement ghost',()=>campfire(true)),

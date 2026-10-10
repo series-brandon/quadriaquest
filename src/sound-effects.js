@@ -29,6 +29,9 @@ export const EFFECTS={
  hit:{label:'Hit an enemy'},
  crit:{label:'Critical hit'},
  whiff:{label:'Attack missed'},
+ spellCharge:{label:'Spell gathers'},
+ spellRelease:{label:'Spell released'},
+ spellHit:{label:'Spell hits'},
  hurt:{label:'Player hurt'},
  victory:{label:'Enemy defeated',cue:true},
  objective:{label:'Quest progress',cue:true},
@@ -68,6 +71,28 @@ export function createSoundEffects(ctx,out,{voices,palette=()=>DEFAULT_PALETTE})
   degrees.forEach((degree,i)=>{for(const d of [].concat(degree))play({time:ctx.currentTime+at+i*gap,midi:degreeMidi(root+lift,mode,d),dur,vel},out);});
  }
  const vary=()=>.92+Math.random()*.16;
+ // A sustained sound that can end early: each part is a source and its gain; stop() fades them out
+ // over 80 ms (no click) and stops the sources.
+ function sustained(parts){
+  return {stop(){const now=ctx.currentTime;for(const {source,gain} of parts){gain.gain.cancelScheduledValues(now);gain.gain.setValueAtTime(Math.max(gain.gain.value,.0001),now);gain.gain.exponentialRampToValueAtTime(.0001,now+.08);try{source.stop(now+.1);}catch{}}}};
+ }
+ // The spell's gathering: a shimmer that swells and rises for `duration` seconds (the visible gather and
+ // pull back), with a slow sparkle (tremolo). Returns a handle so a cancelled cast stops it.
+ function spellGather(duration=2.4){
+  const start=ctx.currentTime,end=start+duration,parts=[];
+  const fade=(level,rise)=>{const gain=ctx.createGain();gain.gain.value=0;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(level*.5,start+Math.max(.03,rise));gain.gain.linearRampToValueAtTime(level,end);gain.gain.exponentialRampToValueAtTime(.0001,end+.12);return gain;};
+  const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),air=fade(.06,duration*.35);
+  source.buffer=noiseBuffer;source.loop=true;filter.type='bandpass';filter.Q.value=2.2;filter.frequency.setValueAtTime(500,start);filter.frequency.exponentialRampToValueAtTime(3600,end);
+  source.connect(filter).connect(air).connect(out);source.start(start,Math.random());source.stop(end+.2);parts.push({source,gain:air});
+  for(const [from,to,level,rate] of [[440,880,.028,7],[660,1320,.018,9.5]]){
+   const osc=ctx.createOscillator(),gain=fade(level,duration*.25),shimmer=ctx.createGain(),lfo=ctx.createOscillator(),depth=ctx.createGain();
+   const f=from*vary();osc.frequency.setValueAtTime(f,start);osc.frequency.exponentialRampToValueAtTime(to*(f/from),end);
+   shimmer.gain.value=.75;lfo.frequency.value=rate;depth.gain.value=.25;lfo.connect(depth).connect(shimmer.gain);
+   osc.connect(shimmer).connect(gain).connect(out);osc.start(start);osc.stop(end+.2);lfo.start(start);lfo.stop(end+.2);
+   parts.push({source:osc,gain},{source:lfo,gain:depth});
+  }
+  return sustained(parts);
+ }
 
  const recipes={
   ui(){tone(620,{dur:.07,level:.025});},
@@ -89,6 +114,11 @@ export function createSoundEffects(ctx,out,{voices,palette=()=>DEFAULT_PALETTE})
   hit(){tone(150*vary(),{dur:.15,level:.15,type:'triangle',glide:70,attack:.006});noise(900,{dur:.1,level:.16,q:.9,attack:.008});},
   crit(){recipes.hit();noise(3200,{dur:.15,level:.08,q:1.2,attack:.008});tone(880,{dur:.25,level:.05,glide:600});},
   whiff(){noise(2600,{dur:.2,level:.13,q:1.4,sweep:700,attack:.03});},
+  // Magic: the gathering shimmer for as long as the hands gather (stoppable; see start()), a bright zap
+  // on release, and a sparkling impact in place of the plain hit.
+  spellCharge(duration){return spellGather(duration);},
+  spellRelease(){noise(3000,{dur:.25,level:.09,q:1.4,sweep:900,attack:.01});tone(990*vary(),{dur:.22,level:.06,glide:330,type:'triangle',attack:.005});},
+  spellHit(){tone(1320*vary(),{dur:.3,level:.05,glide:1980,attack:.005});tone(1760*vary(),{at:.04,dur:.28,level:.035,attack:.005});noise(2200,{dur:.18,level:.1,q:1,attack:.008});tone(160,{dur:.15,level:.1,type:'triangle',glide:80,attack:.006});},
   hurt(){tone(230,{dur:.24,level:.12,glide:110,attack:.006});noise(420,{dur:.17,level:.12,q:.8,attack:.008});},
   victory(){notes([1,5,8],{gap:.1,dur:.6,vel:.6});},
   // Progress climbs the scale: an objective at 3/6 sounds halfway up the octave.
@@ -102,5 +132,7 @@ export function createSoundEffects(ctx,out,{voices,palette=()=>DEFAULT_PALETTE})
   if(!recipes[kind])return 0;
   recipes[kind](arg);return DUCK[kind]||0;
  }
- return {play};
+ // Starts an effect that may need to end early (spellCharge); returns a handle with stop().
+ function start(kind,arg){const handle=recipes[kind]?.(arg);return handle?.stop?handle:{stop(){}};}
+ return {play,start};
 }

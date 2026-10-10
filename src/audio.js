@@ -32,6 +32,8 @@ export function createGameAudio(){
   if(!effects||context.state!=='running')return;
   const duck=effects.play(kind,arg);if(duck)duckUntil=Math.max(duckUntil,context.currentTime+duck);
  }
+ // A sound that may need to end early (a spell's gathering); returns a handle with stop().
+ function start(kind,arg){if(!effects||context.state!=='running')return {stop(){}};return effects.start(kind,arg);}
 
  // `song` is a music-songs.js id (area music, menus, the opening); `combat` fades in the combat
  // layer and quiets birds; `place` is an ambience profile (ambience.js).
@@ -49,7 +51,7 @@ export function createGameAudio(){
  document.addEventListener('visibilitychange',()=>{if(context){if(document.hidden)context.suspend();else context.resume().catch(()=>{});}});
  document.addEventListener('pointerdown',unlock,{once:true});document.addEventListener('keydown',unlock,{once:true});
  document.addEventListener('click',e=>{if(e.target.closest('button'))play('ui');});
- return {play,update,unlock,set,settings,music,ambience:ambient,
+ return {play,start,update,unlock,set,settings,music,ambience:ambient,
   preview(value){musicOptions.song.value=value||null;},
   reset(){
    for(const [key,value]of Object.entries({music:.22,effects:.45,ambience:.25,muted:false}))set(key,value);

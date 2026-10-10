@@ -59,6 +59,7 @@ import {createCompanionSystem} from './companions.js';
 import {createCompanionMenu} from './companion-menu.js';
 import {makeAxe} from './axe-model.js';
 import {createSlimePresentation} from './slime-presentation.js';
+import {bodyCenter} from './footprint.js';
 import {MENTORS} from './training-models.js';
 import {interactionRoute} from './interaction-route.js';
 import {makeSlime} from './slime-model.js';
@@ -247,7 +248,7 @@ combat=createCombatSystem({world,player,health,equipment,inventory,character,con
  tile:()=>tile,reserved:t=>t===segment?.to||path.includes(t)||campfires?.placementTile===t||companions.occupies(t),
  approaching:()=>actorTarget,hover:()=>hover?.actor,face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},
  safe:p=>p.safe||pickables.some(m=>{const a=m.userData.actor;return a&&a.crystal&&world.get(key(a.x,a.z))===a.tile&&Math.abs(p.x-a.x)+Math.abs(p.z-a.z)<3;}),
- hit:(p,damage,outcome)=>combatFeedback.show(p,damage,outcome),sound:name=>gameAudio.play(name),clearFeedback:()=>combatFeedback.clear(),
+ hit:(p,damage,outcome)=>combatFeedback.show(p,damage,outcome),sound:name=>gameAudio.play(name),soundStart:(name,arg)=>gameAudio.start(name,arg),clearFeedback:()=>combatFeedback.clear(),
  reward:r=>{const [first,...rest]=r.tracks.filter(t=>t.xp>0);if(first)showSkillReward(first,player.position);for(const t of rest)if(t.leveledUp)showSkillReward(t,player.position,{float:false});if(r.core.leveledUp)showSkillReward({skillName:'Core',level:r.core.level,leveledUp:true,detail:`+${r.core.points} attribute points`},player.position,{float:false});},won:(a,profile)=>areas.broadcast('combatWon',a,profile),complete:()=>feedback.complete(),interacting:()=>feedback.interacting('Fighting'),
  fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},
  respawn(){const crystals=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a&&a.crystal&&world.get(key(a.x,a.z))===a.tile))];
@@ -566,7 +567,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  }else if(!path.length){
   if(chopTarget){const node=chopTarget;chopTarget=null;resourceActions.start(node);}
   if(actorTarget){
-    const actor=actorTarget;facing=Math.atan2(actor.x-tile.x,actor.z-tile.z);
+    const actor=actorTarget,centre=bodyCenter(actor);facing=Math.atan2(centre.x-tile.x,centre.z-tile.z);
     actorTime+=dt;handWork=actor.duration?actorTime:null;expression=actor.duration?'focused':'idle';
     feedback.interacting(actor.duration?'Opening':'Traveling');
     if(actorTime>=actor.duration){actorTarget=null;actorTime=0;feedback.complete();if(actor===companions.actor)companions.pet();else if(actor.enemy)combat.start(actor);else if(actor.resourceNode)resourceActions.start(actor);else if(actor.carpentry){if(actor.available())carpentry.start(actor);else if(actor.interact)actor.interact();else areas.notify('interact',actor);}else if(actor.fishing)fishing.start(actor);else if(actor.campfire)campfires.interact(actor);else if(actor.crystal){gameAudio.play('portal');actor.interact();}else if(actor.interact)actor.interact();else areas.notify('interact',actor);}

@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Group} from 'three';
-import {createCombatSystem,OPENING_WINDUP} from './combat.js';
+import {createCombatSystem,OPENING_WINDUP,RANGED_WINDUP,attackWindup} from './combat.js';
+import {PROJECTILE_FLIGHT} from './combat-animation.js';
+import {CAST_TIMING} from './combat-motion.js';
 import {createCombatStyles} from './combat-styles.js';
 import {createEquipment} from './equipment.js';
 import {createPlayerHealth,createFoodSystem} from './player-health.js';
@@ -17,18 +19,18 @@ const BRUISER_HIT=12,PLAYER_INTERVAL=2.55/1.02,CAST_INTERVAL=3/1.02;
 // openingWindup: null pins full-windup timing for tests of other mechanics (the opening is tested separately).
 function fixture(kind='bruiser',{openingWindup}={}){
  const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
- const home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,wins=0,toasts=[],food,craft;const character=createCharacter(),mana=createResource(),energy=createResource();let auraResistance=0;
+ const sounds=[],started=[],faced=[],home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,wins=0,toasts=[],food,craft;const character=createCharacter(),mana=createResource(),energy=createResource();let auraResistance=0;
  const equipment=createEquipment({inventory,busy:()=>system.working||system.busy});
  // One strike per attack keeps these mechanic tests' arithmetic simple; dual wielding (both hands,
  // the default with two free hands) is covered in combat-systems.test.js.
  equipment.setAttackHands('main');
  const styles=createCombatStyles({equipment,busy:()=>system.working});
  const interrupt=()=>{interrupts++;cancelPlayerActions({food,craft},{keepCombat:true,keepFood:true});};
- const system=createCombatSystem({openingWindup,world,health,equipment,inventory,character,mana,energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),resistanceBonus:()=>auraResistance,strategy:()=>styles.strategy,won(){wins++;},toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,attacked(){attacks++;},eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(){},sound(){},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
+ const system=createCombatSystem({openingWindup,world,health,equipment,inventory,character,mana,energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),resistanceBonus:()=>auraResistance,strategy:()=>styles.strategy,won(){wins++;},toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,attacked(){attacks++;},eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(x,z){faced.push([x,z]);},sound(name){sounds.push(name);},soundStart(name,arg){const h={name,arg,stopped:false,stop(){h.stopped=true;}};started.push(h);return h;},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
  food=createFoodSystem({inventory,health,stop:interrupt,busy:()=>system.busy,consumed:()=>system.consumableUsed()});
  craft=createRecipeCrafting({inventory,skill:{level:1,xp:0},stop(){},busy:()=>system.working,completed(){}});
  const a=system.add({kind,aggressive:false,rules:ENEMIES[kind],group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
- return {system,a,food,craft,character,mana,energy,toasts,set auraResistance(v){auraResistance=v;},get wins(){return wins;},get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
+ return {sounds,started,faced,system,a,food,craft,character,mana,energy,toasts,set auraResistance(v){auraResistance=v;},get wins(){return wins;},get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
 }
 test('equipment is available without an area, guards stale actions, and clears missing items',()=>{
  const inventory={swords:1,shields:1};let busy=false;const e=createEquipment({inventory,busy:()=>busy});
@@ -93,7 +95,7 @@ test('unaffordable spells pause with the target retained, explain once, and resu
 function frames(f,seconds,dt=.02){let result;for(let t=0;t<seconds;t+=dt)result=f.system.update(dt,t);return result;}
 test('ranged targeting and release stay passive; the impact starts continuous pursuit',()=>{
  const f=fixture();f.inventory.bows=1;f.inventory.arrows=10;f.equipment.toggle('bows');f.tile=f.world.get('3,6');
- const initial=f.a.group.position.clone();f.system.start(f.a);frames(f,2.48);assert.equal(f.a.aggro,false);assert.equal(f.a.hp,ENEMIES.bruiser.health);assert.deepEqual(f.a.group.position.toArray(),initial.toArray());frames(f,.3);assert.equal(f.a.aggro,true);assert.ok(f.a.hp<ENEMIES.bruiser.health);
+ const initial=f.a.group.position.clone();f.system.start(f.a);frames(f,RANGED_WINDUP+PROJECTILE_FLIGHT-.06);assert.equal(f.a.aggro,false);assert.equal(f.a.hp,ENEMIES.bruiser.health);assert.deepEqual(f.a.group.position.toArray(),initial.toArray());frames(f,.3);assert.equal(f.a.aggro,true);assert.ok(f.a.hp<ENEMIES.bruiser.health);
  frames(f,1);assert.ok(f.a.group.position.distanceTo(initial)>0);
  let previous=f.a.group.position.clone();for(let i=0;i<50;i++){f.system.update(.02,i);assert.ok(f.a.group.position.distanceTo(previous)<=.04001);previous.copy(f.a.group.position);}
 });
@@ -245,11 +247,16 @@ test('re-engaging right after a strike is not ready; idling for an interval is',
  frames(f,OPENING_WINDUP+.05);assert.ok(f.a.hp<rested,'ready again after a full interval without striking');
 });
 
-test('bows and spells keep their full draw and cast time',()=>{
+test('windups by style: a bow opens after its draw, a spell after its whole cast, and weapons may override',()=>{
  const f=fixture('target');f.inventory.bows=1;f.inventory.arrows=5;f.equipment.toggle('bows');f.system.start(f.a);
- frames(f,1);assert.equal(f.a.hp,ENEMIES.target.health,'no opening for a bow');
+ frames(f,RANGED_WINDUP-.05);assert.equal(f.a.hp,ENEMIES.target.health,'still drawing');
+ frames(f,PROJECTILE_FLIGHT+.15);const first=f.a.hp;assert.ok(first<ENEMIES.target.health,'the first arrow lands right after the draw, not a full interval');
+ frames(f,1.5);assert.equal(f.a.hp,first,'later shots take their full interval');
  const g=fixture('target');g.styles.learn('energyStrike');g.styles.select('energyStrike');g.system.start(g.a);
- frames(g,1);assert.equal(g.a.hp,ENEMIES.target.health,'no opening for a spell');
+ frames(g,1);assert.equal(g.a.hp,ENEMIES.target.health,'a spell casts in full');
+ assert.equal(attackWindup({combatStyle:'magic',interval:2.9}),2.9);assert.equal(attackWindup({combatStyle:'melee',interval:2.5}),OPENING_WINDUP);
+ assert.equal(attackWindup({combatStyle:'ranged',interval:2.5,windup:.4}),.4,'a weapon or spell can set its own windup');
+ assert.equal(attackWindup({combatStyle:'ranged',interval:.9}),.9,'never longer than the interval');
 });
 
 test('an aggressive enemy opens with a short windup once in reach, then keeps its interval',()=>{
@@ -290,4 +297,30 @@ test('a 2×2 enemy blocks its four tiles, fights from any side, pursues as a bod
  const body=new Set(['0','1'].flatMap(dx=>['0','1'].map(dz=>`${a.tile.x+ +dx},${a.tile.z+ +dz}`)));
  for(const t of f.world.values())assert.equal(t.blocked,body.has(`${t.x},${t.z}`),`only the current body is blocked (${t.x},${t.z})`);
  f.system.remove(a);assert.ok([...f.world.values()].every(t=>!t.blocked),'removal frees every body tile');
+});
+test('a spell gathers audibly with its hands: from cast start to the toss, never right after a release or a kill, stopped when cancelled',()=>{
+ const f=fixture('target');f.styles.learn('energyStrike');f.styles.select('energyStrike');f.system.start(f.a);
+ const log=[];let t=0,releasedAt=null;
+ for(;t<6.5;t+=.02){const before=f.started.length,released=f.sounds.length;f.system.update(.02,t);
+  if(f.sounds.slice(released).includes('spellRelease'))releasedAt=t;
+  if(f.started.length>before)log.push({t,arg:f.started.at(-1).arg,sinceRelease:releasedAt===null?null:t-releasedAt});}
+ const interval=f.system.preview().interval;
+ assert.ok(log.length>=2,'one gathering per cast');
+ assert.ok(log[0].t<.05&&Math.abs(log[0].arg-(interval-CAST_TIMING.toss))<.05,'the first cast gathers from the start, as long as the hands do');
+ for(const g of log.slice(1))assert.ok(g.sinceRelease>=CAST_TIMING.recover-.001,'waits for the follow-through after a release');
+ assert.ok(f.sounds.includes('spellHit')&&!f.sounds.includes('hit'));
+ // A killing spell: the fight ends with the impact, so no new gathering starts.
+ const k=fixture('bruiser',{openingWindup:null});k.styles.learn('energyStrike');k.styles.select('energyStrike');k.a.hp=1;k.system.start(k.a);
+ frames(k,interval+.6);assert.equal(k.a.opened,true,'defeated');assert.equal(k.started.length,1,'no buildup after the killing blow');assert.ok(k.started[0].stopped);
+ // Cancelling mid-gather stops the sound.
+ const c=fixture('target');c.styles.learn('energyStrike');c.styles.select('energyStrike');c.system.start(c.a);frames(c,1);
+ assert.equal(c.started[0].stopped,false);c.system.cancel();c.system.update(.02,1.1);assert.equal(c.started[0].stopped,true);
+ const m=fixture('target');m.system.start(m.a);frames(m,1);assert.ok(m.sounds.includes('hit'));assert.equal(m.started.length,0);
+});
+
+
+test('the player faces a large creature at its centre, not its anchor tile',()=>{
+ const f=fixture('bruiser');f.system.remove(f.a);f.tile=f.world.get('1,2');
+ const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressive:false,rules:ENEMIES.golem,group:new Group(),tile:home,home,x:2,z:1,scale:1,patrol:{minX:2,maxX:2,minZ:1,maxZ:1}});
+ assert.ok(f.system.start(a));frames(f,.1);assert.deepEqual(f.faced.at(-1),[2.5,1.5]);
 });

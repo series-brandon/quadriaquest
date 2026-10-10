@@ -8,13 +8,14 @@ import {signal} from './reactive.js';
 import {mount} from './ui/dom.js';
 import {healthPlate} from './ui/hud/health-plate.js';
 
-// Model, rig animation, scale, highlight height, body size (tiles per side) and health-plate height per enemy kind. Practice targets animate in combat.js.
+// Model, rig animation, scale, highlight height, body size (tiles per side), health-plate height and the
+// height shots aim at, per enemy kind. Practice targets animate in combat.js.
 const MODELS={
  target:{create:trainingTarget,height:1.7},
  scrapper:{create:()=>goblin(),animate:animateGoblin,height:1.7},
  bruiser:{create:()=>goblin(true),animate:animateGoblin,scale:1.18,height:1.7},
  // A 2×2 body: its placement tile is the anchor corner (footprint.js).
- golem:{create:makeCinderGolem,animate:animateGolem,height:3.3,size:2,plateLift:3.1,scale:1.25},
+ golem:{create:makeCinderGolem,animate:animateGolem,height:3.3,size:2,plateLift:3.1,aimHeight:1.4,scale:1.25},
 };
 // xp: optional placement-specific XP modifiers {multiplier, levelCap, afterCapMultiplier} (e.g. a tutorial boost).
 // territory: optional {minX,maxX,minZ,maxZ}; the enemy never walks out of it and stops pursuing a player
@@ -27,7 +28,7 @@ export function createEnemyEntity({kind,tile,parent,pickables,patrol,respawn=nul
  // Signal-backed HP: combat keeps assigning a.hp; the health plate (target frame) follows it.
  const hp=signal(rules.health);let plate;
  const plateView=mount(()=>{plate=healthPlate({value:hp,max:rules.health});return plate.node;});document.body.append(plateView.node);
- const a={kind,id,respawn,aggressive:aggressive??rules.aggressive??false,aggroRange:aggroRange??rules.aggroRange??3,attacksPacifists:attacksPacifists??rules.attacksPacifists??false,tile,home:tile,x:tile.x,z:tile.z,group,scale,rules,animate:model.animate,territory,size:model.size??1,plateLift:model.plateLift,patrol:patrol||{minX:tile.x-2,maxX:tile.x+2,minZ:tile.z-2,maxZ:tile.z+2},enemy:true,ready:true,opened:false,duration:0,plate};
+ const a={kind,id,respawn,aggressive:aggressive??rules.aggressive??false,aggroRange:aggroRange??rules.aggroRange??3,attacksPacifists:attacksPacifists??rules.attacksPacifists??false,tile,home:tile,x:tile.x,z:tile.z,group,scale,rules,animate:model.animate,territory,size:model.size??1,plateLift:model.plateLift,aimHeight:model.aimHeight,patrol:patrol||{minX:tile.x-2,maxX:tile.x+2,minZ:tile.z-2,maxZ:tile.z+2},enemy:true,ready:true,opened:false,duration:0,plate};
  Object.defineProperty(a,'hp',{get(){return hp.value;},set(next){hp.value=next;},enumerable:true});
  // The hover label carries the name and exact health (the plate is only a bar).
  Object.defineProperty(a,'label',{get(){return `Fight ${rules.name} · ${Math.ceil(hp.value)}/${rules.health} HP${rules.boss?' · Boss':''}${a.attacksPacifists?' · ⚠ Hunts pacifists':''}`;},enumerable:true});
