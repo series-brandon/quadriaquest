@@ -35,7 +35,7 @@ test('held gear, tools and the carried rod show only when they should',()=>{
  const rig=mentorModel('ranger'),fletch=createSlimeActor(rig,{loadout:MENTORS.ranger.loadout});
  fletch.update(.1,0);assert.deepEqual(shown(rig,'equipment-left'),['equipment-left-bows'],'his bow is carried at rest');
  fletch.play('Archery');fletch.update(.5,.5);assert.deepEqual(shown(rig,'equipment-left'),['equipment-left-bows']);
- fletch.play('Chopping');fletch.update(.5,1);assert.deepEqual(shown(rig,'equipment-'),[],'skilling swaps gear for the tool');assert.deepEqual(shown(rig,'slime-tool-'),['slime-tool-axe']);
+ fletch.play('Chopping');fletch.update(.5,1);assert.deepEqual([...shown(rig,'equipment-left'),...shown(rig,'equipment-right')],[],'skilling swaps hand gear for the tool');assert.deepEqual(shown(rig,'equipment-archerCap'),['equipment-archerCap'],'his cap stays on');assert.deepEqual(shown(rig,'slime-tool-'),['slime-tool-axe']);
  fletch.stop();fletch.update(.5,1.5);assert.deepEqual(shown(rig,'slime-tool-'),[]);assert.deepEqual(shown(rig,'equipment-left'),['equipment-left-bows']);
  const reedRig=fisher(),reed=createSlimeActor(reedRig,{carry:'rods'});
  reed.update(.1,0);assert.deepEqual(shown(reedRig,'slime-carry'),['slime-carry-rods']);
@@ -61,4 +61,22 @@ test('any slime shows Strong Strike glowing on its striking hand',()=>{
  assert.ok(seen,'glow appears through the windup');
  actor.play('Combat',{profile:{style:'unarmed',interval:1.5,hand:'main',side:'right'}});for(let i=0;i<80;i++)actor.update(.02,i*.02);
  assert.equal(rig.hands[0].getObjectByName('strong-strike-glow').visible,false,'a plain attack has no glow');
+});
+
+test('mentor hats are Head items: worn from their loadout, swappable like any gear',async()=>{
+ const expected={sarge:'ironSkullcap',smith:'minersCap',ranger:'archerCap',mage:'wizardHat',ki:'breathHeadband'};
+ for(const [kind,hat] of Object.entries(expected)){const rig=mentorModel(kind),a=createSlimeActor(rig,{loadout:MENTORS[kind].loadout});a.update(.1,0);
+  assert.deepEqual(shown(rig,'equipment-').filter(n=>!/^equipment-(right|left)-/.test(n)),['equipment-'+hat],kind);}
+ // Swap Bristle's skullcap for Wisp's hat through the equipment system.
+ const rig=mentorModel('sarge'),bristle=createSlimeActor(rig,{loadout:MENTORS.sarge.loadout});bristle.update(.1,0);
+ const {equipment}=bristle;equipment.setSlots({head:null});bristle.update(.1,.1);assert.deepEqual(shown(rig,'equipment-ironSkullcap'),[],'taken off');
+ const inv=loadoutEquipment({head:'wizardHat'});assert.equal(inv.slots.head,'wizardHat');
+ const wisp=createSlimeActor(mentorModel('mage'),{loadout:{...MENTORS.mage.loadout,head:'ironSkullcap'}});wisp.update(.1,0);
+ assert.deepEqual(shown({group:wisp.visual.parent},'equipment-ironSkullcap'),['equipment-ironSkullcap'],'any slime can wear any hat');
+ const reed=fisher(),r=createSlimeActor(reed,{loadout:{head:'fishersHat'}});r.update(.1,0);assert.deepEqual(shown(reed,'equipment-fishersHat'),['equipment-fishersHat']);
+});
+test('the staff and the Crude Hammer are equippable swings',async()=>{
+ const {createEquipment,GEAR}=await import('./equipment.js'),{resolveAttackMotion}=await import('./combat-animation.js');
+ for(const id of ['staffs','hammers']){const e=createEquipment({inventory:{[id]:1}});assert.ok(e.toggle(id));const attack=e.handAttack('main');assert.equal(attack.item,id);assert.equal(attack.style,'melee');assert.equal(resolveAttackMotion(attack),'slash');assert.deepEqual(GEAR[id].damageTypes,['bludgeoning']);}
+ const rig=mentorModel('mage'),wisp=createSlimeActor(rig,{loadout:MENTORS.mage.loadout});wisp.update(.1,0);assert.deepEqual(shown(rig,'equipment-right'),['equipment-right-staffs'],'Wisp holds her staff as gear');
 });

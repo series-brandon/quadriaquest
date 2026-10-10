@@ -44,7 +44,7 @@ export function createWillowbank(api){
   const small=['sticks','stones','flint'].includes(kind);const hit=part(model,new THREE.BoxGeometry(small?.5:.65,small?.5:1,small?.5:.65),new THREE.MeshBasicMaterial({visible:false}),0,small?.25:.5);a.hitTarget=hit;hit.userData.actor=a;hit.userData.tile=tile;api.pickables.push(hit);model.traverse(o=>{if(o.isMesh&&o!==hit){o.userData.actor=a;o.userData.tile=tile;api.pickables.push(o);}});const originals=new Set(model.children);model.remove(hit);a.highlight=highlightResource(model,{height:kind==='tree'?2.8:small?.85:1.5});model.add(hit);for(const child of model.children)if(!originals.has(child)||child===hit)child.userData.portraitIgnore=true;actors.push(a);return a;}
  // Guided once the rescue story is done: onward to Cinderhold.
  const crystal=api.crystals.add({tile:t(...WILLOWBANK.crystal),parent:group,destination:'clearing',label:'Return to the clearing',guide:()=>phase==='finished'});
- const reed=fisher(),reedActor=actor(reed.group,...WILLOWBANK.reed,'reed','Talk to Reed'),reedFacing=createConversationFacing(reed.group),reedSlime=createSlimeActor(reed,{carry:'rods'});
+ const reed=fisher(),reedActor=actor(reed.group,...WILLOWBANK.reed,'reed','Talk to Reed'),reedFacing=createConversationFacing(reed.group),reedSlime=createSlimeActor(reed,{loadout:{head:'fishersHat'},carry:'rods'});
  const companions=api.companions,pet=companions.model;pet.position.set(WILLOWBANK.pet[0]-6,1,WILLOWBANK.pet[1]-6);group.add(pet);let rescueGait=0,rescueWaiting=false;
 
  const bridge=createCarpentryBridge({tiles:Array.from({length:WILLOWBANK.bridgeEnd-WILLOWBANK.bridgeStart+1},(_,i)=>t(WILLOWBANK.bridgeStart+i,WILLOWBANK.bridgeZ)),parent:group,world:api.world,pickables:api.pickables,

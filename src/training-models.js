@@ -4,7 +4,6 @@ import {makeSlime} from './slime-model.js';
 import {boulderParts} from './mining.js';
 import {cachedMergedMesh} from './merged-model.js';
 import {makeTerrainTile} from './world-models.js';
-import {rangerHat,mageHat} from './hat-models.js';
 const box=(g,w,h,d,color,x=0,y=0,z=0)=>part(g,new THREE.BoxGeometry(w,h,d),color,x,y,z);
 // A dark boulder with copper nuggets, merged into one mesh (one draw and shadow draw).
 export function copperOutcrop(){const g=new THREE.Group();g.add(cachedMergedMesh('copper',()=>[...boulderParts('#62616d','#62616d'),...[0,1,2,3,4].map(i=>({geometry:new THREE.OctahedronGeometry(.13,0),color:'#d18c53',position:[Math.sin(i*2.4)*.30,.93+Math.cos(i)*.08,Math.cos(i*2.4)*.25],rotation:[0,0,i*.6]}))],{roughness:.95,flatShading:true}));return g;}
@@ -26,22 +25,10 @@ export function animateTarget(g,time,hit=0){g.rotation.x=Math.sin(time*30)*hit*.
 export function stoneArch(){const g=new THREE.Group();for(const x of [-1.5,1.5]){box(g,.6,2.1,.7,'#595767',x,1.05);box(g,.8,.17,.85,'#777384',x,2.05);}box(g,3.5,.48,.72,'#686473',0,2.35);return g;}
 export function stoneTile(t,world){const material=new THREE.MeshStandardMaterial({color:new THREE.Color(['#64606f','#676271','#615e6b','#686471'][(t.x*17+t.z*13+t.x*t.z)%4]),roughness:.95});return makeTerrainTile(t,world,material,{sideColor:'#464151',seamColor:'#a199ad'});}
 // Mentors are slimes like the player: a look (colour, hat, accessories), a default face, an optional
-// loadout (held gear) or carried tool, and an idle pace. They animate through createSlimeActor (slime-presentation.js).
-export const MENTORS={sarge:{name:'Sergeant Bristle',color:'#c85745',expression:'angry',idleRate:1.8,loadout:{rightHand:'copperDagger',leftHand:'copperShield'}},smith:{name:'Borin Copperbelly',color:'#c9904f',expression:'idle',carry:'hammers'},ranger:{name:'Fletch',color:'#74996a',expression:'idle',loadout:{leftHand:'bows'}},mage:{name:'Wisp',color:'#ad8acb',expression:'idle',carry:'staffs'},ki:{name:'Ember',color:'#5fa9a8',expression:'idle'}};
+// loadout (held and worn gear, all swappable: their hats are Head items) or carried tool, and an idle pace. They animate through createSlimeActor (slime-presentation.js).
+export const MENTORS={sarge:{name:'Sergeant Bristle',color:'#c85745',expression:'angry',idleRate:1.8,loadout:{rightHand:'copperDagger',leftHand:'copperShield',head:'ironSkullcap'}},smith:{name:'Borin Copperbelly',color:'#c9904f',expression:'idle',loadout:{rightHand:'hammers',head:'minersCap'}},ranger:{name:'Fletch',color:'#74996a',expression:'idle',loadout:{leftHand:'bows',head:'archerCap'}},mage:{name:'Wisp',color:'#ad8acb',expression:'idle',loadout:{rightHand:'staffs',head:'wizardHat'}},ki:{name:'Ember',color:'#5fa9a8',expression:'idle',loadout:{head:'breathHeadband'}}};
 export function mentorModel(kind){const def=MENTORS[kind],rig=makeSlime(def.color),g=rig.group;
- if(kind==='smith'){part(g,new THREE.SphereGeometry(.36,16,8,0,Math.PI*2,0,Math.PI/2),'#807458',0,.77);box(g,.75,.07,.7,'#998462',0,.77,.03);}
- if(kind==='sarge'){
-  // Brimless iron skullcap, raised central ridge and cheek guards: a fantasy guard captain.
-  part(g,new THREE.SphereGeometry(.37,12,6,0,Math.PI*2,0,Math.PI/2),'#657180',0,.77);
-  box(g,.065,.20,.55,'#adb4ba',0,1.025,-.01);
-  box(g,.065,.20,.045,'#adb4ba',0,.75,.365);
-  for(const x of [-.33,.33]){const cheek=box(g,.075,.28,.22,'#657180',x,.68,.08);cheek.rotation.z=x<0?-.14:.14;box(g,.17,.06,.22,'#a3abb2',x,.50,.02);}
- }
- if(kind==='smith'){box(g,.66,.24,.04,'#6a4b39',0,.21,.37);for(let i=0;i<5;i++){const b=part(g,new THREE.SphereGeometry(.075,10,8),'#e2c7a1',(i-2)*.065,.39-Math.abs(2-i)*.02,.40);b.scale.y=1.6;}for(let i=0;i<3;i++)part(g,new THREE.SphereGeometry(.067,10,8),'#d9b88d',0,.25-i*.065,.43);part(g,new THREE.SphereGeometry(.075,12,8),'#f9d885',0,.9,.32);}
- if(kind==='ranger'){const hat=rangerHat();hat.position.y=.76;g.add(hat);}
- if(kind==='mage'){const hat=mageHat();hat.position.y=.8;g.add(hat);}
- // Ember (draft Ki mentor): cloth headband with trailing ties and a floating ring of breath.
- if(kind==='ki'){part(g,new THREE.CylinderGeometry(.43,.43,.08,18),'#e8dcc0',0,.62);for(const x of [-.08,.08]){const tie=box(g,.05,.2,.02,'#e8dcc0',x,.52,-.42);tie.rotation.x=.4;}const ring=part(g,new THREE.TorusGeometry(.3,.025,8,28),'#bfe8e4',0,1.08);ring.rotation.x=Math.PI/2;}
+ if(kind==='smith'){box(g,.66,.24,.04,'#6a4b39',0,.21,.37);for(let i=0;i<5;i++){const b=part(g,new THREE.SphereGeometry(.075,10,8),'#e2c7a1',(i-2)*.065,.39-Math.abs(2-i)*.02,.40);b.scale.y=1.6;}for(let i=0;i<3;i++)part(g,new THREE.SphereGeometry(.067,10,8),'#d9b88d',0,.25-i*.065,.43);}
  rig.kind=kind;rig.face.set(def.expression);return rig;
 }
 

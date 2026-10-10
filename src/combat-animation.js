@@ -8,7 +8,7 @@ export const BLOCK_DURATION=.42;
 export const PROJECTILE_FLIGHT=.22;
 export function attackWindow(profile,time){const interval=profile.interval||1.5,clock=time%interval,windup=profile.style==='ranged'?.8:.48;return clock>=interval-windup||time>=interval&&clock<.28;}
 // Damage type chooses the blade motion: Piercing stabs, Slashing slashes.
-export function resolveAttackMotion(profile={}){return profile.attackMotion|| (profile.style==='magic'?'cast':profile.style==='ranged'?'bow':profile.item==='copperDagger'?(profile.damageType==='slashing'?'slash':'stab'):profile.item==='swords'?'slash':'punch');}
+export function resolveAttackMotion(profile={}){return profile.attackMotion|| (profile.style==='magic'?'cast':profile.style==='ranged'?'bow':profile.item==='copperDagger'?(profile.damageType==='slashing'?'slash':'stab'):['swords','staffs','hammers'].includes(profile.item)?'slash':'punch');}
 const SHIELDS=['shields','copperShield'];
 // Hands are [right, left]: index 0 is the slime's right hand. Profiles name what each hand holds
 // (rightHand, leftHand) and, for an attack, the striking side. Motions are authored for one side

@@ -20,6 +20,12 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Swappable mentor hats; staff and hammer weapons; Rings — 2026-10-10
+
+- Head items (`ITEMS`, `GEAR` slot head, `WORN_MODELS`; models in hat-models.js built relative to the Head anchor): `ironSkullcap`, `minersCap`, `archerCap`, `wizardHat`, `breathHeadband`, `fishersHat`. The hat geometry moved out of `mentorModel`/`fisher()`. Mentors wear them via `MENTORS[kind].loadout.head` (and Reed via his `createSlimeActor` loadout). `loadoutEquipment` accepts worn slots by name. All are in the model catalogue and the viewer's Head dropdown. A character's default loadout fills each empty viewer slot (hands together, each worn slot separately).
+- New weapons: `staffs` (Simple Staff) and `hammers` (the Crude Hammer as a weapon), both one-handed bludgeoning melee with a swing (`resolveAttackMotion` → slash). Wisp holds her staff and Borin his hammer as gear (no more `carry` for them). In the viewer's hand list.
+- Design call: Rings (one per hand) replace the proposed Charms; neck items are dropped. Body and Base deformation is deferred; only hats are worn for now.
+
 ### Worn gear by slot; viewer wear dropdowns — 2026-10-10
 
 - `src/worn-gear.js`: wear slots per body type, slime slot anchors and item models. `equipment-presentation.js` renders any worn non-hand item at its slot anchor (the Top Hat is now just `hats` in the Head slot), and companion outfits take their models from the same registry.

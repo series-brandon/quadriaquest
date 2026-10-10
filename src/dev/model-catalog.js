@@ -28,7 +28,7 @@ import {SLIME_EXPRESSIONS} from '../slime-face.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,spawnMotion} from '../slime-motion.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {fisher} from '../fisher-model.js';
-import {SLIME_WEAR_SLOTS,COMPANION_WEAR_SLOTS} from '../worn-gear.js';
+import {SLIME_WEAR_SLOTS,COMPANION_WEAR_SLOTS,WORN_MODELS} from '../worn-gear.js';
 import {GEAR} from '../equipment.js';
 import {COMPANION_GEAR} from '../companions.js';
 import {ITEMS} from '../items.js';
@@ -51,7 +51,12 @@ const expressions=SLIME_EXPRESSIONS.filter(x=>x!=='concerned').map(x=>x[0].toUpp
 // Every slime previews through the shared slime presentation (slime-presentation.js), exactly as in
 // gameplay: the viewer only decides what the slime is doing (its timing, combat profile, social, jump or
 // slide pose, and the celebration's trophy) and which gear it holds.
-// loadout: the character's own gear, held while the viewer's hand choices are both empty.
+// loadout: the character's own gear ({rightHand, leftHand, head…}). Its hands apply while the viewer's hand
+// choices are both empty, and each worn slot while that slot's choice is empty.
+function withDefaults(options,loadout){
+ if(!loadout)return options;const {rightHand,leftHand,...worn}=loadout,chosen=options.worn||{};
+ return {...options,...(!options.rightHand&&!options.leftHand?{rightHand,leftHand}:{}),worn:{...Object.fromEntries(Object.entries(worn).filter(([slot])=>!chosen[slot])),...Object.fromEntries(Object.entries(chosen).filter(([,id])=>id))}};
+}
 function slimePreview(factory,{defaultExpression='idle',idleRate=1,carry=null,loadout=null}={}){
  const rig=factory(),group=new THREE.Group();group.add(rig.group);
  const inventory={},equipment=createEquipment({inventory});let loadoutKey=null;
@@ -63,7 +68,7 @@ function slimePreview(factory,{defaultExpression='idle',idleRate=1,carry=null,lo
   // Picking a different animation snaps; changes within the running animation (hand swaps, stab ↔ punch) blend.
   const snap=motion!==shownMotion;shownMotion=motion;
   const key=JSON.stringify([options.rightHand,options.leftHand,options.handedness,options.attackHands,options.rightDamageType,options.leftDamageType,options.worn]);
-  if(key!==loadoutKey){loadoutKey=key;syncPreviewEquipment(equipment,inventory,loadout&&!options.rightHand&&!options.leftHand?{...options,...loadout}:options);}
+  if(key!==loadoutKey){loadoutKey=key;syncPreviewEquipment(equipment,inventory,withDefaults(options,loadout));}
   trophyGeneric.visible=trophyFish.visible=trophyHat.visible=false;
   let pose=idlePose(time*idleRate),lift=0,expression='idle',action=null,socialHands=null;
   // Strong Strike previews the equipped melee attack with the ability's windup, glow and impact.
@@ -102,7 +107,7 @@ export const MODEL_CATALOG=[
  ...Object.entries(SPELL_VISUALS).map(([key,look])=>staticModel(`${look.name} spell projectile`,()=>projectileModel('magic',{visual:key}))),
 
  {name:'Slime',loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(makeSlime)},
- {name:'Reed',loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{carry:'rods'})},
+ {name:'Reed',loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{carry:'rods',loadout:{head:'fishersHat'}})},
  // Slam loops the real boss timing: the full telegraphed windup (ENEMIES.golem.interval), then the landing.
  {name:'Cinder Golem',motions:['Idle','Walk','Slam','Hit'],create(){const group=makeCinderGolem(),interval=ENEMIES.golem.interval;return {group,update(time,motion){const t=time%(interval+.6);animateGolem(group,time,{walk:motion==='Walk'?1:0,charge:motion==='Slam'&&t<interval?t/interval:0,slam:motion==='Slam'&&t>=interval?1-(t-interval)/.6:0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}},
  ...[false,true].map(big=>({name:big?'Goblin Bruiser':'Goblin',motions:['Idle','Walk','Attack','Hit'],create(){const group=goblin(big);return {group,update(time,motion){animateGoblin(group,time,{walk:motion==='Walk'?1:0,attack:motion==='Attack'?attackPose(time):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}})),
@@ -114,6 +119,7 @@ export const MODEL_CATALOG=[
  staticModel('Raw Pondfish',makePondfish),
  ...[['swords','Stone Sword'],['shields','Wooden Shield'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod'],['staffs','Simple Staff']].map(([id,name])=>staticModel(name,()=>tool(id))),
  staticModel('Top Hat',makeTopHat),staticModel('Companion Top Hat',makeCompanionTopHat),
+ ...Object.entries(WORN_MODELS).filter(([id])=>!['hats','companionHats'].includes(id)).map(([id,make])=>staticModel(ITEMS[id].name,make)),
  {name:'Campfire',motions:['Burning','Static'],create(){const group=campfire();return {group,update(time,motion){animateCampfire(group,motion==='Static'?0:time);}};}},
  staticModel('Campfire placement ghost',()=>campfire(true)),
  {name:'Fishing spot',motions:['Ripples'],create(){const group=fishingSpot();return {group,update:time=>animateFishingSpot(group,time)};}},

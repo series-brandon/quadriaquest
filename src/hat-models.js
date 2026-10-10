@@ -96,3 +96,42 @@ export function makeCompanionTopHat(){
  part(flower,new THREE.SphereGeometry(.008,8,6),'#ffe08a',0,0,.006);
  return g;
 }
+
+// Headwear worn in the Head slot (worn-gear.js). Each is built relative to the slime's Head anchor
+// (the crown, y .79), so worn on any slime it sits where its first owner wore it.
+const ANCHOR_Y=.79;
+const box=(g,w,h,d,color,x=0,y=0,z=0)=>part(g,new THREE.BoxGeometry(w,h,d),color,x,y,z);
+const atAnchor=(make,y)=>()=>{const g=new THREE.Group(),hat=make();hat.position.y=y-ANCHOR_Y;g.add(hat);return g;};
+// Fletch's and Wisp's hats, placed as they wore them.
+export const wornArcherCap=atAnchor(rangerHat,.76);
+export const wornWizardHat=atAnchor(mageHat,.8);
+// Bristle's iron skullcap: a brimless cap, raised central ridge and cheek guards.
+export function ironSkullcap(){
+ const g=new THREE.Group(),y=v=>v-ANCHOR_Y;
+ part(g,new THREE.SphereGeometry(.37,12,6,0,Math.PI*2,0,Math.PI/2),'#657180',0,y(.77));
+ box(g,.065,.20,.55,'#adb4ba',0,y(1.025),-.01);box(g,.065,.20,.045,'#adb4ba',0,y(.75),.365);
+ for(const x of [-.33,.33]){const cheek=box(g,.075,.28,.22,'#657180',x,y(.68),.08);cheek.rotation.z=x<0?-.14:.14;box(g,.17,.06,.22,'#a3abb2',x,y(.50),.02);}
+ return g;
+}
+// Borin's miner's cap: a dome, a broad brim and a lamp at the front.
+export function minersCap(){
+ const g=new THREE.Group(),y=v=>v-ANCHOR_Y;
+ part(g,new THREE.SphereGeometry(.36,16,8,0,Math.PI*2,0,Math.PI/2),'#807458',0,y(.77));box(g,.75,.07,.7,'#998462',0,y(.77),.03);
+ const lamp=part(g,new THREE.SphereGeometry(.075,12,8),'#f9d885',0,y(.9),.32);lamp.material.emissive=new THREE.Color('#c99a3a');lamp.material.emissiveIntensity=.4;
+ return g;
+}
+// Ember's cloth headband, trailing ties and a floating ring of breath.
+export function breathHeadband(){
+ const g=new THREE.Group(),y=v=>v-ANCHOR_Y;
+ part(g,new THREE.CylinderGeometry(.43,.43,.08,18),'#e8dcc0',0,y(.62));
+ for(const x of [-.08,.08]){const tie=box(g,.05,.2,.02,'#e8dcc0',x,y(.52),-.42);tie.rotation.x=.4;}
+ const ring=part(g,new THREE.TorusGeometry(.3,.025,8,28),'#bfe8e4',0,y(1.08));ring.rotation.x=Math.PI/2;
+ return g;
+}
+// Reed's straw fishing hat: a low dome and a wide brim.
+export function fishersHat(){
+ const g=new THREE.Group(),y=v=>v-ANCHOR_Y;
+ part(g,new THREE.SphereGeometry(.37,16,8,0,Math.PI*2,0,Math.PI/2),'#cbb58a',0,y(.78));
+ part(g,new THREE.CylinderGeometry(.47,.47,.045,16),'#bba074',0,y(.78),.06);
+ return g;
+}

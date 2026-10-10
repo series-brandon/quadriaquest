@@ -10,7 +10,16 @@ export const GEAR={
  shields:{slot:'hand',name:'Wooden Shield',shield:true,resistance:30,requirements:{'prof.shield':1}},
  copperShield:{slot:'hand',name:'Copper Shield',shield:true,resistance:50,requirements:{'prof.shield':1}},
  bows:{slot:'hand',name:'Training Bow',twoHanded:true,style:'ranged',power:10,accuracy:10,baseInterval:2.55,range:6,proficiency:'bow',ammo:'arrows',damageTypes:['piercing'],requirements:{'ranged.technique':1}},
- hats:{slot:'head'}
+ // The Crude Hammer is a crafting tool you can also swing; staves bludgeon in melee (spells need no staff).
+ hammers:{slot:'hand',name:'Crude Hammer',style:'melee',power:5,accuracy:4,baseInterval:2.55,range:1,proficiency:'hammer',damageTypes:['bludgeoning'],requirements:{'melee.technique':1}},
+ staffs:{slot:'hand',name:'Simple Staff',style:'melee',power:5,accuracy:5,baseInterval:2.55,range:1,proficiency:'staff',damageTypes:['bludgeoning'],requirements:{'melee.technique':1}},
+ hats:{slot:'head'},
+ ironSkullcap:{slot:'head'},
+ minersCap:{slot:'head'},
+ archerCap:{slot:'head'},
+ wizardHat:{slot:'head'},
+ breathHeadband:{slot:'head'},
+ fishersHat:{slot:'head'}
 };
 export const ARMOR_SLOTS=['chest','hands','legs','feet','back','ward'];
 export const SIDES=['right','left'];

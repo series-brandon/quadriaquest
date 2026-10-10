@@ -24,6 +24,7 @@ const paths={
  shields:'<path d="M4 4q8 3 16 0v9q-1 5-8 9-7-4-8-9zM12 6v13"/>',
  hammers:'<path d="M10 21V9m-6 0V3h16v6z"/>',
  rods:'<path d="m5 22 8-19 5 14M13 3v13q0 5 5 2"/>',
+ staffs:'<path d="M9 22 15 7"/><circle cx="16" cy="5" r="2.6"/>',
  flint:'<path d="m4 17 5-13 9 2 3 12-12 3zM9 4l3 10 9 4"/>',
  firestarters:'<path d="m2 18 4-7 6 2-1 8zm13-9 3-6m-2 10 6-1m-7 5 5 4"/>',
  campfires:'<path d="m4 21 16-4M4 17l16 4M8 15C1 9 13 7 12 2c9 8 9 13 2 14-5 0-4-4-2-7"/>',
@@ -58,6 +59,6 @@ const paths={
  expand:'<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
  check:'<path d="m4 12 5 5L20 6"/>',
 };
-const aliases={Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes'};
+const aliases={Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes',ironSkullcap:'hats',minersCap:'hats',archerCap:'hats',wizardHat:'hats',breathHeadband:'hats',fishersHat:'hats'};
 export function icon(name){return `<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[aliases[name]||name]||paths.skills}</svg>`;}
 export const ICON_NAMES=Object.keys(paths);

@@ -5,7 +5,8 @@ import {makeSlime} from '../slime-model.js';
 
 // Slimes render through the shared presentation: tools are slime-tool-*, held gear equipment-<side>-<id>.
 const handsOf=instance=>{const out=[];instance.group.traverse(o=>{if(o.isMesh&&o.geometry.type==='SphereGeometry'&&o.geometry.parameters.radius===.105&&o.parent?.parent?.parent===instance.group)out.push(o);});return out;};
-const shownGear=instance=>{const names=[];instance.group.traverse(o=>{if(!o.visible)return;let p=o.parent;while(p){if(!p.visible)return;p=p.parent;}if(o.name.startsWith('slime-tool-'))names.push(o.name.slice(11));if(o.name.startsWith('equipment-')&&o.name!=='equipment-hats')names.push(o.name.slice(10).replace('-',':'));});return names.sort();};
+const shownGear=instance=>{const names=[];instance.group.traverse(o=>{if(!o.visible)return;let p=o.parent;while(p){if(!p.visible)return;p=p.parent;}if(o.name.startsWith('slime-tool-'))names.push(o.name.slice(11));// Hand gear only (equipment-<side>-<id>); worn headwear (equipment-<id>) stays on through everything.
+  if(/^equipment-(right|left)-/.test(o.name))names.push(o.name.slice(10).replace('-',':'));});return names.sort();};
 test('every preview model and advertised motion produces finite transforms',()=>{
  for(const entry of MODEL_CATALOG){
   assert.ok(entry.motions.length,entry.name);

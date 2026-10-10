@@ -654,7 +654,7 @@ Ordinary incoming damage does not interrupt an attack windup. A stun or explicit
 
 Replace the standalone Combat skill with Technique, Accuracy, Power, Defense, Agility and Speed for each of Melee, Ranged and Magic. Technique governs requirements and effectiveness for its equipment/spells, with Magic Technique also contributing to the agreed Mana-efficiency formula. Technique does not add a general damage/Power bonus; Power supplies damage and Accuracy supplies damage consistency. Add Light Armor, Medium Armor and Heavy Armor skills.
 
-Weapon proficiencies: unarmed, sword, dagger, axe, hammer, spear, bow, crossbow, staff, wand and shield. Armor proficiencies: helm, chest, hands, legs, feet, back and ward. (A slime-native slot set that would rename and merge these is proposed in DESIGN.md, *Slime outfits*; not adopted yet.) Element proficiencies correspond to the elements below. Proficiencies progress through the explicit attack, casting, shield and armor XP events and rates below.
+Weapon proficiencies: unarmed, sword, dagger, axe, hammer, spear, bow, crossbow, staff, wand and shield. Current hammer and staff weapons: the Crude Hammer (power 5, accuracy 4) and the Simple Staff (power 5, accuracy 5), both one-handed bludgeoning melee swings; spells need no staff. Armor proficiencies: helm, chest, hands, legs, feet, back and ward. (A slime-native slot set that would rename and merge these is proposed in DESIGN.md, *Slime outfits*; not adopted yet.) Element proficiencies correspond to the elements below. Proficiencies progress through the explicit attack, casting, shield and armor XP events and rates below.
 
 Attack XP uses the adopted source coefficients:
 

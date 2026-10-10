@@ -28,11 +28,13 @@ import {heldTool,carriedTool} from './tool-models.js';
 // slime reads at a distance; close up in the portrait that is distracting).
 export const CALM_IDLE=.3;
 const calmPose=p=>({...p,squash:1+(p.squash-1)*CALM_IDLE,stretch:1+((p.stretch??1)-1)*CALM_IDLE,twist:(p.twist||0)*CALM_IDLE,lean:(p.lean||0)*CALM_IDLE,roll:(p.roll||0)*CALM_IDLE,bend:(p.bend||0)*CALM_IDLE});
-// A real equipment instance holding a fixed loadout ({rightHand, leftHand}) under the gameplay rules.
+// A real equipment instance holding a fixed loadout under the gameplay rules: {rightHand, leftHand} plus
+// any worn slot by name ({head: 'wizardHat'}).
 export function loadoutEquipment(loadout={}){
- const inventory={};for(const id of [loadout.rightHand,loadout.leftHand])if(id)inventory[id]=(inventory[id]||0)+1;
+ const {rightHand=null,leftHand=null,...worn}=loadout,inventory={};
+ for(const id of [rightHand,leftHand,...Object.values(worn)])if(id)inventory[id]=(inventory[id]||0)+1;
  const equipment=createEquipment({inventory});
- if(loadout.rightHand)equipment.toggle(loadout.rightHand,'right');if(loadout.leftHand)equipment.toggle(loadout.leftHand,'left');
+ equipment.setSlots({right:rightHand,left:leftHand,...worn});
  return equipment;
 }
 
