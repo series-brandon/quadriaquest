@@ -57,7 +57,6 @@ export function createCompanionSystem(api){
   setFollowing(value){state.following=!!value;behavior.reset();notify();},
   resetRoute(at=null){cancel();follower.reset(at);behavior.reset();},
   occupies(tile){return state.owned&&model.visible&&follower.occupies(tile);},
-  cannotYield(tile){return system.occupies(tile)&&follower.yieldBlocked;},
   matches(target){return actionAge!==null&&target===actor;},get working(){return actionAge!==null;},
   scripted(time,options){if(!state.owned)animateCompanion(model,time,options);},
   name(options){menu?.editName(options);},

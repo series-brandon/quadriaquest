@@ -13,3 +13,13 @@ test('adjacent interaction reports blocked targets and accepts standing in range
  const tile=world.get('1,1'),start=world.get('0,1'),target={x:1,z:1,tile};assert.deepEqual(interactionRoute(world,start,target).route,[]);
  for(const t of world.values())if(t!==tile)t.blocked=true;assert.equal(interactionRoute(world,start,target),null);
 });
+test('interaction and attack spots prefer tiles where no other character stands',async()=>{
+ const {attackRoute}=await import('./combat-range.js');
+ const map=new Map(Array.from({length:25},(_,i)=>{const t={x:i%5,z:Math.floor(i/5),h:1,blocked:false,water:false};return [key(t.x,t.z),t];}));
+ const start=map.get('2,0'),tile=map.get('2,2'),target={x:2,z:2,tile},near=map.get('2,1');
+ assert.equal(interactionRoute(map,start,target).at,near);
+ const free=interactionRoute(map,start,target,t=>t===near);assert.notEqual(free.at,near);assert.ok(free.route.length>1);
+ assert.equal(interactionRoute(map,start,target,()=>true).at,near,'everyone occupied: still reachable, shortest wins');
+ assert.equal(attackRoute(map,start,target,1).at,near);
+ assert.notEqual(attackRoute(map,start,target,1,t=>t===near).at,near);
+});

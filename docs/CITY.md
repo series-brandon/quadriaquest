@@ -11,7 +11,7 @@ Draft, 2026-10-10. Nothing here is implemented. It is the design for review befo
 **Answers to the first review (user, 2026-10-10):**
 - **The capital** is the capital of the kingdom the player starts in, and it's very large (within reason for a game). Name to be decided; "the capital" is the working name. Look: a fantasy city of wood, plaster and stone buildings, brick and stone roads and paths, fountains and benches. **The player wakes at the Iter Crystal in the town square** after the tutorial, so the square is the first thing the real world shows.
 - **Most buildings' ground floors are part of the overworld** (they open in place). Separate spaces are for upper floors, instances, very large or unique interiors, and dungeons. They follow the outside or ground-floor footprint as a rule of thumb, with sensible exceptions (see *Interior size rules*).
-- **All entities can be walked through.** This changes what "blocked" means across the game and gets its own design (see *Walk-through entities*), separate from cities.
+- **All living characters can be walked through**; every other entity stays solid. This changes what "blocked" means across the game (see *Walk-through entities*, implemented as Phase 0).
 - **No day/night clock in the prototype**, but it's on the feature list. Routines, lamps and shop hours are designed so a clock can be added later without reworking them.
 - **Not every building or floor has to be enterable.**
 - **An economy is vital for the prototype.** Pacifists earn money through a task/job system and by selling what they craft and forage. Shops in the city are real shops. The economy gets its own design doc; the city provides the buildings, counters and shopkeepers it uses.
@@ -76,9 +76,9 @@ Exact numbers get tuned in the graybox (Phase 2) at real zoom levels on desktop 
 
 **One shared step test.** `canStep(world, from, to, mover)` combines height, `blocked`/`solid`, water, the edge feature and door rules. It replaces the separate checks in pathfinding, wandering, companion following, interaction routes and `canStand` (whose body also can't straddle an internal wall). `lineOfSight` uses the same edge table, including the corner rule its supercover already applies. This is the riskiest change in the plan, because every walker and every combat check moves onto it. It ships with tests for each caller and is verified in the clearing, Willowbank and Cinderhold, which have no edges, to prove nothing changes there.
 
-**Permanent blocking versus occupancy.** Tiles get a fixed `solid` (terrain, props, building cores) that occupancy never writes. Who is standing on a tile is tracked separately and no longer blocks movement (see *Walk-through entities*). Existing maps keep working through a compatibility step before any city work depends on it.
+**Permanent blocking versus occupancy.** Since Phase 0, `tile.blocked` means solid only (terrain, resources, stations, props, practice targets); characters never write it. Who is standing on a tile is a separate question used only for where to stop (see *Walk-through entities*). Edge features add to `blocked`; they don't replace it.
 
-## Walk-through entities (user decision, 2026-10-10; needs its own design pass)
+## Walk-through entities (user decision, 2026-10-10; Phase 0, implemented 2026-10-10)
 
 The user wants every living character to be walkable-through, especially large ones, which changes what "blocked" means across the whole game. It touches combat, companions, interactions and every map, not only cities, so it gets its own review and lands **before** city Phase 1 builds on the step test. Starting proposal:
 
@@ -88,6 +88,14 @@ The user wants every living character to be walkable-through, especially large o
 - **What stays solid (user, 2026-10-10):** every non-character entity blocks: walls, buildings, props such as fountains, statues, stalls and benches, stations (furnace, anvil, campfire), and resources such as trees and rocks. Every living character can be walked through: the player, other players and slimes, NPCs, enemies and companions.
 - **Code impact:** `world-occupancy.js` stops writing `tile.blocked`. `blocksMovement` turns into a choice of where to stop, not a collision. Tests cover pathfinding, `canStand`, interaction routes, attack routes, companion following, wandering, portal spawns and enemy pursuit in all three tutorial maps. Each prefab's movement policy (`group.userData.blocksMovement`) stays the single source for whether it is a solid object or a character.
 - **Playground:** a toggle overlay showing solid tiles versus occupied tiles, plus a fixture that walks the player and a companion through a crowd of townsfolk and through the golem.
+
+**As implemented (2026-10-10):**
+- `markCharacter(group)` in `world-occupancy.js` sets a model's movement policy. `makeSlime` marks every slime (player, mentors, Reed, future townsfolk); `enemy-entity.js` marks creatures (`character: true`). Practice targets, resources, stations and props keep the solid default. `createWorldActor` takes its solidity from the model.
+- `combat.js` only writes `tile.blocked` for solid enemies. Creature positions are tracked by their cells (`combat.occupies(t)`). One `bodyRoute` serves all body sizes: it prefers a route that neither crosses nor ends on anyone, and otherwise passes through characters (never the player being fought, safe tiles or solids). Wander, home, respawn and attack positions avoid stopping on the player, the player's route, the companion, NPCs and other enemies.
+- `wanderRoute` passes occupied tiles and never ends on one. `companionRoute` searches around people first and through them only when there is no other way; only its final step re-checks occupancy. The player no longer waits for the companion to step aside (the "needs room to move aside" stop is gone).
+- `interactionRoute` and `attackRoute` take an `occupied` test and prefer free spots. `main.js` supplies `characterAt` (companion, creatures, NPCs; NPC tiles are gathered once per frame).
+- **Not done:** the visual nudge for two characters briefly sharing a tile; characters can overlap until one moves.
+- **Playground:** *World & water → Walk-through characters* spawns a townsfolk crowd or a passive golem on a clear lane ahead, walks the player (and companion) through it, and toggles an overlay (red solid, blue occupied).
 
 **Doors are a shared entity**, the same model and behaviour in any map:
 - A walker's route may pass through a closed, unlocked door. The door swings open as the walker reaches it, with a sound, and closes shortly after the last walker clears it. Townsfolk use the same door.

@@ -5,17 +5,19 @@ import {ENEMIES} from './combat-rules.js';
 import {highlightResource} from './resource-highlight.js';
 import './combat.css';
 import {signal} from './reactive.js';
+import {markCharacter} from './world-occupancy.js';
 import {mount} from './ui/dom.js';
 import {healthPlate} from './ui/hud/health-plate.js';
 
 // Model, rig animation, scale, highlight height, body size (tiles per side), health-plate height and the
-// height shots aim at, per enemy kind. Practice targets animate in combat.js.
+// height shots aim at, per enemy kind. Practice targets animate in combat.js. `character`: a living
+// creature, walk-through like every character; a practice target is a solid object.
 const MODELS={
  target:{create:trainingTarget,height:1.7},
- scrapper:{create:()=>goblin(),animate:animateGoblin,height:1.7},
- bruiser:{create:()=>goblin(true),animate:animateGoblin,scale:1.18,height:1.7},
+ scrapper:{create:()=>goblin(),animate:animateGoblin,height:1.7,character:true},
+ bruiser:{create:()=>goblin(true),animate:animateGoblin,scale:1.18,height:1.7,character:true},
  // A 2×2 body: its placement tile is the anchor corner (footprint.js).
- golem:{create:makeCinderGolem,animate:animateGolem,height:3.3,size:2,plateLift:3.1,aimHeight:1.4,scale:1.25},
+ golem:{create:makeCinderGolem,animate:animateGolem,height:3.3,size:2,plateLift:3.1,aimHeight:1.4,scale:1.25,character:true},
 };
 // xp: optional placement-specific XP modifiers {multiplier, levelCap, afterCapMultiplier} (e.g. a tutorial boost).
 // territory: optional {minX,maxX,minZ,maxZ}; the enemy never walks out of it and stops pursuing a player
@@ -24,6 +26,7 @@ const MODELS={
 // attacks are prevented; placements may override the enemy type's setting.
 export function createEnemyEntity({kind,tile,parent,pickables,patrol,respawn=null,id,aggressive,aggroRange,attacksPacifists,territory=null,xp=null}){
  const rules=xp?{...ENEMIES[kind],xpMultiplier:xp.multiplier??1,xpLevelCap:xp.levelCap??null,xpAfterCapMultiplier:xp.afterCapMultiplier??0}:ENEMIES[kind],model=MODELS[kind],group=model.create(),scale=model.scale??1;
+ if(model.character)markCharacter(group);
  group.scale.setScalar(scale);group.position.set(tile.x-6,tile.h,tile.z-6);parent.add(group);
  // Signal-backed HP: combat keeps assigning a.hp; the health plate (target frame) follows it.
  const hp=signal(rules.health);let plate;

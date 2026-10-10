@@ -16,10 +16,12 @@ export function withinAttackRange(world,from,target,range=1){
  const distance=Math.abs(from.x-cell.x)+Math.abs(from.z-cell.z);
  return !!tile&&distance>0&&distance<=range&&Math.abs(from.h-tile.h)<=.5&&lineOfSight(world,from,cell);
 }
-export function attackRoute(world,start,target,range=1){
+// Nearest spot to attack from, preferring one where no other character stands (`occupied`).
+export function attackRoute(world,start,target,range=1,occupied=()=>false){
  if(withinAttackRange(world,start,target,range))return {at:start,route:[]};
  let best=null;
  for(const t of world.values())if(!t.blocked&&!t.water&&withinAttackRange(world,t,target,range)){
-  const route=findPath(world,start,t);if(route&&(!best||route.length<best.route.length))best={at:t,route};
- }return best;
+  const route=findPath(world,start,t),taken=occupied(t);
+  if(route&&(!best||taken<best.taken||taken===best.taken&&route.length<best.route.length))best={at:t,route,taken};
+ }return best&&{at:best.at,route:best.route};
 }

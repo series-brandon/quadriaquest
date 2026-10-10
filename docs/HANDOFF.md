@@ -20,6 +20,15 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Walk-through characters (cities Phase 0) — 2026-10-10 (user rule)
+
+- Living characters never block movement; every other entity stays solid. Details and the implemented rules are in CITY.md *Walk-through entities*. `tile.blocked` now means solid only.
+- Changed shared code: `world-occupancy.js` (`markCharacter`), `slime-model.js`, `enemy-entity.js`, `world-actors.js`, `combat.js` (`bodyRoute`, `taken`, `occupies`), `wander.js`, `companion-follow.js`, `interaction-route.js`, `combat-range.js`, `main.js` (`characterAt`, `npcAt`; the player no longer waits for the companion). `companions.cannotYield` was removed.
+- Tests: 461 pass, with new tests for walk-through creatures and the golem body, pursuit preferring a free spot (and passing through when it must), wander passing occupants, the companion's fallback through the player, and free-spot interaction/attack routes. The boss windup test now holds the golem with immobilize instead of a reserved tile.
+- Playground: *World & water → Walk-through characters* (crowd, passive golem, walk through each, solid/occupied overlay). Browser-verified in Cinderhold (through the crowd and the golem with the companion following, aggressive enemies still chase and fight) and Willowbank (overlay; talking to Reed stops beside him). Also verified in the clearing (through the crowd, companion following). The clearing has no level 2×2 lane for the golem fixture; use Cinderhold for that.
+- Not done: a visual nudge when two characters briefly share a tile.
+- Perf: one `npm run perf` (dev-gpu) after this batch: all 9 scenarios PASS, ~59.5 fps, cinderhold-combat 2.24 ms (p95 2.94). The draw/object "improved" notes are against the older baseline, not this change; baseline not updated.
+
 ### Tool carry poses, staff spell focus — 2026-10-10
 
 - Carry: `TILTED_CARRY` in combat-animation.js (blades plus axes, pickaxes, hammers) rests tilted forward like a sword. The staff stands upright. A held rod uses the shoulder transform (`heldTool('rods')` → `carriedTool('rods')`). `BLADES` still drives only the block guard.

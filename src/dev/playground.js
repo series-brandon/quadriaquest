@@ -1,6 +1,7 @@
 import './test-armor.js';
 export {createTrainingFixtures} from './training-fixtures.js';
 export {createCombatFixtures} from './combat-fixtures.js';
+export {createWalkThroughFixtures} from './walkthrough-fixtures.js';
 export {createPerfProbe} from './perf-probe.js';
 export {createPerfScenarios} from './perf-scenarios.js';
 import {createCarpentryBridge} from '../carpentry-bridge.js';
@@ -80,6 +81,7 @@ export function mountPlayground(api){
       <label>Slime color <input id="dev-color" type="color" value="#a4ce77"></label>
       <p class="dev-note">Previews run in place without consuming items or earning XP. Stop to play normally.</p>
     </fieldset>
+    <fieldset><legend>Walk-through characters</legend><p class="dev-note">Living characters (every slime, creatures of any size, the companion) never block movement; solid objects (trees, rocks, stations, practice targets, walls) do. Routes prefer going around someone and pass through when that is the only or shortest way; walkers avoid stopping on anyone. Spawn the crowd or the passive golem on a clear lane ahead, then walk through it (the companion follows if you have one). The overlay marks solid tiles red and tiles where a character stands blue. Works in any map; Remove clears both fixtures.</p><label>Action<select id="dev-walkthrough"><option value="crowd">Spawn townsfolk crowd ahead</option><option value="walk-crowd">Walk through the crowd</option><option value="golem">Spawn passive Cinder Golem ahead</option><option value="walk-golem">Walk through the golem</option><option value="remove">Remove fixtures</option></select></label><button data-dev="walkthrough">Run</button><label class="dev-toggle"><input type="checkbox" id="dev-occupancy-overlay"> Show solid and occupied tiles</label></fieldset>
     <fieldset><legend>NPC slimes</legend><p class="dev-note">Every slime (player, mentors, Reed) renders through the shared slime presentation. Make an NPC play any shared motion in the world with its own gear (Fletch keeps his bow). Mentors bring you to them; Reed needs Willowbank. Stop returns it to idle.</p><label>Slime<select id="dev-npc">${[['sarge','Sergeant Bristle'],['smith','Borin Copperbelly'],['ranger','Fletch'],['mage','Wisp'],['ki','Ember'],['reed','Reed']].map(([id,name])=>`<option value="${id}">${name}</option>`).join('')}</select></label><label>Motion<select id="dev-npc-motion">${SLIME_ACTOR_MOTIONS.map(m=>`<option>${m}</option>`).join('')}</select></label><button data-dev="npc-play">Play</button><button data-dev="npc-stop">Stop</button></fieldset>
     <fieldset><legend>Companions</legend><p class="dev-note">Shared follower controls work in every area. Doze off / Wake up tests sleep with the player.</p><label>Action<select id="dev-companion-action"><option value="spawn">Add follower here</option><option value="pet">Pet follower</option><option value="name">Rename follower</option><option value="rest">Rest here</option><option value="follow">Follow player</option><option value="hat">Put on / remove Companion Top Hat</option><option value="stop">Stop animation</option><option value="reset">Reset companion</option></select></label><button data-companion="action" aria-label="Run companion action">Run</button><label>Animation<select id="dev-companion-animation">${['Idle','Walk','Sit','Scratch','Petting','Sleeping','Jump up','Jump down'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-companion="preview" aria-label="Loop companion animation">Loop</button></fieldset>
     <fieldset><legend>Terrain colors</legend>
@@ -178,6 +180,7 @@ export function mountPlayground(api){
         if(action==='perf-census'){const census=api.perf.census();console.table(census.byKind);console.log('Scene census',census);status(`Census: ${census.objects} objects, ${census.visibleMeshes} visible meshes, ${census.programs} programs (details in console).`);}
         if(action==='reset-area'){stop();api.closeSplash();api.resetCurrentArea();status('Current area reset.');}
         if(action==='combat'){status(api.combatAction($('combat').value));}
+        if(action==='walkthrough'){status(api.walkThroughAction($('walkthrough').value));}
         if(action==='resource-set'){const pool=$('resource').value==='health'?api.health:api.resources[$('resource').value];const value=Number($('resource-value').value);if(Number.isFinite(value))pool.value=value;}
         if(action==='resource-reset'){api.health.restore();api.resources.reset();}
         if(action==='health'){status(`Health: ${api.sharedAction($('health').value)} / ${api.health.max}`);}
@@ -275,6 +278,7 @@ export function mountPlayground(api){
   for(const [id,key,max] of [['roughness','roughness',1],['reflection','reflectionStrength',5]])$('water-'+id).addEventListener('input',()=>{const value=Number($('water-'+id).value);if(Number.isFinite(value))api.waterSettings[key]=Math.max(0,Math.min(max,value));});
   $('stream-radius').addEventListener('change',()=>{api.streamRadius=+$('stream-radius').value;});
   $('stream-bounds').addEventListener('change',()=>{api.streamBounds=$('stream-bounds').checked;});
+  $('occupancy-overlay').addEventListener('change',()=>{api.occupancyOverlay=$('occupancy-overlay').checked;});
   $('water-shimmers').addEventListener('change',()=>api.waterSettings.shimmers=$('water-shimmers').checked);
   $('water-shoreline').addEventListener('change',()=>api.waterSettings.fixedShoreline=$('water-shoreline').checked);
   $('grass-color').addEventListener('input',()=>api.grassPalette.set($('grass-color').value));

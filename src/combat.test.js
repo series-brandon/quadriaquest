@@ -11,6 +11,8 @@ import {cancelPlayerActions} from './action-interruption.js';
 import {createRecipeCrafting} from './recipe-crafting.js';
 import {ENEMIES} from './combat-rules.js';
 import {footprintGap} from './footprint.js';
+import {markCharacter} from './world-occupancy.js';
+import {findPath} from './world.js';
 import {createCharacter} from './character.js';
 import {createResource} from './player-resources.js';
 import {totalXpForLevel,XP_BASE} from './combat-formulas.js';
@@ -29,7 +31,7 @@ function fixture(kind='bruiser',{openingWindup}={}){
  const system=createCombatSystem({openingWindup,world,health,equipment,inventory,character,mana,energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),resistanceBonus:()=>auraResistance,strategy:()=>styles.strategy,won(){wins++;},toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,attacked(){attacks++;},eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(x,z){faced.push([x,z]);},sound(name){sounds.push(name);},soundStart(name,arg){const h={name,arg,stopped:false,stop(){h.stopped=true;}};started.push(h);return h;},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
  food=createFoodSystem({inventory,health,stop:interrupt,busy:()=>system.busy,consumed:()=>system.consumableUsed()});
  craft=createRecipeCrafting({inventory,skill:{level:1,xp:0},stop(){},busy:()=>system.working,completed(){}});
- const a=system.add({kind,aggressive:false,rules:ENEMIES[kind],group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
+ const a=system.add({kind,aggressive:false,rules:ENEMIES[kind],group:kind==='target'?new Group():markCharacter(new Group()),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
  return {sounds,started,faced,system,a,food,craft,character,mana,energy,toasts,set auraResistance(v){auraResistance=v;},get wins(){return wins;},get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
 }
 test('equipment is available without an area, guards stale actions, and clears missing items',()=>{
@@ -59,8 +61,8 @@ test('defeat waits for a safe respawn, preserves items and equipment, and can re
 test('map identity, cancellation, removal and reset cannot duplicate rewards or leave occupancy',()=>{
  const f=fixture('bruiser',{openingWindup:null});f.system.start(f.a);f.system.update(.5,1);f.world.set('3,3',{...f.home,blocked:false});f.system.update(10,11);assert.equal(f.system.working,false);assert.equal(f.rewards,0);assert.equal(f.a.group.visible,false);f.world.set('3,3',f.home);f.system.update(.1,12);assert.ok(f.system.start(f.a));f.system.remove(f.a);f.system.update(10,22);assert.equal(f.rewards,0);assert.equal(f.home.blocked,false);assert.equal(f.system.start(f.a),false);
 });
-test('wandering uses configured bounds and reserves its destination instead of the vacated tile',()=>{
- const f=fixture();f.roll=0;f.system.update(4,4);assert.notEqual(f.a.tile,f.home);assert.equal(f.home.blocked,false);assert.equal(f.a.tile.blocked,true);assert.ok(f.a.x>=2&&f.a.x<=4&&f.a.z>=2&&f.a.z<=4);assert.notEqual(f.a.tile,f.world.get('3,4'));
+test('wandering uses configured bounds and occupies its destination instead of the vacated tile',()=>{
+ const f=fixture();f.roll=0;f.system.update(4,4);assert.notEqual(f.a.tile,f.home);assert.equal(f.system.occupies(f.home),false);assert.equal(f.system.occupies(f.a.tile),true);assert.equal(f.a.tile.blocked,false,'creatures are walk-through');assert.ok(f.a.x>=2&&f.a.x<=4&&f.a.z>=2&&f.a.z<=4);assert.notEqual(f.a.tile,f.world.get('3,4'));
 });
 test('hat equipment uses the same inventory-backed state as weapons',()=>{
  const inventory={hats:1};const e=createEquipment({inventory});assert.equal(e.inventoryActions('hats')[0].label,'Equip');assert.ok(e.toggle('hats'));assert.ok(e.isEquipped('hats'));assert.equal(e.inventoryActions('hats')[0].label,'Unequip');inventory.hats=0;assert.equal(e.isEquipped('hats'),false);
@@ -270,8 +272,9 @@ test('an aggressive enemy opens with a short windup once in reach, then keeps it
 test('a telegraphed boss winds up its full interval, one slam defeats, and stepping away resets the windup',()=>{
  const f=fixture('golem');f.a.aggressive=true;let time=0;const step=(s)=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
  step(3.2);assert.equal(f.health.value,30,'no quick opening swing');
- // Step out of reach (the vacated tile stays reserved, so the golem holds its ground), then come back.
- const back=f.world.get('3,4');f.reserved.add(back);f.tile=f.world.get('3,6');step(.3);f.reserved.delete(back);f.tile=back;step(.4);
+ // Step out of reach (the golem is immobilized, so it holds its ground: creatures are walk-through and
+ // would otherwise follow), then come back.
+ const back=f.world.get('3,4');f.a.control.apply({kind:'immobilize',duration:.7,protection:0});f.tile=f.world.get('3,6');step(.3);f.tile=back;step(.4);
  step(2.5);assert.equal(f.health.value,30,'leaving reach restarted the windup');
  step(1.2);assert.equal(f.health.value,0,'one slam ends a tutorial player');
  assert.ok(ENEMIES.golem.max>=450&&ENEMIES.golem.attacksPacifists&&ENEMIES.golem.xpMultiplier===0);
@@ -286,17 +289,32 @@ test('a territory bounds aggression and pursuit; moveSpeed slows walking',()=>{
  const travelled=kind=>{const g=fixture(kind);Object.assign(g.a,{aggressive:true});g.tile=g.world.get('3,6');let t=0;for(let i=0;i<10;i++)g.system.update(.02,t+=.02);return g.a.group.position.distanceTo({x:g.home.x-6,y:g.home.h,z:g.home.z-6});};
  assert.ok(travelled('golem')<travelled('bruiser')*.7);
 });
-test('a 2×2 enemy blocks its four tiles, fights from any side, pursues as a body and frees its tiles when removed',()=>{
+test('a 2×2 enemy occupies its four tiles without blocking them, fights from any side, pursues as a body and frees its tiles when removed',()=>{
  const f=fixture('bruiser');f.system.remove(f.a);f.tile=f.world.get('3,6');
- const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressive:true,rules:ENEMIES.golem,group:new Group(),tile:home,home,x:2,z:1,scale:1,patrol:{minX:1,maxX:3,minZ:0,maxZ:2}});
- const cells=['2,1','3,1','2,2','3,2'].map(k=>f.world.get(k));assert.ok(cells.every(c=>c.blocked));
+ const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressive:true,rules:ENEMIES.golem,group:markCharacter(new Group()),tile:home,home,x:2,z:1,scale:1,patrol:{minX:1,maxX:3,minZ:0,maxZ:2}});
+ const cells=['2,1','3,1','2,2','3,2'].map(k=>f.world.get(k));assert.ok(cells.every(c=>f.system.occupies(c)&&!c.blocked));
+ assert.deepEqual(findPath(f.world,f.world.get('1,1'),f.world.get('4,1')).map(t=>`${t.x},${t.z}`),['2,1','3,1','4,1'],'walkers pass straight through its body');
  assert.equal(a.group.position.x,2.5-6,'the model stands at the body centre');
  let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
  step(4);assert.equal(a.aggro,true);
  assert.equal(footprintGap(a.tile,2,f.world.get('3,6')),1,'it came to stand beside the player');
  const body=new Set(['0','1'].flatMap(dx=>['0','1'].map(dz=>`${a.tile.x+ +dx},${a.tile.z+ +dz}`)));
- for(const t of f.world.values())assert.equal(t.blocked,body.has(`${t.x},${t.z}`),`only the current body is blocked (${t.x},${t.z})`);
- f.system.remove(a);assert.ok([...f.world.values()].every(t=>!t.blocked),'removal frees every body tile');
+ for(const t of f.world.values()){assert.equal(f.system.occupies(t),body.has(`${t.x},${t.z}`),`only the current body is occupied (${t.x},${t.z})`);assert.equal(t.blocked,false);}
+ f.system.remove(a);assert.ok([...f.world.values()].every(t=>!f.system.occupies(t)),'removal frees every body tile');
+});
+test('solid practice targets still block their tile; creatures never do',()=>{
+ const t=fixture('target');assert.equal(t.home.blocked,true);t.system.remove(t.a);assert.equal(t.home.blocked,false);
+ const f=fixture('scrapper');assert.equal(f.home.blocked,false);assert.equal(f.system.occupies(f.home),true);
+});
+test('a pursuer stops on a free spot beside the player, and passes through someone only when it must',()=>{
+ const f=fixture('scrapper');f.a.aggressive=true;f.a.aggroRange=4;f.tile=f.world.get('3,6');
+ const companion=f.world.get('3,5');f.reserved.add(companion);
+ let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ step(3);assert.equal(f.a.aggro,true);assert.equal(footprintGap(f.a.tile,1,f.world.get('3,6')),1);assert.notEqual(f.a.tile,companion,'it avoids stopping on the companion');
+ // Wall the other spots off: the occupied one is the only way in, so it is used anyway.
+ const g=fixture('scrapper');g.a.aggressive=true;g.a.aggroRange=4;g.tile=g.world.get('3,6');g.reserved.add(g.world.get('3,5'));
+ for(const k of ['2,6','4,6'])g.world.get(k).blocked=true;
+ time=0;for(let t=0;t<3;t+=.02)g.system.update(.02,time+=.02);assert.equal(g.a.tile,g.world.get('3,5'));
 });
 test('a spell gathers audibly with its hands: from cast start to the toss, never right after a release or a kill, stopped when cancelled',()=>{
  const f=fixture('target');f.styles.learn('energyStrike');f.styles.select('energyStrike');f.system.start(f.a);

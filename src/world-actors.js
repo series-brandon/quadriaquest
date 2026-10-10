@@ -2,8 +2,10 @@ import {highlightResource} from './resource-highlight.js';
 import {mentorModel,MENTORS} from './training-models.js';
 import {createSlimeActor} from './slime-presentation.js';
 import {createConversationFacing} from './conversation-facing.js';
-// Portable props/NPCs own picking, occupancy, availability and teardown.
-export function createWorldActor({world,tile,parent,pickables,group,kind,label,onInteract,solid=true}){
+import {blocksMovement} from './world-occupancy.js';
+// Portable props/NPCs own picking, occupancy, availability and teardown. Props (stations, shelves) are
+// solid; characters (slimes) are walk-through and never block their tile.
+export function createWorldActor({world,tile,parent,pickables,group,kind,label,onInteract,solid=blocksMovement({group})}){
  const actor={group,tile,x:tile.x,z:tile.z,kind,label,ready:true,opened:false,duration:0};
  group.position.set(tile.x-6,tile.h,tile.z-6);parent.add(group);if(solid)tile.blocked=true;
  const meshes=[];group.traverse(m=>{if(m.isMesh){m.userData.actor=actor;m.userData.tile=tile;pickables.push(m);meshes.push(m);}});
