@@ -8,6 +8,14 @@ Draft, 2026-10-10. Nothing here is implemented. It is the design for review befo
 - **Cities are built in a playground city editor**, not by typing tile strings.
 - **Design doc first**, then build in the phases below.
 
+**Answers to the first review (user, 2026-10-10):**
+- **The capital** is the capital of the kingdom the player starts in, and it's very large (within reason for a game). Name to be decided; "the capital" is the working name. Look: a fantasy city of wood, plaster and stone buildings, brick and stone roads and paths, fountains and benches. **The player wakes at the Iter Crystal in the town square** after the tutorial, so the square is the first thing the real world shows.
+- **Most buildings' ground floors are part of the overworld** (they open in place). Separate spaces are for upper floors, instances, very large or unique interiors, and dungeons. They follow the outside or ground-floor footprint as a rule of thumb, with sensible exceptions (see *Interior size rules*).
+- **All entities can be walked through.** This changes what "blocked" means across the game and gets its own design (see *Walk-through entities*), separate from cities.
+- **No day/night clock in the prototype**, but it's on the feature list. Routines, lamps and shop hours are designed so a clock can be added later without reworking them.
+- **Not every building or floor has to be enterable.**
+- **An economy is vital for the prototype.** Pacifists earn money through a task/job system and by selling what they craft and forage. Shops in the city are real shops. The economy gets its own design doc; the city provides the buildings, counters and shopkeepers it uses.
+
 The city follows the same rules as everything else (AGENTS.md). Buildings, doors, props and townsfolk are portable shared entities. A city map supplies placement, configuration and story context only. Every new piece is reachable, repeatable and resettable in the playground in the same change.
 
 ## What has to feel right
@@ -26,7 +34,7 @@ The city follows the same rules as everything else (AGENTS.md). Buildings, doors
 | Walls are tall blocked tiles (Cinderhold) | `cinderhold-rules.js` | Fine for caves. A building needs thin walls. |
 | Each caller checks steps itself (`|Δh| ≤ .5`, `blocked`) | `findPath`, `wanderRoute`, `companion-follow`, `interaction-route`, `footprint.canStand` | Every caller would need to learn about edges. There should be one shared `canStep(a, b)` instead. |
 | Line of sight checks only tiles | `combat-range.js lineOfSight` | Shots, sight and aggression must also stop at walls on edges. |
-| Occupancy writes `tile.blocked` | `world-occupancy.js` | A statue's or wall's permanent blocking is mixed with who is standing there right now. Removing an NPC could unblock a fountain. The two need separating. |
+| Occupancy writes `tile.blocked` | `world-occupancy.js` | A statue's or wall's permanent blocking is mixed with who is standing there right now. Removing an NPC could unblock a fountain. The two need separating, and characters should stop blocking entirely (*Walk-through entities*). |
 | `attackRoute` scans every tile in the world | `combat-range.js` | Fine for a 40 × 32 area, too slow for a city. Searches need a radius limit. |
 | A whole area loads at once | `area-runtime.js` | A capital is large. It should build on the chunk streamer (`chunk-streamer.js`, 16 × 16 chunks). |
 | A route is a fresh breadth-first search per walker | `world.js findPath` | Dozens of townsfolk need cheaper shared navigation. |
@@ -68,7 +76,18 @@ Exact numbers get tuned in the graybox (Phase 2) at real zoom levels on desktop 
 
 **One shared step test.** `canStep(world, from, to, mover)` combines height, `blocked`/`solid`, water, the edge feature and door rules. It replaces the separate checks in pathfinding, wandering, companion following, interaction routes and `canStand` (whose body also can't straddle an internal wall). `lineOfSight` uses the same edge table, including the corner rule its supercover already applies. This is the riskiest change in the plan, because every walker and every combat check moves onto it. It ships with tests for each caller and is verified in the clearing, Willowbank and Cinderhold, which have no edges, to prove nothing changes there.
 
-**Permanent blocking versus occupancy.** Tiles get a fixed `solid` (terrain, props, building cores) that occupancy never writes. Who is standing on a tile is tracked separately from `blocked`. Existing maps keep working through a compatibility step before any city work depends on it.
+**Permanent blocking versus occupancy.** Tiles get a fixed `solid` (terrain, props, building cores) that occupancy never writes. Who is standing on a tile is tracked separately and no longer blocks movement (see *Walk-through entities*). Existing maps keep working through a compatibility step before any city work depends on it.
+
+## Walk-through entities (user decision, 2026-10-10; needs its own design pass)
+
+The user wants every living character to be walkable-through, especially large ones, which changes what "blocked" means across the whole game. It touches combat, companions, interactions and every map, not only cities, so it gets its own review and lands **before** city Phase 1 builds on the step test. Starting proposal:
+
+- **Movement is decided by the world, not by who is standing there.** Terrain, walls and edges, and solid world objects block movement. Characters never do: the player, companions, NPCs, townsfolk and enemies of any size. The reference is classic RuneScape, where characters don't block each other but objects do.
+- **Passing versus stopping.** Routes may go through anyone. A walker's *final* tile avoids an occupied tile when a free one works as well (for example a free tile beside an NPC for talking, or beside an enemy for fighting), so characters rarely end up stacked. When two do share a tile briefly, a small visual nudge keeps both readable. Logical positions stay on whole tiles.
+- **Large creatures:** the golem's 2×2 body stops blocking its tiles. Fighting still happens from beside its body (`footprintGap`), so running *through* it is allowed but never a way to attack from inside it. Its territory and leash rules are unchanged.
+- **What stays solid (user, 2026-10-10):** every non-character entity blocks: walls, buildings, props such as fountains, statues, stalls and benches, stations (furnace, anvil, campfire), and resources such as trees and rocks. Every living character can be walked through: the player, other players and slimes, NPCs, enemies and companions.
+- **Code impact:** `world-occupancy.js` stops writing `tile.blocked`. `blocksMovement` turns into a choice of where to stop, not a collision. Tests cover pathfinding, `canStand`, interaction routes, attack routes, companion following, wandering, portal spawns and enemy pursuit in all three tutorial maps. Each prefab's movement policy (`group.userData.blocksMovement`) stays the single source for whether it is a solid object or a character.
+- **Playground:** a toggle overlay showing solid tiles versus occupied tiles, plus a fixture that walks the player and a companion through a crowd of townsfolk and through the golem.
 
 **Doors are a shared entity**, the same model and behaviour in any map:
 - A walker's route may pass through a closed, unlocked door. The door swings open as the walker reaches it, with a sound, and closes shortly after the last walker clears it. Townsfolk use the same door.
@@ -88,10 +107,18 @@ Exact numbers get tuned in the graybox (Phase 2) at real zoom levels on desktop 
 ### Separate interiors (large and multi-storey)
 
 - An interior is a small **space** linked from a door (and stairs, for upper floors). Entering it is a quick fade (about 0.3 s), not a full area switch. The city stays as it was. Townsfolk inside are part of the interior.
-- **Proposal:** an interior's ground floor matches the building's outside footprint, and its doors match the outside doors, so the world stays believable. No interior bigger than its building unless the user approves a specific magical exception.
 - Upper floors and cellars are further spaces linked by a shared **stairwell** entity: a stair model plus a link and arrival tile. Climbing reuses the same fade.
 - Camera inside: zoom is capped so the view stays within the walls, and the camera can't orbit through walls.
 - Built on travel's existing safe-arrival checks and cancellation (unfinished work cancels, committed state is kept). There are no per-building special transitions.
+
+### Interior size rules (user decision, 2026-10-10)
+
+- **Most ground floors are overworld**, open in place. Only large or unique ground floors are separate spaces.
+- **Separate spaces follow the footprint they sit in, as a rule of thumb.** A separate ground floor matches the building outside. An upper floor matches the floor below.
+- **Normal exceptions:** smaller upper floors (attics, towers, floors under a sloped roof) and partial basements or cellars. Neither may extend beyond the building's outside footprint.
+- **Dungeons and caves** may be any size behind a small entrance (a cave mouth, a trapdoor, a well). With **more than one entrance**, the overworld distance between entrances has to make sense of the distance inside. A 100-tile dungeon can't have its two ends five tiles apart outside.
+- **Editor checks:** a separate floor or basement outside its building's footprint is an error unless marked as an exception with a reason. For linked entrances, the editor compares overworld distance with the shortest walk inside and warns when they disagree by a large factor (starting at 3×, to tune).
+- **Not every building or floor needs to be enterable.** A decorative building has no door, or a door that is visibly shut ("It's locked." / "Nobody's home."). The editor allows it but lists decorative buildings so it's always a deliberate choice.
 
 ## The building kit
 
@@ -134,10 +161,9 @@ Props are instanced or merged per chunk. Spots are data that townsfolk and the p
 
 **Routines from places, not scripts.** A townsfolk entry gives a look (colour, hat, accessories), a home door, a loadout or carried tool, and a **routine**: a weighted list of activities. Activities find spots offered by props and buildings: `sit` (bench), `browse` (stall), `vend` and `work` (shop counter, smithy anvil, using existing station motions), `gaze` (fountain, statue), `chat` (two idle townsfolk meet and face each other through `slime-social.js`), `stroll` (to a random street spot), `enter` (walk to a door, go inside, reappear later) and `patrol` (guards follow a loop). Every motion is shared slime presentation. No per-character animation code, as AGENTS.md requires.
 
-**Movement rules (proposal):**
-- Townsfolk reserve the next tile, wait briefly, and step aside or pick a new route when blocked. They never stand on doorsteps, stairs or stall fronts while idle.
-- **Ambient townsfolk never block the player.** The player passes through them and they shuffle aside. Quest NPCs and shopkeepers keep their tile. This avoids street jams and blocked doors on phones.
-- They react lightly to the player: a turn of the head, a wave when greeted, moving out of the way.
+**Movement rules:**
+- Townsfolk walk through each other and the player, like every entity (see *Walk-through entities*). They prefer not to *stop* where someone else stands, and never idle on doorsteps, stairs or stall fronts.
+- They react lightly to the player: a turn of the head, a wave when greeted, a small sidestep when the player stops beside them.
 
 **Shared navigation at scale.** Townsfolk don't search the whole city each time. Proposal: a **coarse route graph** of chunk portals and doors, built when a chunk loads, gives the route between chunks. Within a chunk, a bounded search fills in the detail. Popular destinations (plaza, market, gates) get cached distance maps that anyone heading there can follow. The player keeps exact routes, and all searches have a radius limit.
 
@@ -170,30 +196,43 @@ A dev-only editor (compile-time isolated like the rest of the playground) that e
 
 ## Streaming and the world
 
-- A capital is far bigger than a tutorial area (first guess: 96 × 96 to 128 × 128) and builds on the chunk streamer. Buildings, props and townsfolk belong to the chunk of their anchor. A building that crosses a chunk border keeps all its chunks loaded while it's on screen.
+- The capital is the kingdom's capital and very large, far bigger than any tutorial area. A first graybox target is 128 × 128 tiles (2 × 2 storage regions), to grow once streaming and crowds are measured. It builds on the chunk streamer.
+- **The town square holds the Iter Crystal where the player wakes**, so the square is the city's focal point: the castle is visible from it, the main avenues start there, and the first shops, a noticeboard for jobs and the first townsfolk are in sight from the crystal. Buildings, props and townsfolk belong to the chunk of their anchor. A building that crosses a chunk border keeps all its chunks loaded while it's on screen.
 - Door state, unlocks, and townsfolk routines and positions live outside chunk render state by stable id, so leaving and returning doesn't reset them. The streaming shared-infrastructure rules in DESIGN.md apply as written.
 - Interior spaces load on demand when the player is near their door, and unload on a budget.
-- Where the city sits in the world, and whether waking from the tutorial lands the player there, is an open question below.
+
+## Planned later: day and night
+
+Not in the prototype (user, 2026-10-10), but on the list. Design for it now so it can be added without rework:
+- Routine activities carry optional hours, ignored until the clock exists. Shops carry opening hours, ignored the same way.
+- Lamps, windows and signs keep their lit look as a separate material or state that a clock can switch later.
+- Saving townsfolk positions as "routine plus time" already suits a clock.
+
+## Shops and the economy
+
+An economy is vital for the prototype (user, 2026-10-10). Pacifists earn money through a **task/job system** and by **selling what they craft and forage**. The economy (Gold Pieces, prices, buying and selling, jobs, how shop stock works) is designed in [ECONOMY.md](ECONOMY.md). The city supplies what it uses:
+- **Shop buildings** with a counter, a shopkeeper spot behind it, a sign icon, and a `shop` id that the economy looks up. The building doesn't know what is sold.
+- **Shopkeepers** are ordinary townsfolk with a `vend` routine. Talking to one opens the shared shop UI, in any map.
+- **A jobs noticeboard** in the town square, a prop with a `read` spot that opens the job system.
+- **Market stalls** reuse the same shop link.
 
 ## Plan
 
 Each phase ends playable in the playground and keeps existing maps unchanged. Phases with rendering, entity or main-loop work end with one `npm run perf` batch, as the performance rules require.
 
-1. **Edges, doors and the shared step test.** Edge data, `canStep`, sight through edges, `solid` versus occupancy, and the door entity. Verified first in a playground test yard with hand-placed walls, and in all three tutorial maps for no change in behaviour. Unit tests for every caller.
+0. **Walk-through entities** (own design review first). Characters stop blocking; permanent `solid` is separated from occupancy. Verified in all three tutorial maps.
+1. **Edges, doors and the shared step test.** Edge data, `canStep`, sight through edges and the door entity. Verified first in a playground test yard with hand-placed walls, and in all three tutorial maps for no change in behaviour. Unit tests for every caller.
 2. **Graybox street.** Plain-box buildings with edge walls, a raised ground floor, stairs and terraces, at real scale. Judge the scale rules at every zoom level on desktop and phone, and tune the numbers in this doc.
 3. **Cutaway and occlusion.** Roof fade, angle-based wall stubs, street ghosting, click-through. This is the phase where a door has to feel right.
 4. **Building kit.** The description-based builder, three sizes, styles, roofs, signs, and catalogue entries.
 5. **Surfaces, retaining walls, stairs and props.** The starter prop set with spots.
 6. **City editor and checks**, including saving to the repo.
-7. **Separate interiors and stairwells.**
+7. **Separate interiors, stairwells and dungeon entrances**, with the interior size checks.
 8. **Townsfolk routines and crowd budget**, with the navigation graph, perf scenarios and ring-based detail.
-9. **The capital itself**, on the streamer, with the castle.
+9. **The capital itself**, on the streamer, with the castle and the waking crystal in the town square.
+
+The economy ([ECONOMY.md](ECONOMY.md)) is designed alongside and doesn't wait for the city: selling, buying and jobs can be tested at a playground counter before the capital exists.
 
 ## Open questions for the user
 
-1. **The capital:** name, mood and look (timber and plaster? pale stone? colourful roofs?), and roughly how big. Is it where the player wakes after the tutorial?
-2. **Interior size:** OK to require interiors to match their building's outside footprint?
-3. **Ambient townsfolk** don't block the player (pass-through). Agreed?
-4. **Time of day:** do routines follow a day/night clock (shops close, lamps light up), or is it always daytime for now?
-5. **Enterable buildings:** should every building open, or are some decorative with locked doors? Private homes?
-6. **Shops** need buying and selling, which doesn't exist yet. Keep the economy out of scope here, with shops as buildings that have counters and shopkeepers until it's designed?
+1. **The capital's name.** Working name "the capital" until decided.

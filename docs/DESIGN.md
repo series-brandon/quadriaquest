@@ -320,7 +320,7 @@ Cinderhold can initially use the existing bounded-area runtime. Its larger layou
 
 ### Cities and buildings (draft, 2026-10-10)
 
-[CITY.md](CITY.md) holds the design draft for cities: walls and doors on tile edges, hybrid interiors (small buildings open in place, large ones are separate spaces), a description-based building kit, streets, terraces, stairs, props, townsfolk routines, the playground city editor and a phased plan. The user decided on hybrid interiors, no stacked walkable layers for now, and authoring in a playground editor. Nothing is implemented yet; its open questions are awaiting review.
+[CITY.md](CITY.md) holds the design draft for cities: walls and doors on tile edges, hybrid interiors (small buildings open in place, large ones are separate spaces), a description-based building kit, streets, terraces, stairs, props, townsfolk routines, the playground city editor and a phased plan. The user decided on hybrid interiors (most ground floors are overworld), no stacked walkable layers for now, authoring in a playground editor, a very large fantasy capital whose town square holds the waking Iter Crystal, walk-through characters (non-character entities stay solid), day/night later, and an economy (jobs plus selling) as a prototype requirement. [ECONOMY.md](ECONOMY.md) holds the economy draft: Gold Pieces, item values and selling rules, shops, the quest board and repeatable townsfolk jobs. Nothing is implemented yet.
 
 ## Second tutorial area: Willowbank
 
