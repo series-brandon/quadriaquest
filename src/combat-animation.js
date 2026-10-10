@@ -93,9 +93,19 @@ export function attackAnimation(profile={},time=0){
   hands[1][3]-=.12*effort;
   pose.twist=.12*effort;
  }
+ // Strong Strike (any ability-powered melee attack): the body coils through the windup (crouch, lean
+ // back, striking hand drawn further back), then drives forward harder (the face stays focused); `power` (windup charge, 0–1) and
+ // `flash` (the impact, fading) drive the hand's glow (strike-presentation.js) on hand `powerHand`.
+ let power=0,flash=0;
+ if(profile.ability==='strongStrike'&&!['bow','cast'].includes(motion)){
+  const coil=after?0:smooth((clock-(interval-.5))/.38),drive=after?recover:thrust;
+  power=after?0:smooth((clock-(interval-.5))/.5);flash=after?recover:0;
+  pose={...pose,squash:(pose.squash||1)*(1-.13*coil+.05*drive),stretch:(pose.stretch||1)*(1+.08*drive),lean:(pose.lean||0)-.14*coil+.16*drive};
+  const h=hands[0];hands[0]=[h[0]-.06*coil,h[1]+.05*coil,h[2]-.16*coil+.08*drive,h[3]||0,h[4]||0,h[5]||0];
+ }
  // Mirror back onto the striking side (position x and the y/z rotations; missing rotations read as 0).
  if(mirrored){hands=mirrorHands(hands);pose={...pose,twist:-(pose.twist||0)};}
- return {pose,hands,handWork:null,expression:'focused',bowDraw,nocked,arrowRaise,charge,orbScale,instability};
+ return {pose,hands,handWork:null,expression:'focused',bowDraw,nocked,arrowRaise,charge,orbScale,instability,power,flash,powerHand:SIDE_INDEX[strikingSide(profile)]};
 }
 // Equipment affects the pose only; receiving a block animation never changes damage rules.
 export function blockAnimation(profile={},age=0){

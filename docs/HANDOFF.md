@@ -20,6 +20,18 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Worn gear by slot; viewer wear dropdowns — 2026-10-10
+
+- `src/worn-gear.js`: wear slots per body type, slime slot anchors and item models. `equipment-presentation.js` renders any worn non-hand item at its slot anchor (the Top Hat is now just `hats` in the Head slot), and companion outfits take their models from the same registry.
+- Model viewer: catalogue entries declare `wear` (built by `wearSlots()` from GEAR / COMPANION_GEAR), and the viewer shows one dropdown per slot (Head for slimes, Head cosmetic for the corgi), passed as `options.worn`. "Corgi · Companion Top Hat" is gone; it's one Corgi entry with the dropdown. `syncPreviewEquipment` equips worn slots on the preview's real equipment.
+- Strong Strike keeps the normal focused face (no angry face).
+
+### Strong Strike presentation, dialogue edits, companion hat fit — 2026-10-10
+
+- **Strong Strike:** `attackAnimation` gives an ability-powered melee attack (`profile.ability==='strongStrike'`; not bows or spells) a coiled windup (crouch, lean back, striking hand drawn back), a harder drive, an angry face, and `power`/`flash`/`powerHand` fields. `strike-presentation.js` (made lazily by the shared slime presentation, so any slime) turns those into a golden glow that gathers on the striking hand and bursts at impact (normal blending, so it reads on light backgrounds). Sounds: `strongCharge` when the ability attaches to the windup, and `strongHit` (replaces the hit sound); both pass the click check. Playground: "Strong Strike (equipped)" animation preview, and a "Strong Strike" motion in the model viewer for every slime. Tests are in combat-animation, combat and slime-presentation.
+- **Dialogue:** Bristle's wall bluff drops the second gelatin joke. Fletch: "It took Bristle and Borin both, pushed to the brink, to fight it off. I’m still not sure if they drove it back or if it just got bored and left."
+- **Companion Top Hat:** sits flat (no tilt), further back toward the centre of the head (`OUTFIT_MODELS` in companion-model.js).
+
 ### Happy face on every success, munching eat sound, calm idle in conversation — 2026-10-10
 
 - Fix: the player's dialogue portrait was frozen. main.js and willowbank.js passed the player's inner `visual` group, whose own transform (where the idle lives) the portrait replaces. They now pass the root `player`, like every NPC. The playground's `getState().body` reports the player's squash, twist and lean.

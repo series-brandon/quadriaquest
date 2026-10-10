@@ -29,6 +29,8 @@ export const EFFECTS={
  hit:{label:'Hit an enemy'},
  crit:{label:'Critical hit'},
  whiff:{label:'Attack missed'},
+ strongCharge:{label:'Strong Strike charges'},
+ strongHit:{label:'Strong Strike lands'},
  spellCharge:{label:'Spell gathers'},
  spellRelease:{label:'Spell released'},
  spellHit:{label:'Spell hits'},
@@ -121,6 +123,9 @@ export function createSoundEffects(ctx,out,{voices,palette=()=>DEFAULT_PALETTE})
   hit(){tone(150*vary(),{dur:.15,level:.15,type:'triangle',glide:70,attack:.006});noise(900,{dur:.1,level:.16,q:.9,attack:.008});},
   crit(){recipes.hit();noise(3200,{dur:.15,level:.08,q:1.2,attack:.008});tone(880,{dur:.25,level:.05,glide:600});},
   whiff(){noise(2600,{dur:.2,level:.13,q:1.4,sweep:700,attack:.03});},
+  // Strong Strike: a rising, rumbling charge through the half-second windup, then a heavy crack.
+  strongCharge(){noise(180,{dur:.5,level:.14,type:'lowpass',q:.8,sweep:900,attack:.12,hold:.3});tone(70,{dur:.5,level:.09,type:'triangle',glide:140,attack:.12});},
+  strongHit(){tone(95*vary(),{dur:.32,level:.22,type:'triangle',glide:45,attack:.004});noise(700,{dur:.22,level:.24,q:.8,sweep:250,attack:.008});noise(3800,{dur:.12,level:.1,q:1.3,attack:.008});},
   // Magic: the gathering shimmer for as long as the hands gather (stoppable; see start()), a bright zap
   // on release, and a sparkling impact in place of the plain hit.
   spellCharge(duration){return spellGather(duration);},

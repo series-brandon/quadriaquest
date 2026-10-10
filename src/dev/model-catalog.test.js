@@ -80,3 +80,17 @@ test('slime loadout stays visible for casting and motion overrides, hides for to
   instance.update(.3,'Idle',0,'default','Generic item',options);assert.deepEqual(visible(),['left:copperShield','right:copperDagger']);
  }
 });
+
+test('wear slots replace cosmetic permutations: one entry per creature, a dropdown per slot',async()=>{
+ const {SLIME_WEAR,COMPANION_WEAR}=await import('./model-catalog.js');
+ assert.equal(MODEL_CATALOG.filter(m=>m.name.startsWith('Corgi')).length,1,'one corgi entry');
+ assert.deepEqual(COMPANION_WEAR.map(w=>w.slot),['head']);assert.ok(COMPANION_WEAR[0].items.some(([id])=>id==='companionHats'));
+ assert.ok(SLIME_WEAR[0].items.some(([id])=>id==='hats'),'slime Head lists the Top Hat');
+ const corgi=MODEL_CATALOG.find(m=>m.name==='Corgi').create(),hat=()=>{let found=null;corgi.group.traverse(o=>{if(o.name==='companion-outfit-companionHats')found=o;});return found;};
+ corgi.update(.2,'Idle',.016,'default','Generic item',{});assert.ok(!hat()?.visible);
+ corgi.update(.4,'Idle',.016,'default','Generic item',{worn:{head:'companionHats'}});assert.equal(hat().visible,true);
+ corgi.update(.6,'Idle',.016,'default','Generic item',{worn:{head:''}});assert.equal(hat().visible,false);
+ for(const name of ['Slime','Sergeant Bristle','Reed']){const entry=MODEL_CATALOG.find(m=>m.name===name);assert.deepEqual(entry.wear,SLIME_WEAR,name);
+  const slime=entry.create();slime.update(.2,'Idle',.016,'default','Generic item',{worn:{head:'hats'}});
+  let top=null;slime.group.traverse(o=>{if(o.name==='equipment-hats')top=o;});assert.equal(top?.visible,true,name+' wears the Top Hat');}
+});

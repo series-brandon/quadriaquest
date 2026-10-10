@@ -30,8 +30,10 @@ export function previewEquipment(options={}){
 export function syncPreviewEquipment(equipment,inventory,options={}){
  const loadout=previewLoadout(options);
  for(const id of Object.keys(inventory))inventory[id]=0;
- for(const id of [loadout.rightHand,loadout.leftHand])if(id)inventory[id]=(inventory[id]||0)+1;
- equipment.setHandedness(options.handedness||'right');equipment.setSlots({right:loadout.rightHand,left:loadout.leftHand});
+ // Worn slots (options.worn: {slot: item id or ''}), e.g. a hat on the head.
+ const worn=Object.fromEntries(Object.entries(options.worn||{}).map(([slot,id])=>[slot,id||null]));
+ for(const id of [loadout.rightHand,loadout.leftHand,...Object.values(worn)])if(id)inventory[id]=(inventory[id]||0)+1;
+ equipment.setHandedness(options.handedness||'right');equipment.setSlots({right:loadout.rightHand,left:loadout.leftHand,...worn});
  equipment.setAttackHands(options.attackHands||null);
  for(const side of ['right','left'])if(options[side+'DamageType'])equipment.setDamageType(side,options[side+'DamageType']);
  return loadout;

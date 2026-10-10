@@ -53,3 +53,12 @@ test('in conversation the idle eases back to a calm breath, and returns when it 
  assert.ok(calm.squash<bold.squash*(CALM_IDLE+.1),'squash eases back');assert.ok(calm.twist<bold.twist*(CALM_IDLE+.1),'twist eases back');
  assert.ok(calm.squash>0,'still breathing');
 });
+
+test('any slime shows Strong Strike glowing on its striking hand',()=>{
+ const rig=makeSlime(),actor=createSlimeActor(rig);
+ actor.play('Combat',{profile:{style:'unarmed',interval:1.5,hand:'main',side:'right',ability:'strongStrike'}});
+ let seen=false;for(let i=0;i<70;i++){actor.update(.02,i*.02);const glow=rig.hands[0].getObjectByName('strong-strike-glow');if(glow?.visible)seen=true;}
+ assert.ok(seen,'glow appears through the windup');
+ actor.play('Combat',{profile:{style:'unarmed',interval:1.5,hand:'main',side:'right'}});for(let i=0;i<80;i++)actor.update(.02,i*.02);
+ assert.equal(rig.hands[0].getObjectByName('strong-strike-glow').visible,false,'a plain attack has no glow');
+});

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {mat,part,namedPart} from './model-parts.js';
 import {createSleepParticles,updateSleepParticles} from './sleep-feedback.js';
-import {makeCompanionTopHat} from './hat-models.js';
+import {WORN_MODELS} from './worn-gear.js';
 // Small, head-led companion rig: +Z is forward.
 const COMPANION_PAW_Z=[-.18,.10];
 export function companion(){
@@ -39,12 +39,13 @@ export function companion(){
 }
 // Worn companion outfit pieces ride on the head, so they follow every head pose. Models are made on
 // first use. `outfit` maps slots to item ids (null: nothing worn).
-const OUTFIT_MODELS={companionHats:{slot:'head',create:makeCompanionTopHat,position:[0,.175,.075],rotation:[-.12,0,.18]}};
+// Each companion item's fit on the corgi's head; its model comes from the shared registry (worn-gear.js).
+const OUTFIT_MODELS={companionHats:{slot:'head',position:[0,.175,.035],rotation:[0,0,0]}};
 export function setCompanionOutfit(group,outfit={}){
  const head=findPart(group,'companion-head');
  for(const [id,def] of Object.entries(OUTFIT_MODELS)){
   let model=head.getObjectByName('companion-outfit-'+id);const worn=outfit[def.slot]===id;
-  if(!model&&worn){model=def.create();model.name='companion-outfit-'+id;model.position.set(...def.position);model.rotation.set(...def.rotation);head.add(model);}
+  if(!model&&worn){model=WORN_MODELS[id]();model.name='companion-outfit-'+id;model.position.set(...def.position);model.rotation.set(...def.rotation);head.add(model);}
   if(model)model.visible=worn;
  }
 }

@@ -76,7 +76,7 @@ export function createCombatSystem(api){
   if(reason){api.toast?.(reason);return;}
   // The ability empowers the main-hand strike; a dual-wield follow-up still lands as normal.
   const strong={...strongStrikeProfile(character,attack(),ability),rightHand:c.profile.rightHand,leftHand:c.profile.leftHand};
-  c.profile=c.profile.followUp?pairStrikes(strong,c.profile.followUp):strong;c.ability=ability;notify();
+  c.profile=c.profile.followUp?pairStrikes(strong,c.profile.followUp):strong;c.ability=ability;notify();api.sound?.('strongCharge');
  }
  // A queued quick spell turns this attack into one cast (docs/COMBAT.md, Quick slots). It is
  // refused at attach time when unaffordable; afterwards the selected attack resumes.
@@ -186,7 +186,7 @@ export function createCombatSystem(api){
   const r=resolveAttack({dodgePercent:rules.canDodge?rules.dodgePercent||0:0,canCritical:true,criticalPercent:weapon.critPercent,min:weapon.min,max:weapon.max,random,
    mitigate:raw=>resolvePortions([{amount:raw*(weapon.damageScale??1),resistancePct}])});
   const before=a.hp;a.hp=Math.max(0,a.hp-r.damage);const removed=before-a.hp,xp=actionXp(removed);
-  if(r.outcome==='hit'){a.hitAge=.25;api.hit(a.group.position,removed,r.critical?'critical':'hit');api.sound(r.critical?'crit':weapon.combatStyle==='magic'?'spellHit':'hit');api.struck?.(a,weapon);}
+  if(r.outcome==='hit'){a.hitAge=.25;api.hit(a.group.position,removed,r.critical?'critical':'hit');api.sound(weapon.ability==='strongStrike'?'strongHit':r.critical?'crit':weapon.combatStyle==='magic'?'spellHit':'hit');api.struck?.(a,weapon);}
   else{api.hit(a.group.position,null,r.outcome);api.sound('whiff');}
   // Strategy skill and weapon/elemental proficiency each receive the full base award, capped per track.
   const awards=[{track:weapon.xpTrack,amount:xp}];

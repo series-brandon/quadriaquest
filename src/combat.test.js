@@ -324,3 +324,9 @@ test('the player faces a large creature at its centre, not its anchor tile',()=>
  const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressive:false,rules:ENEMIES.golem,group:new Group(),tile:home,home,x:2,z:1,scale:1,patrol:{minX:2,maxX:2,minZ:1,maxZ:1}});
  assert.ok(f.system.start(a));frames(f,.1);assert.deepEqual(f.faced.at(-1),[2.5,1.5]);
 });
+test('Strong Strike sounds its charge when it attaches and lands with its own heavy hit',()=>{
+ const f=fixture('target',{openingWindup:null});f.styles.learnAbility('strongStrike');f.energy.value=f.energy.max;
+ assert.equal(f.system.queue('strongStrike'),true);f.system.start(f.a);
+ assert.ok(f.sounds.includes('strongCharge'),'charges as the empowered windup begins');
+ frames(f,3);assert.ok(f.sounds.includes('strongHit'),'heavy impact');
+});

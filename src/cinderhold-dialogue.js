@@ -66,7 +66,7 @@ export function bristleIntroduction({say,choose,refuse,train,leave,refused=false
 // admits being hurt, and his distraught face belongs only to the no-combat path).
 export const CREVICE_WARNING=[
  ['Hey, be careful going that way! A giant monster smashed through there a couple days ago.','idle'],
- ['It took Bristle and Borin both, pushed to the brink, to drive it back. And I’m still not sure they made it leave, or it just got bored.','idle'],
+ ['It took Bristle and Borin both, pushed to the brink, to fight it off. I’m still not sure if they drove it back or if it just got bored and left.','idle'],
  ['You should talk to Bristle or Borin about it, first.','idle']
 ];
 export const CREVICE_REMINDER=[['Talk to Bristle or Borin before you go poking around down there. Please.','idle']];
@@ -81,7 +81,7 @@ export const BORIN_WALL=[
 ];
 export const BRISTLE_WALL=[
  ['THAT pebble? HA! I’ve had worse BLISTERS!','angry'],
- ['Borin and I sent it packing in no time flat! Didn’t even break a sweat! I don’t even HAVE sweat! I’m GELATIN!','angry'],
+ ['Borin and I sent it packing in no time flat! Didn’t even break a sweat!','angry'],
  ['...Fine. It MIGHT have bounced Borin off a few walls.','angry'],
  ['POINT IS, you are NOT ready, SLIME! But I can’t stop you from being stupid. Go see for yourself!','angry'],
  ['And when it moves... RUN!','angry']

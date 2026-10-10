@@ -28,6 +28,10 @@ import {SLIME_EXPRESSIONS} from '../slime-face.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,spawnMotion} from '../slime-motion.js';
 import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
 import {fisher} from '../fisher-model.js';
+import {SLIME_WEAR_SLOTS,COMPANION_WEAR_SLOTS} from '../worn-gear.js';
+import {GEAR} from '../equipment.js';
+import {COMPANION_GEAR} from '../companions.js';
+import {ITEMS} from '../items.js';
 import {attackPose} from '../combat-motion.js';
 import {makeBoulder,makePickaxe} from '../mining.js';
 import {makeAxe} from '../axe-model.js';
@@ -36,8 +40,12 @@ import {createWaterEffects} from '../water-effects.js';
 import {animateResourceHit,animateResourceDepletion} from '../resource-depletion.js';
 import {key} from '../world.js';
 
-export const SLIME_ACTIONS={'Attack':'Combat','Block':'Block','Point':'Point','Stomp':'Stomp','Smithing':'Smithing','Smelting':'Smelting','Petting':'Petting','Gathering':'Gathering','Crafting':'Crafting','Chopping':'Chopping','Mining':'Mining','Carpentry':'Repairing','Ouch / hammer injury':'Hammer injury','Fishing cast':'Fishing cast','Fishing catch':'Fishing catch','Celebration':'Celebration','Fishing':'Fishing','Eating':'Eating','Cooking':'Cooking','Defeated':'Defeated'};
+export const SLIME_ACTIONS={'Attack':'Combat','Strong Strike':'Combat','Block':'Block','Point':'Point','Stomp':'Stomp','Smithing':'Smithing','Smelting':'Smelting','Petting':'Petting','Gathering':'Gathering','Crafting':'Crafting','Chopping':'Chopping','Mining':'Mining','Carpentry':'Repairing','Ouch / hammer injury':'Hammer injury','Fishing cast':'Fishing cast','Fishing catch':'Fishing catch','Celebration':'Celebration','Fishing':'Fishing','Eating':'Eating','Cooking':'Cooking','Defeated':'Defeated'};
 export const SLIME_MOTIONS=['Idle','Sliding','Jump up','Jump down','Spawn landing',...Object.keys(SOCIAL_DURATIONS),...Object.keys(SLIME_ACTIONS)];
+// Wear slots a preview offers, each with the items that fit it (from the gameplay tables), so the viewer
+// shows one dropdown per slot instead of a catalogue entry per cosmetic.
+const wearSlots=(slots,table)=>slots.map(({slot,label})=>({slot,label,items:[['','None'],...Object.entries(table).filter(([,item])=>item.slot===slot).map(([id])=>[id,ITEMS[id]?.name||id])]}));
+export const SLIME_WEAR=wearSlots(SLIME_WEAR_SLOTS,GEAR),COMPANION_WEAR=wearSlots(COMPANION_WEAR_SLOTS,COMPANION_GEAR);
 const staticModel=(name,factory)=>({name,motions:['Static'],create:()=>({group:factory()})});
 const expressions=SLIME_EXPRESSIONS.filter(x=>x!=='concerned').map(x=>x[0].toUpperCase()+x.slice(1));
 // Every slime previews through the shared slime presentation (slime-presentation.js), exactly as in
@@ -54,11 +62,13 @@ function slimePreview(factory,{defaultExpression='idle',idleRate=1,carry=null,lo
  return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){
   // Picking a different animation snaps; changes within the running animation (hand swaps, stab ↔ punch) blend.
   const snap=motion!==shownMotion;shownMotion=motion;
-  const key=JSON.stringify([options.rightHand,options.leftHand,options.handedness,options.attackHands,options.rightDamageType,options.leftDamageType]);
+  const key=JSON.stringify([options.rightHand,options.leftHand,options.handedness,options.attackHands,options.rightDamageType,options.leftDamageType,options.worn]);
   if(key!==loadoutKey){loadoutKey=key;syncPreviewEquipment(equipment,inventory,loadout&&!options.rightHand&&!options.leftHand?{...options,...loadout}:options);}
   trophyGeneric.visible=trophyFish.visible=trophyHat.visible=false;
   let pose=idlePose(time*idleRate),lift=0,expression='idle',action=null,socialHands=null;
-  const combat=['Attack','Block'].includes(motion)?previewCombat(motion,options,time):null,actionKind=combat?.kind||SLIME_ACTIONS[motion];
+  // Strong Strike previews the equipped melee attack with the ability's windup, glow and impact.
+  const strong=motion==='Strong Strike',combat=['Attack','Block','Strong Strike'].includes(motion)?previewCombat(strong?'Attack':motion,strong?{...options,style:'melee'}:options,time):null,actionKind=combat?.kind||SLIME_ACTIONS[motion];
+  if(strong&&combat)combat.profile={...combat.profile,ability:'strongStrike'};
   if(actionKind){
    const actionTime=actionKind==='Block'?time%1.2:actionKind==='Eating'?time%(EATING_DURATION+.5):actionKind==='Hammer injury'?time%2:actionKind==='Defeated'?time%FAINT_PREVIEW_DURATION:actionKind==='Fishing cast'?Math.min(time%(CAST_DURATION+.5),CAST_DURATION):actionKind==='Fishing catch'?Math.min(time%(HOOK_DURATION+.5),HOOK_DURATION):actionKind==='Celebration'?time%(CELEBRATION_DURATION+.6):time;
    action={kind:actionKind,time:actionTime,profile:combat?.profile};
@@ -81,7 +91,7 @@ function resource(name,factory,kind){return {name,motions:['Static','Hit','Deple
 function terrain(heights){const group=new THREE.Group(),tiles=heights.map((h,x)=>({x,z:0,h})),map=new Map(tiles.map(t=>[key(t.x,t.z),t])),colors=createGrassColors();for(const tile of tiles){const mesh=makeTerrainTile(tile,map,new THREE.MeshStandardMaterial({color:colors[tile.x%colors.length]}));mesh.position.x=tile.x;group.add(mesh);}return group;}
 
 export const MODEL_CATALOG=[
- ...Object.entries(MENTORS).map(([kind,def])=>({name:def.name,loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(()=>mentorModel(kind),{defaultExpression:def.expression,idleRate:def.idleRate,loadout:def.loadout,carry:def.carry})})),
+ ...Object.entries(MENTORS).map(([kind,def])=>({name:def.name,loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(()=>mentorModel(kind),{defaultExpression:def.expression,idleRate:def.idleRate,loadout:def.loadout,carry:def.carry})})),
  resource('Copper outcrop',copperOutcrop,'copper'),staticModel('Copper Ingot',ingot),
  ...[['copperDagger','Copper Dagger'],['copperShield','Copper Shield'],['bows','Training Bow'],['arrows','Training Arrow']].map(([id,name])=>staticModel(name,()=>tool(id))),
  {name:'Furnace',motions:['Burning','Static'],create(){const group=furnace();return {group,update:(time,motion)=>animateFurnace(group,motion==='Static'?0:time)};}},
@@ -91,12 +101,13 @@ export const MODEL_CATALOG=[
  // Every spell look (charge orb and projectile) from the shared registry.
  ...Object.entries(SPELL_VISUALS).map(([key,look])=>staticModel(`${look.name} spell projectile`,()=>projectileModel('magic',{visual:key}))),
 
- {name:'Slime',loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(makeSlime)},
- {name:'Reed',loadout:true,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{carry:'rods'})},
+ {name:'Slime',loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(makeSlime)},
+ {name:'Reed',loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{carry:'rods'})},
  // Slam loops the real boss timing: the full telegraphed windup (ENEMIES.golem.interval), then the landing.
  {name:'Cinder Golem',motions:['Idle','Walk','Slam','Hit'],create(){const group=makeCinderGolem(),interval=ENEMIES.golem.interval;return {group,update(time,motion){const t=time%(interval+.6);animateGolem(group,time,{walk:motion==='Walk'?1:0,charge:motion==='Slam'&&t<interval?t/interval:0,slam:motion==='Slam'&&t>=interval?1-(t-interval)/.6:0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}},
  ...[false,true].map(big=>({name:big?'Goblin Bruiser':'Goblin',motions:['Idle','Walk','Attack','Hit'],create(){const group=goblin(big);return {group,update(time,motion){animateGoblin(group,time,{walk:motion==='Walk'?1:0,attack:motion==='Attack'?attackPose(time):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}})),
- ...[['Corgi',{}],['Corgi · Companion Top Hat',{head:'companionHats'}]].map(([name,outfit])=>({name,motions:['Idle','Walk','Jump up','Jump down','Sit','Scratch','Petting','Sleeping'],expressions:['Idle','Happy','Sad','Sleeping'],create(){const group=companion();setCompanionOutfit(group,outfit);return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item'){animateCompanion(group,time,{moving:motion==='Walk',expression:expressionOverride||'Default',motion,age:motion==='Sleeping'?time:time%2.6});}};}})),
+ // Cosmetics come from the viewer's Head cosmetic dropdown (options.worn), through the shared outfit code.
+ {name:'Corgi',wear:COMPANION_WEAR,motions:['Idle','Walk','Jump up','Jump down','Sit','Scratch','Petting','Sleeping'],expressions:['Idle','Happy','Sad','Sleeping'],create(){const group=companion();return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){setCompanionOutfit(group,{head:options.worn?.head||null});animateCompanion(group,time,{moving:motion==='Walk',expression:expressionOverride||'Default',motion,age:motion==='Sleeping'?time:time%2.6});}};}},
  resource('Tree',makeTree,'tree'),resource('Boulder',makeBoulder,'boulder'),staticModel('Flowers',makeFlowers),
  ...['sticks','stones','flint'].map((id,i)=>staticModel(['Sticks','Rocks','Flint'][i],()=>createGroundItemModel(id))),
  staticModel('Crude Axe',makeAxe),staticModel('Crude Pickaxe',makePickaxe),

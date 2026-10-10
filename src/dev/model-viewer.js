@@ -29,7 +29,9 @@ function modelViewer() {
   // Choices. Loadout fields use '' for "none / default", as the preview loadout expects.
   const model = signal('Slime'), motion = signal('Idle'), expression = signal('default'), prop = signal(PROPS[0]), paused = signal(false);
   const loadout = {rightHand: signal(''), leftHand: signal(''), handedness: signal('right'), style: signal('weapon'), attackMotion: signal(''), blockMotion: signal(''), attackHands: signal(''), rightDamageType: signal(''), leftDamageType: signal('')};
-  const settings = () => Object.fromEntries(Object.entries(loadout).map(([key, value]) => [key, value.peek()]));
+  // Worn gear by slot ({head: 'hats'}): one dropdown per wear slot the model declares (catalogue `wear`).
+  const worn = signal({});
+  const settings = () => ({...Object.fromEntries(Object.entries(loadout).map(([key, value]) => [key, value.peek()])), worn: worn.peek()});
 
   const entry = computed(() => MODEL_CATALOG.find(item => item.name === model.value));
   const motions = computed(() => {
@@ -38,6 +40,7 @@ function modelViewer() {
   });
   const expressions = computed(() => [['default', entry.value.expressions ? 'Default' : 'Not applicable'], ...[...(entry.value.expressions || [])].sort((a, b) => a.localeCompare(b)).map(e => [e, e])]);
   const slime = computed(() => !!entry.value.loadout);
+  const wearSlots = computed(() => entry.value.wear || []);
   // The loadout rules build a real equipment instance (which writes its own signals), so they run
   // when the loadout changes and publish their results, never inside a computation.
   const damage = signal({right: null, left: null}), note = signal('');
@@ -158,7 +161,7 @@ function modelViewer() {
 
   return h('div', {class: 'q-viewer'},
     h('div', {class: 'q-viewer__controls'},
-      field({label: 'Model', options: computed(() => MODELS.map(item => [item.name, item.name])), value: model, onChange: next => { model.value = next; load(); }}),
+      field({label: 'Model', options: computed(() => MODELS.map(item => [item.name, item.name])), value: model, onChange: next => { model.value = next; worn.value = {}; load(); }}),
       field({label: 'Animation', options: computed(() => motions.value.map(m => [m, m])), value: motion, disabled: () => motions.value.length === 1,
         onChange: next => { motion.value = next; age = 0; update(0); measure(); fit(); }}),
       field({label: 'Expression', options: expressions, value: expression, disabled: () => !entry.value.expressions, onChange: next => { expression.value = next; update(); }}),
@@ -170,6 +173,12 @@ function modelViewer() {
         h('button', {type: 'button', class: 'q-button q-button--quiet', disabled: () => !animated.value, 'aria-pressed': paused, on: {click: () => { paused.value = !paused.peek(); }}}, () => (paused.value ? 'Play' : 'Pause')),
         h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { age = 0; update(0); }}}, 'Restart'),
         h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => fit(true)}}, 'Reset view')),
+      keyedList(h('div', {class: 'q-viewer__loadout', hidden: () => !wearSlots.value.length}), wearSlots, wear => wear.slot, wear => {
+        const slot = wear.peek().slot;
+        // Rows are keyed by slot and reused across models, so the label follows the current model's wording.
+        return field({label: () => wear.value.label, options: computed(() => wear.value.items), value: computed(() => worn.value[slot] || ''),
+          onChange: next => { worn.value = {...worn.peek(), [slot]: next}; update(); measure(); fit(); }});
+      }),
       h('div', {class: 'q-viewer__loadout', hidden: () => !slime.value},
         loadoutField('Right hand', 'rightHand', computed(() => HAND_ITEMS)),
         loadoutField('Right hand damage', 'rightDamageType', computed(() => (damage.value.right?.types || []).map(t => [t, title(t)])), {hidden: () => !damage.value.right}),
@@ -177,7 +186,7 @@ function modelViewer() {
         loadoutField('Left hand damage', 'leftDamageType', computed(() => (damage.value.left?.types || []).map(t => [t, title(t)])), {hidden: () => !damage.value.left}),
         loadoutField('Dominant hand', 'handedness', computed(() => HANDEDNESS)),
         loadoutField('Attack hands', 'attackHands', computed(() => ATTACK_HANDS)),
-        h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { for (const [key, value] of Object.entries(loadout)) value.value = key === 'style' ? 'weapon' : key === 'handedness' ? 'right' : ''; changeLoadout(); }}}, 'Reset loadout'),
+        h('button', {type: 'button', class: 'q-button q-button--quiet', on: {click: () => { for (const [key, value] of Object.entries(loadout)) value.value = key === 'style' ? 'weapon' : key === 'handedness' ? 'right' : ''; worn.value = {}; changeLoadout(); }}}, 'Reset loadout'),
         h('p', {class: 'q-page__help'}, note))),
     stage,
     h('p', {class: 'q-viewer__hint'}, 'Drag to rotate · scroll or pinch to zoom. Uses the same models and animation functions as the game.'));

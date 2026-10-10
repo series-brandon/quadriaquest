@@ -3,6 +3,7 @@ import {createSlimeBend} from './slime-bend.js';
 import {createEquipment} from './equipment.js';
 import {createEquipmentPresentation} from './equipment-presentation.js';
 import {createCastPresentation} from './cast-presentation.js';
+import {createStrikePresentation} from './strike-presentation.js';
 import {createFishingPresentation} from './fishing-presentation.js';
 import {createPoseBlender,motionKey} from './pose-blend.js';
 import {playerActionMotion,gatheringHand,alignSupportingHand} from './player-action-motion.js';
@@ -45,7 +46,7 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
  const visual=new THREE.Group();visual.add(...[...group.children]);group.add(visual);
  const bendSlime=createSlimeBend(visual,[body,face.group]);
  const equipmentNow=typeof equipment==='function'?equipment:()=>equipment;
- const blender=createPoseBlender(),made={};let gear=null,cast=null,fishing=null;
+ const blender=createPoseBlender(),made={};let gear=null,cast=null,strike=null,fishing=null;
  // Tool models are named slime-tool-<name> (held gear: equipment-<side>-<id>; carried: slime-carry-<id>).
  const toolModel=(name,make)=>{if(!made[name]){made[name]=(tools[name]||make)();made[name].name='slime-tool-'+name;made[name].visible=false;hands[0].add(made[name]);}return made[name];};
  const carried=carry?carriedTool(carry):null;if(carried){carried.name='slime-carry-'+carry;carried.visible=false;hands[0].add(carried);}
@@ -113,6 +114,8 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
   alignSupportingHand(hands,mineTool?'Mining':motion?.kind==='Fishing catch'?'Fish hook':motion?.kind);
   gearFor()?.update({motion:shownMotion,working,celebrating:!!celebration});
   if(motion?.kind==='Casting'||cast)(cast||=createCastPresentation(hands)).update(motion?.kind==='Casting'?actionPose:null,time,motion?.profile);
+  // Strong Strike's gathering glow and impact burst (made the first time one is thrown).
+  if(actionPose?.power||actionPose?.flash||strike)(strike||=createStrikePresentation(hands)).update(motion?.kind==='Combat'?actionPose:null,time);
   const hammering=['Repairing','Smithing'].includes(motion?.kind);if(hammering||made.hammer)toolModel('hammer',()=>heldTool('hammers')).visible=hammering;
   if(['Fishing','Fishing cast','Fishing catch'].includes(motion?.kind)||motion?.fishing||fishing)fishingNow().update(motion);
   if(carried)carried.visible=!motion&&!celebration&&handWork===null&&!socialHands&&!slots?.right;
