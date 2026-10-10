@@ -318,6 +318,10 @@ Next steps for the prototype: enemies and NPCs streaming with their chunk (with 
 
 Cinderhold can initially use the existing bounded-area runtime. Its larger layout warrants desktop/mobile performance checks, but does not expand this chapter into implementing the entire open-world streamer. New shared APIs should avoid fixed map dimensions/origins and assumptions of universal residency. Existing tile identity, pathfinding and whole-area activation need a deliberate migration before they can support chunk streaming; no documentation change establishes that migration as complete.
 
+### Cities and buildings (draft, 2026-10-10)
+
+[CITY.md](CITY.md) holds the design draft for cities: walls and doors on tile edges, hybrid interiors (small buildings open in place, large ones are separate spaces), a description-based building kit, streets, terraces, stairs, props, townsfolk routines, the playground city editor and a phased plan. The user decided on hybrid interiors, no stacked walkable layers for now, and authoring in a playground editor. Nothing is implemented yet; its open questions are awaiting review.
+
 ## Second tutorial area: Willowbank
 
 The Iter Crystal now leads to **Willowbank**, where the rescue quest teaches branching NPC dialogue, Carpentry, companions, Fishing, placement, and Culinary skills. Combat and equipment instruction belong to the planned third area. See [WILLOWBANK.md](WILLOWBANK.md) for the detailed flow, recipes, and playground coverage. Willowbank completion leaves the area explorable; no prototype-ending message is currently shown there. The Cinderhold draft proposes a completion notice after its Basic Training combat lesson.
