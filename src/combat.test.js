@@ -330,3 +330,13 @@ test('Strong Strike sounds its charge when it attaches and lands with its own he
  assert.ok(f.sounds.includes('strongCharge'),'charges as the empowered windup begins');
  frames(f,3);assert.ok(f.sounds.includes('strongHit'),'heavy impact');
 });
+test('a held staff is a spell focus: its magic bonus raises spell damage, for casts and quick spells alike',async()=>{
+ const {spellAttack,spellFocus,GEAR}=await import('./equipment.js'),{playerAttackProfile}=await import('./combat-profile.js'),{SPELLS}=await import('./combat-styles.js');
+ const f=fixture('target');f.inventory.staffs=1;
+ const bare=playerAttackProfile(f.character,spellAttack('energyStrike',SPELLS.energyStrike,{}),'technical');
+ assert.equal(spellFocus({right:'swords'}),null);assert.equal(spellFocus({left:'staffs'}).item,'staffs');
+ const focused=playerAttackProfile(f.character,spellAttack('energyStrike',SPELLS.energyStrike,{right:'staffs'}),'technical');
+ assert.ok(focused.max>bare.max&&focused.min>=bare.min,'more damage with a staff');assert.ok(GEAR.staffs.magic.power>0);
+ f.equipment.toggle('staffs');f.styles.learn('energyStrike');f.styles.select('energyStrike');assert.equal(f.styles.attack.focus,'staffs','the selected spell carries the focus');
+ assert.equal(f.system.preview().max,focused.max,'combat uses it');
+});

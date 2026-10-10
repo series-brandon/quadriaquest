@@ -1,7 +1,7 @@
 import {STRATEGIES,hitsToDefeat,dangerBand,roundFinal} from './combat-formulas.js';
 import {signal} from './reactive.js';
 import {playerAttackProfile,playerDefense,attackDps,pairStrikes,offHandFollowUp} from './combat-profile.js';
-import {GEAR,ARMOR_SLOTS} from './equipment.js';
+import {GEAR,ARMOR_SLOTS,spellAttack} from './equipment.js';
 import {SPELLS,ABILITIES} from './combat-styles.js';
 import {AURAS} from './auras.js';
 import {FOODS} from './player-health.js';
@@ -100,7 +100,9 @@ export function createAssistance(api){
   // that won't attack takes the best defensive item. Auto (null) lets Optimize choose hands freely.
   // Locked sides map to roles through handedness (main = the dominant hand).
   const locked=equipment.attackHandsChoice,hands=locked==='right'||locked==='left'?equipment.roleOf(locked):locked;
-  let mains=forStyle==='magic'?[slots.main]:[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].style&&STYLE_OF(id)===forStyle&&GEAR[id].slot==='hand')];
+  // Magic: keep the main hand as it is, or hold an owned spell focus (a staff) if it raises spell damage.
+  const focuses=Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].magic&&GEAR[id].slot==='hand');
+  let mains=forStyle==='magic'?[...new Set([slots.main,...focuses])]:[null,...Object.keys(GEAR).filter(id=>owned(id)&&GEAR[id].style&&STYLE_OF(id)===forStyle&&GEAR[id].slot==='hand')];
   if(forStyle==='ranged'&&mains.length===1){optimizeReport='No ranged weapon owned.';changed();return optimizeReport;}
   // A ranged setup holds a ranged weapon; bare fists only count for melee (they can outscore a new bow).
   if(forStyle==='ranged')mains=mains.filter(Boolean);
@@ -124,8 +126,10 @@ export function createAssistance(api){
    const fist={style:'unarmed',baseInterval:2.55,proficiency:'unarmed'},weapons=[main,off].filter(id=>GEAR[id]?.style);
    const offAttack=GEAR[main]?.twoHanded||GEAR[off]?.shield?null:GEAR[off]?.style?GEAR[off]:fist,mainAttack=GEAR[main]?.style?GEAR[main]:fist;
    const attacks=hands==='main'?[mainAttack]:hands==='off'?[offAttack].filter(Boolean):[mainAttack,offAttack].filter(Boolean);
-   // Spells ignore held weapons, so magic setups differ only in survivability.
-   const profiles=forStyle==='magic'?[]:attacks.map(a=>playerAttackProfile(character,a,strategy));
+   // Spells use no hand, but a held focus (a staff) adds its magic bonus: magic setups rank by the spell's
+   // damage with that focus, then survivability.
+   const spellId=styles.state.selected||styles.state.learned.find(id=>SPELLS[id]);
+   const profiles=forStyle==='magic'?(spellId?[playerAttackProfile(character,spellAttack(spellId,SPELLS[spellId],{right:main,left:off}),strategy)]:[]):attacks.map(a=>playerAttackProfile(character,a,strategy));
    const dps=!profiles.length?0:attackDps(profiles.length>1?pairStrikes(profiles[0],offHandFollowUp(profiles[1],weapons.length===2&&attacks.length===2?character.level('prof.dualWield'):null)):profiles[0]);
    const reduction=playerDefense(character,{shield:GEAR[off]?.shield?GEAR[off]:null,held:GEAR[main]?.twoHanded&&defensive(main)?GEAR[main]:null}).resistancePct;
    // Ties: keep gear already equipped (empty slots don't count), then fill more hands, main hand first.

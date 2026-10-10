@@ -8,7 +8,7 @@ export const BLOCK_DURATION=.42;
 export const PROJECTILE_FLIGHT=.22;
 export function attackWindow(profile,time){const interval=profile.interval||1.5,clock=time%interval,windup=profile.style==='ranged'?.8:.48;return clock>=interval-windup||time>=interval&&clock<.28;}
 // Damage type chooses the blade motion: Piercing stabs, Slashing slashes.
-export function resolveAttackMotion(profile={}){return profile.attackMotion|| (profile.style==='magic'?'cast':profile.style==='ranged'?'bow':profile.item==='copperDagger'?(profile.damageType==='slashing'?'slash':'stab'):['swords','staffs','hammers'].includes(profile.item)?'slash':'punch');}
+export function resolveAttackMotion(profile={}){return profile.attackMotion|| (profile.style==='magic'?'cast':profile.style==='ranged'?'bow':profile.item==='copperDagger'?(profile.damageType==='slashing'?'slash':'stab'):['swords','staffs'].includes(profile.item)?'slash':'punch');}
 const SHIELDS=['shields','copperShield'];
 // Hands are [right, left]: index 0 is the slime's right hand. Profiles name what each hand holds
 // (rightHand, leftHand) and, for an attack, the striking side. Motions are authored for one side
@@ -31,9 +31,12 @@ export function combatEquipmentVisible(kind){return !['Gathering','Crafting','Ch
 // Shared relaxed carry pose, independent of the selected attack style.
 // Blades rest tilted forward in either hand.
 const BLADES=['swords','copperDagger'];
+// Most one-handed items rest tilted forward like a blade: weapons and the axe, pickaxe and hammer. The
+// staff stands upright like a walking staff; a rod rests on the shoulder (its model's carry transform).
+const TILTED_CARRY=[...BLADES,'axes','pickaxes','hammers'];
 export function equipmentIdleHands(profile={}){
  const hands=[[-.46,.33,.08,0,0,0],[.46,.33,.08,0,0,0]],held=heldItems(profile);
- for(const side of ['right','left']){const id=held[side],i=SIDE_INDEX[side];if(BLADES.includes(id))hands[i][3]=1.85;if(id==='bows')hands[i][3]=Math.PI/2;}
+ for(const side of ['right','left']){const id=held[side],i=SIDE_INDEX[side];if(TILTED_CARRY.includes(id))hands[i][3]=1.85;if(id==='bows')hands[i][3]=Math.PI/2;}
  return hands;
 }
 // Poses that only place the hands (waving, hopping, sleeping) keep each held weapon's grip from

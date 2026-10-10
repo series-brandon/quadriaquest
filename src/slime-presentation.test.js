@@ -75,8 +75,24 @@ test('mentor hats are Head items: worn from their loadout, swappable like any ge
  assert.deepEqual(shown({group:wisp.visual.parent},'equipment-ironSkullcap'),['equipment-ironSkullcap'],'any slime can wear any hat');
  const reed=fisher(),r=createSlimeActor(reed,{loadout:{head:'fishersHat'}});r.update(.1,0);assert.deepEqual(shown(reed,'equipment-fishersHat'),['equipment-fishersHat']);
 });
-test('the staff and the Crude Hammer are equippable swings',async()=>{
+test('the staff is an equippable swing; the axe, pickaxe, hammer and rod are equippable for looks and fight as a bare fist',async()=>{
  const {createEquipment,GEAR}=await import('./equipment.js'),{resolveAttackMotion}=await import('./combat-animation.js');
- for(const id of ['staffs','hammers']){const e=createEquipment({inventory:{[id]:1}});assert.ok(e.toggle(id));const attack=e.handAttack('main');assert.equal(attack.item,id);assert.equal(attack.style,'melee');assert.equal(resolveAttackMotion(attack),'slash');assert.deepEqual(GEAR[id].damageTypes,['bludgeoning']);}
+ const staff=createEquipment({inventory:{staffs:1}});assert.ok(staff.toggle('staffs'));assert.equal(staff.handAttack('main').item,'staffs');assert.equal(resolveAttackMotion(staff.handAttack('main')),'slash');
+ assert.equal(GEAR.firestarters,undefined,'Flint and Stone is not equippable');
+ for(const id of ['axes','pickaxes','hammers','rods']){
+  assert.equal(GEAR[id].cosmetic,true,id);assert.ok(!GEAR[id].style&&!GEAR[id].power,'no combat stats: '+id);
+  const e=createEquipment({inventory:{[id]:1}});assert.ok(e.toggle(id),'equippable: '+id);assert.equal(e.slots.right,id);
+  const attack=e.handAttack('right');assert.equal(attack.style,'unarmed',id+' hand punches');assert.equal(attack.item,null);
+  assert.deepEqual(e.inventoryActions(id).map(a=>a.label),['Unequip right hand','Equip left hand'],'inventory offers equip actions');
+ }
  const rig=mentorModel('mage'),wisp=createSlimeActor(rig,{loadout:MENTORS.mage.loadout});wisp.update(.1,0);assert.deepEqual(shown(rig,'equipment-right'),['equipment-right-staffs'],'Wisp holds her staff as gear');
+ const borinRig=mentorModel('smith'),borin=createSlimeActor(borinRig,{loadout:MENTORS.smith.loadout});borin.update(.1,0);assert.deepEqual(shown(borinRig,'equipment-right'),['equipment-right-hammers'],'Borin holds his hammer');
+});
+
+test('held tools rest like a blade; a held rod rests on the shoulder; the staff stands upright',async()=>{
+ const {equipmentIdleHands}=await import('./combat-animation.js'),{heldTool,carriedTool}=await import('./tool-models.js');
+ const sword=equipmentIdleHands({rightHand:'swords'})[0][3];
+ for(const id of ['axes','pickaxes','hammers'])assert.equal(equipmentIdleHands({rightHand:id})[0][3],sword,id);
+ assert.equal(equipmentIdleHands({rightHand:'staffs'})[0][3],0,'staff upright');
+ assert.deepEqual(heldTool('rods').rotation.toArray().slice(0,3),carriedTool('rods').rotation.toArray().slice(0,3),'rod on the shoulder');
 });

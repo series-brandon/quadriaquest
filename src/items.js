@@ -21,7 +21,7 @@ export const ITEMS={
  axes:{name:'Crude Axe',icon:'⚒',description:'A simple axe for chopping trees. Keep it in your inventory to use it.'},
  logs:{name:'Small Logs',icon:'▰',description:'Freshly chopped wood. A useful crafting material.'},
  hats:{name:'Top Hat',icon:'🎩',description:'A rather fancy reward for a hard-working adventurer. Equip it here to wear it.'},
- staffs:{name:'Simple Staff',description:'A wooden staff topped with a glowing crystal. One hand · +5 melee Power and Accuracy · bludgeoning swing · trains Staff proficiency. Spells need no staff.'},
+ staffs:{name:'Simple Staff',description:'A wooden staff topped with a glowing crystal. Spell focus: +6 magic Power and Accuracy to your spells while held. One hand · +5 melee Power and Accuracy · bludgeoning swing · trains Staff proficiency.'},
  ironSkullcap:{name:'Iron Skullcap',description:"Sergeant Bristle's brimless iron cap, with a raised ridge and cheek guards. Equip it to wear it."},
  minersCap:{name:"Miner's Cap",description:"Borin's sturdy cap, with a little lamp at the front. Equip it to wear it."},
  archerCap:{name:"Archer's Cap",description:"Fletch's feathered felt cap: peak in front, brim turned up behind. Equip it to wear it."},

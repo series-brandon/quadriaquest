@@ -6,6 +6,7 @@ import {sizeOf,footprint,footprintGap,canStand,findFootprintPath,bodyCenter} fro
 import {resolveAttack,resolvePortions,rollDamage,actionXp,backfireBaseDamage,displayedLoss,xpModifiers} from './combat-formulas.js';
 import {playerAttackProfile,playerDefense,strongStrikeProfile,armorAwards,offHandFollowUp,pairStrikes,FOLLOW_UP_DELAY} from './combat-profile.js';
 import {ABILITIES,SPELLS} from './combat-styles.js';
+import {spellAttack} from './equipment.js';
 import {signal} from './reactive.js';
 import {createControlState} from './control-effects.js';
 import {wanderDelay,shouldWander,wanderRoute} from './wander.js';
@@ -82,7 +83,7 @@ export function createCombatSystem(api){
  // refused at attach time when unaffordable; afterwards the selected attack resumes.
  function commitSpell(c){
   const id=pending.spell,spell=SPELLS[id];pending=null;notify();
-  const cast={...playerAttackProfile(character,{...spell,spell:id,item:null},api.strategy?.()||'technical'),rightHand:c.profile.rightHand,leftHand:c.profile.leftHand};
+  const cast={...playerAttackProfile(character,spellAttack(id,spell,api.equipment.slots||{}),api.strategy?.()||'technical'),rightHand:c.profile.rightHand,leftHand:c.profile.leftHand};
   if(cast.manaCost&&!(api.mana?.value>=cast.manaCost)){api.toast?.(`Not enough Mana for ${spell.name} (${cast.manaCost} needed). It was cancelled.`);return;}
   c.profile=cast;
  }

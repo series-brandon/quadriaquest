@@ -2,7 +2,7 @@ import {GEAR,createEquipment} from '../equipment.js';
 import {SPELLS} from '../combat-styles.js';
 import {resolveAttackMotion} from '../combat-animation.js';
 // Hand items fit either hand (shields included); a two-handed item frees the other hand.
-export const HAND_ITEMS=[['','Empty'],['copperDagger','Copper Dagger'],['swords','Stone Sword'],['copperShield','Copper Shield'],['shields','Wooden Shield'],['bows','Training Bow'],['staffs','Simple Staff'],['hammers','Crude Hammer']];
+export const HAND_ITEMS=[['','Empty'],['copperDagger','Copper Dagger'],['swords','Stone Sword'],['copperShield','Copper Shield'],['shields','Wooden Shield'],['bows','Training Bow'],['staffs','Simple Staff'],['axes','Crude Axe'],['pickaxes','Crude Pickaxe'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod']];
 export const ATTACK_MOTIONS=[['','Automatic'],['punch','Punch'],['stab','Stab'],['slash','Slash'],['bow','Bow draw / release'],['cast','Cast']];
 export const ATTACK_HANDS=[['','Auto'],['both','Both hands (one-two)'],['right','Right hand only'],['left','Left hand only']];
 export const HANDEDNESS=[['right','Right-handed'],['left','Left-handed']];

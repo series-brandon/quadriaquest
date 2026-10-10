@@ -7,6 +7,10 @@ Draft, 2026-10-10. Nothing here is implemented. Numbers are starting proposals t
 - **One currency: Gold Pieces.**
 - **Most things can be sold.** Some can't, such as quest items and companions.
 - **Jobs come from two places:** a **quest board** and **townsfolk who ask for repeatable tasks** (for example a post office slime: "I need this package delivered! Go!").
+- **Gold Pieces are an inventory item**, a single stack like RuneScape coins.
+- **Selling pays 40% of the buy price** to start. A **Merchanting** skill could improve that later, so the base rate may drop lower once it exists.
+- **Defeated enemies now drop loot** (gold and items). COMBAT.md is updated to match.
+- **Defeat costs nothing.** Defeat sends the player back to an Iter Crystal, and nothing else changes.
 
 As with every system (AGENTS.md), the economy is shared gameplay. Prices, buying, selling, jobs and the shop UI work in any map. A city only places the shops, shopkeepers, boards and job givers, and adds the story around them. Everything can be reached, repeated and reset in the playground.
 
@@ -14,19 +18,20 @@ As with every system (AGENTS.md), the economy is shared gameplay. Prices, buying
 
 - The inventory is a plain count per item (`inventory[id] = n`). There's no size limit and no currency.
 - `ITEMS` in `items.js` has a name, description and optional icon. There are no prices and no flags for what can be sold.
-- Enemies give XP but drop nothing (COMBAT.md proposes no item drops).
+- Enemies give XP but drop nothing yet. Drops are now decided (see *Enemy drops*).
 - `supply-offers.js` hands out free kits. Those stay free and are not a shop.
 - There's no save system, so gold is lost on reload like everything else.
 
 ## Gold Pieces
 
-- **A wallet, not an inventory item (proposal).** `gold` is a player resource shown in the Inventory header and the sidebar overview, not a stack among items. It can't be dropped, used as a crafting material, or sold by mistake. All changes go through `wallet.earn(n, source)` and `wallet.spend(n, reason)`. `spend` refuses anything that would go below 0 and returns false, and both report an event that quests, jobs and notices can watch.
-- Earning shows a small gold notice (reusing the item notices). Spending doesn't need one; the shop shows the new total.
-- Icon: a gold coin in the icon set. Name everywhere: **Gold Pieces**, written as "250 GP" in tight spaces.
+- **An inventory item** (user, 2026-10-10): `gold` in `ITEMS`, named **Gold Pieces**, kept as one stack in the inventory like RuneScape coins. Shops, jobs and drops add to and take from that stack. All changes go through two shared helpers, `earnGold(n, source)` and `spendGold(n, reason)`. `spendGold` refuses anything that would go below 0 and returns false. Both report an event that quests, jobs and notices can watch.
+- Gold can't be sold, crafted with or eaten. It sorts first in the inventory. Its count also shows in the Inventory header so it's easy to find.
+- A pickup or earning shows the usual item notice ("+25 Gold Pieces"). The shop shows the new total.
+- The stack's icon changes with the amount (a few coins, a pile, a bag), like RuneScape coins. Short form in tight spaces: "250 GP".
 
 ## Item value and what can be sold
 
-**Each item gets a `value`** in `ITEMS`: what it costs to buy from a shop that stocks it. **Selling** to a shop pays `floor(value × 0.4)`, at least 1. The gap between buying and selling stops buy-then-sell loops making money.
+**Each item gets a `value`** in `ITEMS`: what it costs to buy from a shop that stocks it. **Selling** to a shop pays `floor(value × 0.4)`, at least 1 (user, 2026-10-10). The gap between buying and selling stops buy-then-sell loops making money. The rate is one shared constant, so a later **Merchanting** skill can raise it per player. If Merchanting is added, the base rate may drop lower so the skill has room to matter.
 
 **Rules for setting values (proposal):**
 
@@ -77,26 +82,34 @@ Jobs are **repeatable paid tasks**, separate from story quests. They appear on t
 - **No timers** in the prototype: cozy first. Abandoning a job is free. A delivery package is returned to the giver when you abandon it.
 - **Rewards** are Gold Pieces plus a small XP grant to the related skill (fishing XP for a fish job). Delivery pays by distance. Rewards are tuned so an hour of jobs plus selling earns about as much as an hour of fighting would earn in value; the exact rate is set when numbers exist.
 - **Addresses** for deliveries are buildings with doors and a recipient townsfolk or door drop-off spot (CITY.md). That's the one part of jobs that depends on the city; other kinds work anywhere.
-- Jobs are counted from shared events (`resource`, `crafted`, wallet, handoff), never by area code. A board or giver can be placed in any map.
+- Jobs are counted from shared events (`resource`, `crafted`, gold, handoff), never by area code. A board or giver can be placed in any map.
+
+## Enemy drops
+
+Defeated enemies now drop loot (user, 2026-10-10). The rules belong in COMBAT.md; the economy part is here.
+
+- **Each enemy has a drop table** in its stat sheet (`ENEMIES` in `combat-rules.js`): an optional gold range, items that always drop, and chance rolls (`{item, chance, count}`). Drops are rolled once, on the shared victory event, from the same code in every map. A playground override can fix the random seed.
+- **Drops land on the ground** where the enemy was defeated, as one **loot pile** you click to pick up. The pile uses the shared ground-pickup lifecycle. It belongs to whoever defeated the enemy and disappears after a few minutes (starting at 3) if left alone. **The player always clicks the pile to pick it up** (user, 2026-10-10). No mode or assistance picks it up automatically for now.
+- **No drops from** inert training targets, scripted story fights, or creatures with no reward (the Cinder Golem, for now). Practice enemies can drop loot; the tutorial's waking reset clears it anyway.
+- **Balance:** combat income from drops counts toward the shared earning target, so jobs and selling stay competitive for pacifists. Drops favour materials (hides, ore, food) that feed crafting and selling over large amounts of gold.
 
 ## Playground coverage
 
 Required in the same change as each part:
-- **Wallet:** show, add, remove and set gold. Reset to 0.
+- **Gold:** add, remove and set Gold Pieces through the debug inventory controls. Reset to 0.
+- **Drops:** roll any enemy's drop table without a fight, and show its odds. Spawn a loot pile anywhere. Fix the random seed.
 - **Prices:** a price list with value, sell price, sellable flag, and recipe margin checks highlighted.
 - **Shops:** open any shop by id from the playground, plus a test counter fixture that can be placed in any map with a shopkeeper. Reset stock.
 - **Jobs:** a test board fixture and a test giver in any map. Spawn a job of each kind, complete or abandon it instantly, reset all jobs and cooldowns. Deliveries in the playground use test addresses until the city exists.
 
 ## Plan
 
-1. **Wallet and values.** `gold`, `value` and `sellable` on every item. Price tests. Wallet notices and display.
+1. **Gold and values.** The `gold` item, `value` and `sellable` on every item, the gold helpers, price tests and notices.
 2. **Shared shop screen and shop definitions.** A playground counter in any map, a General Store, selling restrictions.
-3. **Jobs.** The four kinds, Jobs on the Quests page, quest board prop, giver marker, test addresses.
-4. **City hookup** (with CITY.md): shop buildings, shopkeepers, the town square board and the post office slime with real addresses.
+3. **Enemy drops.** Drop tables, loot piles, pickup, COMBAT.md rules.
+4. **Jobs.** The four kinds, Jobs on the Quests page, quest board prop, giver marker, test addresses.
+5. **City hookup** (with CITY.md): shop buildings, shopkeepers, the town square board and the post office slime with real addresses.
 
 ## Open questions for the user
 
-1. **Wallet or item?** Gold as a separate wallet (proposed) or as an item stack in the inventory, like RuneScape coins?
-2. **Sell rate:** is 40% of the buy price right as a starting point?
-3. **Should enemies drop anything** (gold or items), now that there's something to spend on? COMBAT.md currently proposes no drops.
-4. **Death penalty:** should being defeated cost gold? Proposal: no, in keeping with the cozy direction.
+None at the moment.

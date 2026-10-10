@@ -20,10 +20,20 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Tool carry poses, staff spell focus — 2026-10-10
+
+- Carry: `TILTED_CARRY` in combat-animation.js (blades plus axes, pickaxes, hammers) rests tilted forward like a sword. The staff stands upright. A held rod uses the shoulder transform (`heldTool('rods')` → `carriedTool('rods')`). `BLADES` still drives only the block guard.
+- Flint and Stone is no longer equippable, and its model is removed.
+- Staff focus: `GEAR.staffs.magic`; `spellFocus(slots)` / `spellAttack(id, spell, slots)` in equipment.js add the best held focus's power/accuracy to spells (combat-styles `attack` getter and quick spells in combat.js). Optimize (assistance.js) considers owned focuses for Magic and ranks magic setups by spell damage. Energy Strike: 1–22 bare, 4–28 with the staff. Tests are in combat, combat-systems and slime-presentation.
+
+### Tools are cosmetic hand items — 2026-10-10 (user decision)
+
+- `GEAR` axes, pickaxes, hammers and rods are `{slot:'hand',cosmetic:true}`: equippable in either hand, with no combat stats. `handAttack` treats a cosmetic item's hand as a bare fist, so the slime punches with the tool in hand. This replaces the short-lived hammer weapon stats. `tool()` now builds axes, pickaxes and a new Flint and Stone model (catalogue "Flint and Stone"). All five are in the viewer's hand list. The staff stays a real weapon.
+
 ### Swappable mentor hats; staff and hammer weapons; Rings — 2026-10-10
 
 - Head items (`ITEMS`, `GEAR` slot head, `WORN_MODELS`; models in hat-models.js built relative to the Head anchor): `ironSkullcap`, `minersCap`, `archerCap`, `wizardHat`, `breathHeadband`, `fishersHat`. The hat geometry moved out of `mentorModel`/`fisher()`. Mentors wear them via `MENTORS[kind].loadout.head` (and Reed via his `createSlimeActor` loadout). `loadoutEquipment` accepts worn slots by name. All are in the model catalogue and the viewer's Head dropdown. A character's default loadout fills each empty viewer slot (hands together, each worn slot separately).
-- New weapons: `staffs` (Simple Staff) and `hammers` (the Crude Hammer as a weapon), both one-handed bludgeoning melee with a swing (`resolveAttackMotion` → slash). Wisp holds her staff and Borin his hammer as gear (no more `carry` for them). In the viewer's hand list.
+- New weapon: `staffs` (Simple Staff), one-handed bludgeoning melee with a swing (`resolveAttackMotion` → slash). The hammer became a cosmetic tool (above). Wisp holds her staff and Borin his hammer as gear (no more `carry` for them). In the viewer's hand list.
 - Design call: Rings (one per hand) replace the proposed Charms; neck items are dropped. Body and Base deformation is deferred; only hats are worn for now.
 
 ### Worn gear by slot; viewer wear dropdowns — 2026-10-10
