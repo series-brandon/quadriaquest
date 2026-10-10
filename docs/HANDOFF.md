@@ -20,6 +20,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Happy face on every success, munching eat sound, calm idle in conversation — 2026-10-10
+
+- Fix: the player's dialogue portrait was frozen. main.js and willowbank.js passed the player's inner `visual` group, whose own transform (where the idle lives) the portrait replaces. They now pass the root `player`, like every NPC. The playground's `getState().body` reports the player's squash, twist and lean.
+
+- `succeeded()` in main.js gives the happy face after every successful finish. It's called from the completion callbacks for gathering, chopping and mining (resources), crafting, smithing and smelting (station crafting), cooking, carpentry and fishing. Smithing, smelting, cooking, carpentry and fishing had none before. The playground's `getState().face` reports the player's current face.
+- `eat` sound: three munches, each quieter and lower. Each munch is a crackle of four tiny crisp grains (2.6–4.5 kHz) that fall away step by step, over a soft lowpass chew, with only a whisper of jaw thump. The step-down keeps the crackle fading instead of cutting off: 0 clicks in 40 randomized offline renders.
+- `calm` state in the shared slime presentation (`CALM_IDLE` = 0.3): a slime's idle squash, twist, lean and bend ease back while a conversation is open. Applies to the player (`characterDialogue.active`), mentors and Reed. Dialogue portraits no longer add their own extra bob; they mirror the (calm) slime.
+
 ### Windups, magic sounds, mentor gear, facing large creatures — 2026-10-09
 
 - **Windups (user design):** `attackWindup(profile)` in combat.js. A ready attacker's first attack waits only for its windup: a weapon/spell `windup` field, otherwise melee 0.5 s, ranged 1.15 s (`RANGED_WINDUP`, the bow's raise, nock and draw) and magic the whole cast. It is capped at the interval; later attacks take the full interval. Fixes the long first-shot pause with the bow. COMBAT.md *Opening attack* is updated.

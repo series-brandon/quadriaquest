@@ -103,7 +103,7 @@ export function createWillowbank(api){
  // Inventory tab, the Cooked Pondfish, then Eat; or the Crafting tab, the recipe, then Craft.
  function eatHelp(){hideGuide();api.guideMenu?.({page:'inventory',item:'cookedFish',action:'Eat'});}
  function lines(texts,after){api.stop();tip.hide();let i=0;const next=()=>{if(i===texts.length){dialogue.finish(after);return;}dialogue.show({side:'right',name:'Reed',model:reed.group,text:texts[i][0],expression:texts[i++][1],next});};next();}
- function playerLine(text,next,expression){dialogue.show({side:'left',name:api.profile().name||'Pip',model:api.visual,text,expression,next});}
+ function playerLine(text,next,expression){dialogue.show({side:'left',name:api.profile().name||'Pip',model:api.player,text,expression,next});}
  function talk(){reedFacing.face(api.player);tip.hide();
   if(phase!=='meet'){lines([[phase==='finished'?`Enjoy your adventures with ${companions.state.name}!`:'You can do this! Your quest journal will remind you what comes next.','happy']],()=>prompt());return;}
   api.stop();const exposition=calm=>lines([[calm?'Right. Deep breaths. The bridge collapsed all of a sudden!':'The bridge collapsed all of a sudden!',calm?'idle':'distraught'],["A little animal likes to come here and play. They were on the island when it happened.",calm?'idle':'distraught'],["Now they’re stranded over there, and I can’t reach them!",calm?'idle':'distraught']],()=>dialogue.show({side:'right',name:'Reed',model:reed.group,expression:calm?'idle':'distraught',text:'Could you help me repair the bridge and get them back safely?',choices:[["I’ll help.",acceptHelp,'happy'],['I need a moment.',()=>lines([['Of course. I’ll be right here.','idle']]),'idle']]}));
@@ -185,7 +185,7 @@ export function createWillowbank(api){
   }
   water.update(dt);
 
-reedFacing.update(dt);reedSlime.update(dt,time,{expression:phase==='meet'?'distraught':'idle',face:dialogue.expressionFor('right')||null});
+reedFacing.update(dt);reedSlime.update(dt,time,{expression:phase==='meet'?'distraught':'idle',face:dialogue.expressionFor('right')||null,calm:dialogue.active});
   const targets={bridge:'bridge',flint:'flint',cook:'fire'};
   followGoal();
   for(const a of actors){const repairing=a===bridge&&api.carpentry.matches(bridge);a.highlight.update((phase==='meet'&&a===reedActor||guided&&a.kind===targets[phase]||guideKinds.has(a.kind))&&!a.depleted&&!a.opened&&!repairing,time,api.hover()===a&&!a.depleted&&!a.opened&&!repairing);}

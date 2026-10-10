@@ -43,3 +43,13 @@ test('held gear, tools and the carried rod show only when they should',()=>{
  reed.play('Wave',{loop:false});reed.update(.1,.4);assert.deepEqual(shown(reedRig,'slime-carry'),[],'a wave uses the hands');
  reed.update(5,5);assert.equal(reed.playing,null,'one-shot motions end');assert.deepEqual(shown(reedRig,'slime-carry'),['slime-carry-rods']);
 });
+
+test('in conversation the idle eases back to a calm breath, and returns when it ends',async()=>{
+ const {CALM_IDLE}=await import('./slime-presentation.js');
+ const swing=calm=>{const rig=makeSlime(),actor=createSlimeActor(rig);let min=Infinity,max=-Infinity,twist=0;
+  for(let i=0;i<200;i++){actor.update(.02,i*.02,{calm});const v=actor.visual;min=Math.min(min,v.scale.y);max=Math.max(max,v.scale.y);twist=Math.max(twist,Math.abs(v.rotation.y));}
+  return {squash:max-min,twist};};
+ const bold=swing(false),calm=swing(true);
+ assert.ok(calm.squash<bold.squash*(CALM_IDLE+.1),'squash eases back');assert.ok(calm.twist<bold.twist*(CALM_IDLE+.1),'twist eases back');
+ assert.ok(calm.squash>0,'still breathing');
+});

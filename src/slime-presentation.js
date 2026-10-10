@@ -23,6 +23,10 @@ import {heldTool,carriedTool} from './tool-models.js';
 // targets and smoothing, held gear (equipment-presentation.js, including the bow), tools, casting and
 // fishing. Characters differ only in their rig's look, loadout and which motions they are given.
 
+// Idle motion in a conversation is this fraction of its overworld size (the overworld idle is bold so a
+// slime reads at a distance; close up in the portrait that is distracting).
+export const CALM_IDLE=.3;
+const calmPose=p=>({...p,squash:1+(p.squash-1)*CALM_IDLE,stretch:1+((p.stretch??1)-1)*CALM_IDLE,twist:(p.twist||0)*CALM_IDLE,lean:(p.lean||0)*CALM_IDLE,roll:(p.roll||0)*CALM_IDLE,bend:(p.bend||0)*CALM_IDLE});
 // A real equipment instance holding a fixed loadout ({rightHand, leftHand}) under the gameplay rules.
 export function loadoutEquipment(loadout={}){
  const inventory={};for(const id of [loadout.rightHand,loadout.leftHand])if(id)inventory[id]=(inventory[id]||0)+1;
@@ -55,9 +59,11 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
  // happy (keep a happy face through an action), face (a final expression override, e.g. dialogue),
  // gearMotion (the motion held gear follows; defaults to motion), working (skilling hides weapons),
  // debugTools ({chopping, mining, time}: playground previews of tool motions), snap (jump straight to
- // the pose, e.g. a preview switching animations).
- function update(dt,time,{pose,expression='idle',handWork=null,socialHands=null,motion=null,moving=false,celebration=null,happy=false,face:faceOverride=null,gearMotion,working=false,debugTools=null,snap=false}={}){
+ // the pose, e.g. a preview switching animations), calm (in a conversation: idle motion eases back to
+ // CALM_IDLE of its size, since it is seen close up in the portrait).
+ function update(dt,time,{pose,expression='idle',handWork=null,socialHands=null,motion=null,moving=false,celebration=null,happy=false,face:faceOverride=null,gearMotion,working=false,debugTools=null,snap=false,calm=false}={}){
   let actionPose=null;
+  if(calm&&!motion&&!socialHands&&!celebration)pose=calmPose(pose);
   if(motion){
    // Crossfade between motions (punch ↔ stab, hand swaps, attack ↔ block…). Archery stays exact for the bow string.
    const blended=actionPose=blender.update(motionKey(motion.kind,motion.profile),playerActionMotion(motion.kind,motion.time,time,motion.profile),dt,{instant:motion.kind==='Archery'||snap});
@@ -138,8 +144,9 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
   play(kind,{profile=null,loop=true,duration=null}={}){playing={kind,profile:profile||(COMBAT_KINDS.includes(kind)?gearProfile(kind,equipment):null),loop,duration:duration??SOCIAL_DURATIONS[kind]??null,time:0};},
   stop(){playing=null;},
   get playing(){return playing?.kind||null;},
-  // expression: the face when nothing overrides it; face: a final override (e.g. dialogue).
-  update(dt,time,{expression='idle',face=null}={}){
+  // expression: the face when nothing overrides it; face: a final override (e.g. dialogue); calm: in a
+  // conversation (idle eases back).
+  update(dt,time,{expression='idle',face=null,calm=false}={}){
    let pose=idlePose(time*idleRate),motion=null,socialHands=null,lift=0;
    if(playing){
     playing.time+=dt;
@@ -150,6 +157,6 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
     }else motion={kind:playing.kind,time:playing.time,profile:playing.profile};
    }
    rig.group.position.y=baseY+(lift||0);
-   return presentation.update(dt,time,{pose,expression,motion,socialHands,face});
+   return presentation.update(dt,time,{pose,expression,motion,socialHands,face,calm});
   }};
 }

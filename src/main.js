@@ -139,7 +139,10 @@ introTile.add(makeTerrainTile({x:0,z:0,h:1},new Map(),grass[0]));
 const playerModel=makeSlime(),player=playerModel.group,body=playerModel.body,expressionFace=playerModel.face,hands=playerModel.hands;scene.add(player);
 // The player renders through the shared slime presentation, like every NPC slime (AGENTS.md).
 const presentation=createSlimePresentation(playerModel,{equipment:()=>equipment,tools:{axe:()=>makeAxe({wood,rock})}}),visual=presentation.visual;
-let facing=0,happyUntil=0;
+let facing=0,happyUntil=0,playerFace='idle';
+// Every successful finish (gathering, chopping, mining, crafting, smithing, smelting, cooking, carpentry,
+// fishing) gives the player a moment of happy face.
+const succeeded=()=>{happyUntil=Math.max(happyUntil,elapsed+1.2);};
 const gatheringSkill=createGatheringSkill();
 const craftingSkill=createGatheringSkill(),lumberjackSkill=createGatheringSkill(),miningSkill=createGatheringSkill();
 let chopTarget=null,actorTarget=null,actorTime=0;
@@ -262,7 +265,7 @@ resourceActions=createResourceActions({world,inventory,skills:{Gathering:gatheri
  tile:()=>tile,reserved:t=>t===tile||t===segment?.to||path.includes(t)||campfires?.placementTile===t||companions?.occupies(t),
  face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},toast,sound:name=>gameAudio.play(name),
  started(node,rules){feedback.destination(tile);feedback.interacting(rules.motion);},interacting:kind=>feedback.interacting(kind),completed(){feedback.complete();},cancelled(){feedback.clearDestination();},
- rewarded(node,changes,reward){areas.broadcast('resourceCompleted',changes);showSkillReward(reward,player.position);showItemChanges(changes);happyUntil=elapsed+1.2;
+ rewarded(node,changes,reward){areas.broadcast('resourceCompleted',changes);showSkillReward(reward,player.position);showItemChanges(changes);succeeded();
   if(clearingTiles.get(key(node.x,node.z))===node.tile){if(node.kind==='tree')craftingTutorial.chopped(changes.logs);else if(node.kind==='boulder')craftingTutorial.mined();else {gatherTime=0;$('tooltip').style.display='none';updateUI(reward);}}
  }
 });
@@ -271,13 +274,13 @@ carpentry=createCarpentrySystem({inventory,stop:()=>stopAll({keepMenu:true}),bus
  inReach:target=>!segment&&!path.length&&interactionRoute(world,tile,target)?.route.length===0,
  face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},toast,
  started(){feedback.destination(tile);feedback.interacting('Repairing');gameAudio.play('hammer');},
- completed(changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();},cancelled(){feedback.clearDestination();}
+ completed(changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();succeeded();},cancelled(){feedback.clearDestination();}
 });
 fishing=createFishingSystem({inventory,stop:()=>stopAll({keepMenu:true}),busy:()=>!canMove()||combat?.working,
  inReach:spot=>!segment&&!path.length&&interactionRoute(world,tile,spot)?.route.length===0,
  face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},toast,
  started(){feedback.destination(tile);feedback.interacting('Fishing');gameAudio.play('cast');},
- caught(changes,reward){showItemChanges(changes,{sound:'catch'});showSkillReward(reward,player.position);},
+ caught(changes,reward){showItemChanges(changes,{sound:'catch'});showSkillReward(reward,player.position);succeeded();},
  completed(){feedback.complete();},cancelled(){presentation.clearFishing();feedback.clearDestination();}
 });
 food=createFoodSystem({inventory,health,defer:afterStep.defer,busy:()=>!canMove()||areas.working,stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),
@@ -289,7 +292,7 @@ food=createFoodSystem({inventory,health,defer:afterStep.defer,busy:()=>!canMove(
 function confirmFood(proceed){const dialog=confirmModal(modals,{id:'food-confirm',title:'Eat at full health?',message:'Your health is already full. Eat this anyway?',confirm:'Eat anyway',onConfirm:proceed});return ()=>dialog.close('cancelled');}
 cooking=createCookingSystem({inventory,stop:()=>stopAll({keepMenu:true}),busy:()=>!canMove()||combat?.working,
  started(){feedback.destination(tile);feedback.interacting('Cooking');gameAudio.play('sizzle');},
- completed(changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();},
+ completed(changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();succeeded();},
  cancelled(){feedback.clearDestination();}
 });
 cookingMenu=createCookingMenu({modals,recipes:COOKING_RECIPES,items:ITEMS,inventory,canMake:canCookRecipe,duration:seconds=>cookingDuration(seconds,cooking.skill.level),onCook:(id,station)=>cooking.start(id,station)});
@@ -297,7 +300,7 @@ recipeCrafting=createRecipeCrafting({inventory,skill:craftingSkill,defer:afterSt
  busy:()=>combat?.busy||combat?.working||areas.busy||travel.busy||companions?.working||resourceActions?.working||carpentry?.working||fishing?.working||food?.working||cooking?.working||smithing?.working,
  progressed(age,dt){if(Math.floor((age-dt)/.45)!==Math.floor(age/.45))gameAudio.play('craft');},
  stop:()=>stopAll({keepMenu:true}),started(id){areas.notify('craftStarted',id);feedback.destination(tile);feedback.interacting('Crafting');},
- completed(id,changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();happyUntil=elapsed+1.2;updateUI();areas.notify('crafted',id);},cancelled(){feedback.clearDestination();areas.notify('craftCancelled');}
+ completed(id,changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();succeeded();updateUI();areas.notify('crafted',id);},cancelled(){feedback.clearDestination();areas.notify('craftCancelled');}
 });
 campfires=createCampfires({scene,world,pickables,inventory,cookingMenu,feedback,tile:()=>tile,defer:afterStep.defer,
  busy:()=>!canMove()||combat?.working,stop:()=>stopAll({keepMenu:true}),closeMenus:()=>menus.action(),approach:selectActor,toast,showItems:showItemChanges,
@@ -308,12 +311,14 @@ campfires=createCampfires({scene,world,pickables,inventory,cookingMenu,feedback,
 smithing=createStationCrafting({inventory,stop:()=>stopAll({keepMenu:true}),busy:()=>!canMove()||combat.working,
  inReach:a=>!segment&&!path.length&&interactionRoute(world,tile,a)?.route.length===0,
  started(a){facing=Math.atan2(a.x-tile.x,a.z-tile.z);feedback.destination(tile);feedback.interacting(a.kind==='anvil'?'Smithing':'Smelting');gameAudio.play(a.kind==='anvil'?'anvil':'furnace');},
- completed(id,changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();areas.broadcast('stationCrafted',id);},cancelled(){feedback.clearDestination();}
+ completed(id,changes,reward){showItemChanges(changes);showSkillReward(reward,player.position);feedback.complete();succeeded();areas.broadcast('stationCrafted',id);},cancelled(){feedback.clearDestination();}
 });
 const stationOptions={modals,recipes:COOKING_RECIPES,items:ITEMS,inventory,canMake:canCookRecipe,duration:seconds=>cookingDuration(seconds,smithing.skill.level),onCook:(id,station)=>smithing.start(id,station)};
 furnaceMenu=createCookingMenu({...stationOptions,kind:'furnace'});anvilMenu=createCookingMenu({...stationOptions,kind:'anvil'});
 const openStation=a=>(a.kind==='furnace'?furnaceMenu:anvilMenu).open(a);
-const characterDialogue=createCharacterDialogue({player:()=>({name:opening.profile.name||'Pip',model:visual})});
+// Portraits mirror a model's descendants (the slime presentation's motion lives below the root), so pass
+// the player's root like every NPC's.
+const characterDialogue=createCharacterDialogue({player:()=>({name:opening.profile.name||'Pip',model:player})});
 willow=createWillowbank({narrator,tipBox:tip,dialogue:characterDialogue,scene,world,crystals,renderer,player,visual,hands,pickables,inventory,feedback,companions,cookingMenu,campfires,health,food,fishing,fishingSpots,carpentry,resourceActions,
  playerWorking:()=>!!actorTarget||companions.working||resourceActions.working||carpentry.working||fishing.working||food.working||cooking.working||recipeCrafting.working,
  playerSleepTime:()=>idleClock.sleepTime,approaching:()=>actorTarget,occupied:t=>t===tile||t===segment?.to,routeContains:t=>segment?.to===t||path.includes(t),tile:()=>tile,hover:()=>hover?.actor||hover?.tree||hover?.resource,moving:()=>!!segment||path.length>0,profile:()=>opening.profile,
@@ -577,10 +582,11 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands&&preview.grip?withGrip(preview.hands,equipmentIdleHands({rightHand:equipment.slots.right,leftHand:equipment.slots.left}),preview.grip):preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  const celebration=areas.celebration;
  if(celebration){facing=celebration.angle;}
- const shown=presentation.update(dt,elapsed,{pose,expression,handWork,socialHands,motion:actionMotion,moving:!!segment,celebration,happy:elapsed<happyUntil,
+ const shown=presentation.update(dt,elapsed,{pose,expression,handWork,socialHands,motion:actionMotion,moving:!!segment,celebration,happy:elapsed<happyUntil,calm:characterDialogue.active,
   face:characterDialogue.expressionFor('left')||areas.expression||null,gearMotion:(__PLAYGROUND__&&debug?.combatMotion)||actionMotion,working:recipeCrafting.working,
   debugTools:__PLAYGROUND__&&debug?{chopping:debug.chopping,mining:debug.mining,time:debug.time}:null});
  if(shown.acting)sleeping=false;
+ playerFace=shown.expression;
  contactShadow.update(player.position,visual.scale,player.visible);
  for(const tree of trees)tree.highlight.update((['boulder','copper'].includes(tree.kind)?craftingTutorial.highlightBoulders:craftingTutorial.highlightTrees)&&!tree.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.tree===tree&&!tree.depleted);
  const showResourceArrows=!opening.finished&&opening.canGather&&inventory.sticks+inventory.stones===0;
@@ -744,5 +750,5 @@ systemsReady.value=true;
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
-if(__PLAYGROUND__)window.quadriaquest={getState:()=>({hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
+if(__PLAYGROUND__)window.quadriaquest={getState:()=>({hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,face:playerFace,body:{squash:visual.scale.y,twist:visual.rotation.y,lean:visual.rotation.x},finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
 if(__PLAYGROUND__)window.quadriaquest.perf=playground.createPerfScenarios({api:playgroundApi,probe:perfProbe,setView(view){angle=view.angle;elevation=view.elevation;zoom=view.zoom;},walkTo(x,z){const t=world.get(key(x,z));if(t)moveTo(t);},state:()=>window.quadriaquest.getState()});

@@ -100,7 +100,14 @@ export function createSoundEffects(ctx,out,{voices,palette=()=>DEFAULT_PALETTE})
   pickup(){noise(1400,{dur:.1,level:.04,q:.6});notes([[5,8,10][Math.floor(Math.random()*3)]],{dur:.25,vel:.32});},
   craft(){noise(1800,{dur:.1,level:.12,q:1});tone(330*vary(),{dur:.12,level:.07,type:'triangle'});},
   complete(){notes([5,8],{gap:.09,dur:.5,vel:.5});},
-  eat(){for(const at of [0,.17,.34])noise(1500*vary(),{at,dur:.16,level:.28,q:1.2,attack:.014});},
+  // Three munches, each a little quieter and lower: a crackle of tiny crisp grains (the crunch) over a
+  // soft, muffled chew, with only a whisper of jaw thump.
+  eat(){[[0,1,.11],[.22,.93,.085],[.44,.86,.065]].forEach(([at,pitch,level])=>{
+   // The grains fall away step by step (each about half the last, ringing a little longer), so a crunch
+   // fades into the chew instead of stopping short.
+   [.8,.48,.28,.15].forEach((share,g)=>{const t=at+g*(.022+Math.random()*.006);noise((2600+Math.random()*1900)*pitch,{at:t,dur:.035+g*.014,level:level*share,q:1.6,attack:.008});});
+   noise(820*pitch*vary(),{at,dur:.2,level:level*.55,type:'lowpass',q:.7,sweep:480*pitch,attack:.012});
+   tone(130*pitch*vary(),{at,dur:.07,level:level*.15,type:'triangle',glide:95,attack:.008});});},
   chop(){noise(450,{dur:.14,level:.28,q:.8});tone(135*vary(),{dur:.14,level:.15,type:'triangle',glide:70});},
   mine(){noise(2600,{dur:.14,level:.2,q:.8});tone(1100*vary(),{dur:.16,level:.07,type:'triangle',glide:700});},
   fall(){noise(330,{dur:.8,level:.26,q:.6,sweep:180,attack:.02});tone(90,{dur:.45,level:.12,type:'triangle',glide:35,attack:.01});},
