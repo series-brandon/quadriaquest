@@ -12,7 +12,8 @@ const EXPANDED_KEY='quadriaquest-journal-expanded';
 // The adventurer's journal: the shell around the panel host's pages (header, docking,
 // expansion), plus the Quests and Settings pages. Which page is open, whether the tab bar
 // shows and which tabs exist all live in menus.panels; this module presents that state.
-export function mountJournal(menus,controller,settings){
+// jobs: the jobs system, shown in the Quests page's Jobs section.
+export function mountJournal(menus,controller,settings,{jobs=null}={}){
  const $=id=>document.getElementById(id),{panels,host}=menus,nav=$('game-menu-bar');
  const tutorialLock=mountJournalTutorialLock(host,controller);
  const compact=compactViewport(),docked=signal(false),expanded=signal(readExpanded());
@@ -22,7 +23,7 @@ export function mountJournal(menus,controller,settings){
 
  // The open quest; the first-quest lesson opens it directly.
  const openQuest=signal(null),viewingQuest=signal(false);
- const questPanel=mount(()=>h('section',{id:'quests-panel','aria-label':'Quests',hidden:true},questsPage({chapters:questChapters,revision:questRevision,help:showObjectiveHelp,chosen:openQuest,viewing:viewingQuest}))).node;
+ const questPanel=mount(()=>h('section',{id:'quests-panel','aria-label':'Quests',hidden:true},questsPage({chapters:questChapters,revision:questRevision,help:showObjectiveHelp,chosen:openQuest,viewing:viewingQuest,jobs}))).node;
  panels.register({id:'quests',label:'Quests',icon:'quests',order:10,primary:true,element:questPanel,returnTo:true,
   closeLocked:computed(()=>controller.stageState.value==='quests-detail'),
   select(){

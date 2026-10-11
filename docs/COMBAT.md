@@ -317,6 +317,8 @@ Behavior and reward configuration:
 
 User decision, 2026-10-10: defeated enemies drop loot. Each enemy stat sheet carries a drop table (an optional gold range in Gold Pieces, items that always drop, and chance rolls). Drops roll once on the shared victory event and land as one loot pile on the defeat tile, owned by the victor. The player always clicks the pile to pick it up; no mode or assistance picks it up automatically. Inert training targets, scripted story fights and no-reward creatures (the Cinder Golem for now) drop nothing. Drop tables favour crafting materials and food over large amounts of gold, so pacifist jobs and selling stay competitive. The economy design ([ECONOMY.md](ECONOMY.md)) holds item values, loot piles and the earning target.
 
+**As implemented (2026-10-11):** `drops` on `ENEMIES` (`combat-rules.js`): the Goblin Scrapper (2–6 gold; sticks, raw fish, a little copper ore) and the Goblin Bruiser (5–12 gold, always 2 Rocks; copper ore, logs, cooked fish, stone). The practice target and the Cinder Golem have none. `drops.js` rolls them on the combat system's `won` event (`main.js`), and `loot-piles.js` leaves the pile on the enemy's tile (3 minutes). Tutorial piles are cleared on waking. Story fights don't drop yet only because none exist outside the tutorial; a spawn can't opt out per fight yet.
+
 **Defeat costs nothing.** Being defeated sends the player back to an Iter Crystal and changes nothing else: no gold or item loss.
 
 ### Balance findings from the candidate enemies

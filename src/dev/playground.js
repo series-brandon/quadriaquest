@@ -1,4 +1,5 @@
 import {SHOPS} from '../shops.js';
+import {ENEMIES} from '../combat-rules.js';
 import './test-armor.js';
 export {createTrainingFixtures} from './training-fixtures.js';
 export {createCombatFixtures} from './combat-fixtures.js';
@@ -132,6 +133,14 @@ export function mountPlayground(api){
       <div><button data-dev="shop-open">Open shop</button><button data-dev="shop-counter">Place shop counter</button><button data-dev="shop-counter-remove">Remove counter</button><button data-dev="shop-reset">Reset stock</button></div>
       <div><button data-dev="price-list">Price list</button></div>
     </fieldset>
+    <fieldset><legend>Drops &amp; jobs</legend><p class="dev-note">Enemy drops (drops.js, loot-piles.js): defeated enemies with a drop table leave a loot pile you click to pick up (gone after 3 minutes). <b>Roll drops</b> rolls the chosen enemy's table without a fight and shows its odds; <b>Drop loot here</b> leaves a real pile beside you (rolled, or a test pile for "Test pile"); a seed makes rolls repeat. Jobs (jobs.js): noticeboards are job boards; in Gelton, Pim of the Post at the square has deliveries, and the smiths, fishmongers and bakers with a gold "!" over their heads have jobs. Stand-in givers and a stand-in recipient work in any map; Finish jobs supplies or counts what each needs.</p>
+      <label>Enemy <select id="dev-drop-enemy"><option value="">Test pile</option>${Object.keys(ENEMIES).map(id=>`<option value="${id}">${ENEMIES[id].name}</option>`).join('')}</select></label>
+      <label>Seed <input id="dev-drop-seed" type="number" min="0" step="1" value="1"></label>
+      <div><button data-dev="drops-roll">Roll drops</button><button data-dev="drops-spawn">Drop loot here</button><button data-dev="drops-seed">Fix seed</button><button data-dev="drops-random">Random again</button><button data-dev="drops-clear">Clear piles</button></div>
+      <div><button data-dev="jobs-board">Open job board</button><button data-dev="jobs-noticeboard">Place noticeboard</button></div>
+      <div><button data-dev="jobs-giver-post">Test post giver</button><button data-dev="jobs-giver-smith">Test bring giver</button><button data-dev="jobs-giver-baker">Test craft giver</button><button data-dev="jobs-giver-fishmonger">Test gather giver</button><button data-dev="jobs-recipient">Test recipient</button></div>
+      <div><button data-dev="jobs-finish">Finish jobs</button><button data-dev="jobs-handin">Hand in all</button><button data-dev="jobs-abandon">Abandon all</button><button data-dev="jobs-cooldowns">Clear cooldowns</button><button data-dev="jobs-reset">Reset jobs</button></div>
+    </fieldset>
     <fieldset><legend>Visual feedback only</legend><p class="dev-note">Item gain/loss uses the selected inventory item and quantity without changing your inventory.</p><div>
       ${['Damage splat','Blocked splat','Miss splat','Going','Gathering','Crafting','Chopping','Mining','Smelting','Smithing','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
@@ -235,6 +244,20 @@ export function mountPlayground(api){
         if(action==='shop-counter'){const at=api.placeShopCounter($('shop').value);status(at?`A ${$('shop').selectedOptions[0].textContent} counter at ${at.join(', ')}: click it to trade.`:'No room for a counter nearby.');}
         if(action==='shop-counter-remove'){api.removeShopCounter();status('Counter removed.');}
         if(action==='shop-reset'){api.shops.reset();status('Shop stock refilled.');}
+        if(action==='drops-roll'){const id=$('drop-enemy').value;if(!id){status('Choose an enemy to roll its table.');}else{const r=api.rollDrops(id);status(`${ENEMIES[id].name} drops: ${Object.entries(r.items).map(([i,n])=>itemStack(i,n)).join(', ')||'nothing'}\nOdds: ${r.odds.map(o=>`${ITEMS[o.item].name} ${Math.round(o.chance*100)}% ×${o.count[0]}${o.count[1]!==o.count[0]?'–'+o.count[1]:''}`).join(' · ')||'none'}`);}}
+        if(action==='drops-spawn'){const items=api.spawnLoot($('drop-enemy').value||null);status(items?Object.keys(items).length?`Loot pile: ${Object.entries(items).map(([i,n])=>itemStack(i,n)).join(', ')}. Click it to pick it up.`:'That roll dropped nothing.':'No free tile beside you.');}
+        if(action==='drops-seed'){api.setDropSeed(amount('drop-seed'));status(`Drops use seed ${amount('drop-seed')}: rolls repeat.`);}
+        if(action==='drops-random'){api.setDropSeed(null);status('Drops are random again.');}
+        if(action==='drops-clear'){api.clearLoot();status('Loot piles cleared.');}
+        if(action==='jobs-board'){stop();api.openJobBoard();}
+        if(action==='jobs-noticeboard'){const at=api.placeNoticeboard();status(at?`A noticeboard at ${at.join(', ')}: click it for the job board.`:'No room for a noticeboard nearby.');}
+        if(action.startsWith('jobs-giver-')){stop();api.talkToTestGiver(action.slice(11));}
+        if(action==='jobs-recipient'){stop();api.talkToTestRecipient();}
+        if(action==='jobs-finish'){status(`${api.finishJobs()} job(s) ready to hand in.`);}
+        if(action==='jobs-handin'){status(`${api.handInAll()} job(s) handed in.`);}
+        if(action==='jobs-abandon'){api.abandonJobs();status('Jobs abandoned.');}
+        if(action==='jobs-cooldowns'){api.clearJobCooldowns();status('Givers are ready again.');}
+        if(action==='jobs-reset'){api.resetJobs();status('Jobs, board and cooldowns reset.');}
         if(action==='price-list'){const rows=Object.entries(ITEMS).filter(([id])=>id!=='gold').map(([id,item])=>`${item.name}: buy ${item.value} GP, sell ${api.shops.sellPrice(id)} GP${item.sellable===false?' (not sellable)':''} [${item.category}]`);console.table(Object.fromEntries(Object.entries(ITEMS).map(([id,item])=>[id,{value:item.value,sell:api.shops.sellPrice(id),category:item.category,sellable:item.sellable!==false}])));status(rows.join('\n'));}
         if(action==='skills-menu'){stop();api.showSkills();}
         if(action==='level-lesson'){stop();api.levelLesson();}

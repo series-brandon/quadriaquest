@@ -6613,6 +6613,37 @@
    "line": "The keep is through the gate."
   },
   {
+   "id": "post-clerk",
+   "name": "Pim of the Post",
+   "giver": "post",
+   "look": {
+    "color": "#7fa6d8",
+    "loadout": {
+     "head": "fishersHat"
+    }
+   },
+   "home": [
+    60,
+    77
+   ],
+   "routine": [
+    {
+     "do": "gaze",
+     "weight": 2
+    },
+    {
+     "do": "read",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "pace": 0.8,
+   "line": "Letters and parcels, all over town."
+  },
+  {
    "id": "crier",
    "name": "Old Hollis",
    "look": {
@@ -6639,7 +6670,7 @@
      "weight": 1
     }
    ],
-   "line": "Jobs go up on the board, once the guild sorts its ledgers."
+   "line": "Jobs go up on the board here in the square."
   },
   {
    "id": "vendor-0",
@@ -7216,7 +7247,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-60",
@@ -7280,7 +7311,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-64",
@@ -7304,7 +7335,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-66",
@@ -7314,6 +7345,7 @@
     "loadout": null
    },
    "house": 66,
+   "giver": "baker",
    "routine": [
     {
      "do": "keep",
@@ -7328,7 +7360,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-68",
@@ -7354,7 +7386,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-70",
@@ -7404,6 +7436,7 @@
     "loadout": null
    },
    "house": 76,
+   "giver": "smith",
    "routine": [
     {
      "do": "keep",
@@ -7418,7 +7451,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-78",
@@ -7428,6 +7461,7 @@
     "loadout": null
    },
    "house": 78,
+   "giver": "fishmonger",
    "routine": [
     {
      "do": "keep",
@@ -7442,7 +7476,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-80",
@@ -7508,7 +7542,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-90",
@@ -7572,7 +7606,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-100",
@@ -7744,6 +7778,7 @@
     "loadout": null
    },
    "house": 136,
+   "giver": "baker",
    "routine": [
     {
      "do": "keep",
@@ -7758,7 +7793,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   },
   {
    "id": "resident-138",
@@ -7768,6 +7803,7 @@
     "loadout": null
    },
    "house": 138,
+   "giver": "smith",
    "routine": [
     {
      "do": "keep",
@@ -7782,7 +7818,7 @@
      "weight": 1
     }
    ],
-   "line": "Stock’s coming in soon, I promise."
+   "line": "Have a look at what I’ve got."
   }
  ],
  "interiors": {

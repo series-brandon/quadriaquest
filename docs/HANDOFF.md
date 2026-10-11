@@ -20,6 +20,15 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Enemy drops and jobs — 2026-10-11 (user: "Let's do enemy drops and jobs next")
+
+- Drops: `drops.js` (tables on `ENEMIES`, roller, odds, seeded random), `loot-piles.js` + `loot-pile-model.js` (click to pick up, 3 min). Rolled in the combat `won` handler. **Fixed:** `main.js` had two `won:` keys in the combat options, so the first (victory sound, happy face) never ran; merged into one handler. A scan of all source with esbuild found no other duplicate keys except a harmless default in `normalizeBuilding`.
+- Jobs: `jobs.js` (board pool, givers, four kinds, packages, cooldowns, refills), `job-marker.js`, `ui/job-view.js`, `ui/dialogs/job-board.js`, `ui/dialogs/talk-dialog.js`, and a Jobs section on the Quests page (`journal.js` passes `jobs`). Townsfolk talk goes through `crowdServices.talk` (`main.js` `talkTo`); every townsfolk knows its `city`; crowds register by area for markers. Gelton gains Pim of the Post and keeper givers (`capital-layout.js`, regenerated).
+- Playground: Drops & jobs fieldset; catalogue entries for the pile and markers.
+- Verified in the browser: givers' markers in Gelton; Pim's delivery (talk dialog, package, Quests page card), Yarrow's parcel marker and hand-over (+26 GP); the job board's posted jobs; a stand-in pile picked up by clicking; a real Scrapper victory leaving a pile.
+- Open: gathering in Gelton (ECONOMY.md open question 1).
+- Tests: 565 pass (new `jobs.test.js`; dialog, quests page and notices tests extended).
+
 ### Gelton, the waking city, with gold and shops — 2026-10-11 (user: "let's make the capital real!")
 
 - User decisions: the capital is **Gelton**; waking from the tutorial lands there (the placeholder world is removed); this phase is gold, item values and shops (ECONOMY.md steps 1, 2 and the shop part of 5); drops and jobs later.

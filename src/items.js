@@ -29,6 +29,7 @@ export const ITEMS={
  wizardHat:{name:'Wizard Hat',description:"Wisp's tall hat with a curled tip, gold band and stars. Equip it to wear it."},
  breathHeadband:{name:'Breath Headband',description:"Ember's cloth headband, with a ring of calm breath floating above. Equip it to wear it."},
  fishersHat:{name:"Fisher's Hat",description:"Reed's wide-brimmed straw hat, for long days by the water. Equip it to wear it."},
+ package:{name:'Package',description:'A parcel for someone in town. Deliver it by talking to them.'},
  companionHats:{name:'Companion Top Hat',description:'A tiny, very dapper top hat with a flower on the band. Put it on your companion here.'}
 };
 
@@ -45,7 +46,7 @@ const WORTH={
  flint:[4,'stone'],firestarters:[15,'tool'],campfires:[15,'tool'],rawFish:[8,'fish'],cookedFish:[15,'food'],
  sticks:[2,'wood'],stones:[2,'stone'],pickaxes:[9,'tool'],stone:[6,'stone'],axes:[9,'tool'],logs:[6,'wood'],
  hats:[60,'hat'],staffs:[45,'weapon'],ironSkullcap:[50,'hat'],minersCap:[40,'hat'],archerCap:[40,'hat'],wizardHat:[50,'hat'],
- breathHeadband:[40,'hat'],fishersHat:[40,'hat'],companionHats:[40,'hat'],
+ breathHeadband:[40,'hat'],fishersHat:[40,'hat'],companionHats:[40,'hat'],package:[0,'quest'],
 };
 for(const [id,[value,category]] of Object.entries(WORTH))Object.assign(ITEMS[id],{value,category});
-ITEMS.gold.sellable=false;
+ITEMS.gold.sellable=false;ITEMS.package.sellable=false;

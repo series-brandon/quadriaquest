@@ -1,6 +1,7 @@
 import {computed, signal} from '../../reactive.js';
 import {h} from '../dom.js';
 import {iconNode} from '../icon.js';
+import {jobCard} from '../job-view.js';
 import {keyedList} from '../list.js';
 import {progressBar, section} from '../controls.js';
 
@@ -13,7 +14,9 @@ import {progressBar, section} from '../controls.js';
 //   help(id)   runs an objective's "Show me how" action
 //   chosen     signal: the open quest's title (owned by the host so tutorials can open one)
 //   viewing    signal: true while a quest is open instead of the list
-export function questsPage({chapters, revision, help = () => {}, chosen = signal(null), viewing = signal(false)}) {
+// jobs (optional): the jobs system (jobs.js): active jobs show in their own section, each with Abandon.
+export function questsPage({chapters, revision, help = () => {}, chosen = signal(null), viewing = signal(false), jobs = null}) {
+  const activeJobs = computed(() => (jobs ? jobs.active : []));
   const all = computed(() => (revision.value, chapters()));
   const done = goal => goal.current >= goal.total;
   const active = computed(() => all.value.filter(quest => !quest.complete));
@@ -40,10 +43,13 @@ export function questsPage({chapters, revision, help = () => {}, chosen = signal
   const questList = (label, items) => keyedList(h('div', {class: 'q-list q-quests__list', role: 'list', 'aria-label': label}), items, quest => quest.title, questButton);
 
   const list = h('section', {class: 'q-quests__index', 'aria-label': 'Quests', hidden: () => view.value !== 'list'},
-    h('p', {class: 'q-page__help', hidden: () => all.value.length > 0}, 'Your next adventure will appear here.'),
+    h('p', {class: 'q-page__help', hidden: () => all.value.length > 0 || activeJobs.value.length > 0}, 'Your next adventure will appear here.'),
     h('h3', {class: 'q-label', hidden: () => !all.value.length}, 'In progress'),
     h('p', {class: 'q-page__help', hidden: () => !all.value.length || active.value.length > 0}, 'No quests in progress.'),
     questList('Quests in progress', active),
+    jobs ? section({title: 'Jobs', value: () => String(activeJobs.value.length), open: true, hidden: () => !activeJobs.value.length},
+      keyedList(h('div', {class: 'q-list q-jobs', role: 'list', 'aria-label': 'Your jobs'}), activeJobs, job => job.key,
+        item => jobCard(item, () => [{label: 'Abandon', quiet: true, run: () => jobs.abandon(item.peek().key)}]))) : null,
     section({title: 'Completed', value: () => String(completed.value.length), hidden: () => !completed.value.length},
       questList('Completed quests', completed)));
 

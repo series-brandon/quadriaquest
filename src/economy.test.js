@@ -8,7 +8,7 @@ import {reactiveRecord} from './reactive.js';
 import {USE_NAMES} from './furnish.js';
 
 test('every item has a value and a category; gold is currency and cannot be sold',()=>{
- for(const [id,item] of Object.entries(ITEMS)){assert.ok(item.category,id);if(id!==GOLD)assert.ok(item.value>0,id);}
+ for(const [id,item] of Object.entries(ITEMS)){assert.ok(item.category,id);if(item.sellable!==false)assert.ok(item.value>0,id);}
  assert.equal(ITEMS.gold.sellable,false);assert.equal(Object.keys(ITEMS)[0],GOLD,'gold sorts first');
  assert.equal(sellPrice('copperDagger'),Math.floor(40*SELL_RATE));assert.equal(sellPrice('arrows'),1,'at least 1');
  assert.equal(formatGold(1250),'1,250 GP');

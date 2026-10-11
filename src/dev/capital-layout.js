@@ -25,6 +25,8 @@ const BLOCKS=[[4,29,33,45],[33,61,33,45],[67,95,33,45],[99,123,33,45],[4,29,48,6
  [4,29,73,97],[33,55,73,97],[72,95,73,97],[99,123,73,97],[4,29,101,123],[33,62,101,123],[66,95,101,123],[99,123,101,123]];
 // Shops by trade (Phase 10 furnishing); signs follow the trade.
 const TRADES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecary','store','tavern','bakery','tailor','carpenter'];
+// Shopkeepers who also ask for jobs (jobs.js GIVERS), by their shop's trade.
+const JOB_GIVERS={smithy:'smith',fishmonger:'fishmonger',bakery:'baker'};
 const styleAt=(x,z)=>z>100?'stone':x<56?'timber':'brick';
 
 export function capitalData(){
@@ -83,7 +85,9 @@ export function capitalData(){
   {id:'guard-avenue',name:'Guard Rowan',look:{color:'#c85745',loadout:guard},home:[64,34],routine:[{do:'patrol'}],patrol:[[64,34],[64,61]],pace:1.3,line:'The castle is open to all who mind their manners.'},
   {id:'guard-square',name:'Guard Tilly',look:{color:'#c85745',loadout:guard},home:[58,64],routine:[{do:'patrol'}],patrol:[[58,64],[70,64],[70,78],[58,78]],pace:1.3,line:'Welcome to Gelton.'},
   {id:'guard-gate',name:'Guard Barnaby',look:{color:'#c85745',loadout:guard},home:[61,26],routine:[{do:'patrol'}],patrol:[[61,26],[67,26]],pace:1.2,line:'The keep is through the gate.'},
-  {id:'crier',name:'Old Hollis',look:{color:'#e3c07c',loadout:{head:'minersCap'}},home:[62,76],routine:[{do:'read',weight:2},{do:'gaze',weight:1},{do:'chat',weight:1}],line:'Jobs go up on the board, once the guild sorts its ledgers.'});
+  // Jobs (jobs.js): the post office clerk always has a delivery to someone in town.
+  {id:'post-clerk',name:'Pim of the Post',giver:'post',look:{color:'#7fa6d8',loadout:{head:'fishersHat'}},home:[60,77],routine:[{do:'gaze',weight:2},{do:'read',weight:1},{do:'chat',weight:1}],pace:.8,line:'Letters and parcels, all over town.'},
+  {id:'crier',name:'Old Hollis',look:{color:'#e3c07c',loadout:{head:'minersCap'}},home:[62,76],routine:[{do:'read',weight:2},{do:'gaze',weight:1},{do:'chat',weight:1}],line:'Jobs go up on the board here in the square.'});
  for(let i=0;i<3;i++)data.townsfolk.push({id:`vendor-${i}`,name:`Vendor ${i+1}`,look:{color:colors[i%8]},home:[37+(i%3)*7,50+Math.floor(i/3)*6],routine:[{do:'vend',weight:6},{do:'stroll',weight:1}]});
  const homes=[[60,69],[68,72],[59,73],[69,77],[64,66],[34,59],[50,66],[40,64],[64,90],[64,105],[20,71],[90,71],[110,71],[31,60],[97,60],[64,45],[64,55],[20,47],[100,47],[31,85],[97,85],[45,99],[85,99],[66,84],[69,95]];
  const routines=[[{do:'stroll',weight:3},{do:'sit',weight:2},{do:'gaze',weight:1},{do:'chat',weight:2}],[{do:'browse',weight:3},{do:'stroll',weight:2},{do:'drink',weight:1}],[{do:'read',weight:1},{do:'enter',weight:2},{do:'stroll',weight:2}],[{do:'stroll',weight:2},{do:'chat',weight:2},{do:'gaze',weight:1}]];
@@ -94,7 +98,7 @@ export function capitalData(){
  const first=['Alder','Bryn','Coral','Dunstan','Elsie','Fenwick','Greer','Hob','Ivo','Juniper','Kell','Linnet','Mabry','Nettle','Orrin','Pearl','Quince','Rook','Sorrel','Thistle','Ulric','Vesper','Wick','Yarrow'];
  let r=0;
  data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length)return;const shop=!!b.desc.sign;if(shop?i%2!==0:i%10!==0)return;
-  data.townsfolk.push({id:`resident-${i}`,name:`${first[r%first.length]}${r>=first.length?' '+(Math.floor(r/first.length)+1):''}`,look:{color:colors[r%8],loadout:r%5===0?{head:'minersCap'}:null},house:i,
-   routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'sleep',weight:1},{do:'cook',weight:1},{do:'sit',weight:2},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'chat',weight:1}],line:shop?'Stock’s coming in soon, I promise.':'Mind the step on your way in.'});r++;});
+  data.townsfolk.push({id:`resident-${i}`,name:`${first[r%first.length]}${r>=first.length?' '+(Math.floor(r/first.length)+1):''}`,look:{color:colors[r%8],loadout:r%5===0?{head:'minersCap'}:null},house:i,...(shop&&JOB_GIVERS[b.desc.use]?{giver:JOB_GIVERS[b.desc.use]}:{}),
+   routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'sleep',weight:1},{do:'cook',weight:1},{do:'sit',weight:2},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'chat',weight:1}],line:shop?'Have a look at what I’ve got.':'Mind the step on your way in.'});r++;});
  return data;
 }

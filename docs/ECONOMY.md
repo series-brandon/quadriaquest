@@ -1,6 +1,6 @@
 # Economy: Gold Pieces, shops and jobs (design draft)
 
-Draft, 2026-10-10. Gold, item values and shops are implemented (2026-10-11, see *As implemented*); enemy drops and jobs are not yet. Numbers are starting proposals to tune.
+Draft, 2026-10-10. Gold, item values, shops, enemy drops and jobs are implemented (2026-10-11, see *As implemented*). Numbers are starting proposals to tune.
 
 **User decisions (2026-10-10):**
 - **An economy is vital for the prototype.** Pacifists must be able to earn a living without fighting, through **jobs** and by **selling what they craft and forage**.
@@ -131,16 +131,43 @@ User decision (2026-10-11): this phase builds gold, values and shops, hooked up 
   - Reset stock.
   - A price list (value, sell price, category, sellable).
   - Gold is also in the Inventory item list.
-- **Not yet:** enemy drops and jobs (plan steps 3 and 4), a coin icon that grows with the amount, better rates at specialist shops, a save system (gold is lost on reload, like everything else).
+- **Not yet:** a coin icon that grows with the amount, better rates at specialist shops, a save system (gold is lost on reload, like everything else).
+
+## As implemented (enemy drops and jobs, 2026-10-11)
+
+User request (2026-10-11): "Let's do enemy drops and jobs next."
+
+- **Drops:**
+  - Tables, the roller and odds are in `drops.js` (also a seeded random for the playground and tests).
+  - The loot pile is `loot-piles.js`, with its model in `loot-pile-model.js`: a tied sack, with coins when it holds gold. It is clicked to pick up and lasts 180 s. Each pile shows its items as receipts.
+  - Rolled on every victory through the combat system's single `won` handler. Fixing this found a duplicate `won` key that had silently dropped the victory sound and happy face; both are back.
+  - See COMBAT.md *Defeat drops*.
+- **Jobs** (`jobs.js`):
+  - All four kinds. The board pool has 12 jobs: bring sticks, rocks, logs, ore or stone; craft meals, rods or a dagger; gather fish, logs, ore or sticks. Four are posted at a time; you can take three, and each taken offer is replaced 20 s later. At least one posted job always needs no tools.
+  - Townsfolk `GIVERS`: post (deliveries, 12–30 GP, 30 s cooldown), smith (bring ore), fishmonger (gather fish), baker (craft meals).
+  - Gather jobs count from the shared gathering and fishing events after you accept.
+  - Deliveries give a `package` (not sellable). You hand it in by talking to the recipient. Recipients are townsfolk with a house or shop in the giver's city.
+  - Abandoning is free, and a package goes back.
+  - Rewards are gold plus a little XP in the related skill (`grantSkillXp`).
+- **Where jobs come from:**
+  - Any noticeboard opens the **job board** (`ui/dialogs/job-board.js`: posted jobs with Take job, your board jobs with Hand in and Abandon).
+  - **Talking to townsfolk** opens a compact talk dialog (`ui/dialogs/talk-dialog.js`) with their line and what they have for you: hand over a package or hand in a job, accept their job, or trade. With only a shop it opens directly, as before.
+  - In Gelton: Pim of the Post in the square (deliveries), and the smithy, fishmonger and bakery keepers. They show a gold "!" marker (`job-marker.js`) while they have a job for you, and a parcel marker while you owe them a hand-in.
+- **Quests page:** a Jobs section (`ui/job-view.js` cards: progress, where to hand in, reward, Abandon). Hand-ins show "Handed in X · Earned N GP" receipts.
+- **Playground** (Drops & jobs fieldset):
+  - Drops: roll any enemy's table with its odds, drop a real pile beside you (rolled or a test pile), fix or clear the seed, clear piles.
+  - Jobs: open the board, place a noticeboard anywhere, stand-in givers of each kind and a stand-in recipient (any map), finish all jobs, hand in all, abandon all, clear cooldowns, reset.
+  - The model catalogue has the loot pile and both job markers.
+- **Known gap:** Gelton has no trees, ground items, rocks or fishing spots, and after waking it is the only place to go. So **gather jobs can't be done there yet**, and bring and craft jobs need bought materials. Deliveries are the jobs that work for everyone. See the open question below.
 
 ## Plan
 
 1. **Gold and values.** (done 2026-10-11) The `gold` item, `value` and `sellable` on every item, the gold helpers, price tests and notices.
 2. **Shared shop screen and shop definitions.** (done 2026-10-11) A playground counter in any map, a General Store, selling restrictions.
-3. **Enemy drops.** Drop tables, loot piles, pickup, COMBAT.md rules.
-4. **Jobs.** The four kinds, Jobs on the Quests page, quest board prop, giver marker, test addresses.
+3. **Enemy drops.** (done 2026-10-11) Drop tables, loot piles, pickup, COMBAT.md rules.
+4. **Jobs.** (done 2026-10-11) The four kinds, Jobs on the Quests page, quest board prop, giver marker, test addresses.
 5. **City hookup** (with CITY.md): shop buildings, shopkeepers, the town square board and the post office slime with real addresses. (Shops done 2026-10-11; the board and post office come with jobs.)
 
 ## Open questions for the user
 
-None at the moment.
+1. **Gathering in Gelton.** The waking city has nowhere to chop, mine, fish or pick up sticks, so gather jobs can't be done after waking. Options: a few trees, ground items and a fishing pond in Gelton's park (and copper in the sewers), or a gathering area reached by crystal. Until then the board still posts gather jobs.

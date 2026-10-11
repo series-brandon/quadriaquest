@@ -100,3 +100,26 @@ test('an objective split into parts tracks each part with its own bar instead of
   assert.match(node.querySelector('.q-tasks--done').textContent, /✓ Collect ground items/);
   resetObjectives();
 });
+
+test('jobs show in their own section with progress, reward and Abandon, following the jobs system', async () => {
+  const {reactiveRecord} = await import('../../reactive.js');
+  const {createWallet} = await import('../../economy.js');
+  const {createJobs} = await import('../../jobs.js');
+  const {seededRandom} = await import('../../drops.js');
+  resetObjectives();
+  const inventory = reactiveRecord({gold: 0, sticks: 0}), jobs = createJobs({inventory, wallet: createWallet({inventory}), random: seededRandom(2), now: () => 0});
+  const node = mount(() => questsPage({chapters: questChapters, revision: questRevision, jobs})).node;
+  const cards = () => [...node.querySelectorAll('[aria-label="Your jobs"] .q-job')];
+  const empty = () => [...node.querySelectorAll('.q-page__help')].find(p => /Your next adventure/.test(p.textContent));
+  assert.equal(cards().length, 0);
+  assert.equal(empty().hidden, false);
+  const offer = jobs.offers.find(o => o.kind === 'bring' && o.item === 'sticks') || jobs.offers[0];
+  jobs.take(offer.id);
+  assert.equal(cards().length, 1);
+  assert.equal(empty().hidden, true, 'jobs count as something to do');
+  assert.equal(cards()[0].querySelector('strong').textContent, offer.title);
+  assert.match(cards()[0].querySelector('.q-job__reward').textContent, /GP/);
+  assert.match(cards()[0].querySelector('.q-job__where').textContent, /noticeboard/);
+  [...cards()[0].querySelectorAll('button')].find(b => b.textContent === 'Abandon').dispatchEvent(new window.Event('click'));
+  assert.equal(cards().length, 0);
+});

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {makeJobMarker} from './job-marker.js';
 import {makeSlime} from './slime-model.js';
 import {createSlimeActor} from './slime-presentation.js';
 import {markCharacter,occupancy} from './world-occupancy.js';
@@ -84,13 +85,16 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   const slime=createSlimeActor(rig,{loadout:entry.look?.loadout||null,carry:entry.look?.carry||null,idleRate:entry.pace||1});
   const body=new THREE.Group();body.name='townsfolk-'+(entry.id||'');body.add(rig.group);body.userData.character=true;body.userData.blocksMovement=false;
   body.position.set(home.x-6,home.h,home.z-6);group.add(body);
-  const person={kind:'townsfolk',id:entry.id,name:entry.name||'Townsfolk',entry,rig,slime,group:body,tile:home,x:home.x,z:home.z,home,house,
+  const person={kind:'townsfolk',id:entry.id,name:entry.name||'Townsfolk',entry,rig,slime,group:body,tile:home,x:home.x,z:home.z,home,house,giver:entry.giver||null,marker:null,
    ready:true,opened:false,duration:0,label:`Talk to ${entry.name||'townsfolk'}`,available:()=>!person.hidden,
    state:'idle',timer:1+random()*3,goal:null,spot:null,step:null,facing:0,hidden:false,ring:'near',acc:0,
    // A keeper minding their shop or a vendor at a stall trades (shops.js); anyone else says a line.
    get shop(){return person.state==='staying'&&(person.activity==='vend'&&person.spot?.prop?.shop||person.activity==='keep'&&person.house?.building.shop)||null;},
    interact(){person.talkTo=services.player?.()||null;person.talking=4;slime.play('Wave',{loop:false});const line=person.entry.line||LINES[Math.floor(random()*LINES.length)];
-    if(person.shop&&services.trade)services.trade(person,person.shop);else services.say?.(person,line);}};
+    if(services.talk)services.talk(person,line);else if(person.shop&&services.trade)services.trade(person,person.shop);else services.say?.(person,line);},
+   // A job marker over their head (job-marker.js): 'offer', 'due' or null.
+   setMarker(kind){if((person.marker?.kind||null)===kind)return;person.marker?.group.removeFromParent();person.marker=null;
+    if(kind){const group=makeJobMarker(kind);group.position.y=1.25;body.add(group);person.marker={kind,group};}}};
   body.traverse(m=>{if(m.isMesh){m.userData.actor=person;m.userData.tile=home;pickables.push(m);}});
   occupancy.place(person,[home]);folk.push(person);
  }

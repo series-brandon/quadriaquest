@@ -29,8 +29,12 @@ export function deriveEnemy(sheet,config){
 export const ENEMIES={
  // Inert: no attack or retaliation, zero resistance, no dodge/block; half XP until the receiving track reaches level 3.
  target:{name:'Practice Target',health:50,interval:99,min:0,max:0,protected:true,inert:true,resistancePct:{melee:0,ranged:0,magic:0},canDodge:false,canBlock:false,canCritical:false,xpMultiplier:.5,xpLevelCap:3},
- scrapper:{...deriveEnemy(ENEMY_SHEETS.scrapper,GOBLIN),name:'Goblin Scrapper',aggressive:false,aggroRange:3,protected:true},
- bruiser:{...deriveEnemy(ENEMY_SHEETS.bruiser,GOBLIN),name:'Goblin Bruiser',aggressive:true,aggroRange:4},
+ // Drops (docs/ECONOMY.md, Enemy drops; drops.js): a gold range, items that always drop and chance rolls,
+ // favouring materials that feed crafting and selling over large amounts of gold.
+ scrapper:{...deriveEnemy(ENEMY_SHEETS.scrapper,GOBLIN),name:'Goblin Scrapper',aggressive:false,aggroRange:3,protected:true,
+  drops:{gold:[2,6],rolls:[{item:'sticks',chance:.5,count:[1,3]},{item:'rawFish',chance:.25},{item:'copperOre',chance:.12}]}},
+ bruiser:{...deriveEnemy(ENEMY_SHEETS.bruiser,GOBLIN),name:'Goblin Bruiser',aggressive:true,aggroRange:4,
+  drops:{gold:[5,12],always:[{item:'stones',count:2}],rolls:[{item:'copperOre',chance:.4,count:[1,2]},{item:'logs',chance:.3,count:2},{item:'cookedFish',chance:.15},{item:'stone',chance:.3}]}},
  // Unwinnable by design: a single slam (up to 450) ends any tutorial player, but it is slow and
  // telegraphed, so running at once escapes. Its health refills whenever it walks home, and it awards
  // no XP, so it can't be chipped down or farmed.

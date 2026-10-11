@@ -73,7 +73,9 @@ export function objectiveToast({notice, duration = 4500}) {
 
 // Item changes as receipts: gains, losses, or "Crafted X" with what it used. Repeated single-item
 // changes (picking up more sticks) merge into their receipt; at most four show. A trade (show(changes,
-// {trade: 'bought' | 'sold'})) reads "Bought X" or "Sold X" with the gold paid or received.
+// {trade: 'bought' | 'sold' | 'handedIn'})) reads "Bought X", "Sold X" or "Handed in X" (a job) with the
+// gold paid, received or earned; a job that took no items reads as the gold gained.
+const TRADE_VERBS = {bought: 'Bought', sold: 'Sold', handedIn: 'Handed in'}, TRADE_PAID = {bought: 'Paid', sold: 'Received', handedIn: 'Earned'};
 export function itemFeed({duration = 3800, limit = 4} = {}) {
   const entries = signal([]);
   let serial = 0;
@@ -123,7 +125,9 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
   const node = keyedList(h('aside', {id: 'item-feed', class: 'q-feed', role: 'status', 'aria-label': 'Item changes'}), entries, entry => entry.key, item => {
     const lines = () => {
       const {changes, crafted, trade} = item.value;
-      if (trade) return Object.entries(changes).filter(([id, n]) => n && id !== GOLD).map(([id, n]) => ({id, n: trade === 'bought' ? 1 : -1, label: `${trade === 'bought' ? 'Bought' : 'Sold'} ${name(id)} ×${Math.abs(n)}`}));
+      const traded = trade ? Object.entries(changes).filter(([id, n]) => n && id !== GOLD) : [];
+      if (traded.length) return traded.map(([id, n]) => ({id, n: trade === 'bought' ? 1 : -1, label: `${TRADE_VERBS[trade]} ${name(id)} ×${Math.abs(n)}`}));
+      if (trade) return Object.entries(changes).filter(([, n]) => n > 0).map(([id, n]) => ({id, n, label: `+${name(id)} ×${n}`}));
       const gains = Object.entries(changes).filter(([, n]) => n > 0), costs = Object.entries(changes).filter(([, n]) => n < 0);
       return [...gains, ...(crafted ? [] : costs)].map(([id, n]) => ({id, n, label: `${crafted ? 'Crafted ' : n > 0 ? '+' : '−'}${name(id)} ×${Math.abs(n)}`}));
     };
@@ -131,8 +135,8 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
       keyedList(h('div', {class: 'q-receipt__lines'}), lines, line => line.id, line => h('div', {class: 'q-receipt__line', 'data-gain': () => line.value.n > 0},
         h('span', {class: 'q-receipt__icon', 'aria-hidden': 'true'}, iconNode(line.peek().id)),
         h('strong', null, () => line.value.label))),
-      h('small', {hidden: () => !item.value.crafted && !item.value.trade}, () => {
-        if (item.value.trade) return `${item.value.trade === 'bought' ? 'Paid' : 'Received'} ${formatGold(Math.abs(item.value.changes[GOLD] || 0))}`;
+      h('small', {hidden: () => !item.value.crafted && !(item.value.trade && Object.keys(item.value.changes).some(id => id !== GOLD))}, () => {
+        if (item.value.trade) return Object.keys(item.value.changes).some(id => id !== GOLD) ? `${TRADE_PAID[item.value.trade]} ${formatGold(Math.abs(item.value.changes[GOLD] || 0))}` : '';
         const costs = Object.entries(item.value.changes).filter(([, n]) => n < 0);
         return item.value.crafted ? `Used ${costs.map(([id, n]) => `${name(id)} ×${-n}`).join(' · ')}` : '';
       }));

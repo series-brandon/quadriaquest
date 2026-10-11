@@ -13,6 +13,8 @@ const paths={
  expandSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-4-11-3 3 3 3"/>',
  quickEat:'<path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v18M17 3c-3 3-3 7 0 9h3V3zM20 12v9"/>',
  gold:'<ellipse cx="9" cy="16" rx="6" ry="2.5"/><path d="M3 16v3c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-3"/><ellipse cx="15" cy="8" rx="6" ry="2.5"/><path d="M9 8v3c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V8M15 13.5v3c0 1.1 2.6 2.5 6 2.5"/>',
+ package:'<path d="m12 3 8 4v10l-8 4-8-4V7z"/><path d="m4 7 8 4 8-4M12 11v10M8 5l8 4"/>',
+ jobs:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
  shop:'<path d="M3 9 5 4h14l2 5M3 9h18M3 9q0 3 3 3t3-3q0 3 3 3t3-3q0 3 3 3t3-3M5 12v8h14v-8M10 20v-5h4v5"/>',
  copperOre:'<path d="m3 17 3-11 10-3 6 9-5 9H7zM7 8l4 3-2 4m6-9 1 5 4 2"/>',
  copperIngots:'<path d="m3 16 4-9h10l4 9-3 4H6zM3 16h18M7 7l2 9m8-9-2 9"/>',
