@@ -20,6 +20,15 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Slime bend in the shader; shared slime geometry; merged faces — 2026-10-11 (user request)
+
+- `slime-bend.js`: the bend is a vertex-shader patch (`applySlimeBend`, per-mesh uniforms uBend/uToVisual/uFromVisual on the mesh's own material, the same on its shadow depth material); `bendPoint` is the JS reference. `simple-materials.js` keeps the patch on the lowest tier. Geometry is never rewritten.
+- `slime-model.js`: shared body and hand geometry; hands have their own unbent material sharing the body's `color` object (recolouring the body recolours the hands); hands `renderOrder` 2.
+- `slime-face.js`: the same parts and expressions, merged per expression into shared geometry (ink: unlit, vertex colours, `renderOrder` 1; blush: one colour, same program as the body), cached per ink colour (light/dark); `face.state`; group named `slime-face` with `userData.face`.
+- `slime-presentation.js`: grounding uses the body's bottom vertices only (cached on the shared geometry).
+- Every slime (player, mentors, Reed, townsfolk, viewer) gets this at once, as the shared-presentation rule requires. Browser-verified: Wave bends the body and face together; Sergeant Bristle keeps light ink, helmet, dagger and shield while sitting; kit street townsfolk and the player render with faces; no console errors.
+- Perf: see docs/PERFORMANCE.md (capital 9.9 → 8.2 ms; full baseline rewritten). Tests: 540 pass.
+
 ### Low-risk city optimizations — 2026-10-11 (user request)
 
 - `src/static-merge.js` `mergeStatic(root, objects)`: static, untextured, non-pickable meshes merged into one vertex-coloured mesh per material kind per chunk; `buildCity` merges building decor and non-interactive props per chunk (`chunk-statics`). Clickable props, doors, sign icons, roofs and caps stay separate. City data and the editor are unchanged.

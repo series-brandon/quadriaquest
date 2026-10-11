@@ -19,11 +19,12 @@ test('every preview model and advertised motion produces finite transforms',()=>
  }
 });
 test('slime starts with exactly one expression, and preview emotions select one face',()=>{
- const slime=makeSlime();const expressionGroups=slime.face.group.children.filter(c=>c.isGroup);
- assert.equal(expressionGroups.filter(c=>c.visible).length,1);
+ const slime=makeSlime();assert.equal(slime.face.state,'idle');assert.equal(slime.face.group.children.length,2,'ink and blush');
+ const seen=new Set();
  for(const expression of ['idle','happy','pleased','shocked','sad','distraught','frown','sleeping']){
-  slime.face.set(expression);assert.equal(expressionGroups.filter(c=>c.visible).length,1,expression);
+  slime.face.set(expression);assert.equal(slime.face.state,expression==='shocked'?'concerned':expression,expression);seen.add(slime.face.group.children[0].geometry);
  }
+ assert.ok(seen.size>=7,'each expression has its own face geometry');
  assert.deepEqual(MODEL_CATALOG.find(m=>m.name==='Campfire').motions,['Burning','Static']);
  assert.deepEqual(MODEL_CATALOG.find(m=>m.name==='Crude Axe').motions,['Static']);
 });
@@ -37,8 +38,8 @@ test('slime action previews attach only their tools and clear them on switching'
 
 test('default expressions follow the animation while explicit overrides leave hand motion intact',()=>{
  const entry=MODEL_CATALOG.find(m=>m.name==='Slime'),instance=entry.create();
- let face=null;instance.group.traverse(o=>{if(!face&&o.isGroup&&o.children.filter(c=>c.isGroup).length>5)face=o;});
- const visible=()=>face.children.filter(o=>o.isGroup).map(o=>o.visible);
+ let face=null;instance.group.traverse(o=>{if(!face&&o.name==='slime-face')face=o.userData.face;});
+ const visible=()=>face.state;
  instance.update(.4,'Idle',0,'default');const idle=visible();
  instance.update(.4,'Sliding',0,'default');const focused=visible();assert.notDeepEqual(focused,idle);
  instance.update(.4,'Gathering',0,'default');assert.deepEqual(visible(),focused);

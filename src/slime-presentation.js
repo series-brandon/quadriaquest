@@ -54,6 +54,9 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
  const carried=carry?carriedTool(carry):null;if(carried){carried.name='slime-carry-'+carry;carried.visible=false;hands[0].add(carried);}
  const scaleTarget=new THREE.Vector3(),handTarget=new THREE.Vector3(),handScale=new THREE.Vector3(),bodyVertex=new THREE.Vector3(),bodyTransform=new THREE.Matrix4();
  const bodyPositions=body.geometry.getAttribute('position');body.updateMatrix();
+ // Grounding needs only the vertices near the bottom (leans and squashes are small): found once per
+ // geometry (every slime shares it), instead of transforming the whole body every frame.
+ const bottomIndices=body.geometry.userData.bottomIndices??=(()=>{let min=Infinity;for(let i=0;i<bodyPositions.count;i++)min=Math.min(min,bodyPositions.getY(i));const out=[];for(let i=0;i<bodyPositions.count;i++)if(bodyPositions.getY(i)<=min+.22)out.push(i);return out;})();
  function gearFor(){const e=equipmentNow();if(e&&!gear)gear=createEquipmentPresentation({hands,visual,equipment:e});return gear;}
  function bend(amount){bendSlime(amount);gearFor()?.bend(amount);}
  const fishingNow=()=>{if(!fishing){fishing=createFishingPresentation({player:group,hands});fishing.rod.name='slime-tool-rod';}return fishing;};
@@ -89,7 +92,7 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
   // jump height remains independent of this correction.
   visual.position.y=0;visual.updateMatrix();bodyTransform.multiplyMatrices(visual.matrix,body.matrix);
   let bottom=Infinity;
-  for(let i=0;i<bodyPositions.count;i++){bodyVertex.fromBufferAttribute(bodyPositions,i).applyMatrix4(bodyTransform);bottom=Math.min(bottom,bodyVertex.y);}
+  for(const i of bottomIndices){bodyVertex.fromBufferAttribute(bodyPositions,i).applyMatrix4(bodyTransform);bottom=Math.min(bottom,bodyVertex.y);}
   visual.position.y=.002-bottom;
   const chopTool=motion?.kind==='Chopping'||debugTools?.chopping,mineTool=motion?.kind==='Mining'||debugTools?.mining;
   if(chopTool||made.axe)toolModel('axe',makeAxe).visible=!!chopTool;
