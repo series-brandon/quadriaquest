@@ -1,4 +1,4 @@
-import {key,createHeap} from './world.js';
+import {key,createHeap,canStep} from './world.js';
 export const wanderDelay=(random=Math.random)=>2+random()*2;
 export const shouldWander=(random=Math.random)=>random()<.25;
 // Sample uniformly from reachable destinations, not just immediate neighbors.
@@ -7,7 +7,7 @@ export const shouldWander=(random=Math.random)=>random()<.25;
 // the cheapest one, so a wanderer goes around people when it can.
 export function wanderRoute(map,start,area,occupied=()=>false,random=Math.random,cost=null){
  const inside=t=>t.x>=area.minX&&t.x<=area.maxX&&t.z>=area.minZ&&t.z<=area.maxZ;
- const step=(from,next)=>!!next&&inside(next)&&!next.water&&!next.blocked&&Math.abs(next.h-from.h)<=.5;
+ const step=(from,next)=>!!next&&inside(next)&&!next.water&&canStep(from,next);
  const previous=new Map([[key(start.x,start.z),null]]),reached=[];
  if(cost){
   const best=new Map([[key(start.x,start.z),0]]),heap=createHeap();heap.push(0,start);

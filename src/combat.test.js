@@ -12,7 +12,7 @@ import {createRecipeCrafting} from './recipe-crafting.js';
 import {ENEMIES} from './combat-rules.js';
 import {footprintGap} from './footprint.js';
 import {markCharacter} from './world-occupancy.js';
-import {findPath} from './world.js';
+import {findPath,setEdge} from './world.js';
 import {createCharacter} from './character.js';
 import {createResource} from './player-resources.js';
 import {totalXpForLevel,XP_BASE} from './combat-formulas.js';
@@ -431,4 +431,12 @@ test('a calm creature is pushed aside when the player stops on it; pushed out of
  const g=fixture('scrapper');g.a.patrol={minX:3,maxX:3,minZ:3,maxZ:3};g.tile=g.world.get('0,6');g.system.update(.02,0);
  g.a.tile=g.world.get('5,3');g.a.cells=[g.a.tile];g.a.group.position.set(5-6,1,3-6);time=0;
  for(let t=0;t<4;t+=.02)g.system.update(.02,time+=.02);assert.equal(g.a.tile,g.home,'walked home');
+});
+test('an enemy that sees the player through a window walks around to strike; one behind a wall never notices',()=>{
+ const hidden=fixture('scrapper');hidden.a.aggressive=true;setEdge(hidden.home,hidden.world.get('3,4'),{kind:'wall'});
+ for(let t=0;t<2;t+=.02)hidden.system.update(.02,t);assert.equal(hidden.a.aggro,false,'a wall blocks its sight');
+ const f=fixture('scrapper');f.a.aggressive=true;setEdge(f.home,f.world.get('3,4'),{kind:'window'});
+ let time=0;const run=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ run(.6);assert.equal(f.a.aggro,true);assert.equal(f.attacks,0,'no hit through the window');
+ run(5);assert.ok(f.attacks>0,'came around and attacked');assert.notEqual(f.a.tile,f.home);
 });

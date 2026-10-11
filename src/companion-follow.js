@@ -1,5 +1,5 @@
 import {Vector3} from 'three';
-import {findPath,key,createHeap} from './world.js';
+import {findPath,key,createHeap,canStep} from './world.js';
 import {PLAYER_COST,OCCUPIED_COST} from './world-occupancy.js';
 const same=(a,b)=>!!(a&&b&&a.x===b.x&&a.z===b.z);
 // Search once at tile boundaries. Characters are walk-through but occupied (world-occupancy.js): the
@@ -14,7 +14,7 @@ export function companionRoute(world,start,player,reserved=()=>false,occupied=()
  while(heap.size){
   const [d,tile]=heap.pop(),k=key(tile.x,tile.z);if(d>best.get(k))continue;
   if(free(tile))candidates.push({tile,d});
-  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=world.get(key(tile.x+dx,tile.z+dz));if(!n||n.blocked||n.water||Math.abs(n.h-tile.h)>.5)continue;const nk=key(n.x,n.z),nd=d+1+cost(n);if(nd<(best.get(nk)??Infinity)){best.set(nk,nd);previous.set(nk,tile);heap.push(nd,n);}}
+  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=world.get(key(tile.x+dx,tile.z+dz));if(!canStep(tile,n)||n.water)continue;const nk=key(n.x,n.z),nd=d+1+cost(n);if(nd<(best.get(nk)??Infinity)){best.set(nk,nd);previous.set(nk,tile);heap.push(nd,n);}}
  }
  const near=t=>Math.abs(t.x-player.x)+Math.abs(t.z-player.z);
  candidates.sort((a,b)=>near(a.tile)-near(b.tile)||a.d-b.d);
@@ -36,7 +36,7 @@ export function createCompanionFollower(model,{toPosition=t=>new Vector3(t.x-6,t
   if(!step){const route=companionRoute(world,tile,player,reserved,occupied);step=route[0]||null;last=route.length===1;if(step&&step.h!==tile.h)jump={from:model.position.clone(),height:step.h-tile.h,age:0};}
   if(!step)return false;
   // Passing through someone is fine; only the final step re-checks that nobody has moved onto it.
-  if(step.blocked||step.water||last&&(same(step,player)||occupied(step))){step=null;jump=null;return false;}
+  if(!canStep(tile,step)||step.water||last&&(same(step,player)||occupied(step))){step=null;jump=null;return false;}
   target.copy(toPosition(step));
   if(jump){jump.age+=dt;const progress=Math.min(1,jump.age/.65),smooth=progress*progress*(3-2*progress);model.position.lerpVectors(jump.from,target,smooth);model.position.y+=Math.sin(progress*Math.PI)*.22;const yaw=Math.atan2(target.x-jump.from.x,target.z-jump.from.z);model.rotation.y+=Math.atan2(Math.sin(yaw-model.rotation.y),Math.cos(yaw-model.rotation.y))*(1-Math.exp(-dt*14));gait+=dt*4;if(progress===1){model.position.copy(target);tile=step;step=null;jump=null;}return true;}
   const distance=model.position.distanceTo(target),travel=Math.min(distance,dt*3.3);

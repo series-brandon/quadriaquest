@@ -3,7 +3,7 @@ import {mentorModel,MENTORS} from './training-models.js';
 import {createSlimeActor} from './slime-presentation.js';
 import {createConversationFacing} from './conversation-facing.js';
 import {blocksMovement,isCharacter,occupancy} from './world-occupancy.js';
-import {key} from './world.js';
+import {key,canStep} from './world.js';
 // Portable props/NPCs own picking, occupancy, availability and teardown. Props (stations, shelves) are
 // solid. Characters (slimes) are walk-through and mark their tile occupied (world-occupancy.js).
 // push: what a player stopping on a character's tile does. 'walk' (default) steps it to a free
@@ -29,7 +29,7 @@ const free=(t,actor,taken)=>!!t&&!t.blocked&&!t.water&&!occupancy.occupied(t,act
 // false when there is nowhere to go (it then stays, under the player).
 export function pushWorldActor(actor,taken=()=>false){
  if(actor.push!=='walk')return false;
- const t=actor.tile,options=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>actor.world.get(key(t.x+dx,t.z+dz))).filter(n=>free(n,actor,taken)&&Math.abs(n.h-t.h)<=.5);
+ const t=actor.tile,options=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>actor.world.get(key(t.x+dx,t.z+dz))).filter(n=>free(n,actor,taken)&&canStep(t,n));
  const near=n=>Math.abs(n.x-actor.home.x)+Math.abs(n.z-actor.home.z);
  const spot=options.sort((a,b)=>near(a)-near(b))[0];if(!spot)return false;actor.step(spot);return true;
 }
@@ -44,7 +44,7 @@ export function updateWorldActors(dt,taken=()=>false){
   if((a.awayFor+=dt)<HOME_DELAY)continue;
   if(far>HOME_FAR){a.step(a.home);a.group.position.set(a.home.x-6,a.group.position.y,a.home.z-6);continue;}
   // One step at a time toward home (a pushed actor is rarely more than a tile away).
-  const next=[[1,0],[-1,0],[0,1],[0,-1]].map(([x,z])=>a.world.get(key(a.tile.x+x,a.tile.z+z))).filter(n=>n&&(n===a.home||free(n,a,taken))&&Math.abs(n.h-a.tile.h)<=.5).sort((m,n)=>Math.abs(m.x-a.home.x)+Math.abs(m.z-a.home.z)-(Math.abs(n.x-a.home.x)+Math.abs(n.z-a.home.z)))[0];
+  const next=[[1,0],[-1,0],[0,1],[0,-1]].map(([x,z])=>a.world.get(key(a.tile.x+x,a.tile.z+z))).filter(n=>n&&(n===a.home||free(n,a,taken))&&canStep(a.tile,n)).sort((m,n)=>Math.abs(m.x-a.home.x)+Math.abs(m.z-a.home.z)-(Math.abs(n.x-a.home.x)+Math.abs(n.z-a.home.z)))[0];
   if(next)a.step(next);
  }
 }

@@ -1,4 +1,4 @@
-import {key,createHeap} from './world.js';
+import {key,createHeap,edgeBetween,edgePasses} from './world.js';
 
 // Multi-tile bodies. A body of `size` covers size×size tiles; its anchor is the minimum-x, minimum-z
 // corner (the entity's `tile`). Size 1 is an ordinary one-tile entity.
@@ -23,7 +23,23 @@ export function nearestCell(anchor,size,p){
 // A body may stand with its anchor here: every tile exists, is dry, level, and free (or already its own).
 export function canStand(world,anchor,size,own=[]){
  const cells=footprint(world,anchor,size);if(!cells)return false;
- return cells.every(t=>!t.water&&(!t.blocked||own.includes(t))&&Math.abs(t.h-cells[0].h)<=.01);
+ if(!cells.every(t=>!t.water&&(!t.blocked||own.includes(t))&&Math.abs(t.h-cells[0].h)<=.01))return false;
+ // No wall may run through the body: every edge between its own cells is crossable.
+ return size===1||cells.every(t=>cells.every(u=>Math.abs(t.x-u.x)+Math.abs(t.z-u.z)!==1||edgePasses(edgeBetween(t,u),'move')));
+}
+// A body moving one tile from `from` to `to` (neighbouring anchors): each of its cells crosses one
+// edge, and every one of those edges must be crossable.
+export function bodyStep(world,from,to,size=1){
+ const dx=to.x-from.x,dz=to.z-from.z;
+ for(let x=0;x<size;x++)for(let z=0;z<size;z++){const a=world.get(key(from.x+x,from.z+z)),b=world.get(key(from.x+x+dx,from.z+z+dz));if(a&&b&&!edgePasses(edgeBetween(a,b),'move'))return false;}
+ return true;
+}
+// Melee/interaction reach between a body and a tile: inside it, or orthogonally beside a body tile
+// at most half a block up or down with no wall (window, fence, closed door…) on the edge between.
+export function reachesBody(world,anchor,size,p){
+ const gap=footprintGap(anchor,size,p);if(gap===0)return true;if(gap!==1)return false;
+ const c=nearestCell(anchor,size,p),cell=world.get(key(c.x,c.z));
+ return !!cell&&Math.abs(cell.h-p.h)<=.5&&edgePasses(edgeBetween(cell,p),'reach');
 }
 // Breadth-first route of anchor tiles for a size×size body, to the nearest anchor where `goal(anchor)`
 // holds. `allow(anchor, cells)` adds placement rules (territory, reserved tiles). Returns [] when the
@@ -38,7 +54,7 @@ export function findFootprintPath(world,start,size,goal,{own=[],allow=()=>true,l
   const t=queue[i];
   for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
    const nk=key(t.x+dx,t.z+dz),n=world.get(nk);
-   if(!n||previous.has(nk)||Math.abs(n.h-t.h)>.5||!canStand(world,n,size,own)||!allow(n,footprint(world,n,size)))continue;
+   if(!n||previous.has(nk)||Math.abs(n.h-t.h)>.5||!canStand(world,n,size,own)||!bodyStep(world,t,n,size)||!allow(n,footprint(world,n,size)))continue;
    previous.set(nk,key(t.x,t.z));
    if(goal(n)){const route=[n];let cursor=key(t.x,t.z);while(cursor!==startKey){route.unshift(world.get(cursor));cursor=previous.get(cursor);}return route;}
    queue.push(n);
@@ -53,7 +69,7 @@ function cheapestFootprintPath(world,start,size,goal,{own,allow,limit,cost}){
   if(t!==start&&goal(t)){const route=[];let cursor=k;while(cursor!==startKey){route.unshift(world.get(cursor));cursor=previous.get(cursor);}return route;}
   for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
    const nk=key(t.x+dx,t.z+dz),n=world.get(nk);
-   if(!n||Math.abs(n.h-t.h)>.5||!canStand(world,n,size,own))continue;
+   if(!n||Math.abs(n.h-t.h)>.5||!canStand(world,n,size,own)||!bodyStep(world,t,n,size))continue;
    const cells=footprint(world,n,size);if(!allow(n,cells))continue;
    const next=d+1+cost(cells);if(next<(best.get(nk)??Infinity)){best.set(nk,next);previous.set(nk,k);heap.push(next,n);}
   }

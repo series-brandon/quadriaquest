@@ -66,17 +66,32 @@ Exact numbers get tuned in the graybox (Phase 2) at real zoom levels on desktop 
 
 **Data.** Each tile can carry edge features on its north and west sides only. The south and east edges belong to the neighbouring tile, so each edge is stored once. A helper `edgeBetween(world, a, b)` returns the feature or null. Edge kinds:
 
-| Kind | Movement | Sight / shots | Examples |
-| --- | --- | --- | --- |
-| `wall` | blocks | blocks | Building walls, castle walls |
-| `window` | blocks | allows | Shop windows, open arches with a sill |
-| `door` | allows when open or openable | blocks when closed | Every entrance |
-| `fence` / `railing` | blocks | allows | Gardens, stair rails, the plaza edge |
-| `low` | blocks | allows | Flower bed rims, hedges, market counters |
+| Kind | Movement | Sight / shots | Reach (melee, talk) | Examples |
+| --- | --- | --- | --- | --- |
+| `wall` | blocks | blocks | blocks | Building walls, castle walls |
+| `window` | blocks | allows | blocks | Shop windows, open arches with a sill |
+| `door` | only while open (never when locked) | only while open | only while open | Every entrance |
+| `fence` / `railing` | blocks | allows | blocks | Gardens, stair rails, the plaza edge |
+| `low` | blocks | allows | allows | Market and shop counters, flower bed rims |
 
 **One shared step test.** `canStep(world, from, to, mover)` combines height, `blocked`/`solid`, water, the edge feature and door rules. It replaces the separate checks in pathfinding, wandering, companion following, interaction routes and `canStand` (whose body also can't straddle an internal wall). `lineOfSight` uses the same edge table, including the corner rule its supercover already applies. This is the riskiest change in the plan, because every walker and every combat check moves onto it. It ships with tests for each caller and is verified in the clearing, Willowbank and Cinderhold, which have no edges, to prove nothing changes there.
 
 **Permanent blocking versus occupancy.** Since Phase 0, `tile.blocked` means solid only (terrain, resources, stations, props, practice targets); characters never write it. Who is standing on a tile is a separate question used only for where to stop (see *Walk-through entities*). Edge features add to `blocked`; they don't replace it.
+
+**Doors are a shared entity**, the same model and behaviour in any map (user decision, 2026-10-10, RuneScape-style):
+- **A closed door blocks walking, sight and reach like a wall.** No route passes through one; it has to be opened first. An open door is like no edge at all.
+- **Clicking a door** walks you up to it on whichever side is nearer and opens it (with a creak), or closes it if open (with a thud). Doors stay as they were left; nothing opens or closes them automatically.
+- A **locked** door won't open: clicking it rattles it and says "It's locked." Story or keys can unlock it. No door is locked just to hide an empty room.
+- A walker whose planned route closes (a door shut or locked on the way) re-routes or stops ("The way is shut.").
+- A door may later link to an **interior space** (Phase 7): its doorstep and the interior's arrival tile become part of its data, and the editor checks them.
+
+**As implemented (Phase 1, 2026-10-10):**
+- `world.js`: `EDGE_RULES` (move / sight / reach per kind), `edgeBetween`, `setEdge`, `edgePasses`, and the one shared `canStep(from,to)` used by every route search (`findPath`, cheapest-route searches, `wanderRoute`, `companionRoute`, NPC pushes and walks home). `footprint.js`: `canStand` rejects a wall inside a body, `bodyStep` checks the edges a moving body crosses, `reachesBody` is melee/interaction reach across an edge.
+- Sight: `lineOfSight` checks every edge it crosses (diagonals check both corner paths). Reach: `withinAttackRange` at range 1, `interactionRoute`, and enemy reach (`adjacent`, `inReachOf`, pursuit goals) need an edge that allows reaching across, so nobody melees or talks through a wall or window; a counter (`low`) allows it. An enemy that sees the player through a window walks around to strike; one behind a wall never notices.
+- Moving walkers re-check each step: the player re-routes or stops if the planned route closes; the companion and wandering enemies drop the step.
+- `doors.js`: the door entity (`createDoor`, `updateDoors`, `configureDoors`, `doorApproach` for walking up to either side) and `createEdgeFeatures`, which places walls, windows, fences, railings, counters and doors in any map. `edge-models.js` holds the pieces (one plaster-and-timber look until the building kit, Phase 4). Parts stack without overlapping (stone base, plaster, timber cap), and `createEdgeFeatures` puts one timber post on each grid corner where walls, windows or doors meet, slightly thicker and taller than the pieces, so joints never flicker. A door is faced at its edge midpoint, so the player turns toward it from either side.
+- Playground: *World & water → Walls & doors* builds a 3×3 room near the player in any map (door facing you, window opposite, counter and fence on the sides), opens or closes the door, walks in, locks it, removes it, and toggles an edge overlay. **Enter building test map** loads a playground-only map (`src/dev/building-test-map.js`) with a small house (one door), a large hall (two doors) and a complex building whose hallway leads to four rooms, each with its own door; every door starts closed. The model catalogue has *Wall pieces* and *Door* (Open, Close, Locked).
+- Not done yet: NPCs and creatures opening doors themselves (they currently treat closed doors as walls), door links to interiors (Phase 7) and the cutaway (Phase 3). Existing maps have no edges and behave as before.
 
 ## Walk-through entities (user decision, 2026-10-10; Phase 0, implemented 2026-10-10)
 

@@ -20,6 +20,25 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Door facing and wall-top flicker — 2026-10-10
+
+- Using a door from its own tile turned the player south (the door's position was that tile, so the direction was zero). Doors now report their edge midpoint (`door.x/z`), so the player faces the door from either side. Playground `getState().facing` reports the player's facing.
+- Wall tops flickered: the timber cap shared the plaster's top face, and every piece carried its own corner posts, so neighbours stacked identical posts. Pieces now stack without overlap, and `createEdgeFeatures` places one shared post per grid corner (tested in `edges.test.js`). Browser-checked on the building test map.
+
+### Manual doors and the building test map — 2026-10-10 (user design)
+
+- **Doors are manual (RuneScape-style):** a closed door blocks walking, sight and reach like a wall; open, it is no edge at all. Clicking a door walks you up to whichever side is nearer (`doorApproach`) and opens it, or closes it if open. Doors stay as left (no auto open/close). Locked doors rattle. NPCs and creatures treat closed doors as walls for now.
+- **Building test map** (playground: Walls & doors → Enter building test map; `src/dev/building-test-map.js`, area `building-test`): small house (1 door), large hall (2 doors), complex building with a hallway and four rooms (front door + 4 room doors). Every door starts closed; area reset closes and unlocks them.
+- Tests: 481 pass (`edges.test.js` updated for manual doors; new `building-test-map.test.js` checks each building and each room is sealed until its door opens).
+- Browser-verified: the map loads with all three buildings; clicking the complex's front door walks to it and opens it; the hallway is reachable only then; a closed room shows "No safe route" until its door is clicked open.
+
+### City Phase 1: walls and doors on tile edges — 2026-10-10
+
+- Edge features (wall, window, fence, railing, low counter, door) with the shared `canStep` rule, edge-aware sight and reach, body edges, per-step re-checks, the shared door entity and the Walls & doors playground yard. Details in CITY.md *As implemented (Phase 1)*. (An earlier edit had dropped CITY.md's door bullets; they are restored there, updated.)
+- Tests: 480 pass (new `edges.test.js`: storage, rules per kind, routes and locked doors, sight incl. diagonals, melee/interaction reach, bodies, wander/companion, door open/close/lock/interact; combat: an enemy sees through a window but walks around to strike, never notices through a wall).
+- Browser-verified in Cinderhold: the yard renders; the way into the room is through the door; a locked door gives "No safe route" and "It's locked."; unlocking lets the player in. That run found and fixed a real bug: a route planned before a door locked was followed through it (movement now re-checks each step).
+- The no-route message is now "No way there: a wall, locked door or high ledge is in the way."
+
 ### Occupied tiles and pushing (RuneScape-style) — 2026-10-10 (user design)
 
 - Living characters mark tiles **occupied** in one shared map (`world-occupancy.js` `occupancy`). Routes treat occupied tiles as costly, not blocked (5 steps; a player's tile 30): cheapest-route searches in `findPath(…,cost)`, `findFootprintPath(…,{cost})`, `wanderRoute(…,cost)` and `companionRoute`. The player's routes now go around people when the detour is short. Replaces the earlier two-pass "around, else through" search.

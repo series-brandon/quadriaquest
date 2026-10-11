@@ -13,6 +13,7 @@ import {SPELL_VISUALS} from '../spell-visuals.js';
 import {makeBridge} from '../bridge-model.js';
 import {fishingSpot,animateFishingSpot} from '../fishing-spot-model.js';
 import {campfire,animateCampfire} from '../campfire-model.js';
+import {edgePiece,doorModel,animateDoor} from '../edge-models.js';
 import {companion,animateCompanion,setCompanionOutfit} from '../companion-model.js';
 import {makeCompanionTopHat} from '../hat-models.js';
 import {EATING_DURATION} from '../eating-motion.js';
@@ -121,6 +122,10 @@ export const MODEL_CATALOG=[
  ...[['swords','Stone Sword'],['shields','Wooden Shield'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod'],['staffs','Simple Staff']].map(([id,name])=>staticModel(name,()=>tool(id))),
  staticModel('Top Hat',makeTopHat),staticModel('Companion Top Hat',makeCompanionTopHat),
  ...Object.entries(WORN_MODELS).filter(([id])=>!['hats','companionHats'].includes(id)).map(([id,make])=>staticModel(ITEMS[id].name,make)),
+ // Edge features (docs/CITY.md, Walls and doors): the production pieces side by side, and the shared door
+ // with the real swing (animateDoor): Open and Close loop the swing; Locked rattles it shut.
+ {name:'Wall pieces',motions:['Idle'],create(){const group=new THREE.Group();['wall','window','fence','railing','low'].forEach((kind,i)=>{const p=edgePiece(kind);p.position.x=(i-2)*1.15;group.add(p);});return {group,update(){}};}},
+ {name:'Door',motions:['Open','Close','Locked'],create(){const door=doorModel();return {group:door.group,update(time,motion){const t=time%2.4,open=motion==='Open'?Math.min(1,t*1.6):motion==='Close'?Math.max(0,1-t*1.6):0;animateDoor(door,open,motion==='Locked'?Math.max(0,1-(time%1.2)*2):0,time);}};}},
  {name:'Campfire',motions:['Burning','Static'],create(){const group=campfire();return {group,update(time,motion){animateCampfire(group,motion==='Static'?0:time);}};}},
  staticModel('Campfire placement ghost',()=>campfire(true)),
  {name:'Fishing spot',motions:['Ripples'],create(){const group=fishingSpot();return {group,update:time=>animateFishingSpot(group,time)};}},

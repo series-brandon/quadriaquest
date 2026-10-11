@@ -26,6 +26,8 @@ export const EFFECTS={
  sizzle:{label:'Cooking'},
  anvil:{label:'Anvil'},
  furnace:{label:'Furnace'},
+ doorOpen:{label:'Door opens'},
+ doorClose:{label:'Door closes'},
  hit:{label:'Hit an enemy'},
  crit:{label:'Critical hit'},
  whiff:{label:'Attack missed'},
@@ -118,6 +120,9 @@ export function createSoundEffects(ctx,out,{voices,palette=()=>DEFAULT_PALETTE})
   catch(){noise(900,{dur:.35,level:.12,q:.7,sweep:500,attack:.01});notes([3,5,8],{at:.12,gap:.08,dur:.45,vel:.6});},
   ignite(){noise(220,{dur:.6,level:.2,type:'lowpass',q:.5,sweep:1600,attack:.03});tone(85,{dur:.4,level:.12,glide:55,attack:.01});},
   sizzle(){noise(4200,{dur:1.4,level:.05,type:'highpass',q:.5,attack:.25,hold:.8});},
+  // A short wooden creak as a door swings open; a soft thud as it shuts.
+  doorOpen(){noise(900*vary(),{dur:.22,level:.05,q:4,attack:.012});tone(190*vary(),{dur:.24,level:.05,type:'triangle',glide:240,attack:.01});},
+  doorClose(){noise(320,{dur:.12,level:.16,q:.9,attack:.008});tone(105*vary(),{dur:.14,level:.12,type:'triangle',glide:80});},
   anvil(){for(const [freq,level] of [[1250,.06],[3350,.025],[5100,.012]])tone(freq*vary(),{dur:.7,level,attack:.004});noise(3000,{dur:.06,level:.035,q:1.5,attack:.008});},
   furnace(){noise(380,{dur:1.1,level:.24,type:'lowpass',q:.5,sweep:240,attack:.2,hold:.4});},
   hit(){tone(150*vary(),{dur:.15,level:.15,type:'triangle',glide:70,attack:.006});noise(900,{dur:.1,level:.16,q:.9,attack:.008});},
