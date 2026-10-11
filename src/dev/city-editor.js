@@ -6,8 +6,10 @@ import {createCityData,cityHeight,setCityHeight,setCitySurface,SURFACE_NAMES} fr
 import {cityProblems} from '../city-checks.js';
 import {planBuilding,BUILDING_PRESETS} from '../building-kit.js';
 import {PROPS,PROP_KINDS,propFootprint} from '../props.js';
+import {USE_NAMES,USE_ICONS} from '../furnish.js';
 import {DIRS} from '../city-terrain.js';
 import {kitStreetData} from './kit-street.js';
+import {propGalleryData} from './prop-gallery.js';
 import './city-editor.css';
 
 // The playground city editor (docs/CITY.md, Authoring; city Phase 6). Dev only. It edits a city's data
@@ -22,9 +24,9 @@ import './city-editor.css';
 // teleport(x, z), toast(text).
 const repoCities=import.meta.glob('../maps/*.json',{eager:true,import:'default'});
 const SIDE_LABELS={n:'North',e:'East',s:'South',w:'West'};
-const TOOLS=[['inspect','Inspect'],['raise','Raise'],['lower','Lower'],['surface','Surface'],['building','Building'],['prop','Prop'],['stairs','Stairs'],['edge','Edge'],['erase','Erase'],['spawn','Arrival']];
+const TOOLS=[['inspect','Inspect'],['use','Use'],['reroll','Reroll furniture'],['raise','Raise'],['lower','Lower'],['surface','Surface'],['building','Building'],['prop','Prop'],['stairs','Stairs'],['edge','Edge'],['erase','Erase'],['spawn','Arrival']];
 export function cityCatalogue(){
- const list=[{id:'kit-street',name:'Kit street (playground)',make:()=>kitStreetData()},{id:'blank',name:'Blank 64 × 64',make:()=>createCityData({id:'new-city',name:'New city',size:[64,64]})}];
+ const list=[{id:'kit-street',name:'Kit street (playground)',make:()=>kitStreetData()},{id:'prop-gallery',name:'Prop gallery (playground)',make:()=>propGalleryData()},{id:'blank',name:'Blank 64 × 64',make:()=>createCityData({id:'new-city',name:'New city',size:[64,64]})}];
  for(const [path,data] of Object.entries(repoCities))list.push({id:'repo:'+path,name:`${data.name} (src/maps/${path.split('/').pop()})`,make:()=>structuredClone(data)});
  return list;
 }
@@ -32,7 +34,7 @@ export function cityCatalogue(){
 export function createCityEditor(host){
  let view=null,data=null,built=null;
  const tool=signal('inspect'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0});
  const rebuild=async({keepPlayer=true}={})=>{built=await host.editCity(data,{keepPlayer});problems.value=cityProblems(data,built);revision.value++;};
  const snapshot=()=>{undo.push(JSON.stringify(data));if(undo.length>60)undo.shift();redo.length=0;history.value={undo:undo.length,redo:0};};
@@ -62,6 +64,11 @@ export function createCityEditor(host){
     const j=data.props.findIndex(p=>covers(p,x,z,'prop'));if(j>=0){data.props.splice(j,1);return;}
     const k=data.stairs.findIndex(s=>{const [dx,dz]=DIRS[s.dir],right=[-dz,dx];for(let a=0;a<s.length;a++)for(let b=0;b<(s.width||1);b++)if(s.x+dx*a+right[0]*b===x&&s.z+dz*a+right[1]*b===z)return true;return false;});if(k>=0){data.stairs.splice(k,1);return;}
     const before=data.edges.length;data.edges=data.edges.filter(e=>!(e.a[0]===x&&e.a[1]===z||e.b[0]===x&&e.b[1]===z));if(data.edges.length===before)throw Error('Nothing to erase here.');});break;
+   // Use: what a building is furnished as (furnish.js); a shop's sign follows its trade. Reroll: a new
+   // furnishing seed for the same use.
+   case 'use':case 'reroll':await change(()=>{const b=data.buildings.find(e=>covers(e,x,z,'building'));if(!b)throw Error('Click a building.');
+    if(tool.peek()==='use'){b.desc.use=o.use;if(b.desc.sign&&USE_ICONS[o.use])b.desc.sign={...b.desc.sign,icon:USE_ICONS[o.use]};status.value=`${b.desc.name||'Building'}: ${o.use}.`;}
+    else{b.desc.furnishSeed=Math.floor(Math.random()*1e6);status.value=`${b.desc.name||'Building'}: refurnished.`;}});break;
    case 'spawn':await change(()=>{data.spawn=[x,z];});status.value=`Arrival at ${x},${z}.`;break;
   }
   return true;
@@ -90,6 +97,7 @@ export function createCityEditor(host){
    h('div',{class:'q-city-editor__options',hidden:()=>mode.value!=='edit'},
     h('div',{hidden:shown('raise','lower','surface')},select('Brush',brush,[['1','1 tile'],['3','3 × 3']])),
     h('div',{hidden:shown('surface')},select('Surface',options.surface,SURFACE_NAMES.map(s=>[s,s]))),
+    h('div',{hidden:shown('use')},select('Use',options.use,[...USE_NAMES,'none'].map(u=>[u,u]))),
     h('div',{hidden:shown('building')},select('Building',options.preset,Object.entries(BUILDING_PRESETS).map(([id,p])=>[id,p.name]))),
     h('div',{hidden:shown('prop')},select('Prop',options.prop,PROP_KINDS.map(k=>[k,PROPS[k].name]))),
     h('div',{hidden:shown('building','prop')},select('Rotation',options.rotation,[['0','0°'],['90','90°'],['180','180°'],['270','270°']])),

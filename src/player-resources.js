@@ -4,6 +4,8 @@ import {batch,signal} from './reactive.js';
 // Fractional internal amounts; displays round up. A maximum change keeps the current
 // absolute amount, clamping only above the new maximum (no refill, not damage).
 // Signal-backed so UI bindings that read `value`/`max` update without polling.
+// Asleep in a bed: health comes back this many times faster (user decision, 2026-10-11).
+export const RESTING_HEALTH=4;
 export function createResource(initial=100){
  const max=signal(Math.max(0,initial)),value=signal(max.peek());
  return {get max(){return max.value;},set max(next){batch(()=>{max.value=Math.max(0,next);value.value=Math.min(value.peek(),max.peek());});},
@@ -24,8 +26,9 @@ export function createPlayerResources(){
   },
   // Call once per frame after movement; the sprint flag covers only that frame's movement.
   // Ki recovers only while every aura is off.
-  regenerate(dt,{health,attribute,inCombat,aurasActive=false}){
-   if(health&&health.value>0)health.heal(regenRate('health',attribute('regeneration'),inCombat)*dt);
+  // resting: asleep in a bed (props.js), health regenerates RESTING_HEALTH times faster.
+  regenerate(dt,{health,attribute,inCombat,aurasActive=false,resting=false}){
+   if(health&&health.value>0)health.heal(regenRate('health',attribute('regeneration'),inCombat)*dt*(resting?RESTING_HEALTH:1));
    mana.heal(regenRate('mana',attribute('fortitude'),inCombat)*dt);
    energy.heal(regenRate('energy',attribute('recuperation'),inCombat)*dt);
    if(!aurasActive)ki.heal(regenRate('ki',attribute('meditation'),inCombat)*dt);

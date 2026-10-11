@@ -12,6 +12,7 @@ export const STYLES={
  stone:{base:'#9c968c',wall:'#cfc8bb',trim:'#a8a094',door:'#6e4a33',seamless:true},
  brick:{base:'#8f8a84',wall:'#b8644a',trim:'#5a4436',door:'#4f6a5a',seamless:true},
  graybox:{base:'#c9c6c1',wall:'#c9c6c1',trim:'#9d9a95',door:'#7b4b2d',flat:true,seamless:true},
+ dungeon:{base:'#4a4740',wall:'#5e5a52',trim:'#3d3a35',door:'#4b3a2a',seamless:true},
 };
 export const STYLE_NAMES=Object.keys(STYLES);
 const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.85,...extra});
@@ -76,7 +77,21 @@ export function edgePiece(kind,{height=STOREY,storeys=Math.max(1,Math.floor(heig
 // sill: how far the higher floor stands above the lower one (a raised ground floor). The opening starts
 // at the higher floor, with a stone step on the lower side (lower: ±1 along local z) up to it.
 // `upper` holds everything above the ground storey (it hides when its building is cut, cutaway.js).
+// Gates: a door entity in a fence line (fenceGate) or a dungeon's iron gate (ironGate). Same leaf and
+// hinge as a door, with posts instead of a wall above.
+export const GATE_STYLES=['fenceGate','ironGate'];
+function gateModel(style){
+ const g=new THREE.Group();g.name='edge-gate';const iron=style==='ironGate',h=iron?1.5:.9,post=iron?shared.iron:shared.fence;
+ for(const x of [-.47,.47])piece(g,.09,h+.1,.09,post,x,(h+.1)/2);
+ if(iron)piece(g,1,.08,.1,shared.iron,0,h+.06);
+ const upper=new THREE.Group();upper.name='door-upper';g.add(upper);
+ const leaf=new THREE.Group();leaf.name='door-leaf';g.add(leaf);const panel=new THREE.Group();panel.name='door-panel';leaf.add(panel);
+ if(iron){for(const x of [-.36,-.18,0,.18,.36])piece(panel,.04,h-.1,.04,shared.iron,x,(h-.1)/2+.05);for(const y of [.2,h-.15])piece(panel,.84,.05,.05,shared.iron,0,y);}
+ else{for(const y of [.25,.6])piece(panel,.84,.07,.05,shared.fence,0,y);for(const x of [-.36,0,.36])piece(panel,.08,.75,.05,shared.fence,x,.42);piece(panel,.07,.9,.04,shared.fence,0,.45).rotation.z=.85;}
+ const door={group:g,leaf,panel,upper,swing:-Math.PI/2};setDoorHinge(door,-1,1);return door;
+}
 export function doorModel({height=STOREY,storeys=Math.max(1,Math.floor((height)/STOREY+.01)),sill=0,lower=1,style,upperWindows=false}={}){
+ if(GATE_STYLES.includes(style))return gateModel(style);
  const g=new THREE.Group();g.name='edge-door';const m=role=>material(style,role),flat=!!STYLES[style]?.flat,proud=flat?0:PROUD;
  const band=(parent,a,b,role,thickness=WALL_THICKNESS)=>{if(b>a+1e-4)piece(parent,1,b-a,thickness,m(role),0,(a+b)/2);};
  const rows=storeyRows(height,storeys),ground=rows[1];

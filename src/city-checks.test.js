@@ -29,6 +29,7 @@ test('checks find overlaps, a blocked doorstep, a terrace without stairs and sta
 test('the kit street has no errors (warnings are its known narrow gaps)',()=>{
  const problems=check(kitStreetData());
  assert.deepEqual(problems.filter(p=>p.severity==='error').map(p=>p.text),[]);
+ assert.deepEqual(problems.filter(p=>p.kind==='furniture').map(p=>p.text),[],'every bed, stove and counter is reachable');
 });
 test('separate interiors: the door leads in, the stairwell up and down, the door back out; the crypt too',async()=>{
  const {createSpaces}=await import('./spaces.js');const {createAreaRuntime}=await import('./area-runtime.js');

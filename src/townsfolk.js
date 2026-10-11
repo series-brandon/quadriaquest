@@ -20,7 +20,8 @@ import {moveMotion} from './slime-motion.js';
 // Navigation is shared: distance fields to popular destinations (every spot, every home) are cached
 // and followed downhill; strolls use a bounded search. Presentation runs in rings (crowd budget):
 // near and on screen, full; far on screen, a quarter rate with a fixed face; off screen, movement only.
-export const ACTIVITIES=['sit','browse','vend','gaze','drink','read','chat','stroll','enter','patrol','home','keep','tend'];
+export const ACTIVITIES=['sit','sleep','cook','work','browse','vend','gaze','drink','read','chat','stroll','enter','patrol','home','keep','tend'];
+const SPOT_ACTIVITIES=['sit','sleep','cook','work','browse','vend','gaze','drink','read'];
 // WALK: townsfolk walk a little slower than the player (the shared move's time scale).
 const WALK=.72,ROUTE_LIMIT=3500,NEAR=16,FAR=34,FIELD_CACHE=48,STROLL_RADIUS=10;
 const LINES=['Lovely day for it.','Have you seen the fountain?','Mind the stairs.','The market’s busy today.','I’m just on my way home.','Hello there!','They say the castle has a hundred rooms.','Fresh bread soon, I hope.'];
@@ -66,7 +67,8 @@ const pickWeighted=(routine,random)=>{const total=routine.reduce((n,r)=>n+(r.wei
 export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
  const map=city.tiles,nav=createNavigator(map),random=seeded(seed),folk=[];
  const doorsteps=new Set(city.doors.map(d=>d.b).filter(Boolean)),doorways=new Set(city.doors.flatMap(d=>[d.a,d.b]).filter(Boolean));
- const spotsOf=kind=>city.props.flatMap(p=>p.spots.filter(s=>s.kind===kind&&s.tile&&!s.tile.blocked));
+ // Spots from street props and furniture (furnish.js); furniture spots are inside buildings.
+ const spotsOf=kind=>[...city.props,...(city.furniture||[])].flatMap(p=>p.spots.filter(s=>s.kind===kind&&s.tile&&!s.tile.blocked));
  const avoid=t=>t.stair||doorways.has(t)||city.props.some(p=>p.spots.some(s=>s.tile===t));
  const strollable=t=>!t.blocked&&!t.water&&!t.indoor&&!avoid(t);
  const taken=(t,me)=>occupancy.owners(t).some(o=>o!==me);
@@ -96,8 +98,11 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   const nearest=(list,tile=t=>t)=>list.map(x=>({x,d:Math.abs(tile(x).x-p.tile.x)+Math.abs(tile(x).z-p.tile.z)})).sort((a,b)=>a.d-b.d+(random()-.5)*6).map(o=>o.x);
   const firstRouted=(list,tile=t=>t)=>{for(const x of nearest(list,tile).slice(0,3)){const path=routeTo(tile(x));if(path)return {x,path};}return null;};
   for(let tries=0;tries<4;tries++){const a=pickWeighted(routine,random).do;
-   if(['sit','browse','vend','gaze','drink','read'].includes(a)){const found=firstRouted(spotsOf(a).filter(s=>!taken(s.tile,p)),s=>s.tile);if(!found)continue;
-    return {activity:a,goal:found.x.tile,spot:found.x,path:found.path,stay:a==='vend'?20+random()*20:a==='sit'?8+random()*12:4+random()*6};}
+   if(SPOT_ACTIVITIES.includes(a)){
+    // Residents use their own house's beds, stoves and chairs first.
+    const all=spotsOf(a).filter(s=>!taken(s.tile,p)),own=p.house?all.filter(s=>s.prop.building===p.entry.house):[];
+    const found=firstRouted(own.length?own:a==='sleep'?[]:all,s=>s.tile);if(!found)continue;
+    return {activity:a,goal:found.x.tile,spot:found.x,path:found.path,stay:a==='vend'?20+random()*20:a==='sleep'?20+random()*25:a==='sit'?8+random()*12:a==='cook'||a==='work'?8+random()*8:4+random()*6};}
    if(a==='stroll'){const options=nav.around(p.tile).filter(t=>t!==p.tile&&strollable(t));if(!options.length)continue;const goal=options[Math.floor(random()*options.length)],path=routeTo(goal);if(!path)continue;return {activity:a,goal,path,stay:1+random()*3};}
    if(a==='enter'){const step=p.entry.door?map.get(key(...p.entry.door)):[...doorsteps].sort((x,y)=>Math.hypot(x.x-p.home.x,x.z-p.home.z)-Math.hypot(y.x-p.home.x,y.z-p.home.z))[0],path=routeTo(step);if(!path)continue;return {activity:a,goal:step,path,stay:10+random()*15};}
    if(a==='chat'){const other=folk.find(o=>o!==p&&o.state==='idle'&&!o.hidden&&Math.abs(o.tile.x-p.tile.x)+Math.abs(o.tile.z-p.tile.z)<8);if(!other)continue;
@@ -115,7 +120,10 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
  function begin(p){const plan=choose(p);Object.assign(p,{activity:plan.activity,goal:plan.goal,path:plan.path||null,spot:plan.spot||null,stay:plan.stay,partner:plan.partner||null,state:plan.goal&&plan.goal!==p.tile?'walking':'arrived',timer:plan.stay});if(p.state==='arrived')arrive(p);}
  function arrive(p){
   p.state='staying';p.timer=p.stay;
-  if(p.activity==='sit'){p.slime.play('Sit');p.facing=p.spot.angle;}
+  // A seat (bench, chair, bed): settle onto it with its own motion (Sit, or Sleeping in a bed).
+  if(p.spot?.seat){p.slime.play(p.spot.seat.motion||'Sit',{seatHeight:p.spot.seat.height});p.facing=p.spot.angle;}
+  else if(p.activity==='cook')p.slime.play('Cooking',{duration:2});
+  else if(p.activity==='work')p.slime.play(p.spot?.prop?.station==='anvil'?'Smithing':'Crafting',{duration:2});
   else if(p.spot)p.facing=p.spot.angle;
   if(p.activity==='enter'){p.hidden=true;p.group.visible=false;occupancy.remove(p);}
   if(p.activity==='chat'&&p.partner){p.face=p.partner;p.chatFace=CHAT_FACES[Math.floor(random()*CHAT_FACES.length)];p.partner.chatFace=CHAT_FACES[Math.floor(random()*CHAT_FACES.length)];p.slime.play(random()<.5?'Wave':'Happy hop',{loop:false});}
@@ -125,7 +133,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   if(p.activity==='tend'&&random()<.5)p.slime.play('Gathering',{loop:false,duration:2});
  }
  function leave(p){
-  if(p.activity==='sit')p.slime.stop();
+  if(p.spot?.seat||p.activity==='cook'||p.activity==='work')p.slime.stop();
   if(p.hidden){p.hidden=false;p.group.visible=true;occupancy.place(p,[p.tile]);}
   p.face=null;p.partner=null;p.spot=null;p.state='idle';p.timer=.5+random()*2.5;
  }
@@ -169,10 +177,10 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
      if(p.state==='staying'&&p.timer<=0&&!(p.talking>0))leave(p);
      else if((p.state==='idle'||p.state==='chatting')&&p.timer<=0&&!(p.talking>0)){if(p.state==='chatting')leave(p);else begin(p);}
      // The player stopped on this townsfolk: step aside (never mid-activity on a seat).
-     if(playerTile&&p.tile===playerTile&&p.activity!=='sit'&&!p.hidden){const aside=NEIGHBOURS.map(([dx,dz])=>map.get(key(p.tile.x+dx,p.tile.z+dz))).find(n=>n&&strollable(n)&&canStep(p.tile,n)&&!taken(n,p));if(aside){leave(p);p.goal=aside;p.path=[aside];p.activity='stroll';p.stay=1;p.state='walking';}}
+     if(playerTile&&p.tile===playerTile&&!p.spot?.seat&&!p.hidden){const aside=NEIGHBOURS.map(([dx,dz])=>map.get(key(p.tile.x+dx,p.tile.z+dz))).find(n=>n&&strollable(n)&&canStep(p.tile,n)&&!taken(n,p));if(aside){leave(p);p.goal=aside;p.path=[aside];p.activity='stroll';p.stay=1;p.state='walking';}}
     }
     // Seat position while sitting; standing on the tile otherwise.
-    if(p.state==='staying'&&p.activity==='sit'&&p.spot){const s=seatPosition(p.spot),k=Math.min(1,(p.stay-p.timer)/.45);p.group.position.set(THREE.MathUtils.lerp(p.tile.x-6,s.x,k),p.tile.h,THREE.MathUtils.lerp(p.tile.z-6,s.z,k));}
+    if(p.state==='staying'&&p.spot?.seat){const s=seatPosition(p.spot),k=Math.min(1,(p.stay-p.timer)/.45),lift=p.spot.seat.motion==='Sit'?0:p.spot.seat.height*k;p.group.position.set(THREE.MathUtils.lerp(p.tile.x-6,s.x,k),p.tile.h+lift,THREE.MathUtils.lerp(p.tile.z-6,s.z,k));}
     else if(!p.step)p.group.position.set(p.tile.x-6,p.tile.h,p.tile.z-6);
     // Facing: the way they walk; someone they talk to once standing.
     const facingWho=p.step?null:p.talking>0&&p.talkTo?p.talkTo:p.face;

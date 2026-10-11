@@ -20,6 +20,15 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### City Phase 10: props, furniture and furnishing — 2026-10-11 (user: "start the next phase with the new props")
+
+- 104 new props in four sets (`src/prop-sets/`), with wall mounts, walk-under posts, glow, moving lids/doors, stations and seats; fence and iron gates; a dungeon style and surface. See docs/CITY.md *As implemented (Phase 10)*.
+- `furnish.js` furnishes every enterable building by use (seeded, door clear, room connected, use tiles reserved, shop keeper behind a counter); separate interiors per floor; the crypt with a loot chest.
+- Interactions in `main.js` call shared systems: cooking menu, smithing stations, `takeLoot`, sleeping regeneration. Owned beds and storage are deferred (user decisions in CITY.md).
+- Playground: Prop gallery; model viewer Closed/Open motions; editor Use and Reroll tools; city check for unreachable furniture.
+- Fixes found while verifying: shop counters never placed in small rooms (the spot check refused the keeper tile), later pieces blocking earlier beds and stoves (63 warnings on the capital, now none), sleep spots facing into the bed (you lay beside it).
+- Tests: 547 pass (new `furnish.test.js`). Perf: city scenarios rebaselined (objects +9–11% from furniture; frame times within noise), see docs/PERFORMANCE.md.
+
 ### Slime bend in the shader; shared slime geometry; merged faces — 2026-10-11 (user request)
 
 - `slime-bend.js`: the bend is a vertex-shader patch (`applySlimeBend`, per-mesh uniforms uBend/uToVisual/uFromVisual on the mesh's own material, the same on its shadow depth material); `bendPoint` is the JS reference. `simple-materials.js` keeps the patch on the lowest tier. Geometry is never rewritten.

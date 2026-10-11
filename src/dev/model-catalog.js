@@ -16,7 +16,7 @@ import {campfire,animateCampfire} from '../campfire-model.js';
 import {edgePiece,doorModel,animateDoor,STYLE_NAMES} from '../edge-models.js';
 import {createBuilding,BUILDING_PRESETS,ROOF_TYPES} from '../building-kit.js';
 import {createEdgeFeatures} from '../doors.js';
-import {PROPS,PROP_KINDS,propModel} from '../props.js';
+import {PROPS,PROP_KINDS,propModel,setPropOpen} from '../props.js';
 import {makeCityTile,layStairs,railingEdges,stairRailParts} from '../city-terrain.js';
 import {mergedMesh} from '../merged-model.js';
 import {stairwellModel} from '../spaces.js';
@@ -181,7 +181,8 @@ export const MODEL_CATALOG=[
  {name:'Wall pieces',motions:['Idle'],create(){const group=new THREE.Group();['wall','window','fence','railing','low'].forEach((kind,i)=>{const p=edgePiece(kind);p.position.x=(i-2)*1.15;group.add(p);});return {group,update(){}};}},
  {name:'Door',motions:['Open','Close','Locked'],create(){const door=doorModel();return {group:door.group,update(time,motion){const t=time%2.4,open=motion==='Open'?Math.min(1,t*1.6):motion==='Close'?Math.max(0,1-t*1.6):0;animateDoor(door,open,motion==='Locked'?Math.max(0,1-(time%1.2)*2):0,time);}};}},
  staticModel('Stairs and terrace',terracePreview),staticModel('Stairwell (up)',()=>{const g=new THREE.Group();g.add(stairwellModel('up'));return g;}),staticModel('Stairwell (down)',()=>{const g=new THREE.Group();g.add(stairwellModel('down'));return g;}),
- ...PROP_KINDS.map(kind=>staticModel(PROPS[kind].name,()=>propModel(kind))),
+ // Props: lids, doors and drawers open and close on their real moving parts.
+ ...PROP_KINDS.map(kind=>PROPS[kind].moving?{name:PROPS[kind].name,motions:['Closed','Open'],create(){const group=propModel(kind);return {group,update(time,motion){setPropOpen(group,motion==='Open'?Math.min(1,(time%2.4)*1.5):0);}};}}:staticModel(PROPS[kind].name,()=>propModel(kind))),
  {name:'Building',motions:['Doors closed','Doors open','Cut (cutaway)'],wear:BUILDING_OPTIONS,create:buildingPreview},
  {name:'Campfire',motions:['Burning','Static'],create(){const group=campfire();return {group,update(time,motion){animateCampfire(group,motion==='Static'?0:time);}};}},
  staticModel('Campfire placement ghost',()=>campfire(true)),

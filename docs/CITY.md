@@ -227,6 +227,78 @@ Props are instanced or merged per chunk. Spots are data that townsfolk and the p
 - `src/city-map.js`: cities as data (`createCityData`, 64 × 64 regions of per-tile heights and surfaces, stairs, buildings, props, edges, townsfolk, interiors) and `buildCity`, the one builder used by the kit street, the editor and the capital.
 - Playground: the kit street is now city data (`src/dev/kit-street.js`) with an east annex: terraces one and two blocks up, a 3-wide stair, a 1-wide stair and a stair with a landing, retaining walls with railings, the prop set and a terrace cottage. *City streets → Kit street: go to the terraces / the garden*. Model viewer: every prop, *Stairs and terrace*, the `Sit` motion.
 
+## Props, furniture and furnishing (Phase 10, design draft 2026-10-11)
+
+User decisions (2026-10-11): about a hundred new props across **interior furniture, shop and trade fixtures, street and civic pieces, and nature and dungeon dressing**; interiors are **furnished automatically by building type**; props are **interactive where the use is obvious**; design first, then build.
+
+### What every prop has
+
+The same prefab contract as the starter set (`props.js`): a footprint, a policy (`solid`, `low`, `walk` over), sight, spots for townsfolk and the player, an optional interaction, a model catalogue entry, and one merged mesh per kind. Two new placements join the floor-standing kind:
+- **Wall-mounted** props (paintings, shelves, torches, weapon racks, shackles) attach to a wall edge on the inside of a tile. They take no floor footprint, so the tile stays walkable.
+- **Walk-under** structures (archway, gazebo, garden arch) block only their posts; the tiles under the roof stay walkable.
+
+Light sources (lanterns, torches, braziers, candles, fireplaces, forges, ovens) keep their glow as a separate lit material, ready for day and night.
+
+### Interactions (only where a system exists)
+
+| Use | Props | Hooks into |
+| --- | --- | --- |
+| Sit | chairs, stools, armchair, stone bench, pews | the seat system (benches today); townsfolk `sit` |
+| Sleep | beds, bunk, cot | **new, small:** lie down with the shared Sleeping motion; health regenerates faster while asleep; any action wakes you. Townsfolk sleep in their home's bed. |
+| Cook | fireplace, kitchen stove, bread oven | the cooking system's fire station (as a campfire); townsfolk `cook` |
+| Smith | forge, anvil | the furnace and anvil stations (`station-crafting.js`); townsfolk `work` |
+| Open and close | chests, trunks, wardrobes, cupboards, dresser | **new, small:** a lid or doors swing (shared animation, like doors). City furniture holds nothing; some chests (dungeons, the wild) hold loot, taken once. |
+| Read and examine | bookshelf, notice pillar, paintings, statues, gravestones | a line of text; townsfolk `read`/`gaze` |
+| Drink | water trough, pump, birdbath | a line (as the well); townsfolk `drink` |
+| Gates | fence gate, iron gate | the shared door entity on an edge (manual open/close, lockable, NPCs use them) |
+| Work, browse, vend | workbench, loom, displays, counters | townsfolk spots only (`work`, `browse`, `vend`/`keep`) until the economy |
+
+### The set (about a hundred)
+
+**Interior furniture (34):** single bed (1×2), double bed (2×2), bunk bed (1×2), straw cot (1×2), chair, stool, armchair, small table, round table, long table (2×1), dining table (3×1), desk with chair spot, bookshelf, wall shelf (wall), wardrobe, dresser, chest, trunk, cupboard, rug (2×3, walk), round rug (walk), fireplace (2×1, against a wall, lit), kitchen stove (lit), washstand, cask on a stand, painting (wall), candle stand (lit), potted plant, coat rack, broom and bucket, crib, hearth rug (walk), pew (2×1), side table.
+
+**Shop and trade (26):** shop counter (3×1, `low`, keeper behind), corner counter, display table, weapon rack (wall), armour stand, shield display (wall), bread oven (2×1, lit), flour sacks, bread shelf, forge (2×2, lit), anvil, quench barrel, workbench (2×1), tool rack (wall), apothecary shelf, alchemy table, cauldron (lit), fish counter with ice, fish drying rack, tailor's dummy, loom, cloth shelf, produce crates, bar counter (3×1, `low`), keg rack, kegs.
+
+**Street and civic (24):** fence gate (edge), low stone wall (edge), double street lamp, wall torch (wall, lit), water trough, rain barrel, bin, notice pillar, flagpole, bunting between posts, market umbrella stall, produce stand, wagon (2×3), handcart, hay bales, woodpile, crate stack, sack pile, archway (3×1, walk-under), water pump, hitching rail, stone bench, long planter, knight statue.
+
+**Nature and dungeon (21):** small, medium and large rocks, bush, berry bush, tall grass (walk), flower patch (walk), fallen log, tree stump, pond (2×2 water), gazebo (3×3, walk-under), garden arch (walk-under), birdbath, gravestone, dungeon wall torch (wall, lit), brazier (lit), bones and skull, cobweb (wall), broken pillar, rubble, sarcophagus, iron gate (edge), shackles (wall). Dungeons also get their own **dungeon style** (dark mossy stone walls and floor).
+
+### Furnishing by building type
+
+- A building description gains `use`: `home`, `inn`, `tavern`, `bakery`, `smithy`, `general store`, `grocer`, `fishmonger`, `armourer`, `weaponsmith`, `apothecary`, `tailor`, `carpenter`, `guild hall`, `keep`, `warehouse`, `barracks`. The sign icon follows from the use. In-place and separate interiors are both furnished, floor by floor (trade on the ground floor, bedrooms above).
+- **One shared furnisher** (`furnish.js`) lays out a room from its use's rule, seeded so it is stable: **wall pieces** first along the walls, facing in, never across a door or its inside tile, never in front of a stair; then the **trade fixture** (a shop counter with the keeper spot behind it, a forge and anvil, an oven, a bar); then **centre pieces** (a table with chairs, a rug); then clutter. Counts scale with the room.
+- **Checks** (city checks): every spot and the keeper spot can be reached from the door; the door's inside tile and stair fronts stay clear; nothing blocks a window from inside except low pieces.
+- **Editor:** a building's use, a reroll of its furnishing seed, or *no furniture*. Hand-placed props inside are kept, and the furnisher works around them.
+- **Townsfolk** use what is there: residents sleep in their beds and sit at their tables, keepers stand behind counters, smiths work the anvil, bakers the oven.
+
+### Cost
+
+Furniture is drawn only while its building is cut away (it is a cut part shown when cut, like the solid cap), and each building's static furniture is merged into one mesh. Interactive pieces stay separate. Street props merge per chunk (`static-merge.js`). The capital-square scenario covers it, and the prop gallery gets a perf look before the batch ends.
+
+### Playground
+
+- A **prop gallery**: every prop in labelled rows, with interactions live.
+- The **kit street and the capital** get uses and furnished interiors; the annex gains street, nature and dungeon pieces, and the crypt its dungeon dressing.
+- **Model viewer:** every prop, with open/close and lit motions where they apply.
+
+### Decisions for this phase
+
+1. **Storage (user, 2026-10-11).** Some chests hold loot (dungeons, the wild: taken once, by stable id); chests, trunks, wardrobes and cupboards in cities open and say "There is nothing interesting in here." A storage system (personal chests, a bank) comes with the economy.
+2. **Sleeping (user, 2026-10-11).** Health regenerates faster while asleep. Any bed works for now; later, sleeping in a bed someone else owns is refused (an inn room or your own bed), as in many RPGs.
+
+### As implemented (Phase 10, 2026-10-11)
+
+- **Props** (`props.js`, sets in `src/prop-sets/`: `furniture.js`, `trade.js`, `street.js`, `nature.js`; part helpers in `prop-parts.js`): 104 new pieces on top of the 18 starters, grouped in `PROP_CATEGORIES`. New spec fields: `mount:'wall'` (stands against the wall behind its tile, blocks nothing), `block` (only these offsets block: walk-under posts for the gazebo, archway, bunting), `glow` (one shared unlit flame material), `moving` (lids, doors, drawers on pivots: `setPropOpen`; `updateProps` visits only props on their way open or shut), `station` (`fire`, `furnace`, `anvil`) and `seat` ({back, height, motion}; beds use `Sleeping`; every seat and sleep spot faces away from its piece so you settle onto it, unit-tested at all four rotations).
+- **Work surfaces** come to a slime's chest (bodies are .72 tall): counters, the market stall, tables, the desk, workbench, alchemy and display tables have their tops at `SURFACE` (.55, `prop-parts.js`; `lowerTo` lowers a piece's top and shortens its legs); the side table is .5. Seats are lower to match: chairs, stools, pews and benches have their tops at `SEAT` (.3), the armchair's cushion a little higher; the shared Sit motion takes the seat's own height (`socialMotion(kind, time, {seatHeight})`, `play(kind, {seatHeight})`), so the player and townsfolk settle onto each seat (user review, 2026-10-11).
+- **Interactions** (`main.js`): sit and sleep (sleeping triples regeneration: `RESTING_HEALTH`, `player-resources.js`), cook (the shared cooking menu, fire station satisfied), smith (the shared station for `furnace` or `anvil`), open (lid animates; loot once by stable id via `takeLoot`, otherwise "There is nothing interesting in here."), read, examine and drink lines.
+- **Edges**: a wooden `fenceGate` and an `ironGate` (`edge-models.js`) are doors in fence, railing and low-wall lines; a gate checks only its swing side for the door rule (`doors.js`). New `dungeon` wall style and floor surface.
+- **Furnishing** (`furnish.js`): `USES` rules for 18 uses; `furnishingUse(desc)` (explicit `use`, `none`, a signed shop as `store`, else `home`); `furnishRoom(room, use, seed)` keeps the doorway and the tile in from it clear, puts a shop counter 3 (or 2) tiles in with the keeper behind (`layout.keeper`), reserves each piece's use tiles so later pieces can't block a bedside or stove front, and keeps every free tile reachable from the door. In-place buildings get a furniture group shown only while cut (static pieces merged per building; its matrices are frozen). Separate interiors furnish every floor (`upstairsUse`); dungeons use `crypt` with a loot chest.
+- **Townsfolk**: spots come from props and furniture; residents prefer their own house and sleep and cook there; seats use their own motion and height.
+- **Checks and editor**: city checks warn when a building's bed, stove, workbench or counter can't be reached from its door, or its keeper can't get behind the counter (none on the kit street or the capital). The editor has **Use** (sets `desc.use`; a shop's sign follows `USE_ICONS`) and **Reroll furniture** (`desc.furnishSeed`).
+- **Playground**: *Prop gallery* (every prop by category, plus the fence gate, low stone wall and iron gate; the gallery chest holds 2 copper ore). Every prop is in the model viewer; props with moving parts have Closed/Open motions.
+- **Verified in the browser**: sleeping in a gallery bed (settles on it, eyes close), the chest (lid opens, +2 copper ore, then nothing), the stove (cooking menu), the forge (smelting with that ore), and furnished kit street interiors under force cutaway.
+- **Open**: owned beds (refuse sleeping in someone else's) and storage come later (see the decisions above). City chests have no loot by design.
+
 ## Townsfolk and city life
 
 **Routines from places, not scripts.** A townsfolk entry gives a look (colour, hat, accessories), a home door, a loadout or carried tool, and a **routine**: a weighted list of activities. Activities find spots offered by props and buildings: `sit` (bench), `browse` (stall), `vend` and `work` (shop counter, smithy anvil, using existing station motions), `gaze` (fountain, statue), `chat` (two idle townsfolk meet and face each other through `slime-social.js`), `stroll` (to a random street spot), `enter` (walk to a door, go inside, reappear later) and `patrol` (guards follow a loop). Every motion is shared slime presentation. No per-character animation code, as AGENTS.md requires.
@@ -338,6 +410,7 @@ Each phase ends playable in the playground and keeps existing maps unchanged. Ph
 7. **Separate interiors, stairwells and dungeon entrances**, with the interior size checks (first draft 2026-10-11, see *As implemented (Phase 7)*).
 8. **Townsfolk routines and crowd budget**, with the navigation graph, perf scenarios and ring-based detail (first draft 2026-10-11, see *As implemented (Phase 8)*).
 9. **The capital itself**, on the streamer, with the castle and the waking crystal in the town square (first draft 2026-10-11, see *As implemented (Phase 9)*).
+10. **Props, furniture and furnishing** by building type, with the interactions above (first draft 2026-10-11, see *As implemented (Phase 10)*).
 
 The economy ([ECONOMY.md](ECONOMY.md)) is designed alongside and doesn't wait for the city: selling, buying and jobs can be tested at a playground counter before the capital exists.
 

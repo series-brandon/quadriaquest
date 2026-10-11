@@ -5,7 +5,9 @@ export const SOCIAL_DURATIONS={'Happy hop':1.1,Wave:2.2,Sleeping:6,Sit:3};
 export const HELD_MOTIONS=['Sleeping','Sit'];
 // How high a sitting slime's base rises: a bench or chair seat (the seat it sits on lies under it).
 export const SEAT_HEIGHT=.41;
-export function socialMotion(kind,time){
+// seatHeight: how high the seat a Sit hops onto is (props give their own; the default suits the
+// tutorial seats).
+export function socialMotion(kind,time,{seatHeight=SEAT_HEIGHT}={}){
   const pose={squash:1,stretch:1,twist:0,lean:0,roll:0};
   const hands=[[-.46,.33,.08,0,0],[.46,.33,.08,0,0]];
   // How much each hand keeps a held weapon's resting grip (1) or holds it upright (0).
@@ -25,7 +27,7 @@ export function socialMotion(kind,time){
   }else if(kind==='Sit'){
     // Hop up onto a seat, settle, then rest with an easy breath; hands drop to the lap.
     const up=smooth(time/.45),settle=smooth((time-.35)/.5),breath=Math.sin(Math.max(0,time-.85)*Math.PI/1.6);
-    lift=SEAT_HEIGHT*up+.08*Math.sin(Math.PI*Math.min(1,time/.45));pose.squash=1-.1*settle+breath*.015;pose.bend=-.04*settle;
+    lift=seatHeight*up+.08*Math.sin(Math.PI*Math.min(1,time/.45));pose.squash=1-.1*settle+breath*.015;pose.bend=-.04*settle;
     hands[0]=[-.44,.33-.12*settle,.14*settle+.08,0,0];hands[1]=[.44,.33-.12*settle,.14*settle+.08,0,0];
     expression=settle>.5?'pleased':'happy';
   }else if(kind==='Sleeping'){

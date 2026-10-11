@@ -16,6 +16,7 @@ import {key} from './world.js';
 export const SURFACES={
  grass:['#8fb071','#88aa6b'],dirt:['#b39b78','#ab9372'],cobble:['#a9a39a','#a29c92'],flagstone:['#c3b9a6','#bbb19e'],
  plaza:['#cbc4b6','#c2bbad'],stone:['#b7b0a5','#aea79c'],floor:['#a49c90','#9c9488'],planks:['#a27a55','#9a7350'],
+ dungeon:['#55524b','#4f4c45'],
 };
 export const SURFACE_NAMES=Object.keys(SURFACES);
 const PAVED=new Set(['cobble','flagstone','plaza','stone']),SOFT=new Set(['grass','dirt']);

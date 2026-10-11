@@ -6,6 +6,7 @@ import {createProp} from './props.js';
 import {makeCityTile,layStairs,railingEdges,stairRailParts,SURFACE_NAMES} from './city-terrain.js';
 import {mergedMesh} from './merged-model.js';
 import {mergeStatic} from './static-merge.js';
+import {furnishRoom,roomOfPlan,furnishingUse} from './furnish.js';
 import {makeCrystal} from './crystal-model.js';
 import {key} from './world.js';
 
@@ -18,7 +19,7 @@ import {key} from './world.js';
 // Terrain is stored per tile in 64 × 64 regions (docs/DESIGN.md streaming notes): heights in half
 // blocks as one character each ('0' + 2h), surfaces as one letter each.
 export const REGION=64;
-const SURFACE_CODES={grass:'g',dirt:'d',cobble:'c',flagstone:'f',plaza:'p',stone:'s',floor:'o',planks:'k'};
+const SURFACE_CODES={grass:'g',dirt:'d',cobble:'c',flagstone:'f',plaza:'p',stone:'s',floor:'o',planks:'k',dungeon:'u'};
 const SURFACE_FROM=Object.fromEntries(Object.entries(SURFACE_CODES).map(([k,v])=>[v,k]));
 const heightChar=h=>String.fromCharCode(48+Math.round(h*2)),charHeight=c=>(c.charCodeAt(0)-48)/2;
 
@@ -84,7 +85,23 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   if(stair){const c=chunk(high.x,high.z);if(!stairSides.has(c))stairSides.set(c,[]);stairSides.get(c).push([high,low]);}}
  // Stair sides: sloped handrails, one merged mesh per chunk.
  for(const [c,list] of stairSides){const rails=mergedMesh(stairRailParts(list));rails.name='stair-rails';c.root.add(rails);}
- for(const p of data.props){try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:chunk(p.x,p.z).root,pickables,id:p.id??null});if(p.link)prop.link={kind:'dungeon',city,id:p.link};props.push(prop);}catch(error){console.warn(error.message);}}
+ for(const p of data.props){try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:chunk(p.x,p.z).root,pickables,id:p.id??null,loot:p.loot?{id:`${data.id}:${p.x},${p.z}`,items:p.loot}:null});if(p.link)prop.link={kind:'dungeon',city,id:p.link};props.push(prop);}catch(error){console.warn(error.message);}}
+ // Furniture (furnish.js): each in-place building furnished by its use, around hand-placed props, in a
+ // group of its own that shows only while the building is cut (the roof hides it otherwise). Static
+ // pieces merge into one mesh per building; interactive ones stay pickable.
+ const furniture=[];
+ data.buildings.forEach((b,i)=>{const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];if(!use||b.desc.interior!=='inPlace')return;
+  const keep=built.plan.tiles.filter(([x,z])=>t(x,z)?.blocked);
+  const layout=furnishRoom(roomOfPlan(built.plan,{keep}),use,b.desc.furnishSeed??b.desc.seed??i);if(!layout.length)return;
+  if(layout.keeper)built.anchors.keeper=t(...layout.keeper);
+  const home=chunk(b.x,b.z),group=new THREE.Group();group.name='furniture';group.userData.showWhenCut=true;group.visible=false;home.root.add(group);
+  for(const f of layout){try{const prop=createProp(f.kind,{origin:[f.x,f.z],rotation:f.rotation,tileAt:t,parent:group,pickables});prop.building=i;built.furniture.push(prop);furniture.push(prop);}catch{}}
+  mergeStatic(group,built.furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});
+  home.edges.addCutPart(group,i);
+  // Furniture never moves: its matrices are worked out once and the frame's matrix pass skips it
+  // (an opening chest refreshes its own, props.js).
+  group.updateWorldMatrix(true,true);group.matrixWorldAutoUpdate=false;for(const p of built.furniture)p.frozen=true;
+ });
  let crystal=null;
  if(data.crystal){const tile=t(...data.crystal);if(tile){crystal=makeCrystal();crystal.position.set(tile.x-6,tile.h,tile.z-6);chunk(tile.x,tile.z).root.add(crystal);tile.blocked=true;}}
  // Always-visible decoration merged per chunk (static-merge.js): building decor (awnings, sign boards,
@@ -98,7 +115,7 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
  const broken=edges.doorProblems();if(broken.length)console.warn('Door rule: '+broken.map(r=>`${r.door.a.x},${r.door.a.z}: ${r.problems.join('; ')}`).join(' | '));
  let roofsShown=true,streamCenter=null;
  // defineProperties, not Object.assign: assign would copy the getters as fixed values.
- return Object.defineProperties(city,Object.getOwnPropertyDescriptors({group,tiles:map,doors,edges,roofs,buildings,props,crystal,chunks,spawn:t(...data.spawn)||tiles[0],
+ return Object.defineProperties(city,Object.getOwnPropertyDescriptors({group,tiles:map,doors,edges,roofs,buildings,props,furniture,crystal,chunks,spawn:t(...data.spawn)||tiles[0],
   get roofsShown(){return roofsShown;},setRoofs(on){roofsShown=!!on;for(const r of roofs){r.userData.hiddenByMap=!roofsShown;r.visible=roofsShown;}},
   // Shows only the chunks within `radius` chunks of the tile (render streaming; tiles stay resident).
   stream(tile,radius=streamRadius){if(!tile||radius===null)return;const id=chunkOf(tile.x,tile.z);if(id===streamCenter)return;streamCenter=id;const [cx,cz]=id.split(',').map(Number);

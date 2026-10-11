@@ -53,6 +53,11 @@ export function cityProblems(data,built){
   const count=open.filter(Boolean).length;
   if(count===1)add('dead end','warning',[t.x,t.z],'A one-tile slot that leads nowhere.');
   else if(count===2&&(open[0]&&open[2]||open[1]&&open[3]))add('narrow','warning',[t.x,t.z],'A passage one tile wide (streets and alleys are at least two).');}
+ // Furniture (furnish.js): a bed, stove, forge, anvil or counter nobody can reach is wasted; so is a
+ // shop whose keeper can't reach the counter.
+ for(const b of built.buildings){const door=b.anchors.doors[0]?.inside;if(!door||!b.furniture?.length)continue;const inside=reachableFrom(map,door);
+  for(const p of b.furniture){const useful=p.spots.filter(sp=>['sleep','cook','work','vend','browse'].includes(sp.kind));if(useful.length&&!useful.some(sp=>inside.has(sp.tile)))add("furniture","warning",[p.tile.x,p.tile.z],`${b.plan.desc.name||'A building'}: nobody can reach its ${p.def.name.toLowerCase()}.`);}
+  if(b.anchors.keeper&&!inside.has(b.anchors.keeper))add('furniture','warning',[b.anchors.keeper.x,b.anchors.keeper.z],`${b.plan.desc.name||'A shop'}: the keeper can't get behind the counter.`);}
  // Separate interiors and dungeons (spaces.js).
  problems.push(...interiorProblems(data));
  // Townsfolk: homes and routines (townsfolk.js).

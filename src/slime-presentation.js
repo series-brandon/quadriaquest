@@ -150,7 +150,7 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
  const equipment=loadout?loadoutEquipment(loadout):null,presentation=createSlimePresentation(rig,{equipment,carry});
  const baseY=rig.group.position.y;let playing=null;
  return {presentation,equipment,visual:presentation.visual,
-  play(kind,{profile=null,loop=true,duration=null}={}){playing={kind,profile:profile||(COMBAT_KINDS.includes(kind)?gearProfile(kind,equipment):null),loop,duration:duration??SOCIAL_DURATIONS[kind]??null,time:0};},
+  play(kind,{profile=null,loop=true,duration=null,seatHeight}={}){playing={kind,seatHeight,profile:profile||(COMBAT_KINDS.includes(kind)?gearProfile(kind,equipment):null),loop,duration:duration??SOCIAL_DURATIONS[kind]??null,time:0};},
   stop(){playing=null;},
   get playing(){return playing?.kind||null;},
   // expression: the face when nothing overrides it; face: a final override (e.g. dialogue); calm: in a
@@ -162,7 +162,7 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
     playing.time+=dt;
     if(!playing.loop&&playing.duration!==null&&playing.time>=playing.duration)playing=null;
     else if(SOCIAL_DURATIONS[playing.kind]!==undefined){
-     const t=HELD_MOTIONS.includes(playing.kind)||!playing.duration?playing.time:playing.time%(playing.duration+.7),social=socialMotion(playing.kind,t),slots=equipment?.slots;
+     const t=HELD_MOTIONS.includes(playing.kind)||!playing.duration?playing.time:playing.time%(playing.duration+.7),social=socialMotion(playing.kind,t,{seatHeight:playing.seatHeight}),slots=equipment?.slots;
      ({pose,lift,expression}=social);socialHands=equipment?withGrip(social.hands,equipmentIdleHands({rightHand:slots.right,leftHand:slots.left}),social.grip):social.hands;
     }else motion={kind:playing.kind,time:playing.time,profile:playing.profile};
    }

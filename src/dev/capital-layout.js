@@ -1,5 +1,6 @@
 import {createCityData,fillCity} from '../city-map.js';
 import {seeded} from '../building-kit.js';
+import {USE_ICONS} from '../furnish.js';
 
 // The capital's first layout (city Phase 9; docs/CITY.md, Streaming and the world). Dev only: it writes
 // src/maps/capital.json (scripts/generate-capital.mjs), which the city editor then refines by hand. The
@@ -22,7 +23,8 @@ const STREETS=[{x0:62,z0:32,x1:66,z1:62},{x0:63,z0:80,x1:65,z1:123},{x0:4,z0:70,
  {x0:30,z0:32,x1:32,z1:123},{x0:96,z0:32,x1:98,z1:123},{x0:4,z0:46,x1:123,z1:47},{x0:4,z0:98,x1:123,z1:100},{x0:4,z0:28,x1:123,z1:31}];
 const BLOCKS=[[4,29,33,45],[33,61,33,45],[67,95,33,45],[99,123,33,45],[4,29,48,69],[72,95,48,69],[99,123,48,69],
  [4,29,73,97],[33,55,73,97],[72,95,73,97],[99,123,73,97],[4,29,101,123],[33,62,101,123],[66,95,101,123],[99,123,101,123]];
-const ICONS=['hammers','rawFish','quickEat','swords','copperShield','quickRestore','bows','campfires','Culinary'];
+// Shops by trade (Phase 10 furnishing); signs follow the trade.
+const TRADES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecary','store','tavern','bakery','tailor','carpenter'];
 const styleAt=(x,z)=>z>100?'stone':x<56?'timber':'brick';
 
 export function capitalData(){
@@ -34,7 +36,7 @@ export function capitalData(){
  data.stairs.push({...C.stair});
  // The castle: the keep (a separate interior), four towers, and a curtain wall with a gate.
  const {keep,courtyard:Y}=C,ring=[];
- data.buildings.push({x:keep.x,z:keep.z,desc:{name:'castle keep',footprint:[keep.w,keep.d],storeys:3,roof:'flat',style:'stone',doors:[{edge:'south',at:keep.w-1-(64-keep.x)}],windows:'auto',interior:'separate',seed:5},interior:{floors:2,furniture:[{kind:'banner',at:[2,0]},{kind:'banner',at:[18,0]},{kind:'statue',at:[10,2]},{kind:'bench',at:[4,4]},{kind:'bench',at:[15,4]}]}});
+ data.buildings.push({x:keep.x,z:keep.z,desc:{name:'castle keep',footprint:[keep.w,keep.d],storeys:3,roof:'flat',style:'stone',doors:[{edge:'south',at:keep.w-1-(64-keep.x)}],windows:'auto',interior:'separate',use:'keep',seed:5},interior:{floors:2,furniture:[{kind:'banner',at:[2,0]},{kind:'banner',at:[18,0]},{kind:'statue',at:[10,2]},{kind:'bench',at:[4,4]},{kind:'bench',at:[15,4]}]}});
  for(const [x,z] of [[Y.x0,Y.z0],[Y.x1-2,Y.z0],[Y.x0,Y.z1-2],[Y.x1-2,Y.z1-2]])data.buildings.push({x,z,desc:{name:'castle tower',footprint:[3,3],storeys:4,roof:'cone',style:'stone',doors:[],windows:'none',interior:'none',seed:x+z}});
  for(let x=Y.x0;x<=Y.x1;x++){ring.push({a:[x,Y.z0],b:[x,Y.z0-1]});if(x<C.gate[0]||x>C.gate[1])ring.push({a:[x,Y.z1],b:[x,Y.z1+1]});}
  for(let z=Y.z0;z<=Y.z1;z++){ring.push({a:[Y.x0,z],b:[Y.x0-1,z]});ring.push({a:[Y.x1,z],b:[Y.x1+1,z]});}
@@ -51,7 +53,7 @@ export function capitalData(){
     const isShop=mainStreet&&((row.edge==='south'&&z1===69)||(row.edge==='north'&&z0===73))&&random()<.7;
     const separate=n===14||n===41;
     data.buildings.push({x,z:row.z,desc:{name:separate?(n===14?'the Wandering Slime inn':'guild hall'):isShop?`shop ${++shop}`:`house ${n+1}`,footprint:[w,depth],storeys:separate?2:storeys,roof:storeys>1&&random()<.5?'hip':'gable',style,
-     doors:[{edge:row.edge,at}],chimney:random()<.6,sign:isShop?{icon:ICONS[shop%ICONS.length],edge:row.edge}:null,awning:isShop?'striped':null,interior:separate?'separate':'inPlace',seed:n*13+7,roofColor:separate?'#7a4a8c':undefined},
+     doors:[{edge:row.edge,at}],chimney:random()<.6,sign:isShop?{icon:USE_ICONS[TRADES[shop%TRADES.length]]||'star',edge:row.edge}:null,awning:isShop?'striped':null,interior:separate?'separate':'inPlace',use:separate?(n===14?'inn':'guildHall'):isShop?TRADES[shop%TRADES.length]:'home',seed:n*13+7,roofColor:separate?'#7a4a8c':undefined},
      ...separate?{interior:{floors:2,furniture:[{kind:'barrel',at:[0,0]},{kind:'barrel',at:[1,0]},{kind:'bench',at:[2,2]},{kind:'crates',at:[w-1,0],floor:1}]}}:{}});
     n++;run++;x+=w;if(run>=3&&x+2<=x1){x+=2;run=0;}
    }}
@@ -60,7 +62,7 @@ export function capitalData(){
  }
  // Tall shops shoulder to shoulder on the square (the liveliest place in the city), doors onto it.
  for(const [x,z,w,d,edge,icon,storeys] of [[57,55,5,8,'south','Culinary',3],[67,55,5,8,'south','quickRestore',3],[57,80,6,8,'north','hammers',2]])
-  data.buildings.push({x,z,desc:{name:`square shop (${icon})`,footprint:[w,d],storeys,roof:'hip',style:'timber',doors:[{edge,at:Math.floor(w/2)}],chimney:true,sign:{icon,edge},awning:'striped',interior:'inPlace',seed:x*3+z}});
+  data.buildings.push({x,z,desc:{name:`square shop (${icon})`,footprint:[w,d],storeys,roof:'hip',style:'timber',doors:[{edge,at:Math.floor(w/2)}],chimney:true,sign:{icon,edge},awning:'striped',interior:'inPlace',use:{Culinary:'bakery',quickRestore:'apothecary',hammers:'smithy'}[icon],seed:x*3+z}});
  // The town square: fountain, crystal, noticeboard, benches, lamps.
  const S=C.square;
  data.props.push({kind:'fountain',x:C.fountain[0],z:C.fountain[1]},{kind:'noticeboard',x:60,z:75},{kind:'bench',x:66,z:66},{kind:'bench',x:60,z:66},
@@ -93,6 +95,6 @@ export function capitalData(){
  let r=0;
  data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length)return;const shop=!!b.desc.sign;if(shop?i%2!==0:i%10!==0)return;
   data.townsfolk.push({id:`resident-${i}`,name:`${first[r%first.length]}${r>=first.length?' '+(Math.floor(r/first.length)+1):''}`,look:{color:colors[r%8],loadout:r%5===0?{head:'minersCap'}:null},house:i,
-   routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'sit',weight:1},{do:'chat',weight:1}],line:shop?'Stock’s coming in soon, I promise.':'Mind the step on your way in.'});r++;});
+   routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'sleep',weight:1},{do:'cook',weight:1},{do:'sit',weight:2},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'chat',weight:1}],line:shop?'Stock’s coming in soon, I promise.':'Mind the step on your way in.'});r++;});
  return data;
 }

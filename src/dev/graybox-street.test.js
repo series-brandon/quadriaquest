@@ -37,7 +37,8 @@ test('kit street: the same layout built by the building kit keeps every route, d
   if(!b.door)continue;
   const door=built.doors.find(d=>d.a.x>=b.x0&&d.a.x<=b.x1&&d.a.z>=b.z0&&d.a.z<=b.z1);assert.ok(door,`${b.name}: has its door`);
   if(b.kind==='shell'){assert.equal(door.locked,true);continue;}
-  door.setOpen(true);assert.ok(route(inside.x,inside.z),`${b.name}: reachable through its door`);door.setOpen(false);
+  // Furnished rooms: walk in to the door's inside tile (furniture may stand elsewhere).
+  door.setOpen(true);assert.ok(route(door.a.x,door.a.z),`${b.name}: reachable through its door`);door.setOpen(false);
  }
  // The terraced row shares its walls: one wall per shared edge, owned by both houses.
  const i=BUILDINGS.findIndex(b=>b.name==='terraced house 1'),shared=built.edges.info(t(45,35),t(46,35));

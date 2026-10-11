@@ -3,6 +3,8 @@ import {createTerrainBatch} from './terrain-batch.js';
 import {createEdgeFeatures} from './doors.js';
 import {planBuilding} from './building-kit.js';
 import {createProp,propFootprint} from './props.js';
+import {furnishRoom,furnishingUse,upstairsUse} from './furnish.js';
+import {mergeStatic} from './static-merge.js';
 import {surfaceColor,DIRS} from './city-terrain.js';
 import {tileTopGeometry} from './tile-top.js';
 import {mergedMesh} from './merged-model.js';
@@ -60,17 +62,19 @@ function createStairwell({place,direction,link,parent,pickables,services,tileAt}
 }
 // Builds one floor of a building's interior (or a dungeon) as a space: tiles, walls, doors, stairwells.
 // plan: the building's plan (building-kit.js), or null for a dungeon with `size`.
-export function buildSpace({pickables=[],plan=null,size=null,origin=[0,0],floor=0,floors=1,spec={},style='timber',base=1,kind='house',links,services}){
+// use: the room's furnishing (furnish.js; the building's trade below, bedrooms or storage above, the
+// crypt in a dungeon). lootId: a stable id for the dungeon chest's loot.
+export function buildSpace({pickables=[],plan=null,size=null,origin=[0,0],floor=0,floors=1,spec={},style='timber',base=1,kind='house',links,services,use=null,lootId=null,loot=null}){
  const group=new THREE.Group(),tiles=new Map(),inner=[];
- const [x0,z0]=plan?[plan.x0,plan.z0]:origin,[w,d]=plan?[plan.w,plan.d]:size,surface=spec.surface||(kind==='dungeon'?'stone':floor?'planks':'floor');
+ const [x0,z0]=plan?[plan.x0,plan.z0]:origin,[w,d]=plan?[plan.w,plan.d]:size,surface=spec.surface||(kind==='dungeon'?'dungeon':floor?'planks':'floor');
  for(let z=z0-1;z<=z0+d;z++)for(let x=x0-1;x<=x0+w;x++){const inside=x>=x0&&x<x0+w&&z>=z0&&z<z0+d;const t={x,z,h:base,surface,blocked:!inside,water:false,indoor:inside,building:inside?0:undefined,space:true};tiles.set(key(x,z),t);if(inside)inner.push(t);}
  const t=(x,z)=>tiles.get(key(x,z));
- const edges=createEdgeFeatures({parent:group,pickables,tileAt:t,style:kind==='dungeon'?'stone':style});
+ const edges=createEdgeFeatures({parent:group,pickables,tileAt:t,style:kind==='dungeon'?'dungeon':style});
  const doors=[];
  if(plan){for(const e of plan.edges){const a=t(...e.a),b=t(...e.b);
    if(e.kind==='door'&&floor===0){const door=edges.add(a,b,'door',{owner:0,style,locked:!!e.door?.locked});door.link=links.exit(e);doors.push(door);}
    else edges.add(a,b,e.kind==='window'?'window':'wall',{owner:0,style});}}
- else for(let x=x0;x<x0+w;x++)for(let z=z0;z<z0+d;z++)for(const [dx,dz] of Object.values(DIRS)){const n=t(x+dx,z+dz);if(n&&!n.indoor&&!edges.info(t(x,z),n))edges.add(t(x,z),n,'wall',{owner:0,style:'stone'});}
+ else for(let x=x0;x<x0+w;x++)for(let z=z0;z<z0+d;z++)for(const [dx,dz] of Object.values(DIRS)){const n=t(x+dx,z+dz);if(n&&!n.indoor&&!edges.info(t(x,z),n))edges.add(t(x,z),n,'wall',{owner:0,style:'dungeon'});}
  // Stairs: two tiles along a wall rising into a corner. A floor's flight up uses placement k % 2 and the
  // opening down to it from above sits on the same tiles one floor up, so a middle floor has both.
  const stairs=[],placements=plan?stairsPlacements(plan,spec):spec.exit?stairsPlacements({x0,z0,w,d,doors:[]},{stairs:spec.exit}):[];
@@ -82,11 +86,23 @@ export function buildSpace({pickables=[],plan=null,size=null,origin=[0,0],floor=
  // Furniture never goes on stairs or in front of them.
  const keepClear=new Set(stairs.flatMap(w=>[w.place.front].filter(Boolean)));
  for(const f of spec.furniture||[])if((f.floor??0)===floor){const [fw,fd]=propFootprint(f.kind,f.rotation||0),cells=[];for(let a=0;a<fw;a++)for(let c=0;c<fd;c++)cells.push(t(x0+f.at[0]+a,z0+f.at[1]+c));if(cells.some(c=>!c||c.blocked||keepClear.has(c)))continue;try{createProp(f.kind,{origin:[x0+f.at[0],z0+f.at[1]],rotation:f.rotation||0,tileAt:t,parent:group,pickables});}catch{}}
+ // Furnishing (furnish.js) around the stairs, their fronts and any hand-placed furniture; static pieces
+ // merge into one mesh.
+ const furniture=[];
+ if(use){
+  const keep=inner.filter(n=>n.blocked).map(n=>[n.x,n.z]),fronts=stairs.map(w=>w.place.front).filter(Boolean);
+  const doors=plan&&floor===0?plan.doors.map(d=>({inside:d.inside,out:d.out})):fronts.map(f=>({inside:[f.x,f.z],out:[0,0]}));
+  const room={tiles:inner.map(n=>[n.x,n.z]),doors,keeper:plan&&floor===0?plan.anchors.keeper:null,keep:[...keep,...fronts.map(f=>[f.x,f.z])]};
+  const layout=furnishRoom(room,use,(spec.seed??1)*31+floor);
+  for(const f of layout){try{furniture.push(createProp(f.kind,{origin:[f.x,f.z],rotation:f.rotation,tileAt:t,parent:group,pickables,loot:f.loot&&loot?{id:lootId,items:loot}:null}));}catch{}}
+  if(layout.keeper)group.userData.keeper=t(...layout.keeper);
+  mergeStatic(group,furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});
+ }
  createTerrainBatch({tiles:inner,map:tiles,factory:tile=>floorTile(tile,tiles),parent:group,pickables});
  edges.bake();
  // Arriving by stairs: coming up, beside the top of the opening; coming down, in front of the bottom step.
  const free=n=>n&&n.indoor&&!n.blocked,besideTop=well=>ARRIVAL_ORDER.map(([dx,dz])=>t(well.place.top.x+dx,well.place.top.z+dz)).find(free);
- return {group,tiles,doors,stairs,edges,inner,
+ return {group,tiles,doors,stairs,edges,inner,furniture,
   arrival(from){if(from?.door!==undefined){const door=doors[from.door];return door?.a||inner.find(n=>!n.blocked);}
    const down=stairs.find(s=>s.direction==='down'),up=stairs.find(s=>s.direction==='up');
    if(from==='up'&&down)return besideTop(down)||inner.find(n=>!n.blocked);
@@ -145,7 +161,8 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
   const record={ids:[],spaces:[]};built.set(id,record);
   for(let floor=0;floor<floors;floor++){
    const links={exit:e=>({kind:'exit',area:city.areaId,tile:e.b}),floor:(f,via)=>({kind:'floor',city,building,floor:f,via})};
-   const space=buildSpace({pickables,plan,floor,floors,spec,style:entry.desc.style,base,links,services});
+   const use=floor===0?furnishingUse(entry.desc):upstairsUse(entry.desc.use);
+   const space=buildSpace({pickables,plan,floor,floors,spec,style:entry.desc.style,base,links,services,use});
    const areaId=`${id}:f${floor}`;scene.add(space.group);
    areas.register({id:areaId,name:`${entry.desc.name||'Building'}${floors>1?` (floor ${floor+1})`:''}`,description:'Interior',listed:()=>false,group:space.group,tiles:space.tiles,maxZoom:INTERIOR_MAX_ZOOM,interior:true,camera:{background:SPACE_BACKGROUND}});
    record.ids.push(areaId);record.spaces.push(space);
@@ -157,7 +174,7 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
   const spec=city.data.interiors[dungeon],entrance=city.data.props.find(p=>p.kind==='dungeonEntrance'&&p.link===dungeon);
   const back=entrance?city.props.find(p=>p.kind==='dungeonEntrance'&&p.tile.x===entrance.x&&p.tile.z===entrance.z)?.spots[0]?.tile:null;
   const links={exit:()=>({kind:'exit',area:city.areaId,tile:back?[back.x,back.z]:[...city.data.spawn]}),floor:()=>null};
-  const space=buildSpace({pickables,size:spec.size,origin:[0,0],spec,kind:'dungeon',base:1,links,services}),areaId=id;scene.add(space.group);
+  const space=buildSpace({pickables,size:spec.size,origin:[0,0],spec,kind:'dungeon',base:1,links,services,use:spec.use||'crypt',lootId:`${city.data.id}:${dungeon}:chest`,loot:spec.loot||{copperOre:3,logs:2}}),areaId=id;scene.add(space.group);
   areas.register({id:areaId,name:spec.name||'Dungeon',description:'Dungeon',listed:()=>false,group:space.group,tiles:space.tiles,maxZoom:DUNGEON_MAX_ZOOM,interior:true,camera:{background:SPACE_BACKGROUND}});
   const record={ids:[areaId],spaces:[space]};built.set(id,record);return record;
  }

@@ -49,6 +49,7 @@ test('city data stores terrain per tile in 64 × 64 regions and builds live tile
 test('kit street annex: every terrace is reached only by its stairs, and its props and cottage are in place',()=>{
  const built=buildCity(kitStreetData(),{scene:new THREE.Group()}),t=(x,z)=>built.tiles.get(key(x,z)),from=built.spawn,route=(x,z)=>findPath(built.tiles,from,t(x,z));
  const {terraceA,terraceB,terraceC}=KIT_ANNEX;
+ for(const d of built.doors)if(d.gate)d.setOpen(true);// the iron gate at the top of the narrow stair
  assert.ok(route(terraceA.x0+2,terraceA.z0+2),'terrace A');assert.ok(route(terraceB.x0+2,terraceB.z0+2),'terrace B');assert.ok(route(terraceC.x0+1,terraceC.z0+1),'terrace C, via the landing');
  assert.equal(t(KIT_ANNEX.landing.x0,43).h,2,'the landing');assert.equal(stairProblems(built.tiles).length,0);
  // Walk up the 3-wide stair: every step on it is half a block.

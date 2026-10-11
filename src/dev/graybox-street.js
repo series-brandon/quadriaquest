@@ -6,6 +6,7 @@ import {STOREY} from '../edge-models.js';
 import {key} from '../world.js';
 import {storeyFloors} from '../building-kit.js';
 import {buildCity} from '../city-map.js';
+import {USE_ICONS} from '../furnish.js';
 import {kitStreetData} from './kit-street.js';
 
 // Graybox street (playground only; docs/CITY.md, Phase 2). Plain grey buildings at the proposed scale,
@@ -69,7 +70,8 @@ export const STREETS=[{x0:28,z0:9,x1:32,z1:24},{x0:2,z0:30,x1:23,z1:32},{x0:37,z
 // Districts by style: timber around the square and west street, brick for the east (craft) street,
 // stone for the castle quarter; the guild hall's roof colour marks it as public. Ring buildings facing
 // the square are shops with awnings and signs. Shells (no interior) keep their locked doors.
-const SHOP_ICONS=['hammers','rawFish','quickEat','swords','copperShield','quickRestore','bows','campfires'];
+// Shops on the square, by trade (Phase 10 furnishing); their signs follow the trade (furnish.js USE_ICONS).
+const SHOP_USES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecary','bakery','tailor'];
 const SIDE_NAMES={n:'north',e:'east',s:'south',w:'west'};
 export function kitDescription(b,i){
  const w=b.x1-b.x0+1,d=b.z1-b.z0+1,doors=[];
@@ -77,9 +79,9 @@ export function kitDescription(b,i){
  const ring=b.name.startsWith('square '),castle=b.name.startsWith('castle'),tower=b.name==='castle tower';
  const style=castle||b.name.startsWith('terrace')||b.name.startsWith('guild')?'stone':i>=17&&i<=22?'brick':'timber';
  const roof=tower?'cone':b.name==='castle keep'?'flat':b.kind==='shell'||(b.storeys||1)>=3?'hip':i%3===2?'hip':'gable';
- const shop=ring&&i%2===0?{icon:SHOP_ICONS[(i/2)%SHOP_ICONS.length],edge:doors[0].edge}:null;
+ const trade=ring&&i%2===0?SHOP_USES[(i/2)%SHOP_USES.length]:null,shop=trade?{icon:USE_ICONS[trade]||'star',edge:doors[0].edge}:null;
  return {name:b.name,footprint:[w,d],storeys:b.storeys||1,roof,style,doors,windows:tower?'none':'auto',chimney:!castle&&b.kind==='house',
-  sign:shop,awning:shop?'striped':null,interior:b.kind==='shell'?'none':'inPlace',seed:i*7+3,roofColor:b.name.startsWith('guild')?'#7a4a8c':undefined};
+  sign:shop,awning:shop?'striped':null,interior:b.kind==='shell'?'none':'inPlace',use:trade||(b.kind==='shell'?'none':'home'),seed:i*7+3,roofColor:b.name.startsWith('guild')?'#7a4a8c':undefined};
 }
 
 export function createGrayboxStreet({scene,pickables,kit=false}){

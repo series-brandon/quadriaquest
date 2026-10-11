@@ -19,7 +19,7 @@ export const KIT_ANNEX={
  stairs:[{x:70,z:29,dir:'n',length:2,width:3},{x:82,z:23,dir:'n',length:2,width:1},{x:68,z:44,dir:'w',length:2,width:2},{x:65,z:44,dir:'w',length:2,width:2}],
  // A two-storey guild house with a separate interior (Phase 7): its door leads into its own space,
  // with a stairwell up to the first floor.
- guildHouse:{x:70,z:17,desc:{name:'guild house',footprint:[5,4],storeys:2,roof:'hip',style:'stone',doors:[{edge:'south',at:2}],chimney:true,interior:'separate',seed:12,roofColor:'#3f6f8c'},
+ guildHouse:{x:70,z:17,desc:{name:'guild house',footprint:[5,4],storeys:2,roof:'hip',style:'stone',doors:[{edge:'south',at:2}],chimney:true,interior:'separate',use:'guildHall',seed:12,roofColor:'#3f6f8c'},
   interior:{floors:2,furniture:[{kind:'barrel',at:[3,0]},{kind:'crates',at:[4,0]},{kind:'sacks',at:[4,1]},{kind:'planter',at:[4,0],floor:1},{kind:'bench',at:[2,0],floor:1}]}},
  // A dungeon entrance in the garden, down to a small crypt (Phase 7).
  crypt:{entrance:{x:86,z:47},spec:{kind:'dungeon',name:'Old crypt',size:[12,9],exit:[5,7],furniture:[{kind:'barrel',at:[0,0]},{kind:'crates',at:[11,0]},{kind:'statue',at:[3,3]},{kind:'statue',at:[8,3]},{kind:'sacks',at:[0,8]}]}},
@@ -54,6 +54,14 @@ export function kitStreetData(){
   {kind:'bench',x:74,z:24},{kind:'lampPost',x:76,z:24},{kind:'planter',x:68,z:20},{kind:'statue',x:84,z:18},{kind:'banner',x:80,z:17},
   {kind:'flowerBed',x:72,z:42},{kind:'flowerBed',x:76,z:42},...[70,71,72,73,74].map(x=>({kind:'hedge',x,z:48})),
   {kind:'treeGrate',x:80,z:44},{kind:'treeGrate',x:84,z:44},{kind:'planter',x:88,z:42},{kind:'bench',x:62,z:43,rotation:90});
+ // Phase 10 edge pieces: a fenced pen with a wooden gate in the garden, a low stone wall along the
+ // plaza's south edge, and an iron gate at the top of the narrow stair.
+ const pen={x0:76,z0:49,x1:80,z1:50},edge=(a,b,kind,options)=>data.edges.push({a,b,kind,...options?{options}:{}});
+ for(let x=pen.x0;x<=pen.x1;x++){edge([x,pen.z0],[x,pen.z0-1],x===78?'door':'fence',x===78?{style:'fenceGate'}:undefined);edge([x,pen.z1],[x,pen.z1+1],'fence');}
+ for(let z=pen.z0;z<=pen.z1;z++){edge([pen.x0,z],[pen.x0-1,z],'fence');edge([pen.x1,z],[pen.x1+1,z],'fence');}
+ for(let x=80;x<=88;x++)edge([x,38],[x,39],'low',{style:'stone'});
+ edge([82,21],[82,22],'door',{style:'ironGate'});
+ data.props.push({kind:'hayBales',x:79,z:50},{kind:'waterTrough',x:76,z:50},{kind:'treeStump',x:80,z:49});
  // Townsfolk (Phase 8): routines from places. Vendors at the stalls, sitters, shoppers, chatters,
  // strollers, two guards on patrol, and a few who pop indoors now and then.
  const guard={rightHand:'copperDagger',leftHand:'copperShield',head:'ironSkullcap'};
@@ -75,7 +83,7 @@ export function kitStreetData(){
  data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length||n>=6)return;
   const shop=!!b.desc.sign,resident=shop||i%2===1;if(!resident)return;
   data.townsfolk.push({id:`resident-${i}`,name:names[n],look:{color:colors[n%colors.length],loadout:n%4===0?{head:'minersCap'}:null},house:i,
-   routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'sit',weight:1},{do:'chat',weight:1}],
+   routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'sleep',weight:1},{do:'cook',weight:1},{do:'sit',weight:2},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'chat',weight:1}],
    line:shop?'Come in, come in! Stock’s coming soon.':'Home sweet home.'});n++;});
  return data;
 }

@@ -22,6 +22,7 @@ test('a crowd lives its routines: sitting, vending, patrolling, chatting, going 
  const seen=new Set(),moved=new Set(),start=new Map(crowd.folk.map(p=>[p,p.tile]));
  for(let i=0;i<60*90;i++){crowd.update(1/60,i/60);for(const p of crowd.folk){if(p.state==='staying')seen.add(p.activity);if(p.tile!==start.get(p))moved.add(p);}}
  for(const a of ['sit','vend','patrol','stroll'])assert.ok(seen.has(a),a);
+ assert.ok(seen.has('sleep')||seen.has('cook'),'residents sleep or cook in their furnished homes');
  assert.ok(moved.size>=crowd.folk.length-2,'nearly everyone moved');
  // Walk-through characters: they mark their tiles occupied, never blocked.
  for(const p of crowd.folk){assert.ok(!p.tile.blocked);if(!p.hidden)assert.ok(occupancy.owners(p.tile).includes(p));}

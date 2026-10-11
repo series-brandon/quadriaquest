@@ -38,6 +38,7 @@ export function createDoor({a,b,parent,pickables=[],locked=false,open=false,link
    if(door.link){services.sound('doorOpen');services.enter?.(door.link,{from:door});return;}
    door.setOpen(!door.open);
   },
+  gate:['fenceGate','ironGate'].includes(style),
   setOpen(value,{quiet=false}={}){value=!!value&&!door.locked;if(value===door.open)return;door.open=value;
    if(value)swingOpen();else if(leafEdge){if(edgeBetween(leafEdge.a,leafEdge.b)===leafEdge.feature)setEdge(leafEdge.a,leafEdge.b,null);leafEdge=null;}
    if(!quiet)services.sound(value?'doorOpen':'doorClose');},
@@ -64,8 +65,10 @@ export function doorProblems(door,tileAt){
  const {a,b}=door,u=a.x===b.x?{x:1,z:0}:{x:0,z:1},problems=[];
  for(const s of [-1,1]){
   const a2=tileAt(a.x+s*u.x,a.z+s*u.z),b2=tileAt(b.x+s*u.x,b.z+s*u.z),inLine=a2&&b2?edgeBetween(a2,b2):null;
-  if(!inLine||!['wall','window'].includes(inLine.kind))problems.push(`no wall beside the door on its ${s<0?'west/north':'east/south'} side`);
-  for(const [t,n] of [[a,a2],[b,b2]])if(n&&edgeBetween(t,n)&&!edgeBetween(t,n).door)problems.push('a perpendicular wall meets the door\u2019s corner');
+  // A gate in a fence line counts its fence (or railing, or low wall) as the wall beside it.
+  if(!inLine||!['wall','window','fence','railing','low'].includes(inLine.kind))problems.push(`no wall beside the door on its ${s<0?'west/north':'east/south'} side`);
+  // A gate only needs its swing side clear (stair railings may meet it on the far side).
+  for(const [t,n] of door.gate?[[a,a2]]:[[a,a2],[b,b2]])if(n&&edgeBetween(t,n)&&!edgeBetween(t,n).door)problems.push('a perpendicular wall meets the door\u2019s corner');
  }
  return problems;
 }
