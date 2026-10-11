@@ -20,7 +20,7 @@ export function createEdgeFixtures(api){
  function clear(){api.stop();edges?.dispose();root?.removeFromParent();edges=root=anchor=door=center=null;}
  function spawn(){
   clear();api.clearUI();const c=spot();if(!c)return 'Needs an open, level 5×5 patch of ground near you.';
-  root=new Group();api.scene.add(root);anchor=api.tile();center=c;edges=createEdgeFeatures({parent:root,pickables:api.pickables});
+  root=new Group();api.scene.add(root);anchor=api.tile();center=c;edges=createEdgeFeatures({parent:root,pickables:api.pickables,tileAt:at});
   // Which side faces the player gets the door.
   const p=api.tile(),dx=p.x-c.x,dz=p.z-c.z,side=Math.abs(dx)>Math.abs(dz)?(dx>0?'e':'w'):(dz>0?'s':'n');
   const opposite={n:'s',s:'n',e:'w',w:'e'}[side],sides=['n','e','s','w'].filter(s=>s!==side&&s!==opposite);

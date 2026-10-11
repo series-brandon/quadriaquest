@@ -20,6 +20,20 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Inward doors, open doors as walls, and the door rule — 2026-10-11 (user design)
+
+- Doors open into their own building/room (the first tile, `a`, given when placed; the complex's east room doors are placed room-first). Open, a door turns a quarter and lies along `a`'s side edge at the hinge corner as a wall feature (`{kind:'wall',door}`), so routes and sight can't pass through the door model; closing removes it. The hinge side is chosen where that edge is free (`setDoorHinge`, mirrored panel). Fixed a bug where every door used the default swing (`updateDoors` now animates the door's model).
+- **Door rule:** a wall or window on each side of a door before any perpendicular wall (`doorProblems`, `createEdgeFeatures().doorProblems()`). The building test map throws if broken; layouts updated to follow it: the complex's hallway is 3 wide with the front door centred, and the shape arms, U courtyard and S/Z blocks are at least 3 tiles where a door sits (map now 57 × 35).
+- Playground: Walls & doors → Open all / Close all doors on the building test map.
+- Tests: 486 pass (inward swing in all four directions, open door is a wall on one side edge and closing clears it, hinge takes the free side, the door rule).
+- Browser-checked: opened doors lie flat inside their buildings (T, large hall, complex front and west rooms) with no clipping.
+
+### Building shapes on the test map — 2026-10-11
+
+- The building test map (now 48 × 34) gains a southern road with an L, an L split by a solid wall into two joined buildings (a door each), a T (two doors), a U with a courtyard (road door plus a courtyard door), a + (two doors) and a Tetris S/Z (two doors). Shapes are text grids in `SHAPES` (`src/dev/building-test-map.js`); one outline rule walls every edge between a part's tile and anything outside that part, and a door or window named off the outline throws.
+- Tests: 483 pass (`building-test-map.test.js`: every shape sealed until its doors open, every indoor tile reachable with them open, the split L's parts never joined, the U courtyard outdoors).
+- Browser-checked every shape: inside corners (L, T, U, +, S/Z), the T-junction where the split L's wall meets its outline, and doors all render cleanly with one post per corner.
+
 ### Door facing and wall-top flicker — 2026-10-10
 
 - Using a door from its own tile turned the player south (the door's position was that tile, so the direction was zero). Doors now report their edge midpoint (`door.x/z`), so the player faces the door from either side. Playground `getState().facing` reports the player's facing.

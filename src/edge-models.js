@@ -41,21 +41,29 @@ export function edgePiece(kind,{height=STOREY}={}){
  }
  return g;
 }
-// A door in its frame. `leaf` swings on its hinge (left jamb); animateDoor sets the swing.
+// A door in its frame. `leaf` is the hinge pivot and `panel` the door itself; setDoorHinge puts the
+// hinge on either jamb (the panel mirrors so its handle stays opposite), animateDoor sets the swing.
 export function doorModel({height=STOREY}={}){
  const g=new THREE.Group();g.name='edge-door';
  for(const x of [-.465,.465])piece(g,.07,DOOR_HEIGHT,WALL_THICKNESS+PROUD,'timber',x,DOOR_HEIGHT/2);
  band(g,DOOR_HEIGHT,DOOR_HEIGHT+.1,'timber',WALL_THICKNESS+PROUD);band(g,DOOR_HEIGHT+.1,height-CAP,'plaster');band(g,height-CAP,height,'timber',WALL_THICKNESS+PROUD);
  piece(g,.86,.03,WALL_THICKNESS+.06,'stone',0,.015);
- const leaf=new THREE.Group();leaf.name='door-leaf';leaf.position.set(-.43,0,0);g.add(leaf);
- piece(leaf,.86,DOOR_HEIGHT-.05,.06,'door',.43,(DOOR_HEIGHT-.05)/2+.03);
- for(const y of [.28,DOOR_HEIGHT-.3])piece(leaf,.8,.05,.075,'iron',.43,y);
- piece(leaf,.06,.06,.12,'iron',.76,DOOR_HEIGHT*.48);
- return {group:g,leaf};
+ const leaf=new THREE.Group();leaf.name='door-leaf';g.add(leaf);
+ const panel=new THREE.Group();panel.name='door-panel';leaf.add(panel);
+ piece(panel,.86,DOOR_HEIGHT-.05,.06,'door',0,(DOOR_HEIGHT-.05)/2+.03);
+ for(const y of [.28,DOOR_HEIGHT-.3])piece(panel,.8,.05,.075,'iron',0,y);
+ piece(panel,.06,.06,.12,'iron',.33,DOOR_HEIGHT*.48);
+ const door={group:g,leaf,panel,swing:-Math.PI/2};setDoorHinge(door,-1,1);return door;
 }
-// open: 0 shut → 1 swung fully open (about 100°). rattle (0..1, decaying): a locked door shakes.
+// hinge: -1 the local −x jamb, +1 the +x jamb. inward: ±1 along local z, the side it opens towards.
+// Fully open, the panel lies flat along the tile edge at the hinge corner (a quarter turn).
+export function setDoorHinge(door,hinge,inward){
+ door.leaf.position.x=hinge*.43;door.panel.position.x=-hinge*.43;door.panel.scale.x=-hinge;
+ door.swing=inward*hinge*Math.PI/2;
+}
+// open: 0 shut → 1 swung fully open (a quarter turn, inwards). rattle (0..1, decaying): a locked door shakes.
 export function animateDoor(door,open,rattle=0,time=0){
- door.leaf.rotation.y=-open*1.75+Math.sin(time*60)*.03*rattle;
+ door.leaf.rotation.y=(door.swing??-Math.PI/2)*open+Math.sin(time*60)*.03*rattle;
 }
 // Where an edge between two neighbouring tiles sits in the world, and the height a piece needs there.
 export function edgePlacement(a,b){

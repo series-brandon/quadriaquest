@@ -671,6 +671,8 @@ if(__PLAYGROUND__){
  }
  playgroundApi={
   companions,
+  // Opens or closes every door on the building test map (to inspect swings and walls).
+  buildingDoors(open){if(!buildingTest)return false;for(const d of buildingTest.doors)d.setOpen(open,{quiet:true});return true;},
   async enterBuildingTest(){
    const {spawn}=await buildingTestReady();stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
    areas.activate('building-test',{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;

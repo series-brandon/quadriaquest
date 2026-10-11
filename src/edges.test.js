@@ -66,7 +66,7 @@ test('a door opens and closes only when used, is approached from either side, an
  const {doorApproach}=await import('./doors.js');
  occupancy.clear();const m=grid(),sounds=[],toasts=[];
  configureDoors({sound:n=>sounds.push(n),toast:t=>toasts.push(t)});
- const edges=createEdgeFeatures({parent:new Group()}),a=at(m,1,1),b=at(m,2,1),door=edges.add(a,b,'door');
+ const edges=createEdgeFeatures({parent:new Group(),tileAt:(x,z)=>m.get(key(x,z))}),a=at(m,1,1),b=at(m,2,1),door=edges.add(a,b,'door');
  assert.equal(edgeBetween(a,b),door);assert.equal(door.open,false);assert.equal(canStep(a,b),false,'closed: no way through');
  occupancy.place({kind:'npc'},[a]);updateDoors(.5);assert.equal(door.open,false,'standing beside it does not open it');occupancy.clear();
  door.interact();assert.equal(door.open,true);assert.ok(sounds.includes('doorOpen'));assert.equal(canStep(a,b),true);assert.equal(lineOfSight(m,at(m,0,1),at(m,4,1)),true,'open: seen through');
@@ -76,7 +76,7 @@ test('a door opens and closes only when used, is approached from either side, an
  edges.dispose();assert.equal(edgeBetween(a,b),null,'removing the yard clears its edges');
 });
 test('walls share one corner post per grid corner, and a door is faced at its edge midpoint',()=>{
- const m=grid(),edges=createEdgeFeatures({parent:new Group()});
+ const m=grid(),edges=createEdgeFeatures({parent:new Group(),tileAt:(x,z)=>m.get(key(x,z))});
  // A 2×2 room: 8 outline edges meet at 8 distinct corners; one wall across the middle adds no new corner.
  for(const [ax,az,bx,bz] of [[1,1,1,0],[2,1,2,0],[1,2,1,3],[2,2,2,3],[1,1,0,1],[1,2,0,2],[2,1,3,1],[2,2,3,2]])edges.add(at(m,ax,az),at(m,bx,bz),'wall');
  assert.equal(edges.postCount,8);
@@ -84,4 +84,34 @@ test('walls share one corner post per grid corner, and a door is faced at its ed
  edges.add(at(m,1,2),at(m,1,3),'fence');assert.equal(edges.postCount,9,'a fence replacing a wall keeps the posts other walls still use');
  const door=edgeBetween(at(m,1,1),at(m,2,1));assert.deepEqual([door.x,door.z],[1.5,1],'faced at the edge, from either side');
  edges.clear();assert.equal(edges.postCount,0);
+});
+test('an open door swings into its own building, lies on the side edge at its hinge as a wall, and closing clears it',async()=>{
+ const {Vector3}=await import('three');
+ for(const [ax,az,bx,bz] of [[2,2,2,1],[2,2,2,3],[2,2,1,2],[2,2,3,2]]){
+  const m=grid(),tileAt=(x,z)=>m.get(key(x,z)),edges=createEdgeFeatures({parent:new Group(),tileAt}),a=at(m,ax,az),b=at(m,bx,bz),door=edges.add(a,b,'door');
+  door.setOpen(true);updateDoors(1);
+  const sides=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>at(m,a.x+dx,a.z+dz)).filter(t=>t!==b),blocked=sides.filter(t=>edgeBetween(a,t)?.door===door);
+  assert.equal(blocked.length,1,`${ax},${az}→${bx},${bz}: the open door is a wall on one side edge of its own tile`);
+  assert.equal(canStep(a,blocked[0]),false,'nobody walks through the open door');assert.equal(canStep(a,b),true,'the doorway is open');
+  // The panel's middle ends up over the building's side of the doorway.
+  door.group.updateMatrixWorld(true);const p=door.model.panel.getWorldPosition(new Vector3());
+  const toA=Math.hypot(p.x-(a.x-6),p.z-(a.z-6)),toB=Math.hypot(p.x-(b.x-6),p.z-(b.z-6));assert.ok(toA<toB,`${ax},${az}→${bx},${bz}: swings inwards`);
+  door.setOpen(false);assert.equal(edgeBetween(a,blocked[0]),null,'closing clears the side edge');
+ }
+});
+test('the open door takes the free hinge side',()=>{
+ const m=grid(),tileAt=(x,z)=>m.get(key(x,z)),edges=createEdgeFeatures({parent:new Group(),tileAt}),a=at(m,2,2),b=at(m,2,1);
+ const door=edges.add(a,b,'door');door.setOpen(true);const first=[at(m,1,2),at(m,3,2)].find(t=>edgeBetween(a,t)?.door===door);door.setOpen(false);
+ edges.add(a,first,'fence');door.setOpen(true);const other=[at(m,1,2),at(m,3,2)].find(t=>edgeBetween(a,t)?.door===door);
+ assert.ok(other&&other!==first,'the other side when the first is taken');assert.equal(edgeBetween(a,first).kind,'fence','the fence is untouched');
+});
+test('the door rule: a wall on each side of a door before any perpendicular wall',async()=>{
+ const {doorProblems}=await import('./doors.js');
+ const m=grid(7,5),tileAt=(x,z)=>m.get(key(x,z)),edges=createEdgeFeatures({parent:new Group(),tileAt});
+ // A wall line along z=1|2 from x=1 to x=5, door in the middle: fine.
+ for(let x=1;x<=5;x++)edges.add(at(m,x,2),at(m,x,1),x===3?'door':'wall');
+ const door=edgeBetween(at(m,3,2),at(m,3,1));assert.deepEqual(doorProblems(door,tileAt),[]);
+ edges.add(at(m,2,2),at(m,3,2),'wall');assert.ok(doorProblems(door,tileAt).some(p=>p.includes('corner')),'a wall meeting its corner');edges.remove(at(m,2,2),at(m,3,2));
+ edges.remove(at(m,4,2),at(m,4,1));assert.ok(doorProblems(door,tileAt).some(p=>p.includes('no wall beside')),'nothing beside it');
+ assert.equal(edges.doorProblems().length,1);
 });
