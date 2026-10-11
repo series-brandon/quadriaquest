@@ -158,7 +158,7 @@ User request (2026-10-11): "Let's do enemy drops and jobs next."
   - Drops: roll any enemy's table with its odds, drop a real pile beside you (rolled or a test pile), fix or clear the seed, clear piles.
   - Jobs: open the board, place a noticeboard anywhere, stand-in givers of each kind and a stand-in recipient (any map), finish all jobs, hand in all, abandon all, clear cooldowns, reset.
   - The model catalogue has the loot pile and both job markers.
-- **Known gap:** Gelton has no trees, ground items, rocks or fishing spots, and after waking it is the only place to go. So **gather jobs can't be done there yet**, and bring and craft jobs need bought materials. Deliveries are the jobs that work for everyone. See the open question below.
+- **Gathering (2026-10-11):** Gelton's park has trees, sticks and rocks, and its countryside has woods, fishing water and copper outcrops (WORLD.md), so every job kind can be done after waking.
 
 ## Plan
 
@@ -170,4 +170,4 @@ User request (2026-10-11): "Let's do enemy drops and jobs next."
 
 ## Open questions for the user
 
-1. **Gathering in Gelton.** The waking city has nowhere to chop, mine, fish or pick up sticks, so gather jobs can't be done after waking. Options: a few trees, ground items and a fishing pond in Gelton's park (and copper in the sewers), or a gathering area reached by crystal. Until then the board still posts gather jobs.
+None at the moment. (Gathering in Gelton was answered 2026-10-11: park gather spots in the city and countryside around it; see WORLD.md.)

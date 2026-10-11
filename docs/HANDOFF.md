@@ -20,6 +20,17 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Countryside around Gelton, park gather spots, faster baked walls — 2026-10-11 (user: "start expanding beyond the city into the countryside")
+
+- User decisions: walk out of the gates (one continuous area), generated land with placed landmarks, a ring about 64 tiles deep, a few goblins away from roads. Design and status: docs/WORLD.md.
+- New `countryside.js` (generator source: terrain, roads, river and bridge, lake and pond, woods, rocky hills with copper, fishing spots, goblins, landmarks) and `noise.js` (shared with the streaming test world). `chunk-streamer.js` gained `place` for a source's `extras` (fishing spots, enemies, props: busy chunks stay, state kept by id) and skips building empty chunks. `main.js` `geltonReady` streams the countryside into Gelton's area (the world map joins while active).
+- Gelton: stone wall with three gateways and signposts, map `gates`; park `resources`. Regenerated `capital.json`.
+- **Performance:** baked edge originals now leave the scene graph (`doors.js`): city objects fell about 75%, capital square 10.4 → ~5.8 ms. New perf scenario `countryside-walk`. Baselines updated for the city scenarios and the new one.
+- Playground: Countryside fieldset (jumps, chunk outlines, stats, radius); `useResourceNearest`.
+- Verified: walking out of the west gate; fishing at the lake (after making shores low so banks are reachable); mining copper in the hills; goblins present; the bridge; kit street walls, doors and cutaway after the bake change.
+- Open: animated water, a bridge model, more landmarks, editing generated land (WORLD.md *Open and next*).
+- Tests: 569 pass (new `countryside.test.js`; streamer extras test).
+
 ### Enemy drops and jobs — 2026-10-11 (user: "Let's do enemy drops and jobs next")
 
 - Drops: `drops.js` (tables on `ENEMIES`, roller, odds, seeded random), `loot-piles.js` + `loot-pile-model.js` (click to pick up, 3 min). Rolled in the combat `won` handler. **Fixed:** `main.js` had two `won:` keys in the combat options, so the first (victory sound, happy face) never ran; merged into one handler. A scan of all source with esbuild found no other duplicate keys except a harmless default in `normalizeBuilding`.

@@ -13,9 +13,12 @@ import {key} from './world.js';
 //   topColor(tile) → THREE.Color: the tile's top (grass, water); terrain is built by chunk-terrain.js,
 //             looking up loaded tiles, then the source (edge seams and sides at unloaded borders)
 //   resources the shared resource actions (add/remove/snapshot/restore)
+//   place     (entry, {tile, parent, tileAt}, saved) → handle|null, for the source's extras(tiles)
+//             (fishing spots, enemies, props): a handle has dispose(), and optionally busy() (keeps its
+//             chunk loaded) and save() (state remembered by id until it is placed again)
 export const CHUNK_SIZE=16;
 export const chunkOf=(x,z)=>[Math.floor(x/CHUNK_SIZE),Math.floor(z/CHUNK_SIZE)];
-export function createChunkStreamer({source,maps,parent,pickables,resources,topColor,radius=2,keep=1,budgetMs=4,now=()=>performance.now(),respawn=RESOURCE_RESPAWN}){
+export function createChunkStreamer({source,maps,parent,pickables,resources,topColor,place=null,radius=2,keep=1,budgetMs=4,now=()=>performance.now(),respawn=RESOURCE_RESPAWN}){
  const chunks=new Map(),state=new Map(),group=new THREE.Group();parent.add(group);
  let time=0,lastBuildMs=0,builtTotal=0,center=null,delay=0,bounds=false;
  const boundsMaterial=new THREE.LineBasicMaterial({color:'#ff4fa3',transparent:true,opacity:.85,depthTest:false});
@@ -24,6 +27,8 @@ export function createChunkStreamer({source,maps,parent,pickables,resources,topC
   const tiles=[];
   for(let z=cz*CHUNK_SIZE;z<(cz+1)*CHUNK_SIZE;z++)for(let x=cx*CHUNK_SIZE;x<(cx+1)*CHUNK_SIZE;x++){const t=source.tile(x,z);if(t)tiles.push(t);}
   for(const t of tiles)for(const map of maps)map.set(key(t.x,t.z),t);
+  // A chunk with no land here (inside a city that builds its own) is only remembered as loaded.
+  if(!tiles.length){chunks.set(`${cx},${cz}`,{cx,cz,tiles,root:null,meshes:[],nodes:[],extras:[],outline:null});return;}
   const root=new THREE.Group();root.name=`chunk ${cx},${cz}`;group.add(root);
   const meshes=[];
   if(tiles.length){const {mesh,lines}=buildChunkTerrain({tiles,tileAt,topColor});root.add(mesh,lines);pickables.push(mesh);meshes.push(mesh);}
@@ -34,21 +39,23 @@ export function createChunkStreamer({source,maps,parent,pickables,resources,topC
    if(saved){const respawnIn=saved.respawnAt===null?null:Math.max(0,saved.respawnAt-time);if(saved.depleted&&respawnIn!==0)resources.restore(node,{depleted:true,respawnIn});state.delete(e.id);}
    return node;
   });
+  const extras=place&&source.extras?source.extras(tiles).map(e=>{const tile=tileAt(e.x,e.z);if(!tile)return null;const saved=state.get(e.id);state.delete(e.id);const handle=place(e,{tile,parent:root,tileAt},saved);return handle?{id:e.id,handle}:null;}).filter(Boolean):[];
   // Chunk outline (playground overlay), hidden unless bounds are shown.
   const x0=cx*CHUNK_SIZE-6-.5,z0=cz*CHUNK_SIZE-6-.5,y=2.2,outline=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([[0,0],[CHUNK_SIZE,0],[CHUNK_SIZE,CHUNK_SIZE],[0,CHUNK_SIZE]].map(([a,b])=>new THREE.Vector3(x0+a,y,z0+b))),boundsMaterial);
   outline.renderOrder=20;outline.visible=bounds;outline.name='chunk-outline';root.add(outline);
-  chunks.set(`${cx},${cz}`,{cx,cz,tiles,root,meshes,nodes,outline});
+  chunks.set(`${cx},${cz}`,{cx,cz,tiles,root,meshes,nodes,extras,outline});
  }
  function unload(id){
   const chunk=chunks.get(id);
   // Resource timers keep running while a chunk is away: a felled tree regrows on schedule.
   for(const node of chunk.nodes){const s=resources.snapshot(node);if(s.depleted)state.set(node.id,{depleted:true,respawnAt:s.respawnIn===null?null:time+s.respawnIn});resources.remove(node);}
+  for(const {id,handle} of chunk.extras){const saved=handle.save?.();if(saved!==undefined&&saved!==null)state.set(id,saved);handle.dispose();}
   for(const mesh of chunk.meshes){const i=pickables.indexOf(mesh);if(i>=0)pickables.splice(i,1);}
-  chunk.root.traverse(o=>{o.geometry?.dispose();});chunk.root.removeFromParent();
+  chunk.root?.traverse(o=>{o.geometry?.dispose();});chunk.root?.removeFromParent();
   for(const t of chunk.tiles)for(const map of maps)if(map.get(key(t.x,t.z))===t)map.delete(key(t.x,t.z));
   chunks.delete(id);
  }
- const busy=chunk=>chunk.nodes.some(node=>resources.snapshot(node).busy);
+ const busy=chunk=>chunk.nodes.some(node=>resources.snapshot(node).busy)||chunk.extras.some(e=>e.handle.busy?.());
  return {
   group,
   // Load synchronously around a tile (arrivals: the neighborhood must exist before landing).
@@ -66,10 +73,10 @@ export function createChunkStreamer({source,maps,parent,pickables,resources,topC
   },
   // Playground: simulate slow loading (seconds before the next load), change the radius.
   stall(seconds){delay=seconds;},
-  set showBounds(value){bounds=!!value;for(const c of chunks.values())c.outline.visible=bounds;},get showBounds(){return bounds;},
+  set showBounds(value){bounds=!!value;for(const c of chunks.values())if(c.outline)c.outline.visible=bounds;},get showBounds(){return bounds;},
   set radius(value){radius=Math.max(1,Math.min(6,value|0));},get radius(){return radius;},
   get loaded(){return chunks.size;},
-  get stats(){let tiles=0,entities=0;for(const c of chunks.values()){tiles+=c.tiles.length;entities+=c.nodes.length;}return {chunks:chunks.size,tiles,entities,remembered:state.size,lastBuildMs:+lastBuildMs.toFixed(1),built:builtTotal,center};},
+  get stats(){let tiles=0,entities=0;for(const c of chunks.values()){tiles+=c.tiles.length;entities+=c.nodes.length+c.extras.length;}return {chunks:chunks.size,tiles,entities,remembered:state.size,lastBuildMs:+lastBuildMs.toFixed(1),built:builtTotal,center};},
   isLoaded:(x,z)=>chunks.has(chunkOf(x,z).join(',')),
   reset(){for(const id of [...chunks.keys()])unload(id);state.clear();time=0;builtTotal=0;},
  };

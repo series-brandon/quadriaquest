@@ -158,9 +158,12 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
   for(const [list,material,name] of [[solid,solidMaterial,'edge-features-baked'],[glass,glassMaterial,'edge-features-glass']]){
    if(!list.length)continue;const mesh=new Mesh(mergeGeometries(list),material);mesh.castShadow=mesh.receiveShadow=material!==glassMaterial;mesh.customDepthMaterial=depthMaterial;mesh.name=name;root.add(mesh);meshes.push(mesh);for(const g of list)g.dispose();
    if(material===solidMaterial){const section=new Mesh(mesh.geometry,cutFaceMaterial);section.name='edge-features-section';root.add(section);meshes.push(section);}}
-  baked={meshes,hidden,groups:statics.map(s=>s.group)};
+  // The originals leave the scene graph while baked (hidden objects still cost a matrix update every
+  // frame); unbaking puts them back where they were.
+  const groups=statics.map(s=>({group:s.group,parent:s.group.parent}));for(const {group} of groups)group.removeFromParent();
+  baked={meshes,hidden,groups};
  }
- function unbake(){if(!baked)return;for(const mesh of baked.meshes){mesh.removeFromParent();mesh.geometry.dispose();}for(const m of baked.hidden)m.visible=true;for(const g of baked.groups)g.visible=true;baked=null;}
+ function unbake(){if(!baked)return;for(const mesh of baked.meshes){mesh.removeFromParent();mesh.geometry.dispose();}for(const m of baked.hidden)m.visible=true;for(const {group,parent} of baked.groups){parent?.add(group);group.visible=true;}baked=null;}
  return {root,
   // options: storeys, owner (a building id, or two for a shared wall), style, upperWindows (a wall with
   // windows on its upper storeys), and door options (locked, open, link).

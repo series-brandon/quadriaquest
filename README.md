@@ -52,6 +52,7 @@ The collapsible DEV PLAYGROUND panel provides:
 - Restore ground items, restore trees, or reset the entire test area (including skills, starter inventory, player position, and camera).
 - **World & water → City streets**: the graybox and kit streets (buildings, terraces, stairs, props, townsfolk, interiors, a crypt), Gelton (the capital, where players wake), the prop gallery (every prop, live interactions), furnished interiors, the city editor (save to `src/maps/` while `npm run dev:debug` runs), crowd and cutaway toggles. See [docs/CITY.md](docs/CITY.md). `node scripts/generate-capital.mjs` regenerates `src/maps/capital.json` from its layout and overwrites editor changes.
 - **Economy**: set or reset gold, open any shop, place a real shop counter beside you in any map, reset shop stock, and a price list. See [docs/ECONOMY.md](docs/ECONOMY.md).
+- **Countryside**: jump to places around Gelton (road ends, lake, pond, bridge, ruins, hills, woods), chunk outlines, streaming stats and radius. See [docs/WORLD.md](docs/WORLD.md).
 - **Drops & jobs**: roll any enemy's drops (with odds, optionally seeded), drop a loot pile beside you, open the job board or place a noticeboard anywhere, stand-in job givers and a delivery recipient, and finish, hand in, abandon or reset jobs.
 
 Run `npm run dev` for the normal tutorial experience on port 5173. Both servers can run side by side; no URL parameter or saved browser setting enables debug mode in the normal app.

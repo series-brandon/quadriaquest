@@ -959,80 +959,80 @@
   },
   "city-walk": {
    "meta": {
-    "updated": "2026-10-11T16:52:48.385Z",
-    "note": "Phase 10: furnished interiors (about 1,400 pieces in the capital, 220 on the kit street) and new props; furniture matrices frozen, only moving props animated",
+    "updated": "2026-10-11T21:20:35.983Z",
+    "note": "Countryside around Gelton (new countryside-walk scenario); baked edge originals leave the scene graph (objects -75% in cities); city wall, gather spots",
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
     "windows": 3,
     "windowMs": 2500,
-    "calibrationMs": 26.30000114440918
+    "calibrationMs": 26.650001525878906
    },
    "summary": {
     "counters": {
-     "draws": 1013.148,
-     "threeDrawCalls": 408.487,
-     "triangles": 206795,
+     "draws": 1011.456,
+     "threeDrawCalls": 406.88,
+     "triangles": 206800,
      "uploadsPerFrame": 0.06,
      "uploadKBPerFrame": 0.522,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 95.267,
-     "mutationsPerSec": 4.377,
+     "programSwitchesPerFrame": 95.311,
+     "mutationsPerSec": 3.973,
      "layoutsPerSec": 0,
-     "styleRecalcsPerSec": 4.361,
-     "objects": 7774,
+     "styleRecalcsPerSec": 4.352,
+     "objects": 1731,
      "visibleMeshes": 770,
      "programs": 27,
-     "geometries": 237,
+     "geometries": 238,
      "textures": 9
     },
     "timing": {
-     "frameMs": 4.23,
-     "frameP95": 5.915,
-     "frameMax": 9.97,
+     "frameMs": 3.545,
+     "frameP95": 4.895,
+     "frameMax": 6.83,
      "intervalP95": 16.67,
-     "fps": 59.688,
-     "cpuPercent": 58.183,
-     "gpuMs": 3.093,
-     "scriptMsPerSec": 277.742,
+     "fps": 59.595,
+     "cpuPercent": 55.455,
+     "gpuMs": 3.112,
+     "scriptMsPerSec": 229.7,
      "longTasks": 0
     },
     "sections": {
-     "render": 3.279,
-     "world": 0.439,
-     "other": 0.351,
-     "hover": 0.095,
-     "interface": 0.094,
-     "systems": 0.09,
-     "player": 0.059,
-     "feedback": 0.018
+     "render": 2.538,
+     "world": 0.474,
+     "other": 0.424,
+     "systems": 0.113,
+     "hover": 0.113,
+     "interface": 0.103,
+     "player": 0.067,
+     "feedback": 0.021
     }
    },
    "samples": [
     {
-     "frameMs": 4.420001983642578,
-     "frameP95": 6.0500030517578125,
+     "frameMs": 3.7750015258789062,
+     "frameP95": 8.305000305175781,
      "intervalP95": 16.670000000000073,
-     "fps": 59.687832617196776,
-     "cpuPercent": 66.21054079738894,
-     "draws": 1025.3,
-     "gpuMs": 3.217
+     "fps": 59.59511089297844,
+     "cpuPercent": 61.725521132015885,
+     "draws": 1026.2866666666666,
+     "gpuMs": 3.271
     },
     {
-     "frameMs": 4.229999542236328,
-     "frameP95": 5.915000915527344,
+     "frameMs": 3.5449981689453125,
+     "frameP95": 4.895000457763672,
      "intervalP95": 16.670000000000073,
-     "fps": 59.816602275517766,
-     "cpuPercent": 58.143575204632505,
-     "draws": 977.7733333333333,
-     "gpuMs": 3.093
+     "fps": 59.908510619102664,
+     "cpuPercent": 55.455231825750296,
+     "draws": 978.364238410596,
+     "gpuMs": 3.112
     },
     {
-     "frameMs": 4.215000152587891,
-     "frameP95": 5.009998321533203,
+     "frameMs": 3.210002899169922,
+     "frameP95": 3.9449996948242188,
      "intervalP95": 16.670000000000073,
-     "fps": 59.500277567481376,
-     "cpuPercent": 58.18289439291707,
-     "draws": 1013.1476510067114,
-     "gpuMs": 3.056
+     "fps": 59.51239774325723,
+     "cpuPercent": 52.06193755774979,
+     "draws": 1011.4563758389262,
+     "gpuMs": 3.074
     }
    ],
    "leak": null,
@@ -1046,7 +1046,7 @@
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "city kit-street": 7728
+     "city kit-street": 1685
     },
     "byKind": {
      "Mesh/PlaneGeometry/MeshStandardMaterial": 9,
@@ -1066,80 +1066,80 @@
   },
   "city-crowd": {
    "meta": {
-    "updated": "2026-10-11T16:52:48.385Z",
-    "note": "Phase 10: furnished interiors (about 1,400 pieces in the capital, 220 on the kit street) and new props; furniture matrices frozen, only moving props animated",
+    "updated": "2026-10-11T21:20:35.984Z",
+    "note": "Countryside around Gelton (new countryside-walk scenario); baked edge originals leave the scene graph (objects -75% in cities); city wall, gather spots",
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
     "windows": 3,
     "windowMs": 2500,
-    "calibrationMs": 26.30000114440918
+    "calibrationMs": 26.650001525878906
    },
    "summary": {
     "counters": {
-     "draws": 1033.613,
-     "threeDrawCalls": 456.735,
-     "triangles": 242317,
-     "uploadsPerFrame": 0.054,
-     "uploadKBPerFrame": 0.057,
+     "draws": 1032.993,
+     "threeDrawCalls": 457.313,
+     "triangles": 242220,
+     "uploadsPerFrame": 0.053,
+     "uploadKBPerFrame": 0.058,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 120.067,
-     "mutationsPerSec": 3.987,
+     "programSwitchesPerFrame": 117.589,
+     "mutationsPerSec": 3.595,
      "layoutsPerSec": 0,
      "styleRecalcsPerSec": 3.988,
-     "objects": 8160,
-     "visibleMeshes": 864,
+     "objects": 2117,
+     "visibleMeshes": 865,
      "programs": 24,
-     "geometries": 219,
+     "geometries": 220,
      "textures": 6
     },
     "timing": {
-     "frameMs": 4.475,
-     "frameP95": 5.88,
-     "frameMax": 12.255,
+     "frameMs": 3.535,
+     "frameP95": 4.68,
+     "frameMax": 27.77,
      "intervalP95": 16.67,
-     "fps": 59.515,
-     "cpuPercent": 59.033,
-     "gpuMs": 3.13,
-     "scriptMsPerSec": 287.563,
-     "longTasks": 0
+     "fps": 58.322,
+     "cpuPercent": 53.63,
+     "gpuMs": 3.404,
+     "scriptMsPerSec": 249.27,
+     "longTasks": 1
     },
     "sections": {
-     "render": 3.344,
-     "world": 0.569,
-     "other": 0.38,
-     "interface": 0.102,
-     "hover": 0.102,
-     "systems": 0.091,
-     "player": 0.051,
+     "render": 2.54,
+     "world": 0.548,
+     "other": 0.374,
+     "interface": 0.22,
+     "systems": 0.092,
+     "hover": 0.09,
+     "player": 0.057,
      "feedback": 0.016
     }
    },
    "samples": [
     {
-     "frameMs": 4.475002288818359,
-     "frameP95": 5.880001068115234,
+     "frameMs": 3.5349998474121094,
+     "frameP95": 4.680000305175781,
      "intervalP95": 16.670000000000073,
-     "fps": 59.51465591440151,
-     "cpuPercent": 61.411617823460865,
-     "draws": 1021.48322147651,
-     "gpuMs": 3.12
+     "fps": 57.10554737584411,
+     "cpuPercent": 54.239188940669294,
+     "draws": 1019.0909090909091,
+     "gpuMs": 3.393
     },
     {
-     "frameMs": 4.420001983642578,
-     "frameP95": 7.4499969482421875,
+     "frameMs": 3.5900001525878906,
+     "frameP95": 5.740001678466797,
      "intervalP95": 16.670000000000073,
-     "fps": 59.80920866087645,
-     "cpuPercent": 57.75831513580611,
-     "draws": 1033.6133333333332,
-     "gpuMs": 3.13
+     "fps": 58.32161573421454,
+     "cpuPercent": 53.46398674092171,
+     "draws": 1032.9931506849316,
+     "gpuMs": 3.404
     },
     {
-     "frameMs": 4.5,
-     "frameP95": 5.1999969482421875,
+     "frameMs": 3.470001220703125,
+     "frameP95": 4.090000152587891,
      "intervalP95": 16.670000000000073,
-     "fps": 59.498733221424395,
-     "cpuPercent": 59.03329097803738,
-     "draws": 1056.7852348993288,
-     "gpuMs": 3.149
+     "fps": 59.718249252642174,
+     "cpuPercent": 53.63006074198673,
+     "draws": 1054.4666666666667,
+     "gpuMs": 3.418
     }
    ],
    "leak": null,
@@ -1153,7 +1153,7 @@
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "city kit-street": 8114
+     "city kit-street": 2071
     },
     "byKind": {
      "Mesh/PlaneGeometry/MeshStandardMaterial": 9,
@@ -1163,7 +1163,7 @@
      "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 69,
      "Mesh/PlaneGeometry/ShaderMaterial": 9,
      "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 505,
-     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 132,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 133,
      "Mesh/SphereGeometry/MeshBasicMaterial": 2,
      "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 1
     }
@@ -1171,80 +1171,80 @@
   },
   "capital-square": {
    "meta": {
-    "updated": "2026-10-11T16:52:48.385Z",
-    "note": "Phase 10: furnished interiors (about 1,400 pieces in the capital, 220 on the kit street) and new props; furniture matrices frozen, only moving props animated",
+    "updated": "2026-10-11T21:20:35.984Z",
+    "note": "Countryside around Gelton (new countryside-walk scenario); baked edge originals leave the scene graph (objects -75% in cities); city wall, gather spots",
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
     "windows": 3,
     "windowMs": 2500,
-    "calibrationMs": 26.30000114440918
+    "calibrationMs": 26.650001525878906
    },
    "summary": {
     "counters": {
      "draws": 1022.725,
-     "threeDrawCalls": 390.787,
-     "triangles": 357026,
-     "uploadsPerFrame": 0.04,
-     "uploadKBPerFrame": 0.815,
+     "threeDrawCalls": 389.333,
+     "triangles": 348295,
+     "uploadsPerFrame": 0.081,
+     "uploadKBPerFrame": 1.263,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 110.819,
-     "mutationsPerSec": 3.593,
+     "programSwitchesPerFrame": 110.564,
+     "mutationsPerSec": 3.993,
      "layoutsPerSec": 0,
-     "styleRecalcsPerSec": 3.977,
-     "objects": 31655,
-     "visibleMeshes": 2397,
+     "styleRecalcsPerSec": 3.991,
+     "objects": 7315,
+     "visibleMeshes": 2414,
      "programs": 23,
-     "geometries": 268,
+     "geometries": 273,
      "textures": 7
     },
     "timing": {
-     "frameMs": 9.405,
-     "frameP95": 10.98,
-     "frameMax": 12.625,
+     "frameMs": 5.595,
+     "frameP95": 6.5,
+     "frameMax": 9.67,
      "intervalP95": 16.67,
-     "fps": 59.482,
-     "cpuPercent": 93.058,
-     "gpuMs": 3.252,
-     "scriptMsPerSec": 579.422,
+     "fps": 59.529,
+     "cpuPercent": 67.839,
+     "gpuMs": 3.343,
+     "scriptMsPerSec": 350.094,
      "longTasks": 0
     },
     "sections": {
-     "render": 7.367,
-     "other": 0.946,
-     "world": 0.524,
-     "hover": 0.242,
-     "systems": 0.168,
-     "interface": 0.101,
-     "player": 0.047,
-     "feedback": 0.015
+     "render": 3.587,
+     "other": 1.125,
+     "world": 0.597,
+     "hover": 0.248,
+     "systems": 0.169,
+     "interface": 0.094,
+     "player": 0.055,
+     "feedback": 0.018
     }
    },
    "samples": [
     {
-     "frameMs": 9.459999084472656,
-     "frameP95": 11.119998931884766,
+     "frameMs": 5.595001220703125,
+     "frameP95": 6.5,
      "intervalP95": 16.670000000000073,
-     "fps": 59.091036114977456,
-     "cpuPercent": 93.05827676393916,
-     "draws": 1027.081081081081,
-     "gpuMs": 3.261
+     "fps": 59.52868466120927,
+     "cpuPercent": 67.83936766583797,
+     "draws": 1042.744966442953,
+     "gpuMs": 3.364
     },
     {
-     "frameMs": 9.404998779296875,
-     "frameP95": 10.979999542236328,
+     "frameMs": 5.9199981689453125,
+     "frameP95": 11.290000915527344,
      "intervalP95": 16.670000000000073,
-     "fps": 59.48163149886021,
-     "cpuPercent": 98.05569050381389,
+     "fps": 59.490537447406915,
+     "cpuPercent": 83.31526866962515,
      "draws": 1022.7248322147651,
-     "gpuMs": 3.243
+     "gpuMs": 3.343
     },
     {
-     "frameMs": 8.939998626708984,
-     "frameP95": 10.224998474121094,
+     "frameMs": 5.355003356933594,
+     "frameP95": 6.479999542236328,
      "intervalP95": 16.670000000000073,
-     "fps": 59.51976737900269,
-     "cpuPercent": 82.58362265029398,
-     "draws": 983.6510067114094,
-     "gpuMs": 3.252
+     "fps": 59.53724769006056,
+     "cpuPercent": 63.08631215686214,
+     "draws": 1011.4295302013422,
+     "gpuMs": 3.325
     }
    ],
    "leak": null,
@@ -1258,19 +1258,128 @@
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "city capital": 31609
+     "city capital": 7269
     },
     "byKind": {
      "Mesh/PlaneGeometry/MeshStandardMaterial": 35,
      "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 16,
-     "Mesh/BufferGeometry/MeshBasicMaterial": 71,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 72,
      "Mesh/BufferGeometry/MeshStandardMaterial": 59,
-     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 38,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 39,
      "Mesh/PlaneGeometry/ShaderMaterial": 9,
      "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 1866,
-     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 299,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 309,
      "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 1,
-     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 3
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 4,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 4
+    }
+   }
+  },
+  "countryside-walk": {
+   "meta": {
+    "updated": "2026-10-11T21:20:35.984Z",
+    "note": "Countryside around Gelton (new countryside-walk scenario); baked edge originals leave the scene graph (objects -75% in cities); city wall, gather spots",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
+    "windows": 3,
+    "windowMs": 2500,
+    "calibrationMs": 26.650001525878906
+   },
+   "summary": {
+    "counters": {
+     "draws": 369.369,
+     "threeDrawCalls": 185.293,
+     "triangles": 120813,
+     "uploadsPerFrame": 0.128,
+     "uploadKBPerFrame": 0.135,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 38.148,
+     "mutationsPerSec": 3.988,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 3.981,
+     "objects": 9193,
+     "visibleMeshes": 1004,
+     "programs": 22,
+     "geometries": 194,
+     "textures": 4
+    },
+    "timing": {
+     "frameMs": 3.645,
+     "frameP95": 4.755,
+     "frameMax": 5.275,
+     "intervalP95": 16.67,
+     "fps": 59.533,
+     "cpuPercent": 44.593,
+     "gpuMs": 2.544,
+     "scriptMsPerSec": 238.658,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 2.656,
+     "other": 0.343,
+     "world": 0.26,
+     "systems": 0.176,
+     "interface": 0.126,
+     "hover": 0.108,
+     "player": 0.08,
+     "feedback": 0.014
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 3.8000030517578125,
+     "frameP95": 4.755001068115234,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.82507145819334,
+     "cpuPercent": 44.592569475887146,
+     "draws": 391.43333333333334,
+     "gpuMs": 2.54
+    },
+    {
+     "frameMs": 3.645000457763672,
+     "frameP95": 4.855003356933594,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.505624076582606,
+     "cpuPercent": 56.15967963440702,
+     "draws": 369.3691275167785,
+     "gpuMs": 2.544
+    },
+    {
+     "frameMs": 3.5849990844726562,
+     "frameP95": 4.6100006103515625,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.53344165583237,
+     "cpuPercent": 39.12244822813435,
+     "draws": 357.76510067114094,
+     "gpuMs": 2.558
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 29,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1,
+     "city capital": 9147
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 9,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 16,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 14,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 4,
+     "Mesh/PlaneGeometry/MeshBasicMaterial": 1,
+     "Sprite/BufferGeometry/SpriteMaterial": 1,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 407,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 461,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 54,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 20,
+     "Mesh/RingGeometry/MeshBasicMaterial": 6
     }
    }
   }

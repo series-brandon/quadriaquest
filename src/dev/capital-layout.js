@@ -23,6 +23,8 @@ const STREETS=[{x0:62,z0:32,x1:66,z1:62},{x0:63,z0:80,x1:65,z1:123},{x0:4,z0:70,
  {x0:30,z0:32,x1:32,z1:123},{x0:96,z0:32,x1:98,z1:123},{x0:4,z0:46,x1:123,z1:47},{x0:4,z0:98,x1:123,z1:100},{x0:4,z0:28,x1:123,z1:31}];
 const BLOCKS=[[4,29,33,45],[33,61,33,45],[67,95,33,45],[99,123,33,45],[4,29,48,69],[72,95,48,69],[99,123,48,69],
  [4,29,73,97],[33,55,73,97],[72,95,73,97],[99,123,73,97],[4,29,101,123],[33,62,101,123],[66,95,101,123],[99,123,101,123]];
+// Gateways in the city wall (the countryside's roads start here; countryside.js reads the same list).
+export const CAPITAL_GATES=[{side:'west',from:70,to:72,sign:{x:2,z:69}},{side:'east',from:70,to:72,sign:{x:125,z:73}},{side:'south',from:63,to:65,sign:{x:62,z:125}}];
 // Shops by trade (Phase 10 furnishing); signs follow the trade.
 const TRADES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecary','store','tavern','bakery','tailor','carpenter'];
 // Shopkeepers who also ask for jobs (jobs.js GIVERS), by their shop's trade.
@@ -77,6 +79,9 @@ export function capitalData(){
  data.props.push({kind:'crates',x:34,z:49},{kind:'barrel',x:35,z:49},{kind:'sacks',x:53,z:49},{kind:'cart',x:52,z:67},{kind:'well',x:44,z:68});
  // The park: trees, flower beds, a bench and the way down to the sewers.
  data.props.push({kind:'treeGrate',x:67,z:82},{kind:'treeGrate',x:70,z:88},{kind:'flowerBed',x:67,z:93},{kind:'bench',x:69,z:84,rotation:90},{kind:'dungeonEntrance',x:68,z:90,link:'sewers'});
+ // Gather spots (shared resource entities, placed by the host; docs/WORLD.md): a couple of trees, fallen
+ // sticks and loose rocks in the park, for the odd job without leaving town.
+ data.resources=[{kind:'tree',x:66,z:86},{kind:'tree',x:71,z:94},{kind:'sticks',x:67,z:87},{kind:'sticks',x:70,z:81},{kind:'stones',x:71,z:91},{kind:'stones',x:66,z:96}];
  data.interiors.sewers={kind:'dungeon',name:'The old sewers',size:[16,12],exit:[7,10],furniture:[{kind:'barrel',at:[0,0]},{kind:'crates',at:[15,0]},{kind:'statue',at:[4,4]},{kind:'statue',at:[11,4]},{kind:'sacks',at:[0,11]}]};
  data.props.push({kind:'well',x:46,z:110},{kind:'signpost',x:61,z:73},{kind:'lampPost',x:61,z:96},{kind:'lampPost',x:67,z:110});
  // Townsfolk: vendors at the market, guards on the avenue and the square, and townsfolk at large.
@@ -100,5 +105,16 @@ export function capitalData(){
  data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length)return;const shop=!!b.desc.sign;if(shop?i%2!==0:i%10!==0)return;
   data.townsfolk.push({id:`resident-${i}`,name:`${first[r%first.length]}${r>=first.length?' '+(Math.floor(r/first.length)+1):''}`,look:{color:colors[r%8],loadout:r%5===0?{head:'minersCap'}:null},house:i,...(shop&&JOB_GIVERS[b.desc.use]?{giver:JOB_GIVERS[b.desc.use]}:{}),
    routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'sleep',weight:1},{do:'cook',weight:1},{do:'sit',weight:2},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'chat',weight:1}],line:shop?'Have a look at what I’ve got.':'Mind the step on your way in.'});r++;});
+ // The city wall (docs/WORLD.md): stone along the outer ring of tiles, with open gateways where the
+ // main streets leave town (west and east on the main street, south on the avenue) into the countryside.
+ const N=C.size-1,GATES=CAPITAL_GATES;
+ const gap=(side,i)=>GATES.some(g=>g.side===side&&i>=g.from&&i<=g.to);
+ for(let i=0;i<=N;i++){
+  if(!gap('north',i))data.edges.push({a:[i,1],b:[i,0],kind:'wall',options:{style:'stone'}});
+  if(!gap('south',i))data.edges.push({a:[i,N-1],b:[i,N],kind:'wall',options:{style:'stone'}});
+  if(i>0&&i<N){if(!gap('west',i))data.edges.push({a:[1,i],b:[0,i],kind:'wall',options:{style:'stone'}});if(!gap('east',i))data.edges.push({a:[N-1,i],b:[N,i],kind:'wall',options:{style:'stone'}});}
+ }
+ for(const g of GATES)data.props.push({kind:'signpost',...g.sign});
+ data.gates=GATES.map(({side,from,to})=>({side,from,to}));
  return data;
 }

@@ -58,6 +58,7 @@ export function addCarpentryFixture({world,currentWorld,scene,pickables,clearing
 const animations=['Attack (equipped)','Strong Strike (equipped)','Block (equipped)','Point','Stomp','Happy hop','Wave','Sleeping','Idle','Sliding','Jump up','Jump down','Spawn landing','Gathering','Crafting','Chopping','Mining','Celebration','Happy','Pleased','Focused','Preparing','Struggle','Concerned','Shocked','Distraught','Sad','Frown','Fainted','Angry'];
 const durations={...SOCIAL_DURATIONS,'Celebration':4.3,Chopping:CHOP_DURATION,Mining:MINING_DURATION,'Spawn landing':1.2,'Jump up':STEP_DURATION,'Jump down':STEP_DURATION,Sliding:1/2.4};
 export function mountPlayground(api){
+ let countryBounds=false;
   let cityEditor=null,modelPreview;
   const panel=document.createElement('details');panel.id='quadriaquest-dev-playground';panel.open=false;
   panel.innerHTML=`<summary>DEV PLAYGROUND <small>close</small></summary>
@@ -132,6 +133,10 @@ export function mountPlayground(api){
       <label>Shop <select id="dev-shop">${Object.entries(SHOPS).map(([id,shop])=>`<option value="${id}">${shop.name}</option>`).join('')}</select></label>
       <div><button data-dev="shop-open">Open shop</button><button data-dev="shop-counter">Place shop counter</button><button data-dev="shop-counter-remove">Remove counter</button><button data-dev="shop-reset">Reset stock</button></div>
       <div><button data-dev="price-list">Price list</button></div>
+    </fieldset>
+    <fieldset><legend>Countryside</legend><p class="dev-note">Gelton sits inside generated countryside (countryside.js; docs/WORLD.md), one continuous area streamed in 16 × 16 chunks: walk out of the west, east or south gateway. Roads, a river with a bridge on the east road, a lake (north-west) and a pond (south-west) with fishing spots, woods, rocky hills with copper and boulders, goblins away from the roads (passive scrappers, aggressive bruisers deeper in) and landmarks. <b>Jump</b> loads a place's chunks and puts you there.</p>
+      <label>Place <select id="dev-country-place"><option value="west-road">West road end (woodcutter)</option><option value="lake">Lake shore</option><option value="pond">Pond</option><option value="bridge">East road bridge</option><option value="ruins">Ruins (north hills)</option><option value="hills">North-east hills</option><option value="woods">South-west woods</option><option value="south-road">South road</option></select></label>
+      <div><button data-dev="country-jump">Jump</button><button data-dev="country-bounds">Toggle chunk outlines</button><button data-dev="country-stats">Streaming stats</button><button data-dev="country-radius-2">Radius 2</button><button data-dev="country-radius-3">Radius 3</button></div>
     </fieldset>
     <fieldset><legend>Drops &amp; jobs</legend><p class="dev-note">Enemy drops (drops.js, loot-piles.js): defeated enemies with a drop table leave a loot pile you click to pick up (gone after 3 minutes). <b>Roll drops</b> rolls the chosen enemy's table without a fight and shows its odds; <b>Drop loot here</b> leaves a real pile beside you (rolled, or a test pile for "Test pile"); a seed makes rolls repeat. Jobs (jobs.js): noticeboards are job boards; in Gelton, Pim of the Post at the square has deliveries, and the smiths, fishmongers and bakers with a gold "!" over their heads have jobs. Stand-in givers and a stand-in recipient work in any map; Finish jobs supplies or counts what each needs.</p>
       <label>Enemy <select id="dev-drop-enemy"><option value="">Test pile</option>${Object.keys(ENEMIES).map(id=>`<option value="${id}">${ENEMIES[id].name}</option>`).join('')}</select></label>
@@ -250,6 +255,10 @@ export function mountPlayground(api){
         if(action==='drops-random'){api.setDropSeed(null);status('Drops are random again.');}
         if(action==='drops-clear'){api.clearLoot();status('Loot piles cleared.');}
         if(action==='jobs-board'){stop();api.openJobBoard();}
+        if(action==='country-jump'){stop();const at=await api.countrysideJump($('country-place').value);status(at?`At ${at.join(', ')}.`:'No free tile there.');}
+        if(action==='country-bounds'){countryBounds=!countryBounds;status(api.countrysideBounds(countryBounds)?`Chunk outlines ${countryBounds?'on':'off'}.`:'Enter Gelton first.');}
+        if(action==='country-stats'){status(JSON.stringify(api.countrysideStats));}
+        if(action.startsWith('country-radius-')){status(`Countryside radius ${api.countrysideRadius(+action.slice(15))}.`);}
         if(action==='jobs-noticeboard'){const at=api.placeNoticeboard();status(at?`A noticeboard at ${at.join(', ')}: click it for the job board.`:'No room for a noticeboard nearby.');}
         if(action.startsWith('jobs-giver-')){stop();api.talkToTestGiver(action.slice(11));}
         if(action==='jobs-recipient'){stop();api.talkToTestRecipient();}

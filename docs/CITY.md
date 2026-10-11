@@ -310,6 +310,12 @@ User decisions (2026-10-11): the capital is called **Gelton**; ending the tutori
 - **Playground:** *Enter Gelton* uses the same production area; *Wake up now* lands there.
 - **Verified in the browser:** waking with Skip lands in Gelton's square beside the crystal with the starter kit; a market stall and a weaponsmith counter open their shops; buying a Stone Sword spends gold and shows its receipt; Fenwick the keeper greets you and opens the Weaponsmith; the shop on a phone is fullscreen with a back button and "Not enough gold".
 
+### The wall and the countryside (2026-10-11)
+
+Gelton has a stone wall along its outer ring, with open gateways west, east and south (map `gates`, signposts). Its park has gather spots (map `resources`). The generated countryside around it is part of the same area: see [WORLD.md](WORLD.md).
+
+**Faster cities:** baked walls, windows and railings (`doors.js` `bake`) now leave the scene graph while baked, instead of only being hidden. Hidden objects still cost a matrix update every frame. Gelton's square went from 33,900 to 7,300 objects and from 10.4 to about 5.8 ms per frame (docs/PERFORMANCE.md).
+
 ## Townsfolk and city life
 
 **Routines from places, not scripts.** A townsfolk entry gives a look (colour, hat, accessories), a home door, a loadout or carried tool, and a **routine**: a weighted list of activities. Activities find spots offered by props and buildings: `sit` (bench), `browse` (stall), `vend` and `work` (shop counter, smithy anvil, using existing station motions), `gaze` (fountain, statue), `chat` (two idle townsfolk meet and face each other through `slime-social.js`), `stroll` (to a random street spot), `enter` (walk to a door, go inside, reappear later) and `patrol` (guards follow a loop). Every motion is shared slime presentation. No per-character animation code, as AGENTS.md requires.

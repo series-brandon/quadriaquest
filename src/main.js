@@ -50,6 +50,7 @@ import {createCrowd} from './townsfolk.js';
 import {createResourceActions} from './resource-actions.js';
 import {createAttackTelegraphs} from './attack-telegraph.js';
 import {createResourceEntity} from './resource-entities.js';
+import {createEnemyEntity} from './enemy-entity.js';
 import {createCarpentrySystem} from './carpentry.js';
 import {createFishingSystem} from './fishing.js';
 import {createFishingSpots} from './fishing-spots.js';
@@ -434,19 +435,43 @@ const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},t
 // Each city area's crowd, by area id (job markers, deliveries); every townsfolk knows its city.
 const crowdsByArea=new Map();
 function attachCrowd(built){built.crowd?.dispose();built.crowd=createCrowd({city:built,parent:built.group,pickables,services:crowdServices});for(const p of built.crowd.folk)p.city=built;if(built.areaId)crowdsByArea.set(built.areaId,built.crowd);return built.crowd;}
-// Gelton, the capital (docs/CITY.md): where players wake after the tutorial. Built on first need (the
-// waking farewell starts it) from src/maps/capital.json, per 16 × 16 chunk, streamed around the player,
-// with its townsfolk and its Iter Crystal in the town square.
-let gelton=null,geltonLoading=null;
+// Gelton, the capital (docs/CITY.md), inside its countryside (docs/WORLD.md): where players wake after
+// the tutorial. One continuous area: the city (src/maps/capital.json, built per 16 × 16 chunk and shown
+// around the player) and the generated countryside around it (countryside.js), streamed in chunks with
+// its resources, fishing spots, goblins and landmarks; you walk out through the city's gateways. Built
+// on first need (the waking farewell starts it).
+let gelton=null,geltonLoading=null,countryside=null;
 const GELTON_CAMERA={zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)};
+const WATER_TOP=new THREE.Color('#79acc8'),surfaceTop=new Map();
+const ENEMY_RESPAWN=45;
 function geltonReady(){
  return geltonLoading??=(async()=>{
-  const [{buildCity},{default:data}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json')]);
+  const [{buildCity},{default:data},{createCountryside},{createChunkStreamer},{surfaceColor}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json'),import('./countryside.js'),import('./chunk-streamer.js'),import('./city-terrain.js')]);
   const built=buildCity(structuredClone(data),{scene,pickables,streamRadius:3,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
   built.areaId='gelton';attachCrowd(built);
-  areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
+  // Gather spots placed by the map (shared resource entities).
+  for(const r of built.data.resources||[]){const t=built.tiles.get(key(r.x,r.z));if(t&&!t.blocked&&!t.prop)resourceActions.add(createResourceEntity({kind:r.kind,tile:t,parent:built.group,pickables,id:`gelton:${r.kind}:${r.x},${r.z}`}));}
+  // The countryside streams into the area's tiles, and into the live world map while Gelton is active.
+  const source=createCountryside({city:built.data}),maps=[built.tiles];
+  const topColor=t=>{if(t.water)return WATER_TOP;const hex=surfaceColor(t);if(!surfaceTop.has(hex))surfaceTop.set(hex,new THREE.Color(hex));return surfaceTop.get(hex);};
+  const place=(e,{tile:t,parent,tileAt},saved)=>{
+   if(e.kind==='fishing'){const spot=fishingSpots.add({tile:t,parent,height:t.h+.35});return {dispose:()=>fishingSpots.remove(spot),busy:()=>fishing.matches(spot)};}
+   if(e.kind==='prop'){try{const prop=createProp(e.prop,{origin:[e.x,e.z],rotation:e.rotation,tileAt,parent,pickables});return {dispose:()=>prop.dispose()};}catch{return null;}}
+   if(e.kind==='enemy'){
+    // A defeated goblin stays away for ENEMY_RESPAWN seconds, even if its chunk unloads meanwhile.
+    if(saved?.away>elapsed)return {dispose(){},save:()=>saved};
+    if(t.blocked||characterAt(t))return null;
+    const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressive:e.aggressive,aggroRange:3,respawn:ENEMY_RESPAWN}));
+    return {dispose:()=>combat.remove(a),busy:()=>combat.matches(a)||combat.engagedEnemy===a,save:()=>a.opened?{away:elapsed+ENEMY_RESPAWN}:null};}
+   return null;};
+  // Radius 2 (5 × 5 chunks, about 40 tiles each way) covers the default view; perf: docs/PERFORMANCE.md.
+  const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place,radius:2,keep:1});
+  countryside={source,streamer,maps};built.countryside=countryside;
+  areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
    arrival:()=>built.crystal?.tile||built.spawn,
-   update:(dt,time,view)=>{built.stream(segment?.to||tile);built.crowd?.update(dt,time,{camera:view});},
+   enter(){if(!maps.includes(world))maps.push(world);streamer.prime(tile.x,tile.z,1);},
+   leave(){const i=maps.indexOf(world);if(i>=0)maps.splice(i,1);},
+   update:(dt,time,view)=>{const at=segment?.to||tile;built.stream(at);streamer.update(dt,at);built.crowd?.update(dt,time,{camera:view});},
    reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
   return gelton=built;
  })();
@@ -869,6 +894,22 @@ if(__PLAYGROUND__){
   handInAll(){let n=0;for(const j of jobs.active){const r=jobs.handIn(j.key);if(r.ok){n++;jobReceipt(r);}}return n;},
   abandonJobs(){for(const j of jobs.active)jobs.abandon(j.key);},
   resetJobs(){jobs.reset();},clearJobCooldowns(){jobs.clearCooldowns();},
+  // Countryside (countryside.js; docs/WORLD.md): jump to a place (its chunks load first), its landmark
+  // spots, the chunk outlines, and streaming stats.
+  async countrysideJump(place){
+   const built=await geltonReady();if(areas.id!=='gelton')await playgroundApi.enterCapital();
+   const {source,streamer}=built.countryside,size=built.data.size[0];
+   const spots={'west-road':[-source.roads.find(r=>r.side==='west').length+3,Math.round(source.roads.find(r=>r.side==='west').mid)],lake:[Math.round(source.lake.x),Math.round(source.lake.z+source.lake.r+3)],
+    bridge:[Math.round(source.riverX(71))-4,71],ruins:[size-26,-26],'south-road':[Math.round(size/2),size+40],hills:[size+20,-40],woods:[-30,110],pond:[Math.round(source.pond.x),Math.round(source.pond.z-source.pond.r-3)]};
+   let [x,z]=Array.isArray(place)?place:spots[place]||[];if(x===undefined)return null;
+   streamer.prime(x,z,2);
+   for(let r=0;r<8;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const t=world.get(key(x+dx,z+dz));if(t&&!t.blocked&&!t.water&&!characterAt(t)){playgroundApi.teleport(t.x,t.z);return [t.x,t.z];}}
+   return null;
+  },
+  countrysideSpots:['west-road','lake','pond','bridge','ruins','hills','woods','south-road'],
+  get countrysideStats(){const c=gelton?.countryside;return c?{...c.streamer.stats,radius:c.streamer.radius}:null;},
+  countrysideBounds(on){const c=gelton?.countryside;if(!c)return false;c.streamer.showBounds=on;return true;},
+  countrysideRadius(r){const c=gelton?.countryside;if(!c)return null;c.streamer.radius=r;return c.streamer.radius;},
   // The scene and renderer, for inspecting in scripted browser checks (playground only).
   get scene(){return scene;},get renderer(){return renderer;},
   get capitalStats(){const c=gelton;return c?{chunks:c.chunks.size,shown:c.shownChunks,buildings:c.buildings.length,props:c.props.length,townsfolk:c.crowd?.folk.length}:null;},
@@ -967,6 +1008,10 @@ if(__PLAYGROUND__){
    questLevel(){this.quest();finishObjective('playground-gather');showSkillReward({skillName:'Gathering',xp:0,level:gatheringSkill.level,leveledUp:true},player.position,{float:false});}},audio:gameAudio,itemFeed,openSettings:()=>menus.panels.select('settings'),showCrafting(){menus.panels.select('crafting');},registerTab:tab=>menus.panels.register(tab),waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},
   miningLesson(){this.reset('all');stopAll();finale.reset();Object.assign(inventory,{sticks:3,stones:3,pickaxes:0});for(const tree of trees)if(['boulder','copper'].includes(tree.kind))resourceActions.reset(tree);if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}craftingTutorial.startMining();},
   stopMiningLesson(){stopAll();craftingTutorial.reset();},
+  // The nearest resource of a kind in the current map (tree, boulder, copper, sticks, stones), used as a
+  // click would (any map, including streamed chunks).
+  useResourceNearest(kind){const nodes=[...new Set(pickables.map(m=>m.userData.tree||m.userData.resource).filter(n=>n&&n.kind===kind&&!n.depleted&&world.get(key(n.x,n.z))===n.tile))].sort((a,b)=>Math.hypot(a.x-tile.x,a.z-tile.z)-Math.hypot(b.x-tile.x,b.z-tile.z));
+   const node=nodes.find(n=>routeToTree(n));if(!node)return null;if(node.resourceNode&&['tree','boulder','copper'].includes(node.kind))selectTree(node);else moveTo(node.tile,node);return [node.x,node.z];},
   mineNearest(){const node=trees.filter(t=>t.kind==='boulder'&&!t.depleted&&routeToTree(t)).sort((a,b)=>routeToTree(a).route.length-routeToTree(b).route.length)[0];if(node)selectTree(node);},
   showSplash(){stopAll();splash.show();},
   randomizeSplash(){stopAll();splash.randomizeAppearance();splash.show();},
