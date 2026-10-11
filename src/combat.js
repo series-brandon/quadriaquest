@@ -350,7 +350,8 @@ export function createCombatSystem(api){
    if(a.waitingRespawn){resetEnemy(a);if(a.waitingRespawn)continue;}
    a.group.visible=!a.opened||fleeing.has(a);
    // One creature shows per tile (world-occupancy.js top): a one-tile creature standing under a later arrival hides.
-   if(a.group.visible&&(a.size||1)===1&&!a.opened&&occupancy.covered(a,a.tile,{player:false})&&Math.hypot(a.group.position.x-(a.tile.x-6),a.group.position.z-(a.tile.z-6))<.05)a.group.visible=false;
+   a.moving=Math.hypot(a.group.position.x-(a.tile.x-6),a.group.position.z-(a.tile.z-6))>=.05;
+   if(a.group.visible&&(a.size||1)===1&&!a.opened&&occupancy.covered(a,a.tile,{player:false}))a.group.visible=false;
    a.highlight?.update(!!a.guided&&!a.opened,time,api.hover?.()===a&&!a.opened);
    if(a.opened)continue;a.hitAge=Math.max(0,a.hitAge-dt);a.attackAge=Math.max(0,a.attackAge-dt);a.control.update(dt);const canMove=a.control.can('move');
    // Players whose attacks are prevented (Pacifist) draw no aggression, except from creatures configured

@@ -62,16 +62,18 @@ export function createOccupancy() {
       return cost;
     },
     cellsOf: owner => byOwner.get(owner) || [],
-    // Who is drawn on a shared tile (user rule, 2026-10-11): only one character per tile shows, the
-    // last to arrive; a player always shows. covered(owner): someone else is drawn on its tile.
+    // Who is drawn on a shared tile (user rule, 2026-10-11): when two or more characters are STOPPED
+    // on a tile, only the last to arrive shows; a stopped player always shows. Anyone moving
+    // (owner.moving) neither hides nor is hidden: walking through a tile never hides anyone.
+    // covered(owner): it is stopped and another stopped character is drawn on its tile.
     // player: false leaves the player out (an enemy is never hidden under the player mid-fight).
     top(tile, {player = true} = {}) {
       const set = byTile.get(tile); if (!set) return null;
       let best = null, rank = -1;
-      for (const o of set) { if (!player && o.kind === 'player') continue; const r = o.kind === 'player' ? Infinity : arrived.get(tile)?.get(o) ?? 0; if (r > rank) { rank = r; best = o; } }
+      for (const o of set) { if (o.moving || !player && o.kind === 'player') continue; const r = o.kind === 'player' ? Infinity : arrived.get(tile)?.get(o) ?? 0; if (r > rank) { rank = r; best = o; } }
       return best;
     },
-    covered(owner, tile, options) { const top = this.top(tile, options); return !!top && top !== owner; },
+    covered(owner, tile, options) { if (owner.moving) return false; const top = this.top(tile, options); return !!top && top !== owner; },
     clear() { byTile.clear(); byOwner.clear(); arrived.clear(); },
   };
 }

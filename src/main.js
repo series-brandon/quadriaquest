@@ -571,7 +571,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  campfires.update(elapsed);
  fishingSpots.update(elapsed);
  if(__PLAYGROUND__)trainingFixtures?.update(elapsed);
- occupancy.place(playerOccupant,[tile,segment?.to]);occupancy.place(companionOccupant,companions.cells);
+ playerOccupant.moving=!!segment||path.length>0;occupancy.place(playerOccupant,[tile,segment?.to]);occupancy.place(companionOccupant,companions.cells);
  updateWorldActors(dt,t=>t===tile||t===segment?.to);resolveStanding();updateDoors(dt,elapsed);
  if(__PLAYGROUND__)walkThroughFixtures?.update(dt,elapsed);
  if(__PLAYGROUND__)edgeFixtures?.update(dt);

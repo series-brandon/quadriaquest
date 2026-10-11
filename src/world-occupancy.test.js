@@ -67,3 +67,11 @@ test('one character shows per tile: the last to arrive, and a player always',asy
  occ.place(player,[t]);assert.equal(occ.top(t),player);assert.equal(occ.top(t,{player:false}),a);
  occ.remove(a);assert.equal(occ.top(t,{player:false}),b);
 });
+test('only stopped characters hide each other: walking through a tile hides no one',async()=>{
+ const {createOccupancy}=await import('./world-occupancy.js');const occ=createOccupancy(),t={x:1,z:1};
+ const sitter={kind:'npc'},walker={kind:'npc',moving:true},player={kind:'player',moving:true};
+ occ.place(sitter,[t]);occ.place(walker,[t]);assert.ok(!occ.covered(sitter,t),'a walker passing through');assert.ok(!occ.covered(walker,t));
+ occ.place(player,[t]);assert.ok(!occ.covered(sitter,t),'the player walking through');
+ walker.moving=false;assert.ok(occ.covered(sitter,t),'two stopped: the last to arrive shows');
+ player.moving=false;assert.equal(occ.top(t),player,'a stopped player shows');
+});

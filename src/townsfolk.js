@@ -113,7 +113,8 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
    stats.near=stats.far=stats.off=stats.walking=stats.updated=0;
    const focus=camera?{x:camera.position.x,z:camera.position.z}:null;
    for(const p of folk){
-    // Logic: always.
+    // Logic: always. Moving townsfolk never hide or get hidden (world-occupancy.js top).
+    p.moving=!!p.step;
     // Talking to the player: finish the step under way, then stand and face them until done.
     if(p.talking>0){p.talking-=dt;if(p.talking<=0)p.talkTo=null;}
     const listening=p.talking>0&&!p.step;
@@ -145,7 +146,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
     if(p.hidden){stats.off++;continue;}
     const d=focus?Math.hypot(p.group.position.x-focus.x,p.group.position.z-focus.z):0,onScreen=!frustum||frustum.containsPoint(p.group.position);
     p.ring=!onScreen||d>FAR*1.6?'off':d>FAR?'far':'near';
-    p.group.visible=(p.ring!=='off'||d<FAR)&&(!!p.step||!occupancy.covered(p,p.tile));
+    p.moving=!!p.step;p.group.visible=(p.ring!=='off'||d<FAR)&&!occupancy.covered(p,p.tile);
     if(p.ring==='off'){stats.off++;continue;}
     p.acc+=dt;
     const mood=p.talking>0?'happy':p.state==='chatting'||p.activity==='chat'&&p.state==='staying'?p.chatFace||'happy':p.step?p.entry.walkFace||'happy':p.entry.face||'idle';
