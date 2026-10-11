@@ -1,5 +1,5 @@
 import {updateObjective,finishObjective,setObjectiveHelp} from './quests.js';
-import {showGatheringCompletion} from './opening.js';
+import {showGatheringCompletion,updateGatherObjective} from './opening.js';
 import {computed,effect,signal,untracked} from './reactive.js';
 const introduction=[
   "Wow! Look at you go. You've already picked up some resources and gained some experience with a little level growth to boot!",
@@ -78,7 +78,7 @@ export function createCraftingTutorial({menus,narrator,tip,freePlay=false,onComp
   }
   function startQuests(done){
     closeMenus();guide(null);advance=null;questsDone=done;setStage('quests-intro');host.hidden=true;
-    updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',0,6);
+    updateGatherObjective();
     tutorial("You've been given a quest! Check your Quests tab to view it.",false,()=>{
       setStage('quests-reveal');
       // The menus (desktop sidebar, phone tab bar) appear with this line.
@@ -91,7 +91,7 @@ export function createCraftingTutorial({menus,narrator,tip,freePlay=false,onComp
   function questsOpened(){
     if(stage!=='quests-menu')return;
     setStage('quests-detail');guide(null);
-    tutorial('Here are your quests! Each quest shows what you need to do and tracks your progress. Your first task is to collect six items from the ground. You can return here whenever you need a reminder.',false,()=>{
+    tutorial('Here is your first quest! It shows your current objective and tracks your progress. Your first objective is to collect 3 Rocks and 3 Sticks from the ground. All quests lists every quest you have started. You can return here whenever you need a reminder.',false,()=>{
       closeMenus();setStage(freePlay?'done':'inactive');tip.hide();
       const done=questsDone;questsDone=null;if(done)done();
     });

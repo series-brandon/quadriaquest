@@ -45,6 +45,10 @@ test('the quest-progress pop-up follows notices and marks completion', () => {
     notice.value = {seq: 2, title: 'Collect ground items', current: 6, total: 6};
     assert.equal(node.querySelector('strong').textContent, '✓ Collect ground items · 6/6');
     assert.equal(node.hasAttribute('data-complete'), true);
+    notice.value = {seq: 4, title: 'Collect ground items', current: 4, total: 6, part: {label: 'Collect 3 Sticks', current: 3, total: 3}};
+    assert.equal(node.querySelector('strong').textContent, '✓ Collect 3 Sticks · 3/3', 'one portion moved: the pop-up names it');
+    notice.value = {seq: 5, title: 'Collect ground items', current: 6, total: 6, part: {label: 'Collect 3 Rocks', current: 3, total: 3}};
+    assert.equal(node.querySelector('strong').textContent, '✓ Collect ground items · 6/6', 'finishing the last portion reports the whole task');
     mock.timers.tick(4500);
     mock.timers.tick(650);
     assert.equal(node.hidden, true);

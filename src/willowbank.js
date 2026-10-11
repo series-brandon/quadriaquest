@@ -15,7 +15,7 @@ import {part} from './model-parts.js';
 import {fisher} from './fisher-model.js';
 import {createSlimeActor} from './slime-presentation.js';
 import {WILLOWBANK,makeWillowbankTiles} from './willowbank-rules.js';
-import {updateObjective,finishObjective,setObjectiveHelp,resetObjectives} from './quests.js';
+import {updateObjective,finishObjective,setObjectiveHelp,resetObjectives,finishQuest} from './quests.js';
 import {key} from './world.js';
 import {nextStep,stepKey,describeStep} from './acquisition.js';
 import {BRIDGE_REPAIR} from './carpentry.js';
@@ -153,7 +153,7 @@ export function createWillowbank(api){
  function campfireCooked(id){if(!active)return;cooked++;if(phase==='cook'&&id==='cookedFish'){done('cook');phase='eat';lines([['Now for the best part!','happy']],prompt);}}
  const cancelPlacement=()=>api.campfires.cancel(),placeFire=tile=>api.campfires.place(tile);
 
- function foodEaten(){if(!active)return;eaten++;if(phase==='eat'){hideGuide();done('eat');phase='finished';api.closeMenus();lines([['You repaired a bridge, helped a stranded animal, and made yourself dinner.','happy'],['And found a friend along the way.','happy'],[`I’d call that a pretty good start, ${api.profile().name||'Pip'}.`,'happy'],[`Oh! And something for ${companions.state.name}. Every adventuring companion deserves a proper hat.`,'happy']],()=>{giftCompanionHat();showTip('Broken Bridge Rescue — Complete!',`You rescued a companion and learned how to recover. Reed gave you a Companion Top Hat: put it on ${companions.state.name} from your Inventory or the Companions page.`,()=>showTip('Willowbank complete!', 'You can keep exploring and practicing here, or use the Iter Crystal to visit Cinderhold for combat training!'));});}}
+ function foodEaten(){if(!active)return;eaten++;if(phase==='eat'){hideGuide();done('eat');phase='finished';finishQuest('willow-');api.closeMenus();lines([['You repaired a bridge, helped a stranded animal, and made yourself dinner.','happy'],['And found a friend along the way.','happy'],[`I’d call that a pretty good start, ${api.profile().name||'Pip'}.`,'happy'],[`Oh! And something for ${companions.state.name}. Every adventuring companion deserves a proper hat.`,'happy']],()=>{giftCompanionHat();showTip('Broken Bridge Rescue — Complete!',`You rescued a companion and learned how to recover. Reed gave you a Companion Top Hat: put it on ${companions.state.name} from your Inventory or the Companions page.`,()=>showTip('Willowbank complete!', 'You can keep exploring and practicing here, or use the Iter Crystal to visit Cinderhold for combat training!'));});}}
  // Reed's thank-you gift, once per rescue. Wearing it is shared companion gear (companions.js).
  let hatGiven=false;
  function giftCompanionHat(){if(hatGiven)return;hatGiven=true;api.inventory.companionHats=(api.inventory.companionHats||0)+1;api.showItems({companionHats:1});}
@@ -202,7 +202,7 @@ reedFacing.update(dt);reedSlime.update(dt,time,{expression:phase==='meet'?'distr
   hideGuide();cancel();tip.hide();dialogue.hide();introActive=false;introFocus=null;injuryReaction=null;rescueAge=null;rescueWaiting=false;fishingFollowup=false;
   if(!bridgeDone){bridgeDone=true;showBridge(1);setBridgeRepairTarget(false);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){const tile=t(x,WILLOWBANK.bridgeZ);tile.water=false;tile.blocked=false;tile.h=1;}}
   for(const [id,title] of WILLOW_GOALS){goal(id,title,'Skipped.',1,1);setObjectiveHelp('willow-'+id,null);}
-  phase='finished';
+  phase='finished';finishQuest('willow-');
   for(const id of ['hammers','pickaxes'])api.inventory[id]=Math.max(1,api.inventory[id]||0);
   if(!hatGiven){hatGiven=true;api.inventory.companionHats=Math.max(1,api.inventory.companionHats||0);}
   if(companions.state.owned)return after();

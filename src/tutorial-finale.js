@@ -1,5 +1,5 @@
 import {holdUpMotion} from './catch-motion.js';
-import {updateObjective,finishObjective} from './quests.js';
+import {updateObjective,finishObjective,finishQuest} from './quests.js';
 import * as THREE from 'three';
 import {makeChest,makeTopHat} from './finale-models.js';
 import {highlightResource} from './resource-highlight.js';
@@ -79,7 +79,7 @@ export function createTutorialFinale(api){
   }
   // Guided until first used (the "Find the Iter Crystal" objective).
   let portalUsed=false;
-  function makePortal(tile,ready=true){return api.crystals.add({tile,parent:api.parent,destination:api.destination,label:'Enter Iter Portal',ready,guide:()=>!portalUsed,onArrive:()=>{portalUsed=true;finishObjective('portal');}});}
+  function makePortal(tile,ready=true){return api.crystals.add({tile,parent:api.parent,destination:api.destination,label:'Enter Iter Portal',ready,guide:()=>!portalUsed,onArrive:()=>{portalUsed=true;finishObjective('portal');finishQuest();}});}
   function ensurePortal(){if(!portal){const t=chooseTile({x:8,z:8});if(t)portal=makePortal(t);}return portal;}
   return {
     begin,dropPortal,resetPractice,dropChest,revealReward,celebrate,ensurePortal,
@@ -88,7 +88,7 @@ export function createTutorialFinale(api){
     get state(){return {stage,practice,rewardTriggered,portalUsed};},
     // Skipping the finale (tutorial-chapters.js): the crystal is ready, its objective and the reward
     // hat are done, and the host travels on. Returns the crystal.
-    skip(){this.reset();const crystal=ensurePortal();portalUsed=true;updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel.',1,1);api.inventory.hats=Math.max(1,api.inventory.hats||0);return crystal;},
+    skip(){this.reset();const crystal=ensurePortal();portalUsed=true;updateObjective('portal','Find the Iter Crystal','Use the floating Iter Crystal in the clearing when you are ready to travel.',1,1);finishQuest();api.inventory.hats=Math.max(1,api.inventory.hats||0);return crystal;},
     openChest(){if(chest)api.approach(chest);},
     stopPreview(){if(celebration?.preview){celebration=null;heldHat.visible=false;}},
     interact(actor){

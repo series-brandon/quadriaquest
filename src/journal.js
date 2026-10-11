@@ -20,13 +20,16 @@ export function mountJournal(menus,controller,settings){
  const locked=tutorialLock.lockedState;
  const hidden=computed(()=>!dockedDesktop.value&&!panels.active.value&&!panels.navShown.value);
 
- const questPanel=mount(()=>h('section',{id:'quests-panel','aria-label':'Quests',hidden:true},questsPage({chapters:questChapters,revision:questRevision,help:showObjectiveHelp}))).node;
+ // The open quest; the first-quest lesson opens it directly.
+ const openQuest=signal(null),viewingQuest=signal(false);
+ const questPanel=mount(()=>h('section',{id:'quests-panel','aria-label':'Quests',hidden:true},questsPage({chapters:questChapters,revision:questRevision,help:showObjectiveHelp,chosen:openQuest,viewing:viewingQuest}))).node;
  panels.register({id:'quests',label:'Quests',icon:'quests',order:10,primary:true,element:questPanel,returnTo:true,
   closeLocked:computed(()=>controller.stageState.value==='quests-detail'),
   select(){
    const stage=controller.stage;
    if(stage.startsWith('quests-')&&stage!=='quests-menu')return;
    if(panels.isOpen('quests'))return;
+   if(stage==='quests-menu'){const first=questChapters().find(q=>!q.complete);if(first){openQuest.value=first.title;viewingQuest.value=true;}}
    panels.open('quests');controller.questsOpened();
   }});
 

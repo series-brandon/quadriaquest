@@ -18,16 +18,26 @@ const clearingLines = [
   "In this area, you'll see some sticks and rocks. Try picking them up!"
 ];
 
-const GATHER_TEXT="Click or tap a gold-highlighted item to gather it. Wait until you finish—moving interrupts gathering. Collect all six!";
+const GATHER_TEXT="Click or tap a gold-highlighted item to gather it. Wait until you finish—moving interrupts gathering. Collect 3 Rocks and 3 Sticks!";
+// The clearing's gathering objective: one task with a portion per material, so the crafting lessons
+// that follow always have 3 Rocks and 3 Sticks. got: {stones, sticks} picked up so far.
+const GATHER_EACH=3,GATHER_TOTAL=GATHER_EACH*2;
+export const GATHER_DONE={stones:GATHER_EACH,sticks:GATHER_EACH};
+const gathered=got=>Math.min(got.stones||0,GATHER_EACH)+Math.min(got.sticks||0,GATHER_EACH);
+const gatherComplete=got=>gathered(got)===GATHER_TOTAL;
+const gatherCount=got=>`Rocks ${Math.min(got.stones||0,GATHER_EACH)}/${GATHER_EACH} · Sticks ${Math.min(got.sticks||0,GATHER_EACH)}/${GATHER_EACH}`;
+export function updateGatherObjective(got={}){
+  updateObjective('gather','Collect ground items','Collect 3 Rocks and 3 Sticks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',0,1,[{label:'Collect 3 Rocks',current:got.stones||0,total:GATHER_EACH},{label:'Collect 3 Sticks',current:got.sticks||0,total:GATHER_EACH}]);
+}
 // The gathering lesson's tip (ui/hud/tip.js). The progress bar shows only once it is visible.
-export function showGatheringPrompt(tip,count){
-  updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',count,6);
-  tip.update({title:'Gathering resources',text:count>0?'Finish collecting the items off the ground.':GATHER_TEXT,count:count+' / 6 collected',...(tip.state.progress===null?{}:{progress:count/6})});
+export function showGatheringPrompt(tip,got){
+  updateGatherObjective(got);
+  tip.update({title:'Gathering resources',text:gathered(got)>0?'Finish collecting the items off the ground.':GATHER_TEXT,count:gatherCount(got),...(tip.state.progress===null?{}:{progress:gathered(got)/GATHER_TOTAL})});
 }
 
 export function showGatheringCompletion(tip,onPress){
-  updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',6,6);
-  tip.show({title:'All six collected!',text:'A brilliant start. Your first resources are safely gathered.',count:'6 / 6 collected',progress:1,complete:true,action:{label:'Click to continue',onPress}});
+  updateGatherObjective(GATHER_DONE);
+  tip.show({title:'All collected!',text:'A brilliant start. Your first resources are safely gathered.',count:gatherCount(GATHER_DONE),progress:1,complete:true,action:{label:'Click to continue',onPress}});
 }
 
 // onHandChosen(side): the dominant hand picked after naming ('right' or 'left').
@@ -48,7 +58,7 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
   const LESSON_TITLES=['Rotate the camera','Try zooming','Move to a new tile'];
   let briefing=false,controlsDone=null;
   let lesson=0,awaitingContinue=false,rotationAmount=0,zoomAmount=0,moveGoal=null;
-  let collectedCount=0,interruption=null,xpExplained=false,levelExplained=false;
+  let collected={},interruption=null,xpExplained=false,levelExplained=false;
   function showGatherSuccess(){showGatheringCompletion(tip,onContinue);awaitingContinue=true;}
   function explainSkill(kind){
     briefing=false;interruption=kind;awaitingContinue=true;
@@ -65,14 +75,14 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
   }
   function showLesson(){
     briefing=lesson===3;
-    if(lesson===3)updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',collectedCount,6);
+    if(lesson===3)updateGatherObjective(collected);
     else updateObjective(lessons[lesson].id,LESSON_TITLES[lesson],lessons[lesson].text);
     tip.show({
       title:lesson===3?'Gathering resources':['Rotate your view','Zoom in and out','Find your footing'][lesson],
-      text:lesson===3?(collectedCount>0?'Finish collecting the items off the ground.':GATHER_TEXT):lessons[lesson].text,
+      text:lesson===3?(gathered(collected)>0?'Finish collecting the items off the ground.':GATHER_TEXT):lessons[lesson].text,
       action:{label:lesson<3?'Continue':'Dismiss',disabled:lesson<3,onPress:onContinue},
     });
-    if(lesson===3&&collectedCount>0){briefing=false;tip.hide();}
+    if(lesson===3&&gathered(collected)>0){briefing=false;tip.hide();}
   }
   function succeed(){
     if(awaitingContinue)return;
@@ -184,22 +194,22 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
   return {
     enterFreePlay,
     debugCheckpoint:typeof __PLAYGROUND__!=='undefined'&&__PLAYGROUND__?function(step){
-      enterFreePlay();interruption=null;reaction=null;collectedCount=0;xpExplained=levelExplained=false;
+      enterFreePlay();interruption=null;reaction=null;collected={};xpExplained=levelExplained=false;
       if(['color','name','hand','mode','tutorial'].includes(step)){this.startCustomization();({name:chooseName,hand:chooseHand,mode:chooseMode,tutorial:chooseTutorial})[step]?.();return;}
       finished=false;
       if(['rotate','zoom','move'].includes(step)){this.startControls(null);lesson=['rotate','zoom','move'].indexOf(step);showLesson();return;}
       if(step==='gather'){this.startGathering();return;}
-      if(step==='gather-resume'){lesson=3;collectedCount=1;xpExplained=true;showLesson();return;}
-      if(step==='gather-complete'){collectedCount=6;showGatherSuccess();return;}
-      collectedCount=step.startsWith('level')?6:1;xpExplained=true;levelExplained=step.startsWith('level');explainSkill(step);
+      if(step==='gather-resume'){lesson=3;collected={sticks:1};xpExplained=true;showLesson();return;}
+      if(step==='gather-complete'){collected={...GATHER_DONE};showGatherSuccess();return;}
+      collected=step.startsWith('level')?{...GATHER_DONE}:{sticks:1};xpExplained=true;levelExplained=step.startsWith('level');explainSkill(step);
     }:undefined,
     // Skipping tutorial chapters (tutorial-chapters.js): the camera lessons are marked done and
     // gathering starts; or gathering is marked done and the next lesson (onComplete) starts.
     skipControls(){for(let i=0;i<3;i++)updateObjective(lessons[i].id,LESSON_TITLES[i],lessons[i].text,1,1);this.startGathering();},
-    skipGathering(){updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing.',6,6);enterFreePlay();onComplete?.();},
+    skipGathering(){updateGatherObjective(GATHER_DONE);enterFreePlay();onComplete?.();},
     get lesson(){return lesson;},
-    startLevelExplanation(){enterFreePlay();finished=false;collectedCount=6;xpExplained=levelExplained=true;showGatheringPrompt(tip,6);explainSkill('level');},
-    startGathering(){enterFreePlay();finished=false;collectedCount=0;xpExplained=levelExplained=false;interruption=null;showLesson();},
+    startLevelExplanation(){enterFreePlay();finished=false;collected={...GATHER_DONE};xpExplained=levelExplained=true;showGatheringPrompt(tip,collected);explainSkill('level');},
+    startGathering(){enterFreePlay();finished=false;collected={};xpExplained=levelExplained=false;interruption=null;showLesson();},
     startControls(done){finished=false;playable=true;inClearing=true;lesson=0;awaitingContinue=false;rotationAmount=zoomAmount=0;moveGoal=null;controlsDone=done;narrator.hide();transition('play');showLesson();},
     get reaction(){return reaction;},
     get quiet(){return phase==='dialogue'&&!reaction;},
@@ -236,15 +246,16 @@ export function createOpening({narrator,tip,player,visual,face,setColor,showClea
         visual.scale.set(1/Math.sqrt(squash),squash,1/Math.sqrt(squash));visual.position.y=-.07*squash;
       }
     },
-    collected(count,reward){
+    // got: {stones, sticks} in the inventory after a pickup.
+    collected(got,reward){
       if(lesson!==3||finished)return;
-      if(count>0&&briefing){briefing=false;tip.hide();}
-      collectedCount=count;
-      updateObjective('gather','Collect ground items','Collect all six handfuls of Sticks and Rocks scattered around the clearing. Click or tap a resource and wait until gathering finishes.',count,6);
-      tip.update({count:`${count} / 6 collected`,...(tip.state.progress===null?{}:{progress:count/6})});
+      if(gathered(got)>0&&briefing){briefing=false;tip.hide();}
+      collected={stones:got.stones||0,sticks:got.sticks||0};
+      updateGatherObjective(collected);
+      tip.update({count:gatherCount(collected),...(tip.state.progress===null?{}:{progress:gathered(collected)/GATHER_TOTAL})});
       if(reward&&!xpExplained){xpExplained=true;explainSkill('xp');}
       else if(reward?.leveledUp&&!levelExplained){levelExplained=true;explainSkill('level');}
-      else if(count===6)showGatherSuccess();
+      else if(gatherComplete(collected))showGatherSuccess();
     }
   };
 }

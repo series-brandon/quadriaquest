@@ -70,7 +70,7 @@ import {makeSlime} from './slime-model.js';
 import {makeFlowers,makeTerrainTile,addWaterTile} from './world-models.js';
 import {createWillowbank} from './willowbank.js';
 import {createGrassColors} from './grass-palette.js';
-import {updateObjective,finishObjective,resetObjectives} from './quests.js';
+import {updateObjective,finishObjective,resetObjectives,registerQuestChapter,finishQuest,objectives} from './quests.js';
 import {icon} from './icons.js';
 import {createGameAudio} from './audio.js';
 import {createSettingsMenu} from './settings-menu.js';
@@ -457,7 +457,7 @@ function isVisible(object){for(let o=object;o;o=o.parent)if(!o.visible)return fa
 function toast(s){gameAudio.play('blocked');messages?.show(s);}
 // `sound` replaces the default (crafted when something was spent, else pick up); null for none.
 function showItemChanges(changes,{sound}={}){itemFeed.show(changes);const kind=sound===undefined?(Object.values(changes).some(n=>n<0)?'complete':'pickup'):sound;if(kind)gameAudio.play(kind);}
-function updateUI(reward){opening.collected(inventory.sticks+inventory.stones,reward);}
+function updateUI(reward){opening.collected({sticks:inventory.sticks,stones:inventory.stones},reward);}
 function moveTo(t,resource){if(!canMove())return;if(campfires?.placing){campfires.selectPlacement(t);return;}if(resource&&(resource===target||resourceActions.matches(resource)))return;if(__PLAYGROUND__)debug?.stop(false);const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&(resource===target||resourceActions.matches(resource))){return;}const start=segment?segment.to:tile;const adjacent=resource?routeToTree(resource):null;const destination=resource?adjacent?.at:t;const route=resource?(adjacent?.route??null):findPath(world,start,t,playerRouteCost);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'No way there: a wall, locked door or high ledge is in the way.');return;}messages?.clear();if(recipeCrafting.working&&route.length===0&&!segment&&!resource)return;combat.disengage();cancelWork();opening.moving(tile,destination);target=resource||null;gatherTime=0;path=route;feedback.destination(destination);}
 function pick(event){const rect=gameViewport();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObjects(pickables.filter(m=>isVisible(m)&&!m.userData.resource?.depleted&&!m.userData.tree?.depleted),false)[0];}
 let down=null,dragged=false,pinchDistance=null;
@@ -749,7 +749,11 @@ if(__PLAYGROUND__){
   tip,modals,
   grassPalette:playground.createGrassPaletteControls(()=>[...grass,...splash.grassMaterials,...willow.grassMaterials]),
   combatProfile:()=>combat.preview(),
-  objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip()},audio:gameAudio,itemFeed,openSettings:()=>menus.panels.select('settings'),showCrafting(){menus.panels.select('crafting');},registerTab:tab=>menus.panels.register(tab),waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},
+  objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip(),
+   // A separate quest for the Quests page: a finished objective, then one with two equal parts.
+   quest(){registerQuestChapter('playground-','Playground Quest');updateObjective('playground-talk','Talk to the tester','Say hello.',1,1);updateObjective('playground-gather','Gather supplies','Collect both kinds in any order.',0,1,[{label:'Collect 3 Rocks',current:0,total:3},{label:'Collect 2 Sticks',current:0,total:2}]);},
+   questAdvance(){const goal=objectives.get('playground-gather');if(!goal)return;const parts=goal.parts.map(p=>({...p}));const next=parts.find(p=>p.current<p.total&&p.current<=Math.min(...parts.map(q=>q.current)))??parts.find(p=>p.current<p.total);if(next)next.current++;updateObjective(goal.id,goal.title,goal.description,0,1,parts);},
+   questFinish(){for(const id of ['playground-talk','playground-gather'])finishObjective(id);finishQuest('playground-');}},audio:gameAudio,itemFeed,openSettings:()=>menus.panels.select('settings'),showCrafting(){menus.panels.select('crafting');},registerTab:tab=>menus.panels.register(tab),waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},
   miningLesson(){this.reset('all');stopAll();finale.reset();Object.assign(inventory,{sticks:3,stones:3,pickaxes:0});for(const tree of trees)if(['boulder','copper'].includes(tree.kind))resourceActions.reset(tree);if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}craftingTutorial.startMining();},
   stopMiningLesson(){stopAll();craftingTutorial.reset();},
   mineNearest(){const node=trees.filter(t=>t.kind==='boulder'&&!t.depleted&&routeToTree(t)).sort((a,b)=>routeToTree(a).route.length-routeToTree(b).route.length)[0];if(node)selectTree(node);},

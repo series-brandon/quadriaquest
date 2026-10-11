@@ -63,7 +63,7 @@ test('XP and level explanations return to gathering and final success only after
     opening.moving({x:0,z:0},{x:1,z:0});assert.equal(controlButton.disabled,true);opening.arrived({x:1,z:0});assert.equal(controlButton.disabled,false);continueLesson();
     assert.equal(get('gather-tutorial').hidden,false);assert.equal(controlButton.textContent,'Dismiss');
     assert.equal(opening.canMove,true);assert.equal(opening.canGather,true);
-    opening.collected(1,{xp:20,leveledUp:false});
+    opening.collected({sticks:1,stones:0},{xp:20,leveledUp:false});
     assert.match(get('tutorial-copy').textContent,/first experience points/);
     assert.equal(opening.canMove,false);opening.update(30);
     assert.match(get('tutorial-copy').textContent,/first experience points/);
@@ -73,17 +73,20 @@ test('XP and level explanations return to gathering and final success only after
     continueLesson();assert.equal(opening.canGather,true);
     assert.equal(get('gather-tutorial').hidden,true);assert.equal(objectives.get('gather').current,1);
     assert.equal(get('tutorial-copy').textContent,'Finish collecting the items off the ground.');
-    for(let count=2;count<=5;count++)opening.collected(count,{xp:20,leveledUp:false});
-    assert.equal(opening.canGather,true);
-    opening.collected(6,{xp:20,leveledUp:true});assert.equal(objectives.get('gather').current,6);
+    for(let sticks=2;sticks<=5;sticks++)opening.collected({sticks,stones:0},{xp:20,leveledUp:false});
+    // Extra Sticks don't stand in for Rocks: the lesson waits for 3 of each.
+    assert.equal(opening.canGather,true);assert.equal(objectives.get('gather').current,3);
+    assert.deepEqual(objectives.get('gather').parts.map(p=>[p.label,p.current,p.total]),[['Collect 3 Rocks',0,3],['Collect 3 Sticks',3,3]]);
+    opening.collected({sticks:5,stones:2},{xp:20,leveledUp:false});assert.equal(opening.canGather,true);
+    opening.collected({sticks:5,stones:3},{xp:20,leveledUp:true});assert.equal(objectives.get('gather').current,6);
     assert.match(get('tutorial-copy').textContent,/first level/);assert.equal(opening.canMove,false);
     continueLesson();assert.match(get('tutorial-copy').textContent,/master of many skills/);assert.equal(finishSkills,undefined);assert.equal(opening.canMove,false);
     continueLesson();assert.equal(typeof finishSkills,'function');assert.equal(opening.canMove,false);assert.equal(opening.canGather,false);
     // The Skills controller hides the shared tutorial panel before returning.
     get('gather-tutorial').hidden=true;
     get('tutorial-count').textContent='';get('tutorial-progress').style.width='0%';
-    finishSkills();assert.equal(get('tutorial-title').textContent,'All six collected!');
-    assert.equal(get('tutorial-count').textContent,'6 / 6 collected');assert.equal(get('tutorial-progress').style.width,'100%');
+    finishSkills();assert.equal(get('tutorial-title').textContent,'All collected!');
+    assert.equal(get('tutorial-count').textContent,'Rocks 3/3 · Sticks 3/3');assert.equal(get('tutorial-progress').style.width,'100%');
     assert.equal(get('gather-tutorial').hidden,false);assert.equal(opening.canMove,false);
     continueLesson();assert.equal(get('gather-tutorial').hidden,true);assert.equal(opening.canMove,true);
   }finally{resetObjectives();globalThis.document=previous;}

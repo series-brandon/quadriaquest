@@ -1,8 +1,8 @@
 // Group controls while preserving the real gameplay handlers on each button.
 export function organizePlayground(panel){
  const commands=new Map(),fieldsets=new Map([...panel.querySelectorAll(':scope > fieldset')].map(f=>[f.querySelector('legend').textContent,f]));
- function section(name,names,open=false){const details=document.createElement('details');details.className='dev-section';details.open=open;const summary=document.createElement('summary');summary.textContent=name;details.append(summary);for(const name of names)details.append(fieldsets.get(name));panel.insertBefore(details,panel.querySelector('#dev-status'));return details;}
- const previews=section('Models & animation',['Animation preview'],true);
+ function section(name,names){const details=document.createElement('details');details.className='dev-section';const summary=document.createElement('summary');summary.textContent=name;details.append(summary);for(const name of names)details.append(fieldsets.get(name));panel.insertBefore(details,panel.querySelector('#dev-status'));return details;}
+ const previews=section('Models & animation',['Animation preview']);
  for(const button of [...panel.querySelectorAll(':scope > button')])previews.append(button);
  previews.querySelector('summary').after(previews.querySelector('[data-dev="models"]'));
  section('Inventory & skills',['Inventory','Skills','Player health']);

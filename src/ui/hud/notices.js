@@ -61,11 +61,13 @@ export function objectiveToast({notice, duration = 4500}) {
       }, duration);
     });
   });
-  const done = () => !!goal.value && goal.value.current >= goal.value.total;
+  // A notice naming one portion of the objective (Collect 3 Sticks) reports that portion's progress.
+  const shownGoal = () => (goal.value && goal.value.part && goal.value.current < goal.value.total ? {...goal.value.part, title: goal.value.part.label} : goal.value);
+  const done = () => !!shownGoal() && shownGoal().current >= shownGoal().total;
   return h('aside', {id: 'objective-update', class: 'q-objective', role: 'status', hidden: () => !goal.value, 'data-shown': shown, 'data-complete': done},
-    h('strong', null, () => (goal.value ? `${done() ? '✓ ' : ''}${goal.value.title} · ${goal.value.current}/${goal.value.total}` : '')),
+    h('strong', null, () => { const g = shownGoal(); return g ? `${done() ? '✓ ' : ''}${g.title} · ${g.current}/${g.total}` : ''; }),
     h('span', {class: 'q-objective__track', 'aria-hidden': 'true'},
-      h('span', {class: 'q-objective__fill', style: {transform: () => `scaleX(${goal.value ? goal.value.current / goal.value.total : 0})`}})));
+      h('span', {class: 'q-objective__fill', style: {transform: () => `scaleX(${shownGoal() ? shownGoal().current / shownGoal().total : 0})`}})));
 }
 
 // Item changes as receipts: gains, losses, or "Crafted X" with what it used. Repeated single-item
