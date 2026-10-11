@@ -20,6 +20,13 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Low-risk city optimizations — 2026-10-11 (user request)
+
+- `src/static-merge.js` `mergeStatic(root, objects)`: static, untextured, non-pickable meshes merged into one vertex-coloured mesh per material kind per chunk; `buildCity` merges building decor and non-interactive props per chunk (`chunk-statics`). Clickable props, doors, sign icons, roofs and caps stay separate. City data and the editor are unchanged.
+- `slime-model.js`: one shared hand geometry (`userData.shared`; the model viewer and world actors no longer dispose shared geometry or materials).
+- `slime-presentation.js` `update({lean})` / `createSlimeActor().update({lean})`: skip the body bend; far-ring townsfolk use it.
+- Perf (docs/PERFORMANCE.md): all 12 PASS; modest gains (capital draws 1,141 → 1,089, upload 17 → 11 KB/frame). Tests: 539 pass.
+
 ### Nearby buildings cut, steady walking face, fewer townsfolk — 2026-10-11 (user review)
 
 - `cutaway.js` `cutBuildings`: also cuts any building within `NEAR_CUT` (2) tiles of the player on the same level, so approaching a door shows the inside.

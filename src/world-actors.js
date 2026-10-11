@@ -21,7 +21,7 @@ export function createWorldActor({world,tile,parent,pickables,group,kind,label,o
  // Moves to a tile; the model slides there (updateWorldActors).
  actor.step=t=>{actor.tile=t;actor.x=t.x;actor.z=t.z;occupancy.place(actor,[t]);for(const m of meshes)m.userData.tile=t;actor.awayFor=0;};
  if(character&&actor.push==='walk')movers.add(actor);
- actor.dispose=()=>{if(removed)return;removed=true;actor.ready=false;movers.delete(actor);occupancy.remove(actor);if(solid)actor.home.blocked=false;group.removeFromParent();for(const m of meshes){const i=pickables.indexOf(m);if(i>=0)pickables.splice(i,1);}const materials=new Set();group.traverse(m=>{m.geometry?.dispose();for(const mat of [m.material].flat())if(mat)materials.add(mat);});for(const m of materials)m.dispose();};
+ actor.dispose=()=>{if(removed)return;removed=true;actor.ready=false;movers.delete(actor);occupancy.remove(actor);if(solid)actor.home.blocked=false;group.removeFromParent();for(const m of meshes){const i=pickables.indexOf(m);if(i>=0)pickables.splice(i,1);}const materials=new Set();group.traverse(m=>{if(!m.geometry?.userData.shared)m.geometry?.dispose();for(const mat of [m.material].flat())if(mat)materials.add(mat);});for(const m of materials)m.dispose();};
  return actor;
 }
 const free=(t,actor,taken)=>!!t&&!t.blocked&&!t.water&&!occupancy.occupied(t,actor)&&!taken(t);

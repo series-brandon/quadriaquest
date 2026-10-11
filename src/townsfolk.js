@@ -190,7 +190,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
     p.acc+=dt;
     // The walking face holds for the whole walk (between steps too, or it flashes once per tile).
     const mood=p.talking>0?'happy':p.state==='chatting'||p.activity==='chat'&&p.state==='staying'?p.chatFace||'happy':p.state==='walking'?p.entry.walkFace||'happy':p.entry.face||'idle';
-    if(p.ring==='far'){stats.far++;if(p.acc<.25)continue;p.slime.update(p.acc,time,{expression:mood,pose:p.move?.pose||null});p.acc=0;stats.updated++;continue;}
+    if(p.ring==='far'){stats.far++;if(p.acc<.25)continue;p.slime.update(p.acc,time,{expression:mood,pose:p.move?.pose||null,lean:true});p.acc=0;stats.updated++;continue;}
     stats.near++;p.slime.update(p.acc,time,{expression:mood,pose:p.move?.pose||null});p.acc=0;stats.updated++;
    }
   },

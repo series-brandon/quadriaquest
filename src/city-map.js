@@ -5,6 +5,7 @@ import {createBuilding} from './building-kit.js';
 import {createProp} from './props.js';
 import {makeCityTile,layStairs,railingEdges,stairRailParts,SURFACE_NAMES} from './city-terrain.js';
 import {mergedMesh} from './merged-model.js';
+import {mergeStatic} from './static-merge.js';
 import {makeCrystal} from './crystal-model.js';
 import {key} from './world.js';
 
@@ -86,6 +87,12 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
  for(const p of data.props){try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:chunk(p.x,p.z).root,pickables,id:p.id??null});if(p.link)prop.link={kind:'dungeon',city,id:p.link};props.push(prop);}catch(error){console.warn(error.message);}}
  let crystal=null;
  if(data.crystal){const tile=t(...data.crystal);if(tile){crystal=makeCrystal();crystal.position.set(tile.x-6,tile.h,tile.z-6);chunk(tile.x,tile.z).root.add(crystal);tile.blocked=true;}}
+ // Always-visible decoration merged per chunk (static-merge.js): building decor (awnings, sign boards,
+ // flower boxes) and props nobody clicks. Clickable props, doors, sign icons, roofs and caps stay apart.
+ const statics=new Map(),addStatic=(c,o)=>{if(!statics.has(c))statics.set(c,[]);statics.get(c).push(o);};
+ data.buildings.forEach((b,i)=>{if(buildings[i])addStatic(chunk(b.x,b.z),buildings[i].decor);});
+ for(const p of props)if(!p.def.interaction)addStatic(chunk(p.tile.x,p.tile.z),p.group);
+ for(const [c,objects] of statics)mergeStatic(c.root,objects,{name:'chunk-statics'});
  for(const tile of tiles)chunk(tile.x,tile.z).tiles.push(tile);
  for(const c of chunks.values()){if(c.tiles.length)createTerrainBatch({tiles:c.tiles,map,factory:tile=>makeCityTile(tile,map,{style:'stone'}),parent:c.root,pickables,roughness:.95,batchSize:CHUNK});c.edges.bake();}
  const broken=edges.doorProblems();if(broken.length)console.warn('Door rule: '+broken.map(r=>`${r.door.a.x},${r.door.a.z}: ${r.problems.join('; ')}`).join(' | '));

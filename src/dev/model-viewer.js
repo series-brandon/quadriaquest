@@ -74,8 +74,8 @@ function modelViewer() {
     scene.remove(instance.group);
     const geometries = new Set(), materials = new Set();
     instance.group.traverse(o => {
-      if (o.geometry) geometries.add(o.geometry);
-      for (const m of Array.isArray(o.material) ? o.material : o.material ? [o.material] : []) materials.add(m);
+      if (o.geometry && !o.geometry.userData.shared) geometries.add(o.geometry);
+      for (const m of Array.isArray(o.material) ? o.material : o.material ? [o.material] : []) if (!m.userData?.shared) materials.add(m);
     });
     geometries.forEach(g => g.dispose());
     materials.forEach(m => m.dispose());

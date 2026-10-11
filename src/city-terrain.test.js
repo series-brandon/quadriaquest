@@ -62,3 +62,12 @@ test('a built city’s roofs toggle both ways (live getters)',()=>{
  const built=buildCity(kitStreetData(),{scene:new THREE.Group()});
  built.setRoofs(false);assert.equal(built.roofsShown,false);built.setRoofs(true);assert.equal(built.roofsShown,true);
 });
+test('always-visible decoration is merged per chunk; clickable props and sign icons stay their own objects',()=>{
+ const scene=new THREE.Group(),built=buildCity(kitStreetData(),{scene});
+ const merged=[];scene.traverse(o=>{if(o.name==='chunk-statics')merged.push(o);});assert.ok(merged.length>0);
+ const lamp=built.props.find(p=>p.kind==='lampPost'),bench=built.props.find(p=>p.kind==='bench');
+ let lampMeshes=0;lamp.group.traverse(o=>{if(o.isMesh)lampMeshes++;});assert.equal(lampMeshes,0,'the lamp is drawn by its chunk');
+ let benchMeshes=0;bench.group.traverse(o=>{if(o.isMesh)benchMeshes++;});assert.ok(benchMeshes>0,'the bench stays clickable');
+ const shop=built.buildings.find(b=>b.plan.desc.sign);let icons=0,others=0;shop.decor.traverse(o=>{if(o.isMesh){if(o.name==='building-sign-icon')icons++;else others++;}});assert.equal(others,0);
+ assert.ok(lamp.tiles.every(t=>t.blocked),'gameplay data stays');
+});

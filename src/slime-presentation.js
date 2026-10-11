@@ -63,8 +63,8 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
  // gearMotion (the motion held gear follows; defaults to motion), working (skilling hides weapons),
  // debugTools ({chopping, mining, time}: playground previews of tool motions), snap (jump straight to
  // the pose, e.g. a preview switching animations), calm (in a conversation: idle motion eases back to
- // CALM_IDLE of its size, since it is seen close up in the portrait).
- function update(dt,time,{pose,expression='idle',handWork=null,socialHands=null,motion=null,moving=false,celebration=null,happy=false,face:faceOverride=null,gearMotion,working=false,debugTools=null,snap=false,calm=false}={}){
+ // CALM_IDLE of its size, since it is seen close up in the portrait). lean: skip the body bend (far away).
+ function update(dt,time,{pose,expression='idle',handWork=null,socialHands=null,motion=null,moving=false,celebration=null,happy=false,face:faceOverride=null,gearMotion,working=false,debugTools=null,snap=false,calm=false,lean=false}={}){
   let actionPose=null;
   if(calm&&!motion&&!socialHands&&!celebration)pose=calmPose(pose);
   if(motion){
@@ -74,7 +74,8 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
    if(happy)expression='happy';
   }else blender.reset();
   if(celebration){const held=holdUpMotion(celebration.age);expression=held.expression;handWork=null;pose=held.pose;socialHands=held.hands;}
-  bend(pose.bend||0);
+  // lean: a far-away slime skips the bend (it rewrites the body's vertices; too small to see there).
+  if(!lean)bend(pose.bend||0);
   face.set(faceOverride||expression);
   // Archery already has authored easing. Extra smoothing delays the bow settling past the start of the
   // draw and separates the grip from its string.
@@ -152,7 +153,7 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
   // expression: the face when nothing overrides it; face: a final override (e.g. dialogue); calm: in a
   // conversation (idle eases back).
   // pose: a locomotion pose while the slime moves (slime-motion.js moveMotion), as the player's.
-  update(dt,time,{expression='idle',face=null,calm=false,pose:movePose=null}={}){
+  update(dt,time,{expression='idle',face=null,calm=false,pose:movePose=null,lean=false}={}){
    let pose=movePose||idlePose(time*idleRate),motion=null,socialHands=null,lift=0;
    if(playing){
     playing.time+=dt;
@@ -163,6 +164,6 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
     }else motion={kind:playing.kind,time:playing.time,profile:playing.profile};
    }
    rig.group.position.y=baseY+(lift||0);
-   return presentation.update(dt,time,{pose,expression,motion,socialHands,face,calm,moving:!!movePose});
+   return presentation.update(dt,time,{pose,expression,motion,socialHands,face,calm,moving:!!movePose,lean});
   }};
 }
