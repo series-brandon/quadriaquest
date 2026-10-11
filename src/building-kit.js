@@ -19,7 +19,7 @@ export const ROOF_TYPES=['gable','hip','flat','cone'];
 export const SIDES=['north','east','south','west'];
 export const ROOF_COLORS={timber:'#b5553c',stone:'#5d6b7d',brick:'#4f5a54',graybox:'#a8a39b'};
 const AWNINGS=[['#c8463d','#f2ead8'],['#3f7d5b','#f2ead8'],['#3d63a8','#f2ead8'],['#d0913a','#f2ead8']];
-const OVERHANG=.25,PITCH=.75;
+const OVERHANG=.25,PITCH=.75,FLOOR_COLOR='#8a6a4f';
 // Three sizes (docs/CITY.md, Scale rules) and the special shapes, ready for the catalogue and maps.
 export const BUILDING_PRESETS={
  cottage:{name:'Cottage (small)',footprint:[3,3],storeys:1,roof:'gable',style:'timber',doors:[{edge:'south',at:1}],chimney:true,seed:3},
@@ -70,9 +70,13 @@ export function planBuilding(description,origin=[0,0]){
  // (or as far in as fits), and the sign beside the door on its edge.
  const first=doors[0],keeper=first?[0,1,2].map(n=>[first.inside[0]-first.out[0]*n,first.inside[1]-first.out[1]*n]).filter(([x,z])=>x>=ox&&x<ox+w&&z>=oz&&z<oz+d).at(-1):null;
  const signEdge=desc.sign&&(edges.find(e=>e.side===desc.sign.edge&&e.kind==='door')||edges.find(e=>e.side===desc.sign.edge&&e.at===1));
- const signAt=signEdge&&(edges.find(e=>e.side===signEdge.side&&e.at===signEdge.at+1&&e.kind!=='door')||edges.find(e=>e.side===signEdge.side&&e.at===signEdge.at-1&&e.kind!=='door'));
+ // The sign goes beside the door, on the side farther from the building's own corner first; the map
+ // check in createBuilding skips a side tucked into a corner with a neighbour.
+ const len=signEdge?sideLength(signEdge.side,w,d):0;
+ const signOptions=signEdge?[signEdge.at+1,signEdge.at-1].filter(at=>at>=0&&at<len).sort((p,q)=>Math.min(q,len-1-q)-Math.min(p,len-1-p))
+  .map(at=>edges.find(e=>e.side===signEdge.side&&e.at===at&&e.kind!=='door')).filter(Boolean).map(e=>({edge:e.side,tile:e.a,out:e.out,along:[e.a[0]-signEdge.a[0],e.a[1]-signEdge.a[1]]})):[];
  return {desc,x0:ox,z0:oz,x1:ox+w-1,z1:oz+d-1,w,d,tiles,edges,doors,
-  anchors:{doors:doors.map(o=>({doorstep:o.doorstep,inside:o.inside})),keeper,sign:signAt?{edge:signAt.side,tile:signAt.a,out:signAt.out}:null,awning:desc.awning&&first?{edge:first.edge,tile:first.inside,out:first.out}:null},
+  anchors:{doors:doors.map(o=>({doorstep:o.doorstep,inside:o.inside})),keeper,sign:signOptions[0]||null,signOptions,awning:desc.awning&&first?{edge:first.edge,tile:first.inside,out:first.out}:null},
   // Variation from the seed (decorations only, never collision).
   chimney:desc.chimney?{along:(random()-.5)*.6,side:random()<.5?-1:1}:null,
   awningColors:AWNINGS[Math.floor(random()*AWNINGS.length)],
@@ -94,8 +98,10 @@ function solid(geometry,color,{x=0,y=0,z=0,ry=0,rx=0}={}){
  g.setAttribute('color',new THREE.BufferAttribute(colors,3));return g;
 }
 const shade=(color,amount)=>{const c=new THREE.Color(color),hsl={};c.getHSL(hsl);return c.setHSL(hsl.h,hsl.s,Math.min(1,Math.max(0,hsl.l+amount))).getStyle();};
-// The roof (and chimney) of a w × d building whose walls top out at local y = 0, centred on the origin.
-export function roofGeometry({roof,w,d,ridge='x',style='timber',color,chimney=null}){
+// The roof (and chimney) of a w × d building whose walls top out at local y = 0, centred on the origin,
+// and the floors between its storeys: seen through an upper window, a storey has a floor, not a drop
+// to the ground. Floors hide with the roof when the building is cut.
+export function roofGeometry({roof,w,d,ridge='x',style='timber',color,chimney=null,storeys=1}){
  const palette=STYLES[style]||STYLES.timber,roofColor=color||ROOF_COLORS[style]||ROOF_COLORS.timber,trim=palette.trim,end=palette.wall;
  const along=ridge==='x'?w:d,across=ridge==='x'?d:w,L=along/2+OVERHANG,S=across/2+OVERHANG,wallL=along/2+WALL_THICKNESS/2,wallS=across/2+WALL_THICKNESS/2,parts=[];
  const dark=shade(roofColor,-.06),r=PITCH*S;
@@ -125,9 +131,16 @@ export function roofGeometry({roof,w,d,ridge='x',style='timber',color,chimney=nu
   const cx=chimney.along*(along/2),cz=roof==='flat'?chimney.side*(across/2-.6):chimney.side*S*.4,top=(roof==='flat'?.5:r)+.45;
   parts.push(solid(new THREE.BoxGeometry(.42,top,.42),palette.base,{x:cx,y:top/2,z:cz}),solid(new THREE.BoxGeometry(.5,.08,.5),trim,{x:cx,y:top+.04,z:cz}));
  }
+ for(let k=1;k<storeys;k++)parts.push(solid(new THREE.BoxGeometry(along-WALL_THICKNESS-.02,.1,across-WALL_THICKNESS-.02),FLOOR_COLOR,{y:-k*STOREY-.05}));
  const merged=mergeGeometries(parts.map(g=>{if(!g.attributes.normal)g.computeVertexNormals();return g;}));for(const g of parts)g.dispose();
  if(ridge==='z')merged.rotateY(Math.PI/2);
  return merged;
+}
+// Just the floors between storeys (for buildings with their own roofs, like the graybox street).
+export function storeyFloors({w,d,storeys}){
+ const parts=[];for(let k=1;k<storeys;k++)parts.push(solid(new THREE.BoxGeometry(w-WALL_THICKNESS-.02,.1,d-WALL_THICKNESS-.02),FLOOR_COLOR,{y:k*STOREY-.05}));
+ if(!parts.length)return null;const merged=mergeGeometries(parts);for(const g of parts)g.dispose();
+ const mesh=new THREE.Mesh(merged,decorMaterial);mesh.name='building-floors';mesh.receiveShadow=true;return mesh;
 }
 const roofMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,side:THREE.DoubleSide});
 const decorMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85});
@@ -146,7 +159,7 @@ function iconTexture(name){
 }
 // The building's small outside parts in its local frame (x along the wall, +z outwards): the awning
 // over the door, the hanging sign, flower boxes under windows. world: tile → world position.
-function decorFor(plan,world){
+function decorFor(plan,world,sign=plan.anchors.sign){
  const parts=[],icons=[],palette=STYLES[plan.desc.style]||STYLES.timber,face=WALL_THICKNESS/2;
  const frame=(tile,out)=>{const p=world(tile),ry=Math.atan2(out[0],out[1]);return {x:p.x+out[0]*.5,y:p.y,z:p.z+out[1]*.5,ry};};
  const place=(geometry,color,f,lx,ly,lz,extra={})=>{const c=Math.cos(f.ry),s=Math.sin(f.ry);parts.push(solid(geometry,color,{x:f.x+lx*c+lz*s,y:f.y+ly,z:f.z-lx*s+lz*c,ry:f.ry,...extra}));};
@@ -155,15 +168,17 @@ function decorFor(plan,world){
   for(let i=0;i<stripes;i++)place(new THREE.BoxGeometry(width/stripes,.04,.72),plan.awningColors[i%2],f,-width/2+(i+.5)*width/stripes,1.36,face+.34,{rx:.32});
   for(const x of [-.53,.53])place(new THREE.BoxGeometry(.04,.04,.62),'#4b4651',f,x,1.3,face+.31);
  }
- // The sign: a board beside the door on a bracket, tilted back so its icon faces up towards the camera
- // (signs must read from above, docs/CITY.md).
- if(plan.anchors.sign){
-  const f=frame(plan.anchors.sign.tile,plan.anchors.sign.out),tilt=-.55,y=1.12,z=face+.3,ny=-Math.sin(tilt),nz=Math.cos(tilt);
-  place(new THREE.BoxGeometry(.05,.05,.32),'#4b4651',f,0,1.4,face+.16);place(new THREE.BoxGeometry(.03,.3,.03),'#4b4651',f,0,1.26,face+.3);
-  place(new THREE.BoxGeometry(.66,.56,.05),'#4a3222',f,0,y,z,{rx:tilt});
+ // The sign: a pole straight out from the wall beside the door, with the board hanging under it, also
+ // square to the wall; the icon is painted on both faces.
+ if(sign){
+  const f=frame(sign.tile,sign.out),c=Math.cos(f.ry),sn=Math.sin(f.ry);
+  place(new THREE.BoxGeometry(.05,.05,.78),'#4b4651',f,0,1.42,face+.39);
+  place(new THREE.BoxGeometry(.03,.32,.03),'#4b4651',f,0,1.3,face+.07,{rx:0});
+  for(const z of [face+.22,face+.62])place(new THREE.BoxGeometry(.015,.07,.015),'#4b4651',f,0,1.36,z);
+  place(new THREE.BoxGeometry(.05,.46,.52),'#4a3222',f,0,1.09,face+.42);
   const texture=iconTexture(plan.desc.sign.icon);
-  if(texture){const plane=new THREE.Mesh(new THREE.PlaneGeometry(.52,.46),new THREE.MeshStandardMaterial({map:texture,roughness:.8})),c=Math.cos(f.ry),sn=Math.sin(f.ry),lz=z+nz*.03;
-   plane.position.set(f.x+lz*sn,f.y+y+ny*.03,f.z+lz*c);plane.rotation.order='YXZ';plane.rotation.set(tilt,f.ry,0);plane.name='building-sign-icon';icons.push(plane);}
+  if(texture)for(const side of [-1,1]){const plane=new THREE.Mesh(new THREE.PlaneGeometry(.46,.4),new THREE.MeshStandardMaterial({map:texture,roughness:.8})),lx=side*.027,lz=face+.42;
+   plane.position.set(f.x+lx*c+lz*sn,f.y+1.09,f.z-lx*sn+lz*c);plane.rotation.y=f.ry+side*Math.PI/2;plane.name='building-sign-icon';icons.push(plane);}
  }
  for(const e of plan.edges)if(plan.flowerBoxes.includes(e.a.join(',')+','+e.side)){
   const f=frame(e.a,e.out);place(new THREE.BoxGeometry(.78,.16,.18),palette.trim,f,0,.47,face+.1);place(new THREE.BoxGeometry(.72,.08,.13),'#5f8f45',f,0,.58,face+.1);
@@ -192,10 +207,14 @@ export function createBuilding(description,{origin,id,edges,tileAt,parent}){
   if(e.kind==='door')doors.push(f);
  }
  const world=([x,z])=>({x:x-6,y:base,z:z-6});
- const roof=roofModel({roof:desc.roof,w:plan.w,d:plan.d,ridge:desc.ridge,style:desc.style,color:desc.roofColor&&shade(desc.roofColor,plan.roofShade)||shade(ROOF_COLORS[desc.style]||ROOF_COLORS.timber,plan.roofShade),chimney:plan.chimney});
+ const roof=roofModel({roof:desc.roof,w:plan.w,d:plan.d,ridge:desc.ridge,style:desc.style,color:desc.roofColor&&shade(desc.roofColor,plan.roofShade)||shade(ROOF_COLORS[desc.style]||ROOF_COLORS.timber,plan.roofShade),chimney:plan.chimney,storeys:desc.storeys});
  roof.position.set((plan.x0+plan.x1)/2-6,top,(plan.z0+plan.z1)/2-6);roof.userData.building=id;parent.add(roof);edges.addCutPart(roof,id);
- const decor=decorFor(plan,world);parent.add(decor);
- const anchors={...plan.anchors,doors:plan.anchors.doors.map(o=>({doorstep:tile(o.doorstep),inside:tile(o.inside)})),keeper:plan.anchors.keeper&&tile(plan.anchors.keeper)};
+ // A sign side tucked into a corner (the next tile along, outside, belongs to another building or is
+ // missing) can't be seen: take the other side.
+ const open=o=>{const step=[o.tile[0]+o.out[0],o.tile[1]+o.out[1]];return [0,1].every(n=>{const t=tile([step[0]+o.along[0]*n,step[1]+o.along[1]*n]);return t&&!t.blocked&&(t.building===undefined||t.building===id);});};
+ const sign=plan.anchors.signOptions.find(open)||plan.anchors.sign;
+ const decor=decorFor(plan,world,sign);parent.add(decor);
+ const anchors={...plan.anchors,sign,doors:plan.anchors.doors.map(o=>({doorstep:tile(o.doorstep),inside:tile(o.inside)})),keeper:plan.anchors.keeper&&tile(plan.anchors.keeper)};
  return {id,plan,doors,roof,decor,anchors,top,
   dispose(){edges.removeCutPart(roof);roof.removeFromParent();roof.geometry.dispose();decor.removeFromParent();decor.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material!==decorMaterial)o.material.dispose();}});
    for(const e of plan.edges){const a=tile(e.a),b=tile(e.b);if(a&&b)edges.remove(a,b);}

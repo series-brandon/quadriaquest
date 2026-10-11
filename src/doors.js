@@ -1,6 +1,6 @@
-import {Group,Mesh,Matrix4,Float32BufferAttribute,Color,MeshStandardMaterial,MeshDepthMaterial,RGBADepthPacking,DoubleSide,Box3} from 'three';
+import {Group,Mesh,Matrix4,Float32BufferAttribute,Color,MeshStandardMaterial,MeshDepthMaterial,RGBADepthPacking,Box3} from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import {applyCutaway,registerCutSource} from './cutaway.js';
+import {applyCutaway,registerCutSource,sectionMaterial} from './cutaway.js';
 import {setEdge,edgeBetween} from './world.js';
 import {occupancy} from './world-occupancy.js';
 import {edgePiece,doorModel,animateDoor,edgePlacement,cornerPost,hasPosts,setDoorHinge,STYLES} from './edge-models.js';
@@ -131,9 +131,9 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
  // Baking merges every static piece and post (not doors) into one vertex-coloured mesh, and glass into
  // one see-through mesh: a street of hundreds of wall pieces draws in a few calls. Each vertex keeps its
  // building(s) and base height (`cutOwner`) for the cutaway (cutaway.js). Any later add or remove
- // unbakes first. Walls draw both faces, so a wall cut down to one storey still looks solid from above.
+ // unbakes first. A second mesh draws the walls' inside as the cut face of cut walls (cutaway.js).
  let baked=null;
- const solidMaterial=applyCutaway(new MeshStandardMaterial({vertexColors:true,roughness:.85,side:DoubleSide}));
+ const solidMaterial=applyCutaway(new MeshStandardMaterial({vertexColors:true,roughness:.85})),cutFaceMaterial=sectionMaterial();
  const glassMaterial=applyCutaway(new MeshStandardMaterial({vertexColors:true,roughness:.15,transparent:true,opacity:.45}));
  const depthMaterial=applyCutaway(new MeshDepthMaterial({depthPacking:RGBADepthPacking}));
  function bake(){
@@ -151,7 +151,8 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
    g.visible=false;}
   const meshes=[];
   for(const [list,material,name] of [[solid,solidMaterial,'edge-features-baked'],[glass,glassMaterial,'edge-features-glass']]){
-   if(!list.length)continue;const mesh=new Mesh(mergeGeometries(list),material);mesh.castShadow=mesh.receiveShadow=material!==glassMaterial;mesh.customDepthMaterial=depthMaterial;mesh.name=name;root.add(mesh);meshes.push(mesh);for(const g of list)g.dispose();}
+   if(!list.length)continue;const mesh=new Mesh(mergeGeometries(list),material);mesh.castShadow=mesh.receiveShadow=material!==glassMaterial;mesh.customDepthMaterial=depthMaterial;mesh.name=name;root.add(mesh);meshes.push(mesh);for(const g of list)g.dispose();
+   if(material===solidMaterial){const section=new Mesh(mesh.geometry,cutFaceMaterial);section.name='edge-features-section';root.add(section);meshes.push(section);}}
   baked={meshes,hidden,groups:statics.map(s=>s.group)};
  }
  function unbake(){if(!baked)return;for(const mesh of baked.meshes){mesh.removeFromParent();mesh.geometry.dispose();}for(const m of baked.hidden)m.visible=true;for(const g of baked.groups)g.visible=true;baked=null;}

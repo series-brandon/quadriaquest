@@ -177,7 +177,7 @@ const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,playe
 });
 const playerOccupant={kind:'player'},companionOccupant={kind:'companion'};
 // Seeing into and past buildings (cutaway.js); the playground can switch it off to compare.
-let cutawayOn=true;
+let cutawayOn=true,forceCutaway=false;
 let edgeFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
@@ -634,7 +634,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  let viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
  const focus=cameraFocus.copy(player.position).add(focusLift.set(0,.35+closeup*.3,0));if(areaFocus){focus.lerp(areaFocus.position,areaFocus.blend);viewZoom=THREE.MathUtils.lerp(viewZoom,areaFocus.zoom??viewZoom,areaFocus.blend);viewElevation=THREE.MathUtils.lerp(viewElevation,areaFocus.elevation??viewElevation,areaFocus.blend);}
  if(__PLAYGROUND__)perfProbe.lap('player');
- const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateCutaway({player:player.position,camera:camera.position,building:tile?.building??-1,on:cutawayOn});updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);updatePlayerPlate();if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);quality.afterRender(scene);
+ const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateCutaway({player:player.position,camera:camera.position,building:tile?.building??-1,on:cutawayOn,force:forceCutaway});updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);updatePlayerPlate();if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);quality.afterRender(scene);
 }
 if(__PLAYGROUND__){
  trainingFixtures=playground.createTrainingFixtures({scene,world,pickables,resources:resourceActions,combat,styles,supplies,openStation,stop:stopAll,approach:selectActor,tile:()=>tile,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.actor||m.userData.resource)),clearUI:()=>areas.notify('clearUI')});
@@ -693,6 +693,8 @@ if(__PLAYGROUND__){
    areas.activate(id,{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
   },
   toggleCutaway(){cutawayOn=!cutawayOn;return cutawayOn;},
+  // Force cutaway: every building cut (no roofs, walls one storey), like the building test map.
+  toggleForceCutaway(){forceCutaway=!forceCutaway;return forceCutaway;},
   // Shows or hides the roofs of the graybox or kit street you are in; returns whether they are now shown (null elsewhere).
   toggleGrayboxRoofs(){const map=cityMaps[areas.id];if(!map)return null;map.setRoofs(!map.roofsShown);return map.roofsShown;},
   // Camera zoom for judging scale (3 closest … 34 farthest, the player's own limits).

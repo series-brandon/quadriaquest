@@ -4,7 +4,7 @@ import {makeTerrainTile} from '../world-models.js';
 import {createEdgeFeatures} from '../doors.js';
 import {STOREY} from '../edge-models.js';
 import {key} from '../world.js';
-import {createBuilding} from '../building-kit.js';
+import {createBuilding,storeyFloors} from '../building-kit.js';
 
 // Graybox street (playground only; docs/CITY.md, Phase 2). Plain grey buildings at the proposed scale,
 // to judge the scale rules at every zoom on desktop and phone before any art:
@@ -113,6 +113,9 @@ export function createGrayboxStreet({scene,pickables,kit=false}){
   // A flat grey roof over the walls (toggle with setRoofs); it hides while its building is cut.
   const top=Math.max(...[t(b.x0,b.z0),t(b.x1,b.z1)].map(tile=>tile.h))+STOREY*(b.storeys||1),roof=new THREE.Mesh(new THREE.BoxGeometry(b.x1-b.x0+1.3,.18,b.z1-b.z0+1.3),new THREE.MeshStandardMaterial({color:b.kind==='shell'?'#8d8a85':'#a8a39b',roughness:.9}));
   roof.position.set((b.x0+b.x1)/2-6,top+.09,(b.z0+b.z1)/2-6);roof.castShadow=roof.receiveShadow=true;roof.userData.building=b.name;group.add(roof);roofs.push(roof);edges.addCutPart(roof,BUILDINGS.indexOf(b));
+  // Floors between storeys, so upper windows look into a storey, not down to the ground.
+  const floors=storeyFloors({w:b.x1-b.x0+1,d:b.z1-b.z0+1,storeys:b.storeys||1});
+  if(floors){floors.position.set((b.x0+b.x1)/2-6,top-STOREY*(b.storeys||1),(b.z0+b.z1)/2-6);group.add(floors);roofs.push(floors);edges.addCutPart(floors,BUILDINGS.indexOf(b));}
  }
  // The fountain block and the crystal's spot (placeholders until props, Phase 5).
  const fountainBlock=new THREE.Mesh(new THREE.CylinderGeometry(1.35,1.45,.55,24),new THREE.MeshStandardMaterial({color:'#9fb3c0',roughness:.6}));fountainBlock.position.set((fountain.x0+fountain.x1)/2-6,1.27,(fountain.z0+fountain.z1)/2-6);group.add(fountainBlock);

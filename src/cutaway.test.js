@@ -13,6 +13,7 @@ test('a cut building keeps its walls up to one storey above their base, nothing 
  assert.equal(isCut(1+CUT_HEIGHT+.2,[3,-1,1],[3]),true,'above it: cut');
  assert.equal(isCut(4,[7,-1,1],[3]),false,'another building');
  assert.equal(isCut(4,[7,3,1],[3]),true,'a wall shared with the cut building');
+ assert.equal(isCut(4,[7,-1,1],[],true),true,'force cutaway cuts every building');assert.equal(isCut(4,[-1,-1,1],[],true),false,'but not walls of no building');
 });
 test('the building you are in is cut, and so is any building between you and the camera',()=>{
  assert.deepEqual(cutBuildings({player,camera,building:3,boxes:[]}),[3]);
@@ -40,6 +41,13 @@ test('edge features report building boxes; cut buildings hide their roofs and do
  assert.equal(roof.visible,true);assert.equal(door.model.upper.visible,true);assert.equal(uniforms.uCutCount.value,0);
  // Switched off, nothing is cut even inside.
  updateCutaway({player:new THREE.Vector3(5-6,1,5-6),camera:new THREE.Vector3(5,14,5),building:9,on:false});assert.deepEqual(cutawayState().cut,[]);
+ // Force cutaway: every building cut wherever you are.
+ updateCutaway({player:new THREE.Vector3(-20,1,-20),camera:new THREE.Vector3(-30,14,-30),building:-1,force:true});
+ assert.equal(roof.visible,false);assert.equal(uniforms.uCutAll.value,1);assert.deepEqual(cutawayState(),{on:true,force:true,cut:[9]});
+ updateCutaway({player:new THREE.Vector3(-20,1,-20),camera:new THREE.Vector3(-30,14,-30),building:-1});assert.equal(uniforms.uCutAll.value,0);assert.equal(roof.visible,true);
+ // Baked walls draw their inside as the cut face, in a second mesh sharing the geometry.
+ edges.bake();const section=edges.root.children.find(c=>c.name==='edge-features-section'),solid=edges.root.children.find(c=>c.name==='edge-features-baked');
+ assert.ok(section&&section.geometry===solid.geometry);assert.equal(section.material.side,THREE.BackSide);assert.equal(section.material.userData.cutawaySection,true);
  // A hidden map takes no part.
  scene.visible=false;updateCutaway({player:new THREE.Vector3(4-6,1,1-6),camera:new THREE.Vector3(4-6+8,14,1-6+8),building:-1});assert.deepEqual(cutawayState().cut,[]);
  edges.dispose();

@@ -71,3 +71,18 @@ test('the model viewer’s Building entry builds every preset, style, roof and r
   let meshes=0;preview.group.traverse(o=>{if(o.isMesh)meshes++;assert.ok(o.matrixWorld.elements.every(Number.isFinite));});assert.ok(meshes>0,preset);
  }
 });
+test('multi-storey buildings have a floor at every storey line inside, part of the roof that hides when cut',()=>{
+ const one=roofGeometry({roof:'gable',w:4,d:4,storeys:1}).attributes.position.count,three=roofGeometry({roof:'gable',w:4,d:4,storeys:3});
+ assert.equal(three.attributes.position.count-one,2*36,'two floor slabs');
+ const ys=[...three.attributes.position.array].filter((_,i)=>i%3===1);assert.ok(ys.some(y=>Math.abs(y+1.5)<1e-6)&&ys.some(y=>Math.abs(y+3)<1e-6),'at one and two storeys below the top');
+});
+test('the sign goes on the side of the door away from a corner with a neighbour',()=>{
+ const {scene,t,edges}=smallMap();
+ // A 4 × 3 shop at x 6..9, z 4..6 with its door on the south side at x 8 (south counts east to west).
+ const shopDesc={footprint:[4,3],doors:[{edge:'south',at:1}],sign:{icon:'hammers',edge:'south'},seed:1};
+ assert.deepEqual(planBuilding(shopDesc,[6,4]).anchors.sign.tile,[7,6],'unconstrained: the side farther from its own corner');
+ // A neighbour south-west (x 4..6, z 7..8) makes a corner just west of the door: the sign goes east.
+ createBuilding({footprint:[3,2],doors:[]},{origin:[4,7],id:1,edges,tileAt:t,parent:scene});
+ const built=createBuilding(shopDesc,{origin:[6,4],id:2,edges,tileAt:t,parent:scene});
+ assert.deepEqual(built.anchors.sign.tile,[9,6],'east of the door, not into the corner');
+});

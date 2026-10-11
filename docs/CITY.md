@@ -146,11 +146,11 @@ The user wants every living character to be walkable-through, especially large o
 
 The first version (front walls to stubs, a dithered see-through cylinder) was more than needed (user, 2026-10-11). Now whole buildings are cut, in `src/cutaway.js`, in any map:
 - A building is **cut** when the player stands in it (`tile.building`) or when it stands between the camera and the player (the eye-to-camera segment against the part of its box above one storey). Up to 16 at once, nearest first.
-- A cut building loses its roof (and chimney) and the upper part of its doors, and **all its walls are drawn only up to one storey** (1.5, the height of the building test map's walls). The inside faces of a cut wall draw as a flat dark section, so the cut reads cleanly from above; cut walls stop casting their upper shadows.
+- A cut building loses its roof (and chimney) and the upper part of its doors, and **all its walls are drawn only up to one storey** (1.5, the height of the building test map's walls). A second pass draws the inside of cut walls as one flat dark face, pulled slightly towards the camera so the faces where a wall's stacked parts meet never flicker through the cut; cut walls stop casting their upper shadows. Multi-storey buildings have floors between storeys, which hide with the roof.
 - Walls are cut per pixel from their baked `cutOwner` (building a, building b, base height): a wall between two buildings is cut with either, and so is a corner post where they meet. Doors, roofs and decorations hide in JS.
 - Maps declare buildings with `tile.building` and `owner` on their edges; roofs and other hiding parts are added with `edges.addCutPart(object, building)`. Each map's edge features report building boxes and hiding parts; only shown maps take part, so maps may reuse ids. The building kit does all of this itself.
 - Clicks pass through: walls and roofs are never pickable. The lowest render tier's simpler materials keep the cutaway.
-- Playground: *City streets → Toggle cutaway*; `getState().cutaway` = `{on, cut}`.
+- Playground: *City streets → Toggle cutaway*, and *Force cutaway* (every building cut, like the building test map); `getState().cutaway` = `{on, force, cut}`.
 - Not done: smoothing the hide (it's instant), and camera behaviour inside separate interiors (Phase 7).
 
 ### Interior size rules (user decision, 2026-10-10)
@@ -188,7 +188,8 @@ Buildings are **made from a short description, not modelled by hand**:
 - `createBuilding(desc, {origin, id, edges, tileAt, parent})` marks tiles, places walls and doors through the map's shared edge features (a wall another building already placed becomes one shared wall owned by both, as tall as the taller), adds the roof as a cut part and the decorations, and returns doors, anchors, roof and `dispose()`.
 - Styles (`edge-models.js` `STYLES`): timber (plaster and timber posts on every corner), stone, brick and graybox (seamless corners). Roofs: gable with gable ends, hip, flat with parapet, tower cone; ridge along the longer side by default; district roof colours (timber terracotta, stone slate blue, brick dark slate) with a seeded shade; public buildings set `roofColor`.
 - Presets (`BUILDING_PRESETS`): cottage (small), shop (medium, awning and sign), townhouse (two storeys), hall (large), flat-roofed house, tower.
-- Signs paint the game's icons (`icons.js`) light on a dark board tilted back towards the camera, beside the door, so they read from above; awnings are striped in a seeded colour.
+- Signs hang from a pole square to the wall beside the door, the board under the pole and square to the wall, with the game's icon (`icons.js`) painted light on both faces (user preference, 2026-10-11). The sign takes the side of the door farther from the building's corner, and never a side tucked into a corner with a neighbour. Awnings are striped in a seeded colour.
+- Multi-storey buildings get a floor at every storey line inside, so upper windows look into a storey.
 - Playground: *City streets → Enter kit street*, the graybox layout built by the kit (districts by style, shops on the square). Model viewer → *Building* with preset, style, roof, rotation and seed, and doors closed / open / cut.
 - Not done: double doors and a castle gate, chunk-level merging of building shells, lanterns at anchors, wear.
 

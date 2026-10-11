@@ -20,6 +20,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Building review: floors, steady cut faces, force cutaway, hanging signs — 2026-10-11 (user review)
+
+- **Floors between storeys:** multi-storey buildings have a floor slab at every storey line (kit: part of the roof geometry; graybox: `storeyFloors`), so upper windows look into a storey instead of down to the ground floor. They hide with the roof when cut.
+- **Flicker on cut tops fixed:** walls are stacked boxes, and through a cut you saw two faces meeting at the same depth. Walls are front-faced again, and a second mesh (`edge-features-section`, sharing the baked geometry) draws their back faces with `sectionMaterial()`: unlit dark, a constant depth offset towards the camera, only for cut buildings. A cut wall now shows one steady dark face. (The earlier "dark section via gl_FrontFacing" never reached the browser: the dev server had missed edits made with `sed`. Restart the preview after shell edits.)
+- **Force cutaway:** `updateCutaway({force})` / uniform `uCutAll` cuts every building; playground *City streets → Force cutaway*; `getState().cutaway.force`.
+- **Signs:** back to a pole square to the wall with the board hanging under it, icon on both faces. The sign takes the side of the door farther from the building's corner, and skips a side tucked into a corner with a neighbour (`anchors.signOptions`, checked against the map in `createBuilding`).
+- Tests: 511 pass. Browser-verified on a fresh server: steady cut tops while orbiting, both square shops' signs moved out of their shared corner, force cutaway cuts all 33 kit buildings.
+
 ### City Phase 4: building kit; simpler whole-building cutaway — 2026-10-11
 
 - **Cutaway simplified (user: Phase 3 was fancier than needed).** A building is cut when the player is inside it or it stands between the camera and the player (eye-to-camera segment against the building's box above one storey). Cut means: roof, chimney and door tops hide, and all its walls are drawn only up to one storey (1.5, the building test map's wall height). No stubs, no dithered cylinder. Walls cut per pixel from baked `cutOwner` = (building a, building b, base y); the inside faces of a cut wall draw as a flat dark section; the shadow depth material is patched too. Corner posts belong to every building meeting at them (up to two).
