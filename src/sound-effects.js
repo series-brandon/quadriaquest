@@ -38,14 +38,29 @@ export const EFFECTS={
  spellHit:{label:'Spell hits'},
  hurt:{label:'Player hurt'},
  victory:{label:'Enemy defeated',cue:true},
- objective:{label:'Quest progress',cue:true},
+ progress:{label:'Quest progress',cue:true},
+ task:{label:'Objective part complete',cue:true},
+ objective:{label:'Objective complete',cue:true},
  quest:{label:'Quest complete',cue:true},
  level:{label:'Level up',cue:true},
  portal:{label:'Portal',cue:true}
 };
 // Seconds to lower the music under the bigger cues, so they read clearly.
-const DUCK={level:1.6,quest:2.2};
+const DUCK={level:1,quest:1.2};
 const DEFAULT_PALETTE={root:62,mode:'ionian',voice:'celesta'};
+
+// Milestone cues by importance. Cues raised together (the last pickup of a gathering objective
+// also levels up a skill) play only the most important one.
+export const CUE_RANK={progress:0,task:1,objective:2,quest:3,level:4};
+export function createCuePicker(play,{window=120,schedule=setTimeout}={}){
+ let pending=null;
+ return function cue(kind,arg){
+  if(!(kind in CUE_RANK))return;
+  if(pending){if(CUE_RANK[kind]>CUE_RANK[pending.kind])Object.assign(pending,{kind,arg});return;}
+  pending={kind,arg};
+  schedule(()=>{const {kind,arg}=pending;pending=null;play(kind,arg);},window);
+ };
+}
 
 export function createSoundEffects(ctx,out,{voices,palette=()=>DEFAULT_PALETTE}){
  // Noise sources loop, so a random start offset never runs a long effect off the buffer's end.
@@ -139,9 +154,12 @@ export function createSoundEffects(ctx,out,{voices,palette=()=>DEFAULT_PALETTE})
   hurt(){tone(230,{dur:.24,level:.12,glide:110,attack:.006});noise(420,{dur:.17,level:.12,q:.8,attack:.008});},
   victory(){notes([1,5,8],{gap:.1,dur:.6,vel:.6});},
   // Progress climbs the scale: an objective at 3/6 sounds halfway up the octave.
-  objective(progress=0){notes([1+Math.round(Math.max(0,Math.min(1,progress))*6)],{dur:.35,vel:.45});},
-  quest(){notes([5,8,10,12],{gap:.12,dur:.4,vel:.45});notes([[8,10,12]],{at:.55,dur:1.6,vel:.4});const {root,mode}=palette();voices.bass?.({time:ctx.currentTime+.55,midi:degreeMidi(root-24,mode,1),dur:1.4,vel:.8},out);},
-  level(){notes([1,3,5,8],{gap:.08,dur:.45,vel:.5});notes([[8,10,12]],{at:.4,dur:1.2,vel:.4});},
+  progress(progress=0){notes([1+Math.round(Math.max(0,Math.min(1,progress))*6)],{dur:.35,vel:.45});},
+  // Rising in size: a part (two notes), an objective (three), a quest (four).
+  task(){notes([5,8],{gap:.1,dur:.4,vel:.42});},
+  objective(){notes([5,8,12],{gap:.11,dur:.45,vel:.45});},
+  quest(){notes([5,8,10,12],{gap:.12,dur:.6,vel:.45});},
+  level(){notes([1,3,5,8],{gap:.08,dur:.6,vel:.5});},
   portal(){noise(300,{dur:1.3,level:.08,q:1,sweep:3200,attack:.25});notes([1,2,3,4,5,6,7,8],{at:.1,gap:.07,dur:.5,vel:.4});}
  };
  // Plays an effect; returns how long the music should duck under it (0 for most).

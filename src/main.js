@@ -88,9 +88,10 @@ import {createSleepFeedback} from './sleep-feedback.js';
 import {createTutorialFinale} from './tutorial-finale.js';
 import {createItemFeed} from './item-feedback.js';
 const gameAudio=createGameAudio(),itemFeed=createItemFeed(icon);
-window.addEventListener('quadriaquest-level',()=>gameAudio.play('level'));
-// Quest progress climbs the scale in the current song's key; finishing a task plays the quest cue.
-effect(()=>{const n=objectiveNotice.value;if(n)untracked(()=>gameAudio.play(n.current>=n.total?'quest':'objective',n.total?n.current/n.total:0));});
+window.addEventListener('quadriaquest-level',()=>gameAudio.cue('level'));
+// Quest cues by notice kind (quests.js): progress climbs the scale in the current song's key; a
+// finished part, objective or quest has its own cue. A level-up at the same moment wins.
+effect(()=>{const n=objectiveNotice.value;if(n)untracked(()=>gameAudio.cue(n.kind,n.part&&n.kind==='progress'?n.part.current/n.part.total:n.total?n.current/n.total:0));});
 import * as THREE from 'three';
 import {makeWorld,findPath,key,SPAWN,canStep} from './world.js';
 import {createFeedback} from './feedback.js';
@@ -753,7 +754,9 @@ if(__PLAYGROUND__){
    // A separate quest for the Quests page: a finished objective, then one with two equal parts.
    quest(){registerQuestChapter('playground-','Playground Quest');updateObjective('playground-talk','Talk to the tester','Say hello.',1,1);updateObjective('playground-gather','Gather supplies','Collect both kinds in any order.',0,1,[{label:'Collect 3 Rocks',current:0,total:3},{label:'Collect 2 Sticks',current:0,total:2}]);},
    questAdvance(){const goal=objectives.get('playground-gather');if(!goal)return;const parts=goal.parts.map(p=>({...p}));const next=parts.find(p=>p.current<p.total&&p.current<=Math.min(...parts.map(q=>q.current)))??parts.find(p=>p.current<p.total);if(next)next.current++;updateObjective(goal.id,goal.title,goal.description,0,1,parts);},
-   questFinish(){for(const id of ['playground-talk','playground-gather'])finishObjective(id);finishQuest('playground-');}},audio:gameAudio,itemFeed,openSettings:()=>menus.panels.select('settings'),showCrafting(){menus.panels.select('crafting');},registerTab:tab=>menus.panels.register(tab),waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},
+   questFinish(){for(const id of ['playground-talk','playground-gather'])finishObjective(id);finishQuest('playground-');},
+   // The end of the gathering lesson in one step: an objective completes as a skill levels up; only the level-up cue plays.
+   questLevel(){this.quest();finishObjective('playground-gather');showSkillReward({skillName:'Gathering',xp:0,level:gatheringSkill.level,leveledUp:true},player.position,{float:false});}},audio:gameAudio,itemFeed,openSettings:()=>menus.panels.select('settings'),showCrafting(){menus.panels.select('crafting');},registerTab:tab=>menus.panels.register(tab),waterSettings,restartWater(){waterEffects.restart();splash.restartWater();willow.restartWater();},
   miningLesson(){this.reset('all');stopAll();finale.reset();Object.assign(inventory,{sticks:3,stones:3,pickaxes:0});for(const tree of trees)if(['boulder','copper'].includes(tree.kind))resourceActions.reset(tree);if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}craftingTutorial.startMining();},
   stopMiningLesson(){stopAll();craftingTutorial.reset();},
   mineNearest(){const node=trees.filter(t=>t.kind==='boulder'&&!t.depleted&&routeToTree(t)).sort((a,b)=>routeToTree(a).route.length-routeToTree(b).route.length)[0];if(node)selectTree(node);},

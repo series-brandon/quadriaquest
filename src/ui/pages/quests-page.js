@@ -54,10 +54,17 @@ export function questsPage({chapters, revision, help = () => {}, chosen = signal
     return h('li', {class: 'q-task'},
       h('strong', null, () => goal().title),
       h('p', null, () => goal().description),
-      keyedList(h('ul', {class: 'q-task__parts', 'aria-label': 'Objective parts', hidden: () => !goal().parts}), computed(() => goal().parts ?? []), part => part.label, part =>
-        h('li', {'data-complete': () => part.value.current >= part.value.total}, () => `${part.value.current >= part.value.total ? '✓ ' : ''}${part.value.label} · ${part.value.current} / ${part.value.total}`)),
-      progressBar({label: () => goal().title, value: () => goal().current / goal().total}),
-      h('small', null, () => `${goal().current} / ${goal().total}`),
+      // Parts track separately (Collect 3 Rocks 1 / 3); an objective without parts has one bar.
+      keyedList(h('ul', {class: 'q-task__parts', 'aria-label': 'Objective parts', hidden: () => !goal().parts}), computed(() => goal().parts ?? []), part => part.label, part => {
+        const complete = () => part.value.current >= part.value.total;
+        return h('li', {class: 'q-task__part', 'data-complete': complete},
+          h('span', null, () => `${complete() ? '✓ ' : ''}${part.value.label}`),
+          h('small', null, () => `${part.value.current} / ${part.value.total}`),
+          progressBar({label: () => part.value.label, value: () => part.value.current / part.value.total}));
+      }),
+      h('div', {class: 'q-task__progress', hidden: () => !!goal().parts},
+        progressBar({label: () => goal().title, value: () => goal().current / goal().total}),
+        h('small', null, () => `${goal().current} / ${goal().total}`)),
       h('button', {type: 'button', class: 'q-button q-button--quiet', hidden: () => !goal().help, on: {click: () => help(item.peek().id)}}, 'Show me how'));
   };
 

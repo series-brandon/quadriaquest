@@ -1,6 +1,6 @@
 import {reactiveRecord,signal} from './reactive.js';
 import {createMusicPlayer,createMusicState} from './music-player.js';
-import {createSoundEffects} from './sound-effects.js';
+import {createSoundEffects,createCuePicker} from './sound-effects.js';
 import {createAmbience} from './ambience.js';
 // Original, lightweight procedural sound. No audio downloads or external services.
 // Music: music-player.js (composed songs as data, synthesized voices). Effects and cues:
@@ -32,6 +32,8 @@ export function createGameAudio(){
   if(!effects||context.state!=='running')return;
   const duck=effects.play(kind,arg);if(duck)duckUntil=Math.max(duckUntil,context.currentTime+duck);
  }
+ // Milestone cues (sound-effects.js CUE_RANK): only the most important of those raised together plays.
+ const cue=createCuePicker(play);
  // A sound that may need to end early (a spell's gathering); returns a handle with stop().
  function start(kind,arg){if(!effects||context.state!=='running')return {stop(){}};return effects.start(kind,arg);}
 
@@ -51,7 +53,7 @@ export function createGameAudio(){
  document.addEventListener('visibilitychange',()=>{if(context){if(document.hidden)context.suspend();else context.resume().catch(()=>{});}});
  document.addEventListener('pointerdown',unlock,{once:true});document.addEventListener('keydown',unlock,{once:true});
  document.addEventListener('click',e=>{if(e.target.closest('button'))play('ui');});
- return {play,start,update,unlock,set,settings,music,ambience:ambient,
+ return {play,cue,start,update,unlock,set,settings,music,ambience:ambient,
   preview(value){musicOptions.song.value=value||null;},
   reset(){
    for(const [key,value]of Object.entries({music:.22,effects:.45,ambience:.25,muted:false}))set(key,value);

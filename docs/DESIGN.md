@@ -198,9 +198,13 @@ Everything is synthesized with Web Audio: no audio files or external services. A
 | Cooking | sizzle |
 | Smithing | anvil clang or furnace roar |
 | Combat | hit, critical, miss whoosh, player hurt (previously the error buzz); defeating an enemy plays an in-key flourish |
-| Quest progress | a note that climbs the scale with the count (3/6 is halfway up) |
-| Quest complete | a fanfare with a bass note |
-| Level up | arpeggio and chord |
+| Quest progress | a note that climbs the scale with the count (3/6 is halfway up); assigning an objective plays it at its start; re-wording a lesson step is silent |
+| Objective part complete | two rising notes (Collect 3 Rocks done, the objective still open) |
+| Objective complete | three rising notes |
+| Quest complete | four rising notes (the quest's story ended) |
+| Level up | a four-note arpeggio |
+
+Milestone cues raised together play only the most important: level up, then quest, objective, part, progress (finishing the gathering objective with the pickup that levels Gathering plays only the level-up).
 | Portal | rising scale over a whoosh |
 | Errors, buttons | blocked buzz, UI tick |
 

@@ -81,20 +81,21 @@ test('re-sending an unchanged objective does not notify the page', () => {
   resetObjectives();
 });
 
-test('a task split into parts lists each part and sums their progress', () => {
+test('an objective split into parts tracks each part with its own bar instead of one combined count', () => {
   resetObjectives();
   const node = setup();
   const parts = (rocks, sticks) => [{label: 'Collect 3 Rocks', current: rocks, total: 3}, {label: 'Collect 3 Sticks', current: sticks, total: 3}];
   updateObjective('gather', 'Collect ground items', 'Rocks and sticks.', 0, 1, parts(0, 1));
   press(node.querySelector('.q-quest'));
-  const task = node.querySelector('.q-task'), items = () => [...task.querySelectorAll('.q-task__parts li')];
-  assert.deepEqual(items().map(li => li.textContent), ['Collect 3 Rocks · 0 / 3', 'Collect 3 Sticks · 1 / 3']);
-  assert.equal(task.querySelector('small').textContent, '1 / 6');
+  const task = node.querySelector('.q-task'), items = () => [...task.querySelectorAll('.q-task__part')];
+  const read = () => items().map(li => [li.querySelector('span').textContent, li.querySelector('small').textContent, li.querySelector('[role=progressbar]').getAttribute('aria-valuenow')]);
+  assert.deepEqual(read(), [['Collect 3 Rocks', '0 / 3', '0'], ['Collect 3 Sticks', '1 / 3', '33']]);
+  assert.equal(task.querySelector('.q-task__progress').hidden, true, 'no combined 1 / 6 bar');
   const rocks = items()[0];
   updateObjective('gather', 'Collect ground items', 'Rocks and sticks.', 0, 1, parts(1, 5));
   assert.equal(items()[0], rocks, 'part rows are kept');
-  assert.deepEqual(items().map(li => li.textContent), ['Collect 3 Rocks · 1 / 3', '✓ Collect 3 Sticks · 3 / 3']);
-  assert.equal(task.querySelector('small').textContent, '4 / 6');
+  assert.deepEqual(read(), [['Collect 3 Rocks', '1 / 3', '33'], ['✓ Collect 3 Sticks', '3 / 3', '100']]);
+  assert.equal(items()[1].hasAttribute('data-complete'), true);
   finishObjective('gather');
   assert.match(node.querySelector('.q-tasks--done').textContent, /✓ Collect ground items/);
   resetObjectives();

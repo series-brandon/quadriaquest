@@ -38,9 +38,13 @@
 }
 .q-task strong { font-size: 14px; }
 .q-task p { margin: 0; color: var(--q-ink); font-size: 13px; line-height: 1.5; }
-.q-task__parts { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.q-task__parts { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
 .q-task__parts[hidden] { display: none; }
-.q-task__parts [data-complete] { color: var(--q-ready); }
+.q-task__part { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 8px; }
+.q-task__part > :last-child { grid-column: 1 / -1; }
+.q-task__part[data-complete] > span { color: var(--q-ready); }
+.q-task__progress { display: grid; gap: 6px; }
+.q-task__progress[hidden] { display: none; }
 .q-task small { color: var(--q-ink-muted); font-size: 12px; }
 .q-task .q-button { justify-self: start; }
 .q-task .q-button[hidden] { display: none; }

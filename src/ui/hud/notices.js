@@ -65,7 +65,7 @@ export function objectiveToast({notice, duration = 4500}) {
   const shownGoal = () => (goal.value && goal.value.part && goal.value.current < goal.value.total ? {...goal.value.part, title: goal.value.part.label} : goal.value);
   const done = () => !!shownGoal() && shownGoal().current >= shownGoal().total;
   return h('aside', {id: 'objective-update', class: 'q-objective', role: 'status', hidden: () => !goal.value, 'data-shown': shown, 'data-complete': done},
-    h('strong', null, () => { const g = shownGoal(); return g ? `${done() ? '✓ ' : ''}${g.title} · ${g.current}/${g.total}` : ''; }),
+    h('strong', null, () => { const g = shownGoal(); return !g ? '' : goal.value.kind === 'quest' ? `✓ Quest complete · ${g.title}` : `${done() ? '✓ ' : ''}${g.title} · ${g.current}/${g.total}`; }),
     h('span', {class: 'q-objective__track', 'aria-hidden': 'true'},
       h('span', {class: 'q-objective__fill', style: {transform: () => `scaleX(${shownGoal() ? shownGoal().current / shownGoal().total : 0})`}})));
 }
