@@ -4,7 +4,7 @@ export const SOCIAL_DURATIONS={'Happy hop':1.1,Wave:2.2,Sleeping:6,Sit:3};
 // Motions that settle into a held pose and stay there while they play (never restart in a loop).
 export const HELD_MOTIONS=['Sleeping','Sit'];
 // How high a sitting slime's base rises: a bench or chair seat (the seat it sits on lies under it).
-export const SEAT_HEIGHT=.36;
+export const SEAT_HEIGHT=.41;
 export function socialMotion(kind,time){
   const pose={squash:1,stretch:1,twist:0,lean:0,roll:0};
   const hands=[[-.46,.33,.08,0,0],[.46,.33,.08,0,0]];

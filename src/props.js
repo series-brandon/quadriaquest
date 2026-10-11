@@ -20,7 +20,10 @@ const WOOD='#8a5b3c',DARK='#5a3d28',STONE='#b6afa3',PALE='#cfc8bb',IRON='#4b4651
 export const PROPS={
  bench:{name:'Bench',footprint:[2,1],policy:'solid',interaction:{verb:'sit',label:'Sit on bench'},
   spots:[{kind:'sit',at:[0,1],facing:'s',seat:true},{kind:'sit',at:[1,1],facing:'s',seat:true}],
-  parts:()=>[W(WOOD,B(1.7,.07,.36),[0,.38,.06]),W(WOOD,B(1.7,.3,.06),[0,.6,-.14],[-.12,0,0]),...[-.75,.75].flatMap(x=>[W(IRON,B(.06,.38,.36),[x,.19,.06]),W(IRON,B(.06,.36,.05),[x,.52,-.14],[-.12,0,0])])]},
+  // A deep seat reaching well forward and a back (a slime sits back against it: seatPosition), each
+  // two boards with a small gap between them.
+  parts:()=>[W(WOOD,B(1.7,.07,.29),[0,.38,0]),W(WOOD,B(1.7,.07,.29),[0,.38,.31]),W(WOOD,B(1.7,.17,.06),[0,.58,-.17],[-.12,0,0]),W(WOOD,B(1.7,.17,.06),[0,.8,-.2],[-.12,0,0]),
+   ...[-.75,.75].flatMap(x=>[W(IRON,B(.06,.38,.06),[x,.19,.4]),W(IRON,B(.06,.38,.06),[x,.19,-.12]),W(IRON,B(.06,.04,.6),[x,.33,.15]),W(IRON,B(.06,.54,.05),[x,.65,-.18],[-.12,0,0])])]},
  fountain:{name:'Fountain',footprint:[3,3],policy:'solid',interaction:{verb:'gaze',label:'Look at fountain'},
   spots:[{kind:'gaze',at:[1,3],facing:'n'},{kind:'drink',at:[-1,1],facing:'e'},{kind:'gaze',at:[3,1],facing:'w'},{kind:'drink',at:[1,-1],facing:'s'}],
   parts:()=>[W(STONE,C(1.45,1.5,.5,24),[0,.25,0]),W(PALE,C(1.5,1.5,.08,24),[0,.54,0]),W(WATER,C(1.32,1.32,.06,24),[0,.46,0]),W(STONE,C(.28,.36,.9,12),[0,.9,0]),W(PALE,C(.62,.5,.16,16),[0,1.38,0]),W(WATER,C(.56,.56,.04,16),[0,1.45,0]),W(STONE,C(.1,.14,.42,8),[0,1.62,0]),W('#a9d3e3',new THREE.SphereGeometry(.12,10,8),[0,1.86,0])]},
@@ -96,5 +99,7 @@ export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id
  const meshes=[];if(def.interaction)group.traverse(m=>{if(m.isMesh){m.userData.actor=prop;m.userData.tile=prop.tile;pickables.push(m);meshes.push(m);}});
  return prop;
 }
-// The sit spot of a seat: where the sitter's body rests (half a tile back onto the seat).
-export function seatPosition(spot){const back=-.5;return {x:spot.tile.x-6+Math.sin(spot.angle)*back,z:spot.tile.z-6+Math.cos(spot.angle)*back};}
+// The sit spot of a seat: where the sitter's body rests.
+// The body sits well back on the seat, against the backrest (0.72 of a tile back from the spot).
+export const SEAT_BACK=.72;
+export function seatPosition(spot){const back=-SEAT_BACK;return {x:spot.tile.x-6+Math.sin(spot.angle)*back,z:spot.tile.z-6+Math.cos(spot.angle)*back};}

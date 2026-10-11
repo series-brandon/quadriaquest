@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {layStairs,railingEdges,retainingDrop,stairProblems,makeCityTile,surfaceColor} from './city-terrain.js';
-import {createProp,PROPS,PROP_KINDS,rotateOffset,rotateSide,propModel,seatPosition} from './props.js';
+import {createProp,PROPS,PROP_KINDS,rotateOffset,rotateSide,propModel,seatPosition,SEAT_BACK} from './props.js';
 import {createCityData,setCityHeight,cityHeight,citySurface,setCitySurface,cityTiles,fillCity,buildCity,REGION} from './city-map.js';
 import {findPath,key,canStep,edgeBetween} from './world.js';
 import {kitStreetData,KIT_ANNEX} from './dev/kit-street.js';
@@ -35,7 +35,7 @@ test('props: footprints rotate with their spots, block their tiles, and interact
  const bench=createProp('bench',{origin:[2,2],tileAt:t,parent:scene,pickables});
  assert.ok(t(2,2).blocked&&t(3,2).blocked);assert.deepEqual(bench.spots.map(s=>[s.tile.x,s.tile.z,s.facing]),[[2,3,'s'],[3,3,'s']]);
  assert.ok(pickables.length>0&&pickables.every(m=>m.userData.actor===bench));
- const p=seatPosition(bench.spots[0]);assert.ok(Math.abs(p.z-(2.5-6))<1e-9,'the seat is half a tile back');
+ const p=seatPosition(bench.spots[0]);assert.ok(Math.abs(p.z-(3-SEAT_BACK-6))<1e-9,'the body sits back on the seat, against the backrest');
  const turned=createProp('bench',{origin:[5,4],rotation:90,tileAt:t,parent:scene});assert.ok(t(5,4).blocked&&t(5,5).blocked);assert.deepEqual(turned.spots.map(s=>[s.tile.x,s.tile.z,s.facing]),[[4,4,'w'],[4,5,'w']]);
  const hedge=createProp('hedge',{origin:[0,7],tileAt:t,parent:scene});assert.ok(t(0,7).blocksSight);hedge.dispose();assert.ok(!t(0,7).blocked&&!t(0,7).blocksSight);
  for(const kind of PROP_KINDS){const g=propModel(kind);g.updateMatrixWorld(true);let n=0;g.traverse(o=>{if(o.isMesh)n++;});assert.ok(n>0,kind);assert.ok(PROPS[kind].footprint.length===2);}

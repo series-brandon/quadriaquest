@@ -254,6 +254,7 @@ The perf harness gets `city-walk` and `city-crowd` scenarios in `src/dev/perf-sc
 - **Talking stops townsfolk**: they finish the step under way, stand facing you for about 4 s, then carry on. They face the way they walk (a conversation no longer leaves them looking back at you).
 - **Shared locomotion for every slime**: `moveMotion` (slime-motion.js) gives the player and NPCs the same slide, the same hop on ledges, and a smooth ramp on stairs; `createSlimeActor().update({pose})` takes the movement pose. Townsfolk walk with a happy face (`walkFace`/`face` per entry), and pick varied faces while chatting.
 - **Stair railings are sloped handrails** following each flight from the ground to the top (`stairRailParts`), meeting a landing's or terrace's flat railing at the same height; stair sides stay unwalkable through hidden railing edges.
+- **Benches** have a deeper seat reaching forward and a back, each two boards with a small gap; a sitter rests 0.72 of a tile back from its spot (`SEAT_BACK`), against the backrest, at seat height `SEAT_HEIGHT` 0.41.
 - **Interior stairs are two tiles** along a wall rising into a corner, with a free tile in front of the bottom step (`stairsPlacements`); going up lands beside the top of the opening upstairs, going down lands in front of the bottom step. Middle floors alternate corners. Furniture keeps off the stairs.
 
 ### As implemented (Phase 8, 2026-10-11)
