@@ -69,3 +69,11 @@ test('a solid building shows a grey cap on its cut walls while cut, and only the
  updateCutaway({player:new THREE.Vector3(-30,1,-30),camera:new THREE.Vector3(-40,14,-40)});assert.equal(solid.cap.visible,false);assert.equal(solid.roof.visible,true);
  edges.dispose();
 });
+test('a building within two tiles of the player is cut, so walking up to its door shows the inside',async()=>{
+ const {cutBuildings,NEAR_CUT}=await import('./cutaway.js');
+ const house={x0:2,z0:2,x1:5,z1:5,base:1,top:4};
+ // The camera is behind the player (south-east); the house is north of the player, not between them.
+ const at=(x,z)=>cutBuildings({player:{x,y:1,z},camera:{x:x+10,y:14,z:z+10},boxes:[[3,house]]});
+ assert.deepEqual(at(3,5+NEAR_CUT-.5),[3],'close in front of it');assert.deepEqual(at(3,5+NEAR_CUT+1.5),[],'farther away');
+ assert.deepEqual(cutBuildings({player:{x:3,y:4,z:6},camera:{x:13,y:17,z:16},boxes:[[3,house]]}),[],'not from a terrace above it');
+});

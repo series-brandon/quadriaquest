@@ -163,7 +163,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
      if(p.doorWait>0)p.doorWait-=dt;
      if(p.step){p.step.age+=dt*WALK;const {from,to}=p.step,move=moveMotion(p.step.age,from,to);p.move=move;
       p.group.position.set(THREE.MathUtils.lerp(from.x,to.x,move.distance)-6,from.h+move.rise,THREE.MathUtils.lerp(from.z,to.z,move.distance)-6);
-      if(p.step.age>=move.duration){if(p.path?.[0]===to)p.path.shift();p.tile=to;p.x=to.x;p.z=to.z;p.step=null;p.move=null;occupancy.place(p,[to]);shutBehind(p);for(const m of pickables)if(m.userData.actor===p)m.userData.tile=to;if(to===p.goal)arrive(p);}}
+      if(p.step.age>=move.duration){if(p.path?.[0]===to)p.path.shift();p.tile=to;p.x=to.x;p.z=to.z;p.step=null;occupancy.place(p,[to]);shutBehind(p);for(const m of pickables)if(m.userData.actor===p)m.userData.tile=to;if(to===p.goal)arrive(p);}}
      stats.walking++;
     }else if(p.state!=='walking'){p.timer-=dt;
      if(p.state==='staying'&&p.timer<=0&&!(p.talking>0))leave(p);
@@ -184,10 +184,12 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
     p.ring=!onScreen||d>FAR*1.6?'off':d>FAR?'far':'near';
     // Indoors behind a roof (the building not cut) nobody can see them, so they aren't drawn.
     const indoors=p.tile.indoor&&p.tile.building!==undefined&&!isBuildingCut(p.tile.building);
+    if(p.state!=='walking')p.move=null;
     p.moving=!!p.step;p.group.visible=(p.ring!=='off'||d<FAR)&&!indoors&&!occupancy.covered(p,p.tile);
     if(p.ring==='off'){stats.off++;continue;}
     p.acc+=dt;
-    const mood=p.talking>0?'happy':p.state==='chatting'||p.activity==='chat'&&p.state==='staying'?p.chatFace||'happy':p.step?p.entry.walkFace||'happy':p.entry.face||'idle';
+    // The walking face holds for the whole walk (between steps too, or it flashes once per tile).
+    const mood=p.talking>0?'happy':p.state==='chatting'||p.activity==='chat'&&p.state==='staying'?p.chatFace||'happy':p.state==='walking'?p.entry.walkFace||'happy':p.entry.face||'idle';
     if(p.ring==='far'){stats.far++;if(p.acc<.25)continue;p.slime.update(p.acc,time,{expression:mood,pose:p.move?.pose||null});p.acc=0;stats.updated++;continue;}
     stats.near++;p.slime.update(p.acc,time,{expression:mood,pose:p.move?.pose||null});p.acc=0;stats.updated++;
    }

@@ -82,15 +82,16 @@ export function capitalData(){
   {id:'guard-square',name:'Guard Tilly',look:{color:'#c85745',loadout:guard},home:[58,64],routine:[{do:'patrol'}],patrol:[[58,64],[70,64],[70,78],[58,78]],pace:1.3,line:'Welcome to the capital.'},
   {id:'guard-gate',name:'Guard Barnaby',look:{color:'#c85745',loadout:guard},home:[61,26],routine:[{do:'patrol'}],patrol:[[61,26],[67,26]],pace:1.2,line:'The keep is through the gate.'},
   {id:'crier',name:'Old Hollis',look:{color:'#e3c07c',loadout:{head:'minersCap'}},home:[62,76],routine:[{do:'read',weight:2},{do:'gaze',weight:1},{do:'chat',weight:1}],line:'Jobs go up on the board, once the guild sorts its ledgers.'});
- for(let i=0;i<6;i++)data.townsfolk.push({id:`vendor-${i}`,name:`Vendor ${i+1}`,look:{color:colors[i%8]},home:[37+(i%3)*7,50+Math.floor(i/3)*6],routine:[{do:'vend',weight:6},{do:'stroll',weight:1}]});
+ for(let i=0;i<3;i++)data.townsfolk.push({id:`vendor-${i}`,name:`Vendor ${i+1}`,look:{color:colors[i%8]},home:[37+(i%3)*7,50+Math.floor(i/3)*6],routine:[{do:'vend',weight:6},{do:'stroll',weight:1}]});
  const homes=[[60,69],[68,72],[59,73],[69,77],[64,66],[34,59],[50,66],[40,64],[64,90],[64,105],[20,71],[90,71],[110,71],[31,60],[97,60],[64,45],[64,55],[20,47],[100,47],[31,85],[97,85],[45,99],[85,99],[66,84],[69,95]];
  const routines=[[{do:'stroll',weight:3},{do:'sit',weight:2},{do:'gaze',weight:1},{do:'chat',weight:2}],[{do:'browse',weight:3},{do:'stroll',weight:2},{do:'drink',weight:1}],[{do:'read',weight:1},{do:'enter',weight:2},{do:'stroll',weight:2}],[{do:'stroll',weight:2},{do:'chat',weight:2},{do:'gaze',weight:1}]];
- homes.forEach(([x,z],i)=>data.townsfolk.push({id:`folk-${i}`,name:['Ada','Bo','Cass','Dill','Effie','Finn','Gus','Hazel','Ira','Jun','Kit','Lark','Moss','Nim','Ollie','Pim','Quill','Rue','Sol','Tam','Uma','Vic','Wyn','Yew','Zed'][i],look:{color:colors[i%8],loadout:i%5===0?{head:'fishersHat'}:null},home:[x,z],routine:routines[i%routines.length],pace:.8+(i%5)*.1}));
- // Residents and shopkeepers: every shop has a keeper, and every fourth house a resident, living in or
+ homes.slice(0,10).forEach(([x,z],i)=>data.townsfolk.push({id:`folk-${i}`,name:['Ada','Bo','Cass','Dill','Effie','Finn','Gus','Hazel','Ira','Jun','Kit','Lark','Moss','Nim','Ollie','Pim','Quill','Rue','Sol','Tam','Uma','Vic','Wyn','Yew','Zed'][i],look:{color:colors[i%8],loadout:i%5===0?{head:'fishersHat'}:null},home:[x,z],routine:routines[i%routines.length],pace:.8+(i%5)*.1}));
+ // Residents and shopkeepers (kept modest for the frame budget, user 2026-10-11): a keeper for every
+ // other shop and a resident in every tenth house, living in or
  // minding their own building (through its door).
  const first=['Alder','Bryn','Coral','Dunstan','Elsie','Fenwick','Greer','Hob','Ivo','Juniper','Kell','Linnet','Mabry','Nettle','Orrin','Pearl','Quince','Rook','Sorrel','Thistle','Ulric','Vesper','Wick','Yarrow'];
  let r=0;
- data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length)return;const shop=!!b.desc.sign;if(!shop&&i%4!==0)return;
+ data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length)return;const shop=!!b.desc.sign;if(shop?i%2!==0:i%10!==0)return;
   data.townsfolk.push({id:`resident-${i}`,name:`${first[r%first.length]}${r>=first.length?' '+(Math.floor(r/first.length)+1):''}`,look:{color:colors[r%8],loadout:r%5===0?{head:'minersCap'}:null},house:i,
    routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'sit',weight:1},{do:'chat',weight:1}],line:shop?'Stock’s coming in soon, I promise.':'Mind the step on your way in.'});r++;});
  return data;

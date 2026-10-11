@@ -67,13 +67,17 @@ export function segmentHitsBox(p,q,box){
   let a=(lo-p[axis])/d,b=(hi-p[axis])/d;if(a>b)[a,b]=[b,a];t0=Math.max(t0,a);t1=Math.min(t1,b);if(t0>t1)return false;}
  return true;
 }
-// Which buildings are cut: the one the player is in, then any whose part above the cut height stands
-// between the camera and the player (nearest first, at most MAX_CUT). `boxes`: [[id, box]].
+// Which buildings are cut: the one the player is in, then any the player stands close to (within
+// NEAR_CUT tiles of its walls, user 2026-10-11: walking up to a door shows the inside), then any whose
+// part above the cut height stands between the camera and the player (nearest first, at most MAX_CUT).
+// `boxes`: [[id, box]].
+export const NEAR_CUT=2;
 export function cutBuildings({player,camera,building=-1,boxes}){
  const cut=building>=0?[building]:[],eye={x:player.x,y:player.y+.6,z:player.z},MARGIN=.4;
  const hits=[];
  for(const [id,b] of boxes){if(id===building||b.top<=b.base+CUT_HEIGHT+.01)continue;
-  if(segmentHitsBox(eye,camera,{min:{x:b.x0-MARGIN,y:b.base+CUT_HEIGHT,z:b.z0-MARGIN},max:{x:b.x1+MARGIN,y:b.top,z:b.z1+MARGIN}}))hits.push({id,d:Math.hypot((b.x0+b.x1)/2-player.x,(b.z0+b.z1)/2-player.z)});}
+  const gap=Math.hypot(Math.max(0,b.x0-player.x,player.x-b.x1),Math.max(0,b.z0-player.z,player.z-b.z1));
+  if(gap<=NEAR_CUT&&Math.abs(player.y-b.base)<1.2||segmentHitsBox(eye,camera,{min:{x:b.x0-MARGIN,y:b.base+CUT_HEIGHT,z:b.z0-MARGIN},max:{x:b.x1+MARGIN,y:b.top,z:b.z1+MARGIN}}))hits.push({id,d:Math.hypot((b.x0+b.x1)/2-player.x,(b.z0+b.z1)/2-player.z)});}
  for(const {id} of hits.sort((x,y)=>x.d-y.d))if(cut.length<MAX_CUT&&!cut.includes(id))cut.push(id);
  return cut;
 }

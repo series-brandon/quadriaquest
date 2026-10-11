@@ -20,6 +20,13 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Nearby buildings cut, steady walking face, fewer townsfolk — 2026-10-11 (user review)
+
+- `cutaway.js` `cutBuildings`: also cuts any building within `NEAR_CUT` (2) tiles of the player on the same level, so approaching a door shows the inside.
+- `townsfolk.js`: the walking face and pose hold for the whole walk (they flashed back to idle for a frame between steps).
+- Townsfolk trimmed: capital 82 → 41 (regenerated `capital.json`), kit street 28 → 17.
+- Tests: 538 pass. Browser-verified: walking toward the square-west house it is cut from about 2½ tiles out.
+
 ### Solid caps, townsfolk doors, residents and shopkeepers — 2026-10-11 (user review)
 
 - `building-kit.js` `solidWhenCut` + cap mesh (`building.cap`, `userData.showWhenCut`); `cutaway.js` `restoreCutPart`, `isBuildingCut`; graybox shells capped; model viewer cut motion honours caps.
