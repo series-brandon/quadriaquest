@@ -22,7 +22,7 @@ import {moveMotion} from './slime-motion.js';
 // near and on screen, full; far on screen, a quarter rate with a fixed face; off screen, movement only.
 export const ACTIVITIES=['sit','browse','vend','gaze','drink','read','chat','stroll','enter','patrol','home','keep','tend'];
 // WALK: townsfolk walk a little slower than the player (the shared move's time scale).
-const WALK=.72,NEAR=16,FAR=34,FIELD_CACHE=48,STROLL_RADIUS=10;
+const WALK=.72,ROUTE_LIMIT=3500,NEAR=16,FAR=34,FIELD_CACHE=48,STROLL_RADIUS=10;
 const LINES=['Lovely day for it.','Have you seen the fountain?','Mind the stairs.','The market’s busy today.','I’m just on my way home.','Hello there!','They say the castle has a hundred rooms.','Fresh bread soon, I hope.'];
 const NEIGHBOURS=[[1,0],[-1,0],[0,1],[0,-1]];
 // Faces while two townsfolk chat (they walk about happy).
@@ -45,6 +45,12 @@ export function createNavigator(map){
    const options=NEIGHBOURS.map(([dx,dz])=>map.get(key(from.x+dx,from.z+dz))).filter(n=>n&&dist.get(n)===here-1&&passable(from,n));
    return options.find(n=>!occupied(n))||options[0]||null;},
   reachable:(from,goal)=>field(goal).has(from),
+  // A route from `from` to `goal` by a bounded search (early exit; at most `limit` tiles visited):
+  // townsfolk plan this way, so a new goal costs little and they keep to their neighbourhood.
+  route(from,goal,limit=ROUTE_LIMIT){if(!goal||from===goal)return from===goal?[]:null;const prev=new Map([[from,null]]),queue=[from];
+   for(let i=0;i<queue.length&&queue.length<limit;i++){const t=queue[i];for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(!n||prev.has(n)||!passable(t,n))continue;prev.set(n,t);
+    if(n===goal){const path=[];for(let c=n;c!==from;c=prev.get(c))path.unshift(c);return path;}queue.push(n);}}
+   return null;},
   // Tiles within `radius` steps (bounded search), for strolls.
   around(from,radius=STROLL_RADIUS){const seen=new Map([[from,0]]),queue=[from];for(let i=0;i<queue.length;i++){const t=queue[i],d=seen.get(t);if(d>=radius)continue;for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(n&&!seen.has(n)&&canStep(t,n)){seen.set(n,d+1);queue.push(n);}}}return [...seen.keys()];},
   get cached(){return fields.size;},clear(){fields.clear();},
@@ -85,24 +91,28 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
  }
  function choose(p){
   const routine=p.entry.routine?.length?p.entry.routine:[{do:'stroll'}];
+  // One candidate at a time, nearest first, routed with the bounded search (no whole-map scans).
+  const routeTo=goal=>goal?nav.route(p.tile,goal):null;
+  const nearest=(list,tile=t=>t)=>list.map(x=>({x,d:Math.abs(tile(x).x-p.tile.x)+Math.abs(tile(x).z-p.tile.z)})).sort((a,b)=>a.d-b.d+(random()-.5)*6).map(o=>o.x);
+  const firstRouted=(list,tile=t=>t)=>{for(const x of nearest(list,tile).slice(0,3)){const path=routeTo(tile(x));if(path)return {x,path};}return null;};
   for(let tries=0;tries<4;tries++){const a=pickWeighted(routine,random).do;
-   if(['sit','browse','vend','gaze','drink','read'].includes(a)){const spots=spotsOf(a).filter(s=>!taken(s.tile,p)&&nav.reachable(p.tile,s.tile));if(!spots.length)continue;
-    const s=spots[Math.floor(random()*spots.length)];return {activity:a,goal:s.tile,spot:s,stay:a==='vend'?20+random()*20:a==='sit'?8+random()*12:4+random()*6};}
-   if(a==='stroll'){const options=nav.around(p.tile).filter(t=>t!==p.tile&&strollable(t));if(!options.length)continue;return {activity:a,goal:options[Math.floor(random()*options.length)],stay:1+random()*3};}
-   if(a==='enter'){const step=p.entry.door?map.get(key(...p.entry.door)):[...doorsteps].sort((x,y)=>Math.hypot(x.x-p.home.x,x.z-p.home.z)-Math.hypot(y.x-p.home.x,y.z-p.home.z))[0];if(!step||!nav.reachable(p.tile,step))continue;return {activity:a,goal:step,stay:10+random()*15};}
+   if(['sit','browse','vend','gaze','drink','read'].includes(a)){const found=firstRouted(spotsOf(a).filter(s=>!taken(s.tile,p)),s=>s.tile);if(!found)continue;
+    return {activity:a,goal:found.x.tile,spot:found.x,path:found.path,stay:a==='vend'?20+random()*20:a==='sit'?8+random()*12:4+random()*6};}
+   if(a==='stroll'){const options=nav.around(p.tile).filter(t=>t!==p.tile&&strollable(t));if(!options.length)continue;const goal=options[Math.floor(random()*options.length)],path=routeTo(goal);if(!path)continue;return {activity:a,goal,path,stay:1+random()*3};}
+   if(a==='enter'){const step=p.entry.door?map.get(key(...p.entry.door)):[...doorsteps].sort((x,y)=>Math.hypot(x.x-p.home.x,x.z-p.home.z)-Math.hypot(y.x-p.home.x,y.z-p.home.z))[0],path=routeTo(step);if(!path)continue;return {activity:a,goal:step,path,stay:10+random()*15};}
    if(a==='chat'){const other=folk.find(o=>o!==p&&o.state==='idle'&&!o.hidden&&Math.abs(o.tile.x-p.tile.x)+Math.abs(o.tile.z-p.tile.z)<8);if(!other)continue;
-    const near=NEIGHBOURS.map(([dx,dz])=>map.get(key(other.tile.x+dx,other.tile.z+dz))).find(n=>n&&strollable(n)&&!taken(n,p)&&nav.reachable(p.tile,n));if(!near)continue;
-    other.state='chatting';other.timer=6;other.face=p;return {activity:a,goal:near,stay:6,partner:other};}
+    const found=firstRouted(NEIGHBOURS.map(([dx,dz])=>map.get(key(other.tile.x+dx,other.tile.z+dz))).filter(n=>n&&strollable(n)&&!taken(n,p)));if(!found)continue;
+    other.state='chatting';other.timer=6;other.face=p;return {activity:a,goal:found.x,path:found.path,stay:6,partner:other};}
    // Home: potter about inside your own house. Keep: mind your shop from its keeper spot. Tend: linger
    // around your own building's front.
-   if(a==='home'&&p.house){const free=p.house.inside.filter(t=>t!==p.tile&&!taken(t,p)&&nav.reachable(p.tile,t));if(!free.length)continue;return {activity:a,goal:free[Math.floor(random()*free.length)],stay:5+random()*9};}
-   if(a==='keep'&&p.house?.keeper&&!taken(p.house.keeper,p)&&nav.reachable(p.tile,p.house.keeper))return {activity:a,goal:p.house.keeper,stay:20+random()*20};
-   if(a==='tend'&&p.house?.doorstep){const options=nav.around(p.house.doorstep,2).filter(t=>strollable(t)&&!taken(t,p)&&nav.reachable(p.tile,t));if(!options.length)continue;return {activity:a,goal:options[Math.floor(random()*options.length)],stay:3+random()*6};}
-   if(a==='patrol'&&p.entry.patrol?.length){p.patrolIndex=((p.patrolIndex??-1)+1)%p.entry.patrol.length;const goal=map.get(key(...p.entry.patrol[p.patrolIndex]));if(goal&&nav.reachable(p.tile,goal))return {activity:a,goal,stay:1+random()*2};}
+   if(a==='home'&&p.house){const free=p.house.inside.filter(t=>t!==p.tile&&!taken(t,p));if(!free.length)continue;const goal=free[Math.floor(random()*free.length)],path=routeTo(goal);if(!path)continue;return {activity:a,goal,path,stay:5+random()*9};}
+   if(a==='keep'&&p.house?.keeper&&!taken(p.house.keeper,p)){const path=routeTo(p.house.keeper);if(path)return {activity:a,goal:p.house.keeper,path,stay:20+random()*20};}
+   if(a==='tend'&&p.house?.doorstep){const options=nav.around(p.house.doorstep,2).filter(t=>strollable(t)&&!taken(t,p));if(!options.length)continue;const goal=options[Math.floor(random()*options.length)],path=routeTo(goal);if(!path)continue;return {activity:a,goal,path,stay:3+random()*6};}
+   if(a==='patrol'&&p.entry.patrol?.length){p.patrolIndex=((p.patrolIndex??-1)+1)%p.entry.patrol.length;const goal=map.get(key(...p.entry.patrol[p.patrolIndex])),path=routeTo(goal);if(path)return {activity:a,goal,path,stay:1+random()*2};}
   }
-  return {activity:'idle',goal:null,stay:2+random()*3};
+  return {activity:'idle',goal:null,path:null,stay:2+random()*3};
  }
- function begin(p){const plan=choose(p);Object.assign(p,{activity:plan.activity,goal:plan.goal,spot:plan.spot||null,stay:plan.stay,partner:plan.partner||null,state:plan.goal&&plan.goal!==p.tile?'walking':'arrived',timer:plan.stay});if(p.state==='arrived')arrive(p);}
+ function begin(p){const plan=choose(p);Object.assign(p,{activity:plan.activity,goal:plan.goal,path:plan.path||null,spot:plan.spot||null,stay:plan.stay,partner:plan.partner||null,state:plan.goal&&plan.goal!==p.tile?'walking':'arrived',timer:plan.stay});if(p.state==='arrived')arrive(p);}
  function arrive(p){
   p.state='staying';p.timer=p.stay;
   if(p.activity==='sit'){p.slime.play('Sit');p.facing=p.spot.angle;}
@@ -140,7 +150,9 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
     if(p.state==='walking'&&!listening){
      if(!p.step){
       // Don't end on someone else's tile: stop a tile short, or give up a taken spot.
-      let next=nav.next(p.tile,p.goal,t=>taken(t,p));
+      // Follow the planned route; re-plan if it no longer holds (a door locked, someone moved a prop).
+      let next=p.path?.[0]||null;
+      if(next&&!passable(p.tile,next)){p.path=nav.route(p.tile,p.goal);next=p.path?.[0]||null;}
       if(next&&next===p.goal&&taken(next,p)){if(p.spot){p.state='idle';p.timer=1+random()*2;next=null;}else{arrive(p);next=null;}}
       if(p.state==='walking'&&!next){if(p.tile===p.goal)arrive(p);else{p.state='idle';p.timer=1;}}
       else if(next){
@@ -151,13 +163,13 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
      if(p.doorWait>0)p.doorWait-=dt;
      if(p.step){p.step.age+=dt*WALK;const {from,to}=p.step,move=moveMotion(p.step.age,from,to);p.move=move;
       p.group.position.set(THREE.MathUtils.lerp(from.x,to.x,move.distance)-6,from.h+move.rise,THREE.MathUtils.lerp(from.z,to.z,move.distance)-6);
-      if(p.step.age>=move.duration){p.tile=to;p.x=to.x;p.z=to.z;p.step=null;p.move=null;occupancy.place(p,[to]);shutBehind(p);for(const m of pickables)if(m.userData.actor===p)m.userData.tile=to;if(to===p.goal)arrive(p);}}
+      if(p.step.age>=move.duration){if(p.path?.[0]===to)p.path.shift();p.tile=to;p.x=to.x;p.z=to.z;p.step=null;p.move=null;occupancy.place(p,[to]);shutBehind(p);for(const m of pickables)if(m.userData.actor===p)m.userData.tile=to;if(to===p.goal)arrive(p);}}
      stats.walking++;
     }else if(p.state!=='walking'){p.timer-=dt;
      if(p.state==='staying'&&p.timer<=0&&!(p.talking>0))leave(p);
      else if((p.state==='idle'||p.state==='chatting')&&p.timer<=0&&!(p.talking>0)){if(p.state==='chatting')leave(p);else begin(p);}
      // The player stopped on this townsfolk: step aside (never mid-activity on a seat).
-     if(playerTile&&p.tile===playerTile&&p.activity!=='sit'&&!p.hidden){const aside=NEIGHBOURS.map(([dx,dz])=>map.get(key(p.tile.x+dx,p.tile.z+dz))).find(n=>n&&strollable(n)&&canStep(p.tile,n)&&!taken(n,p));if(aside){leave(p);p.goal=aside;p.activity='stroll';p.stay=1;p.state='walking';}}
+     if(playerTile&&p.tile===playerTile&&p.activity!=='sit'&&!p.hidden){const aside=NEIGHBOURS.map(([dx,dz])=>map.get(key(p.tile.x+dx,p.tile.z+dz))).find(n=>n&&strollable(n)&&canStep(p.tile,n)&&!taken(n,p));if(aside){leave(p);p.goal=aside;p.path=[aside];p.activity='stroll';p.stay=1;p.state='walking';}}
     }
     // Seat position while sitting; standing on the tile otherwise.
     if(p.state==='staying'&&p.activity==='sit'&&p.spot){const s=seatPosition(p.spot),k=Math.min(1,(p.stay-p.timer)/.45);p.group.position.set(THREE.MathUtils.lerp(p.tile.x-6,s.x,k),p.tile.h,THREE.MathUtils.lerp(p.tile.z-6,s.z,k));}

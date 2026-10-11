@@ -257,6 +257,13 @@ The perf harness gets `city-walk` and `city-crowd` scenarios in `src/dev/perf-sc
 - **Benches** have a deeper seat reaching forward and a back, each two boards with a small gap; a sitter rests 0.72 of a tile back from its spot (`SEAT_BACK`), against the backrest, at seat height `SEAT_HEIGHT` 0.41.
 - **Interior stairs are two tiles** along a wall rising into a corner, with a free tile in front of the bottom step (`stairsPlacements`); going up lands beside the top of the opening upstairs, going down lands in front of the bottom step. Middle floors alternate corners. Furniture keeps off the stairs.
 
+### Solid buildings, doors and residents (2026-10-11, user review)
+
+- **Solid when cut:** a building you can't walk into (`interior: 'none'` or `'separate'`, or only locked doors; `solidWhenCut`) shows a flat grey cap flush with its cut walls while it is cut, so it reads as a solid block, not an empty room. Cut parts with `userData.showWhenCut` are shown only while their building is cut (`cutaway.js`). The graybox street's shells get the same cap.
+- **Townsfolk use doors:** routes pass unlocked closed doors (`passable`); a townsfolk opens the door, waits for it to swing, goes through, and shuts it once its doorway is clear (only doors it opened). Door sounds play near the player only.
+- **Residents and shopkeepers:** an entry may name its building (`house`, an index). Activities `home` (potter about inside), `keep` (mind the shop from its keeper spot, facing the door) and `tend` (linger around the building's front). The kit street has 14 residents and keepers, the capital a keeper for every shop and a resident in every fourth house (82 townsfolk in all). Townsfolk indoors in a building that isn't cut aren't drawn (the roof hides them). Checks: a house must be enterable.
+- **Planning:** townsfolk plan a bounded route (early exit, at most 3,500 tiles) to one candidate at a time, rather than scanning distance fields; whole-map fields remain for the checks.
+
 ### As implemented (Phase 8, 2026-10-11)
 
 - `src/townsfolk.js`: `createCrowd({city})` runs a city's townsfolk (`data.townsfolk`: look, home, weighted routine, patrol, pace, an optional line). Activities: sit, browse, vend, gaze, drink, read (prop spots), chat (two townsfolk meet and wave), stroll (a bounded search within 10 tiles), enter (walk to a doorstep and vanish for a while; townsfolk don't walk into in-place buildings yet), patrol. Clicking one turns them to you, waves and says a line.
@@ -350,3 +357,4 @@ Flagged during the Phases 5–9 first draft (2026-10-11), for review:
 9. **Seeing the player behind a front wall.** Interiors and one-storey buildings keep full one-storey walls, which can hide the player standing just inside a front wall (as in the building test map).
 10. **Chunk borders.** Walls of one building that cross a chunk border can get a doubled corner post at the border.
 11. **Capital performance.** The capital square runs at 59 fps on a desktop GPU but at about 9.5 ms a frame and ~1,150 draws (docs/PERFORMANCE.md). Before phones: merge building shells per chunk and instance townsfolk rigs.
+12. **Townsfolk count and bends.** With 82 townsfolk the capital square runs at 12.7 ms a frame on a desktop GPU; gesturing slimes (waving, sitting) re-upload their bent bodies. Resident density (every fourth house) can be tuned.

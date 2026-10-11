@@ -20,6 +20,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Solid caps, townsfolk doors, residents and shopkeepers — 2026-10-11 (user review)
+
+- `building-kit.js` `solidWhenCut` + cap mesh (`building.cap`, `userData.showWhenCut`); `cutaway.js` `restoreCutPart`, `isBuildingCut`; graybox shells capped; model viewer cut motion honours caps.
+- `townsfolk.js`: `passable` (unlocked doors), door open/wait/shut (`openedDoor`, `shutBehind`), `house` entries with `home`/`keep`/`tend`, hidden indoors unless the building is cut, bounded `nav.route` planning (`p.path`), checks for houses.
+- Kit street and capital (`capital-layout.js`, regenerated `capital.json`) have residents and keepers.
+- Perf: the first run regressed the capital to 5.9 fps (whole-map reachability scans); fixed with bounded routes. City baselines updated (see docs/PERFORMANCE.md).
+- Tests: 537 pass. Browser-verified: force cutaway shows residents in their houses and grey caps on locked shells; in 30 s townsfolk opened and re-shut 7 doors.
+
 ### City review fixes: one per tile, talking, shared walking, sloped rails, interior stairs, smooth stairs — 2026-10-11 (user review)
 
 - `world-occupancy.js`: arrival order per tile, `top(tile,{player})`, `covered(owner,tile,{player})`. Used by townsfolk (standing), `updateWorldActors` movers and combat (one-tile creatures, not hidden under the player).
