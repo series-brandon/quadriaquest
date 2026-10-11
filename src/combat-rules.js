@@ -35,5 +35,9 @@ export const ENEMIES={
  // telegraphed, so running at once escapes. Its health refills whenever it walks home, and it awards
  // no XP, so it can't be chipped down or farmed.
  golem:{...deriveEnemy(ENEMY_SHEETS.golem,{...GOBLIN,baseInterval:3.4}),name:'Cinder Golem',boss:true,health:3000,min:250,max:450,interval:3.4,
-  resistancePct:{melee:50,ranged:50,magic:50},aggressive:true,aggroRange:7,attacksPacifists:true,telegraphed:true,moveSpeed:.55,xpMultiplier:0},
+  resistancePct:{melee:50,ranged:50,magic:50},aggressive:true,aggroRange:7,attacksPacifists:true,telegraphed:true,moveSpeed:.55,xpMultiplier:0,
+  // The slam locks the 3×3 tiles around the player at its commit point (docs/COMBAT.md, Enemy attack commitment).
+  target:'tile',area:1,
+  // Ranged punish: after 1.5 s out of its reach (within 8 tiles and sight) it stands and throws a rock.
+  rangedAttack:{name:'Rock Throw',style:'ranged',telegraphed:false,min:40,max:90,interval:3.4,windup:2.4,flight:.6,target:'tile',area:1,range:8,after:1.5}},
 };

@@ -1,8 +1,8 @@
 import {gameViewport} from './game-viewport.js';
 import {Vector3} from 'three';
 import {findPath,key} from './world.js';
-import {withinAttackRange} from './combat-range.js';
-import {sizeOf,footprint,footprintGap,canStand,findFootprintPath,bodyCenter} from './footprint.js';
+import {withinAttackRange,lineOfSight} from './combat-range.js';
+import {sizeOf,footprint,footprintGap,canStand,findFootprintPath,bodyCenter,nearestCell} from './footprint.js';
 import {resolveAttack,resolvePortions,rollDamage,actionXp,backfireBaseDamage,displayedLoss,xpModifiers} from './combat-formulas.js';
 import {playerAttackProfile,playerDefense,strongStrikeProfile,armorAwards,offHandFollowUp,pairStrikes,FOLLOW_UP_DELAY} from './combat-profile.js';
 import {ABILITIES,SPELLS} from './combat-styles.js';
@@ -38,6 +38,7 @@ export function createCombatSystem(api){
  // The playing spell-gathering sound ({fight, sound}), stopped when its cast ends for any reason.
  let gather=null;
  const stopGather=()=>{gather?.sound?.stop();gather=null;};
+ const enemyShots=[];let lastInterval=0;
  let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true,sinceActivity=Infinity,pending=null,sinceRelease=Infinity;
  // `openingWindup` may be null to pin full-windup timing in tests of other mechanics.
  const opening=api.openingWindup===undefined?OPENING_WINDUP:api.openingWindup;
@@ -64,9 +65,22 @@ export function createCombatSystem(api){
  // a cancelled attack takes its ability with it (never restored).
  function commit(c){commitAttack(c);openingWindup(c);}
  // The swing animation still plays in full: the clock skips to the last part of the windup.
- function openingWindup(c){
-  if(!opening||sinceRelease<c.profile.interval)return;
-  c.playerClock=Math.max(c.playerClock,c.profile.interval-attackWindup(c.profile,opening));
+ // An attack lands no earlier than its own windup, nor before the last released attack's interval has
+ // passed (docs/COMBAT.md, Opening attack and Equipment changes): a slower weapon after a quicker one
+ // strikes on the quicker one's timer. A negative clock waits out a longer previous timer.
+ function openingWindup(c){if(opening)schedule(c,opening);}
+ function schedule(c,melee){
+  const timer=Math.max(0,lastInterval-sinceRelease),target=c.profile.interval-Math.max(timer,attackWindup(c.profile,melee));
+  c.playerClock=target>0?Math.max(c.playerClock,target):c.playerClock+target;
+ }
+ // Changing what a hand holds interrupts the attack that has not landed: its windup and any ability it
+ // carried are lost, unstruck off-hand follow-ups are cancelled (projectiles in flight still land), and
+ // the new setup winds up in full from now, still respecting the last released attack's timer.
+ function handsChanged(){
+  followUps.length=0;
+  if(!fight)return;
+  const c=fight;stopGather();c.playerClock=0;c.struck=false;c.ability=null;c.waiting=false;
+  commitAttack(c);schedule(c,opening??OPENING_WINDUP);notify();
  }
  function commitAttack(c){
   const hadAbility=!!c.ability;
@@ -137,6 +151,8 @@ export function createCombatSystem(api){
  function move(a,t){release(a);a.cells=cellsOf(a,t);a.tile=t;a.x=t.x;a.z=t.z;if(blocksMovement(a))for(const c of a.cells)c.blocked=true;a.occupying=true;a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=t;});}
  function resetEnemy(a){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);
+  for(let i=enemyShots.length-1;i>=0;i--)if(enemyShots[i].enemy===a)enemyShots.splice(i,1);
+  cancelWindup(a);a.awayFor=0;a.thrownAge=null;
   returningAfterWin.delete(a);fleeing.delete(a);release(a);
   a.patrolRoute=[];a.patrolClock=wanderDelay(random);a.hitAge=a.attackAge=a.enemyClock=0;a.sinceStrike=Infinity;a.hp=a.rules.health;a.opened=false;a.aggro=false;(a.control||=createControlState()).reset();
   a.group.scale.setScalar(a.scale);a.group.rotation.set(0,0,0);
@@ -145,12 +161,12 @@ export function createCombatSystem(api){
  }
  function returnHome(a){
   if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;
-  a.aggro=false;a.returning=true;a.enemyClock=a.attackAge=0;a.patrolRoute=[];
+  a.aggro=false;a.returning=true;a.enemyClock=a.attackAge=0;a.patrolRoute=[];cancelWindup(a);a.awayFor=0;
   if(settled(a)&&a.tile===a.home&&!bodyTaken(a,a.home)){a.returning=false;a.hp=a.rules.health;}
  }
  function cancel(){if(fight){const a=fight.enemy;fight=null;if(a.rules.inert)resetEnemy(a);else if(a.aggro)returnHome(a);}api.complete?.();}
  function clearChase(){if(chase)returnHome(chase.enemy);}
- function clear(){pending=null;sinceRelease=Infinity;const affected=new Set(shots.map(s=>s.enemy));if(fight)affected.add(fight.enemy);if(chase)affected.add(chase.enemy);for(const a of enemies)if(a.returning||a.aggro)affected.add(a);shots.length=0;followUps.length=0;fight=chase=null;defense=null;for(const a of affected)resetEnemy(a);if(defeated)api.fade?.(0);defeated=0;api.clearFeedback?.();api.clearProjectiles?.();}
+ function clear(){pending=null;sinceRelease=Infinity;lastInterval=0;const affected=new Set(shots.map(s=>s.enemy));if(fight)affected.add(fight.enemy);if(chase)affected.add(chase.enemy);for(const a of enemies)if(a.returning||a.aggro)affected.add(a);shots.length=0;followUps.length=0;for(const s of enemyShots)api.telegraph?.(s.enemy,null);enemyShots.length=0;fight=chase=null;defense=null;for(const a of affected)resetEnemy(a);if(defeated)api.fade?.(0);defeated=0;api.clearFeedback?.();api.clearProjectiles?.();}
  function disengage(){if(!fight)return;const a=fight.enemy;fight=null;if(a.rules.inert){resetEnemy(a);return;}if(a.aggro)chase={enemy:a,age:0};}
  function start(a){
   if(fight?.enemy===a||!enemies.has(a)||!current(a)||a.opened||a.returning||defeated||api.health.value<=0||api.blocked()||!api.inReach(a))return false;
@@ -165,11 +181,11 @@ export function createCombatSystem(api){
  function lose(){pending=null;if(api.defeatStop)api.defeatStop();else api.stop();clearChase();api.health.value=0;defense=null;defeated=.001;}
  function engage(a){
   if(a.rules.inert||a.aggro||a.opened||a.returning)return;
-  a.aggro=true;a.patrolRoute=[];if(!fight&&!chase)chase={enemy:a,age:0};api.interrupt?.();
+  a.aggro=true;a.patrolRoute=[];if(opening===null&&a.sinceStrike===Infinity)a.sinceStrike=0;if(!fight&&!chase)chase={enemy:a,age:0};api.interrupt?.();
  }
- function hitPlayer(a){
+ function hitPlayer(a,rules=a.rules){
   api.attacked?.(a);api.interrupt?.();
-  const before=api.health.value,rules=a.rules,current=profile(),shield=api.equipment.shield||null,armor=api.equipment.armorPieces||[];
+  const before=api.health.value,current=profile(),shield=api.equipment.shield||null,armor=api.equipment.armorPieces||[];
   // Defender stats are evaluated at hit time: miss → dodge → block → damage → mitigation.
   const d=playerDefense(character,{activeStyle:current.combatStyle,strategy:current.strategy,incomingStyle:rules.style||'melee',shield,armor,bonusResistancePct:api.resistanceBonus?.()||0});
   const r=resolveAttack({missPercent:rules.missPercent||0,dodgePercent:d.dodgePercent,blockPercent:d.blockPercent,canCritical:!!rules.canCritical,criticalPercent:rules.criticalPercent||0,min:rules.min,max:rules.max,random,
@@ -181,15 +197,63 @@ export function createCombatSystem(api){
   const defensive=[];
   if(shield&&(r.outcome==='hit'||r.outcome==='block'))defensive.push({track:'prof.shield',amount:actionXp(r.outcome==='hit'?r.raw:rollDamage(rules.min,rules.max,random))});
   if(r.outcome==='hit')defensive.push(...armorAwards(armor,actionXp(r.raw)));
-  if(defensive.length)reward(character.award(defensive,xpModifiers(rules)),a);
+  if(defensive.length)reward(character.award(defensive,xpModifiers(a.rules)),a);
   api.hit(api.player.position,r.outcome==='hit'?displayedLoss(before,api.health.value):null,r.outcome);api.sound(r.outcome==='hit'?'hurt':'whiff');
   if(api.health.value<=0){lose();return;}
   // Assistance decides retaliation when present (Pacifist, Adaptive danger); otherwise the Auto-Retaliate preference.
   const retaliate=api.shouldRetaliate?api.shouldRetaliate(a):autoRetaliate;
   if(retaliate&&!fight){if(api.inReach(a))start(a);else api.retaliate?.(a);}
  }
+ // Enemy attack commitment (docs/COMBAT.md). Each enemy attack (its own, or its optional ranged punish)
+ // has an interval ending in a windup. The cooldown runs whether or not the player is in reach; the
+ // windup starts once the player is in reach (or, for the ranged punish, has stayed out of reach long
+ // enough). Leaving reach in the first half cancels it, without a new cooldown. At the halfway commit
+ // point it will land: a character-targeted attack hits the player wherever they are; a tile-targeted
+ // one locks the (2r+1)² tiles around the player and hits whoever stands on them at impact.
+ const attackOf=(a,kind)=>kind==='ranged'?{...a.rules,...a.rules.rangedAttack}:a.rules;
+ const windupOf=x=>x.telegraphed?x.interval:attackWindup({interval:x.interval,combatStyle:x.style||'melee',windup:x.windup});
+ const inReachOf=a=>{const p=api.tile();return footprintGap(a.tile,sizeOf(a),p)<=1&&Math.abs(a.tile.h-p.h)<=.5;};
+ function canThrow(a){
+  const p=api.tile(),r=a.rules.rangedAttack,size=sizeOf(a),from=size>1?nearestCell(a.tile,size,p):a.tile;
+  return !!r&&inTerritory(a,p)&&footprintGap(a.tile,size,p)<=r.range&&lineOfSight(api.world,from,p)&&!api.safe?.(p);
+ }
+ // Solid tiles (walls, rock) are left out: nobody can stand there, so they are never marked.
+ function lockTiles(area){const p=api.tile(),tiles=[];for(let dz=-area;dz<=area;dz++)for(let dx=-area;dx<=area;dx++){const t=api.world.get(key(p.x+dx,p.z+dz));if(t&&(!t.blocked||t===p))tiles.push(t);}return tiles;}
+ function cancelWindup(a){if(a.windup){a.windup=null;api.telegraph?.(a,null);}}
+ function impact(a,attack,tiles){
+  api.telegraph?.(a,null);
+  if(defeated||!current(a)||a.opened)return;
+  if(!tiles||tiles.includes(api.tile()))hitPlayer(a,attack);
+  else{api.hit(api.player.position,null,'dodge');api.sound('whiff');}
+ }
+ function enemyAttackUpdate(a,dt,settledNow){
+  const reach=inReachOf(a);a.awayFor=reach?0:(a.awayFor||0)+dt;
+  if(!a.windup){
+   const kind=reach?'melee':a.rules.rangedAttack&&a.awayFor>=a.rules.rangedAttack.after&&canThrow(a)?'ranged':null;
+   if(!kind||!settledNow)return;
+   const attack=attackOf(a,kind),windup=windupOf(attack);
+   // Cooldown: the rest of the interval before this windup, counted from the last strike.
+   if(a.sinceStrike<attack.interval-windup)return;
+   a.windup={kind,attack,windup,age:0,tiles:null};
+  }
+  const w=a.windup;w.age+=dt;
+  if(!w.committed){
+   const valid=w.kind==='melee'?reach:!reach&&canThrow(a);
+   if(!valid){cancelWindup(a);return;}
+   if(w.age>=w.windup/2){w.committed=true;w.at=api.tile();if(w.attack.target==='tile')w.tiles=lockTiles(w.attack.area??0);}
+  }
+  if(w.tiles)api.telegraph?.(a,w.tiles,Math.min(1,(w.age-w.windup/2)/(w.windup/2)));
+  if(w.age<w.windup)return;
+  a.windup=null;a.sinceStrike=0;a.attackAge=.28;
+  // After a throw it chases again for the full delay before the next one (never a standing turret).
+  if(w.kind==='ranged'){a.thrownAge=0;a.awayFor=0;
+   // The rock flies to the locked centre (a character-targeted throw follows the player).
+   api.projectile?.(a.group.position.clone().add(new Vector3(0,(a.aimHeight??.55)+.6,0)),position(w.tiles?w.at:api.tile()).add(new Vector3(0,.3,0)),'rock',null,{duration:w.attack.flight,arc:1.2});
+   enemyShots.push({enemy:a,attack:w.attack,tiles:w.tiles,left:w.attack.flight});}
+  else impact(a,w.attack,w.tiles);
+ }
  function win(a,weapon){
-  if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;a.aggro=false;a.opened=true;release(a);
+  if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;a.aggro=false;a.opened=true;release(a);cancelWindup(a);
   const at=api.tile(),escape=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>api.world.get(key(a.x+dx,a.z+dz))).filter(t=>t&&!t.water&&!t.blocked&&!taken(t,a)&&Math.abs(t.h-a.tile.h)<=.5).sort((x,y)=>Math.hypot(y.x-at.x,y.z-at.z)-Math.hypot(x.x-at.x,x.z-at.z))[0];
   fleeing.set(a,{age:0,destination:!a.rules.inert&&escape&&position(escape)});api.won?.(a,weapon);if(a.respawn!=null)returningAfterWin.set(a,a.respawn+1.2);api.complete?.();
  }
@@ -250,6 +314,7 @@ export function createCombatSystem(api){
   inCombatState.value=sinceActivity<5;
   if(defense){defense.age+=dt;if(defense.age>=BLOCK_DURATION)defense=null;}
   for(let i=shots.length-1;i>=0;i--){const shot=shots[i];shot.left-=dt;if(shot.left<=0){shots.splice(i,1);strike(shot.enemy,shot.profile);}}
+  for(let i=enemyShots.length-1;i>=0;i--){const shot=enemyShots[i];shot.left-=dt;if(shot.left<=0){enemyShots.splice(i,1);impact(shot.enemy,shot.attack,shot.tiles);}}
   // Off-hand follow-ups are committed once the main hand releases: moving away doesn't lose them, but a
   // stun or other effect preventing attacks cancels them (as it does an unreleased windup).
   if(followUps.length&&(defeated||api.control&&!api.control.can('attack')))followUps.length=0;
@@ -273,7 +338,9 @@ export function createCombatSystem(api){
     if(inTerritory(a,p)&&(sizeOf(a)>1?cellsOf(a).some(c=>withinAttackRange(api.world,c,target,range)):withinAttackRange(api.world,a.tile,target,range)&&findPath(api.world,a.tile,p)))engage(a);
    }
    // Stun and immobilize hold the enemy in place; slows scale its walking below.
-   if(canMove){if(a.returning)walkHome(a);else if(a.aggro)pursue(a);}
+   // A thrower stops chasing once its ranged punish is ready, finishes its step and winds up in place.
+   const throwing=a.windup?.kind==='ranged'||!a.windup&&a.aggro&&a.rules.rangedAttack&&(a.awayFor||0)>=a.rules.rangedAttack.after&&!inReachOf(a)&&canThrow(a);
+   if(canMove&&!throwing){if(a.returning)walkHome(a);else if(a.aggro)pursue(a);}
    const targeted=fight?.enemy===a||chase?.enemy===a;
    if(a.rules.inert||targeted||a.aggro||a.returning||api.blocked()||defeated||api.approaching?.()===a||!canMove)a.patrolRoute=[];
    else if(settled(a)){if(!a.patrolRoute.length){a.patrolClock-=dt;if(a.patrolClock<=0){a.patrolClock=wanderDelay(random);if(shouldWander(random))a.patrolRoute=sizeOf(a)>1?wanderStep(a):wanderRoute(api.world,a.tile,a.patrol,t=>taken(t,a),random);}}
@@ -285,13 +352,15 @@ export function createCombatSystem(api){
    // Every path mode reserves one destination and physically finishes it before taking another.
    if(distance)a.group.position.lerp(destination,Math.min(1,dt*(a.aggro||a.returning?2:1.6)*(a.rules.moveSpeed??1)*(1-a.control.slowFraction)/distance));
    a.sinceStrike=(a.sinceStrike??Infinity)+dt;
-   if(a.aggro&&adjacent(a)&&!defeated&&a.control.can('attack')){
-    // Opening attack: a ready enemy swings after OPENING_WINDUP rather than a full interval. Telegraphed
-    // attacks (bosses) always wind up in full; leaving reach resets the windup below.
-    if(opening&&!a.rules.telegraphed&&a.enemyClock===0&&a.sinceStrike>=a.rules.interval)a.enemyClock=Math.max(0,a.rules.interval-opening);
-    a.enemyClock+=dt;if(a.enemyClock>=a.rules.interval){a.enemyClock-=a.rules.interval;a.sinceStrike=0;a.attackAge=.28;hitPlayer(a);}}
-   else a.enemyClock=0;
-   animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,a.rules.interval):0,hit:Math.sin(Math.PI*a.hitAge/.25),charge:a.aggro?a.enemyClock/a.rules.interval:0,slam:a.attackAge/.28});
+   // A ready enemy's first attack waits only for its windup (the cooldown counts from its last strike).
+   if(a.aggro&&!defeated&&!api.blocked()&&a.control.can('attack'))enemyAttackUpdate(a,dt,!moving);
+   else{cancelWindup(a);a.awayFor=0;}
+   // The animation clock: the windup ends the interval; between attacks it rests before the windup.
+   const melee=a.windup?.kind!=='ranged',interval=a.rules.interval,windupStart=interval-windupOf(a.rules);
+   a.enemyClock=a.windup&&melee?windupStart+a.windup.age:a.aggro?Math.min(a.sinceStrike,windupStart):0;
+   if(a.thrownAge!=null){a.thrownAge+=dt;if(a.thrownAge>.5)a.thrownAge=null;}
+   const thrown=a.windup?.kind==='ranged'?a.windup.age/a.windup.windup:a.thrownAge!=null?1+a.thrownAge/.5:0;
+   animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&melee&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,interval):0,hit:Math.sin(Math.PI*a.hitAge/.25),charge:a.aggro&&melee?a.enemyClock/interval:0,slam:melee&&a.thrownAge==null?a.attackAge/.28:0,thrown});
    if(labelled){projected.copy(a.group.position);projected.y+=a.plateLift??1.7;projected.project(camera);const view=gameViewport();a.plate.place(view.left+(projected.x+1)*view.width/2,view.top+(1-projected.y)*view.height/2);a.plate.effects.value=a.control.kinds.join(',');a.plate.danger.value=api.danger?.(a)||null;}
   }
   for(const [a,f] of fleeing)if(current(a)){f.age+=dt;animate(a,time,{walk:1});if(f.destination){a.group.rotation.y=Math.atan2(f.destination.x-a.group.position.x,f.destination.z-a.group.position.z);a.group.position.lerp(f.destination,1-Math.exp(-dt*3));}a.group.scale.setScalar(a.scale*Math.max(.01,1-Math.max(0,(f.age-.8)/.4)));if(f.age>=1.2){a.group.visible=false;fleeing.delete(a);}}
@@ -319,7 +388,7 @@ export function createCombatSystem(api){
      // Recheck at release: an unaffordable ability cancels this windup and the ability use (no cost, no XP).
      api.toast?.(`Not enough Energy for ${weapon.abilityName}. It was cancelled.`);c.playerClock=0;c.struck=false;commit(c);
     }
-    else{c.playerClock-=weapon.interval;sinceRelease=0;stopGather();if(weapon.ammo){api.inventory[weapon.ammo]--;api.items?.({[weapon.ammo]:-1});}
+    else{c.playerClock-=weapon.interval;sinceRelease=0;lastInterval=weapon.interval;stopGather();if(weapon.ammo){api.inventory[weapon.ammo]--;api.items?.({[weapon.ammo]:-1});}
      if(weapon.manaCost)api.mana.value-=weapon.manaCost;
      if(weapon.energyCost)api.energy.value-=weapon.energyCost;
      if(weapon.backfirePercent>0&&random()*100<weapon.backfirePercent)backfire(a,weapon);
@@ -330,14 +399,15 @@ export function createCombatSystem(api){
     }
    }
    // Animation time follows the committed attack clock, including recovery after each release.
-   const shown=c.struck&&c.released&&c.playerClock<RECOVERY+(c.released.followUp?FOLLOW_UP_DELAY:0)?c.released:c.profile;
-   c.age=(c.struck?shown.interval:0)+c.playerClock;
+   // Recovery follows time since the release; a clock still waiting out a longer timer shows rest.
+   const recovering=c.struck&&c.released&&sinceRelease<RECOVERY+(c.released.followUp?FOLLOW_UP_DELAY:0),shown=recovering?c.released:c.profile;
+   c.age=(c.struck?shown.interval:0)+Math.max(0,recovering?sinceRelease:c.playerClock);
    // A block shows between melee/ranged attacks, never over a spell's cast.
    if(fight){api.interacting?.();if(!defense||shown.style==='magic'||attackWindow(shown,c.age))return {kind:shown.style==='ranged'?'Archery':shown.style==='magic'?'Casting':'Combat',time:c.age,profile:shown};}
   }
   return defense?{kind:'Block',time:defense.age,profile:defense.profile}:null;
  }
- return {start,update,cancel,clear,disengage,lose,preview:profile,queue,queueSpell,consumableUsed,
+ return {start,update,cancel,clear,disengage,lose,preview:profile,queue,queueSpell,consumableUsed,handsChanged,
   get queuedSpell(){return pending?.spell||null;},
   get pending(){return pending?.ability||null;},get pendingManual(){return pending&&!pending.auto?pending.ability:null;},get fighting(){return !!fight;},get committedAbility(){return fight?.ability?.name||null;},
   // Regeneration uses the slower rate during combat activity and for 5 seconds afterwards.
@@ -348,7 +418,7 @@ export function createCombatSystem(api){
   add(a){enemies.add(a);a.patrolPhase=random()*10;resetEnemy(a);return a;},
   // Whether an enemy body stands on this tile (stopping preferences; creatures never block movement).
   occupies:t=>enemyAt(t,null),
-  remove(a){if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;fleeing.delete(a);returningAfterWin.delete(a);for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);enemies.delete(a);release(a);a.dispose?.();},
+  remove(a){if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;fleeing.delete(a);returningAfterWin.delete(a);for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);for(let i=enemyShots.length-1;i>=0;i--)if(enemyShots[i].enemy===a)enemyShots.splice(i,1);cancelWindup(a);enemies.delete(a);release(a);a.dispose?.();},
   resetWhere(predicate=()=>true){if(fight&&predicate(fight.enemy))fight=null;if(chase&&predicate(chase.enemy))chase=null;defense=null;for(const a of enemies)if(predicate(a))resetEnemy(a);},
   reset(){clear();for(const a of enemies)resetEnemy(a);},
   matches:a=>fight?.enemy===a,get working(){return !!fight||!!chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened);},get busy(){return defeated>0;},

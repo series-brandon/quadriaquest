@@ -29,6 +29,8 @@ export function makeCinderGolem(){
   piece(arm,new THREE.DodecahedronGeometry(.2,0),basalt,side*.04,-.28,0).scale.set(.9,1.4,.9);
   const fist=piece(arm,new THREE.DodecahedronGeometry(.3,0),dark,side*.06,-.7,.06);fist.scale.set(1,.9,1);
   piece(arm,new THREE.BoxGeometry(.04,.22,.04),ember,side*.1,-.32,.17).rotation.z=side*.4;
+  // The Rock Throw's rock, held in the right fist while it winds up (hidden otherwise).
+  if(side===1){const held=piece(arm,new THREE.DodecahedronGeometry(.22,0),rock('#5b4f4a'),side*.06,-.98,.1,'golem-rock');held.visible=false;}
   const leg=new THREE.Group();leg.name='golem-leg'+side;leg.position.set(side*.32,.48,0);rig.add(leg);
   piece(leg,new THREE.DodecahedronGeometry(.26,0),dark,0,-.18,0).scale.set(1,1.15,1.05);
   piece(leg,new THREE.BoxGeometry(.4,.16,.48),basalt,0,-.4,.05);
@@ -36,8 +38,9 @@ export function makeCinderGolem(){
  return g;
 }
 // charge (0..1): progress through the telegraphed slam windup, fists rising overhead. slam (1..0): the
-// strike just landed, fists down and body forward, easing back. hit: flinch when struck.
-export function animateGolem(group,time,{walk=0,charge=0,slam=0,hit=0}={}){
+// strike just landed, fists down and body forward, easing back. hit: flinch when struck. thrown: the
+// Rock Throw, 0..1 winding up (rock raised back over the shoulder), 1..2 the throw's follow-through.
+export function animateGolem(group,time,{walk=0,charge=0,slam=0,hit=0,thrown=0}={}){
  const rig=findPart(group,'golem-rig');if(!rig)return;
  const torso=findPart(group,'golem-torso'),head=findPart(group,'golem-head'),stride=Math.sin(time*4.5)*walk;
  const raise=smooth((charge-.25)/.65),down=smooth(slam);
@@ -52,5 +55,12 @@ export function animateGolem(group,time,{walk=0,charge=0,slam=0,hit=0}={}){
   // Eyes flare as it winds up.
   findPart(group,'golem-eye'+side).scale.y=1+raise*.8;
  }
+ // Rock Throw: the right arm draws back overhead with the rock, then whips forward.
+ const held=findPart(group,'golem-rock');if(held)held.visible=thrown>0&&thrown<1;
+ if(thrown>0){
+  const arm=findPart(group,'golem-arm1'),draw=thrown<1?smooth(thrown/.8):0,whip=thrown>=1?1-smooth(thrown-1):0;
+  arm.rotation.x=-draw*2.9+whip*1.2;arm.rotation.z=.12+draw*.3;
+  torso.rotation.y=-draw*.35+whip*.3;torso.rotation.x=-draw*.1+whip*.25;
+ }else torso.rotation.y=0;
  const ember=findPart(group,'golem-eye1')?.material;if(ember)ember.emissiveIntensity=1.2+Math.sin(time*2.4)*.25+raise*1.4+down*1.2;
 }

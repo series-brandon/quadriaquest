@@ -20,6 +20,16 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Anti-kiting enemy attacks, Rock Throw, OSRS-style weapon swaps — 2026-10-10 (user design)
+
+- **Enemy attack commitment** (COMBAT.md): an enemy's cooldown keeps running out of reach; its windup starts once the player is in reach; leaving reach in the first half cancels it with no new cooldown; past the halfway commit point it lands. Character-targeted attacks (default) hit wherever the player went. Tile-targeted attacks (`target:'tile'`, `area`) lock the (2r+1)² non-solid tiles around the player at the commit point and hit whoever stands there at impact ("Dodged!" otherwise). Walking into an enemy keeps its windup going while it shuffles aside. Code: `enemyAttackUpdate`, `impact`, `lockTiles` in `combat.js`; old "leaving reach resets the clock" is gone.
+- **Cinder Golem:** slam is tile-targeted, 3×3. New **Rock Throw** (`ENEMIES.golem.rangedAttack`: 2.4 s windup, 3×3, 40–90, range 8, after 1.5 s out of reach, 0.6 s flight). It stops chasing to throw and must chase the full delay again before the next throw. `golem-model.js` has a `thrown` motion with a held rock; the model catalogue lists **Throw**. Rock projectile: `projectile-effects.js` style `rock` with `duration`/`arc`.
+- **Ground telegraph:** `attack-telegraph.js` (shared, any map) draws locked tiles filling toward impact; `combat` calls `api.telegraph(owner,tiles,progress)`. Playground `getState().telegraphs` reports active sets.
+- **Weapon swaps mid-fight (OSRS-style):** equipment is no longer refused during combat (`main.js` busy gate), nor is spell selection. Changing a hand item calls `combat.handsChanged()`: the unlanded attack and its carried ability are lost, unstruck off-hand follow-ups cancel, arrows in flight still land, and the next attack lands at max(previous attack's interval since release, new windup). Fight starts use the same timer rule (`schedule`). Armor/hats don't interrupt.
+- Tests: 467 pass (golem slam cancel/lock/dodge/hit, Rock Throw hit/dodge/chasing stop/repeat delay, commit and cooldown rules, walking into an enemy, swap timing incl. quick→slow follow-up, mid-windup restart, no-timer swap, arrow in flight).
+- Browser-verified in the Cinderhold arena: markers appear at the halfway point, standing still is lethal, stepping two tiles away shows "Dodged!", the Rock Throw hits a player kept out of reach. **Not browser-verified:** a mid-fight weapon swap through the Inventory/Equipment UI (unit-tested only; the pane was hidden).
+- Open tuning note: escaping the 3×3 needs two straight steps in about 1.7 s; it works, but feels tight when reacting late.
+
 ### Walk-through characters (cities Phase 0) — 2026-10-10 (user rule)
 
 - Living characters never block movement; every other entity stays solid. Details and the implemented rules are in CITY.md *Walk-through entities*. `tile.blocked` now means solid only.
