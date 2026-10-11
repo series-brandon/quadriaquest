@@ -39,3 +39,17 @@ test('generated crowds and townsfolk checks',()=>{
  assert.deepEqual(townsfolkProblems(built.data,built).filter(p=>p.severity==='error'),[]);
  built.data.townsfolk.push({id:'x',home:[29,30],routine:[{do:'sit'}]});assert.ok(townsfolkProblems(built.data,built).some(p=>/blocked/.test(p.text)));
 });
+test('residents go home through their door, open it, shut it behind them, and keepers mind their shops',async()=>{
+ const built=city(),resident=built.data.townsfolk.find(e=>e.house!==undefined&&!built.data.buildings[e.house].desc.sign);
+ assert.ok(resident,'the kit street has residents');
+ const house=built.buildings[resident.house];
+ const solo={...built.data,townsfolk:[{...resident,home:[house.anchors.doors[0].doorstep.x,house.anchors.doors[0].doorstep.z],routine:[{do:'home'}]}]};
+ const one=buildCity(solo,{scene:new THREE.Group()}),crowd=createCrowd({city:one,parent:new THREE.Group()}),p=crowd.folk[0],theDoor=one.buildings[resident.house].doors[0];
+ let opened=false,inside=false,hiddenInside=false;
+ for(let i=0;i<60*30;i++){crowd.update(1/60,i/60);if(theDoor.open)opened=true;if(p.tile.indoor&&!p.step){inside=true;if(!p.group.visible)hiddenInside=true;}if(inside&&!theDoor.open&&!p.openedDoor)break;}
+ assert.ok(opened,'opened the door');assert.ok(inside,'went inside');assert.ok(hiddenInside,'not drawn behind the roof');assert.equal(theDoor.open,false,'shut it behind them');
+ const keeperEntry=built.data.townsfolk.find(e=>built.data.buildings[e.house]?.desc.sign);assert.ok(keeperEntry,'shops have keepers');
+ const kc=createCrowd({city:buildCity({...built.data,townsfolk:[keeperEntry]},{scene:new THREE.Group()}),parent:new THREE.Group()}),k=kc.folk[0];
+ let kept=false;for(let i=0;i<60*40&&!kept;i++){kc.update(1/60,i/60);if(k.state==='staying'&&k.activity==='keep')kept=k.tile===k.house.keeper;}
+ assert.ok(kept,'the keeper stands at the keeper spot');
+});

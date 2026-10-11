@@ -72,5 +72,13 @@ export function kitStreetData(){
   {id:'sable',name:'Sable',look:{color:'#9db8e3'},home:[84,33],routine:[{do:'gaze',weight:2},{do:'chat',weight:1},{do:'stroll',weight:1}]},
   {id:'pell',name:'Pell',look:{color:'#d98fa6'},home:[70,24],routine:[{do:'sit',weight:2},{do:'stroll',weight:2}]},
   {id:'dot',name:'Dot',look:{color:'#8fc9b8'},home:[64,31],routine:[{do:'stroll',weight:2},{do:'enter',weight:1}]});
+ // Residents and shopkeepers (live in or mind a building of their own, through its door).
+ const names=['Abel','Briony','Cob','Della','Ewan','Fay','Gil','Hester','Isla','Jory','Kester','Lottie','Merrick','Nan'],colors=['#a4ce77','#e0a96d','#9db8e3','#d98fa6','#c7b46a','#8fc9b8','#b49ad6','#e3c07c'];
+ let n=0;
+ data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length||n>=names.length)return;
+  const shop=!!b.desc.sign,resident=shop||i%2===1;if(!resident)return;
+  data.townsfolk.push({id:`resident-${i}`,name:names[n],look:{color:colors[n%colors.length],loadout:n%4===0?{head:'minersCap'}:null},house:i,
+   routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'sit',weight:1},{do:'chat',weight:1}],
+   line:shop?'Come in, come in! Stock’s coming soon.':'Home sweet home.'});n++;});
  return data;
 }

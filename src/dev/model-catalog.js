@@ -135,7 +135,7 @@ export function buildingPreview(){
   for(const door of built.doors){door.setOpen(motion==='Doors open',{quiet:true});door.amount=open;animateDoor(door.model,open);}
   const cut=motion==='Cut (cutaway)';
   cutUniforms.uCutIds.value.fill(-1);cutUniforms.uCutIds.value[0]=PREVIEW_BUILDING;cutUniforms.uCutCount.value=cut?1:0;
-  for(const {object} of edges.cutParts())object.visible=!cut;
+  for(const {object} of edges.cutParts())object.visible=object.userData.showWhenCut?cut:!cut;
  }};
 }
 // City terrain (Phase 5): a terrace a block up with a retaining wall, a 2-wide stair and railings,

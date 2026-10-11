@@ -1,6 +1,6 @@
 import {Group,Mesh,Matrix4,Float32BufferAttribute,Color,MeshStandardMaterial,MeshDepthMaterial,RGBADepthPacking,Box3} from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import {applyCutaway,registerCutSource,sectionMaterial} from './cutaway.js';
+import {applyCutaway,registerCutSource,sectionMaterial,restoreCutPart} from './cutaway.js';
 import {setEdge,edgeBetween} from './world.js';
 import {occupancy} from './world-occupancy.js';
 import {edgePiece,doorModel,animateDoor,edgePlacement,cornerPost,hasPosts,setDoorHinge,STYLES} from './edge-models.js';
@@ -178,7 +178,7 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
   // Something that hides while its building(s) are cut (a roof, chimney, sign); it also counts towards
   // the building's box. box: optional world-space Box3 (default: the object's bounds).
   addCutPart(object,owner,{box}={}){cutParts.push({object,owners:[owner].flat(),box});boxesDirty=true;return object;},
-  removeCutPart(object){const i=cutParts.findIndex(p=>p.object===object);if(i>=0){cutParts.splice(i,1);object.visible=!object.userData.hiddenByMap;boxesDirty=true;}},
+  removeCutPart(object){const i=cutParts.findIndex(p=>p.object===object);if(i>=0){cutParts.splice(i,1);restoreCutPart(object);boxesDirty=true;}},
   get buildingBoxes(){return new Map(buildingBoxes());},
   cutParts(){return [...[...placed.values()].filter(p=>p.door).map(p=>({object:p.door.model.upper,owners:p.owners})),...cutParts];},
   get doors(){return [...placed.values()].filter(p=>p.door).map(p=>p.door);},
@@ -187,7 +187,7 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
   // Every door that breaks the door rule, with what is wrong.
   doorProblems(){return [...placed.values()].filter(p=>p.door).map(p=>({door:p.door,problems:doorProblems(p.door,tileAt)})).filter(r=>r.problems.length);},
   bake,unbake,get baked(){return !!baked;},
-  clear(){unbake();for(const item of placed.values())drop(item);placed.clear();for(const p of cutParts)p.object.visible=!p.object.userData.hiddenByMap;cutParts.length=0;boxesDirty=true;},
+  clear(){unbake();for(const item of placed.values())drop(item);placed.clear();for(const p of cutParts)restoreCutPart(p.object);cutParts.length=0;boxesDirty=true;},
   dispose(){this.clear();unregister();root.removeFromParent();},
  };
 }

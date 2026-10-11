@@ -7344,6 +7344,1370 @@
     }
    ],
    "pace": 1.2000000000000002
+  },
+  {
+   "id": "resident-8",
+   "name": "Alder",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 8,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-12",
+   "name": "Bryn",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": null
+   },
+   "house": 12,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-16",
+   "name": "Coral",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": null
+   },
+   "house": 16,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-20",
+   "name": "Dunstan",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": null
+   },
+   "house": 20,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-24",
+   "name": "Elsie",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": null
+   },
+   "house": 24,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-28",
+   "name": "Fenwick",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 28,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-32",
+   "name": "Greer",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": null
+   },
+   "house": 32,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-36",
+   "name": "Hob",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": null
+   },
+   "house": 36,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-40",
+   "name": "Ivo",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": null
+   },
+   "house": 40,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-44",
+   "name": "Juniper",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": null
+   },
+   "house": 44,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-47",
+   "name": "Kell",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 47,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-48",
+   "name": "Linnet",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": null
+   },
+   "house": 48,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-49",
+   "name": "Mabry",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": null
+   },
+   "house": 49,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-52",
+   "name": "Nettle",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": null
+   },
+   "house": 52,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-54",
+   "name": "Orrin",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": null
+   },
+   "house": 54,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-55",
+   "name": "Pearl",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 55,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-56",
+   "name": "Quince",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": null
+   },
+   "house": 56,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-60",
+   "name": "Rook",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": null
+   },
+   "house": 60,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-62",
+   "name": "Sorrel",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": null
+   },
+   "house": 62,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-63",
+   "name": "Thistle",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": null
+   },
+   "house": 63,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-64",
+   "name": "Ulric",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 64,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-66",
+   "name": "Vesper",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": null
+   },
+   "house": 66,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-67",
+   "name": "Wick",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": null
+   },
+   "house": 67,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-68",
+   "name": "Yarrow",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": null
+   },
+   "house": 68,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-72",
+   "name": "Alder 2",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": null
+   },
+   "house": 72,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-76",
+   "name": "Bryn 2",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 76,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-78",
+   "name": "Coral 2",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": null
+   },
+   "house": 78,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-79",
+   "name": "Dunstan 2",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": null
+   },
+   "house": 79,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-80",
+   "name": "Elsie 2",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": null
+   },
+   "house": 80,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-84",
+   "name": "Fenwick 2",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": null
+   },
+   "house": 84,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-88",
+   "name": "Greer 2",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 88,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-91",
+   "name": "Hob 2",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": null
+   },
+   "house": 91,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-92",
+   "name": "Ivo 2",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": null
+   },
+   "house": 92,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-93",
+   "name": "Juniper 2",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": null
+   },
+   "house": 93,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-96",
+   "name": "Kell 2",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": null
+   },
+   "house": 96,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-100",
+   "name": "Linnet 2",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 100,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-104",
+   "name": "Mabry 2",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": null
+   },
+   "house": 104,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-108",
+   "name": "Nettle 2",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": null
+   },
+   "house": 108,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-112",
+   "name": "Orrin 2",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": null
+   },
+   "house": 112,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-116",
+   "name": "Pearl 2",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": null
+   },
+   "house": 116,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-120",
+   "name": "Quince 2",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 120,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-124",
+   "name": "Rook 2",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": null
+   },
+   "house": 124,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-128",
+   "name": "Sorrel 2",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": null
+   },
+   "house": 128,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-132",
+   "name": "Thistle 2",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": null
+   },
+   "house": 132,
+   "routine": [
+    {
+     "do": "home",
+     "weight": 3
+    },
+    {
+     "do": "tend",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Mind the step on your way in."
+  },
+  {
+   "id": "resident-136",
+   "name": "Ulric 2",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": null
+   },
+   "house": 136,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-137",
+   "name": "Vesper 2",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "house": 137,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
+  },
+  {
+   "id": "resident-138",
+   "name": "Wick 2",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": null
+   },
+   "house": 138,
+   "routine": [
+    {
+     "do": "keep",
+     "weight": 6
+    },
+    {
+     "do": "tend",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Stock’s coming in soon, I promise."
   }
  ],
  "interiors": {

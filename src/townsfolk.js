@@ -3,7 +3,8 @@ import {makeSlime} from './slime-model.js';
 import {createSlimeActor} from './slime-presentation.js';
 import {markCharacter,occupancy} from './world-occupancy.js';
 import {seatPosition} from './props.js';
-import {key,canStep} from './world.js';
+import {key,canStep,edgeBetween} from './world.js';
+import {isBuildingCut} from './cutaway.js';
 import {moveMotion} from './slime-motion.js';
 
 // Townsfolk and city life (docs/CITY.md, Townsfolk and city life; city Phase 8). Routines come from
@@ -11,14 +12,15 @@ import {moveMotion} from './slime-motion.js';
 // activity finds a spot offered by props and buildings (sit on a bench, browse or vend at a stall,
 // gaze at a fountain or statue, drink at a well, read the noticeboard), or chats with a neighbour,
 // strolls, goes indoors for a while, or patrols. Every motion is the shared slime presentation.
-//   entry: {id, name, look:{color, loadout:{head…}, carry}, home:[x, z], routine:[{do, weight}],
+//   entry: {id, name, look:{color, loadout:{head…}, carry}, home:[x, z], house (a building index: home,
+//           keep and tend use it; home defaults to inside it), routine:[{do, weight}],
 //           patrol:[[x, z]…] (guards), pace (idle rate), hours (ignored until a clock exists)}
 // Townsfolk walk through each other and the player (walk-through characters); they prefer not to stop
 // where someone stands, and never idle on doorsteps, stairs or stall fronts.
 // Navigation is shared: distance fields to popular destinations (every spot, every home) are cached
 // and followed downhill; strolls use a bounded search. Presentation runs in rings (crowd budget):
 // near and on screen, full; far on screen, a quarter rate with a fixed face; off screen, movement only.
-export const ACTIVITIES=['sit','browse','vend','gaze','drink','read','chat','stroll','enter','patrol'];
+export const ACTIVITIES=['sit','browse','vend','gaze','drink','read','chat','stroll','enter','patrol','home','keep','tend'];
 // WALK: townsfolk walk a little slower than the player (the shared move's time scale).
 const WALK=.72,NEAR=16,FAR=34,FIELD_CACHE=48,STROLL_RADIUS=10;
 const LINES=['Lovely day for it.','Have you seen the fountain?','Mind the stairs.','The market’s busy today.','I’m just on my way home.','Hello there!','They say the castle has a hundred rooms.','Fresh bread soon, I hope.'];
@@ -26,19 +28,21 @@ const NEIGHBOURS=[[1,0],[-1,0],[0,1],[0,-1]];
 // Faces while two townsfolk chat (they walk about happy).
 const CHAT_FACES=['happy','pleased','shocked','sad','frown','happy','pleased'];
 
-// Shared navigation for one map: cached distance fields (BFS over the shared step rule).
+// Townsfolk walk through unlocked doors: a closed one is opened on the way (and shut behind them).
+export function passable(from,to){if(canStep(from,to))return true;const edge=edgeBetween(from,to);return !!edge&&edge.kind==='door'&&!edge.locked&&!!to&&!to.blocked&&Math.abs(to.h-from.h)<=.5;}
+// Shared navigation for one map: cached distance fields (BFS over the shared step rule, doors included).
 export function createNavigator(map){
  const fields=new Map();
  function field(goal){
   const id=key(goal.x,goal.z);if(fields.has(id)){const f=fields.get(id);fields.delete(id);fields.set(id,f);return f;}
   const dist=new Map([[goal,0]]),queue=[goal];
-  for(let i=0;i<queue.length;i++){const t=queue[i],d=dist.get(t);for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(n&&!dist.has(n)&&canStep(n,t)){dist.set(n,d+1);queue.push(n);}}}
+  for(let i=0;i<queue.length;i++){const t=queue[i],d=dist.get(t);for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(n&&!dist.has(n)&&passable(n,t)){dist.set(n,d+1);queue.push(n);}}}
   fields.set(id,dist);if(fields.size>FIELD_CACHE)fields.delete(fields.keys().next().value);return dist;
  }
  return {field,
   // The next step from `from` towards `goal` (null when there or unreachable), preferring free tiles.
   next(from,goal,occupied=()=>false){const dist=field(goal),here=dist.get(from);if(here===undefined||here===0)return null;
-   const options=NEIGHBOURS.map(([dx,dz])=>map.get(key(from.x+dx,from.z+dz))).filter(n=>n&&dist.get(n)===here-1&&canStep(from,n));
+   const options=NEIGHBOURS.map(([dx,dz])=>map.get(key(from.x+dx,from.z+dz))).filter(n=>n&&dist.get(n)===here-1&&passable(from,n));
    return options.find(n=>!occupied(n))||options[0]||null;},
   reachable:(from,goal)=>field(goal).has(from),
   // Tiles within `radius` steps (bounded search), for strolls.
@@ -55,20 +59,24 @@ const pickWeighted=(routine,random)=>{const total=routine.reduce((n,r)=>n+(r.wei
 // A crowd for a built city (city-map.js): its townsfolk, from data.townsfolk.
 export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
  const map=city.tiles,nav=createNavigator(map),random=seeded(seed),folk=[];
- const doorsteps=new Set(city.doors.map(d=>d.b).filter(Boolean));
+ const doorsteps=new Set(city.doors.map(d=>d.b).filter(Boolean)),doorways=new Set(city.doors.flatMap(d=>[d.a,d.b]).filter(Boolean));
  const spotsOf=kind=>city.props.flatMap(p=>p.spots.filter(s=>s.kind===kind&&s.tile&&!s.tile.blocked));
- const avoid=t=>t.stair||doorsteps.has(t)||city.props.some(p=>p.spots.some(s=>s.tile===t));
+ const avoid=t=>t.stair||doorways.has(t)||city.props.some(p=>p.spots.some(s=>s.tile===t));
  const strollable=t=>!t.blocked&&!t.water&&!t.indoor&&!avoid(t);
  const taken=(t,me)=>occupancy.owners(t).some(o=>o!==me);
  const group=new THREE.Group();group.name='townsfolk';parent.add(group);
+ // A townsfolk's own building (entry.house: its index): its free inside tiles, keeper spot and doorstep.
+ const houseOf=entry=>{const b=entry.house!==undefined?city.buildings[entry.house]:null;if(!b)return null;
+  const inside=b.plan.tiles.map(([x,z])=>map.get(key(x,z))).filter(t=>t&&!t.blocked&&!doorways.has(t));
+  return {building:b,inside,keeper:b.anchors.keeper&&!b.anchors.keeper.blocked?b.anchors.keeper:null,doorstep:b.anchors.doors[0]?.doorstep||null,door:b.anchors.doors[0]?.inside||null};};
  for(const entry of city.data.townsfolk||[]){
-  const home=map.get(key(...entry.home));if(!home)continue;
+  const house=houseOf(entry),home=entry.home?map.get(key(...entry.home)):house?.inside[0];if(!home)continue;
   // The crowd moves a body; the shared presentation animates the rig inside it (it owns the rig's height).
   const rig=makeSlime(entry.look?.color||'#9ccf7a');markCharacter(rig.group);
   const slime=createSlimeActor(rig,{loadout:entry.look?.loadout||null,carry:entry.look?.carry||null,idleRate:entry.pace||1});
   const body=new THREE.Group();body.name='townsfolk-'+(entry.id||'');body.add(rig.group);body.userData.character=true;body.userData.blocksMovement=false;
   body.position.set(home.x-6,home.h,home.z-6);group.add(body);
-  const person={kind:'townsfolk',id:entry.id,name:entry.name||'Townsfolk',entry,rig,slime,group:body,tile:home,x:home.x,z:home.z,home,
+  const person={kind:'townsfolk',id:entry.id,name:entry.name||'Townsfolk',entry,rig,slime,group:body,tile:home,x:home.x,z:home.z,home,house,
    ready:true,opened:false,duration:0,label:`Talk to ${entry.name||'townsfolk'}`,available:()=>!person.hidden,
    state:'idle',timer:1+random()*3,goal:null,spot:null,step:null,facing:0,hidden:false,ring:'near',acc:0,
    interact(){person.talkTo=services.player?.()||null;person.talking=4;slime.play('Wave',{loop:false});services.say?.(person,person.entry.line||LINES[Math.floor(random()*LINES.length)]);}};
@@ -85,6 +93,11 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
    if(a==='chat'){const other=folk.find(o=>o!==p&&o.state==='idle'&&!o.hidden&&Math.abs(o.tile.x-p.tile.x)+Math.abs(o.tile.z-p.tile.z)<8);if(!other)continue;
     const near=NEIGHBOURS.map(([dx,dz])=>map.get(key(other.tile.x+dx,other.tile.z+dz))).find(n=>n&&strollable(n)&&!taken(n,p)&&nav.reachable(p.tile,n));if(!near)continue;
     other.state='chatting';other.timer=6;other.face=p;return {activity:a,goal:near,stay:6,partner:other};}
+   // Home: potter about inside your own house. Keep: mind your shop from its keeper spot. Tend: linger
+   // around your own building's front.
+   if(a==='home'&&p.house){const free=p.house.inside.filter(t=>t!==p.tile&&!taken(t,p)&&nav.reachable(p.tile,t));if(!free.length)continue;return {activity:a,goal:free[Math.floor(random()*free.length)],stay:5+random()*9};}
+   if(a==='keep'&&p.house?.keeper&&!taken(p.house.keeper,p)&&nav.reachable(p.tile,p.house.keeper))return {activity:a,goal:p.house.keeper,stay:20+random()*20};
+   if(a==='tend'&&p.house?.doorstep){const options=nav.around(p.house.doorstep,2).filter(t=>strollable(t)&&!taken(t,p)&&nav.reachable(p.tile,t));if(!options.length)continue;return {activity:a,goal:options[Math.floor(random()*options.length)],stay:3+random()*6};}
    if(a==='patrol'&&p.entry.patrol?.length){p.patrolIndex=((p.patrolIndex??-1)+1)%p.entry.patrol.length;const goal=map.get(key(...p.entry.patrol[p.patrolIndex]));if(goal&&nav.reachable(p.tile,goal))return {activity:a,goal,stay:1+random()*2};}
   }
   return {activity:'idle',goal:null,stay:2+random()*3};
@@ -98,6 +111,8 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   if(p.activity==='chat'&&p.partner){p.face=p.partner;p.chatFace=CHAT_FACES[Math.floor(random()*CHAT_FACES.length)];p.partner.chatFace=CHAT_FACES[Math.floor(random()*CHAT_FACES.length)];p.slime.play(random()<.5?'Wave':'Happy hop',{loop:false});}
   if(p.activity==='drink')p.slime.play('Gathering',{loop:false,duration:1.6});
   if(p.activity==='vend'&&random()<.5)p.slime.play('Point',{loop:false,duration:1.2});
+  if(p.activity==='keep'&&p.house.door)p.facing=angleTo(p.tile,p.house.door);
+  if(p.activity==='tend'&&random()<.5)p.slime.play('Gathering',{loop:false,duration:2});
  }
  function leave(p){
   if(p.activity==='sit')p.slime.stop();
@@ -105,6 +120,9 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   p.face=null;p.partner=null;p.spot=null;p.state='idle';p.timer=.5+random()*2.5;
  }
  const angleTo=(a,b)=>Math.atan2(b.x-a.x,b.z-a.z);
+ // Shut a door you opened once you are through and its doorway is clear (nobody on either side of it).
+ function shutBehind(p){const door=p.openedDoor;if(!door)return;if(p.tile===door.a||p.tile===door.b)return;
+  if(occupancy.owners(door.a).length||occupancy.owners(door.b).length){return;}if(door.open)door.setOpen(false,{quiet:!services.near?.(p.tile)});p.openedDoor=null;}
  const stats={near:0,far:0,off:0,walking:0,updated:0};
  return {group,folk,navigator:nav,stats,
   // Per frame. view: {camera, player:{x,z} (tile), frustum (THREE.Frustum, optional)}. playerTile:
@@ -114,6 +132,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
    const focus=camera?{x:camera.position.x,z:camera.position.z}:null;
    for(const p of folk){
     // Logic: always. Moving townsfolk never hide or get hidden (world-occupancy.js top).
+    if(p.openedDoor&&!p.step)shutBehind(p);
     p.moving=!!p.step;
     // Talking to the player: finish the step under way, then stand and face them until done.
     if(p.talking>0){p.talking-=dt;if(p.talking<=0)p.talkTo=null;}
@@ -124,10 +143,15 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
       let next=nav.next(p.tile,p.goal,t=>taken(t,p));
       if(next&&next===p.goal&&taken(next,p)){if(p.spot){p.state='idle';p.timer=1+random()*2;next=null;}else{arrive(p);next=null;}}
       if(p.state==='walking'&&!next){if(p.tile===p.goal)arrive(p);else{p.state='idle';p.timer=1;}}
-      else if(next){p.step={from:p.tile,to:next,age:0};p.facing=angleTo(p.tile,next);occupancy.place(p,[p.tile,next]);}}
+      else if(next){
+       // A closed door on the way: open it, give it a moment to swing, then go through.
+       const edge=edgeBetween(p.tile,next);
+       if(edge?.kind==='door'&&!edge.open){p.facing=angleTo(p.tile,next);if(!(p.doorWait>0)){edge.setOpen(true,{quiet:!services.near?.(p.tile)});p.openedDoor=edge;p.doorWait=.35;}}
+       else{p.step={from:p.tile,to:next,age:0};p.facing=angleTo(p.tile,next);occupancy.place(p,[p.tile,next]);}}}
+     if(p.doorWait>0)p.doorWait-=dt;
      if(p.step){p.step.age+=dt*WALK;const {from,to}=p.step,move=moveMotion(p.step.age,from,to);p.move=move;
       p.group.position.set(THREE.MathUtils.lerp(from.x,to.x,move.distance)-6,from.h+move.rise,THREE.MathUtils.lerp(from.z,to.z,move.distance)-6);
-      if(p.step.age>=move.duration){p.tile=to;p.x=to.x;p.z=to.z;p.step=null;p.move=null;occupancy.place(p,[to]);for(const m of pickables)if(m.userData.actor===p)m.userData.tile=to;if(to===p.goal)arrive(p);}}
+      if(p.step.age>=move.duration){p.tile=to;p.x=to.x;p.z=to.z;p.step=null;p.move=null;occupancy.place(p,[to]);shutBehind(p);for(const m of pickables)if(m.userData.actor===p)m.userData.tile=to;if(to===p.goal)arrive(p);}}
      stats.walking++;
     }else if(p.state!=='walking'){p.timer-=dt;
      if(p.state==='staying'&&p.timer<=0&&!(p.talking>0))leave(p);
@@ -146,7 +170,9 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
     if(p.hidden){stats.off++;continue;}
     const d=focus?Math.hypot(p.group.position.x-focus.x,p.group.position.z-focus.z):0,onScreen=!frustum||frustum.containsPoint(p.group.position);
     p.ring=!onScreen||d>FAR*1.6?'off':d>FAR?'far':'near';
-    p.moving=!!p.step;p.group.visible=(p.ring!=='off'||d<FAR)&&!occupancy.covered(p,p.tile);
+    // Indoors behind a roof (the building not cut) nobody can see them, so they aren't drawn.
+    const indoors=p.tile.indoor&&p.tile.building!==undefined&&!isBuildingCut(p.tile.building);
+    p.moving=!!p.step;p.group.visible=(p.ring!=='off'||d<FAR)&&!indoors&&!occupancy.covered(p,p.tile);
     if(p.ring==='off'){stats.off++;continue;}
     p.acc+=dt;
     const mood=p.talking>0?'happy':p.state==='chatting'||p.activity==='chat'&&p.state==='staying'?p.chatFace||'happy':p.step?p.entry.walkFace||'happy':p.entry.face||'idle';
@@ -161,11 +187,14 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
 // one usable activity.
 export function townsfolkProblems(data,city){
  const out=[],nav=createNavigator(city.tiles),spots=kind=>city.props.flatMap(p=>p.spots.filter(s=>s.kind===kind&&s.tile&&!s.tile.blocked));
- for(const entry of data.townsfolk||[]){const home=city.tiles.get(key(...entry.home));
-  if(!home||home.blocked){out.push({kind:'townsfolk',severity:'error',tile:entry.home,text:`${entry.name||entry.id}'s home tile is missing or blocked.`});continue;}
-  if(city.spawn&&!nav.reachable(home,city.spawn))out.push({kind:'townsfolk',severity:'warning',tile:entry.home,text:`${entry.name||entry.id} can't reach the town square from home.`});
-  const usable=(entry.routine||[{do:'stroll'}]).some(r=>['stroll','chat','enter'].includes(r.do)||r.do==='patrol'&&entry.patrol?.length||spots(r.do).some(s=>nav.reachable(home,s.tile)));
-  if(!usable)out.push({kind:'townsfolk',severity:'warning',tile:entry.home,text:`${entry.name||entry.id} has nothing in their routine they can do here.`});}
+ for(const entry of data.townsfolk||[]){
+  const house=entry.house!==undefined?city.buildings[entry.house]:null;
+  if(entry.house!==undefined&&(!house||house.plan.desc.interior!=='inPlace'||house.plan.doors.every(d=>d.locked))){out.push({kind:'townsfolk',severity:'error',tile:entry.home||data.spawn,text:`${entry.name||entry.id}'s house can't be walked into.`});continue;}
+  const where=entry.home||(house&&house.plan.tiles.find(([x,z])=>!city.tiles.get(key(x,z))?.blocked)),home=where&&city.tiles.get(key(...where));
+  if(!home||home.blocked){out.push({kind:'townsfolk',severity:'error',tile:where||data.spawn,text:`${entry.name||entry.id}'s home tile is missing or blocked.`});continue;}
+  if(city.spawn&&!nav.reachable(home,city.spawn))out.push({kind:'townsfolk',severity:'warning',tile:where,text:`${entry.name||entry.id} can't reach the town square from home.`});
+  const usable=(entry.routine||[{do:'stroll'}]).some(r=>['stroll','chat','enter'].includes(r.do)||house&&['home','keep','tend'].includes(r.do)||r.do==='patrol'&&entry.patrol?.length||spots(r.do).some(s=>nav.reachable(home,s.tile)));
+  if(!usable)out.push({kind:'townsfolk',severity:'warning',tile:where,text:`${entry.name||entry.id} has nothing in their routine they can do here.`});}
  return out;
 }
 // A generated crowd for playground and perf scenarios: n townsfolk with mixed routines around a city.

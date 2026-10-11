@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {STOREY,STYLES,WALL_THICKNESS} from './edge-models.js';
+import {CUT_HEIGHT} from './cutaway.js';
 import {icon} from './icons.js';
 
 // The building kit (docs/CITY.md, The building kit; city Phase 4). A building is made from a short
@@ -143,6 +144,9 @@ export function storeyFloors({w,d,storeys}){
  if(!parts.length)return null;const merged=mergeGeometries(parts);for(const g of parts)g.dispose();
  const mesh=new THREE.Mesh(merged,decorMaterial);mesh.name='building-floors';mesh.receiveShadow=true;return mesh;
 }
+const capMaterial=new THREE.MeshStandardMaterial({color:'#8d8a85',roughness:.95});
+// Can't be walked into: no interior, a separate interior (its door leads elsewhere), or every door locked.
+export const solidWhenCut=(desc,plan)=>desc.interior==='none'||desc.interior==='separate'||plan.doors.every(d=>d.locked);
 const roofMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9,side:THREE.DoubleSide});
 const decorMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.85});
 export function roofModel(options){const mesh=new THREE.Mesh(roofGeometry(options),roofMaterial);mesh.name='building-roof';mesh.castShadow=mesh.receiveShadow=true;return mesh;}
@@ -211,14 +215,19 @@ export function createBuilding(description,{origin,id,edges,tileAt,parent}){
  const world=([x,z])=>({x:x-6,y:base,z:z-6});
  const roof=roofModel({roof:desc.roof,w:plan.w,d:plan.d,ridge:desc.ridge,style:desc.style,color:desc.roofColor&&shade(desc.roofColor,plan.roofShade)||shade(ROOF_COLORS[desc.style]||ROOF_COLORS.timber,plan.roofShade),chimney:plan.chimney,storeys:desc.storeys});
  roof.position.set((plan.x0+plan.x1)/2-6,top,(plan.z0+plan.z1)/2-6);roof.userData.building=id;parent.add(roof);edges.addCutPart(roof,id);
+ // A building you can't walk into (no interior, a separate one, or only locked doors) shows a flat grey
+ // cap flush with its cut walls while it is cut, so it reads as a solid block, not an empty room.
+ let cap=null;
+ if(solidWhenCut(desc,plan)){cap=new THREE.Mesh(new THREE.BoxGeometry(plan.w-WALL_THICKNESS,.06,plan.d-WALL_THICKNESS),capMaterial);cap.name='building-cap';
+  cap.position.set((plan.x0+plan.x1)/2-6,base+CUT_HEIGHT-.05,(plan.z0+plan.z1)/2-6);cap.userData.showWhenCut=true;cap.visible=false;cap.receiveShadow=true;parent.add(cap);edges.addCutPart(cap,id);}
  // A sign side tucked into a corner (the next tile along, outside, belongs to another building or is
  // missing) can't be seen: take the other side.
  const open=o=>{const step=[o.tile[0]+o.out[0],o.tile[1]+o.out[1]];return [0,1].every(n=>{const t=tile([step[0]+o.along[0]*n,step[1]+o.along[1]*n]);return t&&!t.blocked&&(t.building===undefined||t.building===id);});};
  const sign=plan.anchors.signOptions.find(open)||plan.anchors.sign;
  const decor=decorFor(plan,world,sign);parent.add(decor);
  const anchors={...plan.anchors,sign,doors:plan.anchors.doors.map(o=>({doorstep:tile(o.doorstep),inside:tile(o.inside)})),keeper:plan.anchors.keeper&&tile(plan.anchors.keeper)};
- return {id,plan,doors,roof,decor,anchors,top,
-  dispose(){edges.removeCutPart(roof);roof.removeFromParent();roof.geometry.dispose();decor.removeFromParent();decor.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material!==decorMaterial)o.material.dispose();}});
+ return {id,plan,doors,roof,cap,decor,anchors,top,
+  dispose(){edges.removeCutPart(roof);roof.removeFromParent();roof.geometry.dispose();if(cap){edges.removeCutPart(cap);cap.removeFromParent();cap.geometry.dispose();}decor.removeFromParent();decor.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material!==decorMaterial)o.material.dispose();}});
    for(const e of plan.edges){const a=tile(e.a),b=tile(e.b);if(a&&b)edges.remove(a,b);}
    for(const p of plan.tiles){const t=tile(p);if(t&&t.building===id){t.indoor=false;delete t.building;if(desc.interior==='none'||desc.interior==='separate')t.blocked=false;}}}};
 }

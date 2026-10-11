@@ -57,3 +57,15 @@ test('the lowest render tier’s simpler materials keep the cutaway',async()=>{
  const root=new THREE.Group(),wall=new THREE.Mesh(new THREE.BoxGeometry(),applyCutaway(new THREE.MeshStandardMaterial()));root.add(wall);
  simplifyMaterials(root,true);assert.ok(wall.material.isMeshLambertMaterial);assert.equal(wall.material.userData.cutaway,true);
 });
+test('a solid building shows a grey cap on its cut walls while cut, and only then',async()=>{
+ const {createBuilding}=await import('./building-kit.js');
+ const scene=new THREE.Scene(),tiles=new Map();for(let x=0;x<14;x++)for(let z=0;z<14;z++)tiles.set(key(x,z),{x,z,h:1});
+ const t=(x,z)=>tiles.get(key(x,z)),edges=createEdgeFeatures({parent:scene,tileAt:t});
+ const solid=createBuilding({footprint:[4,4],storeys:2,doors:[{edge:'south',at:1}],interior:'none'},{origin:[2,2],id:1,edges,tileAt:t,parent:scene});
+ const open=createBuilding({footprint:[4,4],storeys:2,doors:[{edge:'south',at:1}]},{origin:[8,2],id:2,edges,tileAt:t,parent:scene});
+ assert.ok(solid.cap&&!open.cap,'only buildings you cannot walk into');assert.equal(solid.cap.visible,false);
+ updateCutaway({player:new THREE.Vector3(0,1,0),camera:new THREE.Vector3(0,14,0),force:true});
+ assert.equal(solid.cap.visible,true);assert.equal(solid.roof.visible,false);assert.ok(Math.abs(solid.cap.position.y+.03-(1+1.48))<1e-6,'flush with the cut walls');
+ updateCutaway({player:new THREE.Vector3(-30,1,-30),camera:new THREE.Vector3(-40,14,-40)});assert.equal(solid.cap.visible,false);assert.equal(solid.roof.visible,true);
+ edges.dispose();
+});

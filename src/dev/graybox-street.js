@@ -116,6 +116,9 @@ export function createGrayboxStreet({scene,pickables,kit=false}){
   // A flat grey roof over the walls (toggle with setRoofs); it hides while its building is cut.
   const top=Math.max(...[t(b.x0,b.z0),t(b.x1,b.z1)].map(tile=>tile.h))+STOREY*(b.storeys||1),roof=new THREE.Mesh(new THREE.BoxGeometry(b.x1-b.x0+1.3,.18,b.z1-b.z0+1.3),new THREE.MeshStandardMaterial({color:b.kind==='shell'?'#8d8a85':'#a8a39b',roughness:.9}));
   roof.position.set((b.x0+b.x1)/2-6,top+.09,(b.z0+b.z1)/2-6);roof.castShadow=roof.receiveShadow=true;roof.userData.building=b.name;group.add(roof);roofs.push(roof);edges.addCutPart(roof,BUILDINGS.indexOf(b));
+  // Shells can't be walked into: a flat cap on their cut walls makes them read as solid blocks.
+  if(b.kind==='shell'){const cap=new THREE.Mesh(new THREE.BoxGeometry(b.x1-b.x0+1-.14,.06,b.z1-b.z0+1-.14),new THREE.MeshStandardMaterial({color:'#8d8a85',roughness:.95}));
+   cap.position.set((b.x0+b.x1)/2-6,top-STOREY*(b.storeys||1)+1.45,(b.z0+b.z1)/2-6);cap.userData.showWhenCut=true;cap.visible=false;group.add(cap);edges.addCutPart(cap,BUILDINGS.indexOf(b));}
   // Floors between storeys, so upper windows look into a storey, not down to the ground.
   const floors=storeyFloors({w:b.x1-b.x0+1,d:b.z1-b.z0+1,storeys:b.storeys||1});
   if(floors){floors.position.set((b.x0+b.x1)/2-6,top-STOREY*(b.storeys||1),(b.z0+b.z1)/2-6);group.add(floors);roofs.push(floors);edges.addCutPart(floors,BUILDINGS.indexOf(b));}

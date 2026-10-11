@@ -700,7 +700,7 @@ if(__PLAYGROUND__){
  // kit street (Phase 4): the same layout built with the building kit.
  const cityMaps={};
  // Townsfolk for a city map (townsfolk.js): their crowd runs in the area's update.
- const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},player:()=>({tile,hidden:false}),playerTile:()=>segment?null:tile};
+ const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},player:()=>({tile,hidden:false}),playerTile:()=>segment?null:tile,near:t=>Math.abs(t.x-tile.x)+Math.abs(t.z-tile.z)<=8};
  function attachCrowd(built){built.crowd?.dispose();built.crowd=createCrowd({city:built,parent:built.group,pickables,services:crowdServices});return built.crowd;}
  async function cityMapReady(id){
   if(cityMaps[id])return cityMaps[id];
