@@ -20,6 +20,44 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### City Phase 4: building kit; simpler whole-building cutaway — 2026-10-11
+
+- **Cutaway simplified (user: Phase 3 was fancier than needed).** A building is cut when the player is inside it or it stands between the camera and the player (eye-to-camera segment against the building's box above one storey). Cut means: roof, chimney and door tops hide, and all its walls are drawn only up to one storey (1.5, the building test map's wall height). No stubs, no dithered cylinder. Walls cut per pixel from baked `cutOwner` = (building a, building b, base y); the inside faces of a cut wall draw as a flat dark section; the shadow depth material is patched too. Corner posts belong to every building meeting at them (up to two).
+- `src/cutaway.js`: `registerCutSource` (one per map's edge features, only shown maps take part, so maps can reuse ids), `cutBuildings`, `segmentHitsBox`, `isCut`, `updateCutaway`, `cutawayState()` = `{on, cut:[ids]}`. `registerRoof`/`registerCutGroup` are gone: maps add roofs with `edges.addCutPart(object, owner)`.
+- `edge-models.js`: styles are palettes (`STYLES`: timber, stone, brick, graybox; stone/brick/graybox have seamless posts). Pieces take `storeys` and draw per storey (floor bands, windows on every storey for `window`, `upperWindows` for walls). Doors have an `upper` group (storeys above the ground one) that hides when cut and isn't pickable.
+- `doors.js` `createEdgeFeatures`: per-add `style`/`upperWindows`, `info(a,b)`, `addCutPart`/`removeCutPart`, `cutParts()`, `buildingBoxes`, `cutaway:false` for previews.
+- `src/building-kit.js` (new): `planBuilding` (description → tiles, edges, doors with doorsteps, anchors: keeper spot, sign, awning; seed variation), `createBuilding` (marks tiles, places edges through the map's edge features, merges shared walls into one wall owned by both, adds roof + decor, `dispose()`), `roofGeometry` (gable, hip, flat with parapet, tower cone; chimney), `BUILDING_PRESETS` (cottage, shop, townhouse, hall, flat-roofed house, tower), `normalizeBuilding` (rotation 0/90/180/270; door `at` counts clockwise so it survives rotation). Signs paint the game's icons (`icons.js`) light on a dark tilted board, so they read from above.
+- Playground: *City streets* (was *Graybox street*): Enter kit street (the graybox layout built by the kit: timber square and west street, brick east street, stone castle quarter, purple guild hall roof, shops with awnings and signs on the square), roofs, cutaway, open/close all doors, zooms. Model viewer → *Building*: preset, style, roof, rotation and seed dropdowns; motions doors closed/open and cut.
+- Tests: 509 pass (`building-kit.test.js`; `cutaway.test.js` rewritten; kit street routes/doors/shared walls in `graybox-street.test.js`).
+- Browser-verified (GPU): kit street at zoom 12/22; a three-storey building between camera and player is cut to one storey with a clean section; inside a shop its roof hides and walls cut; signs and awnings readable; graybox street still cuts; viewer builds every preset.
+- Known look issue: a wall shared with a cut building is cut too, so its uncut neighbour's roof sits over a one-storey shared wall (visible on the terraced square ring). Acceptable for now; could cut neighbours together if it bothers.
+- Not done: smoothing the hide (instant), awning/sign on non-door edges, double doors / castle gate piece, chunk-level merging of shells (each building is roof + decor meshes; walls stay one baked mesh per map).
+
+### City Phase 3: cutaway and occlusion; flat graybox — 2026-10-11
+
+- The graybox street is flat (user: elevation was messing up buildings); terraces and stairs return later.
+- `src/cutaway.js`: a material patch (`applyCutaway`) for walls, roofs and doors. Inside a building, its walls on the camera's side drop to stubs and its roof hides; anything between camera and player within a 1.9-tile cylinder around the line of sight is cut to stubs with a dithered edge. Per-vertex `cutOwner` on baked walls (`createEdgeFeatures().add(…,{owner})`); doors squash in JS (`registerCutGroup`); roofs register per building (`registerRoof`). `main.js` calls `updateCutaway` every frame after placing the camera.
+- **Bug found and fixed in the browser:** the lowest render tier swaps materials for Lambert copies (`simple-materials.js`), which dropped the patch, so the cutaway vanished after the first frame. Simplified copies now keep it (tested).
+- Playground: Toggle cutaway; Open/Close all doors also work on the graybox street; `window.quadriaquest.renderer` (playground only) exposes the renderer for inspection; `getState().cutaway`.
+- Tests: 499 pass (`cutaway.test.js`: stubs, back walls, shared walls, line-of-sight cylinder, roof hide, door squash, simplified materials).
+- Browser-verified on the graybox street: the dense square's buildings are cut around the player; inside a three-storey building its roof hides and its front walls drop to stubs while back walls stay.
+
+### Graybox review: livelier square, no step, minimap buildings and rotation — 2026-10-11 (user review)
+
+- **Square:** ringed shoulder to shoulder by eight two- and three-storey buildings opening onto it plus four corner buildings (gaps only for the avenue and streets); other buildings moved out to make room. Shared walls take the taller building's height.
+- **No step:** ground floors are at street level (the user rejected raised floors). Door sills for real height differences stay supported.
+- **Minimap** (shared, `player-interface.js`): tiles marked `indoor` draw as building floor; walls, windows, fences, counters and doors draw on tile edges (doors coloured, brighter when open; an open door's leaf is not drawn as a wall). The map turns with the camera (`cameraAngle`, forward up), redraws at once while the camera turns, fills its turned corners, and draws N where north points (the static N label is gone). Taps are turned back (`minimapTileAt(…, rotation)`). Graybox and building test map tiles set `indoor`.
+- **Phones keep their zoom limit** (user decision).
+- Tests: 495 pass (rotated minimap taps; the ring of buildings opens onto the square; doors at street level with indoor tiles marked).
+- Browser-checked: the minimap shows buildings and turns with the camera (and follows orbiting at once). The dense square is mostly hidden at the default angle, as expected before Phase 3's ghosting.
+
+### City Phase 2: graybox street — 2026-10-11
+
+- Playground *Graybox street* (`src/dev/graybox-street.js`, area `graybox-street`): 60 × 60 map with a 13 × 13 square (fountain block, crystal spot), a 5-wide avenue up two full-block terraces by stairs (5 wide, then 3 wide to the castle terrace), 3-wide streets, 2-wide alleys, small and medium houses with raised ground floors (half-block step at the door), a terraced row with shared walls, two-storey shells, the castle and towers (locked doors). Controls: enter, toggle roofs, zoom 3/12/22/34.
+- Shared additions: `edgePlacement(a,b,storeys)` and `storeys` on `createEdgeFeatures().add` (multi-storey walls, posts and doors); a `graybox` style (plain pieces; posts only where walls turn, meet or end); door sills between floors of different heights (the opening starts at the higher floor, with a step on the lower side); `bake()`/`unbake()` merges static edge pieces and posts into one vertex-coloured mesh (glass and doors stay separate; edits unbake first).
+- Tests: `graybox-street.test.js` (every house reachable only through its door with a half-block step, shells sealed and locked, terraces only by stairs up to the castle, walls baked; the door rule holds or the map throws).
+- Findings are recorded in CITY.md *Graybox findings*; one open question (phone view distance).
+
 ### Inward doors, open doors as walls, and the door rule — 2026-10-11 (user design)
 
 - Doors open into their own building/room (the first tile, `a`, given when placed; the complex's east room doors are placed room-first). Open, a door turns a quarter and lies along `a`'s side edge at the hinge corner as a wall feature (`{kind:'wall',door}`), so routes and sight can't pass through the door model; closing removes it. The hinge side is chosen where that edge is free (`setDoorHinge`, mirrored panel). Fixed a bug where every door used the default swing (`updateDoors` now animates the door's model).

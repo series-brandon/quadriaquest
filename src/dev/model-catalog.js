@@ -13,7 +13,10 @@ import {SPELL_VISUALS} from '../spell-visuals.js';
 import {makeBridge} from '../bridge-model.js';
 import {fishingSpot,animateFishingSpot} from '../fishing-spot-model.js';
 import {campfire,animateCampfire} from '../campfire-model.js';
-import {edgePiece,doorModel,animateDoor} from '../edge-models.js';
+import {edgePiece,doorModel,animateDoor,STYLE_NAMES} from '../edge-models.js';
+import {createBuilding,BUILDING_PRESETS,ROOF_TYPES} from '../building-kit.js';
+import {createEdgeFeatures} from '../doors.js';
+import {uniforms as cutUniforms} from '../cutaway.js';
 import {companion,animateCompanion,setCompanionOutfit} from '../companion-model.js';
 import {makeCompanionTopHat} from '../hat-models.js';
 import {EATING_DURATION} from '../eating-motion.js';
@@ -96,6 +99,41 @@ function slimePreview(factory,{defaultExpression='idle',idleRate=1,carry=null,lo
 function resource(name,factory,kind){return {name,motions:['Static','Hit','Deplete'],create(){const group=factory(),resource={group,kind},state={};return {group,update(time,motion){group.rotation.set(0,0,0);group.scale.setScalar(1);if(motion==='Hit')animateResourceHit(resource,time,state,()=>{});if(motion==='Deplete')animateResourceDepletion(resource,time%1.8,new THREE.Vector3(0,0,1));}};}};}
 function terrain(heights){const group=new THREE.Group(),tiles=heights.map((h,x)=>({x,z:0,h})),map=new Map(tiles.map(t=>[key(t.x,t.z),t])),colors=createGrassColors();for(const tile of tiles){const mesh=makeTerrainTile(tile,map,new THREE.MeshStandardMaterial({color:colors[tile.x%colors.length]}));mesh.position.x=tile.x;group.add(mesh);}return group;}
 
+// Buildings from the building kit (city Phase 4): every preset, with style, roof, rotation and seed
+// controls (shown as the viewer's option rows), built by the real builder on a small private map.
+// Motions: doors shut, doors open (the production door animation), and cut (as the cutaway draws it).
+const PREVIEW_BUILDING=900,title=s=>s[0].toUpperCase()+s.slice(1);
+const BUILDING_OPTIONS=[
+ {slot:'preset',label:'Building',items:Object.entries(BUILDING_PRESETS).map(([id,p])=>[id==='cottage'?'':id,p.name])},
+ {slot:'style',label:'Style',items:[['','Preset style'],...STYLE_NAMES.map(s=>[s,title(s)])]},
+ {slot:'roof',label:'Roof',items:[['','Preset roof'],...ROOF_TYPES.map(r=>[r,title(r)])]},
+ {slot:'rotation',label:'Rotation',items:[['','0°'],['90','90°'],['180','180°'],['270','270°']]},
+ {slot:'seed',label:'Seed',items:[['','Preset seed'],...[1,2,3,4,5].map(n=>[String(n),`Seed ${n}`])]},
+];
+export function buildingPreview(){
+ const group=new THREE.Group();let current=null,built=null,key0=null,edges=null;
+ function build(options={}){
+  const id=JSON.stringify(options);if(id===key0)return;key0=id;
+  if(built){built.dispose();edges.dispose();}
+  const preset=BUILDING_PRESETS[options.preset||'cottage'],desc={...preset,...options.style?{style:options.style}:{},...options.roof?{roof:options.roof}:{},rotation:+(options.rotation||0),...options.seed?{seed:+options.seed}:{}};
+  const [w,d]=desc.rotation%180?[preset.footprint[1],preset.footprint[0]]:preset.footprint,tiles=new Map();
+  for(let x=0;x<w+2;x++)for(let z=0;z<d+2;z++)tiles.set(key(x,z),{x,z,h:0});
+  const tileAt=(x,z)=>tiles.get(key(x,z));
+  edges=createEdgeFeatures({parent:group,tileAt,cutaway:false});
+  built=createBuilding(desc,{origin:[1,1],id:PREVIEW_BUILDING,edges,tileAt,parent:group});edges.bake();
+  // Centre the building on the origin (tile x sits at x − 6 in the world).
+  group.position.set(6-(w+1)/2,0,6-(d+1)/2);current=desc;
+ }
+ build();
+ return {group,update(time,motion,dt,expression,prop,settings){
+  build(settings?.worn||{});
+  const open=motion==='Doors open'?Math.min(1,time*1.6):0;
+  for(const door of built.doors){door.setOpen(motion==='Doors open',{quiet:true});door.amount=open;animateDoor(door.model,open);}
+  const cut=motion==='Cut (cutaway)';
+  cutUniforms.uCutIds.value.fill(-1);cutUniforms.uCutIds.value[0]=PREVIEW_BUILDING;cutUniforms.uCutCount.value=cut?1:0;
+  for(const {object} of edges.cutParts())object.visible=!cut;
+ }};
+}
 export const MODEL_CATALOG=[
  ...Object.entries(MENTORS).map(([kind,def])=>({name:def.name,loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(()=>mentorModel(kind),{defaultExpression:def.expression,idleRate:def.idleRate,loadout:def.loadout,carry:def.carry})})),
  resource('Copper outcrop',copperOutcrop,'copper'),staticModel('Copper Ingot',ingot),
@@ -126,6 +164,7 @@ export const MODEL_CATALOG=[
  // with the real swing (animateDoor): Open and Close loop the swing; Locked rattles it shut.
  {name:'Wall pieces',motions:['Idle'],create(){const group=new THREE.Group();['wall','window','fence','railing','low'].forEach((kind,i)=>{const p=edgePiece(kind);p.position.x=(i-2)*1.15;group.add(p);});return {group,update(){}};}},
  {name:'Door',motions:['Open','Close','Locked'],create(){const door=doorModel();return {group:door.group,update(time,motion){const t=time%2.4,open=motion==='Open'?Math.min(1,t*1.6):motion==='Close'?Math.max(0,1-t*1.6):0;animateDoor(door,open,motion==='Locked'?Math.max(0,1-(time%1.2)*2):0,time);}};}},
+ {name:'Building',motions:['Doors closed','Doors open','Cut (cutaway)'],wear:BUILDING_OPTIONS,create:buildingPreview},
  {name:'Campfire',motions:['Burning','Static'],create(){const group=campfire();return {group,update(time,motion){animateCampfire(group,motion==='Static'?0:time);}};}},
  staticModel('Campfire placement ghost',()=>campfire(true)),
  {name:'Fishing spot',motions:['Ripples'],create(){const group=fishingSpot();return {group,update:time=>animateFishingSpot(group,time)};}},

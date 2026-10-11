@@ -41,6 +41,7 @@ import './combat.css';
 import {blocksMovement,occupancy} from './world-occupancy.js';
 import {pushWorldActor,updateWorldActors} from './world-actors.js';
 import {configureDoors,updateDoors,doorApproach} from './doors.js';
+import {updateCutaway,cutawayState} from './cutaway.js';
 import {createResourceActions} from './resource-actions.js';
 import {createAttackTelegraphs} from './attack-telegraph.js';
 import {createResourceEntity} from './resource-entities.js';
@@ -175,6 +176,8 @@ const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,playe
  showClearing(){clearingGroup.visible=true;for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
 const playerOccupant={kind:'player'},companionOccupant={kind:'companion'};
+// Seeing into and past buildings (cutaway.js); the playground can switch it off to compare.
+let cutawayOn=true;
 let edgeFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
@@ -631,7 +634,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  let viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
  const focus=cameraFocus.copy(player.position).add(focusLift.set(0,.35+closeup*.3,0));if(areaFocus){focus.lerp(areaFocus.position,areaFocus.blend);viewZoom=THREE.MathUtils.lerp(viewZoom,areaFocus.zoom??viewZoom,areaFocus.blend);viewElevation=THREE.MathUtils.lerp(viewElevation,areaFocus.elevation??viewElevation,areaFocus.blend);}
  if(__PLAYGROUND__)perfProbe.lap('player');
- const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);updatePlayerPlate();if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);quality.afterRender(scene);
+ const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateCutaway({player:player.position,camera:camera.position,building:tile?.building??-1,on:cutawayOn});updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);updatePlayerPlate();if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);quality.afterRender(scene);
 }
 if(__PLAYGROUND__){
  trainingFixtures=playground.createTrainingFixtures({scene,world,pickables,resources:resourceActions,combat,styles,supplies,openStation,stop:stopAll,approach:selectActor,tile:()=>tile,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.actor||m.userData.resource)),clearUI:()=>areas.notify('clearUI')});
@@ -670,10 +673,32 @@ if(__PLAYGROUND__){
    reset(){for(const d of built.doors){d.setLocked(false);d.setOpen(false);}}});
   return buildingTest=built;
  }
+ // Graybox street (playground only; city Phase 2): plain grey buildings at the proposed scale; and the
+ // kit street (Phase 4): the same layout built with the building kit.
+ const cityMaps={};
+ async function cityMapReady(id){
+  if(cityMaps[id])return cityMaps[id];
+  const {createGrayboxStreet}=await import('./dev/graybox-street.js');
+  const built=createGrayboxStreet({scene,pickables,kit:id==='kit-street'});
+  areas.register({id,name:id==='kit-street'?'Kit street':'Graybox street',description:id==='kit-street'?'Playground: the building kit':'Playground: city scale graybox',listed:()=>false,group:built.group,tiles:built.tiles,
+   camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>built.spawn,
+   reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
+  return cityMaps[id]=built;
+ }
+ const currentCityMap=()=>areas.id==='building-test'?buildingTest:cityMaps[areas.id]||null;
  playgroundApi={
   companions,
-  // Opens or closes every door on the building test map (to inspect swings and walls).
-  buildingDoors(open){if(!buildingTest)return false;for(const d of buildingTest.doors)d.setOpen(open,{quiet:true});return true;},
+  async enterGrayboxStreet(kit=false){
+   const id=kit?'kit-street':'graybox-street',{spawn}=await cityMapReady(id);stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
+   areas.activate(id,{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
+  },
+  toggleCutaway(){cutawayOn=!cutawayOn;return cutawayOn;},
+  // Shows or hides the roofs of the graybox or kit street you are in; returns whether they are now shown (null elsewhere).
+  toggleGrayboxRoofs(){const map=cityMaps[areas.id];if(!map)return null;map.setRoofs(!map.roofsShown);return map.roofsShown;},
+  // Camera zoom for judging scale (3 closest … 34 farthest, the player's own limits).
+  cameraZoom(value){zoom=THREE.MathUtils.clamp(value,3,34);return zoom;},
+  // Opens or closes every door on the building test map, graybox or kit street, whichever you are in.
+  buildingDoors(open){const map=currentCityMap();if(!map)return false;for(const d of map.doors)d.setOpen(open,{quiet:true});return true;},
   async enterBuildingTest(){
    const {spawn}=await buildingTestReady();stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
    areas.activate('building-test',{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
@@ -809,10 +834,12 @@ if(__PLAYGROUND__){
 }
 const journal=mountJournal(menus,craftingTutorial,settingsUI);
 createCompanionMenu(companions,{panels:menus.panels,modals,narrator,canClose:()=>menus.events.beforeClose?.('automatic')!==false});
-playerInterface=createPlayerInterface({modals,playerControl,assistance,auras,styles,toast,menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
+playerInterface=createPlayerInterface({cameraAngle:()=>angle,modals,playerControl,assistance,auras,styles,toast,menus,journal,health,resources:playerResources,food,inventory,equipment,world,tile:()=>tile,destination:()=>path.at(-1)||segment?.to||null,move:point=>{const t=world.get(key(point.x,point.z));if(t&&canMove()){idleClock.wake();moveTo(t);}},enemies:()=>combat.state.enemies,groundItems:()=>resourceActions.groundItems,profile:()=>opening.profile,combat,styleMenu});
 systemsReady.value=true;
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
-if(__PLAYGROUND__)window.quadriaquest={getState:()=>({facing:+(Math.atan2(Math.sin(facing),Math.cos(facing))).toFixed(2),telegraphs:telegraphs.active,hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,face:playerFace,body:{squash:visual.scale.y,twist:visual.rotation.y,lean:visual.rotation.x},finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
+if(__PLAYGROUND__)window.quadriaquest={getState:()=>({cutaway:cutawayState(),facing:+(Math.atan2(Math.sin(facing),Math.cos(facing))).toFixed(2),telegraphs:telegraphs.active,hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,face:playerFace,body:{squash:visual.scale.y,twist:visual.rotation.y,lean:visual.rotation.x},finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
+// Playground inspection: the renderer (compiled programs, render stats).
+if(__PLAYGROUND__)Object.defineProperty(window.quadriaquest,'renderer',{get:()=>renderer});
 if(__PLAYGROUND__)window.quadriaquest.perf=playground.createPerfScenarios({api:playgroundApi,probe:perfProbe,setView(view){angle=view.angle;elevation=view.elevation;zoom=view.zoom;},walkTo(x,z){const t=world.get(key(x,z));if(t)moveTo(t);},state:()=>window.quadriaquest.getState()});

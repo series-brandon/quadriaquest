@@ -51,11 +51,17 @@ export function createBuildingTestMap({scene,pickables}){
  // The southern road and a short path to each shape's north door (and into the L's crook and the U's courtyard).
  lay(15,19,15,23);lay(2,23,55,23);for(const x of [3,11,21,28,42,52])lay(x,23,x,24);lay(14,23,14,27);lay(31,23,31,27);
  const shapeTiles=new Map(SHAPES.flatMap(s=>[...shapeCells(s)]));
+ // Indoor tiles (the minimap draws them as building floor).
+ // Building ids (cutaway, minimap): the three first-row buildings, then one per shape part.
+ const partId=(shapeIndex,letter)=>3+shapeIndex*2+(letter==='A'?0:1);
+ const shapeOwner=new Map(SHAPES.flatMap((s,i)=>[...shapeCells(s)].map(([k,letter])=>[k,partId(i,letter)])));
+ for(const tile of tiles){const k=key(tile.x,tile.z),rect=[small,large,complex].findIndex(b=>inside(b,tile.x,tile.z));tile.building=rect>=0?rect:shapeOwner.get(k);tile.indoor=tile.building!==undefined;}
  const material=tile=>[small,large,complex].some(b=>inside(b,tile.x,tile.z))||shapeTiles.has(key(tile.x,tile.z))?planks[(tile.x+tile.z)%2]:path.has(key(tile.x,tile.z))?stone[(tile.x*3+tile.z)%2]:grass[(tile.x*7+tile.z)%4];
  createTerrainBatch({tiles,map,factory:tile=>makeTerrainTile(tile,map,material(tile)),parent:group,pickables,preserve:[...grass,...planks,...stone],roughness:.9});
 
  const edges=createEdgeFeatures({parent:group,pickables,tileAt:t}),doors=[];
- const place=(a,b,kind)=>{const f=edges.add(a,b,kind);if(kind==='door')doors.push(f);};
+ // Each edge belongs to the building(s) on its sides (shared walls to both).
+ const place=(a,b,kind)=>{const owner=[a.building,b.building].filter(o=>o!==undefined);const f=edges.add(a,b,kind,{owner});if(kind==='door')doors.push(f);};
  // The outline of a building: walls, except the doors and windows named by 'x,z,side'.
  function outline(b,special={}){
   const side=(x,z,s,dx,dz)=>place(t(x,z),t(x+dx,z+dz),special[`${x},${z},${s}`]||'wall');
@@ -85,5 +91,6 @@ export function createBuildingTestMap({scene,pickables}){
  }
  // Every door here must follow the door rule.
  const broken=edges.doorProblems();if(broken.length)throw Error('Door rule: '+broken.map(r=>`${r.door.a.x},${r.door.a.z}: ${r.problems.join('; ')}`).join(' | '));
+ edges.bake();
  return {group,tiles:map,doors,edges,spawn:t(...BUILDING_TEST.spawn)};
 }

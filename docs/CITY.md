@@ -3,7 +3,7 @@
 Draft, 2026-10-10. Nothing here is implemented. It is the design for review before any code. Numbers are starting proposals to check in a graybox, not final tuning.
 
 **Decisions already made by the user (2026-10-10):**
-- **Hybrid interiors.** Small and medium buildings open in place: the roof lifts and walls in front of the camera drop to stubs. Large or multi-storey interiors (castle, inn upstairs, guild halls) are separate spaces entered through a door.
+- **Hybrid interiors.** Small and medium buildings open in place: the roof lifts and the walls are cut to one storey. Large or multi-storey interiors (castle, inn upstairs, guild halls) are separate spaces entered through a door.
 - **No stacked walkable layers yet.** Outdoors keeps one floor height per tile. Elevation comes from terraces and stairs. Upper floors are separate interior spaces. Castle walkways over a gate, bridges over streets and walkable balconies are out of scope for the first city.
 - **Cities are built in a playground city editor**, not by typing tile strings.
 - **Design doc first**, then build in the phases below.
@@ -48,19 +48,29 @@ A tile is about one slime wide, and a slime is about one block tall.
 | Thing | Rule |
 | --- | --- |
 | Door | One tile edge wide. Double doors cover two edges (castle, hall). Always a clear **doorstep** tile outside. |
-| Ground floor | Raised **+0.5** above the street outside the door, a single step. It reads as a threshold and keeps puddles out. |
+| Ground floor | **At street level** (user decision, 2026-10-11: a step up at every door feels bad). Door sills for genuinely different floor heights remain supported, but buildings don't use them by default. |
 | Storey height | **1.5 blocks** of wall per floor. Taller looks realistic but hides the street from the camera. |
 | Small building | 3 × 3 to 4 × 4 tiles, one room, opens in place. Cottage, shed, kiosk. |
 | Medium building | 5 × 4 to 7 × 6, one or two rooms, opens in place. Shop, smithy, small house, tavern ground floor. |
 | Large building | 8 × 8 and up, or more than one storey. Separate interior. Inn, guild hall, temple. |
 | Castle | A landmark of about 24 × 20 on the highest terrace. Separate interiors, with a grand stair and a view from the plaza. |
 | Main avenue | 5 tiles wide. Street 3, alley 2. Never narrower than 2, so two slimes can pass. |
-| Plaza | At least 12 × 12, with a focal point (fountain or statue) and benches around it. |
+| Plaza | At least 12 × 12, with a focal point (fountain or statue) and benches around it. **The square is the liveliest place in the city** (user, 2026-10-11): ringed shoulder to shoulder by multi-storey buildings whose ground floors open onto it, gaps only for the streets, and later stalls, benches and crowds (Phases 5 and 8). |
 | Lot spacing | Buildings are at least one tile apart, or share a wall deliberately (terraced row). Never a one-tile slot that leads nowhere. |
 | Stairs | 1 tile per half-block. 2–3 tiles wide on main routes, 1 on back routes. A landing after every 2 blocks of rise. |
 | Roof overhang | 0.25 tile. It must not cover the doorstep from the default camera angle. |
 
 Exact numbers get tuned in the graybox (Phase 2) at real zoom levels on desktop and phone.
+
+**Graybox findings (Phase 2, 2026-10-11; playground *Graybox street*).** Judged at zoom 12, 22 (default) and 34, on desktop and a 375 × 812 phone, with roofs on and off:
+- **Roofs are most of the picture.** With flat grey slabs the street reads as bunkers; the shape and colour of roofs (Phase 4) will carry the look, as expected. Toggling roofs off shows the raised floors and room sizes clearly.
+- **Storey height 1.5 works for one storey:** the camera sees over single-storey houses into the next street. **Two-storey buildings (3.0) hide the street behind them** at the default angle, and on a phone a two-storey roof can fill a third of the screen. That makes Phase 3's ghosting of buildings that hide the player essential, not optional. Proposal: keep 1.5 per storey; keep multi-storey buildings to the edges of the square and main avenue, not both sides of narrow streets.
+- **Street widths hold:** the 5-wide avenue reads as the main road, 3-wide streets as streets. **2-wide alleys work between single-storey buildings;** between taller ones they would be hidden. Proposal: alleys only beside single-storey buildings.
+- **The 13 × 13 square** fills most of a desktop view at the default zoom, with the crystal and fountain in sight: a good waking view. A phone in portrait shows about 8 tiles across even at the farthest zoom; **phones keep that limit** (user, 2026-10-11).
+- **User review (2026-10-11):** the first square felt sparse; it is now ringed by two- and three-storey buildings shoulder to shoulder. That makes the square mostly hidden at the default angle until Phase 3's ghosting, which confirms Phase 3 as the next step. The minimap now shows buildings (indoor floors, walls, windows, doors) and turns with the camera.
+- ~~Raised ground floors~~: rejected by the user (a step at every door feels bad); ground floors are at street level. The door (1.3) suits the slime.
+- **Terraces:** a full-block retaining edge reads clearly as a level change. Stairs drawn as plain half-block ledges read as small steps, not stairs: the stair prefab (Phase 5) is needed.
+- **Castle:** three storeys (4.5) with four-storey towers reads as a landmark from the avenue; its door looks small on that much wall (a larger gate is a Phase 4 kit piece).
 
 ## Walls and doors on tile edges
 
@@ -122,9 +132,7 @@ The user wants every living character to be walkable-through, especially large o
 
 ### Buildings that open in place (small and medium)
 
-- A building knows its interior tiles. When the player is inside, or walking through the door, its **roof and upper-floor shell fade out** (about 0.25 s). They fade back when the player leaves. Clicks go through hidden parts.
-- **Cutaway walls:** walls whose outside faces the camera drop to stubs about 0.3 blocks tall. Which walls those are depends only on the camera's orbit angle, rounded to 8 directions, so it's cheap. It updates as the camera turns, with a short fade so walls don't flicker.
-- **Street occlusion:** outdoors, a building that hides the player, the current target or a hovered door from the camera fades to a see-through ghost and its roof hides. A building between the camera and the player on a narrow street must never cover them completely.
+- A building knows its interior tiles. When the player is inside, its roof hides and its walls are cut to one storey; a building that hides the player from the camera is cut the same way (user, 2026-10-11: simpler than stubs and ghosting; see *As implemented (Phase 3)*). Clicks go through hidden parts.
 - Furniture is ordinary props with footprints. Counters are `low` edges or props that shopkeepers stand behind.
 
 ### Separate interiors (large and multi-storey)
@@ -133,6 +141,17 @@ The user wants every living character to be walkable-through, especially large o
 - Upper floors and cellars are further spaces linked by a shared **stairwell** entity: a stair model plus a link and arrival tile. Climbing reuses the same fade.
 - Camera inside: zoom is capped so the view stays within the walls, and the camera can't orbit through walls.
 - Built on travel's existing safe-arrival checks and cancellation (unfinished work cancels, committed state is kept). There are no per-building special transitions.
+
+### As implemented (Phase 3, 2026-10-11; simplified with Phase 4)
+
+The first version (front walls to stubs, a dithered see-through cylinder) was more than needed (user, 2026-10-11). Now whole buildings are cut, in `src/cutaway.js`, in any map:
+- A building is **cut** when the player stands in it (`tile.building`) or when it stands between the camera and the player (the eye-to-camera segment against the part of its box above one storey). Up to 16 at once, nearest first.
+- A cut building loses its roof (and chimney) and the upper part of its doors, and **all its walls are drawn only up to one storey** (1.5, the height of the building test map's walls). The inside faces of a cut wall draw as a flat dark section, so the cut reads cleanly from above; cut walls stop casting their upper shadows.
+- Walls are cut per pixel from their baked `cutOwner` (building a, building b, base height): a wall between two buildings is cut with either, and so is a corner post where they meet. Doors, roofs and decorations hide in JS.
+- Maps declare buildings with `tile.building` and `owner` on their edges; roofs and other hiding parts are added with `edges.addCutPart(object, building)`. Each map's edge features report building boxes and hiding parts; only shown maps take part, so maps may reuse ids. The building kit does all of this itself.
+- Clicks pass through: walls and roofs are never pickable. The lowest render tier's simpler materials keep the cutaway.
+- Playground: *City streets → Toggle cutaway*; `getState().cutaway` = `{on, cut}`.
+- Not done: smoothing the hide (it's instant), and camera behaviour inside separate interiors (Phase 7).
 
 ### Interior size rules (user decision, 2026-10-10)
 
@@ -161,6 +180,17 @@ Buildings are **made from a short description, not modelled by hand**:
 - **Landmarks** (castle, temple, fountain) are authored from the same parts plus a few unique pieces. They still produce edges and anchors the same way.
 - **Performance:** the outside shell is merged per chunk. Each building's roof and cutaway walls stay separate, so they can hide. Repeated parts share geometry (`cachedMergedMesh`).
 - **Model catalogue:** a Building entry with controls for footprint, roof, style, doors, rotation, seed, open/closed door and cutaway angle, using the real builder.
+
+### As implemented (Phase 4, 2026-10-11)
+
+- `src/building-kit.js`. Descriptions as above, plus `rotation`, `roofColor`, `interior:'none'` (solid, locked doors). Door `at` counts clockwise along its edge (north west→east, east north→south, south east→west, west south→north), so rotation keeps it; a door off the door rule (1 ≤ at ≤ length − 2) is refused.
+- `planBuilding(desc, origin)` returns tiles, one edge per outline tile (doors, auto windows by seeded rhythm, corners solid, upper-storey windows above doors and windows), doors with inside and doorstep tiles, anchors (shopkeeper spot two tiles in, sign beside the door, awning over it) and seeded decoration (chimney place, awning colours, flower boxes, roof shade). The seed never changes collision.
+- `createBuilding(desc, {origin, id, edges, tileAt, parent})` marks tiles, places walls and doors through the map's shared edge features (a wall another building already placed becomes one shared wall owned by both, as tall as the taller), adds the roof as a cut part and the decorations, and returns doors, anchors, roof and `dispose()`.
+- Styles (`edge-models.js` `STYLES`): timber (plaster and timber posts on every corner), stone, brick and graybox (seamless corners). Roofs: gable with gable ends, hip, flat with parapet, tower cone; ridge along the longer side by default; district roof colours (timber terracotta, stone slate blue, brick dark slate) with a seeded shade; public buildings set `roofColor`.
+- Presets (`BUILDING_PRESETS`): cottage (small), shop (medium, awning and sign), townhouse (two storeys), hall (large), flat-roofed house, tower.
+- Signs paint the game's icons (`icons.js`) light on a dark board tilted back towards the camera, beside the door, so they read from above; awnings are striped in a seeded colour.
+- Playground: *City streets → Enter kit street*, the graybox layout built by the kit (districts by style, shops on the square). Model viewer → *Building* with preset, style, roof, rotation and seed, and doors closed / open / cut.
+- Not done: double doors and a castle gate, chunk-level merging of building shells, lanterns at anchors, wear.
 
 ## Streets, elevation and stairs
 
@@ -246,8 +276,8 @@ Each phase ends playable in the playground and keeps existing maps unchanged. Ph
 0. **Walk-through entities** (own design review first). Characters stop blocking; permanent `solid` is separated from occupancy. Verified in all three tutorial maps.
 1. **Edges, doors and the shared step test.** Edge data, `canStep`, sight through edges and the door entity. Verified first in a playground test yard with hand-placed walls, and in all three tutorial maps for no change in behaviour. Unit tests for every caller.
 2. **Graybox street.** Plain-box buildings with edge walls, a raised ground floor, stairs and terraces, at real scale. Judge the scale rules at every zoom level on desktop and phone, and tune the numbers in this doc.
-3. **Cutaway and occlusion.** Roof fade, angle-based wall stubs, street ghosting, click-through. This is the phase where a door has to feel right.
-4. **Building kit.** The description-based builder, three sizes, styles, roofs, signs, and catalogue entries.
+3. **Cutaway and occlusion.** Roof hide, walls cut to one storey for the building you're in or that hides you, click-through (implemented 2026-10-11, simplified with Phase 4; see *As implemented (Phase 3)*). The graybox city is flat for now (user, 2026-10-11): terraces and stairs come back later.
+4. **Building kit.** The description-based builder, three sizes, styles, roofs, signs, and catalogue entries (implemented 2026-10-11, see *As implemented (Phase 4)*).
 5. **Surfaces, retaining walls, stairs and props.** The starter prop set with spots.
 6. **City editor and checks**, including saving to the repo.
 7. **Separate interiors, stairwells and dungeon entrances**, with the interior size checks.
@@ -257,5 +287,6 @@ Each phase ends playable in the playground and keeps existing maps unchanged. Ph
 The economy ([ECONOMY.md](ECONOMY.md)) is designed alongside and doesn't wait for the city: selling, buying and jobs can be tested at a playground counter before the capital exists.
 
 ## Open questions for the user
+
 
 1. **The capital's name.** Working name "the capital" until decided.
