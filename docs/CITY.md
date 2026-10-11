@@ -153,6 +153,14 @@ The first version (front walls to stubs, a dithered see-through cylinder) was mo
 - Playground: *City streets → Toggle cutaway*, and *Force cutaway* (every building cut, like the building test map); `getState().cutaway` = `{on, force, cut}`.
 - Not done: smoothing the hide (it's instant), and camera behaviour inside separate interiors (Phase 7).
 
+### As implemented (Phase 7, 2026-10-11)
+
+- `src/spaces.js`. A building with `interior: 'separate'` is solid outside; its doors carry a link. Its interior is one space per floor (`buildSpace`), in the same tile coordinates as its footprint, with the outside's doors and windows, a stairwell entity on the same tile on every floor (up from all but the top, down from all but the ground; default: the corner farthest from the door), and furniture from the prop set. Interior floors sit on thin slabs over a dark background.
+- `createSpaces` moves between spaces with a quick fade (0.25 s out, 0.25 s in), not a full area switch: the city stays as it was. It builds a building's spaces on first entry, registers them as areas, caps zoom inside (14; dungeons 18), restores your camera when you come back out, and drops a rebuilt city's spaces (`forget`). The door back out lands you on the doorstep.
+- Dungeon entrances are props (`dungeonEntrance`) linking to a dungeon space in `data.interiors` (size, exit, furniture).
+- Checks (`interiorProblems`): interior floors versus storeys outside, a stairwell inside the footprint and off the door tiles, a door; a dungeon at least 4 × 4 with its exit inside and an entrance in the city.
+- Playground: the kit street's guild house (two floors) and the garden's crypt. `areas.unregister` was added for rebuilt interiors.
+
 ### Interior size rules (user decision, 2026-10-10)
 
 - **Most ground floors are overworld**, open in place. Only large or unique ground floors are separate spaces.
@@ -211,6 +219,14 @@ Shared prop prefabs, each with a footprint, movement and sight policy (`solid`, 
 
 Props are instanced or merged per chunk. Spots are data that townsfolk and the player share. The player can sit on a bench using the same shared motion.
 
+### As implemented (Phase 5, 2026-10-11)
+
+- `src/city-terrain.js`: surfaces (grass, dirt, cobble, flagstone, plaza, stone, floor, planks) with kerbs where paving meets grass or dirt; retaining walls drawn automatically on any side a full block or more above its neighbour (stone courses and a coping band); stairs (`layStairs`: one tile per half block, two treads per tile, side railings); `railingEdges` (stair sides and terrace edges, never across a stair head); `stairProblems` (no landing, or starting above the ground). `makeCityTile` is a terrain factory, so a city bakes into a few meshes.
+- `src/props.js`: the starter set, each with a footprint, a policy (solid, low, walk-over; tall props block sight), spots and an optional interaction: bench (sit), fountain (gaze, drink), statue, noticeboard (read), flower bed, planter, tree in a grate, hedge, market stall (browse, vend), crates, barrel, sacks, lamp post (lit), signpost, well (drink), banner, cart, and (Phase 7) the dungeon entrance. Rotation turns footprints and spots. One merged mesh per kind.
+- Sitting: a shared `Sit` motion (`slime-social.js`, held like Sleeping, `SEAT_HEIGHT`); clicking a bench walks you to a free seat and sits you, and townsfolk sit the same way. Other prop interactions answer with a line until their systems exist (jobs board: economy).
+- `src/city-map.js`: cities as data (`createCityData`, 64 × 64 regions of per-tile heights and surfaces, stairs, buildings, props, edges, townsfolk, interiors) and `buildCity`, the one builder used by the kit street, the editor and the capital.
+- Playground: the kit street is now city data (`src/dev/kit-street.js`) with an east annex: terraces one and two blocks up, a 3-wide stair, a 1-wide stair and a stair with a landing, retaining walls with railings, the prop set and a terrace cottage. *City streets → Kit street: go to the terraces / the garden*. Model viewer: every prop, *Stairs and terrace*, the `Sit` motion.
+
 ## Townsfolk and city life
 
 **Routines from places, not scripts.** A townsfolk entry gives a look (colour, hat, accessories), a home door, a loadout or carried tool, and a **routine**: a weighted list of activities. Activities find spots offered by props and buildings: `sit` (bench), `browse` (stall), `vend` and `work` (shop counter, smithy anvil, using existing station motions), `gaze` (fountain, statue), `chat` (two idle townsfolk meet and face each other through `slime-social.js`), `stroll` (to a random street spot), `enter` (walk to a door, go inside, reappear later) and `patrol` (guards follow a loop). Every motion is shared slime presentation. No per-character animation code, as AGENTS.md requires.
@@ -232,6 +248,15 @@ Props are instanced or merged per chunk. Spots are data that townsfolk and the p
 
 The perf harness gets `city-walk` and `city-crowd` scenarios in `src/dev/perf-scenarios.js` before the crowd is tuned.
 
+### As implemented (Phase 8, 2026-10-11)
+
+- `src/townsfolk.js`: `createCrowd({city})` runs a city's townsfolk (`data.townsfolk`: look, home, weighted routine, patrol, pace, an optional line). Activities: sit, browse, vend, gaze, drink, read (prop spots), chat (two townsfolk meet and wave), stroll (a bounded search within 10 tiles), enter (walk to a doorstep and vanish for a while; townsfolk don't walk into in-place buildings yet), patrol. Clicking one turns them to you, waves and says a line.
+- Movement: walk-through characters that mark their tile occupied, step aside when the player stops on them, and never idle on doorsteps, stairs or prop spots. A shared navigator caches distance fields to destinations (48 at most) and follows them downhill; strolls use a bounded search.
+- Crowd budget rings: near (16 tiles) and on screen, full presentation; far (to 34) a quarter rate with a fixed face; off screen or farther, movement only. `crowdStats` reports the rings.
+- Each townsfolk's body group is moved by the crowd; the shared presentation animates the rig inside it (it owns the rig's height).
+- Checks: a home that exists and reaches the square; a routine with something usable. Perf scenarios `city-walk`, `city-crowd` (60) and `capital-square` (`src/dev/perf-scenarios.js`).
+- Playground: the kit street has 14 townsfolk (vendors, sitters, shoppers, chatters, two guards); *Crowd: 60 townsfolk* swaps in a generated crowd.
+
 ## Authoring: the playground city editor
 
 A dev-only editor (compile-time isolated like the rest of the playground) that edits a real city map using the production builders:
@@ -248,12 +273,25 @@ A dev-only editor (compile-time isolated like the rest of the playground) that e
 - **Test walk:** switch from editing to playing in place, with the camera and cutaway as in the game. Reset returns to the edited state.
 - **Saving:** the city is a data module (`src/maps/<city>.js` or JSON) with terrain and surfaces stored in 64 × 64 regions (matching the streaming notes in DESIGN.md), plus lists of buildings, props, stairs, edges and townsfolk. In `npm run dev:debug` a dev-only Vite endpoint writes the file into the repo. Otherwise the editor offers a copy/download. Normal builds don't include the editor or the endpoint (`check:debug-isolation`).
 
+### As implemented (Phase 6, 2026-10-11)
+
+- `src/dev/city-editor.js` (dev only): a docked panel (a bottom sheet on phones) over the live map. Tools: inspect, raise and lower (half blocks, 1 or 3 × 3 brush), surface, building (kit presets, rotation), prop (kind, rotation), stairs (direction, length, width), edge (wall, window, fence, railing, counter, door, remove), erase, arrival. Placing over something taken is refused. Every edit rebuilds the map with `buildCity` (about 0.3 s for the kit street, 1 s for the capital) and keeps you where you stand.
+- Edit / Play (a test walk in place), Reset, Undo / Redo (60 steps), open the kit street, a blank 64 × 64 city or any city in `src/maps/`.
+- Live checks (`src/city-checks.js`), each a button that takes you there: arrival tile; overlapping buildings, props and stairs; doorsteps blocked or unreachable from the arrival point; the door rule; stairs without a landing; open ground that can't be reached (a terrace without stairs); one-tile dead ends and passages under two tiles; prop spots that can't be used; interiors and dungeons (Phase 7); townsfolk (Phase 8); buildings across chunk borders (a note).
+- Saving: *Save to repo* posts to a playground-only dev server endpoint (`vite.config.js`, `/__city-save`) that writes `src/maps/<id>.json`; *Copy JSON* and *Download* work anywhere. Normal builds include none of it (`check:debug-isolation` checks the markers).
+
 ## Streaming and the world
 
 - The capital is the kingdom's capital and very large, far bigger than any tutorial area. A first graybox target is 128 × 128 tiles (2 × 2 storage regions), to grow once streaming and crowds are measured. It builds on the chunk streamer.
 - **The town square holds the Iter Crystal where the player wakes**, so the square is the city's focal point: the castle is visible from it, the main avenues start there, and the first shops, a noticeboard for jobs and the first townsfolk are in sight from the crystal. Buildings, props and townsfolk belong to the chunk of their anchor. A building that crosses a chunk border keeps all its chunks loaded while it's on screen.
 - Door state, unlocks, and townsfolk routines and positions live outside chunk render state by stable id, so leaving and returning doesn't reset them. The streaming shared-infrastructure rules in DESIGN.md apply as written.
 - Interior spaces load on demand when the player is near their door, and unload on a budget.
+
+### As implemented (Phase 9, 2026-10-11; first draft)
+
+- `src/maps/capital.json`: the capital as city data, 128 × 128 (2 × 2 regions), generated once by `scripts/generate-capital.mjs` from `src/dev/capital-layout.js` and edited from there in the city editor (regenerating overwrites edits). You arrive beside the Iter Crystal in the town square, ringed by tall shops, with the fountain, the jobs noticeboard, benches and lamps; a 5-wide avenue leads north up a 5-wide grand stair to the castle terrace two blocks up (a curtain wall with a gate, four cone towers, the keep with a two-floor separate interior); a market square of stalls to the west; timber, brick and stone districts; shops with signs on the main street; an inn and a guild hall with interiors; a park with the sewer entrance; 35 townsfolk including guards on patrol. The city checks report no errors.
+- Built per 16 × 16 chunk (`buildCity`): terrain, baked walls, buildings and props go in their chunk's group, so the renderer culls by chunk, and `stream(tile)` shows only the chunks within 3 of the player. An edge belongs to the chunk of its lower tile, so neighbours in different chunks still share one wall. All tiles and models are built on entry (about 1.1 s).
+- Playground only for now: *City streets → Enter the capital*.
 
 ## Planned later: day and night
 
@@ -279,11 +317,11 @@ Each phase ends playable in the playground and keeps existing maps unchanged. Ph
 2. **Graybox street.** Plain-box buildings with edge walls, a raised ground floor, stairs and terraces, at real scale. Judge the scale rules at every zoom level on desktop and phone, and tune the numbers in this doc.
 3. **Cutaway and occlusion.** Roof hide, walls cut to one storey for the building you're in or that hides you, click-through (implemented 2026-10-11, simplified with Phase 4; see *As implemented (Phase 3)*). The graybox city is flat for now (user, 2026-10-11): terraces and stairs come back later.
 4. **Building kit.** The description-based builder, three sizes, styles, roofs, signs, and catalogue entries (implemented 2026-10-11, see *As implemented (Phase 4)*).
-5. **Surfaces, retaining walls, stairs and props.** The starter prop set with spots.
-6. **City editor and checks**, including saving to the repo.
-7. **Separate interiors, stairwells and dungeon entrances**, with the interior size checks.
-8. **Townsfolk routines and crowd budget**, with the navigation graph, perf scenarios and ring-based detail.
-9. **The capital itself**, on the streamer, with the castle and the waking crystal in the town square.
+5. **Surfaces, retaining walls, stairs and props.** The starter prop set with spots (first draft 2026-10-11, see *As implemented (Phase 5)*).
+6. **City editor and checks**, including saving to the repo (first draft 2026-10-11, see *As implemented (Phase 6)*).
+7. **Separate interiors, stairwells and dungeon entrances**, with the interior size checks (first draft 2026-10-11, see *As implemented (Phase 7)*).
+8. **Townsfolk routines and crowd budget**, with the navigation graph, perf scenarios and ring-based detail (first draft 2026-10-11, see *As implemented (Phase 8)*).
+9. **The capital itself**, on the streamer, with the castle and the waking crystal in the town square (first draft 2026-10-11, see *As implemented (Phase 9)*).
 
 The economy ([ECONOMY.md](ECONOMY.md)) is designed alongside and doesn't wait for the city: selling, buying and jobs can be tested at a playground counter before the capital exists.
 
@@ -291,3 +329,15 @@ The economy ([ECONOMY.md](ECONOMY.md)) is designed alongside and doesn't wait fo
 
 
 1. **The capital's name.** Working name "the capital" until decided.
+
+Flagged during the Phases 5–9 first draft (2026-10-11), for review:
+2. **When does the player reach the capital?** It is playground-only. Its Iter Crystal is a model, not a travel crystal, and nothing in the tutorial or travel leads there yet.
+3. **Real streaming.** The capital is built whole on entry (about 1.1 s) and only its rendering is streamed by chunk. Loading and unloading chunk contents through the chunk streamer (DESIGN.md) is not done.
+4. **Railings on every terrace edge and stair side.** Automatic railings make terraces safe and readable but add a lot of fence; a per-edge or per-district option may be wanted.
+5. **Townsfolk and doors.** Townsfolk never open doors: "going indoors" vanishes at the doorstep. Shopkeepers stand at stalls; nothing is sold yet (economy).
+6. **Interior furniture.** Interiors use the outdoor prop set (barrels, crates, benches, statues). Beds, tables, chairs, counters and shelves are needed, and dungeons need their own look (darker stone, torches) and enemies.
+7. **Placeholder prop lines.** The noticeboard, well, stalls, fountain and statue answer with a line; reading jobs and drinking need the economy and health rules.
+8. **Editor scale.** Every edit rebuilds the whole map (about 1 s for the capital); drag painting, incremental rebuilds and an editor tool for townsfolk and interiors are not done.
+9. **Seeing the player behind a front wall.** Interiors and one-storey buildings keep full one-storey walls, which can hide the player standing just inside a front wall (as in the building test map).
+10. **Chunk borders.** Walls of one building that cross a chunk border can get a doubled corner post at the border.
+11. **Capital performance.** The capital square runs at 59 fps on a desktop GPU but at about 9.5 ms a frame and ~1,150 draws (docs/PERFORMANCE.md). Before phones: merge building shells per chunk and instance townsfolk rigs.

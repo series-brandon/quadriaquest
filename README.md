@@ -50,6 +50,7 @@ The collapsible DEV PLAYGROUND panel provides:
 - Add/remove quantities of any currently implemented item. Removal clamps at zero. Edits show the actual item gain/loss using the same notification as gameplay; zero changes do not show a notification.
 - Trigger Going, interaction spinners, Arrived/Done, blocked clicks, XP text, level-up feedback, and item gain/loss notifications independently of gameplay rewards.
 - Restore ground items, restore trees, or reset the entire test area (including skills, starter inventory, player position, and camera).
+- **World & water → City streets**: the graybox and kit streets (buildings, terraces, stairs, props, townsfolk, interiors, a crypt), the capital, the city editor (save to `src/maps/` while `npm run dev:debug` runs), crowd and cutaway toggles. See [docs/CITY.md](docs/CITY.md). `node scripts/generate-capital.mjs` regenerates `src/maps/capital.json` from its layout and overwrites editor changes.
 
 Run `npm run dev` for the normal tutorial experience on port 5173. Both servers can run side by side; no URL parameter or saved browser setting enables debug mode in the normal app.
 

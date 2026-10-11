@@ -6,6 +6,8 @@ export function createAreaRuntime({world,beforeSwitch=()=>{},placePlayer=()=>{},
  function unpark(area){const parent=homes.get(area);if(parent&&!area.group.parent)parent.add(area.group);area.group.visible=true;area.group.updateMatrixWorld?.(true);}
  function enter(options={}){if(!active||entered)return;entered=true;active.enter?.(options);}
  return {
+  // Drops an area that is not active (a rebuilt city's interiors).
+  unregister(id){const area=registry.get(id);if(!area||area===active)return false;registry.delete(id);homes.delete(area);area.group.removeFromParent();return true;},
   register(area){if(registry.has(area.id))throw Error('Duplicate area: '+area.id);registry.set(area.id,area);area.group.name||=area.id;if(area!==active)park(area);return area;},
   list:()=>[...registry.values()],broadcast:(event,...args)=>{for(const area of registry.values())area[event]?.(...args);},
   get: id=>registry.get(id),get active(){return active;},get id(){return active?.id;},

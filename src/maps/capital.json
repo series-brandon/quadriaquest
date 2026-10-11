@@ -1,0 +1,7400 @@
+{
+ "id": "capital",
+ "name": "The capital",
+ "size": [
+  128,
+  128
+ ],
+ "style": "timber",
+ "spawn": [
+  64,
+  76
+ ],
+ "crystal": [
+  64,
+  74
+ ],
+ "regions": {
+  "0,0": {
+   "heights": [
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222666666666666666666666666666666666666",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222"
+   ],
+   "surfaces": [
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ggggggggggggggggggggggggggggffffffffffffffffffffffffffffffffffff",
+    "ggggggggggggggggggggggggggggffffffffffffffffffffffffffffffffffff",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffssssssssssssssssssss",
+    "ggggggggggggggggggggggggggggffffffffffffffffffffffffffffffffffff",
+    "ggggggggggggggggggggggggggggffffffffffffffffffffffffffffffffffff",
+    "ggggggggggggggggggggggggggggffffffffffffffffffffffffffffffffffff",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggggggggggggggggggggggggggggcccgggggggggggggggggggggggggggggcc",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppggggggcc",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppgppppppp"
+   ]
+  },
+  "1,0": {
+   "heights": [
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "6666666666666666666666666666666666662222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222"
+   ],
+   "surfaces": [
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "ffffffffffffffffffffffffffffffffffffgggggggggggggggggggggggggggg",
+    "ffffffffffffffffffffffffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "sssssssssssssssssssssfffffffffffffffgggggggggggggggggggggggggggg",
+    "ffffffffffffffffffffffffffffffffffffgggggggggggggggggggggggggggg",
+    "ffffffffffffffffffffffffffffffffffffgggggggggggggggggggggggggggg",
+    "ffffffffffffffffffffffffffffffffffffgggggggggggggggggggggggggggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "cccgggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg"
+   ]
+  },
+  "0,1": {
+   "heights": [
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222"
+   ],
+   "surfaces": [
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppgppppppp",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppgppppppp",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppgppppppp",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppgppppppp",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppgppppppp",
+    "ggggggggggggggggggggggggggggggcccpppppppppppppppppppppppgppppppp",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccppppppp",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccppppppp",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccppppppp",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggppppppp",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggppppppp",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggppppppp",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggppppppp",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggppppppp",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggppppppp",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggppppppp",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "ggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggggc",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+   ]
+  },
+  "1,1": {
+   "heights": [
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "2222222222222222222222222222222222222222222222222222222222222222"
+   ],
+   "surfaces": [
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ppppppppccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ppppppppccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ppppppppggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccgggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "ccggggggggggggggggggggggggggggggcccggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+    "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+   ]
+  }
+ },
+ "stairs": [
+  {
+   "x": 62,
+   "z": 31,
+   "dir": "n",
+   "length": 4,
+   "width": 5
+  }
+ ],
+ "buildings": [
+  {
+   "x": 54,
+   "z": 6,
+   "desc": {
+    "name": "castle keep",
+    "footprint": [
+     21,
+     11
+    ],
+    "storeys": 3,
+    "roof": "flat",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 10
+     }
+    ],
+    "windows": "auto",
+    "interior": "separate",
+    "seed": 5
+   },
+   "interior": {
+    "floors": 2,
+    "furniture": [
+     {
+      "kind": "banner",
+      "at": [
+       2,
+       0
+      ]
+     },
+     {
+      "kind": "banner",
+      "at": [
+       18,
+       0
+      ]
+     },
+     {
+      "kind": "statue",
+      "at": [
+       10,
+       2
+      ]
+     },
+     {
+      "kind": "bench",
+      "at": [
+       4,
+       4
+      ]
+     },
+     {
+      "kind": "bench",
+      "at": [
+       15,
+       4
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "x": 44,
+   "z": 4,
+   "desc": {
+    "name": "castle tower",
+    "footprint": [
+     3,
+     3
+    ],
+    "storeys": 4,
+    "roof": "cone",
+    "style": "stone",
+    "doors": [],
+    "windows": "none",
+    "interior": "none",
+    "seed": 48
+   }
+  },
+  {
+   "x": 82,
+   "z": 4,
+   "desc": {
+    "name": "castle tower",
+    "footprint": [
+     3,
+     3
+    ],
+    "storeys": 4,
+    "roof": "cone",
+    "style": "stone",
+    "doors": [],
+    "windows": "none",
+    "interior": "none",
+    "seed": 86
+   }
+  },
+  {
+   "x": 44,
+   "z": 22,
+   "desc": {
+    "name": "castle tower",
+    "footprint": [
+     3,
+     3
+    ],
+    "storeys": 4,
+    "roof": "cone",
+    "style": "stone",
+    "doors": [],
+    "windows": "none",
+    "interior": "none",
+    "seed": 66
+   }
+  },
+  {
+   "x": 82,
+   "z": 22,
+   "desc": {
+    "name": "castle tower",
+    "footprint": [
+     3,
+     3
+    ],
+    "storeys": 4,
+    "roof": "cone",
+    "style": "stone",
+    "doors": [],
+    "windows": "none",
+    "interior": "none",
+    "seed": 104
+   }
+  },
+  {
+   "x": 4,
+   "z": 33,
+   "desc": {
+    "name": "house 1",
+    "footprint": [
+     6,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 7
+   }
+  },
+  {
+   "x": 10,
+   "z": 33,
+   "desc": {
+    "name": "house 2",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 20
+   }
+  },
+  {
+   "x": 15,
+   "z": 33,
+   "desc": {
+    "name": "house 3",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 33
+   }
+  },
+  {
+   "x": 21,
+   "z": 33,
+   "desc": {
+    "name": "house 4",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 46
+   }
+  },
+  {
+   "x": 4,
+   "z": 41,
+   "desc": {
+    "name": "house 5",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 59
+   }
+  },
+  {
+   "x": 11,
+   "z": 41,
+   "desc": {
+    "name": "house 6",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 72
+   }
+  },
+  {
+   "x": 18,
+   "z": 41,
+   "desc": {
+    "name": "house 7",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 85
+   }
+  },
+  {
+   "x": 25,
+   "z": 41,
+   "desc": {
+    "name": "house 8",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 98
+   }
+  },
+  {
+   "x": 33,
+   "z": 33,
+   "desc": {
+    "name": "house 9",
+    "footprint": [
+     6,
+     5
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 111
+   }
+  },
+  {
+   "x": 39,
+   "z": 33,
+   "desc": {
+    "name": "house 10",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 124
+   }
+  },
+  {
+   "x": 46,
+   "z": 33,
+   "desc": {
+    "name": "house 11",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 137
+   }
+  },
+  {
+   "x": 52,
+   "z": 33,
+   "desc": {
+    "name": "house 12",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 150
+   }
+  },
+  {
+   "x": 57,
+   "z": 33,
+   "desc": {
+    "name": "house 13",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 163
+   }
+  },
+  {
+   "x": 33,
+   "z": 41,
+   "desc": {
+    "name": "house 14",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 176
+   }
+  },
+  {
+   "x": 40,
+   "z": 41,
+   "desc": {
+    "name": "the Wandering Slime inn",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "separate",
+    "seed": 189,
+    "roofColor": "#7a4a8c"
+   },
+   "interior": {
+    "floors": 2,
+    "furniture": [
+     {
+      "kind": "barrel",
+      "at": [
+       0,
+       0
+      ]
+     },
+     {
+      "kind": "barrel",
+      "at": [
+       1,
+       0
+      ]
+     },
+     {
+      "kind": "bench",
+      "at": [
+       2,
+       2
+      ]
+     },
+     {
+      "kind": "crates",
+      "at": [
+       6,
+       0
+      ],
+      "floor": 1
+     }
+    ]
+   }
+  },
+  {
+   "x": 47,
+   "z": 41,
+   "desc": {
+    "name": "house 16",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 202
+   }
+  },
+  {
+   "x": 56,
+   "z": 41,
+   "desc": {
+    "name": "house 17",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 215
+   }
+  },
+  {
+   "x": 67,
+   "z": 33,
+   "desc": {
+    "name": "house 18",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 228
+   }
+  },
+  {
+   "x": 71,
+   "z": 33,
+   "desc": {
+    "name": "house 19",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 241
+   }
+  },
+  {
+   "x": 76,
+   "z": 33,
+   "desc": {
+    "name": "house 20",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 254
+   }
+  },
+  {
+   "x": 83,
+   "z": 33,
+   "desc": {
+    "name": "house 21",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 267
+   }
+  },
+  {
+   "x": 88,
+   "z": 33,
+   "desc": {
+    "name": "house 22",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 280
+   }
+  },
+  {
+   "x": 92,
+   "z": 33,
+   "desc": {
+    "name": "house 23",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 293
+   }
+  },
+  {
+   "x": 67,
+   "z": 41,
+   "desc": {
+    "name": "house 24",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 306
+   }
+  },
+  {
+   "x": 72,
+   "z": 41,
+   "desc": {
+    "name": "house 25",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 319
+   }
+  },
+  {
+   "x": 76,
+   "z": 41,
+   "desc": {
+    "name": "house 26",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 3,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 332
+   }
+  },
+  {
+   "x": 83,
+   "z": 41,
+   "desc": {
+    "name": "house 27",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 345
+   }
+  },
+  {
+   "x": 87,
+   "z": 41,
+   "desc": {
+    "name": "house 28",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 358
+   }
+  },
+  {
+   "x": 92,
+   "z": 41,
+   "desc": {
+    "name": "house 29",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 371
+   }
+  },
+  {
+   "x": 99,
+   "z": 33,
+   "desc": {
+    "name": "house 30",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 384
+   }
+  },
+  {
+   "x": 103,
+   "z": 33,
+   "desc": {
+    "name": "house 31",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 397
+   }
+  },
+  {
+   "x": 110,
+   "z": 33,
+   "desc": {
+    "name": "house 32",
+    "footprint": [
+     5,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 410
+   }
+  },
+  {
+   "x": 117,
+   "z": 33,
+   "desc": {
+    "name": "house 33",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 423
+   }
+  },
+  {
+   "x": 99,
+   "z": 41,
+   "desc": {
+    "name": "house 34",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 436
+   }
+  },
+  {
+   "x": 106,
+   "z": 41,
+   "desc": {
+    "name": "house 35",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 449
+   }
+  },
+  {
+   "x": 110,
+   "z": 41,
+   "desc": {
+    "name": "house 36",
+    "footprint": [
+     4,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 462
+   }
+  },
+  {
+   "x": 116,
+   "z": 41,
+   "desc": {
+    "name": "house 37",
+    "footprint": [
+     7,
+     5
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 475
+   }
+  },
+  {
+   "x": 4,
+   "z": 48,
+   "desc": {
+    "name": "house 38",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 488
+   }
+  },
+  {
+   "x": 8,
+   "z": 48,
+   "desc": {
+    "name": "house 39",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 501
+   }
+  },
+  {
+   "x": 14,
+   "z": 48,
+   "desc": {
+    "name": "house 40",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 514
+   }
+  },
+  {
+   "x": 23,
+   "z": 48,
+   "desc": {
+    "name": "house 41",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 527
+   }
+  },
+  {
+   "x": 4,
+   "z": 64,
+   "desc": {
+    "name": "guild hall",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "separate",
+    "seed": 540,
+    "roofColor": "#7a4a8c"
+   },
+   "interior": {
+    "floors": 2,
+    "furniture": [
+     {
+      "kind": "barrel",
+      "at": [
+       0,
+       0
+      ]
+     },
+     {
+      "kind": "barrel",
+      "at": [
+       1,
+       0
+      ]
+     },
+     {
+      "kind": "bench",
+      "at": [
+       2,
+       2
+      ]
+     },
+     {
+      "kind": "crates",
+      "at": [
+       4,
+       0
+      ],
+      "floor": 1
+     }
+    ]
+   }
+  },
+  {
+   "x": 9,
+   "z": 64,
+   "desc": {
+    "name": "shop 1",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "rawFish",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 553
+   }
+  },
+  {
+   "x": 15,
+   "z": 64,
+   "desc": {
+    "name": "house 44",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 566
+   }
+  },
+  {
+   "x": 23,
+   "z": 64,
+   "desc": {
+    "name": "shop 2",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "quickEat",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 579
+   }
+  },
+  {
+   "x": 72,
+   "z": 48,
+   "desc": {
+    "name": "house 46",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 592
+   }
+  },
+  {
+   "x": 79,
+   "z": 48,
+   "desc": {
+    "name": "house 47",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 605
+   }
+  },
+  {
+   "x": 85,
+   "z": 48,
+   "desc": {
+    "name": "house 48",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 618
+   }
+  },
+  {
+   "x": 92,
+   "z": 48,
+   "desc": {
+    "name": "house 49",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 631
+   }
+  },
+  {
+   "x": 72,
+   "z": 64,
+   "desc": {
+    "name": "shop 3",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 3,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "swords",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 644
+   }
+  },
+  {
+   "x": 79,
+   "z": 64,
+   "desc": {
+    "name": "shop 4",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "copperShield",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 657
+   }
+  },
+  {
+   "x": 84,
+   "z": 64,
+   "desc": {
+    "name": "house 52",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 670
+   }
+  },
+  {
+   "x": 92,
+   "z": 64,
+   "desc": {
+    "name": "house 53",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 683
+   }
+  },
+  {
+   "x": 99,
+   "z": 48,
+   "desc": {
+    "name": "house 54",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 696
+   }
+  },
+  {
+   "x": 106,
+   "z": 48,
+   "desc": {
+    "name": "house 55",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 709
+   }
+  },
+  {
+   "x": 110,
+   "z": 48,
+   "desc": {
+    "name": "house 56",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 722
+   }
+  },
+  {
+   "x": 119,
+   "z": 48,
+   "desc": {
+    "name": "house 57",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 735
+   }
+  },
+  {
+   "x": 99,
+   "z": 64,
+   "desc": {
+    "name": "shop 5",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "quickRestore",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 748
+   }
+  },
+  {
+   "x": 103,
+   "z": 64,
+   "desc": {
+    "name": "shop 6",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": {
+     "icon": "bows",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 761
+   }
+  },
+  {
+   "x": 108,
+   "z": 64,
+   "desc": {
+    "name": "shop 7",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "campfires",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 774
+   }
+  },
+  {
+   "x": 116,
+   "z": 64,
+   "desc": {
+    "name": "house 61",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 787
+   }
+  },
+  {
+   "x": 120,
+   "z": 64,
+   "desc": {
+    "name": "shop 8",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "Culinary",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 800
+   }
+  },
+  {
+   "x": 4,
+   "z": 73,
+   "desc": {
+    "name": "shop 9",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": {
+     "icon": "hammers",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 813
+   }
+  },
+  {
+   "x": 9,
+   "z": 73,
+   "desc": {
+    "name": "shop 10",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "rawFish",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 826
+   }
+  },
+  {
+   "x": 14,
+   "z": 73,
+   "desc": {
+    "name": "house 65",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 839
+   }
+  },
+  {
+   "x": 23,
+   "z": 73,
+   "desc": {
+    "name": "house 66",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 852
+   }
+  },
+  {
+   "x": 4,
+   "z": 92,
+   "desc": {
+    "name": "house 67",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 865
+   }
+  },
+  {
+   "x": 8,
+   "z": 92,
+   "desc": {
+    "name": "house 68",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 878
+   }
+  },
+  {
+   "x": 14,
+   "z": 92,
+   "desc": {
+    "name": "house 69",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 891
+   }
+  },
+  {
+   "x": 22,
+   "z": 92,
+   "desc": {
+    "name": "house 70",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 904
+   }
+  },
+  {
+   "x": 26,
+   "z": 92,
+   "desc": {
+    "name": "house 71",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 917
+   }
+  },
+  {
+   "x": 33,
+   "z": 73,
+   "desc": {
+    "name": "shop 11",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 3,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "quickEat",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 930
+   }
+  },
+  {
+   "x": 37,
+   "z": 73,
+   "desc": {
+    "name": "house 73",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 943
+   }
+  },
+  {
+   "x": 42,
+   "z": 73,
+   "desc": {
+    "name": "shop 12",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": {
+     "icon": "swords",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 956
+   }
+  },
+  {
+   "x": 51,
+   "z": 73,
+   "desc": {
+    "name": "shop 13",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "copperShield",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 969
+   }
+  },
+  {
+   "x": 33,
+   "z": 92,
+   "desc": {
+    "name": "house 76",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 982
+   }
+  },
+  {
+   "x": 37,
+   "z": 92,
+   "desc": {
+    "name": "house 77",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 995
+   }
+  },
+  {
+   "x": 41,
+   "z": 92,
+   "desc": {
+    "name": "house 78",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1008
+   }
+  },
+  {
+   "x": 50,
+   "z": 92,
+   "desc": {
+    "name": "house 79",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1021
+   }
+  },
+  {
+   "x": 72,
+   "z": 73,
+   "desc": {
+    "name": "shop 14",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": {
+     "icon": "quickRestore",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 1034
+   }
+  },
+  {
+   "x": 77,
+   "z": 73,
+   "desc": {
+    "name": "house 81",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1047
+   }
+  },
+  {
+   "x": 84,
+   "z": 73,
+   "desc": {
+    "name": "house 82",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1060
+   }
+  },
+  {
+   "x": 72,
+   "z": 92,
+   "desc": {
+    "name": "house 83",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1073
+   }
+  },
+  {
+   "x": 77,
+   "z": 92,
+   "desc": {
+    "name": "house 84",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 3,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1086
+   }
+  },
+  {
+   "x": 83,
+   "z": 92,
+   "desc": {
+    "name": "house 85",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1099
+   }
+  },
+  {
+   "x": 91,
+   "z": 92,
+   "desc": {
+    "name": "house 86",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1112
+   }
+  },
+  {
+   "x": 99,
+   "z": 73,
+   "desc": {
+    "name": "shop 15",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "bows",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 1125
+   }
+  },
+  {
+   "x": 104,
+   "z": 73,
+   "desc": {
+    "name": "shop 16",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": {
+     "icon": "campfires",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 1138
+   }
+  },
+  {
+   "x": 110,
+   "z": 73,
+   "desc": {
+    "name": "shop 17",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": {
+     "icon": "Culinary",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 1151
+   }
+  },
+  {
+   "x": 117,
+   "z": 73,
+   "desc": {
+    "name": "house 90",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1164
+   }
+  },
+  {
+   "x": 99,
+   "z": 92,
+   "desc": {
+    "name": "house 91",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1177
+   }
+  },
+  {
+   "x": 103,
+   "z": 92,
+   "desc": {
+    "name": "house 92",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1190
+   }
+  },
+  {
+   "x": 107,
+   "z": 92,
+   "desc": {
+    "name": "house 93",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1203
+   }
+  },
+  {
+   "x": 113,
+   "z": 92,
+   "desc": {
+    "name": "house 94",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1216
+   }
+  },
+  {
+   "x": 117,
+   "z": 92,
+   "desc": {
+    "name": "house 95",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "brick",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1229
+   }
+  },
+  {
+   "x": 4,
+   "z": 101,
+   "desc": {
+    "name": "house 96",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1242
+   }
+  },
+  {
+   "x": 8,
+   "z": 101,
+   "desc": {
+    "name": "house 97",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1255
+   }
+  },
+  {
+   "x": 14,
+   "z": 101,
+   "desc": {
+    "name": "house 98",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1268
+   }
+  },
+  {
+   "x": 22,
+   "z": 101,
+   "desc": {
+    "name": "house 99",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1281
+   }
+  },
+  {
+   "x": 4,
+   "z": 118,
+   "desc": {
+    "name": "house 100",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1294
+   }
+  },
+  {
+   "x": 10,
+   "z": 118,
+   "desc": {
+    "name": "house 101",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1307
+   }
+  },
+  {
+   "x": 15,
+   "z": 118,
+   "desc": {
+    "name": "house 102",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1320
+   }
+  },
+  {
+   "x": 23,
+   "z": 118,
+   "desc": {
+    "name": "house 103",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1333
+   }
+  },
+  {
+   "x": 33,
+   "z": 101,
+   "desc": {
+    "name": "house 104",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1346
+   }
+  },
+  {
+   "x": 39,
+   "z": 101,
+   "desc": {
+    "name": "house 105",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1359
+   }
+  },
+  {
+   "x": 44,
+   "z": 101,
+   "desc": {
+    "name": "house 106",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1372
+   }
+  },
+  {
+   "x": 52,
+   "z": 101,
+   "desc": {
+    "name": "house 107",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1385
+   }
+  },
+  {
+   "x": 57,
+   "z": 101,
+   "desc": {
+    "name": "house 108",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1398
+   }
+  },
+  {
+   "x": 33,
+   "z": 118,
+   "desc": {
+    "name": "house 109",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1411
+   }
+  },
+  {
+   "x": 40,
+   "z": 118,
+   "desc": {
+    "name": "house 110",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1424
+   }
+  },
+  {
+   "x": 46,
+   "z": 118,
+   "desc": {
+    "name": "house 111",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 2,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1437
+   }
+  },
+  {
+   "x": 54,
+   "z": 118,
+   "desc": {
+    "name": "house 112",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1450
+   }
+  },
+  {
+   "x": 66,
+   "z": 101,
+   "desc": {
+    "name": "house 113",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1463
+   }
+  },
+  {
+   "x": 72,
+   "z": 101,
+   "desc": {
+    "name": "house 114",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1476
+   }
+  },
+  {
+   "x": 77,
+   "z": 101,
+   "desc": {
+    "name": "house 115",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1489
+   }
+  },
+  {
+   "x": 83,
+   "z": 101,
+   "desc": {
+    "name": "house 116",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1502
+   }
+  },
+  {
+   "x": 90,
+   "z": 101,
+   "desc": {
+    "name": "house 117",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1515
+   }
+  },
+  {
+   "x": 66,
+   "z": 118,
+   "desc": {
+    "name": "house 118",
+    "footprint": [
+     7,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1528
+   }
+  },
+  {
+   "x": 73,
+   "z": 118,
+   "desc": {
+    "name": "house 119",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1541
+   }
+  },
+  {
+   "x": 79,
+   "z": 118,
+   "desc": {
+    "name": "house 120",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1554
+   }
+  },
+  {
+   "x": 86,
+   "z": 118,
+   "desc": {
+    "name": "house 121",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1567
+   }
+  },
+  {
+   "x": 90,
+   "z": 118,
+   "desc": {
+    "name": "house 122",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1580
+   }
+  },
+  {
+   "x": 99,
+   "z": 101,
+   "desc": {
+    "name": "house 123",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1593
+   }
+  },
+  {
+   "x": 104,
+   "z": 101,
+   "desc": {
+    "name": "house 124",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1606
+   }
+  },
+  {
+   "x": 108,
+   "z": 101,
+   "desc": {
+    "name": "house 125",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1619
+   }
+  },
+  {
+   "x": 114,
+   "z": 101,
+   "desc": {
+    "name": "house 126",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1632
+   }
+  },
+  {
+   "x": 119,
+   "z": 101,
+   "desc": {
+    "name": "house 127",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1645
+   }
+  },
+  {
+   "x": 99,
+   "z": 118,
+   "desc": {
+    "name": "house 128",
+    "footprint": [
+     6,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1658
+   }
+  },
+  {
+   "x": 105,
+   "z": 118,
+   "desc": {
+    "name": "house 129",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1671
+   }
+  },
+  {
+   "x": 110,
+   "z": 118,
+   "desc": {
+    "name": "house 130",
+    "footprint": [
+     5,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1684
+   }
+  },
+  {
+   "x": 117,
+   "z": 118,
+   "desc": {
+    "name": "house 131",
+    "footprint": [
+     4,
+     6
+    ],
+    "storeys": 1,
+    "roof": "gable",
+    "style": "stone",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 1
+     }
+    ],
+    "chimney": false,
+    "sign": null,
+    "awning": null,
+    "interior": "inPlace",
+    "seed": 1697
+   }
+  },
+  {
+   "x": 57,
+   "z": 55,
+   "desc": {
+    "name": "square shop (Culinary)",
+    "footprint": [
+     5,
+     8
+    ],
+    "storeys": 3,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "Culinary",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 226
+   }
+  },
+  {
+   "x": 67,
+   "z": 55,
+   "desc": {
+    "name": "square shop (quickRestore)",
+    "footprint": [
+     5,
+     8
+    ],
+    "storeys": 3,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "south",
+      "at": 2
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "quickRestore",
+     "edge": "south"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 256
+   }
+  },
+  {
+   "x": 57,
+   "z": 80,
+   "desc": {
+    "name": "square shop (hammers)",
+    "footprint": [
+     6,
+     8
+    ],
+    "storeys": 2,
+    "roof": "hip",
+    "style": "timber",
+    "doors": [
+     {
+      "edge": "north",
+      "at": 3
+     }
+    ],
+    "chimney": true,
+    "sign": {
+     "icon": "hammers",
+     "edge": "north"
+    },
+    "awning": "striped",
+    "interior": "inPlace",
+    "seed": 251
+   }
+  }
+ ],
+ "props": [
+  {
+   "kind": "treeGrate",
+   "x": 7,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 14,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 21,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 75,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 82,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 89,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 102,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 109,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 116,
+   "z": 56
+  },
+  {
+   "kind": "treeGrate",
+   "x": 7,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 14,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 21,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 36,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 43,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 50,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 75,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 82,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 89,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 102,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 109,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 116,
+   "z": 81
+  },
+  {
+   "kind": "treeGrate",
+   "x": 7,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 14,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 21,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 36,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 43,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 50,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 57,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 69,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 76,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 83,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 90,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 102,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 109,
+   "z": 109
+  },
+  {
+   "kind": "treeGrate",
+   "x": 116,
+   "z": 109
+  },
+  {
+   "kind": "fountain",
+   "x": 63,
+   "z": 68
+  },
+  {
+   "kind": "noticeboard",
+   "x": 60,
+   "z": 75
+  },
+  {
+   "kind": "bench",
+   "x": 66,
+   "z": 66
+  },
+  {
+   "kind": "bench",
+   "x": 60,
+   "z": 66
+  },
+  {
+   "kind": "lampPost",
+   "x": 57,
+   "z": 63
+  },
+  {
+   "kind": "lampPost",
+   "x": 71,
+   "z": 63
+  },
+  {
+   "kind": "lampPost",
+   "x": 57,
+   "z": 79
+  },
+  {
+   "kind": "lampPost",
+   "x": 71,
+   "z": 79
+  },
+  {
+   "kind": "flowerBed",
+   "x": 67,
+   "z": 76
+  },
+  {
+   "kind": "flowerBed",
+   "x": 59,
+   "z": 78
+  },
+  {
+   "kind": "lampPost",
+   "x": 62,
+   "z": 34
+  },
+  {
+   "kind": "lampPost",
+   "x": 66,
+   "z": 34
+  },
+  {
+   "kind": "lampPost",
+   "x": 62,
+   "z": 42
+  },
+  {
+   "kind": "lampPost",
+   "x": 66,
+   "z": 42
+  },
+  {
+   "kind": "lampPost",
+   "x": 62,
+   "z": 50
+  },
+  {
+   "kind": "lampPost",
+   "x": 66,
+   "z": 50
+  },
+  {
+   "kind": "lampPost",
+   "x": 62,
+   "z": 58
+  },
+  {
+   "kind": "lampPost",
+   "x": 66,
+   "z": 58
+  },
+  {
+   "kind": "statue",
+   "x": 58,
+   "z": 26
+  },
+  {
+   "kind": "statue",
+   "x": 70,
+   "z": 26
+  },
+  {
+   "kind": "banner",
+   "x": 60,
+   "z": 26
+  },
+  {
+   "kind": "banner",
+   "x": 68,
+   "z": 26
+  },
+  {
+   "kind": "stall",
+   "x": 36,
+   "z": 51
+  },
+  {
+   "kind": "stall",
+   "x": 43,
+   "z": 51
+  },
+  {
+   "kind": "stall",
+   "x": 50,
+   "z": 51
+  },
+  {
+   "kind": "stall",
+   "x": 36,
+   "z": 57
+  },
+  {
+   "kind": "stall",
+   "x": 43,
+   "z": 57
+  },
+  {
+   "kind": "stall",
+   "x": 50,
+   "z": 57
+  },
+  {
+   "kind": "stall",
+   "x": 36,
+   "z": 63
+  },
+  {
+   "kind": "stall",
+   "x": 43,
+   "z": 63
+  },
+  {
+   "kind": "stall",
+   "x": 50,
+   "z": 63
+  },
+  {
+   "kind": "crates",
+   "x": 34,
+   "z": 49
+  },
+  {
+   "kind": "barrel",
+   "x": 35,
+   "z": 49
+  },
+  {
+   "kind": "sacks",
+   "x": 53,
+   "z": 49
+  },
+  {
+   "kind": "cart",
+   "x": 52,
+   "z": 67
+  },
+  {
+   "kind": "well",
+   "x": 44,
+   "z": 68
+  },
+  {
+   "kind": "treeGrate",
+   "x": 67,
+   "z": 82
+  },
+  {
+   "kind": "treeGrate",
+   "x": 70,
+   "z": 88
+  },
+  {
+   "kind": "flowerBed",
+   "x": 67,
+   "z": 93
+  },
+  {
+   "kind": "bench",
+   "x": 69,
+   "z": 84,
+   "rotation": 90
+  },
+  {
+   "kind": "dungeonEntrance",
+   "x": 68,
+   "z": 90,
+   "link": "sewers"
+  },
+  {
+   "kind": "well",
+   "x": 46,
+   "z": 110
+  },
+  {
+   "kind": "signpost",
+   "x": 61,
+   "z": 73
+  },
+  {
+   "kind": "lampPost",
+   "x": 61,
+   "z": 96
+  },
+  {
+   "kind": "lampPost",
+   "x": 67,
+   "z": 110
+  }
+ ],
+ "edges": [
+  {
+   "a": [
+    44,
+    4
+   ],
+   "b": [
+    44,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    24
+   ],
+   "b": [
+    44,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    45,
+    4
+   ],
+   "b": [
+    45,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    45,
+    24
+   ],
+   "b": [
+    45,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    46,
+    4
+   ],
+   "b": [
+    46,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    46,
+    24
+   ],
+   "b": [
+    46,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    47,
+    4
+   ],
+   "b": [
+    47,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    47,
+    24
+   ],
+   "b": [
+    47,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    48,
+    4
+   ],
+   "b": [
+    48,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    48,
+    24
+   ],
+   "b": [
+    48,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    49,
+    4
+   ],
+   "b": [
+    49,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    49,
+    24
+   ],
+   "b": [
+    49,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    50,
+    4
+   ],
+   "b": [
+    50,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    50,
+    24
+   ],
+   "b": [
+    50,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    51,
+    4
+   ],
+   "b": [
+    51,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    51,
+    24
+   ],
+   "b": [
+    51,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    52,
+    4
+   ],
+   "b": [
+    52,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    52,
+    24
+   ],
+   "b": [
+    52,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    53,
+    4
+   ],
+   "b": [
+    53,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    53,
+    24
+   ],
+   "b": [
+    53,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    54,
+    4
+   ],
+   "b": [
+    54,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    54,
+    24
+   ],
+   "b": [
+    54,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    55,
+    4
+   ],
+   "b": [
+    55,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    55,
+    24
+   ],
+   "b": [
+    55,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    56,
+    4
+   ],
+   "b": [
+    56,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    56,
+    24
+   ],
+   "b": [
+    56,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    57,
+    4
+   ],
+   "b": [
+    57,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    57,
+    24
+   ],
+   "b": [
+    57,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    58,
+    4
+   ],
+   "b": [
+    58,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    58,
+    24
+   ],
+   "b": [
+    58,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    59,
+    4
+   ],
+   "b": [
+    59,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    59,
+    24
+   ],
+   "b": [
+    59,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    60,
+    4
+   ],
+   "b": [
+    60,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    60,
+    24
+   ],
+   "b": [
+    60,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    61,
+    4
+   ],
+   "b": [
+    61,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    61,
+    24
+   ],
+   "b": [
+    61,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    62,
+    4
+   ],
+   "b": [
+    62,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    63,
+    4
+   ],
+   "b": [
+    63,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    64,
+    4
+   ],
+   "b": [
+    64,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    65,
+    4
+   ],
+   "b": [
+    65,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    66,
+    4
+   ],
+   "b": [
+    66,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    67,
+    4
+   ],
+   "b": [
+    67,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    67,
+    24
+   ],
+   "b": [
+    67,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    68,
+    4
+   ],
+   "b": [
+    68,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    68,
+    24
+   ],
+   "b": [
+    68,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    69,
+    4
+   ],
+   "b": [
+    69,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    69,
+    24
+   ],
+   "b": [
+    69,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    70,
+    4
+   ],
+   "b": [
+    70,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    70,
+    24
+   ],
+   "b": [
+    70,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    71,
+    4
+   ],
+   "b": [
+    71,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    71,
+    24
+   ],
+   "b": [
+    71,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    72,
+    4
+   ],
+   "b": [
+    72,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    72,
+    24
+   ],
+   "b": [
+    72,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    73,
+    4
+   ],
+   "b": [
+    73,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    73,
+    24
+   ],
+   "b": [
+    73,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    74,
+    4
+   ],
+   "b": [
+    74,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    74,
+    24
+   ],
+   "b": [
+    74,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    75,
+    4
+   ],
+   "b": [
+    75,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    75,
+    24
+   ],
+   "b": [
+    75,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    76,
+    4
+   ],
+   "b": [
+    76,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    76,
+    24
+   ],
+   "b": [
+    76,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    77,
+    4
+   ],
+   "b": [
+    77,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    77,
+    24
+   ],
+   "b": [
+    77,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    78,
+    4
+   ],
+   "b": [
+    78,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    78,
+    24
+   ],
+   "b": [
+    78,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    79,
+    4
+   ],
+   "b": [
+    79,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    79,
+    24
+   ],
+   "b": [
+    79,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    80,
+    4
+   ],
+   "b": [
+    80,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    80,
+    24
+   ],
+   "b": [
+    80,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    81,
+    4
+   ],
+   "b": [
+    81,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    81,
+    24
+   ],
+   "b": [
+    81,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    82,
+    4
+   ],
+   "b": [
+    82,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    82,
+    24
+   ],
+   "b": [
+    82,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    83,
+    4
+   ],
+   "b": [
+    83,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    83,
+    24
+   ],
+   "b": [
+    83,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    4
+   ],
+   "b": [
+    84,
+    3
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    24
+   ],
+   "b": [
+    84,
+    25
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    4
+   ],
+   "b": [
+    43,
+    4
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    4
+   ],
+   "b": [
+    85,
+    4
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    5
+   ],
+   "b": [
+    43,
+    5
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    5
+   ],
+   "b": [
+    85,
+    5
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    6
+   ],
+   "b": [
+    43,
+    6
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    6
+   ],
+   "b": [
+    85,
+    6
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    7
+   ],
+   "b": [
+    43,
+    7
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    7
+   ],
+   "b": [
+    85,
+    7
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    8
+   ],
+   "b": [
+    43,
+    8
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    8
+   ],
+   "b": [
+    85,
+    8
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    9
+   ],
+   "b": [
+    43,
+    9
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    9
+   ],
+   "b": [
+    85,
+    9
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    10
+   ],
+   "b": [
+    43,
+    10
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    10
+   ],
+   "b": [
+    85,
+    10
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    11
+   ],
+   "b": [
+    43,
+    11
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    11
+   ],
+   "b": [
+    85,
+    11
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    12
+   ],
+   "b": [
+    43,
+    12
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    12
+   ],
+   "b": [
+    85,
+    12
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    13
+   ],
+   "b": [
+    43,
+    13
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    13
+   ],
+   "b": [
+    85,
+    13
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    14
+   ],
+   "b": [
+    43,
+    14
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    14
+   ],
+   "b": [
+    85,
+    14
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    15
+   ],
+   "b": [
+    43,
+    15
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    15
+   ],
+   "b": [
+    85,
+    15
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    16
+   ],
+   "b": [
+    43,
+    16
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    16
+   ],
+   "b": [
+    85,
+    16
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    17
+   ],
+   "b": [
+    43,
+    17
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    17
+   ],
+   "b": [
+    85,
+    17
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    18
+   ],
+   "b": [
+    43,
+    18
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    18
+   ],
+   "b": [
+    85,
+    18
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    19
+   ],
+   "b": [
+    43,
+    19
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    19
+   ],
+   "b": [
+    85,
+    19
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    20
+   ],
+   "b": [
+    43,
+    20
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    20
+   ],
+   "b": [
+    85,
+    20
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    21
+   ],
+   "b": [
+    43,
+    21
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    21
+   ],
+   "b": [
+    85,
+    21
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    22
+   ],
+   "b": [
+    43,
+    22
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    22
+   ],
+   "b": [
+    85,
+    22
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    23
+   ],
+   "b": [
+    43,
+    23
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    23
+   ],
+   "b": [
+    85,
+    23
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    44,
+    24
+   ],
+   "b": [
+    43,
+    24
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  },
+  {
+   "a": [
+    84,
+    24
+   ],
+   "b": [
+    85,
+    24
+   ],
+   "kind": "wall",
+   "options": {
+    "storeys": 2,
+    "style": "stone"
+   }
+  }
+ ],
+ "townsfolk": [
+  {
+   "id": "guard-avenue",
+   "name": "Guard Rowan",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    64,
+    34
+   ],
+   "routine": [
+    {
+     "do": "patrol"
+    }
+   ],
+   "patrol": [
+    [
+     64,
+     34
+    ],
+    [
+     64,
+     61
+    ]
+   ],
+   "pace": 1.3,
+   "line": "The castle is open to all who mind their manners."
+  },
+  {
+   "id": "guard-square",
+   "name": "Guard Tilly",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    58,
+    64
+   ],
+   "routine": [
+    {
+     "do": "patrol"
+    }
+   ],
+   "patrol": [
+    [
+     58,
+     64
+    ],
+    [
+     70,
+     64
+    ],
+    [
+     70,
+     78
+    ],
+    [
+     58,
+     78
+    ]
+   ],
+   "pace": 1.3,
+   "line": "Welcome to the capital."
+  },
+  {
+   "id": "guard-gate",
+   "name": "Guard Barnaby",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    61,
+    26
+   ],
+   "routine": [
+    {
+     "do": "patrol"
+    }
+   ],
+   "patrol": [
+    [
+     61,
+     26
+    ],
+    [
+     67,
+     26
+    ]
+   ],
+   "pace": 1.2,
+   "line": "The keep is through the gate."
+  },
+  {
+   "id": "crier",
+   "name": "Old Hollis",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": {
+     "head": "minersCap"
+    }
+   },
+   "home": [
+    62,
+    76
+   ],
+   "routine": [
+    {
+     "do": "read",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 1
+    }
+   ],
+   "line": "Jobs go up on the board, once the guild sorts its ledgers."
+  },
+  {
+   "id": "vendor-0",
+   "name": "Vendor 1",
+   "look": {
+    "color": "#a4ce77"
+   },
+   "home": [
+    37,
+    50
+   ],
+   "routine": [
+    {
+     "do": "vend",
+     "weight": 6
+    },
+    {
+     "do": "stroll",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "id": "vendor-1",
+   "name": "Vendor 2",
+   "look": {
+    "color": "#e0a96d"
+   },
+   "home": [
+    44,
+    50
+   ],
+   "routine": [
+    {
+     "do": "vend",
+     "weight": 6
+    },
+    {
+     "do": "stroll",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "id": "vendor-2",
+   "name": "Vendor 3",
+   "look": {
+    "color": "#9db8e3"
+   },
+   "home": [
+    51,
+    50
+   ],
+   "routine": [
+    {
+     "do": "vend",
+     "weight": 6
+    },
+    {
+     "do": "stroll",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "id": "vendor-3",
+   "name": "Vendor 4",
+   "look": {
+    "color": "#d98fa6"
+   },
+   "home": [
+    37,
+    56
+   ],
+   "routine": [
+    {
+     "do": "vend",
+     "weight": 6
+    },
+    {
+     "do": "stroll",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "id": "vendor-4",
+   "name": "Vendor 5",
+   "look": {
+    "color": "#c7b46a"
+   },
+   "home": [
+    44,
+    56
+   ],
+   "routine": [
+    {
+     "do": "vend",
+     "weight": 6
+    },
+    {
+     "do": "stroll",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "id": "vendor-5",
+   "name": "Vendor 6",
+   "look": {
+    "color": "#8fc9b8"
+   },
+   "home": [
+    51,
+    56
+   ],
+   "routine": [
+    {
+     "do": "vend",
+     "weight": 6
+    },
+    {
+     "do": "stroll",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "id": "folk-0",
+   "name": "Ada",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": {
+     "head": "fishersHat"
+    }
+   },
+   "home": [
+    60,
+    69
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 3
+    },
+    {
+     "do": "sit",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    }
+   ],
+   "pace": 0.8
+  },
+  {
+   "id": "folk-1",
+   "name": "Bo",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": null
+   },
+   "home": [
+    68,
+    72
+   ],
+   "routine": [
+    {
+     "do": "browse",
+     "weight": 3
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "drink",
+     "weight": 1
+    }
+   ],
+   "pace": 0.9
+  },
+  {
+   "id": "folk-2",
+   "name": "Cass",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": null
+   },
+   "home": [
+    59,
+    73
+   ],
+   "routine": [
+    {
+     "do": "read",
+     "weight": 1
+    },
+    {
+     "do": "enter",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    }
+   ],
+   "pace": 1
+  },
+  {
+   "id": "folk-3",
+   "name": "Dill",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": null
+   },
+   "home": [
+    69,
+    77
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    }
+   ],
+   "pace": 1.1
+  },
+  {
+   "id": "folk-4",
+   "name": "Effie",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": null
+   },
+   "home": [
+    64,
+    66
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 3
+    },
+    {
+     "do": "sit",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    }
+   ],
+   "pace": 1.2000000000000002
+  },
+  {
+   "id": "folk-5",
+   "name": "Finn",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": {
+     "head": "fishersHat"
+    }
+   },
+   "home": [
+    34,
+    59
+   ],
+   "routine": [
+    {
+     "do": "browse",
+     "weight": 3
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "drink",
+     "weight": 1
+    }
+   ],
+   "pace": 0.8
+  },
+  {
+   "id": "folk-6",
+   "name": "Gus",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": null
+   },
+   "home": [
+    50,
+    66
+   ],
+   "routine": [
+    {
+     "do": "read",
+     "weight": 1
+    },
+    {
+     "do": "enter",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    }
+   ],
+   "pace": 0.9
+  },
+  {
+   "id": "folk-7",
+   "name": "Hazel",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": null
+   },
+   "home": [
+    40,
+    64
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    }
+   ],
+   "pace": 1
+  },
+  {
+   "id": "folk-8",
+   "name": "Ira",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": null
+   },
+   "home": [
+    64,
+    90
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 3
+    },
+    {
+     "do": "sit",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    }
+   ],
+   "pace": 1.1
+  },
+  {
+   "id": "folk-9",
+   "name": "Jun",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": null
+   },
+   "home": [
+    64,
+    105
+   ],
+   "routine": [
+    {
+     "do": "browse",
+     "weight": 3
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "drink",
+     "weight": 1
+    }
+   ],
+   "pace": 1.2000000000000002
+  },
+  {
+   "id": "folk-10",
+   "name": "Kit",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": {
+     "head": "fishersHat"
+    }
+   },
+   "home": [
+    20,
+    71
+   ],
+   "routine": [
+    {
+     "do": "read",
+     "weight": 1
+    },
+    {
+     "do": "enter",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    }
+   ],
+   "pace": 0.8
+  },
+  {
+   "id": "folk-11",
+   "name": "Lark",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": null
+   },
+   "home": [
+    90,
+    71
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    }
+   ],
+   "pace": 0.9
+  },
+  {
+   "id": "folk-12",
+   "name": "Moss",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": null
+   },
+   "home": [
+    110,
+    71
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 3
+    },
+    {
+     "do": "sit",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    }
+   ],
+   "pace": 1
+  },
+  {
+   "id": "folk-13",
+   "name": "Nim",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": null
+   },
+   "home": [
+    31,
+    60
+   ],
+   "routine": [
+    {
+     "do": "browse",
+     "weight": 3
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "drink",
+     "weight": 1
+    }
+   ],
+   "pace": 1.1
+  },
+  {
+   "id": "folk-14",
+   "name": "Ollie",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": null
+   },
+   "home": [
+    97,
+    60
+   ],
+   "routine": [
+    {
+     "do": "read",
+     "weight": 1
+    },
+    {
+     "do": "enter",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    }
+   ],
+   "pace": 1.2000000000000002
+  },
+  {
+   "id": "folk-15",
+   "name": "Pim",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": {
+     "head": "fishersHat"
+    }
+   },
+   "home": [
+    64,
+    45
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    }
+   ],
+   "pace": 0.8
+  },
+  {
+   "id": "folk-16",
+   "name": "Quill",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": null
+   },
+   "home": [
+    64,
+    55
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 3
+    },
+    {
+     "do": "sit",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    }
+   ],
+   "pace": 0.9
+  },
+  {
+   "id": "folk-17",
+   "name": "Rue",
+   "look": {
+    "color": "#e0a96d",
+    "loadout": null
+   },
+   "home": [
+    20,
+    47
+   ],
+   "routine": [
+    {
+     "do": "browse",
+     "weight": 3
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "drink",
+     "weight": 1
+    }
+   ],
+   "pace": 1
+  },
+  {
+   "id": "folk-18",
+   "name": "Sol",
+   "look": {
+    "color": "#9db8e3",
+    "loadout": null
+   },
+   "home": [
+    100,
+    47
+   ],
+   "routine": [
+    {
+     "do": "read",
+     "weight": 1
+    },
+    {
+     "do": "enter",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    }
+   ],
+   "pace": 1.1
+  },
+  {
+   "id": "folk-19",
+   "name": "Tam",
+   "look": {
+    "color": "#d98fa6",
+    "loadout": null
+   },
+   "home": [
+    31,
+    85
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    }
+   ],
+   "pace": 1.2000000000000002
+  },
+  {
+   "id": "folk-20",
+   "name": "Uma",
+   "look": {
+    "color": "#c7b46a",
+    "loadout": {
+     "head": "fishersHat"
+    }
+   },
+   "home": [
+    97,
+    85
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 3
+    },
+    {
+     "do": "sit",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    }
+   ],
+   "pace": 0.8
+  },
+  {
+   "id": "folk-21",
+   "name": "Vic",
+   "look": {
+    "color": "#8fc9b8",
+    "loadout": null
+   },
+   "home": [
+    45,
+    99
+   ],
+   "routine": [
+    {
+     "do": "browse",
+     "weight": 3
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "drink",
+     "weight": 1
+    }
+   ],
+   "pace": 0.9
+  },
+  {
+   "id": "folk-22",
+   "name": "Wyn",
+   "look": {
+    "color": "#b49ad6",
+    "loadout": null
+   },
+   "home": [
+    85,
+    99
+   ],
+   "routine": [
+    {
+     "do": "read",
+     "weight": 1
+    },
+    {
+     "do": "enter",
+     "weight": 2
+    },
+    {
+     "do": "stroll",
+     "weight": 2
+    }
+   ],
+   "pace": 1
+  },
+  {
+   "id": "folk-23",
+   "name": "Yew",
+   "look": {
+    "color": "#e3c07c",
+    "loadout": null
+   },
+   "home": [
+    66,
+    84
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 2
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    }
+   ],
+   "pace": 1.1
+  },
+  {
+   "id": "folk-24",
+   "name": "Zed",
+   "look": {
+    "color": "#a4ce77",
+    "loadout": null
+   },
+   "home": [
+    69,
+    95
+   ],
+   "routine": [
+    {
+     "do": "stroll",
+     "weight": 3
+    },
+    {
+     "do": "sit",
+     "weight": 2
+    },
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "chat",
+     "weight": 2
+    }
+   ],
+   "pace": 1.2000000000000002
+  }
+ ],
+ "interiors": {
+  "sewers": {
+   "kind": "dungeon",
+   "name": "The old sewers",
+   "size": [
+    16,
+    12
+   ],
+   "exit": [
+    7,
+    10
+   ],
+   "furniture": [
+    {
+     "kind": "barrel",
+     "at": [
+      0,
+      0
+     ]
+    },
+    {
+     "kind": "crates",
+     "at": [
+      15,
+      0
+     ]
+    },
+    {
+     "kind": "statue",
+     "at": [
+      4,
+      4
+     ]
+    },
+    {
+     "kind": "statue",
+     "at": [
+      11,
+      4
+     ]
+    },
+    {
+     "kind": "sacks",
+     "at": [
+      0,
+      11
+     ]
+    }
+   ]
+  }
+ }
+}

@@ -86,3 +86,8 @@ test('the sign goes on the side of the door away from a corner with a neighbour'
  const built=createBuilding(shopDesc,{origin:[6,4],id:2,edges,tileAt:t,parent:scene});
  assert.deepEqual(built.anchors.sign.tile,[9,6],'east of the door, not into the corner');
 });
+test('roof shades stay close to their district colour (no dark roof turns black)',()=>{
+ const g=roofGeometry({roof:'hip',w:5,d:6,ridge:'z',style:'brick',color:'rgb(65,74,69)'}),c=g.attributes.color.array;
+ let darkest=1;for(let i=0;i<c.length;i+=3)darkest=Math.min(darkest,Math.max(c[i],c[i+1],c[i+2]));
+ assert.ok(darkest>.02,`darkest roof channel ${darkest}`);
+});

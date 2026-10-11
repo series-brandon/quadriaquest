@@ -20,6 +20,18 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### City Phases 5–9 first draft — 2026-10-11 (user: "do all these phases in one fell swoop")
+
+- **Phase 5:** `city-terrain.js` (surfaces, kerbs, retaining walls, stairs, railings, stair checks), `props.js` (starter prop set with spots and interactions, rotation), shared `Sit` motion and bench sitting for the player (main.js `seat`), `city-map.js` (city data in 64 × 64 regions, `buildCity`), kit street as data with the east annex (`dev/kit-street.js`). Railings stand on the higher tile (`createEdgeFeatures`).
+- **Phase 6:** `city-checks.js` and the dev-only `dev/city-editor.js` (+ css), with world clicks routed to it in Edit mode (`setTileClick`), `editCity` in main.js, the `/__city-save` dev endpoint (vite.config.js, playground mode only), isolation markers.
+- **Phase 7:** `spaces.js` (separate interiors, stairwells, dungeon entrances, quick fades, zoom cap, camera restore, interior checks), linked doors (`door.link`, doors.js), `dungeonEntrance` prop, `areas.unregister`, partial area cameras (`applyCamera` sets only given fields).
+- **Phase 8:** `townsfolk.js` (crowd, routines from places, navigator with cached distance fields, crowd budget rings, townsfolk checks, generated crowds), kit street townsfolk, perf scenarios `city-walk`, `city-crowd`, `capital-square`.
+- **Phase 9:** `buildCity` per 16 × 16 chunk with render streaming; `dev/capital-layout.js` + `scripts/generate-capital.mjs` → `src/maps/capital.json`; *Enter the capital*; `tests: capital.test.js`.
+- **Bugs found on the way:** a slime's presentation owns its rig's height (wrap townsfolk in a body group); `Object.assign` froze the city's `roofsShown`/`shownChunks` getters (roof toggle couldn't turn back on); `shade()` darkened colours in linear space, so dark roofs went black (now sRGB); spaces need the game's pickables; the playground dev server misses edits made by shell tools (restart it).
+- Playground API additions (playground only): `walkTo`, `useProp`, `useActorAt`, `teleport`, `seated`, `crowd(n)`, `crowdStats`, `enterCapital`, `capitalStats`, `scene`, `renderer`, `editCity`; `window.quadriaquest.api` and `window.quadriaquest.cityEditor`.
+- Tests: 532 pass. Browser-verified (GPU) for each phase: stairs climbed to every terrace, sitting, editor edits/undo/save, in and out of the guild house by door and stairwell, the crypt, townsfolk routines, the capital square and castle.
+- Open questions for the user are listed in docs/CITY.md (*Open questions for the user*, items 2–10).
+
 ### Building review: floors, steady cut faces, force cutaway, hanging signs — 2026-10-11 (user review)
 
 - **Floors between storeys:** multi-storey buildings have a floor slab at every storey line (kit: part of the roof geometry; graybox: `storeyFloors`), so upper windows look into a storey instead of down to the ground floor. They hide with the roof when cut.

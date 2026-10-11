@@ -984,6 +984,330 @@
      "Sprite/BufferGeometry/SpriteMaterial": 1
     }
    }
+  },
+  "city-walk": {
+   "meta": {
+    "updated": "2026-10-11T09:40:09.683Z",
+    "note": "City Phases 5-9 first draft: new kit street, crowd and capital scenarios",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
+    "windows": 3,
+    "windowMs": 2500,
+    "calibrationMs": 26.099998474121094
+   },
+   "summary": {
+    "counters": {
+     "draws": 988.745,
+     "threeDrawCalls": 421.4,
+     "triangles": 196188,
+     "uploadsPerFrame": 0.208,
+     "uploadKBPerFrame": 0.222,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 81.859,
+     "mutationsPerSec": 3.974,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 4.358,
+     "objects": 8270,
+     "visibleMeshes": 825,
+     "programs": 23,
+     "geometries": 316,
+     "textures": 9
+    },
+    "timing": {
+     "frameMs": 4.22,
+     "frameP95": 5.375,
+     "frameMax": 26.93,
+     "intervalP95": 16.67,
+     "fps": 59.485,
+     "cpuPercent": 56.652,
+     "gpuMs": 2.953,
+     "scriptMsPerSec": 281.402,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 3.274,
+     "world": 0.435,
+     "other": 0.326,
+     "interface": 0.08,
+     "systems": 0.076,
+     "hover": 0.076,
+     "player": 0.071,
+     "feedback": 0.055
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 4.220001220703125,
+     "frameP95": 5.375,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.48459991247631,
+     "cpuPercent": 67.25887977649356,
+     "draws": 1019.8791946308725,
+     "gpuMs": 3.052
+    },
+    {
+     "frameMs": 4.165000915527344,
+     "frameP95": 4.814998626708984,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.50681231013029,
+     "cpuPercent": 53.07064825547448,
+     "draws": 959.8859060402684,
+     "gpuMs": 2.953
+    },
+    {
+     "frameMs": 4.334999084472656,
+     "frameP95": 5.4550018310546875,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.21721989421811,
+     "cpuPercent": 56.65228756468069,
+     "draws": 988.744966442953,
+     "gpuMs": 2.95
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 103,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1,
+     "city kit-street": 8150
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 9,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 11,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 52,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 17,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 22,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 24,
+     "Mesh/PlaneGeometry/MeshBasicMaterial": 1,
+     "Sprite/BufferGeometry/SpriteMaterial": 1,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 502,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 145,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 17,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 13,
+     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 1
+    }
+   }
+  },
+  "city-crowd": {
+   "meta": {
+    "updated": "2026-10-11T09:40:09.683Z",
+    "note": "City Phases 5-9 first draft: new kit street, crowd and capital scenarios",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
+    "windows": 3,
+    "windowMs": 2500,
+    "calibrationMs": 26.099998474121094
+   },
+   "summary": {
+    "counters": {
+     "draws": 1084.48,
+     "threeDrawCalls": 518.84,
+     "triangles": 234063,
+     "uploadsPerFrame": 0.409,
+     "uploadKBPerFrame": 1.648,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 96.443,
+     "mutationsPerSec": 3.985,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 3.977,
+     "objects": 12084,
+     "visibleMeshes": 1087,
+     "programs": 20,
+     "geometries": 448,
+     "textures": 6
+    },
+    "timing": {
+     "frameMs": 5.54,
+     "frameP95": 6.565,
+     "frameMax": 9.04,
+     "intervalP95": 16.67,
+     "fps": 59.474,
+     "cpuPercent": 66.342,
+     "gpuMs": 3.037,
+     "scriptMsPerSec": 349.76,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 4.249,
+     "world": 0.666,
+     "other": 0.415,
+     "interface": 0.081,
+     "hover": 0.077,
+     "player": 0.074,
+     "systems": 0.073,
+     "feedback": 0.013
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 5.540000915527344,
+     "frameP95": 6.660003662109375,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.47391531767652,
+     "cpuPercent": 66.41140804382476,
+     "draws": 1105.96644295302,
+     "gpuMs": 3.037
+    },
+    {
+     "frameMs": 5.625,
+     "frameP95": 6.5,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.25266084067156,
+     "cpuPercent": 66.34212654522278,
+     "draws": 1080.1409395973155,
+     "gpuMs": 3.038
+    },
+    {
+     "frameMs": 5.540000915527344,
+     "frameP95": 6.56500244140625,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.771195778652,
+     "cpuPercent": 64.4289717977019,
+     "draws": 1084.48,
+     "gpuMs": 3.033
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 103,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1,
+     "city kit-street": 11964
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 9,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 38,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 160,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 50,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 76,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 79,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 491,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 145,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 17,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 13
+    }
+   }
+  },
+  "capital-square": {
+   "meta": {
+    "updated": "2026-10-11T09:40:09.683Z",
+    "note": "City Phases 5-9 first draft: new kit street, crowd and capital scenarios",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
+    "windows": 3,
+    "windowMs": 2500,
+    "calibrationMs": 26.099998474121094
+   },
+   "summary": {
+    "counters": {
+     "draws": 1135.365,
+     "threeDrawCalls": 536.675,
+     "triangles": 367841,
+     "uploadsPerFrame": 0.189,
+     "uploadKBPerFrame": 0.17,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 120.162,
+     "mutationsPerSec": 3.991,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 3.986,
+     "objects": 31253,
+     "visibleMeshes": 2683,
+     "programs": 20,
+     "geometries": 549,
+     "textures": 8
+    },
+    "timing": {
+     "frameMs": 9.465,
+     "frameP95": 11.085,
+     "frameMax": 42.15,
+     "intervalP95": 16.67,
+     "fps": 59.108,
+     "cpuPercent": 101.836,
+     "gpuMs": 3.326,
+     "scriptMsPerSec": 596.342,
+     "longTasks": 1
+    },
+    "sections": {
+     "render": 7.541,
+     "world": 1.229,
+     "other": 1.01,
+     "hover": 0.217,
+     "systems": 0.147,
+     "interface": 0.105,
+     "player": 0.065,
+     "feedback": 0.014
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 10.154998779296875,
+     "frameP95": 17.175003051757812,
+     "intervalP95": 16.670000000000073,
+     "fps": 57.07694212670961,
+     "cpuPercent": 104.44035787306602,
+     "draws": 1213.7902097902097,
+     "gpuMs": 3.326
+    },
+    {
+     "frameMs": 9.46500015258789,
+     "frameP95": 11.084999084472656,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.717773742972575,
+     "cpuPercent": 101.83573499501983,
+     "draws": 1088.9333333333334,
+     "gpuMs": 3.334
+    },
+    {
+     "frameMs": 9.310001373291016,
+     "frameP95": 10.485000610351562,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.10790986560641,
+     "cpuPercent": 88.48384428669989,
+     "draws": 1135.3648648648648,
+     "gpuMs": 3.318
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 103,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1,
+     "city capital": 31133
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 35,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 23,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 102,
+     "Mesh/TubeGeometry/MeshBasicMaterial": 33,
+     "Mesh/SphereGeometry/MeshStandardMaterial": 46,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 52,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 1866,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 423,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 47,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 43,
+     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 3
+    }
+   }
   }
  }
 }

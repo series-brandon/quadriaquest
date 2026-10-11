@@ -97,7 +97,8 @@ function solid(geometry,color,{x=0,y=0,z=0,ry=0,rx=0}={}){
  const c=new THREE.Color(color),n=g.attributes.position.count,colors=new Float32Array(n*3);for(let i=0;i<n;i++){colors[i*3]=c.r;colors[i*3+1]=c.g;colors[i*3+2]=c.b;}
  g.setAttribute('color',new THREE.BufferAttribute(colors,3));return g;
 }
-const shade=(color,amount)=>{const c=new THREE.Color(color),hsl={};c.getHSL(hsl);return c.setHSL(hsl.h,hsl.s,Math.min(1,Math.max(0,hsl.l+amount))).getStyle();};
+// Lighten or darken in sRGB (as the eye sees it): in linear space a dark roof shaded twice turns black.
+const shade=(color,amount)=>{const c=new THREE.Color(color),hsl={};c.getHSL(hsl,THREE.SRGBColorSpace);return c.setHSL(hsl.h,hsl.s,Math.min(1,Math.max(0,hsl.l+amount)),THREE.SRGBColorSpace).getStyle();};
 // The roof (and chimney) of a w × d building whose walls top out at local y = 0, centred on the origin,
 // and the floors between its storeys: seen through an upper window, a storey has a floor, not a drop
 // to the ground. Floors hide with the roof when the building is cut.
@@ -197,7 +198,8 @@ function decorFor(plan,world,sign=plan.anchors.sign){
 export function createBuilding(description,{origin,id,edges,tileAt,parent}){
  const plan=planBuilding(description,origin),{desc}=plan,tile=([x,z])=>tileAt(x,z);
  const base=Math.max(...plan.tiles.map(p=>tile(p)?.h??0)),top=base+STOREY*desc.storeys;
- for(const p of plan.tiles){const t=tile(p);if(!t)continue;t.indoor=true;t.building=id;if(desc.interior==='none')t.blocked=true;}
+ // Without an interior, or with a separate one (city Phase 7, spaces.js), the outside is solid.
+ for(const p of plan.tiles){const t=tile(p);if(!t)continue;t.indoor=true;t.building=id;if(desc.interior==='none'||desc.interior==='separate')t.blocked=true;}
  const doors=[];
  for(const e of plan.edges){
   const a=tile(e.a),b=tile(e.b);if(!a||!b)continue;
@@ -218,5 +220,5 @@ export function createBuilding(description,{origin,id,edges,tileAt,parent}){
  return {id,plan,doors,roof,decor,anchors,top,
   dispose(){edges.removeCutPart(roof);roof.removeFromParent();roof.geometry.dispose();decor.removeFromParent();decor.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material!==decorMaterial)o.material.dispose();}});
    for(const e of plan.edges){const a=tile(e.a),b=tile(e.b);if(a&&b)edges.remove(a,b);}
-   for(const p of plan.tiles){const t=tile(p);if(t&&t.building===id){t.indoor=false;delete t.building;if(desc.interior==='none')t.blocked=false;}}}};
+   for(const p of plan.tiles){const t=tile(p);if(t&&t.building===id){t.indoor=false;delete t.building;if(desc.interior==='none'||desc.interior==='separate')t.blocked=false;}}}};
 }

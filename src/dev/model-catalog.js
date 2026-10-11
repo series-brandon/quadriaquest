@@ -16,6 +16,9 @@ import {campfire,animateCampfire} from '../campfire-model.js';
 import {edgePiece,doorModel,animateDoor,STYLE_NAMES} from '../edge-models.js';
 import {createBuilding,BUILDING_PRESETS,ROOF_TYPES} from '../building-kit.js';
 import {createEdgeFeatures} from '../doors.js';
+import {PROPS,PROP_KINDS,propModel} from '../props.js';
+import {makeCityTile,layStairs,railingEdges} from '../city-terrain.js';
+import {stairwellModel} from '../spaces.js';
 import {uniforms as cutUniforms} from '../cutaway.js';
 import {companion,animateCompanion,setCompanionOutfit} from '../companion-model.js';
 import {makeCompanionTopHat} from '../hat-models.js';
@@ -30,7 +33,7 @@ import {createGroundItemModel} from '../ground-item-models.js';
 import {makeSlime} from '../slime-model.js';
 import {SLIME_EXPRESSIONS} from '../slime-face.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,spawnMotion} from '../slime-motion.js';
-import {socialMotion,SOCIAL_DURATIONS} from '../slime-social.js';
+import {socialMotion,SOCIAL_DURATIONS,HELD_MOTIONS} from '../slime-social.js';
 import {fisher} from '../fisher-model.js';
 import {SLIME_WEAR_SLOTS,COMPANION_WEAR_SLOTS,WORN_MODELS} from '../worn-gear.js';
 import {GEAR} from '../equipment.js';
@@ -84,7 +87,7 @@ function slimePreview(factory,{defaultExpression='idle',idleRate=1,carry=null,lo
    if(actionKind==='Celebration'){const result=holdUpMotion(actionTime,heldItem==='Raw Pondfish'?'fish':heldItem==='Top Hat'?'hat':'generic'),prop=heldItem==='Raw Pondfish'?trophyFish:heldItem==='Top Hat'?trophyHat:trophyGeneric;prop.visible=result.prop.visible;prop.position.set(0,result.prop.y,result.prop.z);}
   }
   else if(SOCIAL_DURATIONS[motion]){
-   const social=socialMotion(motion,motion==='Sleeping'?time:time%(SOCIAL_DURATIONS[motion]+.7)),slots=equipment.slots;({pose,lift,expression}=social);
+   const social=socialMotion(motion,HELD_MOTIONS.includes(motion)?time:time%(SOCIAL_DURATIONS[motion]+.7)),slots=equipment.slots;({pose,lift,expression}=social);
    socialHands=withGrip(social.hands,equipmentIdleHands({rightHand:slots.right,leftHand:slots.left}),social.grip);
   }
   else if(motion==='Jump up'||motion==='Jump down'){const t=time%(STEP_DURATION+.5);pose=stepMotion(Math.min(t,STEP_DURATION),motion==='Jump up'?.5:-.5);lift=pose.lift+(motion==='Jump down'?.5:0);expression=t<.32?'preparing':t<STEP_DURATION?'struggle':'idle';}
@@ -134,6 +137,17 @@ export function buildingPreview(){
   for(const {object} of edges.cutParts())object.visible=!cut;
  }};
 }
+// City terrain (Phase 5): a terrace a block up with a retaining wall, a 2-wide stair and railings,
+// paved, cobbled and grass surfaces with kerbs, all from the production terrain factory.
+function terracePreview(){
+ const group=new THREE.Group(),map=new Map();
+ for(let x=0;x<5;x++)for(let z=0;z<5;z++)map.set(key(x,z),{x,z,h:z<2?2:1,surface:z<2?'flagstone':x<2?'cobble':'grass'});
+ layStairs(map,{x:1,z:3,dir:'n',length:2,width:2,base:1});
+ for(const tile of map.values()){const m=makeCityTile(tile,map);m.position.set(tile.x-2,0,tile.z-2);group.add(m);}
+ const edges=createEdgeFeatures({parent:group,tileAt:(x,z)=>map.get(key(x,z)),cutaway:false});edges.root.position.set(4,0,4);
+ for(const [a,b] of railingEdges([...map.values()],map))edges.add(a,b,'railing');
+ return group;
+}
 export const MODEL_CATALOG=[
  ...Object.entries(MENTORS).map(([kind,def])=>({name:def.name,loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(()=>mentorModel(kind),{defaultExpression:def.expression,idleRate:def.idleRate,loadout:def.loadout,carry:def.carry})})),
  resource('Copper outcrop',copperOutcrop,'copper'),staticModel('Copper Ingot',ingot),
@@ -164,6 +178,8 @@ export const MODEL_CATALOG=[
  // with the real swing (animateDoor): Open and Close loop the swing; Locked rattles it shut.
  {name:'Wall pieces',motions:['Idle'],create(){const group=new THREE.Group();['wall','window','fence','railing','low'].forEach((kind,i)=>{const p=edgePiece(kind);p.position.x=(i-2)*1.15;group.add(p);});return {group,update(){}};}},
  {name:'Door',motions:['Open','Close','Locked'],create(){const door=doorModel();return {group:door.group,update(time,motion){const t=time%2.4,open=motion==='Open'?Math.min(1,t*1.6):motion==='Close'?Math.max(0,1-t*1.6):0;animateDoor(door,open,motion==='Locked'?Math.max(0,1-(time%1.2)*2):0,time);}};}},
+ staticModel('Stairs and terrace',terracePreview),staticModel('Stairwell (up)',()=>{const g=new THREE.Group();g.add(stairwellModel('up'));return g;}),staticModel('Stairwell (down)',()=>{const g=new THREE.Group();g.add(stairwellModel('down'));return g;}),
+ ...PROP_KINDS.map(kind=>staticModel(PROPS[kind].name,()=>propModel(kind))),
  {name:'Building',motions:['Doors closed','Doors open','Cut (cutaway)'],wear:BUILDING_OPTIONS,create:buildingPreview},
  {name:'Campfire',motions:['Burning','Static'],create(){const group=campfire();return {group,update(time,motion){animateCampfire(group,motion==='Static'?0:time);}};}},
  staticModel('Campfire placement ghost',()=>campfire(true)),

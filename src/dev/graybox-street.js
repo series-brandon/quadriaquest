@@ -4,7 +4,9 @@ import {makeTerrainTile} from '../world-models.js';
 import {createEdgeFeatures} from '../doors.js';
 import {STOREY} from '../edge-models.js';
 import {key} from '../world.js';
-import {createBuilding,storeyFloors} from '../building-kit.js';
+import {storeyFloors} from '../building-kit.js';
+import {buildCity} from '../city-map.js';
+import {kitStreetData} from './kit-street.js';
 
 // Graybox street (playground only; docs/CITY.md, Phase 2). Plain grey buildings at the proposed scale,
 // to judge the scale rules at every zoom on desktop and phone before any art:
@@ -61,7 +63,7 @@ export const BUILDINGS=[
 const inRect=(r,x,z)=>x>=r.x0&&x<=r.x1&&z>=r.z0&&z<=r.z1;
 // Ground: flat for now (one level everywhere).
 export function groundHeight(){return 1;}
-const STREETS=[{x0:28,z0:9,x1:32,z1:24},{x0:2,z0:30,x1:23,z1:32},{x0:37,z0:30,x1:58,z1:32},{x0:29,z0:38,x1:31,z1:58},{x0:29,z0:8,x1:31,z1:8},{x0:2,z0:28,x1:23,z1:29},{x0:37,z0:28,x1:58,z1:29},{x0:2,z0:33,x1:23,z1:33},{x0:37,z0:33,x1:58,z1:33}];
+export const STREETS=[{x0:28,z0:9,x1:32,z1:24},{x0:2,z0:30,x1:23,z1:32},{x0:37,z0:30,x1:58,z1:32},{x0:29,z0:38,x1:31,z1:58},{x0:29,z0:8,x1:31,z1:8},{x0:2,z0:28,x1:23,z1:29},{x0:37,z0:28,x1:58,z1:29},{x0:2,z0:33,x1:23,z1:33},{x0:37,z0:33,x1:58,z1:33}];
 
 // Kit street (city Phase 4): the same layout built with the building kit, so the two compare directly.
 // Districts by style: timber around the square and west street, brick for the east (craft) street,
@@ -81,6 +83,8 @@ export function kitDescription(b,i){
 }
 
 export function createGrayboxStreet({scene,pickables,kit=false}){
+ // Kit street: the same layout as city data (kit-street.js), built by the shared city builder.
+ if(kit)return buildCity(kitStreetData(),{scene,pickables});
  const group=new THREE.Group();group.visible=false;scene.add(group);
  const {W,H,plaza,fountain}=GRAYBOX,tiles=[];
  for(let z=1;z<=H;z++)for(let x=1;x<=W;x++){
@@ -97,11 +101,10 @@ export function createGrayboxStreet({scene,pickables,kit=false}){
  createTerrainBatch({tiles,map,factory:tile=>makeTerrainTile(tile,map,surface(tile)),parent:group,pickables,preserve:Object.values(mats),roughness:.95});
 
  // Walls on every building outline; houses get windows every third tile, shells stand storeys tall.
- const edges=createEdgeFeatures({parent:group,pickables,tileAt:t,style:kit?'timber':'graybox'}),doors=[],roofs=[];
+ const edges=createEdgeFeatures({parent:group,pickables,tileAt:t,style:'graybox'}),doors=[],roofs=[];
  const dirs={n:[0,-1],s:[0,1],w:[-1,0],e:[1,0]};
  for(const b of BUILDINGS){
   const faces=[];for(let x=b.x0;x<=b.x1;x++){faces.push([x,b.z0,'n',x-b.x0]);faces.push([x,b.z1,'s',x-b.x0]);}for(let z=b.z0;z<=b.z1;z++){faces.push([b.x0,z,'w',z-b.z0]);faces.push([b.x1,z,'e',z-b.z0]);}
-  if(kit){const built=createBuilding(kitDescription(b,BUILDINGS.indexOf(b)),{origin:[b.x0,b.z0],id:BUILDINGS.indexOf(b),edges,tileAt:t,parent:group});doors.push(...built.doors);roofs.push(built.roof);continue;}
   for(const [x,z,side,i] of faces){
    const [dx,dz]=dirs[side],inside=t(x,z),outside=t(x+dx,z+dz),id=`${x},${z},${side}`;if(!outside)continue;
    // A wall shared with a neighbouring building is placed once, as tall as the taller of the two.

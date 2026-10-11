@@ -31,7 +31,7 @@ test('the square is ringed by multi-storey buildings opening onto it, with gaps 
 });
 test('kit street: the same layout built by the building kit keeps every route, door and seal',async()=>{
  const built=createGrayboxStreet({scene:new Group(),pickables:[],kit:true}),t=(x,z)=>built.tiles.get(key(x,z)),route=(x,z)=>findPath(built.tiles,built.spawn,t(x,z));
- assert.equal(built.roofs.length,BUILDINGS.length,'one roof per building');
+ assert.equal(built.roofs.length,built.buildings.length,'one roof per building');assert.equal(built.buildings.length,BUILDINGS.length+2,'the layout plus the annex cottage and guild house');
  for(const b of BUILDINGS){
   const inside=t(b.x0+1,b.z0+1);assert.equal(route(inside.x,inside.z),null,`${b.name}: sealed`);
   if(!b.door)continue;

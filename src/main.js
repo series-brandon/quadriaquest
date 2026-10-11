@@ -42,6 +42,9 @@ import {blocksMovement,occupancy} from './world-occupancy.js';
 import {pushWorldActor,updateWorldActors} from './world-actors.js';
 import {configureDoors,updateDoors,doorApproach} from './doors.js';
 import {updateCutaway,cutawayState} from './cutaway.js';
+import {configureProps,seatPosition} from './props.js';
+import {createSpaces} from './spaces.js';
+import {createCrowd} from './townsfolk.js';
 import {createResourceActions} from './resource-actions.js';
 import {createAttackTelegraphs} from './attack-telegraph.js';
 import {createResourceEntity} from './resource-entities.js';
@@ -178,6 +181,10 @@ const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,playe
 const playerOccupant={kind:'player'},companionOccupant={kind:'companion'};
 // Seeing into and past buildings (cutaway.js); the playground can switch it off to compare.
 let cutawayOn=true,forceCutaway=false;
+// Sitting on a bench (props.js): the seat you sit on, the one you're walking to.
+let seat=null,pendingSeat=null,wasSeated=false;
+// Playground: the city editor takes world clicks while it is in Edit mode.
+let tileClick=null;
 let edgeFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
@@ -223,10 +230,13 @@ function combatSkills(){const out={};for(const d of TRACKS){const t=character.tr
 function playerSkills(){return {Gathering:gatheringSkill,Crafting:craftingSkill,Lumberjack:lumberjackSkill,Mining:miningSkill,...(fishing?{Fishing:fishing.skill}:{}),...(carpentry?{Carpentry:carpentry.skill}:{}),...combatSkills(),...(cooking?{Culinary:cooking.skill}:{}),...(smithing?{Smithing:smithing.skill}:{})};}
 
 const clearingTiles=new Map(world);
-const areas=createAreaRuntime({world,beforeSwitch(){combat?.clear();stopAll();},placePlayer(landing){tile=landing;player.position.set(tile.x-6,tile.h,tile.z-6);},applyCamera(view){quality.settle();zoom=view.zoom;angle=view.angle;elevation=view.elevation;scene.background.set(view.background||'#e5e9df');ground.material.color.copy(scene.background);}});
+const areas=createAreaRuntime({world,beforeSwitch(){combat?.clear();stopAll();},placePlayer(landing){tile=landing;player.position.set(tile.x-6,tile.h,tile.z-6);},applyCamera(view){quality.settle();if(view.zoom!==undefined)zoom=view.zoom;if(view.angle!==undefined)angle=view.angle;if(view.elevation!==undefined)elevation=view.elevation;scene.background.set(view.background||'#e5e9df');ground.material.color.copy(scene.background);}});
 const travel=createTravelSystem({areas,stop:stopAll,blocked:()=>!areas.canMove||combat?.busy||combat?.working,
  occupied:t=>companions?.occupies(t),fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},failed:()=>toast('There’s no safe space beside the destination crystal.')});
-// Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
+
+// Separate interiors, stairwells and dungeons (spaces.js): a quick fade between spaces of any map.
+const spaces=createSpaces({areas,scene,pickables,stop:stopAll,fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},
+ arrived(landing){companions.resetRoute(landing);},view:{get:()=>({zoom,angle,elevation}),set(v){zoom=v.zoom;angle=v.angle;elevation=v.elevation;}}});// Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
 // Restore keeps active auras (and their upkeep) and just announces itself; respec turns them off and refunds invested attribute points.
 function crystalRestore(){health.max=character.maxima.health;health.restore();playerResources.restoreAll();}
 // Utility dialogs (stations, destinations, naming, confirmations) share one modal host.
@@ -410,12 +420,13 @@ styleMenu=createCombatStyleMenu({styles,combat,panels:menus.panels,auras,assista
 // Powers (Spells, Auras, Abilities) after the Combat page, which links to it.
 const powersMenu=createPowersMenu({styles,auras,assistance,combat,character,panels:menus.panels});
 areas.activate('clearing',{announce:false});
-function canMove(){return areas.canMove&&!travel.busy&&!combat?.busy;}
+function canMove(){return areas.canMove&&!travel.busy&&!combat?.busy&&!spaces.busy;}
 
 function cancelWork({keepCombat=false,keepFood=false}={}){
  if(!(keepFood&&afterStep.pending==='Eating'))afterStep.cancel();
  cancelPlayerActions({smithing,combat,resourceActions,carpentry,fishing,food,cooking,recipeCrafting,campfires,companions},{keepCombat,keepFood});areas.cancel();
  chopTarget=null;if(!(keepCombat&&actorTarget?.enemy)){actorTarget=null;actorTime=0;}
+ seat=null;pendingSeat=null;
 }
 // A queued quick spell opens the next fight from its own range.
 function attackRange(){return combat?.queuedSpell?SPELLS[combat.queuedSpell].range:styles.attack.range;}
@@ -427,8 +438,16 @@ function characterAt(t){return !!t&&occupancy.occupied(t,playerOccupant);}
 function npcAt(t){return !!t&&occupancy.owners(t).some(o=>o!==playerOccupant&&o!==companionOccupant&&!o.enemy);}
 // The player's routes go around people unless the detour is long (occupied tiles cost extra).
 const playerRouteCost=t=>occupancy.cost(t,playerOccupant);
+// Props in every map (props.js): a bench seats you on a free seat; the others answer with a line until
+// the systems behind them exist (jobs board: economy; drinking: no effect yet).
+configureProps({act(verb,prop){
+ if(verb==='sit'){const free=prop.spots.filter(s=>s.seat&&!characterAt(s.tile)).sort((a,b)=>Math.abs(a.tile.x-tile.x)+Math.abs(a.tile.z-tile.z)-(Math.abs(b.tile.x-tile.x)+Math.abs(b.tile.z-tile.z)))[0];
+  if(!free){toast('Every seat is taken.');return;}moveTo(free.tile);pendingSeat=free;return;}
+ if(verb==='enter'){if(!prop.link||!spaces.enter(prop.link))toast('The way down is barred.');return;}
+ toast({read:'No jobs are posted yet.',drink:'Cool, clear water.',gaze:'You take a moment to look.',browse:'Nothing for sale yet.'}[verb]||prop.label);
+}});
 // Doors in every map share the game's feedback and movement (doors.js).
-configureDoors({toast:s=>toast(s),tile:()=>tile,sound:name=>gameAudio.play(name)});
+configureDoors({toast:s=>toast(s),tile:()=>tile,sound:name=>gameAudio.play(name),enter:link=>spaces.enter(link)});
 // A player who has stopped on another character's tile pushes it off ('walk' NPCs step aside; calm
 // creatures in combat.js; the companion in companions.js). Characters that can't move (push 'never',
 // such as tutorial NPCs, or nowhere free) stay, hidden under the player until the player moves on.
@@ -497,7 +516,8 @@ canvas.addEventListener('pointerup',e=>{
  if(activePointers.size===1&&down?.button===0&&!dragged)idleClock.wake();
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=terrainHitData(hit);
-  if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
+  const clicked=data?.tile||data?.actor?.tile;
+  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(clicked);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
   else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the area.');}
  }
  activePointers.delete(e.pointerId);pinchDistance=null;
@@ -518,7 +538,7 @@ function updateHover(){
  $('tooltip').style.display=t?'block':'none';
  if(t){$('tooltip').textContent=placementStatus?placementStatus.label:actor?(actor.opened?(actor.enemy?'Recovering…':'Empty chest'):!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(valid?(tree.kind==='copper'?'Mine copper':['boulder','copper'].includes(tree.kind)?'Mine Boulder':'Chop tree'):!inventory[['boulder','copper'].includes(tree.kind)?'pickaxes':'axes']?'Missing the required tool!':'No safe route'):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+ITEMS[hover.resource.kind].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
 }
-function changeZoom(delta){if(!areas.canOrbit||travel.busy)return;if(!opening.playable){introZoom=THREE.MathUtils.clamp(introZoom*Math.exp(delta/22),3,10);return;}const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});
+function changeZoom(delta){if(!areas.canOrbit||travel.busy)return;if(!opening.playable){introZoom=THREE.MathUtils.clamp(introZoom*Math.exp(delta/22),3,10);return;}const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,areas.active?.maxZoom??34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});
 function resize(){const {left,width,height}=measureGameViewport();document.documentElement.style.setProperty('--game-viewport-width',`${width}px`);document.documentElement.style.setProperty('--game-viewport-center',`${left+width/2}px`);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);}addEventListener('resize',resize);new ResizeObserver(resize).observe($('game'));resize();
 const clock=new THREE.Clock();let elapsed=0;
 const focusLift=new THREE.Vector3(),cameraFocus=new THREE.Vector3();
@@ -530,7 +550,7 @@ function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.a
 let sunAnchor='';
 function followSun(){const fx=Math.round(player.position.x/4)*4,fz=Math.round(player.position.z/4)*4,anchor=`${fx},${fz}`;if(anchor===sunAnchor)return;sunAnchor=anchor;sun.target.position.set(fx,0,fz);sun.position.set(fx-8,19,fz+5);sun.target.updateMatrixWorld();quality.shadowsChanged();}
 function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);followSun();quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);// Ambience: a breeze on the splash, silence in the opening scene, then the area's own profile.
- gameAudio.update(dt,splash.active?'splash':opening.finished?areas.active?.music||'clearing':'intro',narrator.visible.peek(),!!combat?.inCombat,splash.active?'breeze':opening.inClearing?areas.active?.ambience||'meadow':'none');if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+ gameAudio.update(dt,splash.active?'splash':opening.finished?areas.active?.music||'clearing':'intro',narrator.visible.peek(),!!combat?.inCombat,splash.active?'breeze':opening.inClearing?areas.active?.ambience||'meadow':'none');if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);spaces.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
@@ -617,6 +637,10 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
   }else if(target&&!target.depleted){const node=target;target=null;resourceActions.start(node);
   }else{if(!(__PLAYGROUND__&&debug?.holdingFeedback))feedback.arrived();}
  }
+ // Sitting (props.js): settle onto the seat once you reach its spot; any other action stands you up.
+ if(pendingSeat&&!segment&&!path.length){if(tile===pendingSeat.tile)seat={spot:pendingSeat,time:0};pendingSeat=null;}
+ if(seat&&!segment&&!path.length){seat.time+=dt;const social=socialMotion('Sit',seat.time),p=seatPosition(seat.spot),k=Math.min(1,seat.time/.45);pose=social.pose;expression=social.expression;socialHands=withGrip(social.hands,equipmentIdleHands({rightHand:equipment.slots.right,leftHand:equipment.slots.left}),social.grip);facing=seat.spot.angle;player.position.set(THREE.MathUtils.lerp(tile.x-6,p.x,k),tile.h+social.lift,THREE.MathUtils.lerp(tile.z-6,p.z,k));wasSeated=true;}
+ else if(wasSeated&&!segment){wasSeated=false;player.position.set(tile.x-6,tile.h,tile.z-6);}
  if(__PLAYGROUND__&&debug){const preview=debug.frame(dt);if(preview){pose=preview.pose;handWork=preview.handWork;expression=preview.expression;socialHands=preview.hands&&preview.grip?withGrip(preview.hands,equipmentIdleHands({rightHand:equipment.slots.right,leftHand:equipment.slots.left}),preview.grip):preview.hands||null;sleeping=!!preview.sleeping;player.position.y=tile.h+preview.lift;}}
  const celebration=areas.celebration;
  if(celebration){facing=celebration.angle;}
@@ -676,14 +700,34 @@ if(__PLAYGROUND__){
  // Graybox street (playground only; city Phase 2): plain grey buildings at the proposed scale; and the
  // kit street (Phase 4): the same layout built with the building kit.
  const cityMaps={};
+ // Townsfolk for a city map (townsfolk.js): their crowd runs in the area's update.
+ const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},player:()=>({tile,hidden:false}),playerTile:()=>segment?null:tile};
+ function attachCrowd(built){built.crowd?.dispose();built.crowd=createCrowd({city:built,parent:built.group,pickables,services:crowdServices});return built.crowd;}
  async function cityMapReady(id){
   if(cityMaps[id])return cityMaps[id];
   const {createGrayboxStreet}=await import('./dev/graybox-street.js');
-  const built=createGrayboxStreet({scene,pickables,kit:id==='kit-street'});
-  areas.register({id,name:id==='kit-street'?'Kit street':'Graybox street',description:id==='kit-street'?'Playground: the building kit':'Playground: city scale graybox',listed:()=>false,group:built.group,tiles:built.tiles,
+  const built=createGrayboxStreet({scene,pickables,kit:id==='kit-street'});built.areaId=id;
+  if(id==='kit-street')attachCrowd(built);
+  areas.register({id,name:id==='kit-street'?'Kit street':'Graybox street',description:id==='kit-street'?'Playground: the building kit':'Playground: city scale graybox',listed:()=>false,group:built.group,tiles:built.tiles,update:(dt,time,view)=>{built.crowd?.update(dt,time,{camera:view});},
    camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>built.spawn,
    reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
   return cityMaps[id]=built;
+ }
+ // City editor (playground only; city Phase 6): one area whose contents the editor rebuilds from data.
+ let editorArea=null;
+ async function editCity(data,{keepPlayer=true}={}){
+  const {buildCity}=await import('./city-map.js');
+  if(!editorArea){const group=new THREE.Group();group.name='city-editor';scene.add(group);editorArea={group,tiles:new Map(),built:null};
+   areas.register({id:'city-editor',name:'City editor',description:'Playground: city editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,update:(dt,time,view)=>{editorArea.built?.crowd?.update(dt,time,{camera:view});},
+    reset(){for(const d of editorArea.built?.doors||[])if(!d.locked)d.setOpen(false,{quiet:true});}});}
+  const here=keepPlayer&&areas.id==='city-editor'?{x:tile.x,z:tile.z}:null;
+  if(editorArea.built){spaces.forget(editorArea.built);editorArea.built.crowd?.dispose();editorArea.built.dispose();}
+  const built=buildCity(data,{scene:editorArea.group,pickables,visible:true});built.areaId='city-editor';editorArea.built=built;attachCrowd(built);cityMaps['city-editor']=built;
+  editorArea.tiles.clear();for(const [k,t] of built.tiles)editorArea.tiles.set(k,t);
+  let landing=here&&built.tiles.get(key(here.x,here.z));if(!landing||landing.blocked)landing=built.spawn;
+  const first=areas.id!=='city-editor';stopAll();splash.close();opening.enterFreePlay();if(first)craftingTutorial.reset();
+  areas.activate('city-editor',{landing,arrival:false});companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;
+  return built;
  }
  const currentCityMap=()=>areas.id==='building-test'?buildingTest:cityMaps[areas.id]||null;
  playgroundApi={
@@ -693,6 +737,31 @@ if(__PLAYGROUND__){
    areas.activate(id,{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
   },
   toggleCutaway(){cutawayOn=!cutawayOn;return cutawayOn;},
+  // Walks to a tile (scripted checks), and uses the nearest prop of a kind (props.js) as a click would.
+  walkTo(x,z){const t=world.get(key(x,z));if(!t)return false;moveTo(t);return path.length>0||t===tile;},
+  useProp(kind){const props=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a?.def&&a.kind===kind&&isVisible(a.group)))].sort((a,b)=>Math.hypot(a.x-tile.x,a.z-tile.z)-Math.hypot(b.x-tile.x,b.z-tile.z));if(!props[0])return false;selectActor(props[0]);return true;},
+  get seated(){return !!seat;},
+  // Uses whatever actor (door, stairwell, prop…) is nearest a tile position, as a click on it would.
+  useActorAt(x,z){const actor=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a&&a.x!==undefined))].filter(a=>{let o=null;for(const m of pickables)if(m.userData.actor===a){o=m;break;}return o&&isVisible(o);}).sort((a,b)=>Math.hypot(a.x-x,a.z-z)-Math.hypot(b.x-x,b.z-z))[0];if(!actor||Math.hypot(actor.x-x,actor.z-z)>1.5)return false;selectActor(actor);return actor.label||actor.kind||true;},
+  editCity,setTileClick(fn){tileClick=fn;},toast:text=>toast(text),
+  // Townsfolk (city Phase 8): replace the current city's crowd with n generated townsfolk (0 = the city's own).
+  async crowd(n){const map=currentCityMap();if(!map?.crowd)return null;const {generateTownsfolk}=await import('./townsfolk.js');map.data.ownTownsfolk??=map.data.townsfolk;map.data.townsfolk=n?generateTownsfolk(map,n):map.data.ownTownsfolk;attachCrowd(map);return map.crowd.folk.length;},
+  get crowdStats(){const map=currentCityMap();return map?.crowd?{count:map.crowd.folk.length,...map.crowd.stats,fields:map.crowd.navigator.cached,activities:Object.fromEntries(map.crowd.folk.reduce((m,p)=>m.set(p.activity||'idle',(m.get(p.activity||'idle')||0)+1),new Map())),folk:map.crowd.folk.map(p=>({name:p.name,tile:[p.tile.x,p.tile.z],activity:p.activity||'idle',state:p.state,ring:p.ring,visible:p.group.visible,parentVisible:!!p.group.parent?.visible,y:+p.group.position.y.toFixed(2)}))}:null;},
+  // The capital (city Phase 9; playground for now): src/maps/capital.json, built per chunk and streamed
+  // around the player, with its townsfolk.
+  async enterCapital(){
+   if(!cityMaps.capital){const [{buildCity},{default:data}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json')]);
+    const built=buildCity(structuredClone(data),{scene,pickables,streamRadius:3});built.areaId='capital';attachCrowd(built);cityMaps.capital=built;
+    areas.register({id:'capital',name:data.name,description:'Playground: the capital',listed:()=>false,group:built.group,tiles:built.tiles,camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>built.spawn,
+     update:(dt,time,view)=>{built.stream(segment?.to||tile);built.crowd?.update(dt,time,{camera:view});},reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});}
+   const built=cityMaps.capital;stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
+   areas.activate('capital',{landing:built.spawn,arrival:false});built.stream(built.spawn);companions.resetRoute(built.spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
+  },
+  // The scene and renderer, for inspecting in scripted browser checks (playground only).
+  get scene(){return scene;},get renderer(){return renderer;},
+  get capitalStats(){const c=cityMaps.capital;return c?{chunks:c.chunks.size,shown:c.shownChunks,buildings:c.buildings.length,props:c.props.length,townsfolk:c.crowd?.folk.length}:null;},
+  // Puts the player on a tile of the current map (city playground jumps); false if there is no such free tile.
+  teleport(x,z){const t=world.get(key(x,z));if(!t||t.blocked||t.water)return false;stopAll();segment=null;path=[];tile=t;player.position.set(t.x-6,t.h,t.z-6);companions.resetRoute(t);return true;},
   // Force cutaway: every building cut (no roofs, walls one storey), like the building test map.
   toggleForceCutaway(){forceCutaway=!forceCutaway;return forceCutaway;},
   // Shows or hides the roofs of the graybox or kit street you are in; returns whether they are now shown (null elsewhere).
@@ -844,4 +913,6 @@ animate();
 if(__PLAYGROUND__)window.quadriaquest={getState:()=>({cutaway:cutawayState(),facing:+(Math.atan2(Math.sin(facing),Math.cos(facing))).toFixed(2),telegraphs:telegraphs.active,hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,face:playerFace,body:{squash:visual.scale.y,twist:visual.rotation.y,lean:visual.rotation.x},finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
 // Playground inspection: the renderer (compiled programs, render stats).
 if(__PLAYGROUND__)Object.defineProperty(window.quadriaquest,'renderer',{get:()=>renderer});
+// The playground's own API, for scripted browser checks (playground only).
+if(__PLAYGROUND__)window.quadriaquest.api=playgroundApi;
 if(__PLAYGROUND__)window.quadriaquest.perf=playground.createPerfScenarios({api:playgroundApi,probe:perfProbe,setView(view){angle=view.angle;elevation=view.elevation;zoom=view.zoom;},walkTo(x,z){const t=world.get(key(x,z));if(t)moveTo(t);},state:()=>window.quadriaquest.getState()});

@@ -34,6 +34,8 @@ export function createDoor({a,b,parent,pickables=[],locked=false,open=false,link
   get label(){return door.locked?'Locked door':door.open?'Close door':'Open door';},
   interact(){
    if(door.locked){door.rattle=1;services.sound('blocked');services.toast("It's locked.");return;}
+   // A linked door (a separate interior, city Phase 7) takes you through to the space behind it.
+   if(door.link){services.sound('doorOpen');services.enter?.(door.link,{from:door});return;}
    door.setOpen(!door.open);
   },
   setOpen(value,{quiet=false}={}){value=!!value&&!door.locked;if(value===door.open)return;door.open=value;
@@ -165,7 +167,8 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
    unbake();boxesDirty=true;
    if(kind==='door'){const door=createDoor({a,b,parent:root,pickables,...options,style:pieceStyle});door.neighbour=tileAt;placed.set(k,{door,a,b,id:k,posts:withPosts,storeys,owners,style:pieceStyle});if(withPosts)usePosts(k,a,b,true,storeys);return door;}
    const place=edgePlacement(a,b,storeys),group=edgePiece(kind,{height:place.height,storeys,style:pieceStyle,upperWindows:options.upperWindows}),feature={kind};
-   group.position.set(place.x,place.y,place.z);group.rotation.y=place.rotation;root.add(group);
+   // Fences, railings and counters stand on the higher tile (a railing along the top of a retaining wall).
+   group.position.set(place.x,['fence','railing','low'].includes(kind)?Math.max(a.h,b.h):place.y,place.z);group.rotation.y=place.rotation;root.add(group);
    setEdge(a,b,feature);placed.set(k,{group,feature,a,b,id:k,posts:withPosts,storeys,owners,style:pieceStyle});if(withPosts)usePosts(k,a,b,true,storeys);return group;
   },
   remove,

@@ -8,7 +8,7 @@ import {createFishingPresentation} from './fishing-presentation.js';
 import {createPoseBlender,motionKey} from './pose-blend.js';
 import {playerActionMotion,gatheringHand,alignSupportingHand} from './player-action-motion.js';
 import {equipmentIdleHands,withGrip} from './combat-animation.js';
-import {socialMotion,SOCIAL_DURATIONS} from './slime-social.js';
+import {socialMotion,SOCIAL_DURATIONS,HELD_MOTIONS} from './slime-social.js';
 import {SPELLS} from './combat-styles.js';
 import {idlePose} from './slime-motion.js';
 import {holdUpMotion} from './catch-motion.js';
@@ -157,7 +157,7 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
     playing.time+=dt;
     if(!playing.loop&&playing.duration!==null&&playing.time>=playing.duration)playing=null;
     else if(SOCIAL_DURATIONS[playing.kind]!==undefined){
-     const t=playing.kind==='Sleeping'||!playing.duration?playing.time:playing.time%(playing.duration+.7),social=socialMotion(playing.kind,t),slots=equipment?.slots;
+     const t=HELD_MOTIONS.includes(playing.kind)||!playing.duration?playing.time:playing.time%(playing.duration+.7),social=socialMotion(playing.kind,t),slots=equipment?.slots;
      ({pose,lift,expression}=social);socialHands=equipment?withGrip(social.hands,equipmentIdleHands({rightHand:slots.right,leftHand:slots.left}),social.grip):social.hands;
     }else motion={kind:playing.kind,time:playing.time,profile:playing.profile};
    }
