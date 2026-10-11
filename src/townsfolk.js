@@ -4,6 +4,7 @@ import {createSlimeActor} from './slime-presentation.js';
 import {markCharacter,occupancy} from './world-occupancy.js';
 import {seatPosition} from './props.js';
 import {key,canStep} from './world.js';
+import {moveMotion} from './slime-motion.js';
 
 // Townsfolk and city life (docs/CITY.md, Townsfolk and city life; city Phase 8). Routines come from
 // places, not scripts: a townsfolk entry gives a look, a home door and a weighted routine, and each
@@ -18,9 +19,12 @@ import {key,canStep} from './world.js';
 // and followed downhill; strolls use a bounded search. Presentation runs in rings (crowd budget):
 // near and on screen, full; far on screen, a quarter rate with a fixed face; off screen, movement only.
 export const ACTIVITIES=['sit','browse','vend','gaze','drink','read','chat','stroll','enter','patrol'];
-const STEP_TIME=.62,NEAR=16,FAR=34,FIELD_CACHE=48,STROLL_RADIUS=10;
+// WALK: townsfolk walk a little slower than the player (the shared move's time scale).
+const WALK=.72,NEAR=16,FAR=34,FIELD_CACHE=48,STROLL_RADIUS=10;
 const LINES=['Lovely day for it.','Have you seen the fountain?','Mind the stairs.','The market’s busy today.','I’m just on my way home.','Hello there!','They say the castle has a hundred rooms.','Fresh bread soon, I hope.'];
 const NEIGHBOURS=[[1,0],[-1,0],[0,1],[0,-1]];
+// Faces while two townsfolk chat (they walk about happy).
+const CHAT_FACES=['happy','pleased','shocked','sad','frown','happy','pleased'];
 
 // Shared navigation for one map: cached distance fields (BFS over the shared step rule).
 export function createNavigator(map){
@@ -67,7 +71,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   const person={kind:'townsfolk',id:entry.id,name:entry.name||'Townsfolk',entry,rig,slime,group:body,tile:home,x:home.x,z:home.z,home,
    ready:true,opened:false,duration:0,label:`Talk to ${entry.name||'townsfolk'}`,available:()=>!person.hidden,
    state:'idle',timer:1+random()*3,goal:null,spot:null,step:null,facing:0,hidden:false,ring:'near',acc:0,
-   interact(){person.face=services.player?.()||null;person.talking=2.4;slime.play('Wave',{loop:false});services.say?.(person,person.entry.line||LINES[Math.floor(random()*LINES.length)]);}};
+   interact(){person.talkTo=services.player?.()||null;person.talking=4;slime.play('Wave',{loop:false});services.say?.(person,person.entry.line||LINES[Math.floor(random()*LINES.length)]);}};
   body.traverse(m=>{if(m.isMesh){m.userData.actor=person;m.userData.tile=home;pickables.push(m);}});
   occupancy.place(person,[home]);folk.push(person);
  }
@@ -91,7 +95,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   if(p.activity==='sit'){p.slime.play('Sit');p.facing=p.spot.angle;}
   else if(p.spot)p.facing=p.spot.angle;
   if(p.activity==='enter'){p.hidden=true;p.group.visible=false;occupancy.remove(p);}
-  if(p.activity==='chat'&&p.partner){p.face=p.partner;p.slime.play(random()<.5?'Wave':'Happy hop',{loop:false});}
+  if(p.activity==='chat'&&p.partner){p.face=p.partner;p.chatFace=CHAT_FACES[Math.floor(random()*CHAT_FACES.length)];p.partner.chatFace=CHAT_FACES[Math.floor(random()*CHAT_FACES.length)];p.slime.play(random()<.5?'Wave':'Happy hop',{loop:false});}
   if(p.activity==='drink')p.slime.play('Gathering',{loop:false,duration:1.6});
   if(p.activity==='vend'&&random()<.5)p.slime.play('Point',{loop:false,duration:1.2});
  }
@@ -110,34 +114,43 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
    const focus=camera?{x:camera.position.x,z:camera.position.z}:null;
    for(const p of folk){
     // Logic: always.
-    if(p.talking>0)p.talking-=dt;
-    if(p.state==='walking'){
-     if(!p.step){const next=nav.next(p.tile,p.goal,t=>taken(t,p));if(!next){if(p.tile===p.goal)arrive(p);else{p.state='idle';p.timer=1;}}
-      else{p.step={from:p.tile,to:next,age:0};p.facing=angleTo(p.tile,next);occupancy.place(p,[p.tile,next]);}}
-     if(p.step){p.step.age+=dt;const k=Math.min(1,p.step.age/STEP_TIME),{from,to}=p.step,hop=Math.abs(to.h-from.h)>.01?Math.sin(Math.PI*k)*.25:0;
-      p.group.position.set(THREE.MathUtils.lerp(from.x,to.x,k)-6,THREE.MathUtils.lerp(from.h,to.h,k)+hop,THREE.MathUtils.lerp(from.z,to.z,k)-6);
-      if(k>=1){p.tile=to;p.x=to.x;p.z=to.z;p.step=null;occupancy.place(p,[to]);for(const m of pickables)if(m.userData.actor===p)m.userData.tile=to;if(to===p.goal)arrive(p);}}
+    // Talking to the player: finish the step under way, then stand and face them until done.
+    if(p.talking>0){p.talking-=dt;if(p.talking<=0)p.talkTo=null;}
+    const listening=p.talking>0&&!p.step;
+    if(p.state==='walking'&&!listening){
+     if(!p.step){
+      // Don't end on someone else's tile: stop a tile short, or give up a taken spot.
+      let next=nav.next(p.tile,p.goal,t=>taken(t,p));
+      if(next&&next===p.goal&&taken(next,p)){if(p.spot){p.state='idle';p.timer=1+random()*2;next=null;}else{arrive(p);next=null;}}
+      if(p.state==='walking'&&!next){if(p.tile===p.goal)arrive(p);else{p.state='idle';p.timer=1;}}
+      else if(next){p.step={from:p.tile,to:next,age:0};p.facing=angleTo(p.tile,next);occupancy.place(p,[p.tile,next]);}}
+     if(p.step){p.step.age+=dt*WALK;const {from,to}=p.step,move=moveMotion(p.step.age,from,to);p.move=move;
+      p.group.position.set(THREE.MathUtils.lerp(from.x,to.x,move.distance)-6,from.h+move.rise,THREE.MathUtils.lerp(from.z,to.z,move.distance)-6);
+      if(p.step.age>=move.duration){p.tile=to;p.x=to.x;p.z=to.z;p.step=null;p.move=null;occupancy.place(p,[to]);for(const m of pickables)if(m.userData.actor===p)m.userData.tile=to;if(to===p.goal)arrive(p);}}
      stats.walking++;
-    }else{p.timer-=dt;
-     if(p.state==='staying'&&p.timer<=0)leave(p);
-     else if((p.state==='idle'||p.state==='chatting')&&p.timer<=0){if(p.state==='chatting')leave(p);else begin(p);}
+    }else if(p.state!=='walking'){p.timer-=dt;
+     if(p.state==='staying'&&p.timer<=0&&!(p.talking>0))leave(p);
+     else if((p.state==='idle'||p.state==='chatting')&&p.timer<=0&&!(p.talking>0)){if(p.state==='chatting')leave(p);else begin(p);}
      // The player stopped on this townsfolk: step aside (never mid-activity on a seat).
-     if(playerTile&&p.tile===playerTile&&p.state!=='walking'&&p.activity!=='sit'&&!p.hidden){const aside=NEIGHBOURS.map(([dx,dz])=>map.get(key(p.tile.x+dx,p.tile.z+dz))).find(n=>n&&strollable(n)&&canStep(p.tile,n)&&!taken(n,p));if(aside){leave(p);p.goal=aside;p.activity='stroll';p.stay=1;p.state='walking';}}
+     if(playerTile&&p.tile===playerTile&&p.activity!=='sit'&&!p.hidden){const aside=NEIGHBOURS.map(([dx,dz])=>map.get(key(p.tile.x+dx,p.tile.z+dz))).find(n=>n&&strollable(n)&&canStep(p.tile,n)&&!taken(n,p));if(aside){leave(p);p.goal=aside;p.activity='stroll';p.stay=1;p.state='walking';}}
     }
     // Seat position while sitting; standing on the tile otherwise.
     if(p.state==='staying'&&p.activity==='sit'&&p.spot){const s=seatPosition(p.spot),k=Math.min(1,(p.stay-p.timer)/.45);p.group.position.set(THREE.MathUtils.lerp(p.tile.x-6,s.x,k),p.tile.h,THREE.MathUtils.lerp(p.tile.z-6,s.z,k));}
-    else if(!p.step&&p.state!=='walking')p.group.position.set(p.tile.x-6,p.tile.h,p.tile.z-6);
-    if(p.face&&!p.face.hidden)p.facing=angleTo(p.tile,p.face.tile);
+    else if(!p.step)p.group.position.set(p.tile.x-6,p.tile.h,p.tile.z-6);
+    // Facing: the way they walk; someone they talk to once standing.
+    const facingWho=p.step?null:p.talking>0&&p.talkTo?p.talkTo:p.face;
+    if(facingWho&&!facingWho.hidden)p.facing=angleTo(p.tile,facingWho.tile);
     p.group.rotation.y+=Math.atan2(Math.sin(p.facing-p.group.rotation.y),Math.cos(p.facing-p.group.rotation.y))*(1-Math.exp(-dt*10));
-    // Presentation rings (crowd budget).
+    // Presentation rings (crowd budget). Only one character shows per tile: the last to arrive.
     if(p.hidden){stats.off++;continue;}
     const d=focus?Math.hypot(p.group.position.x-focus.x,p.group.position.z-focus.z):0,onScreen=!frustum||frustum.containsPoint(p.group.position);
     p.ring=!onScreen||d>FAR*1.6?'off':d>FAR?'far':'near';
-    p.group.visible=p.ring!=='off'||d<FAR;
+    p.group.visible=(p.ring!=='off'||d<FAR)&&(!!p.step||!occupancy.covered(p,p.tile));
     if(p.ring==='off'){stats.off++;continue;}
     p.acc+=dt;
-    if(p.ring==='far'){stats.far++;if(p.acc<.25)continue;p.slime.update(p.acc,time,{expression:'idle'});p.acc=0;stats.updated++;continue;}
-    stats.near++;p.slime.update(p.acc,time,{expression:p.talking>0?'happy':p.state==='walking'?'focused':'idle'});p.acc=0;stats.updated++;
+    const mood=p.talking>0?'happy':p.state==='chatting'||p.activity==='chat'&&p.state==='staying'?p.chatFace||'happy':p.step?p.entry.walkFace||'happy':p.entry.face||'idle';
+    if(p.ring==='far'){stats.far++;if(p.acc<.25)continue;p.slime.update(p.acc,time,{expression:mood,pose:p.move?.pose||null});p.acc=0;stats.updated++;continue;}
+    stats.near++;p.slime.update(p.acc,time,{expression:mood,pose:p.move?.pose||null});p.acc=0;stats.updated++;
    }
   },
   dispose(){for(const p of folk){occupancy.remove(p);for(const m of [...pickables])if(m.userData.actor===p)pickables.splice(pickables.indexOf(m),1);}group.removeFromParent();group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();});folk.length=0;},

@@ -17,7 +17,8 @@ import {edgePiece,doorModel,animateDoor,STYLE_NAMES} from '../edge-models.js';
 import {createBuilding,BUILDING_PRESETS,ROOF_TYPES} from '../building-kit.js';
 import {createEdgeFeatures} from '../doors.js';
 import {PROPS,PROP_KINDS,propModel} from '../props.js';
-import {makeCityTile,layStairs,railingEdges} from '../city-terrain.js';
+import {makeCityTile,layStairs,railingEdges,stairRailParts} from '../city-terrain.js';
+import {mergedMesh} from '../merged-model.js';
 import {stairwellModel} from '../spaces.js';
 import {uniforms as cutUniforms} from '../cutaway.js';
 import {companion,animateCompanion,setCompanionOutfit} from '../companion-model.js';
@@ -145,7 +146,8 @@ function terracePreview(){
  layStairs(map,{x:1,z:3,dir:'n',length:2,width:2,base:1});
  for(const tile of map.values()){const m=makeCityTile(tile,map);m.position.set(tile.x-2,0,tile.z-2);group.add(m);}
  const edges=createEdgeFeatures({parent:group,tileAt:(x,z)=>map.get(key(x,z)),cutaway:false});edges.root.position.set(4,0,4);
- for(const [a,b] of railingEdges([...map.values()],map))edges.add(a,b,'railing');
+ const stairSides=[];for(const [a,b,stair] of railingEdges([...map.values()],map)){edges.add(a,b,'railing',{hidden:!!stair});if(stair)stairSides.push([a,b]);}
+ const rails=mergedMesh(stairRailParts(stairSides));rails.position.set(4,0,4);group.add(rails);
  return group;
 }
 export const MODEL_CATALOG=[

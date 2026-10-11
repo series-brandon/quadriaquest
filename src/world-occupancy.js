@@ -27,21 +27,29 @@ export function setWorldOccupancy(entity, present) {
 export const OCCUPIED_COST = 5;
 export const PLAYER_COST = 30;
 export function createOccupancy() {
-  const byTile = new Map(), byOwner = new Map();
-  function remove(owner) {
+  const byTile = new Map(), byOwner = new Map(), arrived = new Map();
+  let order = 0;
+  function detach(owner) {
     const cells = byOwner.get(owner); if (!cells) return;
     for (const t of cells) { const set = byTile.get(t); set?.delete(owner); if (set && !set.size) byTile.delete(t); }
     byOwner.delete(owner);
   }
+  const forget = (owner, cells) => { for (const t of cells) { const m = arrived.get(t); m?.delete(owner); if (m && !m.size) arrived.delete(t); } };
+  function remove(owner) { forget(owner, byOwner.get(owner) || []); detach(owner); }
   return {
     // owner.kind: 'player' for players; anything else is an NPC, creature or companion.
     place(owner, cells) {
       cells = cells.filter(Boolean);
       const old = byOwner.get(owner);
       if (old && old.length === cells.length && old.every((t, i) => t === cells[i])) return;
-      remove(owner); if (!cells.length) return;
+      const before = new Set(old || []);
+      detach(owner); forget(owner, [...before].filter(t => !cells.includes(t))); if (!cells.length) return;
       byOwner.set(owner, cells);
-      for (const t of cells) { if (!byTile.has(t)) byTile.set(t, new Set()); byTile.get(t).add(owner); }
+      for (const t of cells) {
+        if (!byTile.has(t)) byTile.set(t, new Set()); byTile.get(t).add(owner);
+        // Arrival order per tile (who is drawn on top, `top`): staying put keeps your place.
+        if (!before.has(t) || !arrived.get(t)?.has(owner)) { if (!arrived.has(t)) arrived.set(t, new Map()); arrived.get(t).set(owner, ++order); }
+      }
     },
     remove,
     owners: tile => [...(byTile.get(tile) || [])],
@@ -54,7 +62,17 @@ export function createOccupancy() {
       return cost;
     },
     cellsOf: owner => byOwner.get(owner) || [],
-    clear() { byTile.clear(); byOwner.clear(); },
+    // Who is drawn on a shared tile (user rule, 2026-10-11): only one character per tile shows, the
+    // last to arrive; a player always shows. covered(owner): someone else is drawn on its tile.
+    // player: false leaves the player out (an enemy is never hidden under the player mid-fight).
+    top(tile, {player = true} = {}) {
+      const set = byTile.get(tile); if (!set) return null;
+      let best = null, rank = -1;
+      for (const o of set) { if (!player && o.kind === 'player') continue; const r = o.kind === 'player' ? Infinity : arrived.get(tile)?.get(o) ?? 0; if (r > rank) { rank = r; best = o; } }
+      return best;
+    },
+    covered(owner, tile, options) { const top = this.top(tile, options); return !!top && top !== owner; },
+    clear() { byTile.clear(); byOwner.clear(); arrived.clear(); },
   };
 }
 // One shared map for the running game: characters in every area register here.

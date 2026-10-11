@@ -3,7 +3,8 @@ import {createTerrainBatch} from './terrain-batch.js';
 import {createEdgeFeatures} from './doors.js';
 import {createBuilding} from './building-kit.js';
 import {createProp} from './props.js';
-import {makeCityTile,layStairs,railingEdges,SURFACE_NAMES} from './city-terrain.js';
+import {makeCityTile,layStairs,railingEdges,stairRailParts,SURFACE_NAMES} from './city-terrain.js';
+import {mergedMesh} from './merged-model.js';
 import {makeCrystal} from './crystal-model.js';
 import {key} from './world.js';
 
@@ -77,7 +78,11 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
  // Hand-placed edges never replace a building's own walls (a curtain wall flush with a tower).
  for(const e of data.edges){const a=t(...e.a),b=t(...e.b);if(a&&b&&!(edges.info(a,b)?.owners.length)){const f=edges.add(a,b,e.kind,e.options||{});if(e.kind==='door')doors.push(f);}}
  // Railings along stair sides and terrace edges (city-terrain.js), unless an edge is already there.
- for(const [high,low] of railingEdges(tiles,map))if(!edges.info(high,low)&&!high.indoor&&!low.indoor)edges.add(high,low,'railing');
+ const stairSides=new Map();
+ for(const [high,low,stair] of railingEdges(tiles,map))if(!edges.info(high,low)&&!high.indoor&&!low.indoor){edges.add(high,low,'railing',{hidden:!!stair});
+  if(stair){const c=chunk(high.x,high.z);if(!stairSides.has(c))stairSides.set(c,[]);stairSides.get(c).push([high,low]);}}
+ // Stair sides: sloped handrails, one merged mesh per chunk.
+ for(const [c,list] of stairSides){const rails=mergedMesh(stairRailParts(list));rails.name='stair-rails';c.root.add(rails);}
  for(const p of data.props){try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:chunk(p.x,p.z).root,pickables,id:p.id??null});if(p.link)prop.link={kind:'dungeon',city,id:p.link};props.push(prop);}catch(error){console.warn(error.message);}}
  let crystal=null;
  if(data.crystal){const tile=t(...data.crystal);if(tile){crystal=makeCrystal();crystal.position.set(tile.x-6,tile.h,tile.z-6);chunk(tile.x,tile.z).root.add(crystal);tile.blocked=true;}}

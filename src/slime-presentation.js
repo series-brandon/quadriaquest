@@ -151,8 +151,9 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
   get playing(){return playing?.kind||null;},
   // expression: the face when nothing overrides it; face: a final override (e.g. dialogue); calm: in a
   // conversation (idle eases back).
-  update(dt,time,{expression='idle',face=null,calm=false}={}){
-   let pose=idlePose(time*idleRate),motion=null,socialHands=null,lift=0;
+  // pose: a locomotion pose while the slime moves (slime-motion.js moveMotion), as the player's.
+  update(dt,time,{expression='idle',face=null,calm=false,pose:movePose=null}={}){
+   let pose=movePose||idlePose(time*idleRate),motion=null,socialHands=null,lift=0;
    if(playing){
     playing.time+=dt;
     if(!playing.loop&&playing.duration!==null&&playing.time>=playing.duration)playing=null;
@@ -162,6 +163,6 @@ export function createSlimeActor(rig,{loadout=null,carry=null,idleRate=1}={}){
     }else motion={kind:playing.kind,time:playing.time,profile:playing.profile};
    }
    rig.group.position.y=baseY+(lift||0);
-   return presentation.update(dt,time,{pose,expression,motion,socialHands,face,calm});
+   return presentation.update(dt,time,{pose,expression,motion,socialHands,face,calm,moving:!!movePose});
   }};
 }

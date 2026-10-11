@@ -37,6 +37,7 @@ export function pushWorldActor(actor,taken=()=>false){
 export function updateWorldActors(dt,taken=()=>false){
  for(const a of movers){
   const target={x:a.tile.x-6,z:a.tile.z-6},p=a.group.position,dx=target.x-p.x,dz=target.z-p.z,d=Math.hypot(dx,dz);
+  a.group.visible=d>.05||!occupancy.covered(a,a.tile);
   if(d>.001){const s=Math.min(1,dt*3/d);p.x+=dx*s;p.z+=dz*s;a.group.rotation.y=Math.atan2(dx,dz);continue;}
   if(a.tile===a.home)continue;
   const far=Math.abs(a.tile.x-a.home.x)+Math.abs(a.tile.z-a.home.z);

@@ -64,3 +64,23 @@ test('interior checks: floors, stairwell and dungeon exits',async()=>{
  assert.match(kinds,/2 interior floors for 1 storeys/);assert.match(kinds,/at least 4 × 4/);assert.match(kinds,/exit must be inside/);assert.match(kinds,/no entrance/);
  assert.deepEqual(interiorProblems(kitStreetData()),[]);
 });
+test('interior stairs are two tiles along a wall into a corner, their bottom reachable from the door',async()=>{
+ const {stairsPlacements,createSpaces}=await import('./spaces.js');const {planBuilding}=await import('./building-kit.js');const {createAreaRuntime}=await import('./area-runtime.js');const {findPath}=await import('./world.js');
+ const plan=planBuilding({footprint:[5,4],doors:[{edge:'south',at:2}]},[0,0]),[p]=stairsPlacements(plan);
+ assert.equal(Math.abs(p.top[0]-p.bottom[0])+Math.abs(p.top[1]-p.bottom[1]),1,'two tiles');
+ assert.ok([0,plan.w-1].includes(p.top[0])&&[0,plan.d-1].includes(p.top[1]),'the top is a corner');
+ assert.equal(p.front[0]-p.bottom[0],p.bottom[0]-p.top[0]);assert.equal(p.front[1]-p.bottom[1],p.bottom[1]-p.top[1]);
+ const world=new Map(),scene=new THREE.Group(),areas=createAreaRuntime({world});
+ const city=buildCity(kitStreetData(),{scene});city.areaId='kit';areas.register({id:'kit',group:city.group,tiles:city.tiles});areas.activate('kit');
+ const spaces=createSpaces({areas,scene}),run=()=>{for(let i=0;i<10;i++)spaces.update(.1);};
+ const guild=city.buildings.find(b=>b.plan.desc.name==='guild house');spaces.enter(guild.doors[0].link);run();
+ const ground=areas.active,inside=world.get(`${guild.doors[0].a.x},${guild.doors[0].a.z}`);
+ const up=ground.group.children.flatMap(c=>[c,...c.children]).map(o=>o.children?.[0]?.userData?.actor).find(a=>a?.kind==='stairwell');
+ assert.ok(findPath(world,inside,up.place.front),'from the door to the foot of the stairs');
+ assert.ok(up.place.bottom.blocked&&up.place.top.blocked);
+ up.interact();run();
+ const down=areas.active.group.children.flatMap(c=>[c,...c.children]).map(o=>o.children?.[0]?.userData?.actor).find(a=>a?.kind==='stairwell');
+ assert.equal(down.direction,'down');assert.equal(down.place.top.x,up.place.top.x);
+ const [, landingDown]=spaces.resolve(down.link);assert.equal(landingDown,up.place.front,'going down lands in front of the bottom step');
+ const [, landingUp]=spaces.resolve(up.link);assert.equal(Math.abs(landingUp.x-down.place.top.x)+Math.abs(landingUp.z-down.place.top.z),1,'going up lands beside the top');
+});

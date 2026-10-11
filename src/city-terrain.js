@@ -73,16 +73,17 @@ export function layStairs(map,{x,z,dir,length,width=1,base,surface='stone'}){
  }
  return out;
 }
-// Stair sides that drop to lower ground get a railing (edge features), so stairs aren't left by their
-// sides and read as stairs; the high side of every retaining wall gets one too, except at stair heads.
-// Returns [[high, low]] edges for the caller to place with createEdgeFeatures().add(…, 'railing').
+// Stair sides that drop to lower ground get a railing, so stairs aren't left by their sides and read as
+// stairs; the high side of every retaining wall gets one too, except at stair heads. Returns
+// [[high, low, 'stair'?]] edges for createEdgeFeatures().add(…, 'railing'): stair sides are placed
+// hidden (collision only) and drawn by stairRailParts as a sloped handrail along the flight.
 export function railingEdges(tiles,map){
  const out=[],seen=new Set();
  for(const t of tiles)for(const [dx,dz] of Object.values(DIRS)){
   const n=map.get(key(t.x+dx,t.z+dz));if(!n||n.water)continue;
   const id=[t,n].map(o=>`${o.x},${o.z}`).sort().join('|');if(seen.has(id))continue;
   const along=t.stair&&(DIRS[t.stair.dir][0]===dx&&DIRS[t.stair.dir][1]===dz||DIRS[t.stair.dir][0]===-dx&&DIRS[t.stair.dir][1]===-dz);
-  if(t.stair&&!along&&!n.stair&&t.h-n.h>=.5-1e-6){seen.add(id);out.push([t,n]);continue;}
+  if(t.stair&&!along&&!n.stair&&t.h-n.h>=.5-1e-6){seen.add(id);out.push([t,n,'stair']);continue;}
   if(!t.stair&&!n.stair&&retainingDrop(t,n)){seen.add(id);out.push([t,n]);}
  }
  return out;
@@ -95,4 +96,20 @@ export function stairProblems(map){
   if(!next||(!next.stair&&Math.abs(next.h-t.h)>.01&&Math.abs(next.h-t.h)>.5))problems.push({tile:t,problem:'stairs end against a drop (no landing at the top)'});
   if(!prev||(!prev.stair&&Math.abs(t.h-.5-prev.h)>.01&&Math.abs(prev.h-t.h)>.5))problems.push({tile:t,problem:'stairs start above the ground below them'});}
  return problems;
+}
+
+// Sloped handrails along stair sides (user, 2026-10-11: angled, meeting the ground and the next flight).
+// For each stair-side edge [stair, lower]: a rail rising half a block across the tile, from its low end
+// (the ground before it) to its high end, with posts standing on the treads. Consecutive tiles of a
+// flight join into one straight rail; a landing's flat railing meets it at the same height.
+const RAIL=.66;
+export function stairRailParts(edges){
+ const parts=[],color='#9b6c46',tilt=Math.atan(.5),length=Math.hypot(1,.5);
+ for(const [t,n] of edges){
+  const [sx,sz]=DIRS[t.stair.dir],side=[n.x-t.x,n.z-t.z],cx=t.x-6+side[0]*.44,cz=t.z-6+side[1]*.44,yaw=Math.atan2(-sz,sx);
+  for(const [rise,thick] of [[RAIL,.06],[RAIL-.3,.045]])parts.push({geometry:new THREE.BoxGeometry(length,thick,.05),color,position:[cx,t.h-.25+rise,cz],rotation:[0,yaw,tilt]});
+  for(const [along,floor] of [[-.42,t.h-.25],[0,t.h-.25],[.42,t.h]]){const top=t.h-.25+RAIL+along*.5,h=top-floor;
+   parts.push({geometry:new THREE.BoxGeometry(.06,h,.06),color,position:[cx+sx*along,floor+h/2,cz+sz*along]});}
+ }
+ return parts;
 }

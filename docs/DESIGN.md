@@ -20,7 +20,7 @@ Clicking a resource or enemy initiates a continuing interaction until it finishe
 
 - Terrain heights use half-block increments, with no smaller terrain elevation steps.
 - Both half-height and full-height ledges are supported, avoiding a uniform full-cube appearance.
-- No ramps are allowed.
+- No ramps are allowed in the wild. Stairs in cities and buildings are the exception: walking onto a stair tile is a smooth ramp with the slide motion, no hop (user decision, 2026-10-11); stair tiles are still placed one per half block.
 - Exposed edges and corners are slightly rounded for a polished appearance.
 - Neighboring blocks meet continuously: shared boundaries must not have rounding that creates gaps or troughs. Rounding depends on whether an edge is actually exposed, including at changes in elevation.
 - Adjacent tiles remain subtly distinguishable through a small line, shadow, or similar restrained treatment. Tile seams are distinct from rounded exterior edges.

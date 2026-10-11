@@ -50,6 +50,18 @@ export function stepMotion(seconds, height) {
   return {distance,lift,squash,stretch,lean,twist:0};
 }
 
+// One move between neighbouring tiles, shared by the player and every NPC. Level ground and stairs
+// slide (stairs are a smooth ramp in towns and buildings, user decision 2026-10-11); any other
+// half-block ledge is a hop. Returns the pose, how far along (distance 0..1), the height above the
+// starting tile (rise) and the move's duration.
+export const SLIDE_DURATION=1/2.4;
+export const isRamp=(from,to)=>!!(from?.stair||to?.stair);
+export function moveMotion(age,from,to){
+  const height=to.h-from.h,stepped=Math.abs(height)>.01&&!isRamp(from,to);
+  if(stepped){const m=stepMotion(age,height);return {pose:m,distance:m.distance,rise:m.lift,duration:STEP_DURATION,stepped};}
+  const m=slideMotion(age/SLIDE_DURATION);return {pose:m,distance:m.distance,rise:height*m.distance,duration:SLIDE_DURATION,stepped};
+}
+
 // Shared by gameplay and the development animation viewer.
 export function workPose(kind,time){
   if(kind==='chop')return chopMotion(time).body;

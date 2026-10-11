@@ -104,7 +104,7 @@ import {createOpening} from './opening.js';
 import {createCraftingTutorial} from './crafting-tutorial.js';
 import {createGameMenus} from './game-menus.js';
 import {createGatheringSkill,showSkillReward,updateSkillRewards,clearSkillRewards,onSkillXp} from './skills.js';
-import {idlePose,slideMotion,stepMotion,STEP_DURATION} from './slime-motion.js';
+import {idlePose,moveMotion} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 // Antialiasing is fixed at creation, so it follows the saved quality tier (render-quality.js).
 const renderer=new THREE.WebGLRenderer({antialias:QUALITY_TIERS[initialTier()].antialias});renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
@@ -616,16 +616,15 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  if(segment){
   // Celerity (+0.2% per point) and Rush add to sprint against base walking speed.
   segment.age+=playerResources.advance(dt,true,character.attribute('celerity')*.002+auras.movementBonus)*(1-playerControl.slowFraction);
-  const stepped=Math.abs(segment.height)>.01;
+  // The shared move (slime-motion.js): a slide, a smooth ramp on stairs, or a hop up or down a ledge.
+  const move=moveMotion(segment.age,tile,segment.to),stepped=move.stepped,duration=move.duration;
   expression=stepped?(segment.age<.32?'preparing':'struggle'):'focused';
-  const duration=stepped?STEP_DURATION:1/2.4;
-  const motion=stepped?stepMotion(segment.age,segment.height):slideMotion(segment.age/duration);
   player.position.set(
-    THREE.MathUtils.lerp(segment.from.x,segment.to.x-6,motion.distance),
-    segment.from.y+motion.lift,
-    THREE.MathUtils.lerp(segment.from.z,segment.to.z-6,motion.distance)
+    THREE.MathUtils.lerp(segment.from.x,segment.to.x-6,move.distance),
+    segment.from.y+move.rise,
+    THREE.MathUtils.lerp(segment.from.z,segment.to.z-6,move.distance)
   );
-  pose=motion;
+  pose=move.pose;
   if(segment.age>=duration){tile=segment.to;player.position.set(tile.x-6,tile.h,tile.z-6);segment=null;if(!path.length)opening.arrived(tile);}
  }else if(!path.length){
   if(chopTarget){const node=chopTarget;chopTarget=null;resourceActions.start(node);}

@@ -20,6 +20,16 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### City review fixes: one per tile, talking, shared walking, sloped rails, interior stairs, smooth stairs — 2026-10-11 (user review)
+
+- `world-occupancy.js`: arrival order per tile, `top(tile,{player})`, `covered(owner,tile,{player})`. Used by townsfolk (standing), `updateWorldActors` movers and combat (one-tile creatures, not hidden under the player).
+- `slime-motion.js` `moveMotion`/`isRamp`/`SLIDE_DURATION`: the one move rule for the player (main.js segment) and townsfolk; stairs are smooth ramps. `createSlimeActor().update({pose})`.
+- `townsfolk.js`: stop to talk (`talking`, `talkTo`), walk facing, happy walk face, chat faces, stop short of taken tiles, slower walk (`WALK` time scale).
+- `city-terrain.js` `stairRailParts` + hidden railing edges (`createEdgeFeatures().add(…,{hidden:true})`); `buildCity` merges stair rails per chunk.
+- `spaces.js`: `stairsPlacements` (two-tile stairs into a corner, free front tile), two-tile `stairwellModel`, `createStairwell({place})`, arrivals by direction (`link.via`), furniture kept clear; interior checks updated.
+- DESIGN.md: the no-ramps rule now excludes city and building stairs.
+- Tests: 534 pass. Browser-verified: rails slope to the ground and meet the terrace railing; walking up the stairs rises 1 → 2 with no hop; a townsfolk talked to mid-walk finished its step, stood 4 s, then walked on facing its way; with 60 townsfolk, tiles shared by two standing townsfolk occurred and only one was drawn each time; the guild house stairs run along a wall into the corner with the bottom step in the room, and going up lands beside the opening. No perf re-run (follow-up polish within the city batch).
+
 ### City Phases 5–9 first draft — 2026-10-11 (user: "do all these phases in one fell swoop")
 
 - **Phase 5:** `city-terrain.js` (surfaces, kerbs, retaining walls, stairs, railings, stair checks), `props.js` (starter prop set with spots and interactions, rotation), shared `Sit` motion and bench sitting for the player (main.js `seat`), `city-map.js` (city data in 64 × 64 regions, `buildCity`), kit street as data with the east annex (`dev/kit-street.js`). Railings stand on the higher tile (`createEdgeFeatures`).

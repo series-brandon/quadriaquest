@@ -205,7 +205,7 @@ Buildings are **made from a short description, not modelled by hand**:
 
 - **Surfaces:** each tile has a surface (`grass`, `dirt`, `cobble`, `flagstone`, `plaza`). The edges between surfaces are matched automatically (kerbs, worn borders), like the rounded-ledge rule. Surfaces are vertex colours and small trims in the chunk mesh, not extra objects.
 - **Terraces:** districts sit at different heights. Height changes of a full block or more get **retaining walls**, built automatically in the district's style. By the existing design rule, these are only crossable by stairs.
-- **Stairs** are a shared prefab placed on a run of tiles, each +0.5. The model draws two treads per tile so it reads as stairs and not ledges, with side walls and optional `railing` edges. Wide stairs repeat across tiles. No ramps.
+- **Stairs** are a shared prefab placed on a run of tiles, each +0.5. The model draws two treads per tile so it reads as stairs and not ledges, with sloped handrails along open sides. Wide stairs repeat across tiles. Walking them is a smooth ramp (slide motion, no hop; user decision 2026-10-11), unlike half-block ledges in the wild.
 - **Canals and bridges** are not part of the first city. A street-level bridge over a canal would be fine without stacked layers, because the bridge is the walkable floor there.
 
 ## Props and decoration
@@ -247,6 +247,14 @@ Props are instanced or merged per chunk. Spots are data that townsfolk and the p
 | Not loaded | No simulation. A townsfolk's position comes from their routine and the clock when their chunk loads, so the city looks lived-in without running everything. |
 
 The perf harness gets `city-walk` and `city-crowd` scenarios in `src/dev/perf-scenarios.js` before the crowd is tuned.
+
+### Review fixes (2026-10-11, after the Phases 5–9 draft)
+
+- **One character per tile is drawn** (user rule): occupancy records arrival order per tile (`occupancy.top`, `covered`); the last to arrive shows, a player always shows. Townsfolk, pushed NPCs and one-tile creatures (never hidden under the player mid-fight) follow it while standing. Townsfolk also stop a tile short of a tile someone stands on, or give up a taken spot.
+- **Talking stops townsfolk**: they finish the step under way, stand facing you for about 4 s, then carry on. They face the way they walk (a conversation no longer leaves them looking back at you).
+- **Shared locomotion for every slime**: `moveMotion` (slime-motion.js) gives the player and NPCs the same slide, the same hop on ledges, and a smooth ramp on stairs; `createSlimeActor().update({pose})` takes the movement pose. Townsfolk walk with a happy face (`walkFace`/`face` per entry), and pick varied faces while chatting.
+- **Stair railings are sloped handrails** following each flight from the ground to the top (`stairRailParts`), meeting a landing's or terrace's flat railing at the same height; stair sides stay unwalkable through hidden railing edges.
+- **Interior stairs are two tiles** along a wall rising into a corner, with a free tile in front of the bottom step (`stairsPlacements`); going up lands beside the top of the opening upstairs, going down lands in front of the bottom step. Middle floors alternate corners. Furniture keeps off the stairs.
 
 ### As implemented (Phase 8, 2026-10-11)
 

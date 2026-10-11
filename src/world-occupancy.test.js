@@ -58,3 +58,12 @@ test('a walk NPC steps aside when pushed and walks back home once it is free; a 
  assert.equal(pushWorldActor(mentor,()=>false),false);assert.equal(mentor.tile,world.get('0,0'));
  walker.dispose();mentor.dispose();assert.equal(occupancy.occupied(home),false);
 });
+test('one character shows per tile: the last to arrive, and a player always',async()=>{
+ const {createOccupancy}=await import('./world-occupancy.js');const occ=createOccupancy(),t={x:1,z:1},u={x:2,z:1};
+ const a={kind:'npc'},b={kind:'npc'},player={kind:'player'};
+ occ.place(a,[t]);occ.place(b,[t]);assert.equal(occ.top(t),b);assert.ok(occ.covered(a,t));
+ occ.place(b,[t]);assert.equal(occ.top(t),b,'staying put keeps your place');
+ occ.place(a,[u]);occ.place(a,[t]);assert.equal(occ.top(t),a,'coming back makes you the latest');
+ occ.place(player,[t]);assert.equal(occ.top(t),player);assert.equal(occ.top(t,{player:false}),a);
+ occ.remove(a);assert.equal(occ.top(t,{player:false}),b);
+});

@@ -166,7 +166,8 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
    const k=id(a,b),withPosts=hasPosts(kind),storeys=options.storeys||1,owner=[options.owner??[]].flat(),owners=[owner[0]??-1,owner[1]??-1],pieceStyle=options.style??style;
    unbake();boxesDirty=true;
    if(kind==='door'){const door=createDoor({a,b,parent:root,pickables,...options,style:pieceStyle});door.neighbour=tileAt;placed.set(k,{door,a,b,id:k,posts:withPosts,storeys,owners,style:pieceStyle});if(withPosts)usePosts(k,a,b,true,storeys);return door;}
-   const place=edgePlacement(a,b,storeys),group=edgePiece(kind,{height:place.height,storeys,style:pieceStyle,upperWindows:options.upperWindows}),feature={kind};
+   // hidden: the edge's rules without a model (stair sides, drawn by their own sloped rail).
+   const place=edgePlacement(a,b,storeys),group=options.hidden?new Group():edgePiece(kind,{height:place.height,storeys,style:pieceStyle,upperWindows:options.upperWindows}),feature={kind};
    // Fences, railings and counters stand on the higher tile (a railing along the top of a retaining wall).
    group.position.set(place.x,['fence','railing','low'].includes(kind)?Math.max(a.h,b.h):place.y,place.z);group.rotation.y=place.rotation;root.add(group);
    setEdge(a,b,feature);placed.set(k,{group,feature,a,b,id:k,posts:withPosts,storeys,owners,style:pieceStyle});if(withPosts)usePosts(k,a,b,true,storeys);return group;
