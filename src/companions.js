@@ -40,7 +40,8 @@ export function createCompanionSystem(api){
   if(api.moving()&&actionAge!==null)cancel();
   let moving=false;
   const world=api.world,changed=!actor.tile||world.get(`${actor.x},${actor.z}`)!==actor.tile;
-  if((state.following||changed||api.reserved(actor.tile))&&(api.approaching()!==actor||follower.moving)&&!behavior.petting)moving=follower.update(dt,world,api.tile(),api.reserved,api.occupied);
+  // A player stopping on its tile pushes it aside, following or not (world-occupancy.js).
+   if((state.following||changed||api.reserved(actor.tile)||api.tile?.()===actor.tile&&!api.moving?.())&&(api.approaching()!==actor||follower.moving)&&!behavior.petting)moving=follower.update(dt,world,api.tile(),api.reserved,api.occupied);
   const mood=behavior.update(dt,moving,api.playerSleepTime());
   animateCompanion(model,time,{...mood,moving,gait:follower.gait,jump:follower.jump,camera});locate();
   if(actionAge===null)return null;
@@ -57,6 +58,8 @@ export function createCompanionSystem(api){
   setFollowing(value){state.following=!!value;behavior.reset();notify();},
   resetRoute(at=null){cancel();follower.reset(at);behavior.reset();},
   occupies(tile){return state.owned&&model.visible&&follower.occupies(tile);},
+  // The tiles it occupies (resting and stepping onto), for the shared occupancy map.
+  get cells(){return state.owned&&model.visible?follower.cells:[];},
   matches(target){return actionAge!==null&&target===actor;},get working(){return actionAge!==null;},
   scripted(time,options){if(!state.owned)animateCompanion(model,time,options);},
   name(options){menu?.editName(options);},

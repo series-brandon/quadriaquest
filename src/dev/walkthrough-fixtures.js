@@ -38,16 +38,17 @@ export function createWalkThroughFixtures(api){
   api.stop();api.clearUI();clearCrowd();
   const found=lane(4,true);if(!found)return LANE_HELP;
   ensureRoot();const {run,side}=found;
-  // A 2×2 knot of townsfolk on the lane: walking straight on crosses them.
+  // A 2×2 knot of townsfolk on the lane. Three step aside when pushed ('walk'); the last stays put
+  // like a tutorial NPC ('never') and hides under a player who stops on it.
   [run[1],run[2],side(run[1]),side(run[2])].forEach((tile,i)=>{
    // Placed first, then given its presentation (which keeps the placed height), as mentors are.
    const rig=makeSlime(COLORS[i%COLORS.length]);let slime=null;
-   const actor=createWorldActor({world:api.world,tile,parent:root,pickables:api.pickables,group:rig.group,kind:'townsfolk',label:'Wave to townsfolk (walk-through test)',onInteract:()=>slime.play('Wave',{loop:false})});
+   const push=i===3?'never':'walk',actor=createWorldActor({world:api.world,tile,parent:root,pickables:api.pickables,group:rig.group,kind:'townsfolk',push,label:push==='never'?'Wave to townsfolk (stays put)':'Wave to townsfolk (steps aside)',onInteract:()=>slime.play('Wave',{loop:false})});
    slime=createSlimeActor(rig,{idleRate:.8+i*.1});
    actors.push(actor);slimes.push(slime);
   });
   crowdBeyond=run[3];
-  return 'Placed four walk-through townsfolk ahead. Walk through the crowd heads straight on, through them, and stops on the free tile beyond.';
+  return 'Placed four townsfolk ahead (the one beside the lane stays put). Walk past goes around them when the detour is short; Stop on a townsfolk pushes one aside; Stop on the one that stays hides it under you.';
  }
  function spawnGolem(){
   api.stop();api.clearUI();clearGolem();
@@ -61,7 +62,7 @@ export function createWalkThroughFixtures(api){
  }
  function walk(target,what){
   if(!target||api.world.get(key(target.x,target.z))!==target)return `Spawn the ${what} first (in this map).`;
-  api.moveTo(target);return `Walking through the ${what}. Its tiles stay unblocked; the route goes straight on.`;
+  api.moveTo(target);return `Walking past the ${what}. Occupied tiles are never blocked, but cost extra: the route goes around when the detour is short and through when it isn't.`;
  }
  function setOverlay(on){
   if(!on){overlay?.removeFromParent();overlay?.geometry.dispose();overlay?.material.dispose();overlay=null;return;}
@@ -89,6 +90,7 @@ export function createWalkThroughFixtures(api){
   run(action){
    if(action==='crowd')return spawnCrowd();
    if(action==='walk-crowd')return walk(crowdBeyond,'crowd');
+   if(action==='stand-walk'||action==='stand-never'){const a=actors.find(x=>x.push===(action==='stand-never'?'never':'walk')&&api.world.get(key(x.tile.x,x.tile.z))===x.tile);if(!a)return 'Spawn the crowd first (in this map).';api.moveTo(a.tile);return action==='stand-never'?'Stopping on the townsfolk that stays put: it hides under you until you move on.':'Stopping on a townsfolk: it steps to a free neighbouring tile, then walks home once you leave.';}
    if(action==='golem')return spawnGolem();
    if(action==='walk-golem')return walk(golemBeyond,'golem');
    if(action==='remove'){clear();return 'Removed the walk-through fixtures.';}

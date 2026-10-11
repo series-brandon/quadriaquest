@@ -20,6 +20,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Occupied tiles and pushing (RuneScape-style) — 2026-10-10 (user design)
+
+- Living characters mark tiles **occupied** in one shared map (`world-occupancy.js` `occupancy`). Routes treat occupied tiles as costly, not blocked (5 steps; a player's tile 30): cheapest-route searches in `findPath(…,cost)`, `findFootprintPath(…,{cost})`, `wanderRoute(…,cost)` and `companionRoute`. The player's routes now go around people when the detour is short. Replaces the earlier two-pass "around, else through" search.
+- **Pushing:** a player stopping on a character's tile pushes it aside. World-actor NPCs default to `push:'walk'` (step to a free neighbour, walk back home after ~2 s, teleport home if 8+ tiles away); tutorial NPCs use `push:'never'` (mentors via `createMentor`, Willowbank's Reed) and hide under the player. Calm creatures: `combat.js` `pushAside`; wanderers outside their patrol area walk back (`homeward`, `HOME_FAR`). Hostile creatures shuffle aside while still attacking. The companion yields when the player stops on it.
+- Registration: player and companion each frame in `main.js` (`resolveStanding` handles pushes and hiding); creatures in `combat.js` `move`/`release`; NPCs in `createWorldActor` / `setWorldOccupancy`. `npcAt`/`characterAt` now read the occupancy map (the per-frame pickable scan is gone).
+- Playground: Walk-through characters now walks *past* the crowd, stops on a townsfolk that steps aside, or on the one that stays put; the overlay shows occupied tiles. Browser-verified in Cinderhold (detour around the crowd, push and return home, hidden under the player and reappearing). Not separately re-walked: Reed and mentors in their maps (same `push:'never'` path).
+- Tests: 471 pass (occupancy costs, detour vs through, walk/never push and return home, calm creature push and walk-back). Not covered: the 8+ tile teleport home (fixture maps are too small).
+
 ### Anti-kiting enemy attacks, Rock Throw, OSRS-style weapon swaps — 2026-10-10 (user design)
 
 - **Enemy attack commitment** (COMBAT.md): an enemy's cooldown keeps running out of reach; its windup starts once the player is in reach; leaving reach in the first half cancels it with no new cooldown; past the halfway commit point it lands. Character-targeted attacks (default) hit wherever the player went. Tile-targeted attacks (`target:'tile'`, `area`) lock the (2r+1)² non-solid tiles around the player at the commit point and hit whoever stands there at impact ("Dodged!" otherwise). Walking into an enemy keeps its windup going while it shuffles aside. Code: `enemyAttackUpdate`, `impact`, `lockTiles` in `combat.js`; old "leaving reach resets the clock" is gone.

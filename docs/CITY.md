@@ -89,19 +89,17 @@ The user wants every living character to be walkable-through, especially large o
 - **Code impact:** `world-occupancy.js` stops writing `tile.blocked`. `blocksMovement` turns into a choice of where to stop, not a collision. Tests cover pathfinding, `canStand`, interaction routes, attack routes, companion following, wandering, portal spawns and enemy pursuit in all three tutorial maps. Each prefab's movement policy (`group.userData.blocksMovement`) stays the single source for whether it is a solid object or a character.
 - **Playground:** a toggle overlay showing solid tiles versus occupied tiles, plus a fixture that walks the player and a companion through a crowd of townsfolk and through the golem.
 
-**As implemented (2026-10-10):**
-- `markCharacter(group)` in `world-occupancy.js` sets a model's movement policy. `makeSlime` marks every slime (player, mentors, Reed, future townsfolk); `enemy-entity.js` marks creatures (`character: true`). Practice targets, resources, stations and props keep the solid default. `createWorldActor` takes its solidity from the model.
-- `combat.js` only writes `tile.blocked` for solid enemies. Creature positions are tracked by their cells (`combat.occupies(t)`). One `bodyRoute` serves all body sizes: it prefers a route that neither crosses nor ends on anyone, and otherwise passes through characters (never the player being fought, safe tiles or solids). Wander, home, respawn and attack positions avoid stopping on the player, the player's route, the companion, NPCs and other enemies.
-- `wanderRoute` passes occupied tiles and never ends on one. `companionRoute` searches around people first and through them only when there is no other way; only its final step re-checks occupancy. The player no longer waits for the companion to step aside (the "needs room to move aside" stop is gone).
-- `interactionRoute` and `attackRoute` take an `occupied` test and prefer free spots. `main.js` supplies `characterAt` (companion, creatures, NPCs; NPC tiles are gathered once per frame).
-- **Not done:** the visual nudge for two characters briefly sharing a tile; characters can overlap until one moves.
-- **Playground:** *World & water → Walk-through characters* spawns a townsfolk crowd or a passive golem on a clear lane ahead, walks the player (and companion) through it, and toggles an overlay (red solid, blue occupied).
+**Occupied tiles and pushing (user decision, 2026-10-10, RuneScape-style):**
+- Every living character marks its tile **occupied**. Occupied tiles never block; they cost extra in route searches (`OCCUPIED_COST` 5 steps). A tile holding a **player** costs far more (`PLAYER_COST` 30), so NPCs almost never walk through a player. Walkers go around when the detour is short, pass through when it isn't or there is no other way, and avoid stopping on anyone.
+- **Pushing:** when a player *stops* on another character's tile, that character steps to a free neighbouring tile. Hostile creatures do so while staying locked on and continuing their attack. Characters configured `push: 'never'` (all tutorial NPCs: mentors, Reed) never move; the player draws on top and the NPC is hidden until the player moves on. If there is nowhere free to go, the character stays hidden under the player the same way.
+- **Home:** a pushed NPC walks back to its home tile once it is free (after about 2 s). Wandering creatures keep to their home (patrol) area: pushed outside it they walk back in; pushed far beyond it (8+ tiles) or with no way back, they reappear at home.
 
-**Doors are a shared entity**, the same model and behaviour in any map:
-- A walker's route may pass through a closed, unlocked door. The door swings open as the walker reaches it, with a sound, and closes shortly after the last walker clears it. Townsfolk use the same door.
-- A **locked** door is shown as locked on hover and refuses with feedback ("It's locked."). Story or keys can unlock it. No door is locked just to hide an empty room.
-- A door may link to an **interior space** (below). Its doorstep and the interior's arrival tile are part of its data, and the editor checks them.
-- Playground: open, close, lock and unlock any door, show edge features as an overlay, and a door model in the catalogue with Open, Close and Locked rattle motions.
+**As implemented (2026-10-10):**
+- `world-occupancy.js`: `markCharacter(group)` marks living characters (`makeSlime` marks every slime; `enemy-entity.js` marks creatures). One shared `occupancy` map (`place`, `remove`, `owners`, `occupied`, `cost`). Practice targets, resources, stations and props stay solid (`tile.blocked`).
+- Route searches take a cost: `findPath(map,start,end,cost)` and `findFootprintPath(…,{cost})` (cheapest-route searches), `wanderRoute(…,cost)`, `companionRoute`. The player's routes, interaction and attack approaches use `occupancy.cost`; `combat.js` `bodyRoute` adds the player's route and other enemies.
+- Registration: the player and companion each frame (`main.js`), creatures as they move (`combat.js` `move`/`release`), NPC world actors at creation (`world-actors.js`, `setWorldOccupancy`).
+- Pushing: `main.js` `resolveStanding` (NPCs: `pushWorldActor`, `updateWorldActors` for the slide and return home; `push:'never'` and no-space cases hide under the player), `combat.js` `pushAside` and `homeward` (calm creatures, patrol area, `HOME_FAR`), `companions.js` (the companion yields when the player stops on it).
+- **Playground:** *World & water → Walk-through characters* spawns a townsfolk crowd (one set to stay put) or a passive golem on a clear lane ahead, walks past it, stops on a townsfolk that steps aside or on the one that stays put, and toggles an overlay (red solid, blue occupied).
 
 ## Seeing inside (hybrid)
 

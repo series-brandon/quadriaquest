@@ -1,4 +1,4 @@
-import {key} from './world.js';
+import {key,createHeap} from './world.js';
 
 // Multi-tile bodies. A body of `size` covers size×size tiles; its anchor is the minimum-x, minimum-z
 // corner (the entity's `tile`). Size 1 is an ordinary one-tile entity.
@@ -28,8 +28,11 @@ export function canStand(world,anchor,size,own=[]){
 // Breadth-first route of anchor tiles for a size×size body, to the nearest anchor where `goal(anchor)`
 // holds. `allow(anchor, cells)` adds placement rules (territory, reserved tiles). Returns [] when the
 // start already satisfies the goal, or null when no anchor does.
-export function findFootprintPath(world,start,size,goal,{own=[],allow=()=>true,limit=5000}={}){
+// cost(cells): extra cost of a body standing on these cells (occupied tiles). With it the route is the
+// cheapest one, the goal's own cost included, so a free stopping spot beats an occupied one.
+export function findFootprintPath(world,start,size,goal,{own=[],allow=()=>true,limit=5000,cost=null}={}){
  if(goal(start))return [];
+ if(cost)return cheapestFootprintPath(world,start,size,goal,{own,allow,limit,cost});
  const startKey=key(start.x,start.z),queue=[start],previous=new Map([[startKey,null]]);
  for(let i=0;i<queue.length&&i<limit;i++){
   const t=queue[i];
@@ -39,6 +42,20 @@ export function findFootprintPath(world,start,size,goal,{own=[],allow=()=>true,l
    previous.set(nk,key(t.x,t.z));
    if(goal(n)){const route=[n];let cursor=key(t.x,t.z);while(cursor!==startKey){route.unshift(world.get(cursor));cursor=previous.get(cursor);}return route;}
    queue.push(n);
+  }
+ }
+ return null;
+}
+function cheapestFootprintPath(world,start,size,goal,{own,allow,limit,cost}){
+ const startKey=key(start.x,start.z),best=new Map([[startKey,0]]),previous=new Map([[startKey,null]]),heap=createHeap();heap.push(0,start);
+ for(let popped=0;heap.size&&popped<limit;popped++){
+  const [d,t]=heap.pop(),k=key(t.x,t.z);if(d>best.get(k))continue;
+  if(t!==start&&goal(t)){const route=[];let cursor=k;while(cursor!==startKey){route.unshift(world.get(cursor));cursor=previous.get(cursor);}return route;}
+  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+   const nk=key(t.x+dx,t.z+dz),n=world.get(nk);
+   if(!n||Math.abs(n.h-t.h)>.5||!canStand(world,n,size,own))continue;
+   const cells=footprint(world,n,size);if(!allow(n,cells))continue;
+   const next=d+1+cost(cells);if(next<(best.get(nk)??Infinity)){best.set(nk,next);previous.set(nk,k);heap.push(next,n);}
   }
  }
  return null;

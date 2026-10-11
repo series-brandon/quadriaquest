@@ -40,7 +40,8 @@ export function createWillowbank(api){
  const tip=api.tipBox;
  const cookUI=api.cookingMenu;
  function t(x,z){return map.get(key(x,z));}
- function actor(model,x,z,kind,label){const tile=t(x,z),a={group:model,x,z,tile,kind,label,ready:true,opened:false,duration:0,willow:true};model.position.set(x-6,tile.h,z-6);group.add(model);setWorldOccupancy(a,true);
+ function actor(model,x,z,kind,label){const tile=t(x,z),a={group:model,x,z,tile,kind,label,ready:true,opened:false,duration:0,willow:true,push:'never'};// tutorial NPCs stay put
+ model.position.set(x-6,tile.h,z-6);group.add(model);setWorldOccupancy(a,true);
   const small=['sticks','stones','flint'].includes(kind);const hit=part(model,new THREE.BoxGeometry(small?.5:.65,small?.5:1,small?.5:.65),new THREE.MeshBasicMaterial({visible:false}),0,small?.25:.5);a.hitTarget=hit;hit.userData.actor=a;hit.userData.tile=tile;api.pickables.push(hit);model.traverse(o=>{if(o.isMesh&&o!==hit){o.userData.actor=a;o.userData.tile=tile;api.pickables.push(o);}});const originals=new Set(model.children);model.remove(hit);a.highlight=highlightResource(model,{height:kind==='tree'?2.8:small?.85:1.5});model.add(hit);for(const child of model.children)if(!originals.has(child)||child===hit)child.userData.portraitIgnore=true;actors.push(a);return a;}
  // Guided once the rescue story is done: onward to Cinderhold.
  const crystal=api.crystals.add({tile:t(...WILLOWBANK.crystal),parent:group,destination:'clearing',label:'Return to the clearing',guide:()=>phase==='finished'});

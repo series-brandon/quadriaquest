@@ -1,25 +1,26 @@
 import {Vector3} from 'three';
-import {findPath,key} from './world.js';
+import {findPath,key,createHeap} from './world.js';
+import {PLAYER_COST,OCCUPIED_COST} from './world-occupancy.js';
 const same=(a,b)=>!!(a&&b&&a.x===b.x&&a.z===b.z);
-// Search once at tile boundaries. Characters are walk-through (world-occupancy.js): the follower prefers
-// a route around the player and other occupants, passes through them only when there is no other way,
-// and never stops on the player, an occupant or a reserved tile.
+// Search once at tile boundaries. Characters are walk-through but occupied (world-occupancy.js): the
+// follower takes the cheapest route, where the player's tile costs PLAYER_COST and any other occupant
+// OCCUPIED_COST, so it goes around people unless the detour is long, and almost never through the
+// player. It never stops on the player, an occupant or a reserved tile.
 export function companionRoute(world,start,player,reserved=()=>false,occupied=()=>false){
  if(Math.abs(start.x-player.x)+Math.abs(start.z-player.z)===1&&!reserved(start)&&!occupied(start)&&!start.blocked&&!start.water)return [];
- const free=t=>!same(t,player)&&!occupied(t);
- function search(passThrough){
-  const queue=[start],previous=new Map([[key(start.x,start.z),null]]),candidates=[];
-  for(let i=0;i<queue.length;i++){
-   const tile=queue[i];
-   if(free(tile)&&!reserved(tile)&&!tile.blocked&&!tile.water)candidates.push(tile);
-   for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=world.get(key(tile.x+dx,tile.z+dz));if(!n||n.blocked||n.water||!passThrough&&!free(n)||Math.abs(n.h-tile.h)>.5||previous.has(key(n.x,n.z)))continue;previous.set(key(n.x,n.z),tile);queue.push(n);}
-  }
-  candidates.sort((a,b)=>Math.abs(a.x-player.x)+Math.abs(a.z-player.z)-(Math.abs(b.x-player.x)+Math.abs(b.z-player.z)));
-  const destination=candidates[0];if(!destination)return null;
-  const route=[];for(let t=destination;!same(t,start);t=previous.get(key(t.x,t.z)))route.unshift(t);
-  return route;
+ const free=t=>!same(t,player)&&!occupied(t)&&!reserved(t)&&!t.blocked&&!t.water;
+ const cost=t=>same(t,player)?PLAYER_COST:occupied(t)?OCCUPIED_COST:0;
+ const startKey=key(start.x,start.z),best=new Map([[startKey,0]]),previous=new Map([[startKey,null]]),heap=createHeap(),candidates=[];heap.push(0,start);
+ while(heap.size){
+  const [d,tile]=heap.pop(),k=key(tile.x,tile.z);if(d>best.get(k))continue;
+  if(free(tile))candidates.push({tile,d});
+  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=world.get(key(tile.x+dx,tile.z+dz));if(!n||n.blocked||n.water||Math.abs(n.h-tile.h)>.5)continue;const nk=key(n.x,n.z),nd=d+1+cost(n);if(nd<(best.get(nk)??Infinity)){best.set(nk,nd);previous.set(nk,tile);heap.push(nd,n);}}
  }
- return search(false)??search(true)??[];
+ const near=t=>Math.abs(t.x-player.x)+Math.abs(t.z-player.z);
+ candidates.sort((a,b)=>near(a.tile)-near(b.tile)||a.d-b.d);
+ const destination=candidates[0]?.tile;if(!destination)return [];
+ const route=[];for(let t=destination;!same(t,start);t=previous.get(key(t.x,t.z)))route.unshift(t);
+ return route;
 }
 export function createCompanionFollower(model,{toPosition=t=>new Vector3(t.x-6,t.h,t.z-6)}={}){
  let tile=null,step=null,last=false,lastPlayer=null,gait=0,jump=null;
@@ -29,7 +30,7 @@ export function createCompanionFollower(model,{toPosition=t=>new Vector3(t.x-6,t
   const nearby=[...world.values()].filter(t=>!t.blocked&&!t.water&&!same(t,player)&&!reserved(t)&&Math.abs(t.h-player.h)<=.5).sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z));
   tile=nearby[0]||null;step=null;jump=null;if(tile)model.position.copy(toPosition(tile));
  }
- return {reset,get moving(){return !!step;},get jump(){return jump&&{height:jump.height,progress:Math.min(1,jump.age/.65)};},get gait(){return gait;},occupies(t){return same(t,tile)||same(t,step);},update(dt,world,player,reserved=()=>false,occupied=()=>false){
+ return {reset,get moving(){return !!step;},get jump(){return jump&&{height:jump.height,progress:Math.min(1,jump.age/.65)};},get gait(){return gait;},occupies(t){return same(t,tile)||same(t,step);},get cells(){return [tile,step].filter(Boolean);},update(dt,world,player,reserved=()=>false,occupied=()=>false){
   if(!tile||world.get(key(tile.x,tile.z))!==tile||lastPlayer&&Math.hypot(lastPlayer.x-player.x,lastPlayer.z-player.z)>3)spawn(world,player,reserved);
   lastPlayer=player;if(!tile){model.visible=false;return false;}
   if(!step){const route=companionRoute(world,tile,player,reserved,occupied);step=route[0]||null;last=route.length===1;if(step&&step.h!==tile.h)jump={from:model.position.clone(),height:step.h-tile.h,age:0};}

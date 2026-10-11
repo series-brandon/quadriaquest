@@ -424,3 +424,11 @@ test('after a Rock Throw the golem chases again for the full delay before the ne
  step(next-released-.4);assert.equal(throws,1,'no second throw before the delay has passed again');
  step(.6);assert.equal(throws,2);assert.equal(f.health.value,30,'both dodged');
 });
+test('a calm creature is pushed aside when the player stops on it; pushed out of its area it walks back, and far away it reappears home',()=>{
+ const f=fixture('scrapper');let time=0;const run=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ f.tile=f.home;run(1);assert.notEqual(f.a.tile,f.home,'stepped off the player');
+ // Pushed just outside its patrol box: it walks back inside.
+ const g=fixture('scrapper');g.a.patrol={minX:3,maxX:3,minZ:3,maxZ:3};g.tile=g.world.get('0,6');g.system.update(.02,0);
+ g.a.tile=g.world.get('5,3');g.a.cells=[g.a.tile];g.a.group.position.set(5-6,1,3-6);time=0;
+ for(let t=0;t<4;t+=.02)g.system.update(.02,time+=.02);assert.equal(g.a.tile,g.home,'walked home');
+});

@@ -38,7 +38,8 @@ import {createCombatSystem} from './combat.js';
 import {createEquipment,GEAR} from './equipment.js';
 import {createCombatFeedback} from './combat-feedback.js';
 import './combat.css';
-import {blocksMovement} from './world-occupancy.js';
+import {blocksMovement,occupancy} from './world-occupancy.js';
+import {pushWorldActor,updateWorldActors} from './world-actors.js';
 import {createResourceActions} from './resource-actions.js';
 import {createAttackTelegraphs} from './attack-telegraph.js';
 import {createResourceEntity} from './resource-entities.js';
@@ -171,7 +172,8 @@ const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,playe
  setColor(color){body.material.color.set(color);expressionFace.setBodyColor(color);},
  showClearing(){clearingGroup.visible=true;for(const object of clearingObjects)object.visible=true;introTile.visible=false;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=22;}
 });
-let npcTiles=null,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
+const playerOccupant={kind:'player'},companionOccupant={kind:'companion'};
+let walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
 const playerResources=createPlayerResources();
@@ -251,7 +253,7 @@ handsKey=`${equipment.slots.right}|${equipment.slots.left}`;
 styles=createCombatStyles({equipment,busy:()=>combat?.busy||smithing?.working||recipeCrafting?.working||!canMove()});
 const supplies=createSupplyOffers({inventory,changed:showItemChanges});
 const projectiles=createProjectileEffects(scene),telegraphs=createAttackTelegraphs(scene);
-combat=createCombatSystem({telegraph:(owner,tiles,progress)=>telegraphs.show(owner,tiles,progress),world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,passive:()=>!!assistance?.attacksPrevented,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),danger:a=>assistance?.danger?.enemy===a?assistance.danger.band:null,resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:changes=>showItemChanges(changes,{sound:null}),projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
+combat=createCombatSystem({playerMoving:()=>!!segment||path.length>0,telegraph:(owner,tiles,progress)=>telegraphs.show(owner,tiles,progress),world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,passive:()=>!!assistance?.attacksPrevented,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),danger:a=>assistance?.danger?.enemy===a?assistance.danger.band:null,resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:changes=>showItemChanges(changes,{sound:null}),projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
  attacked:()=>playerInterface?.attacked(),won:()=>{happyUntil=elapsed+1.6;gameAudio.play('victory');},interrupt:()=>cancelWork({keepCombat:true,keepFood:true}),retaliate:a=>selectActor(a),eating:()=>food?.working,
  blocked:()=>!areas.canMove||travel.busy,
  inReach:a=>!segment&&!path.length&&withinAttackRange(world,tile,a,attackRange()),
@@ -412,15 +414,22 @@ function cancelWork({keepCombat=false,keepFood=false}={}){
 }
 // A queued quick spell opens the next fight from its own range.
 function attackRange(){return combat?.queuedSpell?SPELLS[combat.queuedSpell].range:styles.attack.range;}
-function routeToTree(target){return target.depleted?null:target.enemy?attackRoute(world,segment?segment.to:tile,target,attackRange(),characterAt):interactionRoute(world,segment?segment.to:tile,target,characterAt);}
-// Another character stands here (companion, creature or NPC). Characters are walk-through; walkers only
-// avoid stopping on them.
-function characterAt(t){return !!t&&(companions.occupies(t)||!!combat?.occupies(t)||npcAt(t));}
-// A walk-through NPC (mentor, Reed, townsfolk) stands here. Route searches ask this per tile, so the
-// standing tiles are gathered once per frame (npcTiles, declared early: areas place enemies at startup).
-function npcAt(t){
- if(!npcTiles){npcTiles=new Set();for(const m of pickables){const a=m.userData.actor;if(a&&!a.enemy&&!blocksMovement(a)&&isVisible(m))npcTiles.add(m.userData.tile);}}
- return !!t&&npcTiles.has(t);
+function routeToTree(target){return target.depleted?null:target.enemy?attackRoute(world,segment?segment.to:tile,target,attackRange(),characterAt,playerRouteCost):interactionRoute(world,segment?segment.to:tile,target,characterAt,playerRouteCost);}
+// Occupied tiles (world-occupancy.js): the player and companion register each frame; creatures and
+// NPCs register as they move. Another character stands here (companion, creature or NPC):
+function characterAt(t){return !!t&&occupancy.occupied(t,playerOccupant);}
+// A walk-through NPC (mentor, Reed, townsfolk) stands here.
+function npcAt(t){return !!t&&occupancy.owners(t).some(o=>o!==playerOccupant&&o!==companionOccupant&&!o.enemy);}
+// The player's routes go around people unless the detour is long (occupied tiles cost extra).
+const playerRouteCost=t=>occupancy.cost(t,playerOccupant);
+// A player who has stopped on another character's tile pushes it off ('walk' NPCs step aside; calm
+// creatures in combat.js; the companion in companions.js). Characters that can't move (push 'never',
+// such as tutorial NPCs, or nowhere free) stay, hidden under the player until the player moves on.
+const underPlayer=new Map();
+function resolveStanding(){
+ const settled=!segment&&!path.length,here=settled?occupancy.owners(tile).filter(o=>o!==playerOccupant&&o!==companionOccupant&&!o.enemy&&o.group):[];
+ for(const o of here)if(!underPlayer.has(o)&&!pushWorldActor(o,t=>t===tile)){underPlayer.set(o,o.group.visible);o.group.visible=false;}
+ for(const [o,visible] of underPlayer)if(!here.includes(o)||o.tile!==tile){o.group.visible=visible;underPlayer.delete(o);}
 }
 function selectTree(tree){
  if(!canMove()||chopTarget===tree||resourceActions.matches(tree))return;if(__PLAYGROUND__)debug?.stop(false);
@@ -446,7 +455,7 @@ function toast(s){gameAudio.play('blocked');messages?.show(s);}
 // `sound` replaces the default (crafted when something was spent, else pick up); null for none.
 function showItemChanges(changes,{sound}={}){itemFeed.show(changes);const kind=sound===undefined?(Object.values(changes).some(n=>n<0)?'complete':'pickup'):sound;if(kind)gameAudio.play(kind);}
 function updateUI(reward){opening.collected(inventory.sticks+inventory.stones,reward);}
-function moveTo(t,resource){if(!canMove())return;if(campfires?.placing){campfires.selectPlacement(t);return;}if(resource&&(resource===target||resourceActions.matches(resource)))return;if(__PLAYGROUND__)debug?.stop(false);const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&(resource===target||resourceActions.matches(resource))){return;}const start=segment?segment.to:tile;const adjacent=resource?routeToTree(resource):null;const destination=resource?adjacent?.at:t;const route=resource?(adjacent?.route??null):findPath(world,start,t);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}messages?.clear();if(recipeCrafting.working&&route.length===0&&!segment&&!resource)return;combat.disengage();cancelWork();opening.moving(tile,destination);target=resource||null;gatherTime=0;path=route;feedback.destination(destination);}
+function moveTo(t,resource){if(!canMove())return;if(campfires?.placing){campfires.selectPlacement(t);return;}if(resource&&(resource===target||resourceActions.matches(resource)))return;if(__PLAYGROUND__)debug?.stop(false);const point=new THREE.Vector3(t.x-6,t.water?.86:t.h,t.z-6);if(resource&&(resource===target||resourceActions.matches(resource))){return;}const start=segment?segment.to:tile;const adjacent=resource?routeToTree(resource):null;const destination=resource?adjacent?.at:t;const route=resource?(adjacent?.route??null):findPath(world,start,t,playerRouteCost);if(route===null){feedback.pulse(point,false);toast(t.blocked?'Find a clear patch of ground.':'That ledge is too high. Find a route with smaller steps.');return;}messages?.clear();if(recipeCrafting.working&&route.length===0&&!segment&&!resource)return;combat.disengage();cancelWork();opening.moving(tile,destination);target=resource||null;gatherTime=0;path=route;feedback.destination(destination);}
 function pick(event){const rect=gameViewport();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObjects(pickables.filter(m=>isVisible(m)&&!m.userData.resource?.depleted&&!m.userData.tree?.depleted),false)[0];}
 let down=null,dragged=false,pinchDistance=null;
 const activePointers=new Map();
@@ -507,7 +516,7 @@ function resize(){const {left,width,height}=measureGameViewport();document.docum
 const clock=new THREE.Clock();let elapsed=0;
 const focusLift=new THREE.Vector3(),cameraFocus=new THREE.Vector3();
 // One batch per frame: UI bindings flush once, after the frame's state changes.
-function animate(){requestAnimationFrame(animate);npcTiles=null;if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
+function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.active){perfProbe.begin();batch(frame);perfProbe.end();}else batch(frame);}
 // Playground builds attribute frame time to these laps; normal builds compile them away.
 // The sun's shadow area (±24 tiles) follows the player in 4-tile steps, so large areas and streamed
 // worlds keep shadows everywhere; each step redraws the shadow map once.
@@ -535,6 +544,8 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  campfires.update(elapsed);
  fishingSpots.update(elapsed);
  if(__PLAYGROUND__)trainingFixtures?.update(elapsed);
+ occupancy.place(playerOccupant,[tile,segment?.to]);occupancy.place(companionOccupant,companions.cells);
+ updateWorldActors(dt,t=>t===tile||t===segment?.to);resolveStanding();
  if(__PLAYGROUND__)walkThroughFixtures?.update(dt,elapsed);
  if(__PLAYGROUND__)carpentryFixture?.highlight.update(false,elapsed,hover?.actor===carpentryFixture&&!carpentryFixture.opened&&!carpentry.matches(carpentryFixture));
  afterStep.flush();

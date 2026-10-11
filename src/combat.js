@@ -10,7 +10,7 @@ import {spellAttack} from './equipment.js';
 import {signal} from './reactive.js';
 import {createControlState} from './control-effects.js';
 import {wanderDelay,shouldWander,wanderRoute} from './wander.js';
-import {blocksMovement} from './world-occupancy.js';
+import {blocksMovement,occupancy,OCCUPIED_COST,PLAYER_COST} from './world-occupancy.js';
 import {attackPose,CAST_TIMING} from './combat-motion.js';
 import {attackWindow,BLOCK_DURATION,PROJECTILE_FLIGHT} from './combat-animation.js';
 // Follow-through window after a release (matches the attack animation's recovery).
@@ -133,22 +133,40 @@ export function createCombatSystem(api){
  const bodyInTerritory=(a,t)=>cellsOf(a,t).every(c=>inTerritory(a,c));
  // Creatures are walk-through characters (world-occupancy.js): they never write `tile.blocked`, and only
  // avoid *stopping* where someone else stands. Solid practice targets still block their cells.
- function release(a){if(a.occupying){if(blocksMovement(a))for(const c of a.cells||[a.tile])c.blocked=false;a.occupying=false;}}
+ function release(a){if(a.occupying){if(blocksMovement(a))for(const c of a.cells||[a.tile])c.blocked=false;else occupancy.remove(a);a.occupying=false;}}
  const reserved=t=>t===api.tile()||api.reserved(t);
  const enemyAt=(t,self)=>{for(const b of enemies)if(b!==self&&b.occupying&&(b.cells||[b.tile]).includes(t))return true;return false;};
  // Somewhere `self` should not stop: the player, the player's route, the companion or another enemy.
  const taken=(t,self)=>reserved(t)||enemyAt(t,self);
  const bodyTaken=(a,t)=>cellsOf(a,t).some(c=>taken(c,a));
- // Prefer a route that neither crosses nor ends on anyone; otherwise pass through characters (never
- // through the player being fought or onto solid tiles). Any body size; [] at the goal, null if none.
+ // Occupied tiles cost extra (world-occupancy.js): the player's tile PLAYER_COST, the player's route,
+ // the companion, NPCs and other enemies OCCUPIED_COST.
+ const cellCost=(c,a)=>c===api.tile()?PLAYER_COST:Math.max(occupancy.cost(c,a),api.reserved(c)||enemyAt(c,a)?OCCUPIED_COST:0);
+ // The cheapest route for any body size: around people unless the detour is long, ending on a free spot
+ // when one is near (never through the player being fought or onto solid tiles: `allow`). [] at the
+ // goal, null if none.
  function bodyRoute(a,goal,allow=()=>true){
-  const size=sizeOf(a),own=a.cells||[a.tile];
-  return findFootprintPath(api.world,a.tile,size,t=>goal(t)&&!bodyTaken(a,t),{own,allow:(t,cells)=>allow(t,cells)&&!cells.some(c=>taken(c,a))})
-   ??findFootprintPath(api.world,a.tile,size,goal,{own,allow});
+  return findFootprintPath(api.world,a.tile,sizeOf(a),goal,{own:a.cells||[a.tile],allow,cost:cells=>cells.reduce((sum,c)=>sum+cellCost(c,a),0)});
+ }
+ const inPatrol=(a,t)=>cellsOf(a,t).every(c=>c.x>=a.patrol.minX&&c.x<=a.patrol.maxX&&c.z>=a.patrol.minZ&&c.z<=a.patrol.maxZ);
+ const patrolGap=(a,t)=>Math.max(0,a.patrol.minX-t.x,t.x-a.patrol.maxX)+Math.max(0,a.patrol.minZ-t.z,t.z-a.patrol.maxZ);
+ // A player stopping on a calm enemy pushes it to a free neighbouring spot (hostile ones shuffle aside
+ // while pursuing and keep attacking).
+ function pushAside(a){
+  const size=sizeOf(a),options=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>api.world.get(key(a.tile.x+dx,a.tile.z+dz))).filter(t=>t&&Math.abs(t.h-a.tile.h)<=.5&&canStand(api.world,t,size,a.cells)&&!bodyTaken(a,t)&&bodyInTerritory(a,t));
+  const spot=options.find(t=>inPatrol(a,t))||options[0];if(spot){a.patrolRoute=[];move(a,spot);}
+ }
+ // Wanderers keep to their home area: pushed outside it they walk back; pushed far beyond it (or with
+ // no way back) they reappear at home.
+ const HOME_FAR=8;
+ function homeward(a){
+  const route=patrolGap(a,a.tile)<=HOME_FAR?bodyRoute(a,t=>inPatrol(a,t)):null;
+  if(route?.[0]){move(a,route[0]);return;}
+  if(!bodyTaken(a,a.home)){a.patrolRoute=[];move(a,a.home);a.group.position.copy(bodyPosition(a,a.home));}
  }
  const settled=a=>a.group.position.distanceTo(bodyPosition(a))<.001;
  const adjacent=a=>settled(a)&&footprintGap(a.tile,sizeOf(a),api.tile())===1&&Math.abs(a.tile.h-api.tile().h)<=.5;
- function move(a,t){release(a);a.cells=cellsOf(a,t);a.tile=t;a.x=t.x;a.z=t.z;if(blocksMovement(a))for(const c of a.cells)c.blocked=true;a.occupying=true;a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=t;});}
+ function move(a,t){release(a);a.cells=cellsOf(a,t);a.tile=t;a.x=t.x;a.z=t.z;if(blocksMovement(a))for(const c of a.cells)c.blocked=true;else occupancy.place(a,a.cells);a.occupying=true;a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=t;});}
  function resetEnemy(a){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);
   for(let i=enemyShots.length-1;i>=0;i--)if(enemyShots[i].enemy===a)enemyShots.splice(i,1);
@@ -343,7 +361,9 @@ export function createCombatSystem(api){
    if(canMove&&!throwing){if(a.returning)walkHome(a);else if(a.aggro)pursue(a);}
    const targeted=fight?.enemy===a||chase?.enemy===a;
    if(a.rules.inert||targeted||a.aggro||a.returning||api.blocked()||defeated||api.approaching?.()===a||!canMove)a.patrolRoute=[];
-   else if(settled(a)){if(!a.patrolRoute.length){a.patrolClock-=dt;if(a.patrolClock<=0){a.patrolClock=wanderDelay(random);if(shouldWander(random))a.patrolRoute=sizeOf(a)>1?wanderStep(a):wanderRoute(api.world,a.tile,a.patrol,t=>taken(t,a),random);}}
+   else if(settled(a)&&cellsOf(a).includes(api.tile())&&!api.playerMoving?.())pushAside(a);
+   else if(settled(a)&&!inPatrol(a,a.tile))homeward(a);
+   else if(settled(a)){if(!a.patrolRoute.length){a.patrolClock-=dt;if(a.patrolClock<=0){a.patrolClock=wanderDelay(random);if(shouldWander(random))a.patrolRoute=sizeOf(a)>1?wanderStep(a):wanderRoute(api.world,a.tile,a.patrol,t=>taken(t,a),random,t=>cellCost(t,a));}}
     const next=a.patrolRoute[0];if(next){if(sizeOf(a)>1?!canStand(api.world,next,sizeOf(a),a.cells)||bodyTaken(a,next)||!bodyInTerritory(a,next):next.blocked||next.water||!inTerritory(a,next)||a.patrolRoute.length===1&&taken(next,a))a.patrolRoute=[];else{a.patrolRoute.shift();move(a,next);}}
    }
    const destination=bodyPosition(a),distance=a.group.position.distanceTo(destination),moving=distance>.001;
