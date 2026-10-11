@@ -2,7 +2,7 @@ import {createCityData,fillCity} from '../city-map.js';
 import {seeded} from '../building-kit.js';
 import {USE_ICONS} from '../furnish.js';
 
-// The capital's first layout (city Phase 9; docs/CITY.md, Streaming and the world). Dev only: it writes
+// Gelton, the capital: its first layout (city Phase 9; docs/CITY.md, Streaming and the world). Dev only: it writes
 // src/maps/capital.json (scripts/generate-capital.mjs), which the city editor then refines by hand. The
 // layout follows the city design:
 //  - 128 × 128 tiles (2 × 2 storage regions), flat streets with the castle on a terrace two blocks up,
@@ -28,7 +28,7 @@ const TRADES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecar
 const styleAt=(x,z)=>z>100?'stone':x<56?'timber':'brick';
 
 export function capitalData(){
- const C=CAPITAL,data=createCityData({id:'capital',name:'The capital',size:[C.size,C.size],base:1,surface:'grass',style:'timber'}),random=seeded(91);
+ const C=CAPITAL,data=createCityData({id:'capital',name:'Gelton',size:[C.size,C.size],base:1,surface:'grass',style:'timber'}),random=seeded(91);
  data.spawn=[...C.spawn];data.crystal=[...C.crystal];
  for(const s of STREETS)fillCity(data,s,{surface:'cobble'});
  fillCity(data,C.square,{surface:'plaza'});fillCity(data,C.market,{surface:'plaza'});fillCity(data,C.park,{surface:'grass'});
@@ -81,7 +81,7 @@ export function capitalData(){
  const guard={rightHand:'copperDagger',leftHand:'copperShield',head:'ironSkullcap'},colors=['#a4ce77','#e0a96d','#9db8e3','#d98fa6','#c7b46a','#8fc9b8','#b49ad6','#e3c07c'];
  data.townsfolk.push(
   {id:'guard-avenue',name:'Guard Rowan',look:{color:'#c85745',loadout:guard},home:[64,34],routine:[{do:'patrol'}],patrol:[[64,34],[64,61]],pace:1.3,line:'The castle is open to all who mind their manners.'},
-  {id:'guard-square',name:'Guard Tilly',look:{color:'#c85745',loadout:guard},home:[58,64],routine:[{do:'patrol'}],patrol:[[58,64],[70,64],[70,78],[58,78]],pace:1.3,line:'Welcome to the capital.'},
+  {id:'guard-square',name:'Guard Tilly',look:{color:'#c85745',loadout:guard},home:[58,64],routine:[{do:'patrol'}],patrol:[[58,64],[70,64],[70,78],[58,78]],pace:1.3,line:'Welcome to Gelton.'},
   {id:'guard-gate',name:'Guard Barnaby',look:{color:'#c85745',loadout:guard},home:[61,26],routine:[{do:'patrol'}],patrol:[[61,26],[67,26]],pace:1.2,line:'The keep is through the gate.'},
   {id:'crier',name:'Old Hollis',look:{color:'#e3c07c',loadout:{head:'minersCap'}},home:[62,76],routine:[{do:'read',weight:2},{do:'gaze',weight:1},{do:'chat',weight:1}],line:'Jobs go up on the board, once the guild sorts its ledgers.'});
  for(let i=0;i<3;i++)data.townsfolk.push({id:`vendor-${i}`,name:`Vendor ${i+1}`,look:{color:colors[i%8]},home:[37+(i%3)*7,50+Math.floor(i/3)*6],routine:[{do:'vend',weight:6},{do:'stroll',weight:1}]});

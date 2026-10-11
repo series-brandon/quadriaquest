@@ -4,6 +4,7 @@ import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
 import {toggleSwitch} from '../controls.js';
 import {ITEMS} from '../../items.js';
+import {GOLD, formatGold, sellPrice} from '../../economy.js';
 
 const REFUSED = 'Finish what you’re doing first.';
 
@@ -80,7 +81,7 @@ export function inventoryPage({inventory, actions = () => [], settings = () => [
         h('span', {class: 'q-item-detail__icon', 'aria-hidden': 'true'}, iconNode(id)),
         h('span', {class: 'q-item-detail__title'},
           h('h3', null, ITEMS[id].name),
-          h('small', null, () => `Quantity ${inventory[id] ?? 0}${worn.value ? ' · Equipped' : ''}`))),
+          h('small', null, () => `Quantity ${inventory[id] ?? 0}${worn.value ? ' · Equipped' : ''}${sellPrice(id) ? ` · Sells for ${formatGold(sellPrice(id))}` : ''}`))),
       h('p', {class: 'q-item-detail__copy'}, ITEMS[id].description),
       keyedList(h('div', {class: 'q-item-detail__actions'}), itemActions, action => action.index, action => h('button', {
         type: 'button',
@@ -98,6 +99,8 @@ export function inventoryPage({inventory, actions = () => [], settings = () => [
     class: 'q-page q-inventory-page',
     'data-view': () => (viewing.value && selected.value ? 'detail' : 'list'),
   },
+  // Gold Pieces, always in view (economy.js).
+  h('p', {class: 'q-inventory__gold', 'aria-label': () => `Gold: ${formatGold(inventory[GOLD] || 0)}`}, iconNode('gold'), h('span', {'aria-hidden': 'true'}, () => formatGold(inventory[GOLD] || 0))),
   h('input', {
     type: 'search',
     class: 'q-input q-inventory__search',

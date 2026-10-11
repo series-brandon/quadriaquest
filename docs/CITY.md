@@ -299,6 +299,17 @@ Furniture is drawn only while its building is cut away (it is a cut part shown w
 - **Verified in the browser**: sleeping in a gallery bed (settles on it, eyes close), the chest (lid opens, +2 copper ore, then nothing), the stove (cooking menu), the forge (smelting with that ore), and furnished kit street interiors under force cutaway.
 - **Open**: owned beds (refuse sleeping in someone else's) and storage come later (see the decisions above). City chests have no loot by design.
 
+## Gelton: the waking city (2026-10-11)
+
+User decisions (2026-10-11): the capital is called **Gelton**; ending the tutorial wakes you there instead of a placeholder meadow; this phase adds gold, values and shops (docs/ECONOMY.md), with jobs and drops later.
+
+- **A production area** (`main.js` `geltonReady`): built on first need from `src/maps/capital.json` (lazy chunks in the normal build), per chunk and streamed, with its townsfolk. Its Iter Crystal is the game's travel crystal (`buildCity({crystal})` hook; `crystals.add`), so arrival, travel, the destination menu and defeat respawn use it. The area is listed once you're awake. `world-start.js` (the placeholder) is gone.
+- **Waking** (`waking.js`): `destination: 'gelton'` and `prepare`, which starts the build with the farewell; the screen holds faded out until it is ready (the build runs during the farewell lines, so in practice there is no wait).
+- **Shops in the city:** each enterable shop building has a shop id from its use; counters inside open it; stalls open the market; keepers and vendors greet you and open theirs. See ECONOMY.md *As implemented*.
+- **Name:** `capital-layout.js` names the map Gelton (regenerated `capital.json`); the area id is `gelton`, the map id stays `capital` (loot ids use it).
+- **Playground:** *Enter Gelton* uses the same production area; *Wake up now* lands there.
+- **Verified in the browser:** waking with Skip lands in Gelton's square beside the crystal with the starter kit; a market stall and a weaponsmith counter open their shops; buying a Stone Sword spends gold and shows its receipt; Fenwick the keeper greets you and opens the Weaponsmith; the shop on a phone is fullscreen with a back button and "Not enough gold".
+
 ## Townsfolk and city life
 
 **Routines from places, not scripts.** A townsfolk entry gives a look (colour, hat, accessories), a home door, a loadout or carried tool, and a **routine**: a weighted list of activities. Activities find spots offered by props and buildings: `sit` (bench), `browse` (stall), `vend` and `work` (shop counter, smithy anvil, using existing station motions), `gaze` (fountain, statue), `chat` (two idle townsfolk meet and face each other through `slime-social.js`), `stroll` (to a random street spot), `enter` (walk to a door, go inside, reappear later) and `patrol` (guards follow a loop). Every motion is shared slime presentation. No per-character animation code, as AGENTS.md requires.
@@ -417,15 +428,15 @@ The economy ([ECONOMY.md](ECONOMY.md)) is designed alongside and doesn't wait fo
 ## Open questions for the user
 
 
-1. **The capital's name.** Working name "the capital" until decided.
+1. ~~**The capital's name.**~~ **Gelton** (user, 2026-10-11).
 
 Flagged during the Phases 5–9 first draft (2026-10-11), for review:
-2. **When does the player reach the capital?** It is playground-only. Its Iter Crystal is a model, not a travel crystal, and nothing in the tutorial or travel leads there yet.
+2. ~~**When does the player reach the capital?**~~ Waking from the tutorial lands you in Gelton beside its Iter Crystal, now a real travel crystal (user, 2026-10-11; see *Gelton: the waking city*).
 3. **Real streaming.** The capital is built whole on entry (about 1.1 s) and only its rendering is streamed by chunk. Loading and unloading chunk contents through the chunk streamer (DESIGN.md) is not done.
 4. **Railings on every terrace edge and stair side.** Automatic railings make terraces safe and readable but add a lot of fence; a per-edge or per-district option may be wanted.
-5. **Townsfolk and doors.** Townsfolk never open doors: "going indoors" vanishes at the doorstep. Shopkeepers stand at stalls; nothing is sold yet (economy).
-6. **Interior furniture.** Interiors use the outdoor prop set (barrels, crates, benches, statues). Beds, tables, chairs, counters and shelves are needed, and dungeons need their own look (darker stone, torches) and enemies.
-7. **Placeholder prop lines.** The noticeboard, well, stalls, fountain and statue answer with a line; reading jobs and drinking need the economy and health rules.
+5. ~~**Townsfolk and doors.**~~ Townsfolk open and shut doors and live in houses (2026-10-11); shopkeepers and stall vendors trade (economy, 2026-10-11).
+6. **Interior furniture.** Done in Phase 10 (furnishing by use, dungeon look). Dungeons still need enemies.
+7. **Placeholder prop lines.** Stalls and counters now trade. The noticeboard, well, fountain and statue still answer with a line; the jobs board waits for jobs.
 8. **Editor scale.** Every edit rebuilds the whole map (about 1 s for the capital); drag painting, incremental rebuilds and an editor tool for townsfolk and interiors are not done.
 9. **Seeing the player behind a front wall.** Interiors and one-storey buildings keep full one-storey walls, which can hide the player standing just inside a front wall (as in the building test map).
 10. **Chunk borders.** Walls of one building that cross a chunk border can get a doubled corner post at the border.

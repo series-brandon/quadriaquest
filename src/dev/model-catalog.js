@@ -155,7 +155,7 @@ export const MODEL_CATALOG=[
  resource('Copper outcrop',copperOutcrop,'copper'),staticModel('Copper Ingot',ingot),
  ...[['copperDagger','Copper Dagger'],['copperShield','Copper Shield'],['bows','Training Bow'],['arrows','Training Arrow']].map(([id,name])=>staticModel(name,()=>tool(id))),
  {name:'Furnace',motions:['Burning','Static'],create(){const group=furnace();return {group,update:(time,motion)=>animateFurnace(group,motion==='Static'?0:time)};}},
- staticModel('Anvil',anvil),staticModel('Provision shelf',supplyShelf),staticModel('Stone arch',stoneArch),
+ staticModel('Anvil (Cinderhold station)',anvil),staticModel('Provision shelf',supplyShelf),staticModel('Stone arch',stoneArch),
  staticModel('Stone tile',()=>stoneTile({x:0,z:0,h:1},new Map())),
  {name:'Practice target',motions:['Static','Hit'],create(){const group=trainingTarget();return {group,update:(time,motion)=>animateTarget(group,time,motion==='Hit'?1:0)};}},
  // Every spell look (charge orb and projectile) from the shared registry.

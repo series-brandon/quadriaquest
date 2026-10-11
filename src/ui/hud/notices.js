@@ -3,6 +3,7 @@ import {h} from '../dom.js';
 import {bind, onCleanup} from '../scope.js';
 import {keyedList} from '../list.js';
 import {iconNode} from '../icon.js';
+import {GOLD, formatGold} from '../../economy.js';
 import {ITEMS} from '../../items.js';
 
 // Brief HUD notices: the message toast, the quest-progress pop-up, the item feed and level-up
@@ -71,7 +72,8 @@ export function objectiveToast({notice, duration = 4500}) {
 }
 
 // Item changes as receipts: gains, losses, or "Crafted X" with what it used. Repeated single-item
-// changes (picking up more sticks) merge into their receipt; at most four show.
+// changes (picking up more sticks) merge into their receipt; at most four show. A trade (show(changes,
+// {trade: 'bought' | 'sold'})) reads "Bought X" or "Sold X" with the gold paid or received.
 export function itemFeed({duration = 3800, limit = 4} = {}) {
   const entries = signal([]);
   let serial = 0;
@@ -91,11 +93,11 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
     }, duration));
   };
 
-  function show(changes) {
+  function show(changes, {trade = null} = {}) {
     const values = Object.entries(changes).filter(([, n]) => n);
     if (!values.length) return;
-    const crafted = values.some(([, n]) => n < 0) && values.some(([, n]) => n > 0);
-    const merge = !crafted && values.length === 1 ? values[0][0] + Math.sign(values[0][1]) : null;
+    const crafted = !trade && values.some(([, n]) => n < 0) && values.some(([, n]) => n > 0);
+    const merge = !crafted && !trade && values.length === 1 ? values[0][0] + Math.sign(values[0][1]) : null;
     const current = entries.peek();
     const existing = merge && current.find(entry => entry.merge === merge);
     let key;
@@ -106,7 +108,7 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
       entries.value = current.map(entry => (entry.key === key ? {...entry, changes: total, leaving: false} : entry));
     } else {
       key = `receipt-${++serial}`;
-      let next = [...current, {key, merge, crafted, changes: {...changes}, leaving: false}];
+      let next = [...current, {key, merge, crafted, trade, changes: {...changes}, leaving: false}];
       while (next.length > limit) { const [old, ...rest] = next; clearTimeout(timers.get(old.key)); timers.delete(old.key); next = rest; }
       entries.value = next;
     }
@@ -120,7 +122,8 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
 
   const node = keyedList(h('aside', {id: 'item-feed', class: 'q-feed', role: 'status', 'aria-label': 'Item changes'}), entries, entry => entry.key, item => {
     const lines = () => {
-      const {changes, crafted} = item.value;
+      const {changes, crafted, trade} = item.value;
+      if (trade) return Object.entries(changes).filter(([id, n]) => n && id !== GOLD).map(([id, n]) => ({id, n: trade === 'bought' ? 1 : -1, label: `${trade === 'bought' ? 'Bought' : 'Sold'} ${name(id)} ×${Math.abs(n)}`}));
       const gains = Object.entries(changes).filter(([, n]) => n > 0), costs = Object.entries(changes).filter(([, n]) => n < 0);
       return [...gains, ...(crafted ? [] : costs)].map(([id, n]) => ({id, n, label: `${crafted ? 'Crafted ' : n > 0 ? '+' : '−'}${name(id)} ×${Math.abs(n)}`}));
     };
@@ -128,7 +131,8 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
       keyedList(h('div', {class: 'q-receipt__lines'}), lines, line => line.id, line => h('div', {class: 'q-receipt__line', 'data-gain': () => line.value.n > 0},
         h('span', {class: 'q-receipt__icon', 'aria-hidden': 'true'}, iconNode(line.peek().id)),
         h('strong', null, () => line.value.label))),
-      h('small', {hidden: () => !item.value.crafted}, () => {
+      h('small', {hidden: () => !item.value.crafted && !item.value.trade}, () => {
+        if (item.value.trade) return `${item.value.trade === 'bought' ? 'Paid' : 'Received'} ${formatGold(Math.abs(item.value.changes[GOLD] || 0))}`;
         const costs = Object.entries(item.value.changes).filter(([, n]) => n < 0);
         return item.value.crafted ? `Used ${costs.map(([id, n]) => `${name(id)} ×${-n}`).join(' · ')}` : '';
       }));

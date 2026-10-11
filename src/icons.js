@@ -12,6 +12,8 @@ const paths={
  collapseSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-6-11 3 3-3 3"/>',
  expandSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-4-11-3 3 3 3"/>',
  quickEat:'<path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v18M17 3c-3 3-3 7 0 9h3V3zM20 12v9"/>',
+ gold:'<ellipse cx="9" cy="16" rx="6" ry="2.5"/><path d="M3 16v3c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-3"/><ellipse cx="15" cy="8" rx="6" ry="2.5"/><path d="M9 8v3c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V8M15 13.5v3c0 1.1 2.6 2.5 6 2.5"/>',
+ shop:'<path d="M3 9 5 4h14l2 5M3 9h18M3 9q0 3 3 3t3-3q0 3 3 3t3-3q0 3 3 3t3-3M5 12v8h14v-8M10 20v-5h4v5"/>',
  copperOre:'<path d="m3 17 3-11 10-3 6 9-5 9H7zM7 8l4 3-2 4m6-9 1 5 4 2"/>',
  copperIngots:'<path d="m3 16 4-9h10l4 9-3 4H6zM3 16h18M7 7l2 9m8-9-2 9"/>',
  copperDagger:'<path d="m5 21 4-5m-4-3 7 7m-4-6 7-10 5-2-2 6-8 8"/>',

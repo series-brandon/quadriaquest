@@ -1,4 +1,5 @@
 export const ITEMS={
+ gold:{name:'Gold Pieces',description:'The coin of Quadria. Earn it by selling what you gather and make; spend it at shops.'},
  copperOre:{name:'Copper Ore',description:'Orange-veined ore. Smelt it into a Copper Ingot at a furnace.'},
  copperIngots:{name:'Copper Ingot',description:'Refined copper. Work it at an anvil with a Crude Hammer.'},
  copperDagger:{name:'Copper Dagger',description:'A copper blade you can smith yourself. One hand · +10 melee Power and Accuracy · stab or slash · trains Dagger proficiency.'},
@@ -32,3 +33,19 @@ export const ITEMS={
 };
 
 export function itemStack(id,quantity){return `${ITEMS[id]?.name||id} ×${quantity}`;}
+
+// What items are worth (docs/ECONOMY.md): `value` is the price at a shop that stocks it; selling pays a
+// share of it (economy.js). `category` decides which shops buy it. Gold is the currency, not an item
+// you can sell. Values follow the rules in ECONOMY.md: crafting is worth more than its materials, cooked
+// food more than raw, tools and starter gear little, and nothing profits from buying and reselling
+// (economy.test.js checks every item and recipe).
+const WORTH={
+ gold:[0,'currency'],copperOre:[10,'metal'],copperIngots:[24,'metal'],copperDagger:[40,'weapon'],copperShield:[80,'armour'],
+ bows:[30,'weapon'],arrows:[2,'ammo'],swords:[20,'weapon'],shields:[20,'armour'],hammers:[9,'tool'],rods:[9,'tool'],
+ flint:[4,'stone'],firestarters:[15,'tool'],campfires:[15,'tool'],rawFish:[8,'fish'],cookedFish:[15,'food'],
+ sticks:[2,'wood'],stones:[2,'stone'],pickaxes:[9,'tool'],stone:[6,'stone'],axes:[9,'tool'],logs:[6,'wood'],
+ hats:[60,'hat'],staffs:[45,'weapon'],ironSkullcap:[50,'hat'],minersCap:[40,'hat'],archerCap:[40,'hat'],wizardHat:[50,'hat'],
+ breathHeadband:[40,'hat'],fishersHat:[40,'hat'],companionHats:[40,'hat'],
+};
+for(const [id,[value,category]] of Object.entries(WORTH))Object.assign(ITEMS[id],{value,category});
+ITEMS.gold.sellable=false;

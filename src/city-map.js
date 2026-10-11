@@ -6,6 +6,7 @@ import {createProp} from './props.js';
 import {makeCityTile,layStairs,railingEdges,stairRailParts,SURFACE_NAMES} from './city-terrain.js';
 import {mergedMesh} from './merged-model.js';
 import {mergeStatic} from './static-merge.js';
+import {shopForBuilding} from './shops.js';
 import {furnishRoom,roomOfPlan,furnishingUse} from './furnish.js';
 import {makeCrystal} from './crystal-model.js';
 import {key} from './world.js';
@@ -55,7 +56,8 @@ export function cityTiles(data){
 // stream(tile) shows only the chunks around the player (docs/CITY.md, Streaming and the world). An edge
 // belongs to the chunk of its lower tile, so two buildings in different chunks still share one wall.
 export const CHUNK=16;
-export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=null}){
+// crystal(tile, parent): places the game's Iter Crystal (crystals.js) instead of a plain model.
+export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=null,crystal:placeCrystal=null}){
  const group=new THREE.Group();group.name='city '+data.id;group.visible=visible;scene.add(group);
  const map=cityTiles(data),t=(x,z)=>map.get(key(x,z)),tiles=[...map.values()];
  const chunks=new Map(),chunkOf=(x,z)=>`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`;
@@ -85,17 +87,17 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   if(stair){const c=chunk(high.x,high.z);if(!stairSides.has(c))stairSides.set(c,[]);stairSides.get(c).push([high,low]);}}
  // Stair sides: sloped handrails, one merged mesh per chunk.
  for(const [c,list] of stairSides){const rails=mergedMesh(stairRailParts(list));rails.name='stair-rails';c.root.add(rails);}
- for(const p of data.props){try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:chunk(p.x,p.z).root,pickables,id:p.id??null,loot:p.loot?{id:`${data.id}:${p.x},${p.z}`,items:p.loot}:null});if(p.link)prop.link={kind:'dungeon',city,id:p.link};props.push(prop);}catch(error){console.warn(error.message);}}
+ for(const p of data.props){try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:chunk(p.x,p.z).root,pickables,id:p.id??null,loot:p.loot?{id:`${data.id}:${p.x},${p.z}`,items:p.loot}:null,shop:p.shop??null});if(p.link)prop.link={kind:'dungeon',city,id:p.link};props.push(prop);}catch(error){console.warn(error.message);}}
  // Furniture (furnish.js): each in-place building furnished by its use, around hand-placed props, in a
  // group of its own that shows only while the building is cut (the roof hides it otherwise). Static
  // pieces merge into one mesh per building; interactive ones stay pickable.
  const furniture=[];
- data.buildings.forEach((b,i)=>{const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];if(!use||b.desc.interior!=='inPlace')return;
+ data.buildings.forEach((b,i)=>{const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];built.shop=use?shopForBuilding(b.desc,use):null;if(!use||b.desc.interior!=='inPlace')return;
   const keep=built.plan.tiles.filter(([x,z])=>t(x,z)?.blocked);
   const layout=furnishRoom(roomOfPlan(built.plan,{keep}),use,b.desc.furnishSeed??b.desc.seed??i);if(!layout.length)return;
   if(layout.keeper)built.anchors.keeper=t(...layout.keeper);
   const home=chunk(b.x,b.z),group=new THREE.Group();group.name='furniture';group.userData.showWhenCut=true;group.visible=false;home.root.add(group);
-  for(const f of layout){try{const prop=createProp(f.kind,{origin:[f.x,f.z],rotation:f.rotation,tileAt:t,parent:group,pickables});prop.building=i;built.furniture.push(prop);furniture.push(prop);}catch{}}
+  for(const f of layout){try{const prop=createProp(f.kind,{origin:[f.x,f.z],rotation:f.rotation,tileAt:t,parent:group,pickables,shop:built.shop});prop.building=i;built.furniture.push(prop);furniture.push(prop);}catch{}}
   mergeStatic(group,built.furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});
   home.edges.addCutPart(group,i);
   // Furniture never moves: its matrices are worked out once and the frame's matrix pass skips it
@@ -103,7 +105,9 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   group.updateWorldMatrix(true,true);group.matrixWorldAutoUpdate=false;for(const p of built.furniture)p.frozen=true;
  });
  let crystal=null;
- if(data.crystal){const tile=t(...data.crystal);if(tile){crystal=makeCrystal();crystal.position.set(tile.x-6,tile.h,tile.z-6);chunk(tile.x,tile.z).root.add(crystal);tile.blocked=true;}}
+ // The Iter Crystal: a model, or (with `crystal`) the game's travel crystal (crystals.js).
+ if(data.crystal){const tile=t(...data.crystal);if(tile){const parent=chunk(tile.x,tile.z).root;
+  if(placeCrystal)crystal=placeCrystal(tile,parent);else{crystal=makeCrystal();crystal.position.set(tile.x-6,tile.h,tile.z-6);parent.add(crystal);tile.blocked=true;}}}
  // Always-visible decoration merged per chunk (static-merge.js): building decor (awnings, sign boards,
  // flower boxes) and props nobody clicks. Clickable props, doors, sign icons, roofs and caps stay apart.
  const statics=new Map(),addStatic=(c,o)=>{if(!statics.has(c))statics.set(c,[]);statics.get(c).push(o);};

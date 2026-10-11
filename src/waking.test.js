@@ -8,7 +8,7 @@ import {createPlayerResources,createResource} from './player-resources.js';
 import {createWaking,STARTER_KIT,WAKING_LINES,SKIP_LINES} from './waking.js';
 
 // Real shared systems; only presentation (narrator, fade, travel) is faked.
-function fixture({ownsCompanion=false}={}){
+function fixture({ownsCompanion=false,prepare=null}={}){
  const items={sticks:{},stones:{},logs:{},copperDagger:{},copperShield:{},bows:{},arrows:{},hats:{},axes:{},pickaxes:{},hammers:{},rods:{},firestarters:{},cookedFish:{},copperOre:{}};
  const inventory={logs:7,copperOre:4,sticks:12,axes:1},equipment=createEquipment({inventory}),styles=createCombatStyles({equipment});
  const character=createCharacter(),resources=createPlayerResources(),auras=createAuras({ki:resources.ki}),health=createResource(100);health.value=40;
@@ -18,7 +18,7 @@ function fixture({ownsCompanion=false}={}){
  const narrator={show({text,next}){lines.push(text);narrated=next;},hide(){narrated=null;}};
  const waking=createWaking({narrator,inventory,items,skills:()=>({Gathering:gathering}),character,styles,auras,equipment,health,resources,companions,
   resetObjectives:()=>log.push(['objectives']),endTutorial:()=>log.push(['end']),arrive:id=>{log.push(['arrive',id]);return 'landing';},
-  fade:v=>{fade=v;},toast:m=>log.push(['toast',m])});
+  fade:v=>{fade=v;},toast:m=>log.push(['toast',m]),prepare});
  const talk=()=>{while(narrated)narrated();};
  const run=()=>{for(let i=0;i<40;i++)waking.update(.1);};
  return {waking,inventory,equipment,styles,auras,character,health,gathering,log,lines,talk,run,get fade(){return fade;}};
@@ -47,4 +47,13 @@ test('skipping uses the short farewell; a companion you already have just follow
  assert.equal(f.waking.skipped,true);
  assert.ok(f.log.some(e=>e[0]==='route'));assert.ok(!f.log.some(e=>e[0]==='acquire'||e[0]==='name'));
  f.waking.reset();assert.equal(f.waking.isWoken,false);
+});
+
+test('waking waits, faded out, until its destination is built; it lands in Gelton',async()=>{
+ let done;const built=new Promise(r=>{done=r;});
+ const f=fixture({prepare:()=>built});
+ f.waking.start({skip:true});f.talk();f.run();
+ assert.equal(f.waking.isWoken,false,'still building');assert.equal(f.fade,1,'held faded out');
+ done();await built;await null;f.run();
+ assert.equal(f.waking.isWoken,true);assert.deepEqual(f.log.find(e=>e[0]==='arrive'),['arrive','gelton']);assert.equal(f.fade,0);
 });

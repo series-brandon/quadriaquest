@@ -96,3 +96,7 @@ test('wear slots replace cosmetic permutations: one entry per creature, a dropdo
   const slime=entry.create();slime.update(.2,'Idle',.016,'default','Generic item',{worn:{head:'hats'}});
   let top=null;slime.group.traverse(o=>{if(o.name==='equipment-hats')top=o;});assert.equal(top?.visible,true,name+' wears the Top Hat');}
 });
+test('every catalogue entry has its own name (the viewer keys its list by name)',()=>{
+ const names=MODEL_CATALOG.map(e=>e.name);
+ assert.deepEqual(names.filter((n,i)=>names.indexOf(n)!==i),[]);
+});

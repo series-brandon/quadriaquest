@@ -1,6 +1,6 @@
 # Economy: Gold Pieces, shops and jobs (design draft)
 
-Draft, 2026-10-10. Nothing here is implemented. Numbers are starting proposals to tune.
+Draft, 2026-10-10. Gold, item values and shops are implemented (2026-10-11, see *As implemented*); enemy drops and jobs are not yet. Numbers are starting proposals to tune.
 
 **User decisions (2026-10-10):**
 - **An economy is vital for the prototype.** Pacifists must be able to earn a living without fighting, through **jobs** and by **selling what they craft and forage**.
@@ -102,13 +102,44 @@ Required in the same change as each part:
 - **Shops:** open any shop by id from the playground, plus a test counter fixture that can be placed in any map with a shopkeeper. Reset stock.
 - **Jobs:** a test board fixture and a test giver in any map. Spawn a job of each kind, complete or abandon it instantly, reset all jobs and cooldowns. Deliveries in the playground use test addresses until the city exists.
 
+## As implemented (gold, values and shops, 2026-10-11)
+
+User decision (2026-10-11): this phase builds gold, values and shops, hooked up to Gelton; enemy drops and jobs come later.
+
+- **Gold** (`economy.js`): `gold` is the first item in `ITEMS` (Gold Pieces, `sellable: false`), so it sorts first. `createWallet({inventory})` has `earn`, `spend` (refuses to go below zero), `set` and `gold`; each change is reported through `last` (a signal) and `onChange` listeners for future notices, quests and jobs. `formatGold` gives the short form ("1,250 GP"). The Inventory page shows the total at the top, and each item's detail says what it sells for. The coin icon doesn't yet change with the amount.
+- **Values** (`items.js`): every item has a `value` and a `category` (metal, weapon, armour, ammo, tool, wood, stone, fish, food, hat, currency). `SELL_RATE` is 0.4 and `sellPrice` is `floor(value × 0.4)`, at least 1. `economy.test.js` sweeps every recipe both ways: the result sells for at least its materials' sell prices, and for less than buying those materials costs. So crafting pays, and buying, crafting and reselling never does.
+- **Shops** (`shops.js`): `SHOPS` covers the general store, smithy, weaponsmith, armourer, fishmonger, grocer, bakery, tavern, inn, hatter, carpenter and market stall. Each has a name, a greeting, its stock (unlimited unless `limit`; limited stock comes back one at a time every `RESTOCK_MINUTES` = 5 real minutes) and what it buys (`all` or categories).
+  - `createShops` does the buying and selling. Each refusal has a reason the screen shows: sold out, not enough gold, "doesn't buy this", equipped (worn copies, including the companion's hat, can't be sold), or quest item.
+  - Selling your last needed tool (`NEEDED_TOOLS`) asks first, using the compact confirmation.
+  - Building uses map to shops (`SHOP_FOR_USE`; a building's own `desc.shop` wins).
+- **Shop screen** (`ui/dialogs/shop-dialog.js`, opened by `shop-menu.js` on the modal host) has:
+  - The keeper's greeting and your gold.
+  - Buy and Sell, and the goods with their price and stock or quantity owned. Blocked items are dimmed with their reason.
+  - The chosen item's detail, with 1, 5, All or a typed amount.
+  - A wide layout on desktop and fullscreen one-view-at-a-time on phones.
+
+  Trades show "Bought X ×n · Paid N GP" or "Sold X ×n · Received N GP" receipts in the shared item feed.
+- **Where shops open:**
+  - A **shop counter** (shop, bar and fish counters are now clickable, *Trade at counter*) opens its building's shop.
+  - A **market stall** opens the market (or a stall's own `shop` in map data).
+  - A **shopkeeper minding the counter** or a **vendor at a stall** greets you and opens their shop (`townsfolk.js` `person.shop`).
+  - Any map works: the playground can place a counter anywhere. The keeper stands behind the counter, so clicking the keeper may walk you round behind it; the counter itself is the quick way.
+- **Playground** (Economy fieldset):
+  - Set gold, +100 or reset it to 0.
+  - Open any shop.
+  - Place a real counter for any shop beside you in any map, or remove it.
+  - Reset stock.
+  - A price list (value, sell price, category, sellable).
+  - Gold is also in the Inventory item list.
+- **Not yet:** enemy drops and jobs (plan steps 3 and 4), a coin icon that grows with the amount, better rates at specialist shops, a save system (gold is lost on reload, like everything else).
+
 ## Plan
 
-1. **Gold and values.** The `gold` item, `value` and `sellable` on every item, the gold helpers, price tests and notices.
-2. **Shared shop screen and shop definitions.** A playground counter in any map, a General Store, selling restrictions.
+1. **Gold and values.** (done 2026-10-11) The `gold` item, `value` and `sellable` on every item, the gold helpers, price tests and notices.
+2. **Shared shop screen and shop definitions.** (done 2026-10-11) A playground counter in any map, a General Store, selling restrictions.
 3. **Enemy drops.** Drop tables, loot piles, pickup, COMBAT.md rules.
 4. **Jobs.** The four kinds, Jobs on the Quests page, quest board prop, giver marker, test addresses.
-5. **City hookup** (with CITY.md): shop buildings, shopkeepers, the town square board and the post office slime with real addresses.
+5. **City hookup** (with CITY.md): shop buildings, shopkeepers, the town square board and the post office slime with real addresses. (Shops done 2026-10-11; the board and post office come with jobs.)
 
 ## Open questions for the user
 

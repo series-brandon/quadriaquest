@@ -31,7 +31,9 @@ import {createTravelSystem} from './travel.js';
 import {createCrystals} from './crystals.js';
 import {createWaking} from './waking.js';
 import {createRenderQuality,QUALITY_TIERS,initialTier} from './render-quality.js';
-import {createWorldStart} from './world-start.js';
+import {createWallet,GOLD} from './economy.js';
+import {createShops} from './shops.js';
+import {createShopMenu} from './shop-menu.js';
 import {tutorialChapter,TUTORIAL_CHAPTERS} from './tutorial-chapters.js';
 import {portalSpawn} from './portal-spawn.js';
 import {createCombatSystem} from './combat.js';
@@ -42,7 +44,7 @@ import {blocksMovement,occupancy} from './world-occupancy.js';
 import {pushWorldActor,updateWorldActors} from './world-actors.js';
 import {configureDoors,updateDoors,doorApproach} from './doors.js';
 import {updateCutaway,cutawayState} from './cutaway.js';
-import {configureProps,seatPosition,takeLoot,updateProps} from './props.js';
+import {configureProps,createProp,seatPosition,takeLoot,updateProps} from './props.js';
 import {createSpaces} from './spaces.js';
 import {createCrowd} from './townsfolk.js';
 import {createResourceActions} from './resource-actions.js';
@@ -379,12 +381,37 @@ cinder=createCinderhold({tile:()=>tile,teleport(t){if(!t)return;path=[];segment=
  working:()=>!!actorTarget||!!segment||path.length>0||combat.working||smithing.working||resourceActions.working||food.working||recipeCrafting.working
 });
 cinder.listed=()=>!waking?.isWoken;areas.register(cinder);
-// The world (a placeholder start location for now) appears once the player wakes from the tutorial.
-const worldStart=createWorldStart({scene,crystals,resourceActions,pickables});
-areas.register({...worldStart,listed:()=>!!waking?.isWoken});
+// Gold and shops (economy.js, shops.js; docs/ECONOMY.md): one wallet and one shop system for every
+// map. Worn copies (hands, head, armour, the companion's hat) can't be sold.
+const wallet=createWallet({inventory});
+const wornCopies=id=>Object.entries(equipment.slots).filter(([slot,v])=>slot!=='main'&&slot!=='off'&&v===id).length+Object.values(companions.state.outfit||{}).filter(v=>v===id).length;
+const shops=createShops({inventory,wallet,equipped:wornCopies});
+const shopMenu=createShopMenu({modals,shops,items:ITEMS,inventory,wallet,onTrade:(changes,trade)=>{itemFeed.show(changes,{trade});gameAudio.play('pickup');}});
+// Townsfolk for a city map (townsfolk.js): their crowd runs in the area's update. Keepers and stall
+// vendors open their shop.
+const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},trade(person,shop){shopMenu.open(shop,{greeting:`${person.name}: “${shops.shops[shop].greeting}”`});},
+ player:()=>({tile,hidden:false}),playerTile:()=>segment?null:tile,near:t=>Math.abs(t.x-tile.x)+Math.abs(t.z-tile.z)<=8};
+function attachCrowd(built){built.crowd?.dispose();built.crowd=createCrowd({city:built,parent:built.group,pickables,services:crowdServices});return built.crowd;}
+// Gelton, the capital (docs/CITY.md): where players wake after the tutorial. Built on first need (the
+// waking farewell starts it) from src/maps/capital.json, per 16 × 16 chunk, streamed around the player,
+// with its townsfolk and its Iter Crystal in the town square.
+let gelton=null,geltonLoading=null;
+const GELTON_CAMERA={zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)};
+function geltonReady(){
+ return geltonLoading??=(async()=>{
+  const [{buildCity},{default:data}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json')]);
+  const built=buildCity(structuredClone(data),{scene,pickables,streamRadius:3,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
+  built.areaId='gelton';attachCrowd(built);
+  areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
+   arrival:()=>built.crystal?.tile||built.spawn,
+   update:(dt,time,view)=>{built.stream(segment?.to||tile);built.crowd?.update(dt,time,{camera:view});},
+   reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
+  return gelton=built;
+ })();
+}
 // Leaving the tutorial (waking.js): one shared reset and starter kit, after the "???" farewell.
 waking=createWaking({narrator,inventory,items:ITEMS,skills:playerSkills,character,styles,auras,equipment,health,resources:playerResources,companions,
- resetObjectives,toast,
+ resetObjectives,toast,destination:'gelton',prepare:geltonReady,
  fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},
  endTutorial(){
   travel.cancel();stopAll();combat.clear();modals.closeAll('replaced');areas.notify('clearUI');
@@ -392,7 +419,7 @@ waking=createWaking({narrator,inventory,items:ITEMS,skills:playerSkills,characte
   clearSkillRewards();itemFeed.clear();tip.hide();
   menus.host.hidden=false;introTile.visible=false;player.visible=true;visual.scale.setScalar(1);
  },
- arrive(id){const landing=travel.landingFor(id);areas.activate(id,{landing,arrival:false});return landing;},
+ arrive(id){const landing=travel.landingFor(id);areas.activate(id,{landing,arrival:false});if(id==='gelton')gelton.stream(landing);return landing;},
 });
 // "Skip this part" on the tutorial tip (tutorial-chapters.js): each chapter's own skip marks it done
 // and starts the next with what it needs. The link follows the chapter the player is in.
@@ -448,11 +475,13 @@ configureProps({act(verb,prop){
  // Stations: a stove, oven or fireplace cooks like a campfire; a forge smelts and an anvil smiths.
  const near=()=>!segment&&!path.length&&interactionRoute(world,tile,prop)?.route.length===0;
  if(verb==='cook'){cookingMenu.open({available:near});return;}
+ // Trade: a shop counter (its building's shop) or a market stall opens the shared shop screen.
+ if(verb==='trade'){if(!shopMenu.open(prop.shop||'general'))toast('Nothing for sale here.');return;}
  if(verb==='smith'){openStation({kind:prop.station,x:prop.x,z:prop.z,tile:prop.tile,group:prop.group,available:near});return;}
  // Open and close: city furniture holds nothing; some chests (dungeons, the wild) give their loot once.
  if(verb==='open'){const opened=prop.toggle();gameAudio.play(opened?'doorOpen':'doorClose');if(!opened)return;
   const loot=takeLoot(prop);if(loot){for(const [id,n] of Object.entries(loot))inventory[id]=(inventory[id]||0)+n;showItemChanges(loot);}else messages?.show('There is nothing interesting in here.');return;}
- const lines={read:prop.kind==='bookshelf'?'Old ledgers and a well-thumbed almanac.':'No jobs are posted yet.',drink:'Cool, clear water.',gaze:'You take a moment to look.',browse:'Nothing for sale yet.',
+ const lines={read:prop.kind==='bookshelf'?'Old ledgers and a well-thumbed almanac.':'No jobs are posted yet.',drink:'Cool, clear water.',gaze:'You take a moment to look.',
   examine:{painting:'A sunny meadow, painted with care.',gravestone:'The name has worn away.',weaponRack:'Well-kept blades, not for the taking.'}[prop.kind]||'Nothing out of the ordinary.'};
  toast(lines[verb]||prop.label);
 }});
@@ -710,9 +739,6 @@ if(__PLAYGROUND__){
  // Graybox street (playground only; city Phase 2): plain grey buildings at the proposed scale; and the
  // kit street (Phase 4): the same layout built with the building kit.
  const cityMaps={};
- // Townsfolk for a city map (townsfolk.js): their crowd runs in the area's update.
- const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},player:()=>({tile,hidden:false}),playerTile:()=>segment?null:tile,near:t=>Math.abs(t.x-tile.x)+Math.abs(t.z-tile.z)<=8};
- function attachCrowd(built){built.crowd?.dispose();built.crowd=createCrowd({city:built,parent:built.group,pickables,services:crowdServices});return built.crowd;}
  async function cityMapReady(id){
   if(cityMaps[id])return cityMaps[id];
   const {createGrayboxStreet}=await import('./dev/graybox-street.js');
@@ -740,7 +766,8 @@ if(__PLAYGROUND__){
   areas.activate('city-editor',{landing,arrival:false});companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;
   return built;
  }
- const currentCityMap=()=>areas.id==='building-test'?buildingTest:cityMaps[areas.id]||null;
+ let testCounter=null;
+ const currentCityMap=()=>areas.id==='building-test'?buildingTest:areas.id==='gelton'?gelton:cityMaps[areas.id]||null;
  playgroundApi={
   companions,
   async enterGrayboxStreet(kit=false){
@@ -761,16 +788,23 @@ if(__PLAYGROUND__){
   // The capital (city Phase 9; playground for now): src/maps/capital.json, built per chunk and streamed
   // around the player, with its townsfolk.
   async enterCapital(){
-   if(!cityMaps.capital){const [{buildCity},{default:data}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json')]);
-    const built=buildCity(structuredClone(data),{scene,pickables,streamRadius:3});built.areaId='capital';attachCrowd(built);cityMaps.capital=built;
-    areas.register({id:'capital',name:data.name,description:'Playground: the capital',listed:()=>false,group:built.group,tiles:built.tiles,camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>built.spawn,
-     update:(dt,time,view)=>{built.stream(segment?.to||tile);built.crowd?.update(dt,time,{camera:view});},reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});}
-   const built=cityMaps.capital;stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
-   areas.activate('capital',{landing:built.spawn,arrival:false});built.stream(built.spawn);companions.resetRoute(built.spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
+   const built=await geltonReady();stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
+   const landing=travel.landingFor('gelton')||built.spawn;areas.activate('gelton',{landing,arrival:false});built.stream(landing);companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
   },
+  // Economy (economy.js, shops.js): the wallet and shops, any shop by id, and a shop counter placed
+  // beside you in any map (the real prop and trade path; one at a time).
+  wallet,shops,shopIds:()=>Object.keys(shops.shops),openShop:id=>shopMenu.open(id),
+  placeShopCounter(shopId){
+   testCounter?.dispose();testCounter=null;
+   const at=(x,z)=>world.get(key(x,z)),free=(x,z)=>{const t=at(x,z);return t&&!t.blocked&&!t.water&&!t.prop&&t!==tile&&Math.abs(t.h-tile.h)<.1;};
+   for(let r=2;r<7&&!testCounter;r++)for(let dz=-r;dz<=r&&!testCounter;dz++)for(let dx=-r;dx<=r;dx++){const x=tile.x+dx,z=tile.z+dz;
+    if([0,1,2].every(i=>free(x+i,z))&&[0,1,2].every(i=>free(x+i,z+1))){testCounter=createProp('shopCounter',{origin:[x,z],rotation:180,tileAt:at,parent:areas.get(areas.id)?.group||scene,pickables,shop:shopId});break;}}
+   return testCounter?[testCounter.x,testCounter.z]:null;
+  },
+  removeShopCounter(){testCounter?.dispose();testCounter=null;},
   // The scene and renderer, for inspecting in scripted browser checks (playground only).
   get scene(){return scene;},get renderer(){return renderer;},
-  get capitalStats(){const c=cityMaps.capital;return c?{chunks:c.chunks.size,shown:c.shownChunks,buildings:c.buildings.length,props:c.props.length,townsfolk:c.crowd?.folk.length}:null;},
+  get capitalStats(){const c=gelton;return c?{chunks:c.chunks.size,shown:c.shownChunks,buildings:c.buildings.length,props:c.props.length,townsfolk:c.crowd?.folk.length}:null;},
   // Puts the player on a tile of the current map (city playground jumps); false if there is no such free tile.
   teleport(x,z){const t=world.get(key(x,z));if(!t||t.blocked||t.water)return false;stopAll();segment=null;path=[];tile=t;player.position.set(t.x-6,t.h,t.z-6);companions.resetRoute(t);return true;},
   // Force cutaway: every building cut (no roofs, walls one storey), like the building test map.
@@ -902,7 +936,7 @@ if(__PLAYGROUND__){
    travel.cancel();if(areas.id!=='clearing'||kind==='all'){areas.activate('clearing',{landing:clearingTiles.get(key(SPAWN.x,SPAWN.z)),arrival:false});finale.reset();}if(kind==='all'){craftingTutorial.reset();opening.enterFreePlay();resetObjectives();for(const object of clearingObjects)object.visible=true;introTile.visible=false;player.visible=true;}
    clearSkillRewards();itemFeed.clear();messages?.clear();
    resourceActions.resetWhere(n=>clearingTiles.get(key(n.x,n.z))===n.tile&&(kind==='all'||kind==='items'&&!['tree','boulder'].includes(n.kind)||kind==='trees'&&n.kind==='tree'||kind==='boulders'&&n.kind==='boulder'));
-   if(kind==='all'){character.reset();auras.reset();playerControl.reset();assistance.reset();if(__PLAYGROUND__)SPELLS.energyStrike.requirements['magic.technique']=1;playerResources.reset();health.restore();playerInterface?.reset();combat.setAutoRetaliate(true);trainingFixtures.clear();cinder.reset();waking.reset();worldStart.reset();styles.reset();supplies.reset();destinations.reset();combatFixtures.clear();combat.clear();equipment.reset();carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of Object.values(playerSkills()))Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
+   if(kind==='all'){character.reset();auras.reset();playerControl.reset();assistance.reset();if(__PLAYGROUND__)SPELLS.energyStrike.requirements['magic.technique']=1;playerResources.reset();health.restore();playerInterface?.reset();combat.setAutoRetaliate(true);trainingFixtures.clear();cinder.reset();waking.reset();shops.reset();styles.reset();supplies.reset();destinations.reset();combatFixtures.clear();combat.clear();equipment.reset();carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of Object.values(playerSkills()))Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
    if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}
   },
   wakeUp(options){return waking.start(options);},

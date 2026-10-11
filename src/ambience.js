@@ -19,7 +19,7 @@ export const AMBIENT_SOUNDS={
 export const AMBIENCE_PROFILES={
  none:{label:'Silence'},
  breeze:{label:'Breeze (splash)',sounds:{wind:[9,16]}},
- meadow:{label:'Meadow (clearing, world)',sounds:{wind:[10,18],chirp:[4,10],call:[8,16],trill:[12,22],insect:[8,16]}},
+ meadow:{label:'Meadow (clearing, Gelton)',sounds:{wind:[10,18],chirp:[4,10],call:[8,16],trill:[12,22],insect:[8,16]}},
  // Each brook one-shot spans about a second of bubbles, so back-to-back timers keep it flowing.
  river:{label:'River (Willowbank)',bed:'water',sounds:{bubble:[.8,1.2],chirp:[5,11],call:[9,18]}},
  // Rock and stone rather than open air, in a cave-like space: drips, trickling stones, a smith at

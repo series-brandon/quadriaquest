@@ -20,6 +20,15 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Gelton, the waking city, with gold and shops — 2026-10-11 (user: "let's make the capital real!")
+
+- User decisions: the capital is **Gelton**; waking from the tutorial lands there (the placeholder world is removed); this phase is gold, item values and shops (ECONOMY.md steps 1, 2 and the shop part of 5); drops and jobs later.
+- New: `economy.js` (wallet, sell rate, prices), `shops.js` (definitions, stock and restock, buy/sell rules), `shop-menu.js` + `ui/dialogs/shop-dialog.js` (shared shop screen), values and categories in `items.js`, gold on the Inventory page, Bought/Sold receipts. Gelton is a production area in `main.js` (`geltonReady`), with a real Iter Crystal via `buildCity({crystal})`; `waking.js` gained `prepare`.
+- Shops open from counters (Trade at counter), market stalls, and keepers/vendors who are minding them. Playground: Economy fieldset (gold, open shop, place a counter anywhere, reset stock, price list); *Enter Gelton*.
+- Fixed on the way: duplicate "Anvil" names in the model catalogue broke the viewer's keyed list (the Cinderhold one is now "Anvil (Cinderhold station)", with a uniqueness test).
+- Known: `npm run smoke` fails only on its normal-build Quests check, which looks for tutorial copy ("Here are your quests") removed in commit 6795d07; unrelated to this work.
+- Tests: 557 pass. See docs/CITY.md *Gelton: the waking city* and docs/ECONOMY.md *As implemented*.
+
 ### City Phase 10: props, furniture and furnishing — 2026-10-11 (user: "start the next phase with the new props")
 
 - 104 new props in four sets (`src/prop-sets/`), with wall mounts, walk-under posts, glow, moving lids/doors, stations and seats; fence and iron gates; a dungeon style and surface. See docs/CITY.md *As implemented (Phase 10)*.

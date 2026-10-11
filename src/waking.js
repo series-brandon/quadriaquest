@@ -25,10 +25,12 @@ const FADE=1.1;
 
 // The world's arrival point comes from the area (`destination`), so moving the real start location
 // later only changes that area. The host supplies the shared systems and its tutorial cleanup.
+// prepare(): builds the destination (a promise), started with the farewell; the screen stays faded out
+// until it is ready.
 export function createWaking({narrator,inventory,items,skills,character,styles,auras,equipment,health,resources,companions,
- resetObjectives,endTutorial,arrive,fade,toast,destination='world'}){
+ resetObjectives,endTutorial,arrive,fade,toast,destination='gelton',prepare=null}){
  const woken=signal(false);
- let stage=null,age=0,skipped=false,needsName=false;
+ let stage=null,age=0,skipped=false,needsName=false,ready=true;
 
  // Items, levels and powers back to the shared starting point, then the starter kit.
  function resetProgress(){
@@ -65,14 +67,15 @@ export function createWaking({narrator,inventory,items,skills,character,styles,a
   start({skip=false}={}){
    if(stage||woken.peek())return false;
    skipped=skip;stage='talk';
+   if(prepare){ready=false;Promise.resolve(prepare()).then(()=>{ready=true;},error=>{console.error(error);ready=true;});}
    say(skip?SKIP_LINES:WAKING_LINES,()=>{stage='out';age=0;});
    return true;
   },
   update(dt){
-   if(stage==='out'){age+=dt;fade(Math.min(1,age/FADE));if(age>=FADE){transfer();stage='in';age=0;}}
+   if(stage==='out'){age+=dt;fade(Math.min(1,age/FADE));if(age>=FADE&&ready){transfer();stage='in';age=0;}}
    else if(stage==='in'){age+=dt;fade(Math.max(0,1-age/FADE));if(age>=FADE){fade(0);stage=null;welcome();}}
   },
   get skipped(){return skipped;},
-  reset(){stage=null;age=0;skipped=false;needsName=false;woken.value=false;fade(0);},
+  reset(){stage=null;age=0;skipped=false;needsName=false;ready=true;woken.value=false;fade(0);},
  };
 }

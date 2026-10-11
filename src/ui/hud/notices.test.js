@@ -76,6 +76,12 @@ test('the item feed merges repeated pickups, shows crafts with their costs, and 
     const craft = receipts()[1];
     assert.match(craft.textContent, /Crafted Crude Axe ×1/);
     assert.match(craft.querySelector('small').textContent, /Used Sticks ×1 · Rocks ×1/);
+    feed.show({swords: 1, gold: -20}, {trade: 'bought'});
+    assert.match(receipts()[2].textContent, /Bought Stone Sword ×1/);
+    assert.equal(receipts()[2].querySelector('small').textContent, 'Paid 20 GP');
+    feed.show({logs: -5, gold: 10}, {trade: 'sold'});
+    assert.match(receipts()[3].textContent, /Sold Small Logs ×5/);
+    assert.equal(receipts()[3].querySelector('small').textContent, 'Received 10 GP');
     for (let i = 0; i < 5; i++) feed.show({[['logs', 'stone', 'flint', 'rawFish', 'rods'][i]]: 1});
     assert.equal(receipts().length, 4, 'at most four');
     mock.timers.tick(3800);

@@ -87,7 +87,10 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   const person={kind:'townsfolk',id:entry.id,name:entry.name||'Townsfolk',entry,rig,slime,group:body,tile:home,x:home.x,z:home.z,home,house,
    ready:true,opened:false,duration:0,label:`Talk to ${entry.name||'townsfolk'}`,available:()=>!person.hidden,
    state:'idle',timer:1+random()*3,goal:null,spot:null,step:null,facing:0,hidden:false,ring:'near',acc:0,
-   interact(){person.talkTo=services.player?.()||null;person.talking=4;slime.play('Wave',{loop:false});services.say?.(person,person.entry.line||LINES[Math.floor(random()*LINES.length)]);}};
+   // A keeper minding their shop or a vendor at a stall trades (shops.js); anyone else says a line.
+   get shop(){return person.state==='staying'&&(person.activity==='vend'&&person.spot?.prop?.shop||person.activity==='keep'&&person.house?.building.shop)||null;},
+   interact(){person.talkTo=services.player?.()||null;person.talking=4;slime.play('Wave',{loop:false});const line=person.entry.line||LINES[Math.floor(random()*LINES.length)];
+    if(person.shop&&services.trade)services.trade(person,person.shop);else services.say?.(person,line);}};
   body.traverse(m=>{if(m.isMesh){m.userData.actor=person;m.userData.tile=home;pickables.push(m);}});
   occupancy.place(person,[home]);folk.push(person);
  }

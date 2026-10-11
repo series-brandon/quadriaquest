@@ -43,7 +43,7 @@ export const PROPS={
   parts:()=>[W(WOOD,B(.7,.42,.7),[0,.21,0]),W(DARK,B(.76,.06,.76),[0,.43,0]),W(LEAF,new THREE.IcosahedronGeometry(.36,1),[0,.72,0],[0,0,0],[1,.8,1]),W('#e46f8e',B(.1,.08,.1),[.16,.92,.08]),W('#f2d35b',B(.1,.08,.1),[-.14,.88,-.1])]},
  treeGrate:{name:'Tree in a grate',footprint:[1,1],policy:'solid',spots:[],tree:true,parts:()=>[W(IRON,B(.9,.04,.9),[0,.02,0]),W('#7d6a52',B(.6,.05,.6),[0,.03,0])]},
  hedge:{name:'Hedge',footprint:[1,1],policy:'solid',sight:false,spots:[],parts:()=>[W('#5f8a48',B(.96,.9,.7),[0,.45,0]),W('#6f9a55',B(.9,.14,.62),[0,.95,0])]},
- stall:{name:'Market stall',footprint:[2,1],policy:'solid',interaction:{verb:'browse',label:'Browse stall'},
+ stall:{name:'Market stall',footprint:[2,1],policy:'solid',interaction:{verb:'trade',label:'Browse stall'},shop:'market',
   spots:[{kind:'browse',at:[0,1],facing:'n'},{kind:'browse',at:[1,1],facing:'n'},{kind:'vend',at:[0,-1],facing:'s'}],
   parts:()=>[W(WOOD,B(1.8,.49,.6),[0,.245,.1]),W(DARK,B(1.86,.06,.66),[0,.52,.1]),...[-.86,.86].flatMap(x=>[W(WOOD,B(.07,1.7,.07),[x,.85,-.18]),W(WOOD,B(.07,1.45,.07),[x,.72,.38])]),
    ...[0,1,2,3,4,5].map(i=>W(i%2?CANVAS:CLOTH,B(.32,.04,.86),[-.8+i*.32,1.62,.12],[.28,0,0])),W('#d0913a',B(.3,.16,.22),[-.5,.63,.12]),W('#7aa04f',new THREE.IcosahedronGeometry(.1,0),[-.1,.63,.16]),W('#c8463d',new THREE.IcosahedronGeometry(.09,0),[.06,.62,.1]),W('#e8c46a',B(.34,.12,.24),[.5,.61,.1])]},
@@ -113,7 +113,9 @@ export function resetLoot(){takenLoot.clear();}
 // Places a prop: marks its tiles, adds the model, and returns its spots as live tiles.
 // tileAt(x, z) → tile. Throws if a footprint tile is missing (the editor checks before placing).
 // loot: items a chest gives once ({id, items}); without it, opening says there is nothing inside.
-export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id=null,loot=null}){
+// shop: the shop a trading prop opens (shops.js; a counter's comes from its building, a stall's is the
+// market unless the map says otherwise).
+export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id=null,loot=null,shop=null}){
  const def=PROPS[kind];if(!def)throw Error('Unknown prop: '+kind);
  const [ox,oz]=origin,[w,d]=propFootprint(kind,rotation),tiles=[];
  for(let z=0;z<d;z++)for(let x=0;x<w;x++){const t=tileAt(ox+x,oz+z);if(!t)throw Error(`${def.name}: no tile at ${ox+x},${oz+z}`);tiles.push(t);}
@@ -128,7 +130,7 @@ export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id
  // The interaction anchor: the tile in front of the prop's middle that you walk up to.
  const anchor=blocked[Math.floor(blocked.length/2)]||tiles[0];
  const prop={kind,id,def,group,tiles,blocked,spots,tile:anchor,x:anchor.x,z:anchor.z,label:def.interaction?.label??def.name,ready:true,opened:false,duration:0,
-  station:def.station||null,loot,open:false,amount:0,
+  station:def.station||null,loot,shop:shop??def.shop??null,open:false,amount:0,
   available:()=>true,interact(){if(def.interaction)services.act(def.interaction.verb,prop);},
   toggle(){prop.open=!prop.open;animated.add(prop);return prop.open;},
   dispose(){group.removeFromParent();animated.delete(prop);for(const t of blocked){t.blocked=false;if(def.sight===false)t.blocksSight=false;}for(const t of tiles)delete t.prop;for(const m of meshes){const i=pickables.indexOf(m);if(i>=0)pickables.splice(i,1);}}};
