@@ -2,7 +2,7 @@ import {GEAR,createEquipment} from '../equipment.js';
 import {SPELLS} from '../combat-styles.js';
 import {resolveAttackMotion} from '../combat-animation.js';
 // Hand items fit either hand (shields included); a two-handed item frees the other hand.
-export const HAND_ITEMS=[['','Empty'],['copperDagger','Copper Dagger'],['swords','Stone Sword'],['copperShield','Copper Shield'],['shields','Wooden Shield'],['bows','Training Bow']];
+export const HAND_ITEMS=[['','Empty'],['copperDagger','Copper Dagger'],['swords','Stone Sword'],['copperShield','Copper Shield'],['shields','Wooden Shield'],['bows','Training Bow'],['staffs','Simple Staff'],['axes','Crude Axe'],['pickaxes','Crude Pickaxe'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod']];
 export const ATTACK_MOTIONS=[['','Automatic'],['punch','Punch'],['stab','Stab'],['slash','Slash'],['bow','Bow draw / release'],['cast','Cast']];
 export const ATTACK_HANDS=[['','Auto'],['both','Both hands (one-two)'],['right','Right hand only'],['left','Left hand only']];
 export const HANDEDNESS=[['right','Right-handed'],['left','Left-handed']];
@@ -24,6 +24,19 @@ export function previewEquipment(options={}){
  // Per-hand damage types use the production setter; unsupported choices keep the weapon's default.
  for(const side of ['right','left'])if(options[side+'DamageType'])equipment.setDamageType(side,options[side+'DamageType']);
  return equipment;
+}
+// Keeps one equipment instance (shown by the shared slime presentation) in step with the viewer's
+// choices, through the production setters. Returns the resolved loadout.
+export function syncPreviewEquipment(equipment,inventory,options={}){
+ const loadout=previewLoadout(options);
+ for(const id of Object.keys(inventory))inventory[id]=0;
+ // Worn slots (options.worn: {slot: item id or ''}), e.g. a hat on the head.
+ const worn=Object.fromEntries(Object.entries(options.worn||{}).map(([slot,id])=>[slot,id||null]));
+ for(const id of [loadout.rightHand,loadout.leftHand,...Object.values(worn)])if(id)inventory[id]=(inventory[id]||0)+1;
+ equipment.setHandedness(options.handedness||'right');equipment.setSlots({right:loadout.rightHand,left:loadout.leftHand,...worn});
+ equipment.setAttackHands(options.attackHands||null);
+ for(const side of ['right','left'])if(options[side+'DamageType'])equipment.setDamageType(side,options[side+'DamageType']);
+ return loadout;
 }
 // Choices per hand, only where the striking weapon supports more than one damage type.
 export function previewDamageTypes(options={}){

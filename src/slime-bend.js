@@ -1,39 +1,50 @@
 import * as THREE from 'three';
 
 // A height-weighted sideways bend: the bottom stays fixed and horizontal.
+// Done in the vertex shader (since 2026-10-11): geometry is never rewritten, so every slime can share
+// its body and face geometry and a bend uploads nothing. Each bent mesh has its own material carrying
+// its uniforms: the bend amount and its transform to and from the slime's `visual` space (the heights the
+// bend is measured in). The shadow depth material and the lowest render tier's simpler material get
+// the same patch (simple-materials.js), so shadows and every tier bend alike.
 export function bendOffset(height,amount){const t=Math.max(0,Math.min(1,(height-.07)/.72));return amount*t*t;}
+// The JS reference of the shader (tests): a point in the mesh's own space, bent.
+export function bendPoint(point,amount,toVisual){
+ const p=point.clone().applyMatrix4(toVisual);p.x+=bendOffset(p.y,amount);return p.applyMatrix4(toVisual.clone().invert());
+}
+const BEND_HEAD='uniform float uBend;\nuniform mat4 uToVisual;\nuniform mat4 uFromVisual;\n';
+const BEND_NORMAL=`
+ { vec4 bp=uToVisual*vec4(position,1.0);float bh=bp.y;
+   float slope=(bh>.07&&bh<.79)?2.0*uBend*(bh-.07)/(.72*.72):0.0;
+   mat3 toV=mat3(uToVisual);vec3 bn=normalize(transpose(inverse(toV))*objectNormal);bn.y-=slope*bn.x;
+   objectNormal=normalize(transpose(toV)*bn); }`;
+const BEND_POSITION=`
+ { vec4 bp=uToVisual*vec4(transformed,1.0);float bt=clamp((bp.y-.07)/.72,0.0,1.0);bp.x+=uBend*bt*bt;transformed=(uFromVisual*bp).xyz; }`;
+export function applySlimeBend(material,uniforms){
+ if(material.userData.bendUniforms)return material;
+ material.userData.bendUniforms=uniforms;
+ material.onBeforeCompile=shader=>{
+  Object.assign(shader.uniforms,uniforms);
+  shader.vertexShader=BEND_HEAD+shader.vertexShader
+   .replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>'+BEND_NORMAL)
+   .replace('#include <begin_vertex>','#include <begin_vertex>'+BEND_POSITION);
+ };
+ material.customProgramCacheKey=()=>'slime-bend';material.needsUpdate=true;
+ return material;
+}
+// parts: objects whose meshes bend (the body and the face). Each such mesh needs a material of its own
+// (shared materials are cloned). Returns bend(amount).
 export function createSlimeBend(visual,parts){
-  const point=new THREE.Vector3(),normal=new THREE.Vector3();
-  const meshes=[];
-  for(const part of parts)part.traverse(mesh=>{
-    if(!mesh.isMesh)return;
-    const matrix=new THREE.Matrix4();
-    for(let node=mesh;node&&node!==visual;node=node.parent){node.updateMatrix();matrix.premultiply(node.matrix);}
-    const normalMatrix=new THREE.Matrix3().getNormalMatrix(matrix);
-    meshes.push({mesh,matrix,normalMatrix,inverseNormal:normalMatrix.clone().invert(),inverse:matrix.clone().invert(),positions:mesh.geometry.attributes.position.array.slice(),normals:mesh.geometry.attributes.normal.array.slice()});
-  });
-  let previous=0;
-  return amount=>{
-    if(Math.abs(amount-previous)<.00001)return;
-    previous=amount;
-    for(const {mesh,matrix,inverse,normalMatrix,inverseNormal,positions,normals}of meshes){
-      const geometry=mesh.geometry,attribute=geometry.attributes.position;
-      for(let i=0;i<attribute.count;i++){
-        point.fromArray(positions,i*3).applyMatrix4(matrix);
-        // Transform the original smooth normal by the bend's inverse transpose.
-        // Rebuilding normals from non-indexed triangles introduces visible facets.
-        const height=point.y,slope=height>.07&&height<.79?2*amount*(height-.07)/(.72*.72):0;
-        normal.fromArray(normals,i*3).applyMatrix3(normalMatrix);
-        normal.y-=slope*normal.x;
-        normal.applyMatrix3(inverseNormal).normalize();
-        geometry.attributes.normal.setXYZ(i,normal.x,normal.y,normal.z);
-        point.x+=bendOffset(point.y,amount);point.applyMatrix4(inverse);
-        attribute.setXYZ(i,point.x,point.y,point.z);
-      }
-      attribute.needsUpdate=true;
-      if(amount===0){geometry.attributes.normal.array.set(normals);geometry.attributes.normal.needsUpdate=true;}
-      else geometry.attributes.normal.needsUpdate=true;
-      geometry.computeBoundingSphere();
-    }
-  };
+ const sets=[];
+ for(const part of parts)part.traverse(mesh=>{
+  if(!mesh.isMesh)return;
+  const matrix=new THREE.Matrix4();
+  for(let node=mesh;node&&node!==visual;node=node.parent){node.updateMatrix();matrix.premultiply(node.matrix);}
+  const uniforms={uBend:{value:0},uToVisual:{value:matrix},uFromVisual:{value:matrix.clone().invert()}};
+  if(mesh.material.userData.bendUniforms){const own=mesh.material.clone();delete own.userData.bendUniforms;mesh.material=own;}
+  applySlimeBend(mesh.material,uniforms);
+  if(mesh.castShadow)mesh.customDepthMaterial=applySlimeBend(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}),uniforms);
+  sets.push(uniforms);
+ });
+ let previous=0;
+ return amount=>{if(Math.abs(amount-previous)<.00001)return;previous=amount;for(const u of sets)u.uBend.value=amount;};
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {companion,animateCompanion} from './companion-model.js';
+import {companion,animateCompanion,setCompanionOutfit} from './companion-model.js';
 import {CORGI_NAMES} from './random-names.js';
 import {nameDialog} from './ui/dialogs/name-dialog.js';
 import {h,mount} from './ui/dom.js';
@@ -23,6 +23,6 @@ export function createCompanionMenu(system,{panels,modals,narrator,canClose=()=>
   }});
  }
  const portraitSize={width:0,height:0};
- const menu={editName,close(){if(canClose()&&panels.isOpen('companions'))panels.close();closeName();},update(time){if(panel.hidden||!system.state.owned)return;animateCompanion(portrait,time);portrait.rotation.y=Math.sin(time)*.12;const {clientWidth:width,clientHeight:height}=canvas;if(width&&height&&(width!==portraitSize.width||height!==portraitSize.height)){portraitSize.width=width;portraitSize.height=height;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}renderer.render(scene,camera);},dispose(){closeName();renderer.dispose();panel.remove();}};
+ const menu={editName,close(){if(canClose()&&panels.isOpen('companions'))panels.close();closeName();},update(time){if(panel.hidden||!system.state.owned)return;setCompanionOutfit(portrait,system.state.outfit);animateCompanion(portrait,time);portrait.rotation.y=Math.sin(time)*.12;const {clientWidth:width,clientHeight:height}=canvas;if(width&&height&&(width!==portraitSize.width||height!==portraitSize.height)){portraitSize.width=width;portraitSize.height=height;renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();}renderer.render(scene,camera);},dispose(){closeName();renderer.dispose();panel.remove();}};
  system.attachMenu(menu);return menu;
 }

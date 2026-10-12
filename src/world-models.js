@@ -1,3 +1,4 @@
+import {makeTreeModel} from './tree-models.js';
 import * as THREE from 'three';
 import {tileTopGeometry} from './tile-top.js';
 import {key} from './world.js';
@@ -5,12 +6,8 @@ import {cachedMergedMesh} from './merged-model.js';
 const material=color=>new THREE.MeshStandardMaterial({color,roughness:.9});
 function add(parent,geometry,mat,x=0,y=0,z=0){const mesh=new THREE.Mesh(geometry,typeof mat==='string'?material(mat):mat);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);return mesh;}
 // One merged mesh (trunk and three crowns): a single draw and shadow draw per tree.
-export function makeTree(){
- const group=new THREE.Group();
- group.add(cachedMergedMesh('tree',()=>[{geometry:new THREE.CylinderGeometry(.09,.15,1.3,7),color:'#a68c6b',position:[0,.65,0]},
-  ...[0,1,2].map(j=>({geometry:new THREE.IcosahedronGeometry(.72-j*.13,1),color:['#799b62','#95b575','#a9c589'][j],position:[Math.sin(j*3)*.19,1.25+j*.38,Math.cos(j*3)*.12],scale:[1,.95,1]}))]));
- return group;
-}
+// Trees come in species (tree-models.js); the default is the original oak.
+export function makeTree(species='oak'){return makeTreeModel(species);}
 export function makeFlowers(){
  const group=new THREE.Group();for(let j=0;j<3;j++){add(group,new THREE.CylinderGeometry(.008,.008,.12,3),'#799b62',-.32+j*.11,.07,.3);add(group,new THREE.IcosahedronGeometry(.035,0),j%2?'#f6e8ae':'#f8f5dd',-.32+j*.11,.13,.3);}return group;
 }

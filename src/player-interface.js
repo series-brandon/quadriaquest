@@ -14,10 +14,10 @@ import {FOODS} from './player-health.js';
 import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
-export function createPlayerInterface({modals=null,menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styles,styleMenu,auras,toast=()=>{},playerControl=null,assistance=null}){
+export function createPlayerInterface({cameraAngle=()=>0,modals=null,menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styles,styleMenu,auras,toast=()=>{},playerControl=null,assistance=null}){
  const $=id=>document.getElementById(id),mobile=compactQuery(),panels=menus.panels;
  const sidebar=document.createElement('aside');sidebar.id='player-sidebar';sidebar.setAttribute('aria-label','Player overview and journal');
- const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, player, enemies and ground items (gold squares)"></canvas><span>N</span></div><div id="overview-vitals"></div>`;
+ const overview=document.createElement('section');overview.id='player-overview';overview.innerHTML=`<div class="overview-heading"><button id="hide-player-panel" aria-label="Collapse player sidebar">${icon('collapseSidebar')}</button></div><div class="overview-map"><canvas width="136" height="136" role="img" aria-label="Nearby terrain, buildings, player, enemies and ground items (gold squares), turned so the camera's forward is up"></canvas></div><div id="overview-vitals"></div>`;
  const heading=overview.querySelector('.overview-heading');
  // Pop out the docked journal (its header row is dropped in the sidebar to save height).
  const popOut=h('button',{id:'journal-pop-out',type:'button','aria-label':'Pop out journal',title:'Pop out journal',on:{click:()=>journal.popOut()}},iconNode('popOut'));heading.append(popOut);
@@ -45,7 +45,7 @@ export function createPlayerInterface({modals=null,menus,journal,health,resource
   meters.energy.hidden=actionFor.energy.hidden=!energy;meters.ki.hidden=actionFor.ki.hidden=!ki;
   vitals.dataset.columns=String(3+energy+ki);vitals.toggleAttribute('data-energy-hidden',!energy);});return $('overview-vitals');});
  const mapCanvas=overview.querySelector('canvas');let mapCenter={x:tile().x,z:tile().z};
- const mapControls=mountMinimapControls(mapCanvas,{center:()=>mapCenter,move,changed:()=>{clock=.15;drawMap();}});
+ const mapControls=mountMinimapControls(mapCanvas,{center:()=>mapCenter,move,changed:()=>{clock=.15;drawMap();},rotation:()=>cameraAngle()});
  // Phone tab bar: primary tabs plus a More sheet for the rest, both rendered from the panel host.
  const secondary=entry=>!entry.primary,moreOpen=signal(false),hasMore=anyAvailable(panels,secondary);
  let mobileNav,more,moreButton,moreClose;
@@ -101,20 +101,37 @@ export function createPlayerInterface({modals=null,menus,journal,health,resource
  menus.events.action=()=>reaction('action');
  menus.events.beforeClose=event=>{closeMore();if(event==='dismiss'&&!mobile.matches&&!hidden)return false;const result=menuReaction(mobile.matches,event);if(result==='compact')journal.compact();return result==='close';};
  $('hide-player-panel').onclick=()=>{hidden=!hidden;journal.setDocked(false);if(hidden)menus.closeMenus('dismiss');layout();};
+ // The minimap turns with the camera (its forward is up) and shows buildings: indoor floors and the
+ // walls, windows and doors on tile edges. North is marked wherever it now points.
+ const EDGE_COLORS={wall:'#2e2734',window:'#7fb0cc',fence:'#7a5a3e',railing:'#7a5a3e',low:'#6d6457'};
+ let drawnAngle=null;
  function drawMap(){
-  const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=mapControls.radius;mapCenter={x:p.x,z:p.z};
+  const canvas=overview.querySelector('canvas'),ctx=canvas.getContext('2d'),p=tile(),radius=mapControls.radius,turn=cameraAngle();mapCenter={x:p.x,z:p.z};drawnAngle=turn;
   const grid=minimapGrid(canvas.parentElement.clientWidth-8,devicePixelRatio,radius),{size,pixels,gap}=grid;
   if(canvas.width!==pixels){canvas.width=canvas.height=pixels;canvas.style.width=(grid.width+8)+'px';}
   ctx.fillStyle='#41394a';ctx.fillRect(0,0,pixels,pixels);
-  for(const t of minimapTiles(world,p,radius)){ctx.fillStyle=t.water?'#7a9caf':t.blocksSight?'#706679':t.blocked?'#97869a':t.safe?'#b4b59b':'#b2a39d';ctx.fillRect((t.x-p.x+radius)*size,(t.z-p.z+radius)*size,size-gap,size-gap);}
-  for(const n of minimapGroundItems(world,groundItems(),p,radius)){
+  ctx.save();ctx.translate(pixels/2,pixels/2);ctx.rotate(turn);ctx.translate(-pixels/2,-pixels/2);
+  // A turned square needs the tiles out to its corners.
+  const reach=Math.ceil(radius*Math.SQRT2)+1,cell=t=>[(t.x-p.x+radius)*size,(t.z-p.z+radius)*size];
+  for(const t of minimapTiles(world,p,reach)){const [x,y]=cell(t);ctx.fillStyle=t.water?'#7a9caf':t.indoor?'#d9c9a6':t.blocksSight?'#706679':t.blocked?'#97869a':t.safe?'#b4b59b':'#b2a39d';ctx.fillRect(x,y,size-gap,size-gap);}
+  ctx.lineCap='square';ctx.lineWidth=Math.max(2,Math.round(size*.22));
+  for(const t of minimapTiles(world,p,reach)){if(!t.edges)continue;const [x,y]=cell(t);
+   for(const [side,f] of Object.entries(t.edges)){if(f.door&&f.kind==='wall')continue;// an open door's leaf
+    ctx.strokeStyle=f.kind==='door'?(f.open?'#f6dc8f':f.locked?'#b0563f':'#d09a45'):EDGE_COLORS[f.kind]||EDGE_COLORS.wall;
+    ctx.beginPath();if(side==='n'){ctx.moveTo(x-gap/2,y-gap/2);ctx.lineTo(x+size-gap/2,y-gap/2);}else{ctx.moveTo(x-gap/2,y-gap/2);ctx.lineTo(x-gap/2,y+size-gap/2);}ctx.stroke();}}
+  for(const n of minimapGroundItems(world,groundItems(),p,reach)){
    const marker=Math.max(3,Math.round(size*.35)),x=(n.x-p.x+radius+.5)*size,z=(n.z-p.z+radius+.5)*size;
    ctx.fillStyle='#41394a';ctx.fillRect(Math.round(x-marker/2)-gap,Math.round(z-marker/2)-gap,marker+gap*2,marker+gap*2);
    ctx.fillStyle='#ffd878';ctx.fillRect(Math.round(x-marker/2),Math.round(z-marker/2),marker,marker);
   }
-  for(const a of enemies()){if(a.opened||Math.abs(a.x-p.x)>radius||Math.abs(a.z-p.z)>radius)continue;ctx.fillStyle=a.aggro?'#f3a16e':'#bd7669';ctx.beginPath();ctx.arc((a.x-p.x+radius+.5)*size,(a.z-p.z+radius+.5)*size,size*.375,0,Math.PI*2);ctx.fill();}
+  for(const a of enemies()){if(a.opened||Math.abs(a.x-p.x)>reach||Math.abs(a.z-p.z)>reach)continue;ctx.fillStyle=a.aggro?'#f3a16e':'#bd7669';ctx.beginPath();ctx.arc((a.x-p.x+radius+.5)*size,(a.z-p.z+radius+.5)*size,size*.375,0,Math.PI*2);ctx.fill();}
   const goal=destination();if(goal){const dx=goal.x-p.x,dz=goal.z-p.z,distance=mobile.matches?Math.hypot(dx,dz):Math.max(Math.abs(dx),Math.abs(dz)),limit=mobile.matches?radius-.5:radius,scale=distance>limit?limit/distance:1,x=(dx*scale+radius+.5)*size,y=(dz*scale+radius+.5)*size;ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(2,gap);ctx.strokeRect(x-size*.42,y-size*.42,size*.84,size*.84);ctx.beginPath();ctx.moveTo(x-size*.25,y);ctx.lineTo(x+size*.25,y);ctx.moveTo(x,y-size*.25);ctx.lineTo(x,y+size*.25);ctx.stroke();}
+  ctx.restore();
   ctx.fillStyle='#eff6b9';ctx.beginPath();ctx.arc(pixels/2,pixels/2,size*.5,0,Math.PI*2);ctx.fill();
+  // North: the map's -z direction, turned with the map, near the edge.
+  const edge=pixels/2-Math.max(10,size*.9),nx=pixels/2+Math.sin(turn)*edge,ny=pixels/2-Math.cos(turn)*edge;
+  ctx.font=`bold ${Math.max(10,Math.round(size*.9))}px system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle='#41394a';ctx.beginPath();ctx.arc(nx,ny,Math.max(7,size*.6),0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff7da';ctx.fillText('N',nx,ny+1);
  }
  mobile.addEventListener('change',layout);
  return {
@@ -124,7 +141,10 @@ export function createPlayerInterface({modals=null,menus,journal,health,resource
   tip(text){warning.announce(text);},
   attacked(){reaction('attacked');const now=performance.now();if(now-lastAttacked>10000)warning.announce('Under attack!');lastAttacked=now;},
   reset(){mapControls.reset();hidden=false;quickFood.value='cookedFish';journal.compact();menus.closeMenus();layout();},
-  update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;if(clock<.15)return;clock=0;layout();if(!visible)return;
+  update(dt,show){if(visible!==show){visible=show;layout();}clock+=dt;
+   // Turning the camera turns the map at once; otherwise it refreshes a few times a second.
+   if(visible&&drawnAngle!==null&&Math.abs(cameraAngle()-drawnAngle)>.002){drawMap();}
+   if(clock<.15)return;clock=0;layout();if(!visible)return;
    drawMap();
   },
   get state(){return {minimapRadius:mapControls.radius,destination:destination()?{x:destination().x,z:destination().z}:null,mobile:mobile.matches,moreOpen:moreOpen.peek(),hidden,quickFood:quickFood.peek(),expanded:journal.expanded,menuOpen:!$('journal').hidden};}

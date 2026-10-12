@@ -173,3 +173,67 @@ test('destination dialog: a service that announces itself closes the dialog', ()
   press(button(node, 'Restore'));
   assert.deepEqual(closed, ['restore']);
 });
+
+test('shop dialog buys and sells through the shop system and follows gold, stock and refusals', async () => {
+  const {shopDialog} = await import('./shop-dialog.js');
+  const {createShops} = await import('../../shops.js');
+  const {createWallet, sellPrice} = await import('../../economy.js');
+  const inventory = reactiveRecord({gold: 100, logs: 3, axes: 1, copperDagger: 1});
+  const wallet = createWallet({inventory}), shops = createShops({inventory, wallet, equipped: id => (id === 'copperDagger' ? 1 : 0)});
+  const host = createModalHost(), traded = [], asked = [];
+  host.open({id: 'shop', title: 'Smithy', size: 'wide', flush: true,
+    build: () => shopDialog({shopId: 'smithy', shops, items: ITEMS, inventory, wallet, confirm: c => asked.push(c), onTrade: c => traded.push(c)})});
+  const node = document.body.querySelector('dialog.q-modal:last-of-type');
+  const gold = () => node.querySelector('.q-shop__gold').getAttribute('aria-label');
+  const goods = () => [...node.querySelectorAll('.q-shop__good')].map(b => b.dataset.item);
+  const action = () => [...node.querySelectorAll('.q-shop__item .q-button:not(.q-button--small)')].at(-1);
+  assert.equal(gold(), 'Your gold: 100 GP');
+  assert.deepEqual(goods(), ['copperOre', 'copperIngots', 'copperDagger', 'copperShield', 'hammers', 'pickaxes']);
+  // Buy three ore: gold and the notice follow.
+  press(node.querySelector('[data-item=copperOre]'));
+  press(button(node, '5'));
+  assert.equal(action().textContent, 'Buy 5 for 50 GP');
+  const typed = node.querySelector('.q-shop__typed input');
+  typed.value = '3'; typed.dispatchEvent(new window.Event('change'));
+  press(action());
+  assert.equal(inventory.copperOre, 3); assert.equal(gold(), 'Your gold: 70 GP');
+  assert.deepEqual(traded.at(-1), {copperOre: 3, gold: -30});
+  // A shield costs more than you have: refused with its reason.
+  press(node.querySelector('[data-item=copperShield]'));
+  assert.equal(action().disabled, true);
+  assert.equal(node.querySelector('.q-shop__item [role=status]').textContent, 'Not enough gold');
+  // Sell: the smithy won't buy logs; the worn dagger is refused; the last axe asks first.
+  press(button(node, 'Sell'));
+  assert.deepEqual(goods(), ['copperOre', 'copperDagger', 'axes', 'logs']);
+  assert.ok(node.querySelector('[data-item=logs]').hasAttribute('data-blocked'));
+  assert.ok(node.querySelector('[data-item=copperDagger]').hasAttribute('data-blocked'));
+  press(node.querySelector('[data-item=axes]'));
+  press(action());
+  assert.equal(asked.length, 1); assert.match(asked[0].message, /only Crude Axe/);
+  assert.equal(inventory.axes, 1, 'nothing sold until confirmed');
+  asked[0].onConfirm();
+  assert.equal(inventory.axes, 0); assert.equal(wallet.gold, 70 + sellPrice('axes'));
+  host.closeAll();
+});
+
+test('job board takes posted jobs up to the limit and hands in ready ones', async () => {
+  const {jobBoard} = await import('./job-board.js');
+  const {createJobs, BOARD_LIMIT} = await import('../../jobs.js');
+  const {createWallet} = await import('../../economy.js');
+  const {seededRandom} = await import('../../drops.js');
+  const inventory = reactiveRecord({gold: 0}), wallet = createWallet({inventory}), handed = [];
+  const jobs = createJobs({inventory, wallet, random: seededRandom(4), now: () => 0});
+  const {node} = mount(() => jobBoard({jobs, onHandIn: r => handed.push(r)}));
+  const posted = () => [...node.querySelectorAll('[aria-label="Posted jobs"] .q-job')];
+  const mine = () => [...node.querySelectorAll('[aria-label="Your board jobs"] .q-job')];
+  assert.equal(posted().length, 4);
+  for (let i = 0; i < BOARD_LIMIT; i++) press(button(posted()[0], 'Take job'));
+  assert.equal(mine().length, BOARD_LIMIT);
+  assert.ok(posted().every(card => button(card, 'Take job').disabled), 'full: the rest wait');
+  const job = jobs.active[0];
+  assert.equal(button(mine()[0], 'Hand in').disabled, true);
+  jobs.forceReady(job.key);
+  press(button(mine()[0], 'Hand in'));
+  assert.equal(handed.length, 1); assert.equal(wallet.gold, job.gold);
+  assert.equal(mine().length, BOARD_LIMIT - 1);
+});

@@ -3,19 +3,8 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {waterReflection} from './water-reflection.js';
 import {shoreWeight,waterWave,pondEdges} from './water-motion.js';
 
-// Shared by the clearing and title garden; only inland surfaces move.
-export const WATER_DEFAULTS=Object.freeze({enabled:true,speed:1.25,intensity:1,waves:true,opacity:.75,color:'#004070',faceted:true,waveStrength:4,fixedShoreline:true,roughness:0,reflectionStrength:3.5,shimmers:false});
-export const waterSettings={...WATER_DEFAULTS};
-export function createWaterEffects(parent,renderer){
-  const group=new THREE.Group();parent.add(group);
-  let appliedColor=null;
-  const material=new THREE.ShaderMaterial({
-    transparent:true,depthWrite:false,
-    uniforms:{time:{value:0},intensity:{value:1}},
-    vertexShader:`varying vec2 surface; varying vec2 tileUV;
-      void main(){tileUV=uv;vec4 world=modelMatrix*vec4(position,1.);surface=world.xz;
-      gl_Position=projectionMatrix*viewMatrix*world;}`,
-    fragmentShader:`uniform float time; uniform float intensity;
+// The glints drawn over water surfaces (two short glints per tile, independent, unhurried rhythms).
+const GLINT_FRAGMENT=`uniform float time; uniform float intensity;
       varying vec2 surface; varying vec2 tileUV;
       float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
       void main(){
@@ -39,7 +28,20 @@ export function createWaterEffects(parent,renderer){
         gl_FragColor=vec4(.90,.98,.96,shimmer*intensity);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
-      }`
+      }`;
+// Shared by the clearing and title garden; only inland surfaces move.
+export const WATER_DEFAULTS=Object.freeze({enabled:true,speed:1.25,intensity:1,waves:true,opacity:.75,color:'#004070',faceted:true,waveStrength:4,fixedShoreline:true,roughness:0,reflectionStrength:3.5,shimmers:false});
+export const waterSettings={...WATER_DEFAULTS};
+export function createWaterEffects(parent,renderer){
+  const group=new THREE.Group();parent.add(group);
+  let appliedColor=null;
+  const material=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,
+    uniforms:{time:{value:0},intensity:{value:1}},
+    vertexShader:`varying vec2 surface; varying vec2 tileUV;
+      void main(){tileUV=uv;vec4 world=modelMatrix*vec4(position,1.);surface=world.xz;
+      gl_Position=projectionMatrix*viewMatrix*world;}`,
+    fragmentShader:GLINT_FRAGMENT
   });
   const tiles=[];
   const surfaceMaterial=new THREE.MeshStandardMaterial({color:waterSettings.color,flatShading:waterSettings.faceted,roughness:waterSettings.roughness,envMap:renderer?waterReflection(renderer):null,envMapIntensity:waterSettings.reflectionStrength,metalness:.08,transparent:true,opacity:waterSettings.opacity,depthWrite:false});
@@ -135,4 +137,55 @@ export function createWaterEffects(parent,renderer){
     },
     restart(){material.uniforms.time.value=0;}
   };
+}
+
+// Water for streamed land (countryside.js; docs/WORLD.md): the same look as the ponds above (colour,
+// opacity, reflections, facets, waves and glints, following waterSettings), but the waves move in the
+// vertex shader, so a whole lake or a river costs nothing per frame on the CPU. One surface mesh per
+// chunk; vertices on a shore edge stay still (the fixed shoreline). Shared materials; update(dt) once
+// a frame.
+//   build(tiles, isWater(x, z), parent, offset) → {dispose()}: tiles are the chunk's water tiles.
+export const STREAM_WATER_LEVEL=.85;
+const WAVE_GLSL=`uniform float uTime;uniform float uWave;attribute float shore;
+float waterWave(vec2 p){return .012*sin(p.x*2.1+p.y*1.4-uTime*.8)+.006*sin(p.y*2.7-p.x*.9+uTime*.55);}`;
+export function createStreamedWater(renderer){
+ const uniforms={uTime:{value:0},uWave:{value:1}};
+ const displace=material=>{material.onBeforeCompile=shader=>{Object.assign(shader.uniforms,uniforms);
+  shader.vertexShader=WAVE_GLSL+'\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n vec2 worldXZ=(modelMatrix*vec4(position,1.)).xz;transformed.y+=waterWave(worldXZ)*uWave*shore;');};
+  material.customProgramCacheKey=()=>'streamed-water';return material;};
+ const surface=displace(new THREE.MeshStandardMaterial({color:waterSettings.color,flatShading:waterSettings.faceted,roughness:waterSettings.roughness,envMap:renderer?waterReflection(renderer):null,envMapIntensity:waterSettings.reflectionStrength,metalness:.08,transparent:true,opacity:waterSettings.opacity,depthWrite:false}));
+ const glintUniforms={time:{value:0},intensity:{value:1}};
+ const glints=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{...glintUniforms,...uniforms},
+  vertexShader:WAVE_GLSL+`\nvarying vec2 surface; varying vec2 tileUV;
+   void main(){tileUV=uv;vec4 world=modelMatrix*vec4(position,1.);world.y+=waterWave(world.xz)*uWave*shore+.003;surface=world.xz;gl_Position=projectionMatrix*viewMatrix*world;}`,
+  fragmentShader:GLINT_FRAGMENT});
+ let applied=null;
+ return {
+  build(tiles,isWater,parent,offset=6){
+   const n=tiles.length;if(!n)return {dispose(){}};
+   // A 2 × 2 grid per tile: the middle row and column move; edges move only where water continues.
+   const positions=[],uvs=[],shores=[],index=[];
+   for(const t of tiles){
+    const open=(dx,dz)=>isWater(t.x+dx,t.z+dz)?1:0,base=positions.length/3;
+    for(let j=0;j<3;j++)for(let i=0;i<3;i++){
+     const px=i/2-.5,pz=j/2-.5;positions.push(t.x-offset+px,STREAM_WATER_LEVEL,t.z-offset+pz);uvs.push(i/2,1-j/2);
+     const edgeX=i===0?open(-1,0):i===2?open(1,0):1,edgeZ=j===0?open(0,-1):j===2?open(0,1):1;
+     shores.push(edgeX&&edgeZ&&(i===1||j===1||open(i===0?-1:1,j===0?-1:1))?1:0);}
+    for(let j=0;j<2;j++)for(let i=0;i<2;i++){const a=base+j*3+i,b=a+1,c=a+3,d=c+1;index.push(a,c,b,b,c,d);}
+   }
+   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+   geometry.setAttribute('shore',new THREE.Float32BufferAttribute(shores,1));geometry.setIndex(index);geometry.computeVertexNormals();
+   const water=new THREE.Mesh(geometry,surface),shine=new THREE.Mesh(geometry,glints);water.name='streamed-water';water.receiveShadow=true;water.renderOrder=1;shine.renderOrder=2;
+   for(const m of [water,shine]){m.matrixAutoUpdate=false;m.updateMatrix();parent.add(m);}
+   return {dispose(){water.removeFromParent();shine.removeFromParent();geometry.dispose();}};
+  },
+  update(dt){
+   uniforms.uTime.value+=dt*waterSettings.speed;glintUniforms.time.value=uniforms.uTime.value;
+   uniforms.uWave.value=waterSettings.enabled&&waterSettings.waves?waterSettings.waveStrength:0;
+   glintUniforms.intensity.value=waterSettings.enabled&&waterSettings.shimmers?waterSettings.intensity:0;
+   surface.opacity=waterSettings.opacity;surface.roughness=waterSettings.roughness;surface.envMapIntensity=waterSettings.reflectionStrength;
+   if(waterSettings.color!==applied){applied=waterSettings.color;surface.color.set(applied);}
+   if(surface.flatShading!==waterSettings.faceted){surface.flatShading=waterSettings.faceted;surface.needsUpdate=true;}
+  },
+ };
 }

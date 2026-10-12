@@ -1,5 +1,4 @@
 import {SLIME_EXPRESSIONS} from './slime-face.js';
-import {idlePose} from './slime-motion.js';
 import * as THREE from 'three';
 import {signal} from './reactive.js';
 import {h,mount} from './ui/dom.js';
@@ -7,7 +6,9 @@ import {keyedList} from './ui/list.js';
 
 // Character conversations (Reed, Bristle, mentors…): a speaker portrait, name badge, the line, and
 // the player's responses. Portraits clone the live model hierarchy and mirror its transforms each
-// frame; mesh geometry and materials stay shared with the world actor, including cosmetics.
+// frame; mesh geometry and materials stay shared with the world actor, including cosmetics. Pass a
+// character's root group: the root's own transform is replaced by the portrait's framing, so motion must
+// live below it (as the shared slime presentation's does).
 // The box keeps the id `character-dialogue` (shared HUD layout rules, perf scenarios).
 export function createCharacterDialogue({player}){
  const open=signal(false),line=signal({name:'',text:'',side:'left',hasModel:false}),mode=signal('line');
@@ -33,7 +34,7 @@ export function createCharacterDialogue({player}){
  const scene=new THREE.Scene();scene.add(new THREE.HemisphereLight('#fff8e7','#899f9a',3));const light=new THREE.DirectionalLight('#fff4dd',3);light.position.set(-2,4,4);scene.add(light);
  const camera=new THREE.PerspectiveCamera(36,1,.1,20);camera.position.set(0,.60,1.65);camera.lookAt(0,.47,0);
  let revision=0,installs=0;const expressions={};
- let pairs=[],model,source,speaker=null,queue=null,age=0,life=0,next=null,pendingChoices=null,choiceAge=null;
+ let pairs=[],model,source,speaker=null,queue=null,age=0,next=null,pendingChoices=null,choiceAge=null;
  function install(current){
   expressions[current.side]=current.expression;
   const entrance=speaker!==current.side||source!==current.model||mode.peek()==='choices';
@@ -69,14 +70,15 @@ export function createCharacterDialogue({player}){
   finish(after){const current=revision;after?.();if(revision===current)this.hide();},
   hide(){delete expressions.left;delete expressions.right;revision++;open.value=false;queue=null;next=null;speaker=null;choiceAge=null;pendingChoices=null;choosing.value=false;exiting.value=false;},
   update(dt){
-   if(!open.peek())return;age+=dt;life+=dt;
+   if(!open.peek())return;age+=dt;
    if(choiceAge!==null){choiceAge+=dt;if(choiceAge>=.2){choiceAge=null;pendingChoices=null;mode.value='choices';choosing.value=false;entering.value=false;
     // After the frame's flush shows the choices.
     queueMicrotask(()=>choiceList?.firstElementChild?.focus?.());}}
    if(queue&&age>=.22){const current=queue;queue=null;install(current);}
    if(!model)return;
    for(const [a,b] of pairs)if(b!==model){b.position.copy(a.position);b.quaternion.copy(a.quaternion);b.scale.copy(a.scale);b.visible=a.visible;}
-   const pose=idlePose(life),squash=1+(pose.squash-1)*.28;model.rotation.y=(speaker==='left'?.52:-.52)+pose.twist*.18;model.scale.set(1/Math.sqrt(squash),squash,1/Math.sqrt(squash));model.position.y=-.035;render.render(scene,camera);
+   // The mirrored slime already breathes with its (calm, in conversation) idle; the portrait adds no motion of its own.
+   model.rotation.y=speaker==='left'?.52:-.52;model.scale.setScalar(1);model.position.y=-.035;render.render(scene,camera);
   }
  };
  return dialogue;

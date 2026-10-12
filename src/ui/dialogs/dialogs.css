@@ -80,3 +80,51 @@
 .q-mode-option__more small { color: var(--q-ink-muted); font-size: 12px; }
 .q-mode-choice__note { margin: 0; color: var(--q-ink-muted); font-size: 12px; line-height: 1.4; }
 .q-mode-choice__confirm { justify-self: end; min-block-size: var(--q-touch); }
+
+/* Shop (shop-dialog.js): greeting and gold, Buy/Sell, goods and the chosen item; one at a time on phones. */
+.q-shop { display: flex; flex-direction: column; flex: 1; min-block-size: 0; }
+.q-shop__bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px var(--q-modal-pad) 0; }
+.q-shop__greeting { margin: 0; color: var(--q-ink-muted); font-size: 13px; font-style: italic; line-height: 1.4; }
+.q-shop__gold { display: inline-flex; align-items: center; gap: 6px; flex: none; font-size: 15px; }
+.q-shop__gold svg { inline-size: 20px; block-size: 20px; }
+.q-shop__modes { padding: 10px var(--q-modal-pad) 0; }
+.q-shop__browser { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); flex: 1; min-block-size: 0; }
+.q-shop__goods { display: grid; align-content: start; gap: 4px; min-block-size: 0; padding: 12px; border-inline-end: 1px solid var(--q-line); overflow: auto; }
+.q-shop__detail { display: flex; flex-direction: column; min-block-size: 0; min-inline-size: 0; padding: 12px; overflow: auto; }
+.q-shop__item { min-inline-size: 0; }
+.q-shop__good[data-blocked] { opacity: 0.6; }
+.q-shop__price { font: 700 12px / 1 var(--q-font-numeric); }
+.q-shop__note { color: var(--q-ink-muted); font-size: 11px; }
+.q-shop__back { display: none; }
+.q-shop__amount { display: flex; flex-wrap: wrap; align-items: end; gap: 6px; }
+.q-shop__amount > .q-button { min-inline-size: var(--q-touch); min-block-size: var(--q-touch); }
+.q-shop__typed { display: grid; gap: 2px; inline-size: 6rem; }
+.q-shop__typed .q-input { inline-size: 100%; min-inline-size: 0; box-sizing: border-box; }
+
+@media (max-width: 700px) {
+  .q-shop__browser { display: flex; flex-direction: column; }
+  .q-shop__goods { flex: 1; border: 0; }
+  .q-shop__detail { flex: 1; }
+  .q-shop[data-view='list'] .q-shop__detail,
+  .q-shop[data-view='detail'] .q-shop__goods { display: none; }
+  .q-shop__back { display: flex; }
+  .q-shop__detail { padding-block-end: env(safe-area-inset-bottom); }
+}
+
+/* Jobs (ui/job-view.js) on the Quests page and the job board (job-board.js). */
+.q-board { display: grid; gap: 10px; padding: 12px var(--q-modal-pad); overflow: auto; }
+.q-jobs { display: grid; gap: 8px; }
+.q-job { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--q-line); border-radius: var(--q-control-radius); background: var(--q-card); }
+.q-job[data-ready='true'] { border-color: var(--q-control-pressed); }
+.q-job__head { display: flex; align-items: center; gap: 10px; }
+.q-job__icon svg { inline-size: 24px; block-size: 24px; }
+.q-job__title { display: grid; min-inline-size: 0; }
+.q-job__title strong { font-size: 14px; }
+.q-job__title small, .q-job__where { color: var(--q-ink-muted); font-size: 12px; margin: 0; }
+.q-job__progress { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+.q-job__progress[hidden], .q-job__where[hidden] { display: none; }
+.q-job__reward { display: flex; align-items: center; gap: 6px; margin: 0; font: 700 12px / 1.2 var(--q-font-numeric); }
+.q-job__reward svg { inline-size: 16px; block-size: 16px; }
+.q-job__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.q-job__actions:empty { display: none; }
+.q-job__actions .q-button { min-block-size: var(--q-touch); }

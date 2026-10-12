@@ -132,6 +132,8 @@ export function regenMultiplier(a){
  if(a<=0)return 0;if(a<1)return a;if(a<=100)return 1+(a-1)/99;return 2+(a-100)/50;
 }
 export const REGEN_BASELINE={health:{out:1/6,in:1/12},mana:{out:1,in:.5},stamina:{out:1,in:1},energy:{out:1,in:.5},ki:{out:1,in:.5}};
+// Seconds after the last sprinting frame before Stamina resumes regenerating.
+export const SPRINT_REGEN_DELAY=1;
 export const regenRate=(resource,attribute,inCombat)=>REGEN_BASELINE[resource][inCombat?'in':'out']*regenMultiplier(attribute);
 export const clampResource=(current,maximum)=>Math.min(current,maximum);
 export const displayResource=v=>Math.ceil(v);

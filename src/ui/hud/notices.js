@@ -3,6 +3,7 @@ import {h} from '../dom.js';
 import {bind, onCleanup} from '../scope.js';
 import {keyedList} from '../list.js';
 import {iconNode} from '../icon.js';
+import {GOLD, formatGold} from '../../economy.js';
 import {ITEMS} from '../../items.js';
 
 // Brief HUD notices: the message toast, the quest-progress pop-up, the item feed and level-up
@@ -61,15 +62,20 @@ export function objectiveToast({notice, duration = 4500}) {
       }, duration);
     });
   });
-  const done = () => !!goal.value && goal.value.current >= goal.value.total;
+  // A notice naming one portion of the objective (Collect 3 Sticks) reports that portion's progress.
+  const shownGoal = () => (goal.value && goal.value.part && goal.value.current < goal.value.total ? {...goal.value.part, title: goal.value.part.label} : goal.value);
+  const done = () => !!shownGoal() && shownGoal().current >= shownGoal().total;
   return h('aside', {id: 'objective-update', class: 'q-objective', role: 'status', hidden: () => !goal.value, 'data-shown': shown, 'data-complete': done},
-    h('strong', null, () => (goal.value ? `${done() ? '✓ ' : ''}${goal.value.title} · ${goal.value.current}/${goal.value.total}` : '')),
+    h('strong', null, () => { const g = shownGoal(); return !g ? '' : goal.value.kind === 'quest' ? `✓ Quest complete · ${g.title}` : `${done() ? '✓ ' : ''}${g.title} · ${g.current}/${g.total}`; }),
     h('span', {class: 'q-objective__track', 'aria-hidden': 'true'},
-      h('span', {class: 'q-objective__fill', style: {transform: () => `scaleX(${goal.value ? goal.value.current / goal.value.total : 0})`}})));
+      h('span', {class: 'q-objective__fill', style: {transform: () => `scaleX(${shownGoal() ? shownGoal().current / shownGoal().total : 0})`}})));
 }
 
 // Item changes as receipts: gains, losses, or "Crafted X" with what it used. Repeated single-item
-// changes (picking up more sticks) merge into their receipt; at most four show.
+// changes (picking up more sticks) merge into their receipt; at most four show. A trade (show(changes,
+// {trade: 'bought' | 'sold' | 'handedIn'})) reads "Bought X", "Sold X" or "Handed in X" (a job) with the
+// gold paid, received or earned; a job that took no items reads as the gold gained.
+const TRADE_VERBS = {bought: 'Bought', sold: 'Sold', handedIn: 'Handed in'}, TRADE_PAID = {bought: 'Paid', sold: 'Received', handedIn: 'Earned'};
 export function itemFeed({duration = 3800, limit = 4} = {}) {
   const entries = signal([]);
   let serial = 0;
@@ -89,11 +95,11 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
     }, duration));
   };
 
-  function show(changes) {
+  function show(changes, {trade = null} = {}) {
     const values = Object.entries(changes).filter(([, n]) => n);
     if (!values.length) return;
-    const crafted = values.some(([, n]) => n < 0) && values.some(([, n]) => n > 0);
-    const merge = !crafted && values.length === 1 ? values[0][0] + Math.sign(values[0][1]) : null;
+    const crafted = !trade && values.some(([, n]) => n < 0) && values.some(([, n]) => n > 0);
+    const merge = !crafted && !trade && values.length === 1 ? values[0][0] + Math.sign(values[0][1]) : null;
     const current = entries.peek();
     const existing = merge && current.find(entry => entry.merge === merge);
     let key;
@@ -104,7 +110,7 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
       entries.value = current.map(entry => (entry.key === key ? {...entry, changes: total, leaving: false} : entry));
     } else {
       key = `receipt-${++serial}`;
-      let next = [...current, {key, merge, crafted, changes: {...changes}, leaving: false}];
+      let next = [...current, {key, merge, crafted, trade, changes: {...changes}, leaving: false}];
       while (next.length > limit) { const [old, ...rest] = next; clearTimeout(timers.get(old.key)); timers.delete(old.key); next = rest; }
       entries.value = next;
     }
@@ -118,7 +124,10 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
 
   const node = keyedList(h('aside', {id: 'item-feed', class: 'q-feed', role: 'status', 'aria-label': 'Item changes'}), entries, entry => entry.key, item => {
     const lines = () => {
-      const {changes, crafted} = item.value;
+      const {changes, crafted, trade} = item.value;
+      const traded = trade ? Object.entries(changes).filter(([id, n]) => n && id !== GOLD) : [];
+      if (traded.length) return traded.map(([id, n]) => ({id, n: trade === 'bought' ? 1 : -1, label: `${TRADE_VERBS[trade]} ${name(id)} ×${Math.abs(n)}`}));
+      if (trade) return Object.entries(changes).filter(([, n]) => n > 0).map(([id, n]) => ({id, n, label: `+${name(id)} ×${n}`}));
       const gains = Object.entries(changes).filter(([, n]) => n > 0), costs = Object.entries(changes).filter(([, n]) => n < 0);
       return [...gains, ...(crafted ? [] : costs)].map(([id, n]) => ({id, n, label: `${crafted ? 'Crafted ' : n > 0 ? '+' : '−'}${name(id)} ×${Math.abs(n)}`}));
     };
@@ -126,7 +135,8 @@ export function itemFeed({duration = 3800, limit = 4} = {}) {
       keyedList(h('div', {class: 'q-receipt__lines'}), lines, line => line.id, line => h('div', {class: 'q-receipt__line', 'data-gain': () => line.value.n > 0},
         h('span', {class: 'q-receipt__icon', 'aria-hidden': 'true'}, iconNode(line.peek().id)),
         h('strong', null, () => line.value.label))),
-      h('small', {hidden: () => !item.value.crafted}, () => {
+      h('small', {hidden: () => !item.value.crafted && !(item.value.trade && Object.keys(item.value.changes).some(id => id !== GOLD))}, () => {
+        if (item.value.trade) return Object.keys(item.value.changes).some(id => id !== GOLD) ? `${TRADE_PAID[item.value.trade]} ${formatGold(Math.abs(item.value.changes[GOLD] || 0))}` : '';
         const costs = Object.entries(item.value.changes).filter(([, n]) => n < 0);
         return item.value.crafted ? `Used ${costs.map(([id, n]) => `${name(id)} ×${-n}`).join(' · ')}` : '';
       }));

@@ -31,3 +31,14 @@ test('follower hops across half-height ledges and settles precisely on landing',
  for(let i=0;i<150;i++){follower.update(.016,map,player);if(follower.jump){up||=follower.jump.height>0;down||=follower.jump.height<0;airborne||=model.position.y>1.5;}}
  assert.ok(up&&down&&airborne);assert.equal(model.position.y,1);assert.equal(follower.jump,null);
 });
+test('follower passes through the player only when there is no way around, and never stops on anyone',()=>{
+ const map=new Map(Array.from({length:5},(_,x)=>{const t={x,z:0,h:1};return [key(x,0),t];}));
+ const player=map.get('1,0'),start=map.get('0,0');
+ // The player is walking onto the follower's tile: the only free spot is past the player.
+ const route=companionRoute(map,start,player,t=>t===start);
+ assert.deepEqual(route.map(t=>t.x),[1,2]);assert.notEqual(route.at(-1),player);
+ // With a way around, it goes around instead of through.
+ const open=new Map(Array.from({length:9},(_,i)=>{const t={x:i%3,z:Math.floor(i/3),h:1};return [key(t.x,t.z),t];}));
+ const around=companionRoute(open,open.get('0,1'),open.get('1,1'),t=>t===open.get('0,1'),t=>t===open.get('1,0'));
+ assert.ok(around.length);assert.ok(around.every(t=>t!==open.get('1,1')&&t!==open.get('1,0')),'neither the player nor an occupant is crossed when avoidable');
+});

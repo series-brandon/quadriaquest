@@ -1,0 +1,30 @@
+import {W,B,C,S,I,K,COL,flame} from '../prop-parts.js';
+
+// Nature and dungeon dressing (docs/CITY.md, Props, furniture and furnishing). The iron gate is an edge
+// feature (doors.js), not a prop. Dungeons also get the `dungeon` wall style and floor surface.
+const rock=(r,color)=>W(color,I(r,0),[0,r*.7,0],[0,0,0],[1.2,.8,1]);
+export const NATURE={
+ rockSmall:{name:'Small rock',footprint:[1,1],policy:'solid',parts:()=>[rock(.24,'#9c9890'),W('#8a867e',I(.12,0),[.2,.08,.12])]},
+ rockMedium:{name:'Medium rock',footprint:[1,1],policy:'solid',parts:()=>[rock(.4,'#9c9890'),W(COL.moss,I(.2,0),[-.1,.48,.05],[0,0,0],[1.4,.3,1.2])]},
+ rockLarge:{name:'Large rock',footprint:[2,2],policy:'solid',sight:false,parts:()=>[W('#9c9890',I(.85,1),[0,.6,0],[0,.4,0],[1.1,.8,1]),W('#8a867e',I(.45,0),[.6,.3,.5]),W(COL.moss,I(.4,0),[-.2,1.1,0],[0,0,0],[1.4,.3,1.2])]},
+ bush:{name:'Bush',footprint:[1,1],policy:'solid',parts:()=>[W(COL.leafDark,I(.4,1),[0,.36,0],[0,0,0],[1.1,.85,1]),W(COL.leaf,I(.26,1),[.16,.5,.1])]},
+ berryBush:{name:'Berry bush',footprint:[1,1],policy:'solid',parts:()=>[W(COL.leafDark,I(.4,1),[0,.36,0],[0,0,0],[1.1,.85,1]),...[[.2,.5,.25],[-.2,.45,.28],[.05,.65,.22],[.28,.3,.1]].map(p=>W('#c8463d',S(.05,6,4),p))]},
+ tallGrass:{name:'Tall grass',footprint:[1,1],policy:'walk',parts:()=>[...[-.25,-.08,.1,.28].flatMap((x,i)=>[W(i%2?COL.leaf:'#86a85f',K(.05,.5,4),[x,.25,(i%2?.15:-.12)],[0,0,(i-1.5)*.12])])]},
+ flowerPatch:{name:'Flower patch',footprint:[1,1],policy:'walk',parts:()=>[...[[-.25,-.2],[.2,-.15],[0,.2],[-.2,.25],[.28,.22]].flatMap(([x,z],i)=>[W(COL.leaf,C(.012,.012,.2,4),[x,.1,z]),W(['#e46f8e','#f2d35b','#f6f2e8','#b58ad6','#e46f8e'][i],S(.05,6,4),[x,.22,z])])]},
+ fallenLog:{name:'Fallen log',footprint:[2,1],policy:'low',parts:()=>[W('#8a6a4a',C(.24,.26,1.7,10),[0,.24,0],[0,0,Math.PI/2]),W('#c9a878',C(.24,.24,.02,10),[.86,.24,0],[0,0,Math.PI/2]),W(COL.moss,B(.6,.06,.3),[-.3,.46,0])]},
+ treeStump:{name:'Tree stump',footprint:[1,1],policy:'solid',parts:()=>[W('#8a6a4a',C(.3,.36,.4,10),[0,.2,0]),W('#c9a878',C(.3,.3,.02,10),[0,.41,0]),W('#7a5a3a',C(.08,.1,.3,6),[.3,.08,.1],[0,0,1.2])]},
+ pond:{name:'Pond',footprint:[2,2],policy:'solid',interaction:{verb:'drink',label:'Drink from pond'},spots:[{kind:'drink',at:[0,2],facing:'n'}],parts:()=>[W('#9c9890',C(.95,1,.12,16),[0,.06,0]),W(COL.water,C(.86,.86,.14,16),[0,.07,0]),W('#5f8a48',C(.12,.12,.15,8),[.4,.08,.3]),W('#e46f8e',S(.05,6,4),[.4,.17,.3])]},
+ gazebo:{name:'Gazebo',footprint:[3,3],policy:'walk',block:[[0,0],[2,0],[0,2],[2,2]],parts:()=>[W(COL.pale,C(1.5,1.5,.1,8),[0,.05,0],[0,Math.PI/8,0]),...[[-1,-1],[1,-1],[-1,1],[1,1]].map(([x,z])=>W(COL.canvas,C(.08,.1,2.2,8),[x*1.05,1.1,z*1.05])),W('#5d6b7d',K(1.9,.9,8),[0,2.65,0],[0,Math.PI/8,0]),W(COL.gold,S(.08),[0,3.12,0])]},
+ gardenArch:{name:'Garden arch',footprint:[1,1],policy:'walk',parts:()=>[...[-1,1].flatMap(x=>[W(COL.canvas,B(.07,2,.07),[x*.46,1,0])]),W(COL.canvas,B(1,.07,.1),[0,2,0]),...[[-.46,1.2],[.46,1.5],[-.2,2],[.25,2.02],[-.46,.7]].map(([x,y],i)=>W(i%2?COL.leaf:COL.leafDark,I(.16,0),[x,y,0])),W('#e46f8e',S(.05,6,4),[.1,2.08,.06])]},
+ birdbath:{name:'Birdbath',footprint:[1,1],policy:'solid',interaction:{verb:'gaze',label:'Look at birdbath'},spots:[{kind:'gaze',at:[0,1],facing:'n'}],parts:()=>[W(COL.pale,C(.2,.26,.1,10),[0,.05,0]),W(COL.pale,C(.08,.1,.7,8),[0,.45,0]),W(COL.pale,C(.36,.2,.12,14),[0,.84,0]),W(COL.water,C(.3,.3,.02,14),[0,.9,0])]},
+ gravestone:{name:'Gravestone',footprint:[1,1],policy:'solid',interaction:{verb:'examine',label:'Read gravestone'},parts:()=>[W('#9c9890',B(.5,.7,.14),[0,.35,-.1]),W('#9c9890',C(.25,.25,.14,12,),[0,.7,-.1],[Math.PI/2,0,0]),W('#6b5236',B(.5,.04,.7),[0,.02,.2]),W(COL.moss,B(.3,.08,.15),[.1,.08,-.08])]},
+ dungeonTorch:{name:'Dungeon torch',footprint:[1,1],policy:'walk',mount:'wall',glow:[[0,1.5,-.3,.1]],parts:()=>[W(COL.iron,B(.16,.2,.06),[0,1.2,-.42]),W(COL.iron,C(.06,.03,.3,6),[0,1.32,-.33],[.5,0,0]),flame(0,1.52,-.26,1.5)]},
+ brazier:{name:'Brazier',footprint:[1,1],policy:'solid',glow:[[0,1.05,0,.14]],parts:()=>[W(COL.iron,C(.32,.2,.3,10),[0,.82,0]),...[0,1,2].map(i=>W(COL.iron,B(.05,.7,.05),[Math.sin(i*2.1)*.22,.35,Math.cos(i*2.1)*.22],[0,0,0])),W('#ff8a3d',C(.28,.28,.04,10),[0,.97,0]),flame(-.08,1.08,0,1.5),flame(.1,1.06,.08,1.2)]},
+ bones:{name:'Bones',footprint:[1,1],policy:'walk',parts:()=>[W(COL.bone,S(.12,8,6),[.1,.1,0],[0,0,0],[1,.9,1.1]),W('#2d2622',S(.03,6,4),[.06,.12,.1]),W('#2d2622',S(.03,6,4),[.14,.12,.1]),W(COL.bone,C(.025,.025,.4,6),[-.15,.03,.1],[0,.6,Math.PI/2]),W(COL.bone,C(.025,.025,.3,6),[-.05,.03,-.18],[0,-.4,Math.PI/2])]},
+ cobweb:{name:'Cobweb',footprint:[1,1],policy:'walk',mount:'wall',parts:()=>[W('#e8e8e4',B(.5,.5,.01),[-.25,1.25,-.42],[0,0,Math.PI/4]),W('#e8e8e4',B(.02,.6,.01),[-.2,1.2,-.41],[0,0,.6]),W('#e8e8e4',B(.02,.6,.01),[-.3,1.25,-.41],[0,0,-.3])]},
+ brokenPillar:{name:'Broken pillar',footprint:[1,1],policy:'solid',sight:false,parts:()=>[W(COL.dungeon,B(.6,.16,.6),[0,.08,0]),W(COL.dungeon,C(.24,.26,1.1,10),[0,.7,0]),W(COL.dungeonDark,C(.24,.2,.2,10),[0,1.3,0],[.2,0,.15]),W(COL.dungeon,B(.3,.2,.2),[.35,.1,.3],[0,.5,0]),W(COL.moss,B(.3,.1,.3),[-.1,.18,.15])]},
+ rubble:{name:'Rubble',footprint:[1,1],policy:'low',parts:()=>[...[[-.2,.1,.15,.2],[.15,.08,-.1,.16],[.05,.06,.25,.12],[-.25,.05,-.2,.1],[.25,.05,.2,.11]].map(([x,y,z,r])=>W(COL.dungeon,I(r,0),[x,y,z]))]},
+ sarcophagus:{name:'Sarcophagus',footprint:[1,2],policy:'solid',interaction:{verb:'open',label:'Open sarcophagus'},parts:()=>[W(COL.dungeon,B(.86,.6,1.86),[0,.3,0]),W(COL.dungeonDark,B(.9,.08,1.9),[0,.04,0])],
+  moving:[{pivot:[.45,.6,0],open:[0,0,-.5],offset:[.15,0,0],parts:()=>[W('#6a665d',B(.9,.12,1.9),[-.45,.06,0]),W('#7a766c',B(.4,.06,1.2),[-.45,.15,0])]}]},
+ shackles:{name:'Shackles',footprint:[1,1],policy:'walk',mount:'wall',parts:()=>[W(COL.iron,B(.5,.06,.05),[0,1.3,-.42]),W(COL.iron,C(.06,.06,.03,10),[-.2,1.05,-.4],[Math.PI/2,0,0]),W(COL.iron,C(.06,.06,.03,10),[.2,1.05,-.4],[Math.PI/2,0,0]),W(COL.iron,B(.02,.24,.02),[-.2,1.18,-.4]),W(COL.iron,B(.02,.24,.02),[.2,1.18,-.4])]},
+};

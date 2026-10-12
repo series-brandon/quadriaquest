@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 export const SLIME_EXPRESSIONS=Object.freeze(['idle','focused','struggle','preparing','happy','pleased','sleeping','concerned','shocked','distraught','sad','frown','fainted','angry']);
 const DARK_INK='#20332d', LIGHT_INK='#fff6df';
@@ -10,12 +11,15 @@ export function faceInkFor(bodyColor) {
   return contrast(light)>contrast(dark)?LIGHT_INK:DARK_INK;
 }
 
-export function createSlimeFace() {
+// The face's parts, built once per ink colour (dark ink on light bodies, light ink on dark ones) as a
+// template; createSlimeFace merges each expression of it into shared geometry.
+function buildTemplate(variant) {
   const group=new THREE.Group();
-  // Unlit ink keeps expressions legible on both lit and shaded sides.
-  const ink=new THREE.MeshBasicMaterial({color:DARK_INK,toneMapped:false});
-  const eyeInk=new THREE.MeshBasicMaterial({color:DARK_INK,toneMapped:false});
-  const cream=new THREE.MeshBasicMaterial({color:LIGHT_INK,toneMapped:false});
+  const chosen=variant==='light'?LIGHT_INK:DARK_INK;
+  const ink=new THREE.MeshBasicMaterial({color:chosen,toneMapped:false});
+  // Pale gray eyes preserve a white catchlight without dark pupil-like dots.
+  const eyeInk=new THREE.MeshBasicMaterial({color:variant==='light'?'#cdd3d0':DARK_INK,toneMapped:false});
+  const cream=new THREE.MeshBasicMaterial({color:'#ffffff',toneMapped:false});
   const pink=new THREE.MeshStandardMaterial({color:'#eea8a0'});
   function part(geometry,material,parent=group){const m=new THREE.Mesh(geometry,material);parent.add(m);return m;}
   const normal=new THREE.Group(),focused=new THREE.Group(),struggle=new THREE.Group(),happy=new THREE.Group(),pleased=new THREE.Group(),sleeping=new THREE.Group(),concerned=new THREE.Group(),distraught=new THREE.Group(),sad=new THREE.Group(),frown=new THREE.Group(),fainted=new THREE.Group(),angry=new THREE.Group();
@@ -58,16 +62,43 @@ export function createSlimeFace() {
   for(const x of [-.14,.14]){const side=Math.sign(x);line([[x-side*.075,.53],[x+side*.07,.62]],angry,.022);}
   line([[-.065,.375],[0,.42],[.065,.375]],angry,.015);
   const expressions={angry,idle:normal,focused,struggle,happy,pleased,sleeping,concerned,distraught,sad,frown,fainted};
-  return {group,setBodyColor(color){
-    const chosen=faceInkFor(color);
-    ink.color.set(chosen);
-    // Pale gray eyes preserve a white catchlight without dark pupil-like dots.
-    eyeInk.color.set(chosen===LIGHT_INK?'#cdd3d0':DARK_INK);
-    cream.color.set('#ffffff');
-  },set(state){
-    if(state==='shocked')state='concerned';
-    const preparing=state==='preparing';
-    for(const [name,part]of Object.entries(expressions))part.visible=name===(preparing?'struggle':state);
-    tenseMouth.visible=preparing;effortMouth.visible=!preparing;
-  }};
+  return {group,expressions,tenseMouth,effortMouth,materials:[ink,eyeInk,cream,pink]};
+}
+
+// Every visible part of a template for one state, merged into two geometries: the unlit ink and the lit
+// blush (cheeks, tongue). Shared by every slime with that ink; marked shared so disposers keep them.
+const merged=new Map();
+const STATES=[...SLIME_EXPRESSIONS.filter(s=>s!=='shocked'),'preparing'];
+function faceGeometry(variant,state){
+  const id=`${variant}:${state}`;if(merged.has(id))return merged.get(id);
+  const t=buildTemplate(variant),preparing=state==='preparing';
+  for(const [name,part] of Object.entries(t.expressions))part.visible=name===(preparing?'struggle':state);
+  t.tenseMouth.visible=preparing;t.effortMouth.visible=!preparing;
+  t.group.updateMatrixWorld(true);
+  const lists={ink:[],blush:[]},color=new THREE.Color();
+  t.group.traverseVisible(mesh=>{if(!mesh.isMesh)return;
+    const g=(mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry.clone());g.deleteAttribute('uv');g.applyMatrix4(mesh.matrixWorld);
+    const n=g.attributes.position.count,colors=new Float32Array(n*3);color.copy(mesh.material.color);for(let i=0;i<n;i++){colors[i*3]=color.r;colors[i*3+1]=color.g;colors[i*3+2]=color.b;}
+    g.setAttribute('color',new THREE.BufferAttribute(colors,3));(mesh.material.isMeshBasicMaterial?lists.ink:lists.blush).push(g);});
+  const out={};for(const [k,list] of Object.entries(lists)){out[k]=mergeGeometries(list);out[k].userData.shared=true;for(const g of list)g.dispose();}
+  t.group.traverse(o=>{if(o.isMesh&&o.geometry)o.geometry.dispose();});for(const m of t.materials)m.dispose();
+  merged.set(id,out);return out;
+}
+// A slime's face: two meshes (ink, blush) whose geometry swaps with the expression. Same parts and
+// expressions as ever, two draws instead of a dozen, and nothing per slime to upload.
+export function createSlimeFace() {
+  const group=new THREE.Group();group.name='slime-face';
+  // Unlit ink keeps expressions legible on both lit and shaded sides.
+  // The blush is one colour (no vertex colours), so it shares the bent body's shader program.
+  const inkMaterial=new THREE.MeshBasicMaterial({vertexColors:true,toneMapped:false}),blushMaterial=new THREE.MeshStandardMaterial({color:'#eea8a0'});
+  let variant='dark',state='idle';
+  const ink=new THREE.Mesh(faceGeometry(variant,state).ink,inkMaterial),blush=new THREE.Mesh(faceGeometry(variant,state).blush,blushMaterial);
+  // Every slime's ink draws together (one program switch for all faces, not one per slime).
+  ink.renderOrder=1;ink.name='slime-face-ink';blush.name='slime-face-blush';group.add(ink,blush);
+  const show=()=>{const g=faceGeometry(variant,state);ink.geometry=g.ink;blush.geometry=g.blush;};
+  const face={group,get state(){return state;},
+    setBodyColor(color){const next=faceInkFor(color)===LIGHT_INK?'light':'dark';if(next!==variant){variant=next;show();}},
+    set(next){if(next==='shocked')next='concerned';if(!STATES.includes(next))next='idle';if(next!==state){state=next;show();}}};
+  group.userData.face=face;
+  return face;
 }

@@ -128,3 +128,14 @@ test('tutorial guidance resets the view and highlights an item; empty inventorie
   const empty = setup({items: {}});
   assert.match(empty.node.textContent, /Your inventory is empty/);
 });
+
+test('gold stays in view at the top, its stack sorts first, and each item shows what it sells for', () => {
+  const s = setup({items: {sticks: 3, gold: 0}});
+  const gold = () => s.node.querySelector('.q-inventory__gold').getAttribute('aria-label');
+  assert.equal(gold(), 'Gold: 0 GP');
+  s.inventory.gold = 1250;
+  assert.equal(gold(), 'Gold: 1,250 GP');
+  assert.deepEqual(names(s.node), ['gold', 'sticks'], 'gold first');
+  press(s.node.querySelector('[data-item=sticks]'));
+  assert.match(s.node.querySelector('.q-item-detail__title small').textContent, /Sells for 1 GP/);
+});

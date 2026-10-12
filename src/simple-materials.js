@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {applyCutaway} from './cutaway.js';
+import {applySlimeBend} from './slime-bend.js';
 
 // Cheaper lighting for the Lowest render tier (render-quality.js): physically based materials
 // (MeshStandardMaterial) are swapped for Lambert ones with the same color, vertex colors, texture,
@@ -12,6 +14,10 @@ function lambertFor(material){
    transparent:material.transparent,opacity:material.opacity,side:material.side,emissive:material.emissive,emissiveIntensity:material.emissiveIntensity,
    alphaTest:material.alphaTest,depthWrite:material.depthWrite,visible:material.visible});
   simple.userData.richMaterial=material;simpler.set(material,simple);
+  // A material that cuts away (baked walls: cutaway.js) keeps doing so when simplified.
+  if(material.userData.cutaway)applyCutaway(simple);
+  // A slime's bent body and face (slime-bend.js) keep bending, with the same uniforms.
+  if(material.userData.bendUniforms)applySlimeBend(simple,material.userData.bendUniforms);
  }
  // Runtime changes to the rich material (a recolored slime, a fading effect) carry over.
  simple.color.copy(material.color);simple.opacity=material.opacity;simple.visible=material.visible;

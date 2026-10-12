@@ -12,5 +12,5 @@ export function itemChangeMessage(changes){
 // Item receipts (ui/hud/notices.js `itemFeed`), independent of movement errors and other messages.
 export function createItemFeed(){
  let feed;const view=mount(()=>(feed=itemFeed()).node);document.body.append(view.node);
- return {show:changes=>feed.show(changes),clear:()=>feed.clear()};
+ return {show:(changes,options)=>feed.show(changes,options),clear:()=>feed.clear()};
 }

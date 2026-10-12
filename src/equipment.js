@@ -10,8 +10,29 @@ export const GEAR={
  shields:{slot:'hand',name:'Wooden Shield',shield:true,resistance:30,requirements:{'prof.shield':1}},
  copperShield:{slot:'hand',name:'Copper Shield',shield:true,resistance:50,requirements:{'prof.shield':1}},
  bows:{slot:'hand',name:'Training Bow',twoHanded:true,style:'ranged',power:10,accuracy:10,baseInterval:2.55,range:6,proficiency:'bow',ammo:'arrows',damageTypes:['piercing'],requirements:{'ranged.technique':1}},
- hats:{slot:'head'}
+ // Tools can be held for looks only (`cosmetic`): no combat stats, and the hand still fights as a bare fist.
+ // They keep working as tools from the inventory whether held or not.
+ axes:{slot:'hand',name:'Crude Axe',cosmetic:true},
+ pickaxes:{slot:'hand',name:'Crude Pickaxe',cosmetic:true},
+ hammers:{slot:'hand',name:'Crude Hammer',cosmetic:true},
+ rods:{slot:'hand',name:'Crude Fishing Rod',cosmetic:true},
+ // Staves bludgeon in melee (spells need no staff).
+ staffs:{slot:'hand',name:'Simple Staff',style:'melee',power:5,accuracy:5,baseInterval:2.55,range:1,proficiency:'staff',damageTypes:['bludgeoning'],requirements:{'melee.technique':1},magic:{power:6,accuracy:6}},
+ hats:{slot:'head'},
+ ironSkullcap:{slot:'head'},
+ minersCap:{slot:'head'},
+ archerCap:{slot:'head'},
+ wizardHat:{slot:'head'},
+ breathHeadband:{slot:'head'},
+ fishersHat:{slot:'head'}
 };
+// A spell focus: the held item with the best `magic` bonus (a staff), or null. Its bonus adds to spells.
+export function spellFocus(slots={}){
+ let best=null;for(const id of [slots.right,slots.left]){const magic=GEAR[id]?.magic;if(magic&&(!best||magic.power>best.power))best={item:id,...magic};}
+ return best;
+}
+// A spell as an attack, with any held focus's magic power and accuracy as its item bonuses.
+export function spellAttack(id,spell,slots){const focus=spellFocus(slots);return {...spell,spell:id,item:null,...(focus?{power:focus.power,accuracy:focus.accuracy,focus:focus.item}:{})};}
 export const ARMOR_SLOTS=['chest','hands','legs','feet','back','ward'];
 export const SIDES=['right','left'];
 // Attack hands: Both (dual wielding, the dominant hand first), Right only or Left only. null is Auto.
@@ -52,7 +73,8 @@ export function createEquipment({inventory,busy=()=>false,changed:notify=()=>{}}
  function handAttack(hand){
   refresh();const side=sideOf(hand),id=slots[side];
   if(GEAR[slots[other(side)]]?.twoHanded||GEAR[id]?.shield)return null;
-  const base=isWeapon(id)?{...GEAR[id],item:id}:id?null:{...UNARMED,item:null};
+  // A cosmetic item (a tool) leaves the hand free to punch; other non-weapons (shields) can't strike.
+  const base=isWeapon(id)?{...GEAR[id],item:id}:id&&!GEAR[id]?.cosmetic?null:{...UNARMED,item:null};
   if(!base)return null;
   const types=base.damageTypes||['bludgeoning'];
   return {...base,hand:roleOf(side),side,damageType:types.includes(damageTypes[side])?damageTypes[side]:types[0]};

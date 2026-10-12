@@ -23,5 +23,5 @@ test('Willowbank and Cinderhold are one chapter each until done; waking ends all
  assert.equal(tutorialChapter({area:'cinderhold',cinderComplete:false}),'cinderhold');
  assert.equal(tutorialChapter({area:'cinderhold',cinderComplete:true}),null,'"???" is available instead');
  assert.equal(tutorialChapter({area:'cinderhold',cinderComplete:false,waking:true}),null);
- assert.equal(tutorialChapter({area:'world',woken:true}),null);
+ assert.equal(tutorialChapter({area:'gelton',woken:true}),null);
 });

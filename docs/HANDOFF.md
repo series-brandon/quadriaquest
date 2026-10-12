@@ -1,13 +1,13 @@
 # QuadriaQuest development handoff
 
-Snapshot: 2026-10-06. This is a restart aid, not a claim that all architecture work is finished. Read `AGENTS.md` first and verify current code/worktree state before editing. The latest cleanup status is recorded below; older dated verification sections are historical snapshots.
+Snapshot: 2026-10-09. This is a restart aid, not a claim that all architecture work is finished. Read `AGENTS.md` first and verify current code/worktree state before editing. The latest cleanup status is recorded below; older dated verification sections are historical snapshots.
 
 ## Project and working conventions
 
 - Game name: **QuadriaQuest**. Project/repository/folder references: **quadriaquest**. The actual checkout is `/Users/brandonmanning/src/poc-workspace/quadriaquest`; some session metadata still refers to the old `project-clime` path.
 - Stack: HTML, JavaScript, CSS, Three.js. No replacement game engine or other implementation language.
 - Preserve existing staged and unstaged work. This snapshot includes substantial uncommitted work from multiple iterations; do not reset/revert/stage it wholesale or assume it belongs to the current task.
-- `docs/DESIGN.md` holds the broader design. `docs/COMBAT.md` is the current combat/progression design source of truth; update its rules in place rather than appending history. `docs/CINDERHOLD.md` holds the third-area design and first-playable status; `docs/WILLOWBANK.md` holds the second chapter. `README.md` holds run/build/debug instructions. If these disagree with newer user decisions or actual code, reconcile them explicitly.
+- `docs/DESIGN.md` holds the broader design. `docs/COMBAT.md` is the current combat/progression design source of truth; update its rules in place rather than appending history. `docs/CINDERHOLD.md` holds the third-area design and first-playable status; `docs/WILLOWBANK.md` holds the second chapter. `docs/CITY.md` is the draft design for cities, buildings, doors, walk-through characters and townsfolk; `docs/ECONOMY.md` is the draft for Gold Pieces, shops and jobs (neither implemented). `README.md` holds run/build/debug instructions. If these disagree with newer user decisions or actual code, reconcile them explicitly.
 - New work must be reachable, repeatable, and resettable in the dev playground in the same change. Use production implementations. Ask when coverage or scope is uncertain. Keep developer tools out of normal builds.
 
 ## Architecture boundary — settled with the user
@@ -19,6 +19,389 @@ Only layout and narrative belong to a particular area. Gameplay systems must wor
 Use shared action completion/progress callbacks for tutorial updates. Normal gameplay must not require that a tutorial objective is active. Avoid copying the same action into the next map. Do not use a debugging shortcut that teleports the player just to preview shared UI.
 
 ## Recent fixes already made
+
+### City streaming: walls over void, half-drawn buildings, floating park items — 2026-10-12 (user report)
+
+- **City and countryside now stream by one rule:** radius 2 with one ring of hysteresis (`buildCity({streamRadius, streamKeep})`, the chunk streamer's rule). The city used radius 3 while the land used 2, so city wall pieces stood over unloaded land.
+- **Buildings live in their home chunk:** a building's walls (the `edges` facade remembers each edge's chunk; building edges go to the home chunk) and floor tiles are in its home chunk, like its roof, decor and furniture. A building across a chunk line now shows or hides whole instead of being cut in half. Linking all of a straddling building's chunks was tried first: 44 buildings straddle lines, and the links pulled in 57 of 64 chunks.
+- **Things outside chunk groups follow the shown chunks:** the park's map resources now go in their chunk (`chunkRootOf`); townsfolk and wall sentries hide where `city.isShown(x, z)` is false (tiles outside the city count as shown, for the gate guards). Verified with a scene sweep: no trees, rocks, sticks, townsfolk or sentries drawn in hidden chunks.
+- Tests: 581 pass. Perf: capital square about 6.2 ms, countryside walk about 4.6 ms (PASS; fewer visible meshes).
+
+### City ground cover in hidden chunks — 2026-10-12 (user report)
+
+- The city greens' instanced cover was added all at once, so flowers drew where the city's chunks were hidden. Now `chunkedCover` (ground-cover.js) adds each chunk's share only while it's shown; `buildCity`'s `stream` calls `city.onStream(chunks)`. Verified in the browser: 0 instances in hidden chunks (1,656 of 4,692 drawn with 20 of 64 chunks shown). Other objects outside chunk groups (sentries, townsfolk) already hide by distance. Tests: 581 pass.
+
+### City mini biomes, conversational jobs, the post office — 2026-10-12 (user request)
+
+- `biomes.js`, `city-greens.js` (themed patches; trees and instanced cover placed in `geltonReady`); `townsfolk-talk.js` (dialogue-box conversations); `jobs.js` (`SHOP_WANTS`, `POST`, pending offers, two-step deliveries with `deliver()`); the post office in `capital-layout.js` and `furnish.js`; `reachOver` counters in `interaction-route.js` and `props.js`. Removed `ui/dialogs/talk-dialog.js`.
+- Verified in the browser: blossom, meadow and willow patches; Pim's post office; Pim's conversation ("What can I do for you?" → job → "I'll pay you 13 gold…" → I'll do it! → package and job). Tests: 580 pass (new `townsfolk-talk.test.js`, `city-greens.test.js`; jobs and route tests updated).
+- Perf: capital square 5.9 ms, countryside walk 4.3 ms; both rebaselined (objects up from about 210 city trees).
+
+### Green-space variety — 2026-10-11 (user request)
+
+- `tree-models.js` (six species; `makeTree(species)` in world-models, `createResourceEntity({species})`, streamed trees carry `species`), `ground-cover.js` (templates and the instanced `createGroundCoverPool`), countryside ponds, species rules and `cover()`. Gelton's park trees have species.
+- Verified in the browser: willows at the lake, pines on the hills, cherry groves, lily pads, reeds, meadows of mixed colours, ferns and mushrooms in woods, rocky hilltops. Tests: 576 pass.
+- Perf: `countryside-walk` 4.2–4.4 ms (+0.6 ms: more trees and fishing spots), rebaselined; ground cover is about 13 draws and about 5 KB of uploads per frame while walking.
+
+### Wall sentries, gate guards, houses turned from the wall — 2026-10-11 (user request)
+
+- `wall-sentries.js` (guards pacing `walls.walkways`, hidden where cut, detached when far); `city-walls.js` gained `walkways` and `cutAt`. Townsfolk gained the `post` activity (`entry.facing`). `capital-layout.js`: two gate guards per entrance, outside the wall (user correction; `buildCity({outside})` gives them their land tiles); south rows by the wall face their yard. Regenerated `capital.json`. The city checks have no door, furniture or townsfolk issues.
+- Verified in the browser: all six gate guards on post; a sentry on the north walkway seen from inside; the turned house doors. Tests: 574 pass. Perf: capital square 6.1 ms (PASS).
+
+### Castle walls, double gates, animated water, road bridge, no seam — 2026-10-11 (user review)
+
+- `city-walls.js`: a curtain wall 3 thick and 6 high, round corner towers, gatehouses with double doors (one entity; door features on the passage edges), merged pieces as cut owners with a stone cut face. City data `walls`. `capital-layout.js` uses it instead of thin edge walls; gate signposts moved to the countryside (`countryside.js`, which makes the tiles under towers solid). `main.js` animates the gates in Gelton's update.
+- Seam: `buildCity({outside})` lets edge tiles see the countryside.
+- Water: `createStreamedWater` (GPU waves, the ponds' look) through the streamer's new `dress` hook. Bridge: `makeBridge(length, {width})` with stringers and piers, placed as a countryside extra.
+- Verified in the browser: the wall and the corner tower from outside, the south gatehouse with a leaf open, closing the gate (leaves swing shut, routes blocked), cut wall faces, the water and bridge. One bug fixed on the way: gates didn't animate until Gelton's update called `walls.update`.
+- Tests: 572 pass (new `city-walls.test.js`). Perf: the capital square is 5.4 ms; `countryside-walk` rebaselined (+14 geometries from the water and bridge).
+
+### Countryside around Gelton, park gather spots, faster baked walls — 2026-10-11 (user: "start expanding beyond the city into the countryside")
+
+- User decisions: walk out of the gates (one continuous area), generated land with placed landmarks, a ring about 64 tiles deep, a few goblins away from roads. Design and status: docs/WORLD.md.
+- New `countryside.js` (generator source: terrain, roads, river and bridge, lake and pond, woods, rocky hills with copper, fishing spots, goblins, landmarks) and `noise.js` (shared with the streaming test world). `chunk-streamer.js` gained `place` for a source's `extras` (fishing spots, enemies, props: busy chunks stay, state kept by id) and skips building empty chunks. `main.js` `geltonReady` streams the countryside into Gelton's area (the world map joins while active).
+- Gelton: stone wall with three gateways and signposts, map `gates`; park `resources`. Regenerated `capital.json`.
+- **Performance:** baked edge originals now leave the scene graph (`doors.js`): city objects fell about 75%, capital square 10.4 → ~5.8 ms. New perf scenario `countryside-walk`. Baselines updated for the city scenarios and the new one.
+- Playground: Countryside fieldset (jumps, chunk outlines, stats, radius); `useResourceNearest`.
+- Verified: walking out of the west gate; fishing at the lake (after making shores low so banks are reachable); mining copper in the hills; goblins present; the bridge; kit street walls, doors and cutaway after the bake change.
+- Open: animated water, a bridge model, more landmarks, editing generated land (WORLD.md *Open and next*).
+- Tests: 569 pass (new `countryside.test.js`; streamer extras test).
+
+### Enemy drops and jobs — 2026-10-11 (user: "Let's do enemy drops and jobs next")
+
+- Drops: `drops.js` (tables on `ENEMIES`, roller, odds, seeded random), `loot-piles.js` + `loot-pile-model.js` (click to pick up, 3 min). Rolled in the combat `won` handler. **Fixed:** `main.js` had two `won:` keys in the combat options, so the first (victory sound, happy face) never ran; merged into one handler. A scan of all source with esbuild found no other duplicate keys except a harmless default in `normalizeBuilding`.
+- Jobs: `jobs.js` (board pool, givers, four kinds, packages, cooldowns, refills), `job-marker.js`, `ui/job-view.js`, `ui/dialogs/job-board.js`, `ui/dialogs/talk-dialog.js`, and a Jobs section on the Quests page (`journal.js` passes `jobs`). Townsfolk talk goes through `crowdServices.talk` (`main.js` `talkTo`); every townsfolk knows its `city`; crowds register by area for markers. Gelton gains Pim of the Post and keeper givers (`capital-layout.js`, regenerated).
+- Playground: Drops & jobs fieldset; catalogue entries for the pile and markers.
+- Verified in the browser: givers' markers in Gelton; Pim's delivery (talk dialog, package, Quests page card), Yarrow's parcel marker and hand-over (+26 GP); the job board's posted jobs; a stand-in pile picked up by clicking; a real Scrapper victory leaving a pile.
+- Open: gathering in Gelton (ECONOMY.md open question 1).
+- Tests: 565 pass (new `jobs.test.js`; dialog, quests page and notices tests extended).
+
+### Gelton, the waking city, with gold and shops — 2026-10-11 (user: "let's make the capital real!")
+
+- User decisions: the capital is **Gelton**; waking from the tutorial lands there (the placeholder world is removed); this phase is gold, item values and shops (ECONOMY.md steps 1, 2 and the shop part of 5); drops and jobs later.
+- New: `economy.js` (wallet, sell rate, prices), `shops.js` (definitions, stock and restock, buy/sell rules), `shop-menu.js` + `ui/dialogs/shop-dialog.js` (shared shop screen), values and categories in `items.js`, gold on the Inventory page, Bought/Sold receipts. Gelton is a production area in `main.js` (`geltonReady`), with a real Iter Crystal via `buildCity({crystal})`; `waking.js` gained `prepare`.
+- Shops open from counters (Trade at counter), market stalls, and keepers/vendors who are minding them. Playground: Economy fieldset (gold, open shop, place a counter anywhere, reset stock, price list); *Enter Gelton*.
+- Fixed on the way: duplicate "Anvil" names in the model catalogue broke the viewer's keyed list (the Cinderhold one is now "Anvil (Cinderhold station)", with a uniqueness test).
+- Known: `npm run smoke` fails only on its normal-build Quests check, which looks for tutorial copy ("Here are your quests") removed in commit 6795d07; unrelated to this work.
+- Tests: 557 pass. See docs/CITY.md *Gelton: the waking city* and docs/ECONOMY.md *As implemented*.
+
+### City Phase 10: props, furniture and furnishing — 2026-10-11 (user: "start the next phase with the new props")
+
+- 104 new props in four sets (`src/prop-sets/`), with wall mounts, walk-under posts, glow, moving lids/doors, stations and seats; fence and iron gates; a dungeon style and surface. See docs/CITY.md *As implemented (Phase 10)*.
+- `furnish.js` furnishes every enterable building by use (seeded, door clear, room connected, use tiles reserved, shop keeper behind a counter); separate interiors per floor; the crypt with a loot chest.
+- Interactions in `main.js` call shared systems: cooking menu, smithing stations, `takeLoot`, sleeping regeneration. Owned beds and storage are deferred (user decisions in CITY.md).
+- Playground: Prop gallery; model viewer Closed/Open motions; editor Use and Reroll tools; city check for unreachable furniture.
+- Fixes found while verifying: shop counters never placed in small rooms (the spot check refused the keeper tile), later pieces blocking earlier beds and stoves (63 warnings on the capital, now none), sleep spots facing into the bed (you lay beside it).
+- Tests: 547 pass (new `furnish.test.js`). Perf: city scenarios rebaselined (objects +9–11% from furniture; frame times within noise), see docs/PERFORMANCE.md.
+
+### Slime bend in the shader; shared slime geometry; merged faces — 2026-10-11 (user request)
+
+- `slime-bend.js`: the bend is a vertex-shader patch (`applySlimeBend`, per-mesh uniforms uBend/uToVisual/uFromVisual on the mesh's own material, the same on its shadow depth material); `bendPoint` is the JS reference. `simple-materials.js` keeps the patch on the lowest tier. Geometry is never rewritten.
+- `slime-model.js`: shared body and hand geometry; hands have their own unbent material sharing the body's `color` object (recolouring the body recolours the hands); hands `renderOrder` 2.
+- `slime-face.js`: the same parts and expressions, merged per expression into shared geometry (ink: unlit, vertex colours, `renderOrder` 1; blush: one colour, same program as the body), cached per ink colour (light/dark); `face.state`; group named `slime-face` with `userData.face`.
+- `slime-presentation.js`: grounding uses the body's bottom vertices only (cached on the shared geometry).
+- Every slime (player, mentors, Reed, townsfolk, viewer) gets this at once, as the shared-presentation rule requires. Browser-verified: Wave bends the body and face together; Sergeant Bristle keeps light ink, helmet, dagger and shield while sitting; kit street townsfolk and the player render with faces; no console errors.
+- Perf: see docs/PERFORMANCE.md (capital 9.9 → 8.2 ms; full baseline rewritten). Tests: 540 pass.
+
+### Low-risk city optimizations — 2026-10-11 (user request)
+
+- `src/static-merge.js` `mergeStatic(root, objects)`: static, untextured, non-pickable meshes merged into one vertex-coloured mesh per material kind per chunk; `buildCity` merges building decor and non-interactive props per chunk (`chunk-statics`). Clickable props, doors, sign icons, roofs and caps stay separate. City data and the editor are unchanged.
+- `slime-model.js`: one shared hand geometry (`userData.shared`; the model viewer and world actors no longer dispose shared geometry or materials).
+- `slime-presentation.js` `update({lean})` / `createSlimeActor().update({lean})`: skip the body bend; far-ring townsfolk use it.
+- Perf (docs/PERFORMANCE.md): all 12 PASS; modest gains (capital draws 1,141 → 1,089, upload 17 → 11 KB/frame). Tests: 539 pass.
+
+### Nearby buildings cut, steady walking face, fewer townsfolk — 2026-10-11 (user review)
+
+- `cutaway.js` `cutBuildings`: also cuts any building within `NEAR_CUT` (2) tiles of the player on the same level, so approaching a door shows the inside.
+- `townsfolk.js`: the walking face and pose hold for the whole walk (they flashed back to idle for a frame between steps).
+- Townsfolk trimmed: capital 82 → 41 (regenerated `capital.json`), kit street 28 → 17.
+- Tests: 538 pass. Browser-verified: walking toward the square-west house it is cut from about 2½ tiles out.
+
+### Solid caps, townsfolk doors, residents and shopkeepers — 2026-10-11 (user review)
+
+- `building-kit.js` `solidWhenCut` + cap mesh (`building.cap`, `userData.showWhenCut`); `cutaway.js` `restoreCutPart`, `isBuildingCut`; graybox shells capped; model viewer cut motion honours caps.
+- `townsfolk.js`: `passable` (unlocked doors), door open/wait/shut (`openedDoor`, `shutBehind`), `house` entries with `home`/`keep`/`tend`, hidden indoors unless the building is cut, bounded `nav.route` planning (`p.path`), checks for houses.
+- Kit street and capital (`capital-layout.js`, regenerated `capital.json`) have residents and keepers.
+- Perf: the first run regressed the capital to 5.9 fps (whole-map reachability scans); fixed with bounded routes. City baselines updated (see docs/PERFORMANCE.md).
+- Tests: 537 pass. Browser-verified: force cutaway shows residents in their houses and grey caps on locked shells; in 30 s townsfolk opened and re-shut 7 doors.
+
+### City review fixes: one per tile, talking, shared walking, sloped rails, interior stairs, smooth stairs — 2026-10-11 (user review)
+
+- `world-occupancy.js`: arrival order per tile, `top(tile,{player})`, `covered(owner,tile,{player})`. Used by townsfolk (standing), `updateWorldActors` movers and combat (one-tile creatures, not hidden under the player).
+- `slime-motion.js` `moveMotion`/`isRamp`/`SLIDE_DURATION`: the one move rule for the player (main.js segment) and townsfolk; stairs are smooth ramps. `createSlimeActor().update({pose})`.
+- `townsfolk.js`: stop to talk (`talking`, `talkTo`), walk facing, happy walk face, chat faces, stop short of taken tiles, slower walk (`WALK` time scale).
+- `city-terrain.js` `stairRailParts` + hidden railing edges (`createEdgeFeatures().add(…,{hidden:true})`); `buildCity` merges stair rails per chunk.
+- `spaces.js`: `stairsPlacements` (two-tile stairs into a corner, free front tile), two-tile `stairwellModel`, `createStairwell({place})`, arrivals by direction (`link.via`), furniture kept clear; interior checks updated.
+- DESIGN.md: the no-ramps rule now excludes city and building stairs.
+- Tests: 534 pass. Browser-verified: rails slope to the ground and meet the terrace railing; walking up the stairs rises 1 → 2 with no hop; a townsfolk talked to mid-walk finished its step, stood 4 s, then walked on facing its way; with 60 townsfolk, tiles shared by two standing townsfolk occurred and only one was drawn each time; the guild house stairs run along a wall into the corner with the bottom step in the room, and going up lands beside the opening. No perf re-run (follow-up polish within the city batch).
+
+### City Phases 5–9 first draft — 2026-10-11 (user: "do all these phases in one fell swoop")
+
+- **Phase 5:** `city-terrain.js` (surfaces, kerbs, retaining walls, stairs, railings, stair checks), `props.js` (starter prop set with spots and interactions, rotation), shared `Sit` motion and bench sitting for the player (main.js `seat`), `city-map.js` (city data in 64 × 64 regions, `buildCity`), kit street as data with the east annex (`dev/kit-street.js`). Railings stand on the higher tile (`createEdgeFeatures`).
+- **Phase 6:** `city-checks.js` and the dev-only `dev/city-editor.js` (+ css), with world clicks routed to it in Edit mode (`setTileClick`), `editCity` in main.js, the `/__city-save` dev endpoint (vite.config.js, playground mode only), isolation markers.
+- **Phase 7:** `spaces.js` (separate interiors, stairwells, dungeon entrances, quick fades, zoom cap, camera restore, interior checks), linked doors (`door.link`, doors.js), `dungeonEntrance` prop, `areas.unregister`, partial area cameras (`applyCamera` sets only given fields).
+- **Phase 8:** `townsfolk.js` (crowd, routines from places, navigator with cached distance fields, crowd budget rings, townsfolk checks, generated crowds), kit street townsfolk, perf scenarios `city-walk`, `city-crowd`, `capital-square`.
+- **Phase 9:** `buildCity` per 16 × 16 chunk with render streaming; `dev/capital-layout.js` + `scripts/generate-capital.mjs` → `src/maps/capital.json`; *Enter the capital*; `tests: capital.test.js`.
+- **Bugs found on the way:** a slime's presentation owns its rig's height (wrap townsfolk in a body group); `Object.assign` froze the city's `roofsShown`/`shownChunks` getters (roof toggle couldn't turn back on); `shade()` darkened colours in linear space, so dark roofs went black (now sRGB); spaces need the game's pickables; the playground dev server misses edits made by shell tools (restart it).
+- Playground API additions (playground only): `walkTo`, `useProp`, `useActorAt`, `teleport`, `seated`, `crowd(n)`, `crowdStats`, `enterCapital`, `capitalStats`, `scene`, `renderer`, `editCity`; `window.quadriaquest.api` and `window.quadriaquest.cityEditor`.
+- Tests: 532 pass. Browser-verified (GPU) for each phase: stairs climbed to every terrace, sitting, editor edits/undo/save, in and out of the guild house by door and stairwell, the crypt, townsfolk routines, the capital square and castle.
+- Open questions for the user are listed in docs/CITY.md (*Open questions for the user*, items 2–10).
+
+### Building review: floors, steady cut faces, force cutaway, hanging signs — 2026-10-11 (user review)
+
+- **Floors between storeys:** multi-storey buildings have a floor slab at every storey line (kit: part of the roof geometry; graybox: `storeyFloors`), so upper windows look into a storey instead of down to the ground floor. They hide with the roof when cut.
+- **Flicker on cut tops fixed:** walls are stacked boxes, and through a cut you saw two faces meeting at the same depth. Walls are front-faced again, and a second mesh (`edge-features-section`, sharing the baked geometry) draws their back faces with `sectionMaterial()`: unlit dark, a constant depth offset towards the camera, only for cut buildings. A cut wall now shows one steady dark face. (The earlier "dark section via gl_FrontFacing" never reached the browser: the dev server had missed edits made with `sed`. Restart the preview after shell edits.)
+- **Force cutaway:** `updateCutaway({force})` / uniform `uCutAll` cuts every building; playground *City streets → Force cutaway*; `getState().cutaway.force`.
+- **Signs:** back to a pole square to the wall with the board hanging under it, icon on both faces. The sign takes the side of the door farther from the building's corner, and skips a side tucked into a corner with a neighbour (`anchors.signOptions`, checked against the map in `createBuilding`).
+- Tests: 511 pass. Browser-verified on a fresh server: steady cut tops while orbiting, both square shops' signs moved out of their shared corner, force cutaway cuts all 33 kit buildings.
+
+### City Phase 4: building kit; simpler whole-building cutaway — 2026-10-11
+
+- **Cutaway simplified (user: Phase 3 was fancier than needed).** A building is cut when the player is inside it or it stands between the camera and the player (eye-to-camera segment against the building's box above one storey). Cut means: roof, chimney and door tops hide, and all its walls are drawn only up to one storey (1.5, the building test map's wall height). No stubs, no dithered cylinder. Walls cut per pixel from baked `cutOwner` = (building a, building b, base y); the inside faces of a cut wall draw as a flat dark section; the shadow depth material is patched too. Corner posts belong to every building meeting at them (up to two).
+- `src/cutaway.js`: `registerCutSource` (one per map's edge features, only shown maps take part, so maps can reuse ids), `cutBuildings`, `segmentHitsBox`, `isCut`, `updateCutaway`, `cutawayState()` = `{on, cut:[ids]}`. `registerRoof`/`registerCutGroup` are gone: maps add roofs with `edges.addCutPart(object, owner)`.
+- `edge-models.js`: styles are palettes (`STYLES`: timber, stone, brick, graybox; stone/brick/graybox have seamless posts). Pieces take `storeys` and draw per storey (floor bands, windows on every storey for `window`, `upperWindows` for walls). Doors have an `upper` group (storeys above the ground one) that hides when cut and isn't pickable.
+- `doors.js` `createEdgeFeatures`: per-add `style`/`upperWindows`, `info(a,b)`, `addCutPart`/`removeCutPart`, `cutParts()`, `buildingBoxes`, `cutaway:false` for previews.
+- `src/building-kit.js` (new): `planBuilding` (description → tiles, edges, doors with doorsteps, anchors: keeper spot, sign, awning; seed variation), `createBuilding` (marks tiles, places edges through the map's edge features, merges shared walls into one wall owned by both, adds roof + decor, `dispose()`), `roofGeometry` (gable, hip, flat with parapet, tower cone; chimney), `BUILDING_PRESETS` (cottage, shop, townhouse, hall, flat-roofed house, tower), `normalizeBuilding` (rotation 0/90/180/270; door `at` counts clockwise so it survives rotation). Signs paint the game's icons (`icons.js`) light on a dark tilted board, so they read from above.
+- Playground: *City streets* (was *Graybox street*): Enter kit street (the graybox layout built by the kit: timber square and west street, brick east street, stone castle quarter, purple guild hall roof, shops with awnings and signs on the square), roofs, cutaway, open/close all doors, zooms. Model viewer → *Building*: preset, style, roof, rotation and seed dropdowns; motions doors closed/open and cut.
+- Tests: 509 pass (`building-kit.test.js`; `cutaway.test.js` rewritten; kit street routes/doors/shared walls in `graybox-street.test.js`).
+- Browser-verified (GPU): kit street at zoom 12/22; a three-storey building between camera and player is cut to one storey with a clean section; inside a shop its roof hides and walls cut; signs and awnings readable; graybox street still cuts; viewer builds every preset.
+- Known look issue: a wall shared with a cut building is cut too, so its uncut neighbour's roof sits over a one-storey shared wall (visible on the terraced square ring). Acceptable for now; could cut neighbours together if it bothers.
+- Not done: smoothing the hide (instant), awning/sign on non-door edges, double doors / castle gate piece, chunk-level merging of shells (each building is roof + decor meshes; walls stay one baked mesh per map).
+
+### City Phase 3: cutaway and occlusion; flat graybox — 2026-10-11
+
+- The graybox street is flat (user: elevation was messing up buildings); terraces and stairs return later.
+- `src/cutaway.js`: a material patch (`applyCutaway`) for walls, roofs and doors. Inside a building, its walls on the camera's side drop to stubs and its roof hides; anything between camera and player within a 1.9-tile cylinder around the line of sight is cut to stubs with a dithered edge. Per-vertex `cutOwner` on baked walls (`createEdgeFeatures().add(…,{owner})`); doors squash in JS (`registerCutGroup`); roofs register per building (`registerRoof`). `main.js` calls `updateCutaway` every frame after placing the camera.
+- **Bug found and fixed in the browser:** the lowest render tier swaps materials for Lambert copies (`simple-materials.js`), which dropped the patch, so the cutaway vanished after the first frame. Simplified copies now keep it (tested).
+- Playground: Toggle cutaway; Open/Close all doors also work on the graybox street; `window.quadriaquest.renderer` (playground only) exposes the renderer for inspection; `getState().cutaway`.
+- Tests: 499 pass (`cutaway.test.js`: stubs, back walls, shared walls, line-of-sight cylinder, roof hide, door squash, simplified materials).
+- Browser-verified on the graybox street: the dense square's buildings are cut around the player; inside a three-storey building its roof hides and its front walls drop to stubs while back walls stay.
+
+### Graybox review: livelier square, no step, minimap buildings and rotation — 2026-10-11 (user review)
+
+- **Square:** ringed shoulder to shoulder by eight two- and three-storey buildings opening onto it plus four corner buildings (gaps only for the avenue and streets); other buildings moved out to make room. Shared walls take the taller building's height.
+- **No step:** ground floors are at street level (the user rejected raised floors). Door sills for real height differences stay supported.
+- **Minimap** (shared, `player-interface.js`): tiles marked `indoor` draw as building floor; walls, windows, fences, counters and doors draw on tile edges (doors coloured, brighter when open; an open door's leaf is not drawn as a wall). The map turns with the camera (`cameraAngle`, forward up), redraws at once while the camera turns, fills its turned corners, and draws N where north points (the static N label is gone). Taps are turned back (`minimapTileAt(…, rotation)`). Graybox and building test map tiles set `indoor`.
+- **Phones keep their zoom limit** (user decision).
+- Tests: 495 pass (rotated minimap taps; the ring of buildings opens onto the square; doors at street level with indoor tiles marked).
+- Browser-checked: the minimap shows buildings and turns with the camera (and follows orbiting at once). The dense square is mostly hidden at the default angle, as expected before Phase 3's ghosting.
+
+### City Phase 2: graybox street — 2026-10-11
+
+- Playground *Graybox street* (`src/dev/graybox-street.js`, area `graybox-street`): 60 × 60 map with a 13 × 13 square (fountain block, crystal spot), a 5-wide avenue up two full-block terraces by stairs (5 wide, then 3 wide to the castle terrace), 3-wide streets, 2-wide alleys, small and medium houses with raised ground floors (half-block step at the door), a terraced row with shared walls, two-storey shells, the castle and towers (locked doors). Controls: enter, toggle roofs, zoom 3/12/22/34.
+- Shared additions: `edgePlacement(a,b,storeys)` and `storeys` on `createEdgeFeatures().add` (multi-storey walls, posts and doors); a `graybox` style (plain pieces; posts only where walls turn, meet or end); door sills between floors of different heights (the opening starts at the higher floor, with a step on the lower side); `bake()`/`unbake()` merges static edge pieces and posts into one vertex-coloured mesh (glass and doors stay separate; edits unbake first).
+- Tests: `graybox-street.test.js` (every house reachable only through its door with a half-block step, shells sealed and locked, terraces only by stairs up to the castle, walls baked; the door rule holds or the map throws).
+- Findings are recorded in CITY.md *Graybox findings*; one open question (phone view distance).
+
+### Inward doors, open doors as walls, and the door rule — 2026-10-11 (user design)
+
+- Doors open into their own building/room (the first tile, `a`, given when placed; the complex's east room doors are placed room-first). Open, a door turns a quarter and lies along `a`'s side edge at the hinge corner as a wall feature (`{kind:'wall',door}`), so routes and sight can't pass through the door model; closing removes it. The hinge side is chosen where that edge is free (`setDoorHinge`, mirrored panel). Fixed a bug where every door used the default swing (`updateDoors` now animates the door's model).
+- **Door rule:** a wall or window on each side of a door before any perpendicular wall (`doorProblems`, `createEdgeFeatures().doorProblems()`). The building test map throws if broken; layouts updated to follow it: the complex's hallway is 3 wide with the front door centred, and the shape arms, U courtyard and S/Z blocks are at least 3 tiles where a door sits (map now 57 × 35).
+- Playground: Walls & doors → Open all / Close all doors on the building test map.
+- Tests: 486 pass (inward swing in all four directions, open door is a wall on one side edge and closing clears it, hinge takes the free side, the door rule).
+- Browser-checked: opened doors lie flat inside their buildings (T, large hall, complex front and west rooms) with no clipping.
+
+### Building shapes on the test map — 2026-10-11
+
+- The building test map (now 48 × 34) gains a southern road with an L, an L split by a solid wall into two joined buildings (a door each), a T (two doors), a U with a courtyard (road door plus a courtyard door), a + (two doors) and a Tetris S/Z (two doors). Shapes are text grids in `SHAPES` (`src/dev/building-test-map.js`); one outline rule walls every edge between a part's tile and anything outside that part, and a door or window named off the outline throws.
+- Tests: 483 pass (`building-test-map.test.js`: every shape sealed until its doors open, every indoor tile reachable with them open, the split L's parts never joined, the U courtyard outdoors).
+- Browser-checked every shape: inside corners (L, T, U, +, S/Z), the T-junction where the split L's wall meets its outline, and doors all render cleanly with one post per corner.
+
+### Door facing and wall-top flicker — 2026-10-10
+
+- Using a door from its own tile turned the player south (the door's position was that tile, so the direction was zero). Doors now report their edge midpoint (`door.x/z`), so the player faces the door from either side. Playground `getState().facing` reports the player's facing.
+- Wall tops flickered: the timber cap shared the plaster's top face, and every piece carried its own corner posts, so neighbours stacked identical posts. Pieces now stack without overlap, and `createEdgeFeatures` places one shared post per grid corner (tested in `edges.test.js`). Browser-checked on the building test map.
+
+### Manual doors and the building test map — 2026-10-10 (user design)
+
+- **Doors are manual (RuneScape-style):** a closed door blocks walking, sight and reach like a wall; open, it is no edge at all. Clicking a door walks you up to whichever side is nearer (`doorApproach`) and opens it, or closes it if open. Doors stay as left (no auto open/close). Locked doors rattle. NPCs and creatures treat closed doors as walls for now.
+- **Building test map** (playground: Walls & doors → Enter building test map; `src/dev/building-test-map.js`, area `building-test`): small house (1 door), large hall (2 doors), complex building with a hallway and four rooms (front door + 4 room doors). Every door starts closed; area reset closes and unlocks them.
+- Tests: 481 pass (`edges.test.js` updated for manual doors; new `building-test-map.test.js` checks each building and each room is sealed until its door opens).
+- Browser-verified: the map loads with all three buildings; clicking the complex's front door walks to it and opens it; the hallway is reachable only then; a closed room shows "No safe route" until its door is clicked open.
+
+### City Phase 1: walls and doors on tile edges — 2026-10-10
+
+- Edge features (wall, window, fence, railing, low counter, door) with the shared `canStep` rule, edge-aware sight and reach, body edges, per-step re-checks, the shared door entity and the Walls & doors playground yard. Details in CITY.md *As implemented (Phase 1)*. (An earlier edit had dropped CITY.md's door bullets; they are restored there, updated.)
+- Tests: 480 pass (new `edges.test.js`: storage, rules per kind, routes and locked doors, sight incl. diagonals, melee/interaction reach, bodies, wander/companion, door open/close/lock/interact; combat: an enemy sees through a window but walks around to strike, never notices through a wall).
+- Browser-verified in Cinderhold: the yard renders; the way into the room is through the door; a locked door gives "No safe route" and "It's locked."; unlocking lets the player in. That run found and fixed a real bug: a route planned before a door locked was followed through it (movement now re-checks each step).
+- The no-route message is now "No way there: a wall, locked door or high ledge is in the way."
+
+### Occupied tiles and pushing (RuneScape-style) — 2026-10-10 (user design)
+
+- Living characters mark tiles **occupied** in one shared map (`world-occupancy.js` `occupancy`). Routes treat occupied tiles as costly, not blocked (5 steps; a player's tile 30): cheapest-route searches in `findPath(…,cost)`, `findFootprintPath(…,{cost})`, `wanderRoute(…,cost)` and `companionRoute`. The player's routes now go around people when the detour is short. Replaces the earlier two-pass "around, else through" search.
+- **Pushing:** a player stopping on a character's tile pushes it aside. World-actor NPCs default to `push:'walk'` (step to a free neighbour, walk back home after ~2 s, teleport home if 8+ tiles away); tutorial NPCs use `push:'never'` (mentors via `createMentor`, Willowbank's Reed) and hide under the player. Calm creatures: `combat.js` `pushAside`; wanderers outside their patrol area walk back (`homeward`, `HOME_FAR`). Hostile creatures shuffle aside while still attacking. The companion yields when the player stops on it.
+- Registration: player and companion each frame in `main.js` (`resolveStanding` handles pushes and hiding); creatures in `combat.js` `move`/`release`; NPCs in `createWorldActor` / `setWorldOccupancy`. `npcAt`/`characterAt` now read the occupancy map (the per-frame pickable scan is gone).
+- Playground: Walk-through characters now walks *past* the crowd, stops on a townsfolk that steps aside, or on the one that stays put; the overlay shows occupied tiles. Browser-verified in Cinderhold (detour around the crowd, push and return home, hidden under the player and reappearing). Not separately re-walked: Reed and mentors in their maps (same `push:'never'` path).
+- Tests: 471 pass (occupancy costs, detour vs through, walk/never push and return home, calm creature push and walk-back). Not covered: the 8+ tile teleport home (fixture maps are too small).
+
+### Anti-kiting enemy attacks, Rock Throw, OSRS-style weapon swaps — 2026-10-10 (user design)
+
+- **Enemy attack commitment** (COMBAT.md): an enemy's cooldown keeps running out of reach; its windup starts once the player is in reach; leaving reach in the first half cancels it with no new cooldown; past the halfway commit point it lands. Character-targeted attacks (default) hit wherever the player went. Tile-targeted attacks (`target:'tile'`, `area`) lock the (2r+1)² non-solid tiles around the player at the commit point and hit whoever stands there at impact ("Dodged!" otherwise). Walking into an enemy keeps its windup going while it shuffles aside. Code: `enemyAttackUpdate`, `impact`, `lockTiles` in `combat.js`; old "leaving reach resets the clock" is gone.
+- **Cinder Golem:** slam is tile-targeted, 3×3. New **Rock Throw** (`ENEMIES.golem.rangedAttack`: 2.4 s windup, 3×3, 40–90, range 8, after 1.5 s out of reach, 0.6 s flight). It stops chasing to throw and must chase the full delay again before the next throw. `golem-model.js` has a `thrown` motion with a held rock; the model catalogue lists **Throw**. Rock projectile: `projectile-effects.js` style `rock` with `duration`/`arc`.
+- **Ground telegraph:** `attack-telegraph.js` (shared, any map) draws locked tiles filling toward impact; `combat` calls `api.telegraph(owner,tiles,progress)`. Playground `getState().telegraphs` reports active sets.
+- **Weapon swaps mid-fight (OSRS-style):** equipment is no longer refused during combat (`main.js` busy gate), nor is spell selection. Changing a hand item calls `combat.handsChanged()`: the unlanded attack and its carried ability are lost, unstruck off-hand follow-ups cancel, arrows in flight still land, and the next attack lands at max(previous attack's interval since release, new windup). Fight starts use the same timer rule (`schedule`). Armor/hats don't interrupt.
+- Tests: 467 pass (golem slam cancel/lock/dodge/hit, Rock Throw hit/dodge/chasing stop/repeat delay, commit and cooldown rules, walking into an enemy, swap timing incl. quick→slow follow-up, mid-windup restart, no-timer swap, arrow in flight).
+- Browser-verified in the Cinderhold arena: markers appear at the halfway point, standing still is lethal, stepping two tiles away shows "Dodged!", the Rock Throw hits a player kept out of reach. **Not browser-verified:** a mid-fight weapon swap through the Inventory/Equipment UI (unit-tested only; the pane was hidden).
+- Open tuning note: escaping the 3×3 needs two straight steps in about 1.7 s; it works, but feels tight when reacting late.
+
+### Walk-through characters (cities Phase 0) — 2026-10-10 (user rule)
+
+- Living characters never block movement; every other entity stays solid. Details and the implemented rules are in CITY.md *Walk-through entities*. `tile.blocked` now means solid only.
+- Changed shared code: `world-occupancy.js` (`markCharacter`), `slime-model.js`, `enemy-entity.js`, `world-actors.js`, `combat.js` (`bodyRoute`, `taken`, `occupies`), `wander.js`, `companion-follow.js`, `interaction-route.js`, `combat-range.js`, `main.js` (`characterAt`, `npcAt`; the player no longer waits for the companion). `companions.cannotYield` was removed.
+- Tests: 461 pass, with new tests for walk-through creatures and the golem body, pursuit preferring a free spot (and passing through when it must), wander passing occupants, the companion's fallback through the player, and free-spot interaction/attack routes. The boss windup test now holds the golem with immobilize instead of a reserved tile.
+- Playground: *World & water → Walk-through characters* (crowd, passive golem, walk through each, solid/occupied overlay). Browser-verified in Cinderhold (through the crowd and the golem with the companion following, aggressive enemies still chase and fight) and Willowbank (overlay; talking to Reed stops beside him). Also verified in the clearing (through the crowd, companion following). The clearing has no level 2×2 lane for the golem fixture; use Cinderhold for that.
+- Not done: a visual nudge when two characters briefly share a tile.
+- Perf: one `npm run perf` (dev-gpu) after this batch: all 9 scenarios PASS, ~59.5 fps, cinderhold-combat 2.24 ms (p95 2.94). The draw/object "improved" notes are against the older baseline, not this change; baseline not updated.
+
+### Tool carry poses, staff spell focus — 2026-10-10
+
+- Carry: `TILTED_CARRY` in combat-animation.js (blades plus axes, pickaxes, hammers) rests tilted forward like a sword. The staff stands upright. A held rod uses the shoulder transform (`heldTool('rods')` → `carriedTool('rods')`). `BLADES` still drives only the block guard.
+- Flint and Stone is no longer equippable, and its model is removed.
+- Staff focus: `GEAR.staffs.magic`; `spellFocus(slots)` / `spellAttack(id, spell, slots)` in equipment.js add the best held focus's power/accuracy to spells (combat-styles `attack` getter and quick spells in combat.js). Optimize (assistance.js) considers owned focuses for Magic and ranks magic setups by spell damage. Energy Strike: 1–22 bare, 4–28 with the staff. Tests are in combat, combat-systems and slime-presentation.
+
+### Tools are cosmetic hand items — 2026-10-10 (user decision)
+
+- `GEAR` axes, pickaxes, hammers and rods are `{slot:'hand',cosmetic:true}`: equippable in either hand, with no combat stats. `handAttack` treats a cosmetic item's hand as a bare fist, so the slime punches with the tool in hand. This replaces the short-lived hammer weapon stats. `tool()` now builds axes, pickaxes and a new Flint and Stone model (catalogue "Flint and Stone"). All five are in the viewer's hand list. The staff stays a real weapon.
+
+### Swappable mentor hats; staff and hammer weapons; Rings — 2026-10-10
+
+- Head items (`ITEMS`, `GEAR` slot head, `WORN_MODELS`; models in hat-models.js built relative to the Head anchor): `ironSkullcap`, `minersCap`, `archerCap`, `wizardHat`, `breathHeadband`, `fishersHat`. The hat geometry moved out of `mentorModel`/`fisher()`. Mentors wear them via `MENTORS[kind].loadout.head` (and Reed via his `createSlimeActor` loadout). `loadoutEquipment` accepts worn slots by name. All are in the model catalogue and the viewer's Head dropdown. A character's default loadout fills each empty viewer slot (hands together, each worn slot separately).
+- New weapon: `staffs` (Simple Staff), one-handed bludgeoning melee with a swing (`resolveAttackMotion` → slash). The hammer became a cosmetic tool (above). Wisp holds her staff and Borin his hammer as gear (no more `carry` for them). In the viewer's hand list.
+- Design call: Rings (one per hand) replace the proposed Charms; neck items are dropped. Body and Base deformation is deferred; only hats are worn for now.
+
+### Worn gear by slot; viewer wear dropdowns — 2026-10-10
+
+- `src/worn-gear.js`: wear slots per body type, slime slot anchors and item models. `equipment-presentation.js` renders any worn non-hand item at its slot anchor (the Top Hat is now just `hats` in the Head slot), and companion outfits take their models from the same registry.
+- Model viewer: catalogue entries declare `wear` (built by `wearSlots()` from GEAR / COMPANION_GEAR), and the viewer shows one dropdown per slot (Head for slimes, Head cosmetic for the corgi), passed as `options.worn`. "Corgi · Companion Top Hat" is gone; it's one Corgi entry with the dropdown. `syncPreviewEquipment` equips worn slots on the preview's real equipment.
+- Strong Strike keeps the normal focused face (no angry face).
+
+### Strong Strike presentation, dialogue edits, companion hat fit — 2026-10-10
+
+- **Strong Strike:** `attackAnimation` gives an ability-powered melee attack (`profile.ability==='strongStrike'`; not bows or spells) a coiled windup (crouch, lean back, striking hand drawn back), a harder drive, an angry face, and `power`/`flash`/`powerHand` fields. `strike-presentation.js` (made lazily by the shared slime presentation, so any slime) turns those into a golden glow that gathers on the striking hand and bursts at impact (normal blending, so it reads on light backgrounds). Sounds: `strongCharge` when the ability attaches to the windup, and `strongHit` (replaces the hit sound); both pass the click check. Playground: "Strong Strike (equipped)" animation preview, and a "Strong Strike" motion in the model viewer for every slime. Tests are in combat-animation, combat and slime-presentation.
+- **Dialogue:** Bristle's wall bluff drops the second gelatin joke. Fletch: "It took Bristle and Borin both, pushed to the brink, to fight it off. I’m still not sure if they drove it back or if it just got bored and left."
+- **Companion Top Hat:** sits flat (no tilt), further back toward the centre of the head (`OUTFIT_MODELS` in companion-model.js).
+
+### Happy face on every success, munching eat sound, calm idle in conversation — 2026-10-10
+
+- Fix: the player's dialogue portrait was frozen. main.js and willowbank.js passed the player's inner `visual` group, whose own transform (where the idle lives) the portrait replaces. They now pass the root `player`, like every NPC. The playground's `getState().body` reports the player's squash, twist and lean.
+
+- `succeeded()` in main.js gives the happy face after every successful finish. It's called from the completion callbacks for gathering, chopping and mining (resources), crafting, smithing and smelting (station crafting), cooking, carpentry and fishing. Smithing, smelting, cooking, carpentry and fishing had none before. The playground's `getState().face` reports the player's current face.
+- `eat` sound: three munches, each quieter and lower. Each munch is a crackle of four tiny crisp grains (2.6–4.5 kHz) that fall away step by step, over a soft lowpass chew, with only a whisper of jaw thump. The step-down keeps the crackle fading instead of cutting off: 0 clicks in 40 randomized offline renders.
+- `calm` state in the shared slime presentation (`CALM_IDLE` = 0.3): a slime's idle squash, twist, lean and bend ease back while a conversation is open. Applies to the player (`characterDialogue.active`), mentors and Reed. Dialogue portraits no longer add their own extra bob; they mirror the (calm) slime.
+
+### Windups, magic sounds, mentor gear, facing large creatures — 2026-10-09
+
+- **Windups (user design):** `attackWindup(profile)` in combat.js. A ready attacker's first attack waits only for its windup: a weapon/spell `windup` field, otherwise melee 0.5 s, ranged 1.15 s (`RANGED_WINDUP`, the bow's raise, nock and draw) and magic the whole cast. It is capped at the interval; later attacks take the full interval. Fixes the long first-shot pause with the bow. COMBAT.md *Opening attack* is updated.
+- **Magic sounds:** `spellCharge` is a sustained gathering shimmer started with `gameAudio.start()` and returns a stoppable handle (`effects.start`). combat.js starts it when the hands visibly gather: from the cast's start, or `CAST_TIMING.recover` after a release (by then a lethal spell has landed and ended the fight). It lasts until the toss (`interval - CAST_TIMING.toss`) and stops on release, cancel, interruption, mana pause, defeat or fight end. `spellRelease` and `spellHit` (replaces `hit` for magic) are one-shots. All three pass the music lab's offline click check, including an early stop.
+- **Mentor dialogue:** Borin says "Don't forget what I taught you! Good luck out there!" once training is past his step. Bristle's wall bluff no longer admits being thrown around and never uses the distraught face (reserved for the no-combat path).
+- **Mentor gear (shared presentation):** Bristle `loadout` Copper Dagger + Copper Shield; Borin `carry:'hammers'`; Wisp `carry:'staffs'`, a new simple staff in tool-models.js (`tool('staffs')`, catalogue "Simple Staff"). `carriedTool` holds non-rod tools as when working. The staff is a carried prop, not an equippable weapon, so it is hidden during motions that use the hands (e.g. Casting).
+- **Large creatures:** `bodyCenter()` (footprint.js): the player faces the body centre when approaching and fighting, and shots aim at the centre at the enemy's `aimHeight` (golem 1.4).
+
+### Shared slime presentation: every slime can hold anything and do anything — 2026-10-09 (user rule)
+
+- New `src/slime-presentation.js` (rule in AGENTS.md, *Shared slime presentation*). `createSlimePresentation(rig,{equipment,tools,carry})` does everything the player loop used to do after choosing a motion: action blending, bend, face, squash/lean, grounding, hand targets/smoothing, held gear (`equipment-presentation.js`, including the bow), axe/pickaxe/hammer, casting and fishing. `createSlimeActor(rig,{loadout,carry,idleRate})` is the NPC/scripted driver: shared idle, plus `play(kind,{profile,loop,duration})`/`stop()` for any action or social motion (`SLIME_ACTOR_MOTIONS`). A combat motion without a profile uses the character's own gear.
+- Converted: the player (main.js keeps motion choice, movement and facing), mentors (`createMentor`; `animateMentor` deleted; `MENTORS[kind]` has `loadout`/`idleRate`), Reed (`animateFisher` and his hand-placed rod deleted; `carry:'rods'` via `carriedTool` in tool-models.js), the splash slime (plays Sleeping), and the model viewer's `slimePreview` (one equipment instance kept in sync by `syncPreviewEquipment`).
+- Tool model names: `slime-tool-axe|pickaxe|hammer|rod`, `slime-carry-<id>`, held gear `equipment-<side>-<id>`.
+- Playground: **NPC slimes** section (any mentor or Reed plays any shared motion in the world). The model viewer previews every slime through the same presentation.
+- Tests: `slime-presentation.test.js` (every motion on every slime, NPC/player pose parity, gear/tool/carry visibility); the model-catalog tests were updated to the shared structure.
+- Verified live: player gear and the chop cycle; Fletch idling with his bow, then drawing it with an arrow nocked (Archery); Reed's shoulder rod, put away while waving; the splash sleeping slime; no console errors.
+
+### Arrow chime fix; Fletch's bow — 2026-10-09
+
+- Spending an arrow no longer plays the "complete" chime. combat's `items` callback passes `sound:null` to `showItemChanges` (any negative change chimes by default). The item feed still shows −1. There's no bow-release sound yet; impact plays hit/whiff.
+- Mentors can carry held gear via `MENTORS[kind].loadout` (Fletch: `{leftHand:'bows'}`). `mentorModel` attaches the gameplay `handModel` and `animateMentor` applies the player's `equipmentIdleHands` carry pose, so mentors and the player hold items identically. No mentor-specific orientation code. Verified side by side with the player slime in the model viewer.
+
+### Multi-tile creatures and the reference ranger hat — 2026-10-09
+
+- `footprint.js` (body cells, gap, nearest cell, `canStand`, `findFootprintPath`); `combat-range.js` measures to the nearest body tile; combat.js branches on `sizeOf(a)>1` for occupancy (`release`, `cellsOf`), centre positioning, adjacency, pursuit, walk home and wandering, and a per-enemy `plateLift`. `enemy-entity.js` `MODELS.golem` has `size:2, scale:1.25`. The portable golem spawn picks a spot where the whole body fits. Tests: `footprint.test.js` and the 2×2 case in combat.test.js.
+- Ranger hat rebuilt after the user's reference: `rangerCrown` (a custom pinched, swept-back crown) and `rangerBrim` (a curled strip, flipped high behind with a pointed beak in front, double-sided), with one feather on the right and no band.
+- Verified live: the Fletch viewer from three angles; the 2×2 golem engaging, moving and slamming in its arena; the portable spawn in the clearing; no console errors. Perf was not rerun: the change is limited to one enemy's pathing, and this session's earlier run covers the batch.
+
+### Cinderhold boss path: Fletch's gate and the Cinder Golem — 2026-10-09
+
+- Design and lines: CINDERHOLD.md, *Something Bigger*. Map: `CREVICE_TILES`, `GOLEM_TERRITORY` and a ring-walled cavern in `makeCinderholdTiles` (the area now extends to z=50, x 25–45 below the south wall). Story state: `progress.state.crevice` ('closed'/'warned'/'cleared') and `golem` ('unmet'/'met'/'done').
+- Shared combat additions: `telegraphed`, `moveSpeed` and `territory` (combat.js, combat-rules.js), and per-kind models/animations in `enemy-entity.js` (`MODELS`, `a.animate`). `animateGolem` receives `charge`/`slam` from combat. Tests are in combat.test.js (windup reset, one-slam defeat, territory, speed), training.test.js (sealed cavern, territory vs crevice) and cinderhold-dialogue.test.js.
+- Cinderhold now gets `tile()` and `teleport()` from main.js (Fletch's trigger, checkpoints).
+- **Verified live:** Fletch's stop and tip; Borin's and Bristle's topics opening the gap; the golem engaging a **Pacifist**, approaching slowly, winding up and flattening (100 → 0); recovery at the crystal; the quest completing and the boss tip. **Not verified live:** a successful escape, because tool latency exceeded the windup. It is covered by unit tests instead.
+- Open: consider a slam sound and camera shake later; the minimap marks a multi-tile enemy with a single dot.
+
+### Tutorial wrap-up: mentor hats, clearing respawn, finale Top Hat, Companion Top Hat — 2026-10-09
+
+- **Mentor hats:** `hat-models.js` holds `rangerHat()` (Fletch: a peaked archer's cap with an upturned back brim, leather band and red feather) and `mageHat()` (Wisp: one smoothly bent cone with a curled tip, drooping lathe brim, gold band and stars). `mentorModel` in `training-models.js` uses them; check them in the model viewer under Fletch / Wisp.
+- **Clearing respawn:** `RESOURCE_RESPAWN` (8 s) is now the default `respawn` in `createResourceEntity`, so every area (clearing, Willowbank, Cinderhold, world start, streaming chunks, training fixtures) shares one value; pass `respawn:null` for a deliberately finite node. Clearing checkpoints that pre-deplete ground items use `restore(...,{respawnIn})` so the items still grow back. `practice-goal.js` (the "clear everything" test) is gone, along with the playground's dead *Complete practice* action.
+- **Finale Top Hat (user decision):** in `tutorial-finale.js` the reward dialogue starts as soon as the practice reset's drops finish (stage `reward-dialogue`), then chest → celebration → `startPractice()` (the *Practice time* tip). Playground previews of the celebration do not start practice.
+- **Companion Top Hat:** item `companionHats`; `COMPANION_GEAR`, `wear`, `owns` and `inventoryActions` live in `companions.js`, and `setCompanionOutfit` in `companion-model.js`. Shown on the Companions page (Outfit list) and in inventory actions. Reed grants it in `willowbank.js` (`giftCompanionHat`, once per reset; also on skip and the *finished* checkpoint). It is in the waking `STARTER_KIT`. Tests: `companions.test.js`, `ui/pages/companions-page.test.js`.
+- **Slime outfits:** this is a design proposal only (DESIGN.md, *Slime outfits*), awaiting the user's review. No slot code has changed.
+- **Verified** in the playground (GPU browser, bounded): the hats in the viewer; the corgi hat in the world, portrait and inventory; clearing sticks regrowing; the full finale from the practice checkpoint to the chest, celebration and practice tip; Willowbank eat → Reed's gift. Perf not yet run for this batch (it is small model work; run it with the next milestone batch).
+
+### Sound effects, cues and ambience — 2026-10-09
+- **Second listening pass (user):**
+  - **Willowbank's swirl repeated.** The old bed's oscillator wobbles (1.7, 3.1 and 0.4 Hz) and its bright band are gone. The river is now a brook of bubble one-shots (random pitch, time, level and pan; a slowly wandering `flow`) over a soft low-passed wash whose cutoff and level random-walk. Measured envelope self-similarity at 0.3–3 s delays: the old bed peaked at 0.60 every 2.35 s; the new water has no peaks (0.30 → 0.12 at 1 s → ~0 at 2 s).
+  - **The Cinderhold drip sounded like three chirps.** It's now one plink. The profile's `reverb` (.75) sends all its ambience into a generated cave impulse (early reflections plus a ~2 s dark tail); a drip rings about 1 s.
+  - Profiles click-free over 40 s, with similar loudness (RMS: meadow .0034, river .0024, Cinderhold .0023).
+- **Fixes after the user listened:**
+  - **Clearing wind swelled, then cut off.** Cause: a non-looping 4 s noise buffer, a random offset and gusts up to 6 s. Every noise source now loops (ambience, effects, wind-instrument breath, drums).
+  - **Every noise-based sound started with a one-sample spike, likely part of the clicking the user heard.** Cause: a gain node starts at 1, and `setValueAtTime(0)` at the source's start frame lands a sample late in Chrome. Every envelope now sets `gain.value=0` when created.
+  - **Willowbank's bed was far too loud.** It's now a quieter brook (about the meadow's overall level) with bubble one-shots and no wind.
+  - **Cinderhold had wind and an ember rumble.** Both are replaced by drips with stone echoes, falling stones and dirt (dull and low-passed), and the distant anvil.
+  - **Checker:** it also flags cut-offs, meaning a drop of more than 20 dB over ~23 ms windows while the sound was steady (not a fade's tail or a percussive decay). Spike roughness is relative to level, so noise swelling in isn't flagged. It still catches the old piano cut-off, the old wind bug and a full-level start.
+  - **Verified:** every effect and ambient sound over six randomized runs, every instrument twice, and all six songs: no clicks or cut-offs.
+- **Design:** DESIGN.md "Audio" (effects table, ambience profiles).
+- **Code:**
+  - `sound-effects.js` `createSoundEffects(ctx, out, {voices, palette})`: `EFFECTS` (25; `cue` marks in-key phrases); `play(kind, arg)` returns seconds of music ducking.
+  - `ambience.js` `createAmbience(ctx, out)`: `AMBIENCE_PROFILES` (none, breeze, meadow, river, forge); `AMBIENT_SOUNDS` (wind, chirp, call, trill, insect, clink); water and embers beds.
+  - The player exposes `voices` and `palette()` (current key and cue instrument; songs set `voices.cue`).
+  - `audio.js`: `play(kind, arg)`, `update(dt, song, dialogue, combat, place)`, `ambience.override` and `ambience.profile` signals.
+- **Wiring (main.js and shared systems):**
+  - `showItemChanges(changes, {sound})`.
+  - Food → eat; fishing → cast and catch; carpentry → hammer; cooking → sizzle; anvil and furnace starts; campfire placed → ignite; combat `won` → victory.
+  - Quest notice effect → objective note (by progress) or quest cue.
+  - `combat.js`: hit or crit on enemies, whiff on misses (both sides), hurt for the player.
+  - Willowbank's bridge injury → hurt.
+  - Ambience place: splash → breeze; `!opening.inClearing` → none; otherwise `areas.active.ambience` (clearing, world: meadow; Willowbank: river; Cinderhold: forge).
+- **Playground:** the lab (now "Music & sound lab") replaces the legacy sound buttons. It has an Effect picker with Play and Check, an Ambience override and ambient sound picker with Play and Check, and the ambience profile in the readout. `dev/audio-check.js` adds `checkEffect` and `checkAmbient`.
+- **Verified:**
+  - 432 tests (new `ambience.test.js`; lab test); both builds; debug isolation; UI check.
+  - Effects and ambient sounds click-free over six randomized offline runs each.
+  - Loudness balanced: cues ≈ 1.5–2.5× combat hits, eat and whiff now audible.
+  - Live: ambience splash breeze → opening silence → clearing meadow → Willowbank river → Cinderhold forge; real quest add, progress and complete plus a fight fire their sounds without errors.
+- **Known:**
+  - Tutorial checkpoints restart the opening, so the opening's music plays during checkpoint travel (pre-existing; normal play finishes the opening first).
+  - The music's tutorial "Waking" song covers the whole opening, including the clearing lessons.
+
+### Music engine — 2026-10-09
+- **Per-area bands (same day; the user wants many instruments, styles and keys):** see DESIGN.md "Per-area bands".
+  - **Instruments:** `music-voices.js` presets over engines (string, FM, wind, reed with PeriodicWave recipes, mallet). There are 17 instruments plus 8 kit pieces. `INSTRUMENTS` and `DRUM_KIT` are exported for songs, tests and the lab.
+  - **Normalized levels:** a mid note at full velocity is about the flute's RMS (~.06). The flute and recorder keep their levels, and Sunny Clearing's `mix` is scaled so it sounds unchanged.
+  - **Songs:** new world waltz `COZY_SONGS.world` (*Open Road*; `world-start.js` has `music:'world'`). Willowbank moved to F major. Cozy-only songs play in either arrangement.
+  - **Fixes found by the new checker:** string tables could run out while audible, so each preset has a `length`, the table fades out at its end, and the ring is capped. The banjo is bright from a narrow pick shape instead of noise. The guitar's noise is trimmed (.35 → .25).
+  - **Lab:** instrument audition (`player.audition`), Check instrument and Check song (`dev/audio-check.js` `findClicks`, unit-tested on synthetic cuts and fades).
+  - **Verified:**
+    - 430 tests; both builds; debug isolation (the checker isn't in normal builds); UI check.
+    - Every instrument's audition is click-free except one guitar onset at .026, just over the threshold; songs are clean.
+    - Every song's layers are click-free.
+    - Balance measured while the melody plays: melody about .025, accompaniment .008–.014, bass .016–.021.
+    - Live: lab audition and checks, the world song from the lab, and from a real wake-up into the world.
+  - **Tooling note:** the dev server sometimes misses file edits; restart it before measuring or listening.
+- **All songs cozy (same day; the user loved Sunny Clearing and is reviewing the rest one by one):** `COZY_SONGS` now also has `splash`, `intro`, `willowbank` and `cinderhold`.
+  - They follow the clearing's recipe: flute or recorder lead, per-song `mix` to keep the accompaniment about 7–8 dB under the melody, coloured chords, no strums.
+  - Melodies were checked for strong-beat clashes with their chords; one sus4 clash in the splash is fixed. The rest are deliberate 7ths, raised 4ths and appoggiaturas, as in the clearing.
+  - Measured while the melody plays: melody about .026–.028; accompaniment about .009–.012; bass about .017–.022 (Waking's long bass notes reduced to .45).
+  - No discontinuities except a negligible detector artifact at the render's first 50 ms, during the fade-in.
+  - Each plays live from the lab.
+- **Tempo and balance (same day, user: "dragging", wants the recorder/flute on top):** Sunny Clearing is now 112 BPM (was 104) with swing .05 (was .1). Wind instruments swell in 25 ms (was 60), so notes land on the beat. Songs can set `mix` (per-layer multipliers); Sunny Clearing uses melody 1.35, arp .2, comp .45, bass .8. Measured while the melody plays: melody RMS .025, fingerpicking .010 (about 7.5 dB under).
+- **Click fixes and no strum (same day, user feedback: strumming grating, flute nice, audible clicking):**
+  - Measured by offline-rendering each voice and the cozy song per layer, without reverb or compressor, and flagging second-difference spikes against the local peak.
+  - Causes: keys oscillators stopped before the release finished (also a ramp-after-setTarget jump); plucks started at full amplitude from a noise burst; 1 ms woodblock and kick attacks; a 4 ms high-passed shaker.
+  - Fixes: keys decay and release are setTargetAtTime with oscillators running 2 s past release; plucks get a smooth excitation plus a 6 ms fade-in; kit attacks are 4–6 ms; the shaker is band-passed with an 18 ms swell.
+  - The strum voice is removed. `comp` now takes `c` (whole chord) and `l` (light upper notes) on any melodic voice, expanded to one event per note. Sunny Clearing uses fingerpicked plucks (A), flute with soft piano chords (B) and a flute alternate.
+  - After the fixes, melody, comp, drift, arp, kick and woodblock render with no flags. The remaining flags are the shaker's own noise texture.
+- **Cozy pilot (same day):** the user chose Stardew Valley as the direction. The engine gained swing, chord colours (`'4:7'`, `'1:add9'`, `'5:sus4'`, and the `e` chord-tone token), a `comp` layer (originally a strum voice; see above), a `perc` layer (k/w/h/s), the recorder voice and per-song `reverb`. `COZY_SONGS.clearing` (*Sunny Clearing*) is the pilot; the player prefers cozy versions through `options.arrangement` (default `cozy`), and the lab has an Arrangement switch. Next step: confirm the direction by ear, then write cozy Splash, Willowbank (accordion-like voice for the village?) and Cinderhold (a bouncy minor tavern tune). Verified: 425 tests; offline renders balanced (raw RMS: melody .047, guitar .031, bass .027, perc .012) with no NaNs; live Cozy↔Original crossfade; travel to Willowbank (original) and reset to the clearing (cozy).
+- **What:** the single looping 12-note sine phrase is replaced by composed, synthesized songs. Design and notation: DESIGN.md "Audio". Code: `music-theory.js` (pure: modes, patterns, section rendering, seeded variation/drift, styles), `music-songs.js` (5 songs), `music-voices.js` (instruments, generated reverb impulse), `music-player.js` (lookahead scheduler on a 50 ms timer, layers, crossfades, combat layer, `createMusicState` for lab signals). `audio.js` creates the player on unlock; `update(dt, songId, dialogue, combat)`; areas declare `music` (clearing, willowbank, cinderhold; others fall back to clearing).
+- **Playground:** `dev/music-lab.js` (kit, in Interface & audio) replaces the old Music preview select.
+- **Verified:** 423 tests (new `music-theory.test.js`, `dev/music-lab.test.js`), both builds, debug isolation, UI check. Offline renders of every song: no NaNs, peaks ≤ .85 before the Music slider. Live: lab song/style/seed/combat/layers; travel clearing → Cinderhold crossfades; a real fight fades the combat layer in and out; the splash plays *Over Quadria*.
+- **Not measured:** `npm run perf`. The harness never makes a trusted gesture, so audio never starts there; music no longer does any per-frame work.
+- **Known:** the music is still being explored with the user. Levels are tuned by measurement, not yet by ear.
 
 ### Streaming experiment — 2026-10-09 (playground only)
 - **Design and findings:** DESIGN.md "Streaming experiment". Playground → Streaming test (enter, teleport ~100 tiles, stall loading, stats, load radius, chunk bounds).
@@ -971,7 +1354,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
   - XP per resolved attack: strategy skill + weapon proficiency, or elemental proficiency for spells. Shield XP on connected or blocked hits, using a hypothetical roll on blocks. Entity multiplier and cap are applied per track. The old Combat-XP-on-win and the single Combat skill are gone.
 - Items now carry bonuses: Stone Sword +6/+6, Copper Dagger +10/+10, Training Bow +10/+10 at range 6, Wooden Shield +30, Copper Shield +50 resistance. The old Stone Sword/Wooden Shield values were chosen by the user. Practice targets: 50 HP, 0.5 XP below level 3. Cooked Pondfish heals 20.
 - Spark is replaced by **Energy Strike** (4 Mana, 3s base cast, 6 tiles, Energy proficiency). Unaffordable casts pause with the target kept and show one notice, then resume. Wisp's lines and the training fixture use it; the quest title "First Spark" is kept as flavor.
-- Regeneration: Health, Mana and Stamina regenerate (scaled by attributes; slower in combat and for 5s after). Stamina pauses only while actively sprinting. Maxima follow Constitution/Mentis/Endurance without refilling. Resource orbs write the DOM only when the rounded-up number changes.
+- Regeneration: Health, Mana and Stamina regenerate (scaled by attributes; slower in combat and for 5s after). Stamina pauses while actively sprinting and for `SPRINT_REGEN_DELAY` (1s) afterwards; exhaustion drains fractional Stamina to exactly 0. Maxima follow Constitution/Mentis/Endurance without refilling. Resource orbs write the DOM only when the rounded-up number changes.
 - UI:
   - **Skills** shows core level, attributes with 44px **+** buttons, and all combat skills. Proficiencies appear once trained; Unarmed always.
   - **Combat** adds the six strategies with their XP destination and a live summary of the attack the next windup would commit.

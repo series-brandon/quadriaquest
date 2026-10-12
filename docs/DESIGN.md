@@ -20,14 +20,16 @@ Clicking a resource or enemy initiates a continuing interaction until it finishe
 
 - Terrain heights use half-block increments, with no smaller terrain elevation steps.
 - Both half-height and full-height ledges are supported, avoiding a uniform full-cube appearance.
-- No ramps are allowed.
+- No ramps are allowed in the wild. Stairs in cities and buildings are the exception: walking onto a stair tile is a smooth ramp with the slide motion, no hop (user decision, 2026-10-11); stair tiles are still placed one per half block.
 - Exposed edges and corners are slightly rounded for a polished appearance.
 - Neighboring blocks meet continuously: shared boundaries must not have rounding that creates gaps or troughs. Rounding depends on whether an edge is actually exposed, including at changes in elevation.
 - Adjacent tiles remain subtly distinguishable through a small line, shadow, or similar restrained treatment. Tile seams are distinct from rounded exterior edges.
 
 Characters automatically climb or hop up and down half-height ledges. Uninterrupted rises or drops of one full block or more require a safe route, such as stairs or ladders. Characters cannot jump off tall ledges. Stairs should respect the half-height terrain rule.
 
-**The tutorial is a dream (user decision, 2026-10-08).** The Clearing, Willowbank and Cinderhold are small tutorial areas, not part of the true world. Character creation asks color, name, dominant hand and play style, then offers *Play the tutorial* or *Skip the tutorial*. Once Cinderhold is complete (Basic Training graduated, or training declined), every Iter Crystal also lists **???**; choosing it asks "Do you wish to end the tutorial now?", and on Yes ??? gives a short farewell ("It's time to wake up and join the world!"), the screen fades and the player wakes in the world. Skipping goes straight to a shorter farewell and the same waking. Waking resets items, skills and XP to one starting point for everyone: Copper Dagger and Copper Shield equipped; Training Bow and 20 arrows, the Top Hat, every crude tool (axe, pickaxe, hammer, fishing rod, Flint and Stone), 3 Cooked Pondfish, 5 Sticks and 5 Rocks; every tutorial spell, aura and ability (Energy Strike, Rush, Harden, Strong Strike). Name, color, dominant hand, combat mode and the companion carry over (a player who never met the companion names it on arrival). Afterwards the crystals list only the world; the tutorial areas are gone. While playing, the tutorial tip offers **Skip this part** for the current chapter (Getting started, Gathering and your journal, Tools, Clearing finale, Willowbank, Cinderhold); after a short confirmation the chapter counts as done and the next begins with what it needs, and skipping Cinderhold goes straight to waking. A replay-tutorial action belongs in the planned Guide tab (see **Guide (planned)**).
+**The tutorial is a dream (user decision, 2026-10-08).** The Clearing, Willowbank and Cinderhold are small tutorial areas, not part of the true world. Character creation asks color, name, dominant hand and play style, then offers *Play the tutorial* or *Skip the tutorial*. Once Cinderhold is complete (Basic Training graduated, or training declined), every Iter Crystal also lists **???**; choosing it asks "Do you wish to end the tutorial now?", and on Yes ??? gives a short farewell ("It's time to wake up and join the world!"), the screen fades and the player wakes in **Gelton**, the capital, beside the Iter Crystal in its town square (user decision, 2026-10-11; it replaced a placeholder meadow). Skipping goes straight to a shorter farewell and the same waking. Waking resets items, skills and XP to one starting point for everyone: Copper Dagger and Copper Shield equipped; Training Bow and 20 arrows, the Top Hat, the Companion Top Hat, every crude tool (axe, pickaxe, hammer, fishing rod, Flint and Stone), 3 Cooked Pondfish, 5 Sticks and 5 Rocks; every tutorial spell, aura and ability (Energy Strike, Rush, Harden, Strong Strike). Name, color, dominant hand, combat mode and the companion carry over (a player who never met the companion names it on arrival). Afterwards the crystals list only the world; the tutorial areas are gone. While playing, the tutorial tip offers **Skip this part** for the current chapter (Getting started, Gathering and your journal, Tools, Clearing finale, Willowbank, Cinderhold); after a short confirmation the chapter counts as done and the next begins with what it needs, and skipping Cinderhold goes straight to waking. A replay-tutorial action belongs in the planned Guide tab (see **Guide (planned)**).
+
+**The open world** (2026-10-11): Gelton's countryside, generated land around the city that you walk out into, is in [WORLD.md](WORLD.md).
 
 **World structure.** Tutorial destinations are connected by Iter Crystals and grow in scale: The Clearing → Willowbank → Cinderhold. This is the recommended teaching order; the third-area draft specifies the proposed destination-menu availability. Beyond the tutorial, the intended game world is a massive continuous open world, streamed in nearby chunks to keep runtime work and memory bounded. Players can return to earlier destinations. See [World scale and streaming direction](#world-scale-and-streaming-direction) for the architecture direction; streaming is not implemented yet.
 
@@ -96,11 +98,11 @@ After the axe is crafted, dialogue introduces woodcutting. Trees receive golden 
 
 **Chopping motion.** The slime uses its right hand for the axe. Each repeating swing draws back, lifts, starts the strike with a vertical drop, then sweeps sideways halfway through to form an L-shaped path, rolling the axe outward roughly 45 degrees and turning the blade into the side of the tree, briefly holds, and recovers. The free hand reaches forward during the wind-up and retracts to the side during the strike. Body lean and twist follow the same cycle, and the axe blade faces forward toward the tree. Gameplay and the playground Chopping preview share this motion, including full-cycle looping and slow-motion playback.
 
-**Tutorial clearing finale.** After the first mining success is acknowledged, ??? congratulates the player and introduces the Iter Portal. A roughly two-player-high, irregular faceted crystal drops into a free reachable tile, settles into a gentle hover, and receives the familiar gold outline and arrow. A final line offers more practice; all trees, boulders, and ground items drop back into place. This reset preserves inventory and skills. Players can click the portal when ready to approach it and fade into a simple placeholder area. A return portal preserves access to the clearing and its remaining practice objects.
+**Tutorial clearing finale.** After the first mining success is acknowledged, ??? congratulates the player and introduces the Iter Portal. A roughly two-player-high, irregular faceted crystal drops into a free reachable tile, settles into a gentle hover, and receives the familiar gold outline and arrow. A final line offers more practice; all trees, boulders, and ground items drop back into place. This reset preserves inventory and skills. Like every resource in the game, the clearing's resources also grow back on their own eight seconds after they are used up, so practice never runs out. Players can click the portal when ready to approach it and fade into a simple placeholder area. A return portal preserves access to the clearing and its remaining practice objects.
 
-**Hidden practice reward.** Clearing every tree, boulder, and ground item after the practice reset triggers the supplied surprise dialogue, without a visible checklist. A wooden chest drops near the player on a reachable free tile. Opening it works like gathering: approach, wait briefly, and restart if interrupted by movement. It grants one fancy Top Hat once. The slime turns away from the chest and happily raises the hat in both hands while the camera closes in, then returns to normal play. The player can wear or remove the hat using Equip/Unequip in the Top Hat inventory details. The reward is tracked by cleared world objects rather than inventory totals.
+**Finale reward (user decision, 2026-10-09).** Because the clearing's resources respawn, it can no longer be fully cleared, so the Top Hat is no longer a hidden practice goal. As soon as the practice reset has dropped everything back in, ??? says "Oh, before I forget! You worked so hard here, I feel like you deserve a reward!" and "Hmmm... let me think. Here, what do you think about this?", and a wooden chest drops near the player on a reachable free tile. Opening it works like gathering: approach, wait briefly, and restart if interrupted by movement. It grants one fancy Top Hat once. The slime turns away from the chest and happily raises the hat in both hands while the camera closes in, then returns to normal play, and only then does the *Practice time* tip appear. The player can wear or remove the hat using Equip/Unequip in the Top Hat inventory details.
 
-All finale beats have dev playground replay/reset controls, including actual portal/chest approach interactions, optional-practice completion, travel both ways, Top Hat inventory edits and gain/loss previews, and looping/slowed hat presentation. Portal/chest highlighting and all drop animations use shared gameplay effects. The placeholder area is intentionally just a navigable island and return portal until the next tutorial area is designed.
+All finale beats have dev playground replay/reset controls, including actual portal/chest approach interactions, the reward dialogue and chest checkpoints, travel both ways, Top Hat inventory edits and gain/loss previews, and looping/slowed hat presentation. Portal/chest highlighting and all drop animations use shared gameplay effects. The placeholder area is intentionally just a navigable island and return portal until the next tutorial area is designed.
 
 
 Confirming the slime color plays a happy hop; confirming the name plays a small leaning wave with the right hand above the head. Dialogue waits for each brief reaction to finish. After 30 seconds of inactivity, the slime dozes with closed eyes, soft breathing, and floating Zs. Movement, work, and cinematic sequences prevent sleep; clicks/taps and dialogue activation wake it, while orbit dragging, pinch/scroll zoom, and camera keys leave it asleep. It settles into a lopsided squish over two seconds before the Zs begin; Zs spawn every 1.4 seconds and rise slowly with a gentle sine-wave drift. The playground Sleeping loop settles once, then keeps breathing; Doze off and Wake up exercise the natural sleep/wake behavior without waiting 30 seconds. Happy hop, Wave, and Sleeping are shared animations available in the playground with play-once, loop, and speed controls.
@@ -164,7 +166,7 @@ All settings have playground controls, shared with **Preview splash screen**. **
 
 After crafting success is acknowledged, the narrator compares mining to chopping. The player can independently click a boulder, or use a second **Show me how** button to highlight the boulders and explain the interaction. A Crude Pickaxe must be in inventory. Mining takes 3–6 uninterrupted seconds, uses a centered vertical pickaxe swing with both hands gripping the shaft and the head facing the boulder, and awards Stone ×1–3 and +20 Mining XP when the boulder disappears. Moving cancels mining; a later attempt starts fresh. The success text is: “You mined your first Stone! With better resources comes the ability to craft better tools. Be on the lookout for better materials on your adventures!” Continue starts the existing Iter Portal finale.
 
-The clearing has four trees and three boulders (replacing trees at 7,1; 1,7; 10,9). Practice reset drops boulders back in alongside trees and loose resources; the hidden clearing reward requires all three kinds to be cleared. Stone is a larger mined resource distinct from Rocks (the small handful used in crude tools).
+The clearing has four trees and three boulders (replacing trees at 7,1; 1,7; 10,9). Practice reset drops boulders back in alongside trees and loose resources; all of them also respawn on the shared timer. Stone is a larger mined resource distinct from Rocks (the small handful used in crude tools).
 
 Playground support includes Crude Pickaxe and Stone inventory edits/feedback, Mining skill XP/level controls, Mining animation playback/loop/speed, Mining marker preview, boulder reset, a real **Mine nearest boulder** interaction, and **Replay Mining tutorial** / **Stop Mining tutorial**. Replay supplies ingredients and restores boulders, with both optional-help paths available. Full test-area reset supplies both tools. Normal builds exclude the playground controls.
 
@@ -180,11 +182,100 @@ Menu, skill, and item illustrations share rounded SVG strokes from `src/icons.js
 
 Item gains and losses use a separate four-entry loot feed. Consecutive changes to the same item and sign merge while visible. Crafting shows an output receipt with its material costs. Movement errors retain their separate click/location feedback. Item feedback remains available through inventory edits, gain/loss previews, a crafting receipt preview, and a clear-feed control in the playground.
 
-## Audio sketch
+## Audio
 
-The current sound layer is an original procedural Web Audio sketch, not a finished recorded acoustic score. Music uses sparse melodic phrases with pauses and different pacing for splash, introduction, and clearing; dialogue lowers the music. Effects include pickup, crafting taps/completion, animation-timed chopping/mining impacts, resource collapse, levels, portals, and UI/error cues. Wind, birds, and insects are sparse randomized ambient sketches. Audio begins only after a gesture and suspends when the page is hidden. Separate Music, Effects, and Ambience sliders plus Mute are saved locally.
+Everything is synthesized with Web Audio: no audio files or external services. Audio begins only after a gesture and suspends when the page is hidden. Separate Music, Effects and Ambience sliders plus Mute are saved locally; dialogue lowers the music.
 
-The playground exposes each effect individually, music-context selection, all shared sound settings, and existing real interactions for timing checks. Future work can replace the synthesized voices with recorded material sounds and composed acoustic tracks without changing gameplay events. Spatial attenuation and distinct destination soundscapes remain future audio refinements.
+**Effects and cues (`sound-effects.js`, user direction 2026-10-09).** Short procedural effects, plus **cues**: phrases played on the current song's cue instrument (`voices.cue`) in its key, so rewards sound like part of each area's music. Level-up and quest-complete cues briefly duck the music.
+
+| Event | Sound |
+|---|---|
+| Pick up | rustle and a soft in-key note |
+| Crafting | taps while working, then a two-note in-key chime when done |
+| Eat | crunches |
+| Chop, mine, fall | wood, stone and collapse |
+| Carpentry | hammer knock |
+| Fishing | cast whoosh and plop; catch splash and in-key chime |
+| Campfire | whoomp |
+| Cooking | sizzle |
+| Smithing | anvil clang or furnace roar |
+| Combat | hit, critical, miss whoosh, player hurt (previously the error buzz); defeating an enemy plays an in-key flourish |
+| Quest progress | a note that climbs the scale with the count (3/6 is halfway up); assigning an objective plays it at its start; re-wording a lesson step is silent |
+| Objective part complete | two rising notes (Collect 3 Rocks done, the objective still open) |
+| Objective complete | three rising notes |
+| Quest complete | four rising notes (the quest's story ended) |
+| Level up | a four-note arpeggio |
+
+Milestone cues raised together play only the most important: level up, then quest, objective, part, progress (finishing the gathering objective with the pickup that levels Gathering plays only the level-up).
+| Portal | rising scale over a whoosh |
+| Errors, buttons | blocked buzz, UI tick |
+
+**Ambience (`ambience.js`).** A profile per place, made of one-shots on randomized timers and an optional continuous bed that crossfades between places. Birds go quiet during fights.
+
+| Place | Profile |
+|---|---|
+| Splash | breeze |
+| Opening scene (before the clearing appears) | silence (user: no ambience there) |
+| Clearing, open world | meadow: wind gusts, three bird calls, crickets |
+| Willowbank | river: a babbling brook of random bubbles (a slowly wandering flow) over a soft low wash, birds; no wind |
+| Cinderhold | stone town in a generated cave reverb: single water drips, trickling stones and dirt, a distant anvil; no wind |
+
+Areas set `ambience`. Nothing in ambience is periodic: user feedback found a steady wobble "repeating every half second". Movement comes from random walks and randomized one-shots.
+
+**Music direction:** upbeat and cozy, with Stardew Valley as the reference (chosen 2026-10-09, replacing the first direction, a Minecraft/RuneScape mix). Cozy arrangements (`COZY_SONGS`) use brisk tempos (~100–110 BPM) with a light swing, fingerpicked strings and soft piano chords (strummed guitar was tried and found grating), a bouncy root–fifth bass, soft kit percussion (kick, woodblock, shaker, brush), coloured chords (add9, 7ths, sus) and a close room instead of the hall. A recorder or flute carries the tune (the user likes the flute line). Drift is reduced to short fingerpicked breathers and there are no silent rests. The user approved the cozy clearing (*Sunny Clearing*, G major), and every song now has a cozy version in the same style:
+
+- *Over Quadria (Cozy)* (splash): the original title tune on flute, with a B section quoting the clearing's melody;
+- *Waking (Cozy)* (opening): airy, 76 BPM, previews the clearing tune's first line;
+- *Willow Waters (Cozy)*: the 6/8 flute jig with an oom-pah piano;
+- *Cinderhold Embers (Cozy)*: an A dorian tavern tune at 116 BPM.
+
+Each new cozy song still awaits the user's review.
+
+The first direction mixed sparse, contemplative passages (Minecraft's music) with folky themes (RuneScape's). Songs are original compositions stored as compact data (`music-songs.js`): key, mode, tempo, chords, and melody/bass/arpeggio patterns in a small step notation (`music-theory.js`). Each song's form alternates (the cozy ones lean on themes):
+
+- **themes:** written melodies; repeats marked `~` get seeded ornaments, thinning and sometimes the alternate instrument;
+- **drift:** generated phrases of chord tones and colour notes over slow chords;
+- **rests:** silence, so ambience comes through.
+
+`music-player.js` schedules notes on the audio clock (lookahead timer, independent of frame rate) through layer gains (pad, bass, arp, melody, drift, combat), a generated hall reverb, a gentle low-pass and a compressor. Voices (`music-voices.js`): Karplus–Strong plucked string (harp/lute; a smooth excitation with a little noise and a 6 ms fade-in, so it has no pick tick), FM electric-piano keys, FM bell, flute and recorder, bass, detuned-saw pad, hand drums and shaker, plus a light kit (soft kick, woodblock, brush). Songs may set `swing`, `reverb` (room size) and `mix` (per-layer level multipliers; the cozy clearing keeps its accompaniment well under the melody). Every envelope must reach silence before its oscillator stops and attacks stay at 4 ms or longer (18 ms for the shaker): offline renders of the cozy clearing are checked for discontinuities (second-difference spikes) per layer.
+
+Songs: splash *Over Quadria* (D major, harp and flute), the opening *Waking* (D dorian bells, no melody), *Morning Clearing* (D major), *Willow Waters* (G major jig in 6/8) and *Cinderhold Embers* (A minor). Areas choose theirs through their `music` field; others fall back to the clearing's. Combat fades in a hand-drum and bass-pulse layer on the current song (skipping rests) rather than switching tracks. Songs crossfade on travel.
+
+**Playground:** Interface & audio has every effect individually, all shared sound settings and a **Music lab**: arrangement (Cozy or Original, crossfading on the same song), song (or follow the game), style (Mix, Themes only, Drift only), combat layer (Follow, On, Off), per-layer mutes, a seed to lock or reroll (it reproduces the drift and variations), restart, and a readout of the song, section, bar and seed. Real travel and combat drive the same player.
+
+**Per-area bands (user, 2026-10-09).** Sharing one band made the songs sound alike, so each area now has its own instruments, key and feel. The user wants a broad palette of instruments, styles and keys to draw on as themes are added.
+
+| Song | Lead | Band | Key and feel |
+|---|---|---|---|
+| Over Quadria (splash) | flute | harp, celesta, triangle | D major, 4/4 |
+| Waking (opening) | ocarina | harp, celesta | G major, slow 4/4 |
+| Sunny Clearing | recorder (flute B) | nylon guitar, electric piano, kick and woodblock | G major, 112 BPM, light swing |
+| Willow Waters | accordion (whistle repeats) | banjo, tuba, tambourine | F major, 6/8 jig |
+| Cinderhold Embers | clarinet (marimba repeats) | marimba oom-pah, upright bass, hand drums | A dorian, 116 BPM |
+| Open Road (world) | tin whistle (kalimba repeats) | vibraphone oom-pah-pah, upright bass | E-flat major, 3/4 waltz |
+
+The palette (`music-voices.js` `INSTRUMENTS`) is presets over shared engines:
+
+- strings: guitar, harp, banjo;
+- FM: electric piano, celesta, vibraphone, kalimba, bell;
+- winds: flute, recorder, ocarina, tin whistle;
+- reeds: clarinet, accordion, tuba;
+- marimba, upright bass, pad;
+- a kit: frame and hand drums, shaker, soft kick, woodblock, brush, tambourine, triangle.
+
+Levels are normalized to the flute's loudness, so instruments can swap roles; songs balance roles with `mix`. A song's `accent` follows its meter (half bars, 6/8 beats, waltz bars).
+
+Still open: a short shared leitmotif across songs.
+
+**Lab (Music & sound lab):**
+
+- **Audition:** plays any instrument (or the kit) through the music mix.
+- **Effects and ambient sounds:** each plays on its own (cues use the current song's key and instrument), each has a click check, and an ambience override plus a readout show the current profile.
+- **Check instrument / Check song:** renders offline, dry, and flags waveform discontinuities per layer (`dev/audio-check.js`; percussion is noise and is skipped).
+
+**Click rules for new instruments and effects:** gains start at 0 when created, since a scheduled 0 at a source's start lands a sample late; noise sources loop, so they can't run off the end of their buffer; envelopes reach silence before stopping; attacks are at least 4 ms for tones and 8 ms for noise; string tables fade at their end; plucked brightness comes from the pick shape rather than noise.
+
+**Open directions:** more songs per area and day/night variants, stingers in the current song's key for levels and quests, tiny recorded samples if synthesis hits a ceiling, spatial attenuation and per-destination soundscapes.
 
 **Phone journal layout.** At widths up to 700px the journal fills the safe viewport, with persistent tabs and an explicit close control. Inventory is a list/detail drill-down with Back to items; it does not split limited phone height between two scrolling panes. The same tutorial card docks inside the journal during menu lessons and returns to the world overlay when the journal closes. Crafting text wraps, inputs avoid mobile focus zoom, and primary touch targets are at least 44px. Desktop compact/expanded layouts remain separate. Existing playground menu and tutorial replay controls exercise both layouts; its collapsed mobile launcher moves away from the journal header.
 
@@ -195,7 +286,7 @@ The playground exposes each effect individually, music-context selection, all sh
 
 Dialogue and dismissible tutorial tips share the bottom message area. Dialogue uses warm paper with a speaker; tips use plum with a Tutorial label and explicit Continue. Tips explain controls or systems; they do not serve as a permanent progress tracker. Opening the journal preserves the current tip.
 
-Objectives persist independently in the Quests tab under A Small Beginning, with detailed instructions, counts/progress, and a visible completed-task history beneath the active tasks. Assignment, changes, and completion produce a compact top-left notification that fades after a few seconds. Updates replace the existing notification; completion records immediately, before any Continue click. Camera, movement, gathering, skills/inventory lessons, crafting, chopping, mining, and the Iter Crystal are tracked. Optional mining/crafting guidance remains accessible from quest details. After the narrator asks the player to pick up Sticks and Rocks, the gathering quest is assigned. A dismissible tip announces the quest, followed by “Oh wait, I forgot... here you go!” as the menu appears with golden guidance. The player opens the menu, selects the highlighted Quests tab, and reads a brief explanation before continuing into the camera and movement lessons.
+Objectives persist independently in the Quests tab under A Small Beginning. The tab lists started quests (in progress above a collapsed Completed section); opening one shows its current objective, with detailed instructions, counts/progress and any equal parts (gathering is Collect 3 Rocks and Collect 3 Sticks), above its completed objectives, with All quests to go back. The first visit during the tutorial opens A Small Beginning directly. Assignment, changes, and completion produce a compact top-left notification that fades after a few seconds. Updates replace the existing notification; completion records immediately, before any Continue click. Camera, movement, gathering, skills/inventory lessons, crafting, chopping, mining, and the Iter Crystal are tracked. Optional mining/crafting guidance remains accessible from quest details. After the narrator asks the player to pick up Sticks and Rocks, the gathering quest is assigned. A dismissible tip announces the quest, followed by “Oh wait, I forgot... here you go!” as the menu appears with golden guidance. The player opens the menu, selects the highlighted Quests tab, and reads a brief explanation before continuing into the camera and movement lessons.
 
 The playground exposes tip preview and objective add/update/complete/reset controls, plus direct Quests access and Replay Quests tutorial for the complete menu-reveal sequence. Existing tutorial replays exercise real objective updates; full test-area reset clears objectives.
 
@@ -232,6 +323,10 @@ Next steps for the prototype: enemies and NPCs streaming with their chunk (with 
 - **Verification and tooling:** when streaming is implemented, add playground chunk-boundary overlays, resident entity/chunk counts, repeatable load/unload travel, slow/failed loading simulation and reset controls using production streaming. Test walking, followers, combat, resources, station work and projectiles across boundaries, then leave/return repeatedly to check state, duplicate rewards and bounded memory. Keep debug tooling compile-time isolated.
 
 Cinderhold can initially use the existing bounded-area runtime. Its larger layout warrants desktop/mobile performance checks, but does not expand this chapter into implementing the entire open-world streamer. New shared APIs should avoid fixed map dimensions/origins and assumptions of universal residency. Existing tile identity, pathfinding and whole-area activation need a deliberate migration before they can support chunk streaming; no documentation change establishes that migration as complete.
+
+### Cities and buildings (draft, 2026-10-10)
+
+[CITY.md](CITY.md) holds the design draft for cities: walls and doors on tile edges, hybrid interiors (small buildings open in place, large ones are separate spaces), a description-based building kit, streets, terraces, stairs, props, townsfolk routines, the playground city editor and a phased plan. The user decided on hybrid interiors (most ground floors are overworld), no stacked walkable layers for now, authoring in a playground editor, a very large fantasy capital whose town square holds the waking Iter Crystal, walk-through characters (non-character entities stay solid), day/night later, and an economy (jobs plus selling) as a prototype requirement, with Gold Pieces as an inventory stack, a 40% sell rate and enemy drops. [ECONOMY.md](ECONOMY.md) holds the economy draft: Gold Pieces, item values and selling rules, shops, the quest board and repeatable townsfolk jobs. Nothing is implemented yet.
 
 ## Second tutorial area: Willowbank
 
@@ -283,6 +378,8 @@ Worlds supply terrain, placement, and quest context. Willowbank places the stran
 
 The playground has an independent **Companions** section available in every area: add a follower, pet, rename, rest/follow, reset, and loop shared animations. Model/expression inspection remains in the shared model viewer. Doze off/Wake up tests delayed companion sleeping. Chapter checkpoints call the same acquisition/reset APIs and do not contain copies of companion behavior.
 
+**Companion outfits.** Companions wear cosmetic gear through the same shared system (`COMPANION_GEAR` in `companions.js`; one `head` slot so far). Wearing needs an owned copy, and the item stays in the inventory; losing the last copy takes it off. The inventory details offer **Put on <name>** / **Remove from <name>**, and the Companions page lists owned companion gear under **Outfit** with the same action. Worn pieces ride on the corgi's head (`setCompanionOutfit` in `companion-model.js`), so they follow every pose, appear in the Companions portrait, and are also pet targets. The first piece is the **Companion Top Hat** (`companionHats`, `makeCompanionTopHat` in `hat-models.js`): a small top hat with a flower on the band, sitting flat on the head between the ears. Reed gives it at the end of Willowbank with one extra line ("Oh! And something for <name>. Every adventuring companion deserves a proper hat."), and the completion tip says where to put it on. Skipping Willowbank grants it too, and waking includes it in the starter kit, so the companion keeps wearing it. Playground: the Companions action **Put on / remove Companion Top Hat** (grants one if needed), the generic item controls, and the model catalogue entries *Companion Top Hat* and *Corgi · Companion Top Hat*.
+
 
 **Playground organization.** A unified tutorial checkpoint catalogue in `src/dev/tutorial-checkpoints.js` covers both worlds and individual tutorial/menu steps. Loading a step automatically prepares its world and prerequisites, clears stale UI state, and uses production tutorial transitions. Interface previews use one selector, including cooking. Companion actions use a label above a selector/action row. Shared health and hit-feedback controls have no world prerequisite. The playground stays interactive over splash previews and uses an opaque, edge-to-edge mobile takeover.
 
@@ -297,7 +394,7 @@ Every added shared capability must also be exercisable in the development playgr
 Combat/equipment, gathering/chopping/mining, fishing, carpentry, eating/health, cooking, and campfire placement use app-owned systems. Inventory crafting, including the introductory axe and pickaxe, uses the shared recipe controller. The existing file placement does not authorize copying these implementations into another world. The bridge collapse and repair/rescue story, scripted injury moment, stranded-animal sequence, Reed's lines, tutorial objectives, and map coordinates remain legitimate Willowbank narrative/layout. Shared carpentry owns tool/material checks, timing, hammering, cancellation, consumption, and XP; the chapter configures the target and reacts to its progress/completion. See [HANDOFF.md](HANDOFF.md) for the actionable backlog and current verification status.
 
 
-Resource gameplay is shared through `resource-actions.js`, `resource-entities.js`, and `resource-rules.js`. Trees and boulders use a 3–6 second base work roll, reduced by skill level, and yield 1–3 materials plus 20 skill XP after their depletion animation. Ground bundles yield one item and 20 Gathering XP. The clearing configures finite resources for its tutorial/practice; Willowbank configures an eight-second respawn. Solid respawns wait until their tile is free of players, reserved movement, companions, and other occupants. Off-map depletion and respawn clocks pause; committed depletion resumes on return, and reset discards pending rewards.
+Resource gameplay is shared through `resource-actions.js`, `resource-entities.js`, and `resource-rules.js`. Trees and boulders use a 3–6 second base work roll, reduced by skill level, and yield 1–3 materials plus 20 skill XP after their depletion animation. Ground bundles yield one item and 20 Gathering XP. Every area uses the same eight-second respawn (`RESOURCE_RESPAWN`, the default in `createResourceEntity`; pass `respawn:null` only for a deliberately finite node). Solid respawns wait until their tile is free of players, reserved movement, companions, and other occupants. Off-map depletion and respawn clocks pause; committed depletion resumes on return, and reset discards pending rewards.
 
 
 Equipment state and worn sword/shield/top-hat presentation are app-owned and persist through travel/defeat. The clearing finale only owns its held-hat reward celebration. Sword/shield recipes and equip actions are available without visiting an area. Removing the last item unequips it. Equip changes are blocked while working or fighting. Combat retains the existing damage/attack cadence, protected Scrapper, pursuit timeout/distance leash, fleeing win presentation, and 20 XP reward. Enemy homes and patrol bounds are placement configuration. Returning enemies wait if their home is occupied. Defeat uses a safe crystal-adjacent tile when available, otherwise a free tile in the current map; if no safe tile exists, recovery waits. Items, equipment, and skills are preserved.
@@ -329,9 +426,34 @@ In expanded desktop sidebar mode the journal is always visible, with no dismiss 
 
 Health, mana and stamina (energy) start at 100. Resource numbers are white above 50%, orange at 25–50% inclusive, and red below 25%; the orbs keep their individual fill colors. Mana is now a real shared resource pool, but spells still have no mana cost and quick restore remains unavailable. No passive regeneration is introduced in this pass.
 
-The boot toggles sprint. While actually traversing a tile, sprint doubles animation/movement progress and spends one stamina every half-second of movement. Standing still spends nothing; partial drain time persists across stops/toggles. Exhaustion switches sprint off and continues walking without snapping. Normal travel preserves resource pools; full playground reset restores resources and disables sprint. Shared resource controls in the playground can set all three pools and exercise color thresholds/exhaustion without waiting.
+The boot toggles sprint. While actually traversing a tile, sprint doubles animation/movement progress and spends one stamina every half-second of movement. Standing still spends nothing; partial drain time persists across stops/toggles. Exhaustion switches sprint off and continues walking without snapping. Stamina does not regenerate while sprinting, and resumes only after a short delay (`SPRINT_REGEN_DELAY`, 1 second) from the last sprinting moment, whether sprint was toggled off, the player stopped moving, or exhaustion switched it off. Normal travel preserves resource pools; full playground reset restores resources and disables sprint. Shared resource controls in the playground can set all three pools and exercise color thresholds/exhaustion without waiting.
 
 The north-up minimap shows a white destination box/cross for the actual end of the walking route (including approach routes and buffered actions); it clears on arrival/cancellation. Off-map destinations use an edge marker. Mouse wheel and two-finger pinch change the visible radius (4–24 tiles); plus/minus keys also zoom. Click/tap converts the displayed map cell into a world tile and uses the same movement checks, pathfinding, obstacles and cancellation as a world click. Pinching or dragging must never issue a movement command. The current zoom persists through travel and resets with the full test area. The shared playground performance scenario `minimap-sprint` exercises these updates during movement.
+
+## Slime outfits (proposal, 2026-10-09; not implemented)
+
+The player is a slime cube with floating hands: no neck, arms, legs, feet or fingers. The usual RPG paper doll (helm, chest, hands, legs, feet, neck, rings, back) does not map onto that body. This is a proposal for review. The code still has `head` plus `ARMOR_SLOTS` (`chest, hands, legs, feet, back, ward`) in `equipment.js`, and COMBAT.md's armor proficiencies still name helm/chest/hands/legs/feet/back/ward.
+
+**Lead option: a slime-native set of eight slots.**
+
+| Slot | Replaces | What it looks like on a slime | Armor proficiency |
+|---|---|---|---|
+| Head | helm | Hats, helms, hoods sitting on the crown; they follow the bend like the Top Hat | Head |
+| Body | chest | A wrap, tabard, coat or plate shell over the cube's sides; it squashes and stretches with the body | Body |
+| Gloves | hands | Mitts, gauntlets or bracers on the floating hands, shown in the same hand poses as held items | Gloves |
+| Base | legs, feet | A skirt, band or greave ring around the bottom edge; it stays planted, as the base does in every bend | Base |
+| Back | back | Capes, quivers, packs and wings hanging behind | Back |
+| Ward | ward | Unchanged: the shield-like magical/defensive slot | Ward |
+| Ring ×2 | rings | One ring on each floating hand, worn at a set point on the hand (user decision, 2026-10-10). Neck items are dropped: slimes have no neck | none |
+
+- **Why:** each slot has an obvious place on the cube and a readable silhouette at game zoom. Base keeps a "lower body" item without inventing legs. Rings keep the jewelry fantasy (stat-tuning trinkets) on the floating hands.
+- **Combat impact:** armor slots drop from seven to six (legs and feet merge into Base), so COMBAT.md's armor-proficiency budget is re-split across Head, Body, Gloves, Base, Back and Ward. Rings carry non-armor bonuses (attributes, recovery, resistances to elements) and do not receive armor XP.
+- **Art rules:** every piece is authored over the shared slime rig and must survive the shared deformations (bend, squash, sleeping slump, celebration). Hand pieces must not hide held weapons or tools. Rings ride the hands, so they follow every hand pose for free.
+- **Alternative (minimal):** Head, Body, Gloves, Back, Ward and one Ring. There are fewer items to design and balance, but nothing is left for the lower body, and players get less to collect.
+- **How worn gear renders (built for Head, 2026-10-10):** wearing is the equipment system's job (one slot per item, inventory rules, Optimize). Looks live in `src/worn-gear.js`: each body type lists its wear slots (`SLIME_WEAR_SLOTS`, `COMPANION_WEAR_SLOTS`), each slime slot has an anchor (`SLIME_ANCHORS`: position, whether it rides the bend, whether it hides during the hold-up celebration), and each wearable item names its model (`WORN_MODELS`). The shared slime presentation (`equipment-presentation.js`) shows whatever is worn in any slot generically, and the model viewer builds one dropdown per slot from the items that fit it. To add a slot when the set is decided, add it to the slot list, give it an anchor, and give each item a model; nothing else changes. Open points: slots that deform with the body (Body wrap, Base band) will need a model that follows squash rather than a rigid attachment (deferred: hats only for now, user decision 2026-10-10); a Ring slot needs an anchor on each hand.
+- **Character looks and gear (user decision, 2026-10-10):** every mentor's hat and held item is swappable equipment. Head items: Iron Skullcap (Bristle), Miner's Cap (Borin), Archer's Cap (Fletch), Wizard Hat (Wisp), Breath Headband (Ember), Fisher's Hat (Reed), plus the Top Hat. Each character's default `loadout` wears them; any slime can wear any of them. Held: Bristle's Copper Dagger and Shield, Borin's Crude Hammer (every tool is a cosmetic hand item; see COMBAT.md), Fletch's Training Bow, and Wisp's Simple Staff (a new equippable bludgeoning weapon; spells still need no staff). Reed's rod stays a carried tool. Borin's beard and apron remain part of his look.
+- **Companions** keep their own small cosmetic slot set (today: head; later candidates are neck for a bandana or collar, and back for a tiny cape), separate from the player's combat slots.
+- **Open questions:** should Body pieces change the slime's visible color (dyes) or stay on top of it? Where exactly does a Ring sit on the hand (and is it visible at game zoom)? Do Gloves count as weapons when unarmed (punch damage)?
 
 ## Guide (planned, low priority)
 

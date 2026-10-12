@@ -12,6 +12,10 @@ const paths={
  collapseSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-6-11 3 3-3 3"/>',
  expandSidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16m-4-11-3 3 3 3"/>',
  quickEat:'<path d="M4 3v5a3 3 0 0 0 6 0V3M7 3v18M17 3c-3 3-3 7 0 9h3V3zM20 12v9"/>',
+ gold:'<ellipse cx="9" cy="16" rx="6" ry="2.5"/><path d="M3 16v3c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-3"/><ellipse cx="15" cy="8" rx="6" ry="2.5"/><path d="M9 8v3c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V8M15 13.5v3c0 1.1 2.6 2.5 6 2.5"/>',
+ package:'<path d="m12 3 8 4v10l-8 4-8-4V7z"/><path d="m4 7 8 4 8-4M12 11v10M8 5l8 4"/>',
+ jobs:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+ shop:'<path d="M3 9 5 4h14l2 5M3 9h18M3 9q0 3 3 3t3-3q0 3 3 3t3-3q0 3 3 3t3-3M5 12v8h14v-8M10 20v-5h4v5"/>',
  copperOre:'<path d="m3 17 3-11 10-3 6 9-5 9H7zM7 8l4 3-2 4m6-9 1 5 4 2"/>',
  copperIngots:'<path d="m3 16 4-9h10l4 9-3 4H6zM3 16h18M7 7l2 9m8-9-2 9"/>',
  copperDagger:'<path d="m5 21 4-5m-4-3 7 7m-4-6 7-10 5-2-2 6-8 8"/>',
@@ -24,6 +28,7 @@ const paths={
  shields:'<path d="M4 4q8 3 16 0v9q-1 5-8 9-7-4-8-9zM12 6v13"/>',
  hammers:'<path d="M10 21V9m-6 0V3h16v6z"/>',
  rods:'<path d="m5 22 8-19 5 14M13 3v13q0 5 5 2"/>',
+ staffs:'<path d="M9 22 15 7"/><circle cx="16" cy="5" r="2.6"/>',
  flint:'<path d="m4 17 5-13 9 2 3 12-12 3zM9 4l3 10 9 4"/>',
  firestarters:'<path d="m2 18 4-7 6 2-1 8zm13-9 3-6m-2 10 6-1m-7 5 5 4"/>',
  campfires:'<path d="m4 21 16-4M4 17l16 4M8 15C1 9 13 7 12 2c9 8 9 13 2 14-5 0-4-4-2-7"/>',
@@ -49,6 +54,7 @@ const paths={
  stone:'<path d="m3 16 3-10 10-3 6 9-5 9H7zM6 6l6 7 10-1M12 13l-5 8"/>',
  logs:'<path d="m3 15 12-9q5-1 6 4L8 20zM4 10l10-7 4 1"/><ellipse cx="6" cy="17" rx="3" ry="4"/><path d="m10 14 7-5"/>',
  hats:'<path d="m7 16-2-12q7-3 14 0l-2 12M7 12h10"/><ellipse cx="12" cy="17" rx="10" ry="4"/>',
+ companionHats:'<path d="m8.5 17-1.5-8q5-2 10 0l-1.5 8M8 13.5h8"/><ellipse cx="12" cy="17.5" rx="7.5" ry="3"/><circle cx="15.5" cy="13.5" r="1.4"/>',
  sound:'<path d="M3 9h4l5-5v16l-5-5H3zM16 8q5 4 0 8M19 4q8 8 0 16"/>',
  close:'<path d="m6 6 12 12M6 18 18 6"/>',
  back:'<path d="M15 5 8 12l7 7"/>',
@@ -57,6 +63,6 @@ const paths={
  expand:'<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
  check:'<path d="m4 12 5 5L20 6"/>',
 };
-const aliases={Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes'};
+const aliases={Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes',ironSkullcap:'hats',minersCap:'hats',archerCap:'hats',wizardHat:'hats',breathHeadband:'hats',fishersHat:'hats'};
 export function icon(name){return `<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[aliases[name]||name]||paths.skills}</svg>`;}
 export const ICON_NAMES=Object.keys(paths);

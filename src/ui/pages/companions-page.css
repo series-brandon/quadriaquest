@@ -8,3 +8,10 @@
 .q-companion__status { color: var(--q-accent); font-size: 12px; }
 .q-companion__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .q-companion__actions .q-button { flex: 1 1 120px; }
+.q-companion__outfit { display: grid; gap: 6px; }
+.q-companion__outfit[hidden] { display: none; }
+.q-companion__outfit h4 { margin: 0; }
+.q-companion__outfit-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.q-companion__outfit-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.q-companion__outfit-item small { color: var(--q-accent); }
+.q-companion__outfit-item .q-button { min-block-size: var(--q-touch); }

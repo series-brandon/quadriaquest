@@ -1,3 +1,4 @@
+import {spellAttack} from './equipment.js';
 import {STRATEGIES} from './combat-formulas.js';
 import {signal} from './reactive.js';
 
@@ -21,7 +22,7 @@ export function createCombatStyles({equipment,busy=()=>false,changed:notify=()=>
   // Strategy may change during combat; it applies from the next committed attack.
   setStrategy(id){if(!STRATEGIES[id])return false;strategy=id;changed();return true;},
   get strategy(){return strategy;},
-  get attack(){return selected?{...SPELLS[selected],spell:selected,item:null}:equipment.attack;},
+  get attack(){return selected?spellAttack(selected,SPELLS[selected],equipment.slots):equipment.attack;},
   get state(){return {selected,learned:[...learned],strategy,abilities:[...abilities],quickSpell};},reset(){selected=null;strategy='technical';quickSpell=null;learned.clear();abilities.clear();changed();}
  };
 }

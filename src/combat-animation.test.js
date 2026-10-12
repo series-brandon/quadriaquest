@@ -219,3 +219,13 @@ test('dual wielding animates one-two: the main hand thrusts first, the off hand 
   assert.ok(Math.abs(reach(1.5, 1) - rest[1][2]) < 0.2, 'off hand still winding up');
   assert.ok(reach(1.5 + FOLLOW_UP_DELAY, 1) > rest[1][2] + 0.4, 'off hand extended a beat later');
 });
+
+test('Strong Strike coils through its windup with a growing hand glow, then flashes on impact',()=>{
+ const base={style:'unarmed',interval:2.5,hand:'main',side:'right'},strong={...base,ability:'strongStrike'};
+ const early=attackAnimation(strong,1.0),charged=attackAnimation(strong,2.35),impact=attackAnimation(strong,2.55),plain=attackAnimation(base,2.35);
+ assert.equal(early.power,0,'no glow before the windup');assert.ok(charged.power>.6,'charged near the strike');assert.equal(charged.powerHand,0,'on the striking (right) hand');
+ assert.ok(impact.flash>.5&&impact.power===0,'bursts as it lands');
+ assert.ok(charged.pose.squash<plain.pose.squash,'crouches more than a normal attack');assert.equal(plain.power,0);assert.equal(plain.flash,0);
+ const left=attackAnimation({...strong,side:'left',hand:'off'},2.35);assert.equal(left.powerHand,1,'follows the striking hand');
+ assert.equal(attackAnimation({style:'ranged',item:'bows',interval:2.5,ability:'strongStrike'},2.35).power,0,'bows and spells are not empowered');
+});

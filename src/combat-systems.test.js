@@ -364,3 +364,8 @@ test('aggression follows the Attacks policy itself, so Pacifist and Custom-with-
  f.assistance.setPolicy('attacks','allowed');assert.equal(f.assistance.attacksPrevented,false);
  f.assistance.setMode('expert');f.assistance.setPolicy('attacks','prevented');assert.equal(f.assistance.attacksPrevented,true);
 });
+test('Optimize for Magic holds an owned staff, because its focus raises spell damage',()=>{
+ const f=assistFixture();f.inventory.staffs=1;f.styles.learn('energyStrike');
+ assert.match(f.assistance.optimize('magic'),/Simple Staff/);assert.ok([f.equipment.slots.right,f.equipment.slots.left].includes('staffs'));
+ assert.equal(f.assistance.optimize('magic'),'No better setup found.');
+});

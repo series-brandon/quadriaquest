@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installDom} from '../test-dom.js';
-import {signal} from '../../reactive.js';
+import {signal, reactiveRecord} from '../../reactive.js';
 import {h, mount} from '../dom.js';
 import {companionsPage} from './companions-page.js';
 
@@ -37,4 +37,32 @@ test('shows nothing until a companion is owned, then follows its name and follow
   assert.deepEqual(renames, [1]);
   system.set({name: 'Biscuit'});
   assert.equal(card.querySelector('h3').textContent, 'Biscuit');
+});
+
+test('the Outfit list shows owned companion gear and uses the system’s put on / take off action', () => {
+  const inventory = reactiveRecord({companionHats: 0});
+  let worn = null;
+  const system = {
+    revision: signal(0),
+    setFollowing() {},
+    gear: {companionHats: {slot: 'head'}},
+    owns: id => inventory[id] > 0,
+    get state() { return {owned: true, following: true, name: 'Biscuit', outfit: {head: worn}}; },
+    inventoryActions: id => [{label: worn === id ? 'Remove from Biscuit' : 'Put on Biscuit', run: () => { worn = worn === id ? null : id; system.revision.value++; }}],
+  };
+  const {node} = mount(() => companionsPage({system}));
+  const outfit = node.querySelector('.q-companion__outfit');
+  assert.equal(outfit.hidden, true, 'nothing to wear yet');
+  inventory.companionHats = 1;
+  assert.equal(outfit.hidden, false);
+  const row = outfit.querySelector('li'), button = () => outfit.querySelector('button');
+  assert.match(row.textContent, /Companion Top Hat/);
+  assert.equal(button().textContent, 'Put on Biscuit');
+  press(button());
+  assert.equal(worn, 'companionHats');
+  assert.match(row.textContent, /Wearing/);
+  assert.equal(button().textContent, 'Remove from Biscuit');
+  assert.equal(outfit.querySelector('li'), row, 'the row is kept across updates');
+  inventory.companionHats = 0;
+  assert.equal(outfit.hidden, true);
 });
