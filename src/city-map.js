@@ -7,6 +7,8 @@ import {makeCityTile,layStairs,railingEdges,stairRailParts,SURFACE_NAMES} from '
 import {mergedMesh} from './merged-model.js';
 import {mergeStatic} from './static-merge.js';
 import {shopForBuilding} from './shops.js';
+import {buildCityWalls,wallPlan} from './city-walls.js';
+import {doorSound} from './doors.js';
 import {furnishRoom,roomOfPlan,furnishingUse} from './furnish.js';
 import {makeCrystal} from './crystal-model.js';
 import {key} from './world.js';
@@ -57,7 +59,8 @@ export function cityTiles(data){
 // belongs to the chunk of its lower tile, so two buildings in different chunks still share one wall.
 export const CHUNK=16;
 // crystal(tile, parent): places the game's Iter Crystal (crystals.js) instead of a plain model.
-export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=null,crystal:placeCrystal=null}){
+// outside(x, z): the land around the city (countryside.js), so its edge tiles join it without a lip.
+export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=null,crystal:placeCrystal=null,outside=null}){
  const group=new THREE.Group();group.name='city '+data.id;group.visible=visible;scene.add(group);
  const map=cityTiles(data),t=(x,z)=>map.get(key(x,z)),tiles=[...map.values()];
  const chunks=new Map(),chunkOf=(x,z)=>`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`;
@@ -81,6 +84,9 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   for(const p of built.plan.tiles){const tile=t(...p);if(tile&&!['planks','stone'].includes(tile.surface))tile.surface='floor';}doors.push(...built.doors);roofs.push(built.roof);});
  // Hand-placed edges never replace a building's own walls (a curtain wall flush with a tower).
  for(const e of data.edges){const a=t(...e.a),b=t(...e.b);if(a&&b&&!(edges.info(a,b)?.owners.length)){const f=edges.add(a,b,e.kind,e.options||{});if(e.kind==='door')doors.push(f);}}
+ // City walls (city-walls.js): a curtain wall with corner towers and gatehouses, solid tiles and its own
+ // cut pieces; the city's `gates` are its gateways.
+ const walls=data.walls?buildCityWalls({plan:wallPlan({size:data.size[0],gates:data.gates||[],thickness:data.walls.thickness}),tileAt:t,chunkRoot:(x,z)=>chunk(x,z).root,root:group,pickables,sound:doorSound}):null;
  // Railings along stair sides and terrace edges (city-terrain.js), unless an edge is already there.
  const stairSides=new Map();
  for(const [high,low,stair] of railingEdges(tiles,map))if(!edges.info(high,low)&&!high.indoor&&!low.indoor){edges.add(high,low,'railing',{hidden:!!stair});
@@ -115,17 +121,18 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
  for(const p of props)if(!p.def.interaction)addStatic(chunk(p.tile.x,p.tile.z),p.group);
  for(const [c,objects] of statics)mergeStatic(c.root,objects,{name:'chunk-statics'});
  for(const tile of tiles)chunk(tile.x,tile.z).tiles.push(tile);
- for(const c of chunks.values()){if(c.tiles.length)createTerrainBatch({tiles:c.tiles,map,factory:tile=>makeCityTile(tile,map,{style:'stone'}),parent:c.root,pickables,roughness:.95,batchSize:CHUNK});c.edges.bake();}
+ const terrainMap=outside?{get:k=>map.get(k)??outside(...k.split(',').map(Number))}:map;
+ for(const c of chunks.values()){if(c.tiles.length)createTerrainBatch({tiles:c.tiles,map:terrainMap,factory:tile=>makeCityTile(tile,terrainMap,{style:'stone'}),parent:c.root,pickables,roughness:.95,batchSize:CHUNK});c.edges.bake();}
  const broken=edges.doorProblems();if(broken.length)console.warn('Door rule: '+broken.map(r=>`${r.door.a.x},${r.door.a.z}: ${r.problems.join('; ')}`).join(' | '));
  let roofsShown=true,streamCenter=null;
  // defineProperties, not Object.assign: assign would copy the getters as fixed values.
- return Object.defineProperties(city,Object.getOwnPropertyDescriptors({group,tiles:map,doors,edges,roofs,buildings,props,furniture,crystal,chunks,spawn:t(...data.spawn)||tiles[0],
+ return Object.defineProperties(city,Object.getOwnPropertyDescriptors({group,tiles:map,doors,edges,roofs,buildings,props,furniture,crystal,chunks,walls,spawn:t(...data.spawn)||tiles[0],
   get roofsShown(){return roofsShown;},setRoofs(on){roofsShown=!!on;for(const r of roofs){r.userData.hiddenByMap=!roofsShown;r.visible=roofsShown;}},
   // Shows only the chunks within `radius` chunks of the tile (render streaming; tiles stay resident).
   stream(tile,radius=streamRadius){if(!tile||radius===null)return;const id=chunkOf(tile.x,tile.z);if(id===streamCenter)return;streamCenter=id;const [cx,cz]=id.split(',').map(Number);
    for(const c of chunks.values())c.root.visible=Math.max(Math.abs(c.cx-cx),Math.abs(c.cz-cz))<=radius;},
   get shownChunks(){return [...chunks.values()].filter(c=>c.root.visible).length;},
-  dispose(){edges.dispose();for(const p of props)p.dispose();const owned=new Set();group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)owned.add(o.geometry);});for(const g of owned)g.dispose();
+  dispose(){walls?.dispose();edges.dispose();for(const p of props)p.dispose();const owned=new Set();group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)owned.add(o.geometry);});for(const g of owned)g.dispose();
    for(const m of [...pickables])if(isUnder(m,group))pickables.splice(pickables.indexOf(m),1);group.removeFromParent();}}));
 }
 const isUnder=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};

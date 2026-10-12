@@ -17,6 +17,8 @@ const doors=new Set(),SWING=4;
 let services={toast(){},tile:()=>null,sound(){}};
 // The game supplies feedback once (main.js); doors in every map share it.
 export function configureDoors(next){services={...services,...next};}
+// The shared door sounds, for doors that aren't edge doors (a city's gates, city-walls.js).
+export const doorSound=name=>services.sound(name);
 
 export function createDoor({a,b,parent,pickables=[],locked=false,open=false,link=null,style,storeys=1,upperWindows=false}){
  const place=edgePlacement(a,b,storeys),acrossZ={x:Math.round(Math.sin(place.rotation)),z:Math.round(Math.cos(place.rotation))};

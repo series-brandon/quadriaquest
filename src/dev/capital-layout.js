@@ -24,7 +24,7 @@ const STREETS=[{x0:62,z0:32,x1:66,z1:62},{x0:63,z0:80,x1:65,z1:123},{x0:4,z0:70,
 const BLOCKS=[[4,29,33,45],[33,61,33,45],[67,95,33,45],[99,123,33,45],[4,29,48,69],[72,95,48,69],[99,123,48,69],
  [4,29,73,97],[33,55,73,97],[72,95,73,97],[99,123,73,97],[4,29,101,123],[33,62,101,123],[66,95,101,123],[99,123,101,123]];
 // Gateways in the city wall (the countryside's roads start here; countryside.js reads the same list).
-export const CAPITAL_GATES=[{side:'west',from:70,to:72,sign:{x:2,z:69}},{side:'east',from:70,to:72,sign:{x:125,z:73}},{side:'south',from:63,to:65,sign:{x:62,z:125}}];
+export const CAPITAL_GATES=[{side:'west',from:70,to:72},{side:'east',from:70,to:72},{side:'south',from:63,to:65}];
 // Shops by trade (Phase 10 furnishing); signs follow the trade.
 const TRADES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecary','store','tavern','bakery','tailor','carpenter'];
 // Shopkeepers who also ask for jobs (jobs.js GIVERS), by their shop's trade.
@@ -105,16 +105,10 @@ export function capitalData(){
  data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length)return;const shop=!!b.desc.sign;if(shop?i%2!==0:i%10!==0)return;
   data.townsfolk.push({id:`resident-${i}`,name:`${first[r%first.length]}${r>=first.length?' '+(Math.floor(r/first.length)+1):''}`,look:{color:colors[r%8],loadout:r%5===0?{head:'minersCap'}:null},house:i,...(shop&&JOB_GIVERS[b.desc.use]?{giver:JOB_GIVERS[b.desc.use]}:{}),
    routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'sleep',weight:1},{do:'cook',weight:1},{do:'sit',weight:2},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'chat',weight:1}],line:shop?'Have a look at what I’ve got.':'Mind the step on your way in.'});r++;});
- // The city wall (docs/WORLD.md): stone along the outer ring of tiles, with open gateways where the
- // main streets leave town (west and east on the main street, south on the avenue) into the countryside.
- const N=C.size-1,GATES=CAPITAL_GATES;
- const gap=(side,i)=>GATES.some(g=>g.side===side&&i>=g.from&&i<=g.to);
- for(let i=0;i<=N;i++){
-  if(!gap('north',i))data.edges.push({a:[i,1],b:[i,0],kind:'wall',options:{style:'stone'}});
-  if(!gap('south',i))data.edges.push({a:[i,N-1],b:[i,N],kind:'wall',options:{style:'stone'}});
-  if(i>0&&i<N){if(!gap('west',i))data.edges.push({a:[1,i],b:[0,i],kind:'wall',options:{style:'stone'}});if(!gap('east',i))data.edges.push({a:[N-1,i],b:[N,i],kind:'wall',options:{style:'stone'}});}
- }
- for(const g of GATES)data.props.push({kind:'signpost',...g.sign});
- data.gates=GATES.map(({side,from,to})=>({side,from,to}));
+ // The city wall (city-walls.js; docs/WORLD.md): a castle curtain wall three tiles thick on the outer
+ // ring, round towers at the corners and a gatehouse with double doors at each gateway, where the main
+ // street leaves west and east and the avenue south into the countryside.
+ data.walls={thickness:3};
+ data.gates=CAPITAL_GATES.map(g=>({...g}));
  return data;
 }

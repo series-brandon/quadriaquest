@@ -20,6 +20,14 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Castle walls, double gates, animated water, road bridge, no seam — 2026-10-11 (user review)
+
+- `city-walls.js`: a curtain wall 3 thick and 6 high, round corner towers, gatehouses with double doors (one entity; door features on the passage edges), merged pieces as cut owners with a stone cut face. City data `walls`. `capital-layout.js` uses it instead of thin edge walls; gate signposts moved to the countryside (`countryside.js`, which makes the tiles under towers solid). `main.js` animates the gates in Gelton's update.
+- Seam: `buildCity({outside})` lets edge tiles see the countryside.
+- Water: `createStreamedWater` (GPU waves, the ponds' look) through the streamer's new `dress` hook. Bridge: `makeBridge(length, {width})` with stringers and piers, placed as a countryside extra.
+- Verified in the browser: the wall and the corner tower from outside, the south gatehouse with a leaf open, closing the gate (leaves swing shut, routes blocked), cut wall faces, the water and bridge. One bug fixed on the way: gates didn't animate until Gelton's update called `walls.update`.
+- Tests: 572 pass (new `city-walls.test.js`). Perf: the capital square is 5.4 ms; `countryside-walk` rebaselined (+14 geometries from the water and bridge).
+
 ### Countryside around Gelton, park gather spots, faster baked walls — 2026-10-11 (user: "start expanding beyond the city into the countryside")
 
 - User decisions: walk out of the gates (one continuous area), generated land with placed landmarks, a ring about 64 tiles deep, a few goblins away from roads. Design and status: docs/WORLD.md.

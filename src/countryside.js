@@ -1,4 +1,5 @@
 import {hash,valueNoise} from './noise.js';
+import {TOWER_RADIUS} from './city-walls.js';
 
 // The countryside around Gelton (docs/WORLD.md): generated land, the same every time for a seed, around
 // a city's square footprint, with placed landmarks on top. It is a chunk-streamer source
@@ -38,6 +39,15 @@ export function createCountryside({city,seed=11}){
  const inPool=(x,z,p,s)=>Math.hypot(x-p.x,z-p.z)<p.r+(valueNoise(x,z,6,seed+s)-.5)*5;
  const isSea=(x,z)=>x<x0+SEA||z<x0+SEA||x>=x1-SEA||z>=x1-SEA;
  const isRiver=(x,z)=>Math.abs(x-riverX(z))<=1.5;
+ // Bridges: where a road crosses the river, a deck over the water plus a tile of bank each side
+ // ({axis, from, to, at}: along the road from…to, centred across at `at`). Their tiles have no terrain
+ // (the bridge model is the deck) and water shows beneath.
+ const bridges=[];
+ for(const r of roads){const horizontal=r.side==='west'||r.side==='east',span=[];
+  for(let a=1;a<=r.length;a++){const along=horizontal?(r.side==='west'?-a:size-1+a):(r.side==='north'?-a:size-1+a),c=Math.round(r.center(along));
+   if([-1,0,1].some(o=>horizontal?isRiver(along,c+o):isRiver(c+o,along)))span.push({along,c});}
+  if(span.length){const ends=span.map(p=>p.along);bridges.push({id:`bridge:${r.side}`,axis:horizontal?'x':'z',from:Math.min(...ends)-1,to:Math.max(...ends)+1,at:span[0].c});}}
+ const bridgeAt=(x,z)=>bridges.find(b=>b.axis==='x'?x>=b.from&&x<=b.to&&Math.abs(z-b.at)<=ROAD_HALF:z>=b.from&&z<=b.to&&Math.abs(x-b.at)<=ROAD_HALF)||null;
  // Landmarks: hand-placed props (world tiles), kept clear of resources and enemies.
  const LANDMARKS=[
   {id:'woodcutter',props:[{kind:'woodpile',x:-RING+SEA+5,z:roads[0]?Math.round(roads[0].mid)-4:60},{kind:'fallenLog',x:-RING+SEA+8,z:Math.round(roads[0]?.mid??64)+3},{kind:'treeStump',x:-RING+SEA+6,z:Math.round(roads[0]?.mid??64)+5},{kind:'hayBales',x:-RING+SEA+9,z:Math.round(roads[0]?.mid??64)-4}]},
@@ -46,6 +56,11 @@ export function createCountryside({city,seed=11}){
   {id:'wagon',props:[{kind:'wagon',x:Math.round(riverX(70))+8,z:66}]},
   {id:'south-sign',props:[{kind:'signpost',x:Math.round(size/2)+3,z:size+RING-SEA-8}]},
  ];
+ // A signpost outside each gateway.
+ for(const g of gates){LANDMARKS.push({id:`gate-sign:${g.side}`,props:[{kind:"signpost",...(g.side==="west"?{x:-3,z:g.from-2}:g.side==="east"?{x:size+2,z:g.to+2}:g.side==="south"?{x:g.from-2,z:size+2}:{x:g.to+2,z:-3})}]});}
+ // The city wall's corner towers stand half outside the city: their tiles out here are solid.
+ const wallMid=city.walls?(city.walls.thickness-1)/2:null;
+ const underTower=(x,z)=>wallMid!==null&&[[wallMid,wallMid],[size-1-wallMid,wallMid],[wallMid,size-1-wallMid],[size-1-wallMid,size-1-wallMid]].some(([cx,cz])=>Math.hypot(x-cx,z-cz)<TOWER_RADIUS+.45);
  const reserved=new Set();
  for(const l of LANDMARKS)for(const p of l.props)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=3;dx++)reserved.add(`${p.x+dx},${p.z+dz}`);
  const tiles=new Map();
@@ -56,7 +71,9 @@ export function createCountryside({city,seed=11}){
   const k=`${x},${z}`;if(tiles.has(k))return tiles.get(k);
   const road=roadDistance(x,z);let t;
   if(isSea(x,z))t={x,z,h:.5,water:true,blocked:true,surface:'water'};
-  else if(road<=ROAD_HALF){const bridge=isRiver(x,z);t={x,z,h:1,water:false,blocked:false,surface:bridge?'planks':'dirt',bridge};}
+  else if(underTower(x,z))t={x,z,h:1,water:false,blocked:true,blocksSight:true,surface:'grass',underWall:true};
+  else if(bridgeAt(x,z)){t={x,z,h:1,water:false,blocked:false,surface:'planks',bridge:true,noTerrain:true,overWater:isRiver(x,z)};}
+  else if(road<=ROAD_HALF)t={x,z,h:1,water:false,blocked:false,surface:'dirt'};
   else if(isRiver(x,z)||inPool(x,z,lake,3)||inPool(x,z,pond,4))t={x,z,h:.5,water:true,blocked:true,surface:'water'};
   else{
    // Hills grow with distance from the wall and from the roads; heights step in half blocks.
@@ -77,7 +94,7 @@ export function createCountryside({city,seed=11}){
  function entities(list){
   const out=[];
   for(const t of list){
-   if(t.water||t.bridge||t.surface==='dirt'&&roadDistance(t.x,t.z)<=ROAD_HALF||reserved.has(`${t.x},${t.z}`)||outside(t.x,t.z)<4||roadDistance(t.x,t.z)<=ROAD_HALF+1)continue;
+   if(t.water||t.bridge||t.underWall||t.surface==='dirt'&&roadDistance(t.x,t.z)<=ROAD_HALF||reserved.has(`${t.x},${t.z}`)||outside(t.x,t.z)<4||roadDistance(t.x,t.z)<=ROAD_HALF+1)continue;
    const r=hash(t.x,t.z,seed+9),rocky=t.h>=2.5;
    const kind=rocky?(r<.035?'boulder':r<.06?'copper':r<.075?'stones':null)
     :forest(t.x,t.z)?(r<.16?'tree':r<.18?'sticks':null)
@@ -101,8 +118,9 @@ export function createCountryside({city,seed=11}){
     const deep=road>18&&hash(t.x,t.z,seed+32)<.45;
     out.push({id:`goblin:${t.x},${t.z}`,kind:'enemy',enemy:deep?'bruiser':'scrapper',aggressive:deep,x:t.x,z:t.z});}
   }
+  for(const b of bridges){const [x,z]=b.axis==='x'?[b.from,b.at]:[b.at,b.from];if(keys.has(`${x},${z}`))out.push({id:b.id,kind:'bridge',x,z,axis:b.axis,length:b.to-b.from+1,width:ROAD_HALF*2+1});}
   for(const l of LANDMARKS)for(const [i,p] of l.props.entries())if(keys.has(`${p.x},${p.z}`))out.push({id:`${l.id}:${i}`,kind:'prop',prop:p.kind,x:p.x,z:p.z,rotation:p.rotation||0});
   return out;
  }
- return {tile,entities,extras,roadDistance,outside,bounds:{x0,z0:x0,x1,z1:x1},landmarks:LANDMARKS,riverX,lake,pond,roads};
+ return {tile,entities,extras,bridges,roadDistance,outside,bounds:{x0,z0:x0,x1,z1:x1},landmarks:LANDMARKS,riverX,lake,pond,roads};
 }
