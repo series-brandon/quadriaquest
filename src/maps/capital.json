@@ -3407,8 +3407,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 2
+      "edge": "north",
+      "at": 3
      }
     ],
     "chimney": false,
@@ -3433,7 +3433,7 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
+      "edge": "north",
       "at": 2
      }
     ],
@@ -3459,8 +3459,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 2
+      "edge": "north",
+      "at": 3
      }
     ],
     "chimney": false,
@@ -3485,7 +3485,7 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
+      "edge": "north",
       "at": 3
      }
     ],
@@ -3641,7 +3641,7 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
+      "edge": "north",
       "at": 3
      }
     ],
@@ -3667,8 +3667,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 2
+      "edge": "north",
+      "at": 3
      }
     ],
     "chimney": false,
@@ -3693,8 +3693,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 2
+      "edge": "north",
+      "at": 3
      }
     ],
     "chimney": true,
@@ -3719,7 +3719,7 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
+      "edge": "north",
       "at": 3
      }
     ],
@@ -3875,7 +3875,7 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
+      "edge": "north",
       "at": 3
      }
     ],
@@ -3901,8 +3901,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 2
+      "edge": "north",
+      "at": 3
      }
     ],
     "chimney": true,
@@ -3927,7 +3927,7 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
+      "edge": "north",
       "at": 2
      }
     ],
@@ -3953,8 +3953,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 1
+      "edge": "north",
+      "at": 2
      }
     ],
     "chimney": true,
@@ -3979,8 +3979,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 2
+      "edge": "north",
+      "at": 3
      }
     ],
     "chimney": true,
@@ -4135,8 +4135,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 2
+      "edge": "north",
+      "at": 3
      }
     ],
     "chimney": true,
@@ -4161,7 +4161,7 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
+      "edge": "north",
       "at": 2
      }
     ],
@@ -4187,7 +4187,7 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
+      "edge": "north",
       "at": 2
      }
     ],
@@ -4213,8 +4213,8 @@
     "style": "stone",
     "doors": [
      {
-      "edge": "south",
-      "at": 1
+      "edge": "north",
+      "at": 2
      }
     ],
     "chimney": false,
@@ -7819,6 +7819,150 @@
     }
    ],
    "line": "Have a look at what I’ve got."
+  },
+  {
+   "id": "gate-west-0",
+   "name": "Guard Osric",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    -1,
+    69
+   ],
+   "routine": [
+    {
+     "do": "post"
+    }
+   ],
+   "facing": "w",
+   "pace": 1.1,
+   "line": "Safe travels. Mind the goblins in the hills."
+  },
+  {
+   "id": "gate-west-1",
+   "name": "Guard Brann",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    -1,
+    73
+   ],
+   "routine": [
+    {
+     "do": "post"
+    }
+   ],
+   "facing": "w",
+   "pace": 1.1,
+   "line": "Safe travels. Mind the goblins in the hills."
+  },
+  {
+   "id": "gate-east-0",
+   "name": "Guard Wilda",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    128,
+    69
+   ],
+   "routine": [
+    {
+     "do": "post"
+    }
+   ],
+   "facing": "e",
+   "pace": 1.1,
+   "line": "Safe travels. Mind the goblins in the hills."
+  },
+  {
+   "id": "gate-east-1",
+   "name": "Guard Torvin",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    128,
+    73
+   ],
+   "routine": [
+    {
+     "do": "post"
+    }
+   ],
+   "facing": "e",
+   "pace": 1.1,
+   "line": "Safe travels. Mind the goblins in the hills."
+  },
+  {
+   "id": "gate-south-0",
+   "name": "Guard Maud",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    62,
+    128
+   ],
+   "routine": [
+    {
+     "do": "post"
+    }
+   ],
+   "facing": "s",
+   "pace": 1.1,
+   "line": "Safe travels. Mind the goblins in the hills."
+  },
+  {
+   "id": "gate-south-1",
+   "name": "Guard Edric",
+   "look": {
+    "color": "#c85745",
+    "loadout": {
+     "rightHand": "copperDagger",
+     "leftHand": "copperShield",
+     "head": "ironSkullcap"
+    }
+   },
+   "home": [
+    66,
+    128
+   ],
+   "routine": [
+    {
+     "do": "post"
+    }
+   ],
+   "facing": "s",
+   "pace": 1.1,
+   "line": "Safe travels. Mind the goblins in the hills."
   }
  ],
  "interiors": {

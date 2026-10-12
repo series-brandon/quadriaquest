@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import {applyCutaway,registerCutSource,sectionMaterial} from './cutaway.js';
+import {applyCutaway,registerCutSource,sectionMaterial,isBuildingCut} from './cutaway.js';
 import {setEdge,edgeBetween} from './world.js';
 
 // City walls (docs/WORLD.md, City walls): a castle curtain wall around a city's square footprint, the
@@ -107,7 +107,7 @@ export function buildCityWalls({plan,tileAt,chunkRoot,root,pickables=[],sound=()
  const material=applyCutaway(new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92,flatShading:true})),section=sectionMaterial();
  // A cut wall this thick shows a broad cut face: stone, not the dark section of a building's thin walls.
  section.color.set(COLOR.cut);
- let nextId=WALL_IDS;
+ let nextId=WALL_IDS;const walkways=[];
  function addPiece(parts,{x0,z0,x1,z1,top},at,rotation=0){
   const id=nextId++,geometry=merge(parts,id,base);
   const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=mesh.receiveShadow=true;mesh.name='city-wall';
@@ -136,6 +136,8 @@ export function buildCityWalls({plan,tileAt,chunkRoot,root,pickables=[],sound=()
   // Runs break at the corner towers and at each gatehouse's span (the gateway ± 1.6 tiles of flank).
   const breaks=[[-Infinity,mid+TOWER_RADIUS-.6],[N-mid-TOWER_RADIUS+.6,Infinity],...gates.filter(g=>g.side===side).map(g=>[g.from-.5-1.6,g.to+.5+1.6])].sort((p,q)=>p[0]-q[0]);
   for(let i=0;i<breaks.length-1;i++){let a=breaks[i][1];const b=breaks[i+1][0];
+   // The walkway along this stretch, for sentries (wall-sentries.js): tile centres from…to along `fixed`.
+   if(b-a>2)walkways.push({side,horizontal:info.horizontal,fixed:info.fixed,outward:info.outward,from:Math.ceil(a+.5),to:Math.floor(b-.5),y:base+HEIGHT+.08});
    // Split at chunk borders so each piece lives in, streams with and cuts with its chunk.
    while(b-a>.01){const c=Math.min(b,(Math.floor((a+.5)/16)+1)*16-.5),half=(c-a)/2;place(side,a,c,runParts(-half,half,1),HEIGHT+.9);a=c;}
   }
@@ -150,7 +152,9 @@ export function buildCityWalls({plan,tileAt,chunkRoot,root,pickables=[],sound=()
  }
  const source={root,boxes:()=>pieces.map(p=>[p.id,p.box]),parts:()=>[]};
  const unregister=registerCutSource(source);
- return {pieces,gates:gateEntities,base,
+ return {pieces,gates:gateEntities,base,walkways,
+  // Is the wall cut down at this world point (x, z in scene units)? Things standing on top hide then.
+  cutAt:(x,z)=>pieces.some(p=>isBuildingCut(p.id)&&x>=p.box.x0&&x<=p.box.x1&&z>=p.box.z0&&z<=p.box.z1),
   update(dt){for(const g of gateEntities)g.update(dt);},
   dispose(){unregister();for(const p of pieces){p.group.removeFromParent();p.group.children[0].geometry.dispose();}for(const g of gateEntities)g.dispose();material.dispose();}};
 }

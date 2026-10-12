@@ -55,6 +55,16 @@ The user asked for walls like the castle keep's: very tall, with large towers at
 - **Cutaway:** each piece (a run per chunk, a tower, a gatehouse) is its own cut owner (ids from 1000, a cut source per city). The piece beside you or between you and the camera cuts down like a building and the rest stands. Its cut face is stone-coloured, because a 3-tile wall shows a broad face.
 - **The seam:** the city's edge tiles were drawn as if nothing lay beyond them (a rounded lip and a side). `buildCity({outside})` now gives the city's terrain the countryside's tiles, so the edge joins without a seam.
 
+## Guards and houses by the wall (user request, 2026-10-11)
+
+- **Wall sentries** (`wall-sentries.js`): guards pace the walkway on top of the wall, using the shared slime presentation (`GUARD_LOOK`: red, copper dagger and shield, iron skullcap).
+  - One guard per 40 tiles of walkway (`walls.walkways`, the stretches between towers and gatehouses), 15 in Gelton, each with its own beat.
+  - They walk tile by tile with the shared step motion, and pause at the ends to look out over the wall.
+  - They hide where the wall is cut down (`walls.cutAt`), and leave the scene graph when more than 40 tiles away.
+- **Gate guards:** two townsfolk at every entrance, outside the city against the wall either side of the gateway, facing out along the road (user, 2026-10-11). Their tiles are countryside land; `buildCity({outside})` adds the tiles its townsfolk stand on to the city's map, and the townsfolk checks skip homes outside the city when that land isn't there. They use a new townsfolk activity, `post`: stand at your home tile facing `entry.facing`. You can talk to them like other townsfolk.
+- **Houses by the wall:** rows of houses backing onto the wall face their block's yard instead (reached by the alleys), so no door opens a tile from the wall (`capital-layout.js`).
+- **Playground:** Countryside jumps to the west and south gates (inside).
+
 ## Water and the bridge (2026-10-11)
 
 - **Animated water:** `createStreamedWater` in `water-effects.js`. It has the ponds' look (colour, opacity, reflections, facets, glints, following `waterSettings`), but the waves run in the vertex shader. That's one surface mesh per chunk, so lakes, the river and the sea cost nothing per frame on the CPU. Shore vertices stay still. The chunk streamer's `dress` hook builds and releases it with the chunk; the terrain under water is the ponds' bed colour.
@@ -86,7 +96,7 @@ The user asked for walls like the castle keep's: very tall, with large towers at
 
 ## Open and next
 
-- **Guards on the walls:** the walkway is drawn but not walkable. Sentries patrolling it would need a raised walkable path and stairs.
+- **Wall sentries are flavour:** they pace the walkway but aren't townsfolk (you can't climb up or talk to them). A walkable wall top would need a raised path and stairs.
 - **Seen from behind:** the default camera looks from the south-east, so the west gate's face points away from it (rotate the camera to see it).
 - **Roads don't connect** to each other or around the city.
 - **More landmarks and places:** farms, a mine entrance, villages, more enemy kinds and camps.

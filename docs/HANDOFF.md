@@ -20,6 +20,11 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Wall sentries, gate guards, houses turned from the wall — 2026-10-11 (user request)
+
+- `wall-sentries.js` (guards pacing `walls.walkways`, hidden where cut, detached when far); `city-walls.js` gained `walkways` and `cutAt`. Townsfolk gained the `post` activity (`entry.facing`). `capital-layout.js`: two gate guards per entrance, outside the wall (user correction; `buildCity({outside})` gives them their land tiles); south rows by the wall face their yard. Regenerated `capital.json`. The city checks have no door, furniture or townsfolk issues.
+- Verified in the browser: all six gate guards on post; a sentry on the north walkway seen from inside; the turned house doors. Tests: 574 pass. Perf: capital square 6.1 ms (PASS).
+
 ### Castle walls, double gates, animated water, road bridge, no seam — 2026-10-11 (user review)
 
 - `city-walls.js`: a curtain wall 3 thick and 6 high, round corner towers, gatehouses with double doors (one entity; door features on the passage edges), merged pieces as cut owners with a stone cut face. City data `walls`. `capital-layout.js` uses it instead of thin edge walls; gate signposts moved to the countryside (`countryside.js`, which makes the tiles under towers solid). `main.js` animates the gates in Gelton's update.

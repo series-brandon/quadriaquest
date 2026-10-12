@@ -34,3 +34,35 @@ test('wall pieces are tall cut owners: the one beside you cuts down, the far one
  assert.ok(near&&cut.includes(near.id),'the west wall beside you is cut');
  assert.ok(cut.length<pieces.length,'not every piece');
 });
+test('sentries pace the wall-top walkways, look out at the ends, and hide when far or the wall is cut',async()=>{
+ const {createWallSentries}=await import('./wall-sentries.js');
+ const walkways=city.walls.walkways;assert.ok(walkways.length>=7,'stretches between towers and gatehouses');
+ for(const w of walkways)assert.ok(w.to>w.from&&w.y>HEIGHT,'on top of the wall');
+ let cut=false;const sentries=createWallSentries({walkways,parent:new THREE.Group(),random:()=>.3,hiddenAt:()=>cut});
+ assert.ok(sentries.sentries.length>=10,'long walkways share several guards');
+ const s=sentries.sentries[0],w=s.walkway,start=s.at;
+ const player={x:w.horizontal?(w.from+w.to)/2:w.fixed,z:w.horizontal?w.fixed:(w.from+w.to)/2};
+ for(let i=0;i<600;i++)sentries.update(1/30,i/30,player);
+ assert.notEqual(s.at,start,'they walk');assert.ok(s.at>=w.from&&s.at<=w.to,'and stay on their stretch');
+ assert.ok(Math.abs(s.body.position.y-w.y)<1e-6);
+ cut=true;sentries.update(1/30,21,player);assert.equal(s.body.visible,false,'hidden on a cut wall');
+ cut=false;sentries.update(1/30,21,{x:player.x+200,z:player.z});assert.equal(s.body.parent,null,'far away: out of the scene');
+ sentries.update(1/30,22,player);assert.ok(s.body.parent&&s.body.visible,'back when near');
+});
+test('two guards stand outside every gateway, against the wall, facing out',async()=>{
+ const {createCountryside}=await import('./countryside.js'),{createCrowd}=await import('./townsfolk.js');
+ const d=structuredClone(data),land=createCountryside({city:d}),world=buildCity(d,{scene:new THREE.Group(),outside:land.tile});
+ const guards=d.townsfolk.filter(f=>f.id?.startsWith('gate-')),size=d.size[0];
+ assert.equal(guards.length,d.gates.length*2);
+ for(const g of guards){
+  const [x,z]=g.home,tile=world.tiles.get(key(x,z));assert.deepEqual(g.routine,[{do:'post'}]);
+  assert.ok(x<0||z<0||x>=size||z>=size,`${g.id} is outside the city`);
+  assert.ok(tile&&!tile.blocked&&tile===land.tile(x,z),`${g.id} stands on the land outside`);
+  assert.ok([[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>world.tiles.get(key(x+dx,z+dz))?.cityWall),`${g.id} stands against the wall`);
+ }
+ const crowd=createCrowd({city:world,parent:new THREE.Group()});
+ for(let i=0;i<60;i++)crowd.update(.1,i*.1);
+ const posted=crowd.folk.filter(p=>p.id?.startsWith('gate-'));assert.equal(posted.length,guards.length);
+ assert.ok(posted.every(p=>p.activity==='post'&&p.tile===p.home),'on post');
+ crowd.dispose();
+});

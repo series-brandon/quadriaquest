@@ -87,6 +87,7 @@ import {BOULDER_TILES} from './mining.js';
 import {ITEMS} from './items.js';
 import {createWaterEffects,createStreamedWater,waterSettings} from './water-effects.js';
 import {makeBridge} from './bridge-model.js';
+import {createWallSentries} from './wall-sentries.js';
 import './ui-theme.css';
 import './player-interface.css';
 import './ui/ui.css';
@@ -453,6 +454,8 @@ function geltonReady(){
   const cityData=structuredClone(data),source=createCountryside({city:cityData});
   const built=buildCity(cityData,{scene,pickables,streamRadius:3,outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
   built.areaId='gelton';attachCrowd(built);
+  // Guards pacing the wall-top walkways (wall-sentries.js), hidden where the wall is cut down.
+  built.sentries=built.walls?createWallSentries({walkways:built.walls.walkways,parent:built.group,hiddenAt:built.walls.cutAt}):null;
   // Gather spots placed by the map (shared resource entities).
   for(const r of built.data.resources||[]){const t=built.tiles.get(key(r.x,r.z));if(t&&!t.blocked&&!t.prop)resourceActions.add(createResourceEntity({kind:r.kind,tile:t,parent:built.group,pickables,id:`gelton:${r.kind}:${r.x},${r.z}`}));}
   // The countryside streams into the area's tiles, and into the live world map while Gelton is active.
@@ -482,7 +485,7 @@ function geltonReady(){
    arrival:()=>built.crystal?.tile||built.spawn,
    enter(){if(!maps.includes(world))maps.push(world);streamer.prime(tile.x,tile.z,1);},
    leave(){const i=maps.indexOf(world);if(i>=0)maps.splice(i,1);},
-   update:(dt,time,view)=>{const at=segment?.to||tile;built.stream(at);streamer.update(dt,at);streamWater.update(dt);built.walls?.update(dt);built.crowd?.update(dt,time,{camera:view});},
+   update:(dt,time,view)=>{const at=segment?.to||tile;built.stream(at);streamer.update(dt,at);streamWater.update(dt);built.walls?.update(dt);built.sentries?.update(dt,time,tile);built.crowd?.update(dt,time,{camera:view});},
    reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
   return gelton=built;
  })();
@@ -911,13 +914,13 @@ if(__PLAYGROUND__){
    const built=await geltonReady();if(areas.id!=='gelton')await playgroundApi.enterCapital();
    const {source,streamer}=built.countryside,size=built.data.size[0];
    const spots={'west-road':[-source.roads.find(r=>r.side==='west').length+3,Math.round(source.roads.find(r=>r.side==='west').mid)],lake:[Math.round(source.lake.x),Math.round(source.lake.z+source.lake.r+3)],
-    bridge:[Math.round(source.riverX(71))-4,71],ruins:[size-26,-26],'south-road':[Math.round(size/2),size+40],hills:[size+20,-40],woods:[-30,110],pond:[Math.round(source.pond.x),Math.round(source.pond.z-source.pond.r-3)]};
+    bridge:[Math.round(source.riverX(71))-4,71],'west-gate':[5,74],'south-gate':[67,121],ruins:[size-26,-26],'south-road':[Math.round(size/2),size+40],hills:[size+20,-40],woods:[-30,110],pond:[Math.round(source.pond.x),Math.round(source.pond.z-source.pond.r-3)]};
    let [x,z]=Array.isArray(place)?place:spots[place]||[];if(x===undefined)return null;
    streamer.prime(x,z,2);
    for(let r=0;r<8;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const t=world.get(key(x+dx,z+dz));if(t&&!t.blocked&&!t.water&&!characterAt(t)){playgroundApi.teleport(t.x,t.z);return [t.x,t.z];}}
    return null;
   },
-  countrysideSpots:['west-road','lake','pond','bridge','ruins','hills','woods','south-road'],
+  countrysideSpots:['west-gate','south-gate','west-road','lake','pond','bridge','ruins','hills','woods','south-road'],
   get countrysideStats(){const c=gelton?.countryside;return c?{...c.streamer.stats,radius:c.streamer.radius}:null;},
   countrysideBounds(on){const c=gelton?.countryside;if(!c)return false;c.streamer.showBounds=on;return true;},
   countrysideRadius(r){const c=gelton?.countryside;if(!c)return null;c.streamer.radius=r;return c.streamer.radius;},

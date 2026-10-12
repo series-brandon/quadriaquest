@@ -21,9 +21,11 @@ import {moveMotion} from './slime-motion.js';
 // Navigation is shared: distance fields to popular destinations (every spot, every home) are cached
 // and followed downhill; strolls use a bounded search. Presentation runs in rings (crowd budget):
 // near and on screen, full; far on screen, a quarter rate with a fixed face; off screen, movement only.
-export const ACTIVITIES=['sit','sleep','cook','work','browse','vend','gaze','drink','read','chat','stroll','enter','patrol','home','keep','tend'];
+export const ACTIVITIES=['sit','sleep','cook','work','browse','vend','gaze','drink','read','chat','stroll','enter','patrol','home','keep','tend','post'];
 const SPOT_ACTIVITIES=['sit','sleep','cook','work','browse','vend','gaze','drink','read'];
 // WALK: townsfolk walk a little slower than the player (the shared move's time scale).
+// Facing angles by compass side (props.js ANGLE), for guards at their post.
+const POST_FACING={n:Math.PI,e:Math.PI/2,s:0,w:-Math.PI/2};
 const WALK=.72,ROUTE_LIMIT=3500,NEAR=16,FAR=34,FIELD_CACHE=48,STROLL_RADIUS=10;
 const LINES=['Lovely day for it.','Have you seen the fountain?','Mind the stairs.','The market’s busy today.','I’m just on my way home.','Hello there!','They say the castle has a hundred rooms.','Fresh bread soon, I hope.'];
 const NEIGHBOURS=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -118,6 +120,8 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
    // Home: potter about inside your own house. Keep: mind your shop from its keeper spot. Tend: linger
    // around your own building's front.
    if(a==='home'&&p.house){const free=p.house.inside.filter(t=>t!==p.tile&&!taken(t,p));if(!free.length)continue;const goal=free[Math.floor(random()*free.length)],path=routeTo(goal);if(!path)continue;return {activity:a,goal,path,stay:5+random()*9};}
+   // Post: stand guard at your home tile (a gate guard), facing entry.facing ('n', 'e', 's' or 'w').
+   if(a==='post'){if(p.tile===p.home)return {activity:a,goal:p.home,path:[],stay:30+random()*30};const path=routeTo(p.home);if(path)return {activity:a,goal:p.home,path,stay:30+random()*30};continue;}
    if(a==='keep'&&p.house?.keeper&&!taken(p.house.keeper,p)){const path=routeTo(p.house.keeper);if(path)return {activity:a,goal:p.house.keeper,path,stay:20+random()*20};}
    if(a==='tend'&&p.house?.doorstep){const options=nav.around(p.house.doorstep,2).filter(t=>strollable(t)&&!taken(t,p));if(!options.length)continue;const goal=options[Math.floor(random()*options.length)],path=routeTo(goal);if(!path)continue;return {activity:a,goal,path,stay:3+random()*6};}
    if(a==='patrol'&&p.entry.patrol?.length){p.patrolIndex=((p.patrolIndex??-1)+1)%p.entry.patrol.length;const goal=map.get(key(...p.entry.patrol[p.patrolIndex])),path=routeTo(goal);if(path)return {activity:a,goal,path,stay:1+random()*2};}
@@ -137,6 +141,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
   if(p.activity==='drink')p.slime.play('Gathering',{loop:false,duration:1.6});
   if(p.activity==='vend'&&random()<.5)p.slime.play('Point',{loop:false,duration:1.2});
   if(p.activity==='keep'&&p.house.door)p.facing=angleTo(p.tile,p.house.door);
+  if(p.activity==='post'&&POST_FACING[p.entry.facing]!==undefined)p.facing=POST_FACING[p.entry.facing];
   if(p.activity==='tend'&&random()<.5)p.slime.play('Gathering',{loop:false,duration:2});
  }
  function leave(p){
@@ -220,9 +225,11 @@ export function townsfolkProblems(data,city){
   const house=entry.house!==undefined?city.buildings[entry.house]:null;
   if(entry.house!==undefined&&(!house||house.plan.desc.interior!=='inPlace'||house.plan.doors.every(d=>d.locked))){out.push({kind:'townsfolk',severity:'error',tile:entry.home||data.spawn,text:`${entry.name||entry.id}'s house can't be walked into.`});continue;}
   const where=entry.home||(house&&house.plan.tiles.find(([x,z])=>!city.tiles.get(key(x,z))?.blocked)),home=where&&city.tiles.get(key(...where));
+  // Posted outside the city (a gate guard on the land around it): checked where that land exists.
+  const [w,d]=city.data?.size||[Infinity,Infinity];if(where&&!home&&(where[0]<0||where[1]<0||where[0]>=w||where[1]>=d))continue;
   if(!home||home.blocked){out.push({kind:'townsfolk',severity:'error',tile:where||data.spawn,text:`${entry.name||entry.id}'s home tile is missing or blocked.`});continue;}
   if(city.spawn&&!nav.reachable(home,city.spawn))out.push({kind:'townsfolk',severity:'warning',tile:where,text:`${entry.name||entry.id} can't reach the town square from home.`});
-  const usable=(entry.routine||[{do:'stroll'}]).some(r=>['stroll','chat','enter'].includes(r.do)||house&&['home','keep','tend'].includes(r.do)||r.do==='patrol'&&entry.patrol?.length||spots(r.do).some(s=>nav.reachable(home,s.tile)));
+  const usable=(entry.routine||[{do:'stroll'}]).some(r=>['stroll','chat','enter','post'].includes(r.do)||house&&['home','keep','tend'].includes(r.do)||r.do==='patrol'&&entry.patrol?.length||spots(r.do).some(s=>nav.reachable(home,s.tile)));
   if(!usable)out.push({kind:'townsfolk',severity:'warning',tile:where,text:`${entry.name||entry.id} has nothing in their routine they can do here.`});}
  return out;
 }

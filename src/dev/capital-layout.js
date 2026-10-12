@@ -28,6 +28,7 @@ export const CAPITAL_GATES=[{side:'west',from:70,to:72},{side:'east',from:70,to:
 // Shops by trade (Phase 10 furnishing); signs follow the trade.
 const TRADES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecary','store','tavern','bakery','tailor','carpenter'];
 // Shopkeepers who also ask for jobs (jobs.js GIVERS), by their shop's trade.
+const WALL_THICKNESS=3;
 const JOB_GIVERS={smithy:'smith',fishmonger:'fishmonger',bakery:'baker'};
 const styleAt=(x,z)=>z>100?'stone':x<56?'timber':'brick';
 
@@ -53,11 +54,14 @@ export function capitalData(){
   const mainStreet=z1===69||z0===73,nearSquare=Math.abs((x0+x1)/2-64)<36&&(z1===69||z0===73||z1===45);
   for(const row of rows){let x=x0,run=0;
    while(x<=x1){const w=Math.min(4+Math.floor(random()*4),x1-x+1);if(w<4)break;
-    const storeys=nearSquare?2+(random()<.3?1:0):random()<.25?2:1,style=styleAt(x,row.z),at=row.edge==='north'?Math.floor(w/2):w-1-Math.floor(w/2);
+    // A row backing onto the city wall faces its block's yard instead (reached by the alleys), not a
+    // door a tile from the wall.
+    const nearWall=row.edge==='south'&&z1>=C.size-1-WALL_THICKNESS-2||row.edge==='north'&&z0<=WALL_THICKNESS+2,edge=nearWall?(row.edge==='south'?'north':'south'):row.edge;
+    const storeys=nearSquare?2+(random()<.3?1:0):random()<.25?2:1,style=styleAt(x,row.z),at=edge==='north'?Math.floor(w/2):w-1-Math.floor(w/2);
     const isShop=mainStreet&&((row.edge==='south'&&z1===69)||(row.edge==='north'&&z0===73))&&random()<.7;
     const separate=n===14||n===41;
     data.buildings.push({x,z:row.z,desc:{name:separate?(n===14?'the Wandering Slime inn':'guild hall'):isShop?`shop ${++shop}`:`house ${n+1}`,footprint:[w,depth],storeys:separate?2:storeys,roof:storeys>1&&random()<.5?'hip':'gable',style,
-     doors:[{edge:row.edge,at}],chimney:random()<.6,sign:isShop?{icon:USE_ICONS[TRADES[shop%TRADES.length]]||'star',edge:row.edge}:null,awning:isShop?'striped':null,interior:separate?'separate':'inPlace',use:separate?(n===14?'inn':'guildHall'):isShop?TRADES[shop%TRADES.length]:'home',seed:n*13+7,roofColor:separate?'#7a4a8c':undefined},
+     doors:[{edge,at}],chimney:random()<.6,sign:isShop?{icon:USE_ICONS[TRADES[shop%TRADES.length]]||'star',edge:row.edge}:null,awning:isShop?'striped':null,interior:separate?'separate':'inPlace',use:separate?(n===14?'inn':'guildHall'):isShop?TRADES[shop%TRADES.length]:'home',seed:n*13+7,roofColor:separate?'#7a4a8c':undefined},
      ...separate?{interior:{floors:2,furniture:[{kind:'barrel',at:[0,0]},{kind:'barrel',at:[1,0]},{kind:'bench',at:[2,2]},{kind:'crates',at:[w-1,0],floor:1}]}}:{}});
     n++;run++;x+=w;if(run>=3&&x+2<=x1){x+=2;run=0;}
    }}
@@ -108,7 +112,14 @@ export function capitalData(){
  // The city wall (city-walls.js; docs/WORLD.md): a castle curtain wall three tiles thick on the outer
  // ring, round towers at the corners and a gatehouse with double doors at each gateway, where the main
  // street leaves west and east and the avenue south into the countryside.
- data.walls={thickness:3};
+ data.walls={thickness:WALL_THICKNESS};
+ // Two guards posted at every entrance, outside against the wall either side of the gateway, looking out
+ // along the road (they stand on the countryside's land; buildCity's `outside`).
+ const N=C.size-1;
+ for(const g of CAPITAL_GATES){const facing={west:'w',east:'e',south:'s',north:'n'}[g.side];
+  const spots=g.side==='west'?[[-1,g.from-1],[-1,g.to+1]]:g.side==='east'?[[N+1,g.from-1],[N+1,g.to+1]]:g.side==='south'?[[g.from-1,N+1],[g.to+1,N+1]]:[[g.from-1,-1],[g.to+1,-1]];
+  spots.forEach(([x,z],i)=>data.townsfolk.push({id:`gate-${g.side}-${i}`,name:`Guard ${['Osric','Brann','Wilda','Torvin','Maud','Edric'][data.townsfolk.filter(t=>t.id?.startsWith('gate-')).length%6]}`,
+   look:{color:'#c85745',loadout:{rightHand:'copperDagger',leftHand:'copperShield',head:'ironSkullcap'}},home:[x,z],routine:[{do:'post'}],facing,pace:1.1,line:'Safe travels. Mind the goblins in the hills.'}));}
  data.gates=CAPITAL_GATES.map(g=>({...g}));
  return data;
 }

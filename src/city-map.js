@@ -63,6 +63,9 @@ export const CHUNK=16;
 export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=null,crystal:placeCrystal=null,outside=null}){
  const group=new THREE.Group();group.name='city '+data.id;group.visible=visible;scene.add(group);
  const map=cityTiles(data),t=(x,z)=>map.get(key(x,z)),tiles=[...map.values()];
+ // Townsfolk posted just outside the city (gate guards) stand on the land around it: those tiles join
+ // the city's map (not its terrain, which the land draws) so they have somewhere to stand.
+ if(outside)for(const f of data.townsfolk||[])if(f.home&&!map.has(key(...f.home))){const o=outside(...f.home);if(o)map.set(key(...f.home),o);}
  const chunks=new Map(),chunkOf=(x,z)=>`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`;
  function chunk(x,z){const id=chunkOf(x,z);if(!chunks.has(id)){const root=new THREE.Group();root.name='chunk '+id;group.add(root);const [cx,cz]=id.split(',').map(Number);
   chunks.set(id,{id,cx,cz,root,tiles:[],edges:createEdgeFeatures({parent:root,pickables,tileAt:t,style:data.style})});}return chunks.get(id);}
