@@ -205,7 +205,7 @@ export function createCrowd({city,parent,pickables=[],seed=1,services={}}){
     // Indoors behind a roof (the building not cut) nobody can see them, so they aren't drawn.
     const indoors=p.tile.indoor&&p.tile.building!==undefined&&!isBuildingCut(p.tile.building);
     if(p.state!=='walking')p.move=null;
-    p.moving=!!p.step;p.group.visible=(p.ring!=='off'||d<FAR)&&!indoors&&!occupancy.covered(p,p.tile);
+    p.moving=!!p.step;p.group.visible=(p.ring!=='off'||d<FAR)&&!indoors&&(city.isShown?.(p.tile.x,p.tile.z)??true)&&!occupancy.covered(p,p.tile);
     if(p.ring==='off'){stats.off++;continue;}
     p.acc+=dt;
     // The walking face holds for the whole walk (between steps too, or it flashes once per tile).

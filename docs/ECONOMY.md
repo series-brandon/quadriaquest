@@ -160,6 +160,22 @@ User request (2026-10-11): "Let's do enemy drops and jobs next."
   - The model catalogue has the loot pile and both job markers.
 - **Gathering (2026-10-11):** Gelton's park has trees, sticks and rocks, and its countryside has woods, fishing water and copper outcrops (WORLD.md), so every job kind can be done after waking.
 
+## Conversational jobs and the post office (user request, 2026-10-12)
+
+- **Talking** (`townsfolk-talk.js`): talking to townsfolk opens the character dialogue box (portrait, name, choices). Someone with something for you says "What can I do for you?" and offers whichever of these apply: *I have a package for you.*, *I have your 3 Raw Pondfish.* (or *I delivered the package.*), *About that job…*, *Do you have any jobs for me?*, *I'd like to browse your wares.* and *Nothing, thanks.* Anyone else just says their line. The old compact talk popup is gone.
+- **Shopkeepers' jobs** (`jobs.js` `SHOP_WANTS`): every keeper whose shop has wants gives jobs. These are items the shop deals in, each with a reason in their own words:
+  - the fishmonger: pondfish to catch or bring;
+  - the smithy: ore and ingots;
+  - food shops: cooked fish;
+  - the carpenter: logs and sticks;
+  - and so on. The hatter asks for nothing.
+
+  The amount is random within the want's range. Pay is the item's value × count + 2 + a random bit up to the item's value (at least 3), plus some XP in the matching skill. The conversation goes "Well… I need 4 Raw Pondfish. The morning catch was thin." then "I'll pay you 37 gold if you bring me 4 Raw Pondfish, what do you say?" with *I'll do it!* or *I don't have time, sorry.* The same offer stands until taken; one job per giver, then a 45 s cooldown.
+- **Markers:** no "!" over givers. A parcel marker shows only over someone you owe: a package's recipient, or a giver whose job is ready.
+- **Post office:** the shop nearest the square is Pim's *Post office* (use `postOffice`: counter, desk, cupboard, shelves, parcels; parcel sign). Pim keeps it from behind the counter.
+- **Deliveries in two steps:** take the package to its recipient (they thank you and send you back), then return to Pim, who pays (`jobs.deliver` then `handIn`). The job card says *Return to Pim of the Post* once delivered.
+- **Talking across counters:** counters and stalls are `reachOver`. `interactionRoute` lets you stand on the far side of one, so keepers behind counters can be talked to.
+
 ## Plan
 
 1. **Gold and values.** (done 2026-10-11) The `gold` item, `value` and `sellable` on every item, the gold helpers, price tests and notices.

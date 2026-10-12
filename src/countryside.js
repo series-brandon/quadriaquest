@@ -150,14 +150,14 @@ export function createCountryside({city,seed=11}){
    const r=hash(t.x,t.z,seed+80),r2=hash(t.x,t.z,seed+81),add=(kind,dx=0,dz=0,y=t.h,scale=1)=>out.push({kind,x:t.x+dx,y,z:t.z+dz,rotation:r2*6.28,scale});
    if(t.water){if(t.still&&!isSea(t.x,t.z)&&r<.12)add('lilyPad',(r2-.5)*.4,(r-.5)*.4,.87);continue;}
    if(roadDistance(t.x,t.z)<=ROAD_HALF)continue;
-   if(t.surface==='dirt'){if(r<.45)add('reeds',(r2-.5)*.5,(r-.5)*.5);continue;}
-   if(t.surface==='stone'){if(r<.18)add('pebbles',(r2-.5)*.5,(r-.5)*.5);continue;}
+   if(t.surface==='dirt'){if(r<.28)add('reeds',(r2-.5)*.5,(r-.5)*.5);continue;}
+   if(t.surface==='stone'){if(r<.1)add('pebbles',(r2-.5)*.5,(r-.5)*.5);continue;}
    const meadow=valueNoise(t.x,t.z,18,seed+40);
-   if(forest(t.x,t.z)){if(r<.16)add('fern',(r2-.5)*.6,(r-.5)*.6);else if(r<.2)add('mushrooms',(r2-.5)*.6,(r-.5)*.6);else if(r<.26)add('grass');continue;}
-   if(meadow>.5){const palette=FLOWERS[Math.floor(valueNoise(t.x,t.z,30,seed+41)*FLOWERS.length*.999)],other=FLOWERS[(FLOWERS.indexOf(palette)+2)%FLOWERS.length];
-    // One or two clumps per meadow tile, mostly the patch's colour.
-    add(r<.75?palette:other,(r2-.5)*.4,(r-.5)*.4,t.h,1.1);if(r2<.55)add(r<.6?palette:other,(r-.5)*.5,(r2-.5)*.5,t.h,.9);else if(r2<.75)add('grass',(.5-r2)*.5,(.5-r)*.4);continue;}
-   if(r<.16)add(FLOWERS[Math.floor(r2*FLOWERS.length)],(r2-.5)*.5,(r-.5)*.5);else if(r<.3)add('grass',(r2-.5)*.6,(r-.5)*.6);else if(r<.32)add('shrub',(r2-.5)*.4,(r-.5)*.4);
+   if(forest(t.x,t.z)){if(r<.09)add('fern',(r2-.5)*.6,(r-.5)*.6);else if(r<.115)add('mushrooms',(r2-.5)*.6,(r-.5)*.6);else if(r<.15)add('grass');continue;}
+   if(meadow>.6){const palette=FLOWERS[Math.floor(valueNoise(t.x,t.z,30,seed+41)*FLOWERS.length*.999)],other=FLOWERS[(FLOWERS.indexOf(palette)+2)%FLOWERS.length];
+    // About two clumps in three meadow tiles, mostly the patch's colour, with a little grass between.
+    if(r<.62)add(r<.5?palette:other,(r2-.5)*.4,(r-.5)*.4,t.h,1.1);if(r2<.15)add(palette,(r-.5)*.5,(r2-.5)*.5,t.h,.9);else if(r2>.88)add('grass',(.5-r2)*.5,(.5-r)*.4);continue;}
+   if(r<.07)add(FLOWERS[Math.floor(r2*FLOWERS.length)],(r2-.5)*.5,(r-.5)*.5);else if(r<.15)add('grass',(r2-.5)*.6,(r-.5)*.6);else if(r<.165)add('shrub',(r2-.5)*.4,(r-.5)*.4);
   }
   return out;
  }

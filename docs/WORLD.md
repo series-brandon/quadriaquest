@@ -89,6 +89,20 @@ The user asked for walls like the castle keep's: very tall, with large towers at
 
   It's drawn **instanced**: one mesh per kind for all loaded chunks (about 13 draws), and a chunk writes only its instances' matrices into free slots. The first merged-per-chunk version uploaded up to 435k vertices per chunk; the templates are now low-poly (cone stems, octahedron heads).
 - **Model catalogue:** every tree species and ground-cover kind.
+- **Density (user, 2026-10-12: "a bit busy"):** thinned.
+  - Countryside meadows: patches where the meadow noise is above 0.6, about two clumps per three tiles there.
+  - Elsewhere in the countryside: stray wildflowers on 7% of tiles and grass tufts on 8%.
+  - Woods, shores and stone: roughly halved.
+  - City greens: a flower clump on about 1 tile in 5 and another piece on 1 in 10. That's 1,825 pieces in Gelton, down from 4,692.
+- **City mini biomes** (`biomes.js`, `city-greens.js`; user request, 2026-10-12): five themes that belong together:
+  - *blossom garden*: cherries, pink and white flowers;
+  - *willow green*: willows, purple and blue flowers, reeds and ferns;
+  - *autumn grove*: maples, red and yellow flowers, mushrooms;
+  - *birch copse*: birches, white and yellow flowers, ferns;
+  - *meadow*: oaks, mixed flowers.
+
+  Each separate patch of grass in a city is one biome. The big joined-up grass is split into organic cells about 14 tiles across, each its own theme: 80 mini biomes in Gelton (map `greens: {seed}`). The trees are shared choppable resources in their chunk. They stand only where every neighbour is grass and no other tree is within 2 tiles, and never by a doorstep or a townsfolk home, so no route closes (tested). The ground cover uses the same instanced pool as the countryside, and streams with the city's chunks (`chunkedCover`, driven by `city.onStream`). Each chunk's flowers are in the pool only while that chunk is shown. Before this fix they were all added at once, and drew in the void beyond the shown chunks (user report, 2026-10-12).
+- **Playground:** *City biome* jumps to the biggest patch of each theme.
 
 ## In the city
 

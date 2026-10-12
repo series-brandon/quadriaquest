@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {reactiveRecord} from './reactive.js';
 import {createWallet} from './economy.js';
-import {BOARD_LIMIT,BOARD_POOL,BOARD_REFILL,BOARD_SIZE,GIVERS,PACKAGE,createJobs} from './jobs.js';
+import {BOARD_LIMIT,BOARD_POOL,BOARD_REFILL,BOARD_SIZE,GIVER_COOLDOWN,POST,SHOP_WANTS,PACKAGE,createJobs} from './jobs.js';
 import {rollDrops,dropOdds,seededRandom} from './drops.js';
 import {ENEMIES} from './combat-rules.js';
 import {ITEMS} from './items.js';
@@ -15,7 +15,7 @@ const {createLootPiles,LOOT_LIFETIME}=await import('./loot-piles.js');
 function setup(items={}){
  let time=0;const inventory=reactiveRecord({gold:0,...items}),wallet=createWallet({inventory}),xp=[];
  const addresses=[{id:'fenwick',name:'Fenwick',where:'the Weaponsmith'},{id:'pearl',name:'Pearl',where:'a house on Main Street'}];
- const jobs=createJobs({inventory,wallet,grantXp:(s,n)=>{xp.push([s,n]);return {skillName:s,xp:n};},addresses:()=>addresses,random:seededRandom(7),now:()=>time});
+ const jobs=createJobs({inventory,wallet,grantXp:(s,n)=>{xp.push([s,n]);return {skillName:s,xp:n};},addresses:()=>addresses,value:id=>ITEMS[id].value,random:seededRandom(7),now:()=>time});
  return {inventory,wallet,jobs,xp,advance:s=>{time+=s;}};
 }
 
@@ -45,32 +45,30 @@ test('the board offers four jobs, one always needing no tools; taking is limited
  s.advance(BOARD_REFILL);s.jobs.update();assert.equal(s.jobs.offers.length,BOARD_SIZE);
  assert.ok(BOARD_POOL.every(p=>ITEMS[p.item]));
 });
-test('bring and craft take items on hand-in; gather counts only after accepting',()=>{
- const s=setup({sticks:4,rawFish:9});
- // A gather job: pondfish caught before accepting don't count.
- const fishOffer=s.jobs.offerFrom({id:'mira',giver:'fishmonger',name:'Mira'});
- const fish=s.jobs.accept({id:'mira',giver:'fishmonger',name:'Mira'},fishOffer).job;
- assert.equal(s.jobs.handIn(fish.key).reason,'Gather 5 more first.');
- s.jobs.gathered({rawFish:3});s.jobs.gathered({logs:2});s.jobs.gathered({rawFish:4});
- assert.deepEqual(s.jobs.active.find(j=>j.key===fish.key).progress,{have:5,need:5});
- const done=s.jobs.handIn(fish.key);assert.ok(done.ok);assert.equal(s.inventory.rawFish,9,'gathered fish are kept');
- assert.equal(s.wallet.gold,GIVERS.fishmonger.gold);assert.deepEqual(s.xp,[['Fishing',30]]);
- assert.equal(s.jobs.offerFrom({id:'mira',giver:'fishmonger',name:'Mira'}),null,'cooling down');
- s.advance(GIVERS.fishmonger.cooldown);assert.ok(s.jobs.offerFrom({id:'mira',giver:'fishmonger',name:'Mira'}));
- // Bring: short, then enough.
- const smith={id:'hob',giver:'smith',name:'Hob'},ore=s.jobs.accept(smith).job;
- assert.equal(s.jobs.handIn(ore.key).reason,'You need 3 more.');
- s.inventory.copperOre=4;assert.ok(s.jobs.handIn(ore.key).ok);assert.equal(s.inventory.copperOre,1,'taken on hand-in');
+test('shopkeepers ask for their shop’s goods: a random amount, paid by value plus a little, the same offer until taken',()=>{
+ const s=setup({rawFish:9}),mira={id:'mira',name:'Mira'};
+ const offer=s.jobs.offerFrom(mira,'fishmonger');
+ assert.ok(SHOP_WANTS.fishmonger.some(w=>w.item===offer.item&&w.kind===offer.kind&&offer.count>=w.min&&offer.count<=w.max),'one of the fishmonger’s wants');
+ const base=ITEMS[offer.item].value*offer.count;assert.ok(offer.gold>base&&offer.gold<=base+2+Math.max(3,ITEMS[offer.item].value),`pay ${offer.gold} over ${base}`);
+ assert.ok(offer.need,'with a reason');assert.deepEqual(s.jobs.offerFrom(mira,'fishmonger'),offer,'asking again: the same offer');
+ assert.equal(s.jobs.offerFrom({id:'hat',name:'Hatter'},'tailor'),null,'a shop with no wants has no jobs');
+ const job=s.jobs.accept(mira,offer).job;assert.equal(s.jobs.offerFrom(mira,'fishmonger'),null,'one job per giver');
+ if(job.kind==='gather'){assert.equal(s.jobs.handIn(job.key).ok,false);s.jobs.gathered({rawFish:job.count});}
+ else s.inventory[job.item]=Math.max(s.inventory[job.item]||0,job.count);
+ const before=s.inventory[job.item],done=s.jobs.handIn(job.key);assert.ok(done.ok);assert.equal(s.wallet.gold,offer.gold);
+ assert.equal(s.inventory[job.item],job.kind==='gather'?before:before-job.count,'brought items are taken; gathered ones kept');
+ assert.equal(s.jobs.offerFrom(mira,'fishmonger'),null,'cooling down');s.advance(GIVER_COOLDOWN);assert.ok(s.jobs.offerFrom(mira,'fishmonger'));
 });
-test('deliveries hand you a package for someone else, handed in to them; abandoning returns it',()=>{
- const s=setup(),post={id:'pim',giver:'post',name:'Pim'};
- const offer=s.jobs.offerFrom(post);assert.ok(['fenwick','pearl'].includes(offer.recipient.id));
- const job=s.jobs.accept(post,offer).job;
+test('deliveries: take the package to its recipient, then go back to the giver to be paid; abandoning returns it',()=>{
+ const s=setup(),pim={id:'pim',giver:'post',name:'Pim'};
+ const offer=s.jobs.offerFrom(pim);assert.ok(['fenwick','pearl'].includes(offer.recipient.id));
+ const job=s.jobs.accept(pim,offer).job;
  assert.equal(s.inventory[PACKAGE],1);assert.equal(job.handIn,offer.recipient.id);
- assert.equal(s.jobs.dueAt(offer.recipient.id).length,1);assert.equal(s.jobs.dueAt('pim').length,0);
- assert.equal(s.jobs.offerFrom(post),null,'one job per giver');
- assert.ok(s.jobs.handIn(job.key).ok);assert.equal(s.inventory[PACKAGE],0);assert.ok(s.wallet.gold>=12);
- s.advance(GIVERS.post.cooldown);const again=s.jobs.accept(post).job;
+ assert.equal(s.jobs.handIn(job.key).reason,'Deliver the package first.');
+ assert.ok(s.jobs.deliver(job.key).ok);assert.equal(s.inventory[PACKAGE],0);assert.equal(s.wallet.gold,0,'not paid yet');
+ const live=s.jobs.active.find(j=>j.key===job.key);assert.ok(live.ready&&live.handIn==='pim','back to Pim');
+ assert.ok(s.jobs.handIn(job.key).ok);assert.equal(s.wallet.gold,offer.gold);
+ s.advance(POST.cooldown);const again=s.jobs.accept(pim).job;
  assert.ok(s.jobs.abandon(again.key));assert.equal(s.inventory[PACKAGE],0);assert.equal(s.jobs.active.length,0);
  assert.equal(ITEMS[PACKAGE].sellable,false);
 });

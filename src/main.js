@@ -88,7 +88,8 @@ import {ITEMS} from './items.js';
 import {createWaterEffects,createStreamedWater,waterSettings} from './water-effects.js';
 import {makeBridge} from './bridge-model.js';
 import {createWallSentries} from './wall-sentries.js';
-import {createGroundCoverPool} from './ground-cover.js';
+import {createGroundCoverPool,chunkedCover} from './ground-cover.js';
+import {cityGreens} from './city-greens.js';
 import './ui-theme.css';
 import './player-interface.css';
 import './ui/ui.css';
@@ -115,7 +116,7 @@ import {ENEMIES} from './combat-rules.js';
 import {createLootPiles} from './loot-piles.js';
 import {createJobs} from './jobs.js';
 import {jobBoard} from './ui/dialogs/job-board.js';
-import {talkDialog} from './ui/dialogs/talk-dialog.js';
+import {createTownsfolkTalk} from './townsfolk-talk.js';
 import {SHOPS} from './shops.js';
 import {idlePose,moveMotion} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
@@ -409,28 +410,24 @@ function dropLoot(enemy){const items=rollDrops(enemy.rules?.drops,dropRandom);if
 // Deliveries go to people who live or work in the giver's city.
 const jobs=createJobs({inventory,wallet,
  grantXp(skill,amount){const s=playerSkills()[skill];if(!s)return null;const r=grantSkillXp(s,amount);showSkillReward(r,player.position);return r;},
- addresses:giver=>(giver.city?.crowd?.folk||[]).filter(p=>p.house&&p.id).map(p=>({id:p.id,name:p.name,where:p.house.building.shop?SHOPS[p.house.building.shop]?.name:p.house.building.plan.desc.name}))});
+ value:id=>ITEMS[id]?.value||1,
+ addresses:giver=>(giver.city?.crowd?.folk||[]).filter(p=>p.house&&p.id&&!p.giver).map(p=>({id:p.id,name:p.name,where:p.house.building.shop?`the ${SHOPS[p.house.building.shop]?.name}`:p.house.building.plan.desc.name}))});
 const jobReceipt=result=>{itemFeed.show(result.changes,{trade:'handedIn'});gameAudio.play('complete');toast(`Job done: ${result.job.title}.`);};
 function openJobBoard(){modals.open({id:'job-board',title:'Job board',size:'sheet',flush:true,build:()=>jobBoard({jobs,onHandIn:jobReceipt})});}
-// Talking to townsfolk: their line, and whatever they have for you: a delivery or job to hand in, a job
-// to offer, or their shop. With only a shop, it opens straight away; with nothing, they just say it.
-function talkTo(person,line){
- const options=[],due=jobs.dueAt(person.id),mine=jobs.giverJob(person.id),offer=jobs.offerFrom(person);
- for(const job of due){const j=jobs.active.find(a=>a.key===job.key);if(j.ready)options.push({label:job.kind==='deliver'?'Hand over the package':`Hand in: ${j.title}`,run:()=>{const r=jobs.handIn(job.key);if(r.ok)jobReceipt(r);else toast(r.reason);}});}
- if(offer)options.push({label:`Accept: ${offer.title}`,run:()=>{const r=jobs.accept(person,offer);if(r.ok){if(r.job.kind==='deliver')showItemChanges({package:1});toast(`New job: ${offer.title}.`);}}});
- if(person.shop)options.push({label:'Let’s trade',run:()=>shopMenu.open(person.shop,{greeting:`${person.name}: “${shops.shops[person.shop].greeting}”`})});
- const pending=mine&&!due.some(j=>j.key===mine.key)?jobs.active.find(a=>a.key===mine.key):null,waiting=due.map(j=>jobs.active.find(a=>a.key===j.key)).find(j=>!j.ready);
- const said=offer?offer.note:waiting?`Still waiting on that: ${waiting.progress.have} / ${waiting.progress.need}.`:pending?`How’s it going? ${pending.title}: ${pending.progress.have} / ${pending.progress.need}.`:line;
- if(!options.length){toast(`${person.name}: “${said}”`);return;}
- if(options.length===1&&person.shop&&!offer&&!due.length){options[0].run();return;}
- modals.open({id:'talk',title:person.name,size:'compact',build:({close})=>talkDialog({line:`“${said}”`,options,close})});
-}
-// Markers over givers with a job for you and people you owe a hand-in (job-marker.js), refreshed when
-// jobs change and once a second (cooldowns end on their own).
+// Talking to townsfolk (townsfolk-talk.js): a conversation in the dialogue box, with whatever they have
+// for you: a package to hand over, a job to ask for or hand in, their wares to browse.
+const townsfolkTalk=createTownsfolkTalk({dialogue:characterDialogue,jobs,
+ shopFor:p=>p.house?.building.shop||p.shop||null,
+ openShop:p=>shopMenu.open(p.shop,{greeting:`${p.name}: “${shops.shops[p.shop].greeting}”`}),
+ received(job,result,stage){if(stage==='accepted'&&job.kind==='deliver')showItemChanges({package:1});else if(stage==='delivered')itemFeed.show(result.changes,{trade:'handedIn'});else if(stage==='paid')jobReceipt(result);}});
+const talkTo=(person,line)=>townsfolkTalk.talk(person,line);
+// A parcel marker over anyone you owe something (job-marker.js): the recipient of a package you carry,
+// and a giver whose job you can hand in. Refreshed once a second.
 let markerClock=0;
 function updateJobMarkers(dt,force=false){markerClock-=dt;if(markerClock>0&&!force)return;markerClock=1;
  const crowd=crowdsByArea.get(areas.id);if(!crowd)return;
- for(const p of crowd.folk){if(!p.id)continue;const due=jobs.dueAt(p.id).length>0;p.setMarker(due?'due':p.giver&&jobs.offerFrom(p)?'offer':null);}}
+ const owed=new Set(jobs.active.filter(j=>j.kind==='deliver'&&!j.delivered?inventory.package>0:j.ready).map(j=>j.handIn));
+ for(const p of crowd.folk){if(!p.id)continue;p.setMarker(owed.has(p.id)?'due':null);}}
 // Townsfolk for a city map (townsfolk.js): their crowd runs in the area's update. Keepers and stall
 // vendors open their shop.
 const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},talk:talkTo,trade(person,shop){shopMenu.open(shop,{greeting:`${person.name}: “${shops.shops[shop].greeting}”`});},
@@ -453,12 +450,25 @@ function geltonReady(){
  return geltonLoading??=(async()=>{
   const [{buildCity},{default:data},{createCountryside},{createChunkStreamer},{surfaceColor}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json'),import('./countryside.js'),import('./chunk-streamer.js'),import('./city-terrain.js')]);
   const cityData=structuredClone(data),source=createCountryside({city:cityData});
-  const built=buildCity(cityData,{scene,pickables,streamRadius:3,outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
+  // The city streams by the countryside's rule (radius 2, one ring of hysteresis), so they always match.
+  const built=buildCity(cityData,{scene,pickables,streamRadius:2,streamKeep:1,outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
   built.areaId='gelton';attachCrowd(built);
   // Guards pacing the wall-top walkways (wall-sentries.js), hidden where the wall is cut down.
-  built.sentries=built.walls?createWallSentries({walkways:built.walls.walkways,parent:built.group,hiddenAt:built.walls.cutAt}):null;
+  built.sentries=built.walls?createWallSentries({walkways:built.walls.walkways,parent:built.group,hiddenAt:built.walls.cutAt,shownAt:built.isShown}):null;
+  // Anything placed in the city goes in its chunk, so it shows and hides with it (city streaming).
+  const chunkRootOf=(x,z)=>built.chunks.get(`${Math.floor(x/16)},${Math.floor(z/16)}`)?.root||built.group;
+  // Ground cover for the city's greens and the countryside, instanced (ground-cover.js).
+  const coverPool=createGroundCoverPool({parent:built.group});
+  // The city's green spaces as mini biomes (city-greens.js): themed trees (shared choppable resources, in
+  // their chunk) and ground cover.
+  if(built.data.greens){const greens=cityGreens(built,{seed:built.data.greens.seed||1});built.greens=greens;
+   for(const g of greens.trees){const t=built.tiles.get(key(g.x,g.z));if(!t||t.blocked)continue;resourceActions.add(createResourceEntity({kind:'tree',species:g.species,tile:t,parent:chunkRootOf(g.x,g.z),pickables,id:`gelton:green:${g.x},${g.z}`}));}
+   // The cover streams with the city's chunks: each chunk's share joins the instanced pool while the
+   // chunk is shown and leaves when it is hidden (the pool lives outside the chunk groups).
+   const cover=chunkedCover(coverPool,greens.cover);
+   built.onStream=chunks=>cover.sync(id=>chunks.get(id)?.root.visible);built.onStream(built.chunks);}
   // Gather spots placed by the map (shared resource entities).
-  for(const r of built.data.resources||[]){const t=built.tiles.get(key(r.x,r.z));if(t&&!t.blocked&&!t.prop)resourceActions.add(createResourceEntity({kind:r.kind,species:r.species,tile:t,parent:built.group,pickables,id:`gelton:${r.kind}:${r.x},${r.z}`}));}
+  for(const r of built.data.resources||[]){const t=built.tiles.get(key(r.x,r.z));if(t&&!t.blocked&&!t.prop)resourceActions.add(createResourceEntity({kind:r.kind,species:r.species,tile:t,parent:chunkRootOf(r.x,r.z),pickables,id:`gelton:${r.kind}:${r.x},${r.z}`}));}
   // The countryside streams into the area's tiles, and into the live world map while Gelton is active.
   const maps=[built.tiles];
   const topColor=t=>{if(t.water)return WATER_TOP;const hex=surfaceColor(t);if(!surfaceTop.has(hex))surfaceTop.set(hex,new THREE.Color(hex));return surfaceTop.get(hex);};
@@ -481,7 +491,6 @@ function geltonReady(){
   streamWater??=createStreamedWater(renderer);
   // A chunk's dressing: its animated water and its ground cover (flowers, grass, reeds, lily pads…),
   // the cover instanced across all loaded chunks (ground-cover.js).
-  const coverPool=createGroundCoverPool({parent:built.group});
   const dress=(list,{root,tileAt})=>{
    const water=streamWater.build(list.filter(t=>t.water||t.overWater),(x,z)=>{const n=tileAt(x,z);return !!n&&(n.water||!!n.overWater);},root);
    const cover=coverPool.add(source.cover(list));
@@ -859,7 +868,9 @@ if(__PLAYGROUND__){
  let testCounter=null,testBoard=null;
  // Stand-ins for jobs in any map: a giver of each kind, and a recipient deliveries can go to.
  const TEST_RECIPIENT={id:'test-recipient',name:'Test recipient',house:{building:{shop:null,plan:{desc:{name:'the playground'}}}}};
- const testGiver=kind=>({id:`test-${kind}`,name:`Test ${kind} giver`,giver:kind,city:{crowd:{folk:[TEST_RECIPIENT,...(crowdsByArea.get(areas.id)?.folk||[])]}}});
+ // A stand-in giver: the post office, or a keeper of a shop (by kind: smith → smithy and so on).
+ const TEST_SHOPS={smith:'smithy',baker:'bakery',fishmonger:'fishmonger'};
+ const testGiver=kind=>({id:`test-${kind}`,name:`Test ${kind} giver`,giver:kind==='post'?'post':null,house:TEST_SHOPS[kind]?{building:{shop:TEST_SHOPS[kind]}}:null,city:{crowd:{folk:[TEST_RECIPIENT,...(crowdsByArea.get(areas.id)?.folk||[])]}}});
  const currentCityMap=()=>areas.id==='building-test'?buildingTest:areas.id==='gelton'?gelton:cityMaps[areas.id]||null;
  playgroundApi={
   companions,
@@ -927,6 +938,10 @@ if(__PLAYGROUND__){
    for(let r=0;r<8;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const t=world.get(key(x+dx,z+dz));if(t&&!t.blocked&&!t.water&&!characterAt(t)){playgroundApi.teleport(t.x,t.z);return [t.x,t.z];}}
    return null;
   },
+  // City greens (city-greens.js): stand in the biggest mini biome of a kind.
+  async cityBiomeJump(biome){const built=await geltonReady();if(areas.id!=='gelton')await playgroundApi.enterCapital();
+   const region=(built.greens?.regions||[]).filter(r=>r.biome===biome).sort((a,b)=>b.tiles.length-a.tiles.length)[0];if(!region)return null;
+   const free=region.tiles.filter(t=>!t.blocked),mid=free[Math.floor(free.length/2)];return mid&&playgroundApi.teleport(mid.x,mid.z)?[mid.x,mid.z]:null;},
   countrysideSpots:['west-gate','south-gate','west-road','lake','pond','bridge','ruins','hills','woods','south-road'],
   get countrysideStats(){const c=gelton?.countryside;return c?{...c.streamer.stats,radius:c.streamer.radius}:null;},
   countrysideBounds(on){const c=gelton?.countryside;if(!c)return false;c.streamer.showBounds=on;return true;},

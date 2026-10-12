@@ -23,3 +23,11 @@ test('interaction and attack spots prefer tiles where no other character stands'
  assert.equal(attackRoute(map,start,target,1).at,near);
  assert.notEqual(attackRoute(map,start,target,1,t=>t===near).at,near);
 });
+test('you can talk across a counter: standing on its far side counts as next to the keeper',async()=>{
+ const {interactionRoute}=await import('./interaction-route.js');
+ const map=new Map();for(let z=0;z<6;z++)for(let x=0;x<3;x++)map.set(`${x},${z}`,{x,z,h:1,blocked:false});
+ const keeper={x:1,z:1,tile:map.get('1,1')};for(let x=0;x<3;x++){const c=map.get(`${x},2`);c.blocked=true;c.reachOver=true;}
+ const route=interactionRoute(map,map.get('1,5'),keeper);assert.ok(route,'reachable over the counter');assert.equal(route.at,map.get('1,3'));
+ for(let x=0;x<3;x++)delete map.get(`${x},2`).reachOver;
+ assert.equal(interactionRoute(map,map.get('1,5'),keeper),null,'a plain wall of crates is not a counter');
+});

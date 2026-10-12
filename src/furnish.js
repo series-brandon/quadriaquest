@@ -29,6 +29,8 @@ export const USES={
  keep:[{place:'floor',kind:'rug'},{place:'wall',kind:'armchair'},{place:'wall',kind:'knightStatue',count:2},{place:'wall',kind:'banner',count:2},{place:'mount',kinds:['wallTorch','painting','shieldDisplay'],count:4},{place:'any',kind:'candleStand',count:2},{place:'center',kind:'pew',count:2}],
  warehouse:[{place:'any',kinds:['crateStack','sackPile','barrel','kegs','crates','hayBales'],count:8}],
  barracks:[{place:'wall',kind:'bunkBed',count:3},{place:'wall',kind:'chest',count:2},{place:'center',kind:'tableLong',...chairs(2)},{place:'mount',kind:'weaponRack',count:2}],
+ // Pim's post office: a counter, a sorting desk, shelves and parcels everywhere.
+ postOffice:[{place:'keeper',kind:'shopCounter'},{place:'wall',kind:'desk'},{place:'wall',kind:'cupboard'},{place:'mount',kinds:['wallShelf','wallShelf','painting'],count:3},{place:'any',kinds:['sackPile','crateStack','crates'],count:3}],
  crypt:[{place:'wall',kind:'sarcophagus',count:2},{place:'any',kinds:['brokenPillar','rubble'],count:3},{place:'any',kind:'bones',count:3},{place:'mount',kinds:['dungeonTorch','cobweb','shackles'],count:5},{place:'any',kind:'brazier',count:2},{place:'wall',kind:'chest',loot:true}],
 };
 export const USE_NAMES=Object.keys(USES);
@@ -39,7 +41,7 @@ export const upstairsUse=use=>UPSTAIRS[use]||'warehouse';
 // other building you can walk into: a home). 'none' leaves it empty; buildings you can't enter get none.
 export function furnishingUse(desc){if(desc.use==='none'||desc.interior==='none')return null;if(desc.use)return desc.use;return desc.sign?'store':'home';}
 // Shop signs follow the use (building-kit.js sign icons).
-export const USE_ICONS={bakery:'Culinary',smithy:'hammers',store:'star',grocer:'quickEat',fishmonger:'rawFish',armourer:'copperShield',weaponsmith:'swords',apothecary:'quickRestore',tailor:'dice',inn:'campfires',tavern:'quickEat',carpenter:'hammers'};
+export const USE_ICONS={postOffice:'package',bakery:'Culinary',smithy:'hammers',store:'star',grocer:'quickEat',fishmonger:'rawFish',armourer:'copperShield',weaponsmith:'swords',apothecary:'quickRestore',tailor:'dice',inn:'campfires',tavern:'quickEat',carpenter:'hammers'};
 
 const DIRS={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]},ROTATION_FOR_BACK={n:0,e:90,s:180,w:270};
 const k=(x,z)=>`${x},${z}`;

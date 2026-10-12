@@ -237,14 +237,3 @@ test('job board takes posted jobs up to the limit and hands in ready ones', asyn
   assert.equal(handed.length, 1); assert.equal(wallet.gold, job.gold);
   assert.equal(mine().length, BOARD_LIMIT - 1);
 });
-
-test('talk dialog offers choices and closes before running one', async () => {
-  const {talkDialog} = await import('./talk-dialog.js');
-  const host = createModalHost(), ran = [], closed = [];
-  host.open({id: 'talk', title: 'Pim', size: 'compact', onClose: r => closed.push(r),
-    build: ({close}) => talkDialog({line: '“Parcels!”', options: [{label: 'Accept', run: () => ran.push(host.isOpen('talk'))}], close})});
-  const node = document.body.querySelector('dialog.q-modal:last-of-type');
-  assert.match(node.textContent, /Parcels!/);
-  press(button(node, 'Accept'));
-  assert.deepEqual(ran, [false], 'closed first'); assert.deepEqual(closed, ['chosen']);
-});

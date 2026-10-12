@@ -62,3 +62,14 @@ export function createGroundCoverPool({parent,capacity=5000,offset=6}){
 }
 const v=new THREE.Vector3();
 let coverMaterial=null;
+
+// Fixed ground cover (a city's greens) that follows a map's chunk streaming: each chunk's share is in the
+// pool only while that chunk is shown. sync(shown(id)) after the shown chunks change; ids are "cx,cz".
+export function chunkedCover(pool,items,size=16){
+ const shares=new Map();
+ for(const it of items){const id=`${Math.floor(it.x/size)},${Math.floor(it.z/size)}`;if(!shares.has(id))shares.set(id,{items:[],handle:null});shares.get(id).items.push(it);}
+ return {
+  sync(shown){for(const [id,share] of shares){const on=!!shown(id);if(on&&!share.handle)share.handle=pool.add(share.items);else if(!on&&share.handle){share.handle.dispose();share.handle=null;}}},
+  get shownChunks(){return [...shares].filter(([,s])=>s.handle).map(([id])=>id);},
+ };
+}

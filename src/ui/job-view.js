@@ -6,7 +6,7 @@ import {formatGold} from '../economy.js';
 // One job (jobs.js) as a card: what to do, who it's for and where to hand it in, progress, reward, and
 // its actions ({label, run, disabled?, quiet?}). Shared by the Quests page's Jobs and the job board.
 export const jobReward = job => [formatGold(job.gold), job.xp ? `${job.xp[1]} ${job.xp[0]} XP` : null].filter(Boolean).join(' · ');
-export const jobWhere = job => (job.kind === 'deliver' ? `Talk to ${job.recipient.name}${job.recipient.where ? ` (${job.recipient.where})` : ''}`
+export const jobWhere = job => (job.kind === 'deliver' ? (job.delivered ? `Return to ${job.giverName}` : `Talk to ${job.recipient.name}${job.recipient.where ? ` (${job.recipient.where})` : ''}`)
   : job.handIn === 'board' ? 'Hand in at a noticeboard' : `Hand in to ${job.giverName}`);
 
 export function jobCard(item, actions = () => []) {

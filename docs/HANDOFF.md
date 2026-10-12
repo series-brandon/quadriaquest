@@ -20,6 +20,23 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### City streaming: walls over void, half-drawn buildings, floating park items — 2026-10-12 (user report)
+
+- **City and countryside now stream by one rule:** radius 2 with one ring of hysteresis (`buildCity({streamRadius, streamKeep})`, the chunk streamer's rule). The city used radius 3 while the land used 2, so city wall pieces stood over unloaded land.
+- **Buildings live in their home chunk:** a building's walls (the `edges` facade remembers each edge's chunk; building edges go to the home chunk) and floor tiles are in its home chunk, like its roof, decor and furniture. A building across a chunk line now shows or hides whole instead of being cut in half. Linking all of a straddling building's chunks was tried first: 44 buildings straddle lines, and the links pulled in 57 of 64 chunks.
+- **Things outside chunk groups follow the shown chunks:** the park's map resources now go in their chunk (`chunkRootOf`); townsfolk and wall sentries hide where `city.isShown(x, z)` is false (tiles outside the city count as shown, for the gate guards). Verified with a scene sweep: no trees, rocks, sticks, townsfolk or sentries drawn in hidden chunks.
+- Tests: 581 pass. Perf: capital square about 6.2 ms, countryside walk about 4.6 ms (PASS; fewer visible meshes).
+
+### City ground cover in hidden chunks — 2026-10-12 (user report)
+
+- The city greens' instanced cover was added all at once, so flowers drew where the city's chunks were hidden. Now `chunkedCover` (ground-cover.js) adds each chunk's share only while it's shown; `buildCity`'s `stream` calls `city.onStream(chunks)`. Verified in the browser: 0 instances in hidden chunks (1,656 of 4,692 drawn with 20 of 64 chunks shown). Other objects outside chunk groups (sentries, townsfolk) already hide by distance. Tests: 581 pass.
+
+### City mini biomes, conversational jobs, the post office — 2026-10-12 (user request)
+
+- `biomes.js`, `city-greens.js` (themed patches; trees and instanced cover placed in `geltonReady`); `townsfolk-talk.js` (dialogue-box conversations); `jobs.js` (`SHOP_WANTS`, `POST`, pending offers, two-step deliveries with `deliver()`); the post office in `capital-layout.js` and `furnish.js`; `reachOver` counters in `interaction-route.js` and `props.js`. Removed `ui/dialogs/talk-dialog.js`.
+- Verified in the browser: blossom, meadow and willow patches; Pim's post office; Pim's conversation ("What can I do for you?" → job → "I'll pay you 13 gold…" → I'll do it! → package and job). Tests: 580 pass (new `townsfolk-talk.test.js`, `city-greens.test.js`; jobs and route tests updated).
+- Perf: capital square 5.9 ms, countryside walk 4.3 ms; both rebaselined (objects up from about 210 city trees).
+
 ### Green-space variety — 2026-10-11 (user request)
 
 - `tree-models.js` (six species; `makeTree(species)` in world-models, `createResourceEntity({species})`, streamed trees carry `species`), `ground-cover.js` (templates and the instanced `createGroundCoverPool`), countryside ponds, species rules and `cover()`. Gelton's park trees have species.

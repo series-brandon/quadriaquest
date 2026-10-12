@@ -43,7 +43,7 @@ export const PROPS={
   parts:()=>[W(WOOD,B(.7,.42,.7),[0,.21,0]),W(DARK,B(.76,.06,.76),[0,.43,0]),W(LEAF,new THREE.IcosahedronGeometry(.36,1),[0,.72,0],[0,0,0],[1,.8,1]),W('#e46f8e',B(.1,.08,.1),[.16,.92,.08]),W('#f2d35b',B(.1,.08,.1),[-.14,.88,-.1])]},
  treeGrate:{name:'Tree in a grate',footprint:[1,1],policy:'solid',spots:[],tree:true,parts:()=>[W(IRON,B(.9,.04,.9),[0,.02,0]),W('#7d6a52',B(.6,.05,.6),[0,.03,0])]},
  hedge:{name:'Hedge',footprint:[1,1],policy:'solid',sight:false,spots:[],parts:()=>[W('#5f8a48',B(.96,.9,.7),[0,.45,0]),W('#6f9a55',B(.9,.14,.62),[0,.95,0])]},
- stall:{name:'Market stall',footprint:[2,1],policy:'solid',interaction:{verb:'trade',label:'Browse stall'},shop:'market',
+ stall:{name:'Market stall',footprint:[2,1],policy:'solid',reachOver:true,interaction:{verb:'trade',label:'Browse stall'},shop:'market',
   spots:[{kind:'browse',at:[0,1],facing:'n'},{kind:'browse',at:[1,1],facing:'n'},{kind:'vend',at:[0,-1],facing:'s'}],
   parts:()=>[W(WOOD,B(1.8,.49,.6),[0,.245,.1]),W(DARK,B(1.86,.06,.66),[0,.52,.1]),...[-.86,.86].flatMap(x=>[W(WOOD,B(.07,1.7,.07),[x,.85,-.18]),W(WOOD,B(.07,1.45,.07),[x,.72,.38])]),
    ...[0,1,2,3,4,5].map(i=>W(i%2?CANVAS:CLOTH,B(.32,.04,.86),[-.8+i*.32,1.62,.12],[.28,0,0])),W('#d0913a',B(.3,.16,.22),[-.5,.63,.12]),W('#7aa04f',new THREE.IcosahedronGeometry(.1,0),[-.1,.63,.16]),W('#c8463d',new THREE.IcosahedronGeometry(.09,0),[.06,.62,.1]),W('#e8c46a',B(.34,.12,.24),[.5,.61,.1])]},
@@ -120,7 +120,7 @@ export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id
  const [ox,oz]=origin,[w,d]=propFootprint(kind,rotation),tiles=[];
  for(let z=0;z<d;z++)for(let x=0;x<w;x++){const t=tileAt(ox+x,oz+z);if(!t)throw Error(`${def.name}: no tile at ${ox+x},${oz+z}`);tiles.push(t);}
  const base=Math.max(...tiles.map(t=>t.h)),blocked=blockedOffsets(kind,rotation).map(([x,z])=>tileAt(ox+x,oz+z)).filter(Boolean);
- for(const t of blocked){t.blocked=true;if(def.sight===false)t.blocksSight=true;}
+ for(const t of blocked){t.blocked=true;if(def.sight===false)t.blocksSight=true;if(def.reachOver)t.reachOver=true;}
  for(const t of tiles)t.prop=id??kind;
  const group=propModel(kind);group.rotation.y=-((Math.round(rotation/90)%4)+4)%4*Math.PI/2;
  group.position.set(ox+(w-1)/2-6,base,oz+(d-1)/2-6);parent.add(group);
@@ -133,7 +133,7 @@ export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id
   station:def.station||null,loot,shop:shop??def.shop??null,open:false,amount:0,
   available:()=>true,interact(){if(def.interaction)services.act(def.interaction.verb,prop);},
   toggle(){prop.open=!prop.open;animated.add(prop);return prop.open;},
-  dispose(){group.removeFromParent();animated.delete(prop);for(const t of blocked){t.blocked=false;if(def.sight===false)t.blocksSight=false;}for(const t of tiles)delete t.prop;for(const m of meshes){const i=pickables.indexOf(m);if(i>=0)pickables.splice(i,1);}}};
+  dispose(){group.removeFromParent();animated.delete(prop);for(const t of blocked){t.blocked=false;if(def.sight===false)t.blocksSight=false;if(def.reachOver)delete t.reachOver;}for(const t of tiles)delete t.prop;for(const m of meshes){const i=pickables.indexOf(m);if(i>=0)pickables.splice(i,1);}}};
  for(const s of spots)s.prop=prop;
  // Interactive props are picked like other actors (the game walks up and calls interact()).
  const meshes=[];if(def.interaction)group.traverse(m=>{if(m.isMesh){m.userData.actor=prop;m.userData.tile=prop.tile;pickables.push(m);meshes.push(m);}});

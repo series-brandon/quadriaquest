@@ -27,9 +27,7 @@ const BLOCKS=[[4,29,33,45],[33,61,33,45],[67,95,33,45],[99,123,33,45],[4,29,48,6
 export const CAPITAL_GATES=[{side:'west',from:70,to:72},{side:'east',from:70,to:72},{side:'south',from:63,to:65}];
 // Shops by trade (Phase 10 furnishing); signs follow the trade.
 const TRADES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecary','store','tavern','bakery','tailor','carpenter'];
-// Shopkeepers who also ask for jobs (jobs.js GIVERS), by their shop's trade.
 const WALL_THICKNESS=3;
-const JOB_GIVERS={smithy:'smith',fishmonger:'fishmonger',bakery:'baker'};
 const styleAt=(x,z)=>z>100?'stone':x<56?'timber':'brick';
 
 export function capitalData(){
@@ -88,6 +86,9 @@ export function capitalData(){
  data.resources=[{kind:'tree',species:'cherry',x:66,z:86},{kind:'tree',species:'willow',x:71,z:94},{kind:'sticks',x:67,z:87},{kind:'sticks',x:70,z:81},{kind:'stones',x:71,z:91},{kind:'stones',x:66,z:96}];
  data.interiors.sewers={kind:'dungeon',name:'The old sewers',size:[16,12],exit:[7,10],furniture:[{kind:'barrel',at:[0,0]},{kind:'crates',at:[15,0]},{kind:'statue',at:[4,4]},{kind:'statue',at:[11,4]},{kind:'sacks',at:[0,11]}]};
  data.props.push({kind:'well',x:46,z:110},{kind:'signpost',x:61,z:73},{kind:'lampPost',x:61,z:96},{kind:'lampPost',x:67,z:110});
+ // The post office: the shop nearest the town square, run by Pim of the Post from behind its counter.
+ const post=data.buildings.map((b,i)=>({b,i})).filter(({b})=>b.desc.sign&&b.desc.interior==='inPlace').sort((p,q)=>Math.hypot(p.b.x-64,p.b.z-72)-Math.hypot(q.b.x-64,q.b.z-72))[0];
+ Object.assign(post.b.desc,{name:'Post office',use:'postOffice',sign:{...post.b.desc.sign,icon:USE_ICONS.postOffice}});
  // Townsfolk: vendors at the market, guards on the avenue and the square, and townsfolk at large.
  const guard={rightHand:'copperDagger',leftHand:'copperShield',head:'ironSkullcap'},colors=['#a4ce77','#e0a96d','#9db8e3','#d98fa6','#c7b46a','#8fc9b8','#b49ad6','#e3c07c'];
  data.townsfolk.push(
@@ -95,7 +96,7 @@ export function capitalData(){
   {id:'guard-square',name:'Guard Tilly',look:{color:'#c85745',loadout:guard},home:[58,64],routine:[{do:'patrol'}],patrol:[[58,64],[70,64],[70,78],[58,78]],pace:1.3,line:'Welcome to Gelton.'},
   {id:'guard-gate',name:'Guard Barnaby',look:{color:'#c85745',loadout:guard},home:[61,26],routine:[{do:'patrol'}],patrol:[[61,26],[67,26]],pace:1.2,line:'The keep is through the gate.'},
   // Jobs (jobs.js): the post office clerk always has a delivery to someone in town.
-  {id:'post-clerk',name:'Pim of the Post',giver:'post',look:{color:'#7fa6d8',loadout:{head:'fishersHat'}},home:[60,77],routine:[{do:'gaze',weight:2},{do:'read',weight:1},{do:'chat',weight:1}],pace:.8,line:'Letters and parcels, all over town.'},
+  {id:'post-clerk',name:'Pim of the Post',giver:'post',look:{color:'#7fa6d8',loadout:{head:'fishersHat'}},house:post.i,routine:[{do:'keep',weight:8},{do:'tend',weight:1}],pace:.8,line:'Letters and parcels, all over town.'},
   {id:'crier',name:'Old Hollis',look:{color:'#e3c07c',loadout:{head:'minersCap'}},home:[62,76],routine:[{do:'read',weight:2},{do:'gaze',weight:1},{do:'chat',weight:1}],line:'Jobs go up on the board here in the square.'});
  for(let i=0;i<3;i++)data.townsfolk.push({id:`vendor-${i}`,name:`Vendor ${i+1}`,look:{color:colors[i%8]},home:[37+(i%3)*7,50+Math.floor(i/3)*6],routine:[{do:'vend',weight:6},{do:'stroll',weight:1}]});
  const homes=[[60,69],[68,72],[59,73],[69,77],[64,66],[34,59],[50,66],[40,64],[64,90],[64,105],[20,71],[90,71],[110,71],[31,60],[97,60],[64,45],[64,55],[20,47],[100,47],[31,85],[97,85],[45,99],[85,99],[66,84],[69,95]];
@@ -106,13 +107,15 @@ export function capitalData(){
  // minding their own building (through its door).
  const first=['Alder','Bryn','Coral','Dunstan','Elsie','Fenwick','Greer','Hob','Ivo','Juniper','Kell','Linnet','Mabry','Nettle','Orrin','Pearl','Quince','Rook','Sorrel','Thistle','Ulric','Vesper','Wick','Yarrow'];
  let r=0;
- data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length)return;const shop=!!b.desc.sign;if(shop?i%2!==0:i%10!==0)return;
-  data.townsfolk.push({id:`resident-${i}`,name:`${first[r%first.length]}${r>=first.length?' '+(Math.floor(r/first.length)+1):''}`,look:{color:colors[r%8],loadout:r%5===0?{head:'minersCap'}:null},house:i,...(shop&&JOB_GIVERS[b.desc.use]?{giver:JOB_GIVERS[b.desc.use]}:{}),
+ data.buildings.forEach((b,i)=>{if(b.desc.interior!=='inPlace'||!b.desc.doors?.length||b.desc.use==='postOffice')return;const shop=!!b.desc.sign;if(shop?i%2!==0:i%10!==0)return;
+  data.townsfolk.push({id:`resident-${i}`,name:`${first[r%first.length]}${r>=first.length?' '+(Math.floor(r/first.length)+1):''}`,look:{color:colors[r%8],loadout:r%5===0?{head:'minersCap'}:null},house:i,
    routine:shop?[{do:'keep',weight:6},{do:'tend',weight:1},{do:'chat',weight:1}]:[{do:'home',weight:3},{do:'sleep',weight:1},{do:'cook',weight:1},{do:'sit',weight:2},{do:'tend',weight:2},{do:'stroll',weight:2},{do:'chat',weight:1}],line:shop?'Have a look at what I’ve got.':'Mind the step on your way in.'});r++;});
  // The city wall (city-walls.js; docs/WORLD.md): a castle curtain wall three tiles thick on the outer
  // ring, round towers at the corners and a gatehouse with double doors at each gateway, where the main
  // street leaves west and east and the avenue south into the countryside.
  data.walls={thickness:WALL_THICKNESS};
+ // Green spaces as mini biomes (city-greens.js): each patch of grass gets a theme.
+ data.greens={seed:7};
  // Two guards posted at every entrance, outside against the wall either side of the gateway, looking out
  // along the road (they stand on the countryside's land; buildCity's `outside`).
  const N=C.size-1;

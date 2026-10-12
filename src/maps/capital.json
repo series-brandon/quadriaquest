@@ -2865,7 +2865,7 @@
    "x": 72,
    "z": 73,
    "desc": {
-    "name": "shop 14",
+    "name": "Post office",
     "footprint": [
      5,
      6
@@ -2881,12 +2881,12 @@
     ],
     "chimney": false,
     "sign": {
-     "icon": "swords",
+     "icon": "package",
      "edge": "north"
     },
     "awning": "striped",
     "interior": "inPlace",
-    "use": "weaponsmith",
+    "use": "postOffice",
     "seed": 1034
    }
   },
@@ -6622,21 +6622,14 @@
      "head": "fishersHat"
     }
    },
-   "home": [
-    60,
-    77
-   ],
+   "house": 84,
    "routine": [
     {
-     "do": "gaze",
-     "weight": 2
+     "do": "keep",
+     "weight": 8
     },
     {
-     "do": "read",
-     "weight": 1
-    },
-    {
-     "do": "chat",
+     "do": "tend",
      "weight": 1
     }
    ],
@@ -7345,7 +7338,6 @@
     "loadout": null
    },
    "house": 66,
-   "giver": "baker",
    "routine": [
     {
      "do": "keep",
@@ -7436,7 +7428,6 @@
     "loadout": null
    },
    "house": 76,
-   "giver": "smith",
    "routine": [
     {
      "do": "keep",
@@ -7461,7 +7452,6 @@
     "loadout": null
    },
    "house": 78,
-   "giver": "fishmonger",
    "routine": [
     {
      "do": "keep",
@@ -7519,37 +7509,13 @@
    "line": "Mind the step on your way in."
   },
   {
-   "id": "resident-84",
+   "id": "resident-90",
    "name": "Pearl",
    "look": {
     "color": "#e3c07c",
     "loadout": {
      "head": "minersCap"
     }
-   },
-   "house": 84,
-   "routine": [
-    {
-     "do": "keep",
-     "weight": 6
-    },
-    {
-     "do": "tend",
-     "weight": 1
-    },
-    {
-     "do": "chat",
-     "weight": 1
-    }
-   ],
-   "line": "Have a look at what I’ve got."
-  },
-  {
-   "id": "resident-90",
-   "name": "Quince",
-   "look": {
-    "color": "#a4ce77",
-    "loadout": null
    },
    "house": 90,
    "routine": [
@@ -7586,9 +7552,9 @@
   },
   {
    "id": "resident-92",
-   "name": "Rook",
+   "name": "Quince",
    "look": {
-    "color": "#e0a96d",
+    "color": "#a4ce77",
     "loadout": null
    },
    "house": 92,
@@ -7610,9 +7576,9 @@
   },
   {
    "id": "resident-100",
-   "name": "Sorrel",
+   "name": "Rook",
    "look": {
-    "color": "#9db8e3",
+    "color": "#e0a96d",
     "loadout": null
    },
    "house": 100,
@@ -7650,9 +7616,9 @@
   },
   {
    "id": "resident-110",
-   "name": "Thistle",
+   "name": "Sorrel",
    "look": {
-    "color": "#d98fa6",
+    "color": "#9db8e3",
     "loadout": null
    },
    "house": 110,
@@ -7690,12 +7656,10 @@
   },
   {
    "id": "resident-120",
-   "name": "Ulric",
+   "name": "Thistle",
    "look": {
-    "color": "#c7b46a",
-    "loadout": {
-     "head": "minersCap"
-    }
+    "color": "#d98fa6",
+    "loadout": null
    },
    "house": 120,
    "routine": [
@@ -7732,10 +7696,12 @@
   },
   {
    "id": "resident-130",
-   "name": "Vesper",
+   "name": "Ulric",
    "look": {
-    "color": "#8fc9b8",
-    "loadout": null
+    "color": "#c7b46a",
+    "loadout": {
+     "head": "minersCap"
+    }
    },
    "house": 130,
    "routine": [
@@ -7772,13 +7738,12 @@
   },
   {
    "id": "resident-136",
-   "name": "Wick",
+   "name": "Vesper",
    "look": {
-    "color": "#b49ad6",
+    "color": "#8fc9b8",
     "loadout": null
    },
    "house": 136,
-   "giver": "baker",
    "routine": [
     {
      "do": "keep",
@@ -7797,13 +7762,12 @@
   },
   {
    "id": "resident-138",
-   "name": "Yarrow",
+   "name": "Wick",
    "look": {
-    "color": "#e3c07c",
+    "color": "#b49ad6",
     "loadout": null
    },
    "house": 138,
-   "giver": "smith",
    "routine": [
     {
      "do": "keep",
@@ -8052,6 +8016,9 @@
  ],
  "walls": {
   "thickness": 3
+ },
+ "greens": {
+  "seed": 7
  },
  "gates": [
   {

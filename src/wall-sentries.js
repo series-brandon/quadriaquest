@@ -11,7 +11,8 @@ export const GUARD_LOOK={color:'#c85745',loadout:{rightHand:'copperDagger',leftH
 const WALK=.6;
 // hiddenAt(x, z): scene position → whether the wall under it is cut down (they hide then).
 // A long walkway is shared out: one guard per `beat` tiles, each pacing its own stretch.
-export function createWallSentries({walkways,parent,look=GUARD_LOOK,minLength=8,beat=40,range=40,offset=6,random=Math.random,hiddenAt=()=>false}){
+// shownAt(x, z): tile → whether the map shows it (city streaming); they hide where it doesn't.
+export function createWallSentries({walkways,parent,look=GUARD_LOOK,minLength=8,beat=40,range=40,offset=6,random=Math.random,hiddenAt=()=>false,shownAt=()=>true}){
  const sentries=[],stretches=[];
  for(const walk of walkways){const n=Math.ceil((walk.to-walk.from+1)/beat),len=(walk.to-walk.from+1)/n;for(let i=0;i<n;i++)stretches.push({...walk,from:walk.from+Math.round(i*len),to:walk.from+Math.round((i+1)*len)-1});}
  for(const w of stretches){
@@ -33,7 +34,7 @@ export function createWallSentries({walkways,parent,look=GUARD_LOOK,minLength=8,
     // Far guards leave the scene graph (hidden objects still cost a matrix update every frame).
     if(far){if(s.body.parent)s.body.removeFromParent();continue;}
     if(!s.body.parent)parent.add(s.body);
-    s.body.visible=!hiddenAt(p.x,p.z);
+    s.body.visible=!hiddenAt(p.x,p.z)&&shownAt(Math.round(p.x+offset),Math.round(p.z+offset));
     const w=s.walkway;
     if(!s.step){
      if(s.pause>0){s.pause-=dt;}

@@ -388,7 +388,7 @@ A dev-only editor (compile-time isolated like the rest of the playground) that e
 ## Streaming and the world
 
 - The capital is the kingdom's capital and very large, far bigger than any tutorial area. A first graybox target is 128 × 128 tiles (2 × 2 storage regions), to grow once streaming and crowds are measured. It builds on the chunk streamer.
-- **The town square holds the Iter Crystal where the player wakes**, so the square is the city's focal point: the castle is visible from it, the main avenues start there, and the first shops, a noticeboard for jobs and the first townsfolk are in sight from the crystal. Buildings, props and townsfolk belong to the chunk of their anchor. A building that crosses a chunk border keeps all its chunks loaded while it's on screen.
+- **The town square holds the Iter Crystal where the player wakes**, so the square is the city's focal point: the castle is visible from it, the main avenues start there, and the first shops, a noticeboard for jobs and the first townsfolk are in sight from the crystal. Buildings, props and townsfolk belong to the chunk of their anchor. A building that crosses a chunk border is drawn entirely by its home chunk (its walls, floor, roof and furniture), so it shows or hides whole (2026-10-12); buildings may straddle chunk lines.
 - Door state, unlocks, and townsfolk routines and positions live outside chunk render state by stable id, so leaving and returning doesn't reset them. The streaming shared-infrastructure rules in DESIGN.md apply as written.
 - Interior spaces load on demand when the player is near their door, and unload on a budget.
 

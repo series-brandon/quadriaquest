@@ -128,4 +128,3 @@
 .q-job__actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .q-job__actions:empty { display: none; }
 .q-job__actions .q-button { min-block-size: var(--q-touch); }
-.q-talk__options { flex-wrap: wrap; }

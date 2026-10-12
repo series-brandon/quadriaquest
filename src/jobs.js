@@ -28,29 +28,43 @@ export const BOARD_POOL=[
  {id:'mine',kind:'gather',item:'copperOre',count:3,gold:45,giver:'The smith',note:'Mine copper yourself.',xp:['Mining',25]},
  {id:'gather-sticks',kind:'gather',item:'sticks',count:8,gold:12,giver:'The guild clerk',note:'Pick up fallen sticks around town.',noTools:true},
 ];
-// Townsfolk givers: each asks for one kind of job and waits `cooldown` seconds before the next. The
-// post office always has a delivery to an address in town.
-export const GIVERS={
- post:{kind:'deliver',gold:[12,30],cooldown:30,note:'I need this package delivered! Go!',xp:null},
- smith:{kind:'bring',item:'copperOre',count:3,gold:40,cooldown:60,note:'Bring me copper ore and I’ll pay well.',xp:['Mining',15]},
- fishmonger:{kind:'gather',item:'rawFish',count:5,gold:45,cooldown:60,note:'Catch me some pondfish, would you?',xp:['Fishing',30]},
- baker:{kind:'craft',item:'cookedFish',count:3,gold:50,cooldown:60,note:'Cook me some fish for the counter.',xp:['Culinary',30]},
+// Townsfolk givers. The post office always has a delivery to someone in town: take the package to
+// them, then come back for your pay. Shopkeepers ask for things their shop deals in (SHOP_WANTS: the
+// item, how, how many, and why), a random amount each time; the pay is the item's value times the count
+// plus a little extra, so it beats selling. Each giver has one job at a time and a cooldown after.
+export const POST={kind:'deliver',gold:[12,30],cooldown:30,need:'I need this package delivered!'};
+export const GIVER_COOLDOWN=45;
+const want=(item,kind,min,max,need)=>({item,kind,min,max,need});
+const FOOD_WANTS=[want('cookedFish','craft',2,4,'The supper crowd will be here before I can cook enough.'),want('rawFish','bring',3,5,'I’m out of fish for the pot.')];
+export const SHOP_WANTS={
+ general:[want('sticks','bring',6,12,'Folk keep buying kindling faster than I can stock it.'),want('logs','bring',3,6,'Firewood flies off the shelves this time of year.'),want('stones','bring',5,10,'The road mender has emptied me of rocks.')],
+ smithy:[want('copperOre','bring',2,5,'The forge is hungry for copper.'),want('copperIngots','craft',1,3,'I’ve more orders than I can smelt.')],
+ weapons:[want('copperDagger','craft',1,2,'The guard wants new daggers, and I’m behind.'),want('logs','bring',2,4,'I need good wood for hilts.')],
+ armour:[want('copperIngots','craft',2,4,'I need ingots for shield rims.'),want('copperShield','craft',1,1,'A recruit needs a shield by the week’s end.')],
+ fishmonger:[want('rawFish','gather',3,6,'I’d go catch them myself, but I have to watch the shop.'),want('rawFish','bring',3,5,'The morning catch was thin.')],
+ grocer:FOOD_WANTS,bakery:FOOD_WANTS,tavern:FOOD_WANTS,inn:FOOD_WANTS,
+ carpenter:[want('logs','gather',4,8,'I need timber, and my axe arm is tired.'),want('sticks','bring',8,14,'Pegs and dowels don’t whittle themselves.')],
+ market:[want('rawFish','gather',3,5,'The stall’s empty and the day is young.'),want('logs','bring',3,5,'Folk want firewood with their fish.')],
 };
+// The skill a job trains, by item and kind.
+const SKILL_FOR={rawFish:{gather:'Fishing'},logs:{gather:'Lumberjack'},copperOre:{gather:'Mining',bring:'Mining'},cookedFish:{craft:'Culinary'},copperIngots:{craft:'Smithing'},copperDagger:{craft:'Smithing'},copperShield:{craft:'Smithing'}};
 const KIND_VERB={deliver:'Deliver',bring:'Bring',craft:'Make',gather:'Gather'};
 export const jobTitle=job=>job.kind==='deliver'?`Deliver a package to ${job.recipient.name}`:`${job.kind==='gather'&&job.item==='rawFish'?'Catch':KIND_VERB[job.kind]} ${ITEMS[job.item]?.name||job.item} ×${job.count}`;
 
 // inventory: reactive counts; wallet: earn(); grantXp(skill, amount); addresses(giver): [{id, name, where}]
 // (people who can receive a delivery); random(); now() in seconds (for refills and cooldowns).
-export function createJobs({inventory,wallet,grantXp=()=>{},addresses=()=>[],random=Math.random,now=()=>performance.now()/1000}){
+// value(item): an item's worth (items.js), for shop job pay.
+export function createJobs({inventory,wallet,grantXp=()=>{},addresses=()=>[],value=()=>1,random=Math.random,now=()=>performance.now()/1000}){
  const revision=signal(0),bump=()=>{revision.value++;};
- let serial=0,offers=[],refills=[],active=[],cooldowns=new Map(),completed=0;
+ let serial=0,offers=[],refills=[],active=[],cooldowns=new Map(),completed=0;const pending=new Map();
  const draw=()=>{const taken=new Set([...offers.map(o=>o.id),...active.filter(j=>j.board).map(j=>j.poolId)]),pool=BOARD_POOL.filter(p=>!taken.has(p.id));
   // Keep at least one job a new player can do (no combat, no tools) on the board.
   const needEasy=!offers.some(o=>o.noTools),choices=needEasy?pool.filter(p=>p.noTools):pool;const list=choices.length?choices:pool;
   return list.length?{...list[Math.floor(random()*list.length)]}:null;};
  const fillBoard=()=>{while(offers.length<BOARD_SIZE){const o=draw();if(!o)break;offers.push(o);}};
  fillBoard();
- const counts=job=>job.kind==='gather'?job.counted:job.kind==='deliver'?Math.min(1,inventory[PACKAGE]||0):Math.min(job.count,inventory[job.item]||0);
+ // A delivery counts once the package is handed over (then you go back to the giver).
+ const counts=job=>job.kind==='gather'?job.counted:job.kind==='deliver'?(job.delivered?1:0):Math.min(job.count,inventory[job.item]||0);
  const progress=job=>({have:Math.min(job.count,counts(job)),need:job.count});
  const ready=job=>counts(job)>=job.count;
  const make=(template,extra)=>({key:`job-${++serial}`,kind:template.kind,item:template.item||PACKAGE,count:template.count||1,gold:template.gold,xp:template.xp||null,note:template.note,counted:0,...extra});
@@ -68,20 +82,33 @@ export function createJobs({inventory,wallet,grantXp=()=>{},addresses=()=>[],ran
    if(api.boardCount()>=BOARD_LIMIT)return {ok:false,reason:`You can take ${BOARD_LIMIT} board jobs at a time.`};
    const [o]=offers.splice(i,1);const job=make(o,{board:true,poolId:o.id,giverName:o.giver,handIn:'board'});active.push(job);refills.push(now()+BOARD_REFILL);bump();return {ok:true,job};
   },
-  // A townsfolk giver's offer for this person (null while busy or cooling down), and accepting it.
-  offerFrom(person){
-   const giver=GIVERS[person.giver];if(!giver||giverJob(person.id))return null;
-   if((cooldowns.get(person.id)||0)>now())return null;
-   if(giver.kind==='deliver'){const to=addresses(person).filter(a=>a.id!==person.id);if(!to.length)return null;
-    const recipient=to[Math.floor(random()*to.length)],gold=giver.gold[0]+Math.floor(random()*(giver.gold[1]-giver.gold[0]+1));
-    return {...giver,gold,recipient,title:`Deliver a package to ${recipient.name}`};}
-   return {...giver,title:jobTitle(giver)};
+  // A townsfolk giver's offer (null when they have nothing, are waiting on a job from you, or are
+  // cooling down). person.giver 'post', or `shop` (the shop they keep) for SHOP_WANTS. The same offer
+  // stands until it is taken, so asking twice gives the same answer.
+  offerFrom(person,shop=null){
+   if(giverJob(person.id)||(cooldowns.get(person.id)||0)>now())return null;
+   if(pending.has(person.id))return pending.get(person.id);
+   let offer=null;
+   if(person.giver==='post'){const to=addresses(person).filter(a=>a.id!==person.id);if(!to.length)return null;
+    const recipient=to[Math.floor(random()*to.length)],gold=POST.gold[0]+Math.floor(random()*(POST.gold[1]-POST.gold[0]+1));
+    offer={...POST,gold,recipient,count:1,item:PACKAGE,title:`Deliver a package to ${recipient.name}`};}
+   else{const wants=SHOP_WANTS[shop];if(!wants?.length)return null;const w=wants[Math.floor(random()*wants.length)],count=w.min+Math.floor(random()*(w.max-w.min+1));
+    const each=value(w.item),gold=each*count+2+Math.floor(random()*Math.max(3,each)),skill=SKILL_FOR[w.item]?.[w.kind];
+    offer={kind:w.kind,item:w.item,count,gold,need:w.need,cooldown:GIVER_COOLDOWN,xp:skill?[skill,count*6]:null};offer.title=jobTitle(offer);}
+   pending.set(person.id,offer);return offer;
   },
   accept(person,offer=api.offerFrom(person)){
    if(!offer)return {ok:false,reason:'Nothing to do right now.'};
-   const job=make(offer,{giverId:person.id,giverName:person.name,handIn:offer.kind==='deliver'?offer.recipient.id:person.id,recipient:offer.recipient||null,cooldown:offer.cooldown});
+   pending.delete(person.id);
+   const job=make(offer,{giverId:person.id,giverName:person.name,handIn:offer.kind==='deliver'?offer.recipient.id:person.id,recipient:offer.recipient||null,cooldown:offer.cooldown,need:offer.need,delivered:false});
    if(job.kind==='deliver')inventory[PACKAGE]=(inventory[PACKAGE]||0)+1;
    active.push(job);bump();return {ok:true,job};
+  },
+  // A delivery's first step: hand the package to its recipient; then the giver pays you.
+  deliver(key){
+   const job=active.find(j=>j.key===key);if(!job||job.kind!=='deliver'||job.delivered)return {ok:false,reason:'Nothing to deliver.'};
+   if(!(inventory[PACKAGE]>0))return {ok:false,reason:'You don’t have the package.'};
+   inventory[PACKAGE]-=1;job.delivered=true;job.handIn=job.giverId;bump();return {ok:true,job:{...job,title:jobTitle(job)},changes:{[PACKAGE]:-1}};
   },
   // Jobs this person (or the board, 'board') takes hand-ins for.
   dueAt:who=>active.filter(j=>j.handIn===who),
@@ -89,10 +116,9 @@ export function createJobs({inventory,wallet,grantXp=()=>{},addresses=()=>[],ran
   cooling:person=>Math.max(0,(cooldowns.get(person.id)||0)-now()),
   handIn(key){
    const job=active.find(j=>j.key===key);if(!job)return {ok:false,reason:'That job is gone.'};
-   if(!ready(job))return {ok:false,reason:job.kind==='gather'?`Gather ${job.count-job.counted} more first.`:job.kind==='deliver'?'You don’t have the package.':`You need ${job.count-counts(job)} more.`};
+   if(!ready(job))return {ok:false,reason:job.kind==='gather'?`Gather ${job.count-job.counted} more first.`:job.kind==='deliver'?'Deliver the package first.':`You need ${job.count-counts(job)} more.`};
    const changes={};
    if(job.kind==='bring'||job.kind==='craft'){inventory[job.item]-=job.count;changes[job.item]=-job.count;}
-   if(job.kind==='deliver'){inventory[PACKAGE]-=1;changes[PACKAGE]=-1;}
    active.splice(active.indexOf(job),1);completed++;
    wallet.earn(job.gold,`job ${job.kind}`);changes.gold=job.gold;
    const xp=job.xp?grantXp(job.xp[0],job.xp[1]):null;
@@ -102,7 +128,7 @@ export function createJobs({inventory,wallet,grantXp=()=>{},addresses=()=>[],ran
   // Abandoning is free; a delivery's package goes back to the giver.
   abandon(key){
    const job=active.find(j=>j.key===key);if(!job)return false;
-   if(job.kind==='deliver'&&(inventory[PACKAGE]||0)>0)inventory[PACKAGE]-=1;
+   if(job.kind==='deliver'&&!job.delivered&&(inventory[PACKAGE]||0)>0)inventory[PACKAGE]-=1;
    active.splice(active.indexOf(job),1);bump();return true;
   },
   // Shared gathering events (resources, fishing): gather jobs count items gained after accepting.
@@ -110,9 +136,9 @@ export function createJobs({inventory,wallet,grantXp=()=>{},addresses=()=>[],ran
   // Refill board offers whose delay has passed (call now and then; cheap).
   update(){if(!refills.length)return;const t=now(),due=refills.filter(r=>r<=t).length;if(!due)return;refills=refills.filter(r=>r>t);for(let i=0;i<due;i++){const o=draw();if(o&&offers.length<BOARD_SIZE)offers.push(o);}bump();},
   // Playground: finish a job at once (counts filled, items supplied), and reset everything.
-  forceReady(key){const job=active.find(j=>j.key===key);if(!job)return false;if(job.kind==='gather')job.counted=job.count;else if(job.kind!=='deliver')inventory[job.item]=Math.max(inventory[job.item]||0,job.count);else inventory[PACKAGE]=Math.max(1,inventory[PACKAGE]||0);bump();return true;},
+  forceReady(key){const job=active.find(j=>j.key===key);if(!job)return false;if(job.kind==='gather')job.counted=job.count;else if(job.kind!=='deliver')inventory[job.item]=Math.max(inventory[job.item]||0,job.count);else{job.delivered=true;job.handIn=job.giverId;if(inventory[PACKAGE]>0)inventory[PACKAGE]-=1;}bump();return true;},
   clearCooldowns(){cooldowns.clear();bump();},
-  reset(){for(const job of active)if(job.kind==='deliver'&&(inventory[PACKAGE]||0)>0)inventory[PACKAGE]-=1;offers=[];refills=[];active=[];cooldowns.clear();completed=0;fillBoard();bump();},
+  reset(){for(const job of active)if(job.kind==='deliver'&&!job.delivered&&(inventory[PACKAGE]||0)>0)inventory[PACKAGE]-=1;offers=[];refills=[];active=[];cooldowns.clear();pending.clear();completed=0;fillBoard();bump();},
  };
  return api;
 }
