@@ -50,3 +50,28 @@ test('resources, fishing spots, goblins and landmarks follow the rules',()=>{
  for(const p of props){const t=map.get(key(p.x,p.z));assert.ok(t&&!t.water,`${p.id} on land`);}
  assert.ok(SEA>0);
 });
+
+test('green spaces vary: tree species by place, ponds, and ground cover',async()=>{
+ const {COVER_KINDS}=await import('./ground-cover.js'),{TREE_SPECIES}=await import('./tree-models.js');
+ const tiles=[...map.values()].filter(t=>land.tile(t.x,t.z)===t),trees=land.entities(tiles).filter(e=>e.kind==='tree');
+ const bySpecies={};for(const tr of trees)bySpecies[tr.species]=(bySpecies[tr.species]||0)+1;
+ for(const s of ['oak','birch','pine','willow','cherry','maple'])assert.ok(bySpecies[s]>=5,`${s}: ${bySpecies[s]}`);
+ for(const s of Object.keys(bySpecies))assert.ok(TREE_SPECIES[s],s);
+ for(const tr of trees.filter(t=>t.species==='pine').slice(0,20))assert.ok(map.get(key(tr.x,tr.z)).h>=2,'pines on the hills');
+ assert.ok(land.ponds.length>=4,`ponds: ${land.ponds.length}`);
+ assert.ok(land.ponds.some(p=>map.get(key(Math.round(p.x),Math.round(p.z)))?.water),'a pond holds water');
+ const cover=land.cover(tiles),kinds=new Set(cover.map(c=>c.kind));
+ for(const k of kinds)assert.ok(COVER_KINDS.includes(k),k);
+ for(const k of ['grass','fern','mushrooms','reeds','lilyPad','pebbles','flowerPink','flowerBlue'])assert.ok(kinds.has(k),`cover has ${k}`);
+ assert.ok(cover.every(c=>land.roadDistance(Math.round(c.x),Math.round(c.z))>1||map.get(key(Math.round(c.x),Math.round(c.z)))?.water),'nothing on roads');
+ assert.deepEqual(createCountryside({city:data}).cover(tiles.slice(0,500)),land.cover(tiles.slice(0,500)),'the same every time');
+});
+test('ground cover is instanced: chunks take and free slots, one mesh per kind',async()=>{
+ const {createGroundCoverPool}=await import('./ground-cover.js');
+ const parent=new THREE.Group(),pool=createGroundCoverPool({parent,capacity:10});
+ const a=pool.add([{kind:'grass',x:1,y:1,z:1},{kind:'grass',x:2,y:1,z:1},{kind:'flowerPink',x:3,y:1,z:1}]);
+ assert.deepEqual(pool.stats,{grass:2,flowerPink:1});assert.equal(parent.children.length,2,'one mesh per kind');
+ a.dispose();assert.deepEqual(pool.stats,{grass:0,flowerPink:0});
+ pool.add([{kind:'grass',x:5,y:1,z:5}]);assert.equal(parent.children.find(m=>m.name==='ground-cover-grass').count,2,'freed slots are reused, not grown');
+ pool.add(Array.from({length:20},(_,i)=>({kind:'fern',x:i,y:1,z:0})));assert.equal(pool.stats.fern,10,'never past capacity');
+});

@@ -8019,11 +8019,13 @@
  "resources": [
   {
    "kind": "tree",
+   "species": "cherry",
    "x": 66,
    "z": 86
   },
   {
    "kind": "tree",
+   "species": "willow",
    "x": 71,
    "z": 94
   },

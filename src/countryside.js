@@ -1,5 +1,6 @@
 import {hash,valueNoise} from './noise.js';
 import {TOWER_RADIUS} from './city-walls.js';
+const FLOWERS=['flowerWhite','flowerYellow','flowerPink','flowerPurple','flowerBlue','flowerRed'];
 
 // The countryside around Gelton (docs/WORLD.md): generated land, the same every time for a seed, around
 // a city's square footprint, with placed landmarks on top. It is a chunk-streamer source
@@ -37,8 +38,15 @@ export function createCountryside({city,seed=11}){
  const riverX=z=>size+RING*.45+Math.sin(z/19)*6+Math.sin(z/7)*2;
  const lake={x:-RING*.45,z:size*.18,r:13},pond={x:size*.12,z:size+RING*.55,r:7};
  const inPool=(x,z,p,s)=>Math.hypot(x-p.x,z-p.z)<p.r+(valueNoise(x,z,6,seed+s)-.5)*5;
+ // Small ponds dotted about the meadows and woods (one chance per 36-tile cell), away from the wall,
+ // the roads, the river and the lake; lily pads and fishing spots come with them.
+ const ponds=[];
+ for(let cz=Math.floor(x0/36);cz*36<x1;cz++)for(let cx=Math.floor(x0/36);cx*36<x1;cx++){
+  if(hash(cx,cz,seed+70)>.55)continue;const x=cx*36+8+Math.floor(hash(cx,cz,seed+71)*20),z=cz*36+8+Math.floor(hash(cx,cz,seed+72)*20),r=2.2+hash(cx,cz,seed+73)*1.8;
+  if(outside(x,z)<12||x<x0+SEA+6||z<x0+SEA+6||x>=x1-SEA-6||z>=x1-SEA-6)continue;ponds.push({x,z,r});}
  const isSea=(x,z)=>x<x0+SEA||z<x0+SEA||x>=x1-SEA||z>=x1-SEA;
  const isRiver=(x,z)=>Math.abs(x-riverX(z))<=1.5;
+ const inSmallPond=(x,z)=>ponds.some(p=>Math.abs(x-p.x)<p.r+3&&Math.abs(z-p.z)<p.r+3&&Math.hypot(x-p.x,z-p.z)<p.r+(valueNoise(x,z,4,seed+74)-.5)*1.6);
  // Bridges: where a road crosses the river, a deck over the water plus a tile of bank each side
  // ({axis, from, to, at}: along the road from…to, centred across at `at`). Their tiles have no terrain
  // (the bridge model is the deck) and water shows beneath.
@@ -74,14 +82,14 @@ export function createCountryside({city,seed=11}){
   else if(underTower(x,z))t={x,z,h:1,water:false,blocked:true,blocksSight:true,surface:'grass',underWall:true};
   else if(bridgeAt(x,z)){t={x,z,h:1,water:false,blocked:false,surface:'planks',bridge:true,noTerrain:true,overWater:isRiver(x,z)};}
   else if(road<=ROAD_HALF)t={x,z,h:1,water:false,blocked:false,surface:'dirt'};
-  else if(isRiver(x,z)||inPool(x,z,lake,3)||inPool(x,z,pond,4))t={x,z,h:.5,water:true,blocked:true,surface:'water'};
+  else if(isRiver(x,z)||inPool(x,z,lake,3)||inPool(x,z,pond,4)||road>4&&inSmallPond(x,z))t={x,z,h:.5,water:true,blocked:true,surface:'water',still:!isRiver(x,z)};
   else{
    // Hills grow with distance from the wall and from the roads; heights step in half blocks.
    const hills=Math.min(1,Math.max(0,(d-8)/18))*Math.min(1,Math.max(0,(road-3)/8));
    const e=valueNoise(x,z,34,seed)*.65+valueNoise(x,z,11,seed+1)*.35;
    // Shores stay low (a beach at water level plus half a block), then rise a step per tile, so water
    // is always reachable for fishing.
-   const water=(a,b)=>isRiver(a,b)||inPool(a,b,lake,3)||inPool(a,b,pond,4);
+   const water=(a,b)=>isRiver(a,b)||inPool(a,b,lake,3)||inPool(a,b,pond,4)||roadDistance(a,b)>4&&inSmallPond(a,b);
    let near=4;for(let r=1;r<4&&near===4;r++)for(let dz=-r;dz<=r&&near===4;dz++)for(let dx=-r;dx<=r;dx++)if(Math.max(Math.abs(dx),Math.abs(dz))===r&&water(x+dx,z+dz)){near=r;break;}
    const h=Math.min(1+Math.min(6,Math.floor(Math.max(0,e-.38)*hills*14))*.5,near<4?1+(near-1)*.5:Infinity);
    const shore=near===1;
@@ -90,6 +98,15 @@ export function createCountryside({city,seed=11}){
   tiles.set(k,t);return t;
  }
  const forest=(x,z)=>valueNoise(x,z,40,seed+3)>.58;
+ // Cherry groves in the meadows; which wood is which (birch, oak, maple) drifts across the land.
+ const grove=(x,z)=>valueNoise(x,z,26,seed+60)>.7;
+ const nearWater=(x,z)=>{for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const n=tile(x+dx,z+dz);if(n?.water&&!isSea(x+dx,z+dz))return true;}return false;};
+ // A tree's species: willows by water, pines on the hills, cherries in groves, else the local wood.
+ function species(t){
+  if(t.h>=2)return 'pine';if(nearWater(t.x,t.z))return 'willow';if(grove(t.x,t.z))return 'cherry';
+  const wood=valueNoise(t.x,t.z,60,seed+50),r=hash(t.x,t.z,seed+51);
+  return wood<.38?(r<.7?'birch':'oak'):wood<.62?(r<.85?'oak':'birch'):(r<.7?'maple':'oak');
+ }
  // Resources for one chunk's tiles; ids are stable across loads.
  function entities(list){
   const out=[];
@@ -98,8 +115,9 @@ export function createCountryside({city,seed=11}){
    const r=hash(t.x,t.z,seed+9),rocky=t.h>=2.5;
    const kind=rocky?(r<.035?'boulder':r<.06?'copper':r<.075?'stones':null)
     :forest(t.x,t.z)?(r<.16?'tree':r<.18?'sticks':null)
+    :grove(t.x,t.z)?(r<.05?'tree':null)
     :(r<.012?'tree':r<.016?'sticks':r<.02?'stones':null);
-   if(kind)out.push({id:`${kind}:${t.x},${t.z}`,kind,x:t.x,z:t.z});
+   if(kind)out.push({id:`${kind}:${t.x},${t.z}`,kind,x:t.x,z:t.z,...kind==='tree'?{species:species(t)}:{}});
   }
   return out;
  }
@@ -122,5 +140,26 @@ export function createCountryside({city,seed=11}){
   for(const l of LANDMARKS)for(const [i,p] of l.props.entries())if(keys.has(`${p.x},${p.z}`))out.push({id:`${l.id}:${i}`,kind:'prop',prop:p.kind,x:p.x,z:p.z,rotation:p.rotation||0});
   return out;
  }
- return {tile,entities,extras,bridges,roadDistance,outside,bounds:{x0,z0:x0,x1,z1:x1},landmarks:LANDMARKS,riverX,lake,pond,roads};
+ // Ground cover for one chunk's tiles (ground-cover.js kinds): flower meadows in patches of one or two
+ // colours, wildflowers and grass tufts in the grass, ferns and mushrooms in woods, pebbles on stone,
+ // reeds on shores and lily pads on still water. Nothing on roads, bridges, the wall or landmarks.
+ function cover(list){
+  const out=[];
+  for(const t of list){
+   const k=`${t.x},${t.z}`;if(t.bridge||t.underWall||reserved.has(k)||outside(t.x,t.z)<1)continue;
+   const r=hash(t.x,t.z,seed+80),r2=hash(t.x,t.z,seed+81),add=(kind,dx=0,dz=0,y=t.h,scale=1)=>out.push({kind,x:t.x+dx,y,z:t.z+dz,rotation:r2*6.28,scale});
+   if(t.water){if(t.still&&!isSea(t.x,t.z)&&r<.12)add('lilyPad',(r2-.5)*.4,(r-.5)*.4,.87);continue;}
+   if(roadDistance(t.x,t.z)<=ROAD_HALF)continue;
+   if(t.surface==='dirt'){if(r<.45)add('reeds',(r2-.5)*.5,(r-.5)*.5);continue;}
+   if(t.surface==='stone'){if(r<.18)add('pebbles',(r2-.5)*.5,(r-.5)*.5);continue;}
+   const meadow=valueNoise(t.x,t.z,18,seed+40);
+   if(forest(t.x,t.z)){if(r<.16)add('fern',(r2-.5)*.6,(r-.5)*.6);else if(r<.2)add('mushrooms',(r2-.5)*.6,(r-.5)*.6);else if(r<.26)add('grass');continue;}
+   if(meadow>.5){const palette=FLOWERS[Math.floor(valueNoise(t.x,t.z,30,seed+41)*FLOWERS.length*.999)],other=FLOWERS[(FLOWERS.indexOf(palette)+2)%FLOWERS.length];
+    // One or two clumps per meadow tile, mostly the patch's colour.
+    add(r<.75?palette:other,(r2-.5)*.4,(r-.5)*.4,t.h,1.1);if(r2<.55)add(r<.6?palette:other,(r-.5)*.5,(r2-.5)*.5,t.h,.9);else if(r2<.75)add('grass',(.5-r2)*.5,(.5-r)*.4);continue;}
+   if(r<.16)add(FLOWERS[Math.floor(r2*FLOWERS.length)],(r2-.5)*.5,(r-.5)*.5);else if(r<.3)add('grass',(r2-.5)*.6,(r-.5)*.6);else if(r<.32)add('shrub',(r2-.5)*.4,(r-.5)*.4);
+  }
+  return out;
+ }
+ return {tile,entities,extras,cover,ponds,bridges,roadDistance,outside,bounds:{x0,z0:x0,x1,z1:x1},landmarks:LANDMARKS,riverX,lake,pond,roads};
 }

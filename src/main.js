@@ -88,6 +88,7 @@ import {ITEMS} from './items.js';
 import {createWaterEffects,createStreamedWater,waterSettings} from './water-effects.js';
 import {makeBridge} from './bridge-model.js';
 import {createWallSentries} from './wall-sentries.js';
+import {createGroundCoverPool} from './ground-cover.js';
 import './ui-theme.css';
 import './player-interface.css';
 import './ui/ui.css';
@@ -457,7 +458,7 @@ function geltonReady(){
   // Guards pacing the wall-top walkways (wall-sentries.js), hidden where the wall is cut down.
   built.sentries=built.walls?createWallSentries({walkways:built.walls.walkways,parent:built.group,hiddenAt:built.walls.cutAt}):null;
   // Gather spots placed by the map (shared resource entities).
-  for(const r of built.data.resources||[]){const t=built.tiles.get(key(r.x,r.z));if(t&&!t.blocked&&!t.prop)resourceActions.add(createResourceEntity({kind:r.kind,tile:t,parent:built.group,pickables,id:`gelton:${r.kind}:${r.x},${r.z}`}));}
+  for(const r of built.data.resources||[]){const t=built.tiles.get(key(r.x,r.z));if(t&&!t.blocked&&!t.prop)resourceActions.add(createResourceEntity({kind:r.kind,species:r.species,tile:t,parent:built.group,pickables,id:`gelton:${r.kind}:${r.x},${r.z}`}));}
   // The countryside streams into the area's tiles, and into the live world map while Gelton is active.
   const maps=[built.tiles];
   const topColor=t=>{if(t.water)return WATER_TOP;const hex=surfaceColor(t);if(!surfaceTop.has(hex))surfaceTop.set(hex,new THREE.Color(hex));return surfaceTop.get(hex);};
@@ -478,7 +479,13 @@ function geltonReady(){
    return null;};
   // Radius 2 (5 × 5 chunks, about 40 tiles each way) covers the default view; perf: docs/PERFORMANCE.md.
   streamWater??=createStreamedWater(renderer);
-  const dress=(list,{root,tileAt})=>streamWater.build(list.filter(t=>t.water||t.overWater),(x,z)=>{const n=tileAt(x,z);return !!n&&(n.water||!!n.overWater);},root);
+  // A chunk's dressing: its animated water and its ground cover (flowers, grass, reeds, lily pads…),
+  // the cover instanced across all loaded chunks (ground-cover.js).
+  const coverPool=createGroundCoverPool({parent:built.group});
+  const dress=(list,{root,tileAt})=>{
+   const water=streamWater.build(list.filter(t=>t.water||t.overWater),(x,z)=>{const n=tileAt(x,z);return !!n&&(n.water||!!n.overWater);},root);
+   const cover=coverPool.add(source.cover(list));
+   return {dispose(){water.dispose();cover.dispose();}};};
   const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place,dress,radius:2,keep:1});
   countryside={source,streamer,maps};built.countryside=countryside;
   areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,

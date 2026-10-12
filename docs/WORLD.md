@@ -70,6 +70,26 @@ The user asked for walls like the castle keep's: very tall, with large towers at
 - **Animated water:** `createStreamedWater` in `water-effects.js`. It has the ponds' look (colour, opacity, reflections, facets, glints, following `waterSettings`), but the waves run in the vertex shader. That's one surface mesh per chunk, so lakes, the river and the sea cost nothing per frame on the CPU. Shore vertices stay still. The chunk streamer's `dress` hook builds and releases it with the chunk; the terrain under water is the ponds' bed colour.
 - **The bridge:** the shared `makeBridge` gained `{width}`, plus stringers and stone piers for wide spans. The east road's bridge is that model, road-wide, spanning the river plus a tile of bank each side. Its tiles have no terrain (`noTerrain`), water shows beneath, and the deck is the click target.
 
+## Green spaces (user request, 2026-10-11: "more flowers, ponds, different types of trees")
+
+- **Tree species** (`tree-models.js`): oak (the original), birch, pine, willow, cherry and maple. All are the same choppable tree: logs, the falling animation, depletion and regrowth. A species only changes the look, the outline height and the label ("Chop willow"). The species is chosen by place (`countryside.js`):
+  - pines on the hills;
+  - willows within 2 tiles of water;
+  - cherry blossoms in groves in the meadows;
+  - elsewhere the local wood drifts between birch, oak and maple.
+
+  Gelton's park has a cherry and a willow (map `resources[].species`).
+- **Ponds:** small ponds dotted about the meadows and woods (one chance per 36-tile cell, away from the wall, roads and big water). They come with low shores, fishing spots and lily pads.
+- **Ground cover** (`ground-cover.js`): templates for flower clumps in six colours, grass tufts, ferns, mushrooms, reeds, lily pads, shrubs and pebbles. `countryside.js` `cover(tiles)` places them:
+  - flower meadows in patches of one or two colours;
+  - wildflowers and grass in open grass;
+  - ferns and mushrooms in woods;
+  - reeds on shores, lily pads on still water, pebbles on stone;
+  - nothing on roads, the bridge, the wall or landmarks.
+
+  It's drawn **instanced**: one mesh per kind for all loaded chunks (about 13 draws), and a chunk writes only its instances' matrices into free slots. The first merged-per-chunk version uploaded up to 435k vertices per chunk; the templates are now low-poly (cone stems, octahedron heads).
+- **Model catalogue:** every tree species and ground-cover kind.
+
 ## In the city
 
 - **Park gather spots:** two trees, fallen sticks and loose rocks in Gelton's park. They are map data `resources`, placed by the host as shared resource entities.

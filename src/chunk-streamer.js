@@ -36,7 +36,7 @@ export function createChunkStreamer({source,maps,parent,pickables,resources,topC
   if(tiles.length){const {mesh,lines}=buildChunkTerrain({tiles,tileAt,topColor});root.add(mesh,lines);pickables.push(mesh);meshes.push(mesh);}
   const nodes=source.entities(tiles).map(e=>{
    const tile=maps[0].get(key(e.x,e.z));
-   const node=resources.add(createResourceEntity({kind:e.kind,tile,parent:root,pickables,id:e.id,respawn}));
+   const node=resources.add(createResourceEntity({kind:e.kind,species:e.species,tile,parent:root,pickables,id:e.id,respawn}));
    const saved=state.get(e.id);
    if(saved){const respawnIn=saved.respawnAt===null?null:Math.max(0,saved.respawnAt-time);if(saved.depleted&&respawnIn!==0)resources.restore(node,{depleted:true,respawnIn});state.delete(e.id);}
    return node;

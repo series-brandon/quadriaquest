@@ -85,7 +85,7 @@ export function capitalData(){
  data.props.push({kind:'treeGrate',x:67,z:82},{kind:'treeGrate',x:70,z:88},{kind:'flowerBed',x:67,z:93},{kind:'bench',x:69,z:84,rotation:90},{kind:'dungeonEntrance',x:68,z:90,link:'sewers'});
  // Gather spots (shared resource entities, placed by the host; docs/WORLD.md): a couple of trees, fallen
  // sticks and loose rocks in the park, for the odd job without leaving town.
- data.resources=[{kind:'tree',x:66,z:86},{kind:'tree',x:71,z:94},{kind:'sticks',x:67,z:87},{kind:'sticks',x:70,z:81},{kind:'stones',x:71,z:91},{kind:'stones',x:66,z:96}];
+ data.resources=[{kind:'tree',species:'cherry',x:66,z:86},{kind:'tree',species:'willow',x:71,z:94},{kind:'sticks',x:67,z:87},{kind:'sticks',x:70,z:81},{kind:'stones',x:71,z:91},{kind:'stones',x:66,z:96}];
  data.interiors.sewers={kind:'dungeon',name:'The old sewers',size:[16,12],exit:[7,10],furniture:[{kind:'barrel',at:[0,0]},{kind:'crates',at:[15,0]},{kind:'statue',at:[4,4]},{kind:'statue',at:[11,4]},{kind:'sacks',at:[0,11]}]};
  data.props.push({kind:'well',x:46,z:110},{kind:'signpost',x:61,z:73},{kind:'lampPost',x:61,z:96},{kind:'lampPost',x:67,z:110});
  // Townsfolk: vendors at the market, guards on the avenue and the square, and townsfolk at large.

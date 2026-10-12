@@ -20,6 +20,12 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Green-space variety — 2026-10-11 (user request)
+
+- `tree-models.js` (six species; `makeTree(species)` in world-models, `createResourceEntity({species})`, streamed trees carry `species`), `ground-cover.js` (templates and the instanced `createGroundCoverPool`), countryside ponds, species rules and `cover()`. Gelton's park trees have species.
+- Verified in the browser: willows at the lake, pines on the hills, cherry groves, lily pads, reeds, meadows of mixed colours, ferns and mushrooms in woods, rocky hilltops. Tests: 576 pass.
+- Perf: `countryside-walk` 4.2–4.4 ms (+0.6 ms: more trees and fishing spots), rebaselined; ground cover is about 13 draws and about 5 KB of uploads per frame while walking.
+
 ### Wall sentries, gate guards, houses turned from the wall — 2026-10-11 (user request)
 
 - `wall-sentries.js` (guards pacing `walls.walkways`, hidden where cut, detached when far); `city-walls.js` gained `walkways` and `cutAt`. Townsfolk gained the `post` activity (`entry.facing`). `capital-layout.js`: two gate guards per entrance, outside the wall (user correction; `buildCity({outside})` gives them their land tiles); south rows by the wall face their yard. Regenerated `capital.json`. The city checks have no door, furniture or townsfolk issues.

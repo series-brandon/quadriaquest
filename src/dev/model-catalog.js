@@ -1,3 +1,5 @@
+import {makeTreeModel,TREE_SPECIES_NAMES} from '../tree-models.js';
+import {coverModel,COVER_KINDS} from '../ground-cover.js';
 import {wallPiecePreview,cityGateModel} from '../city-walls.js';
 import {makeLootPile} from '../loot-pile-model.js';
 import {makeJobMarker} from '../job-marker.js';
@@ -158,7 +160,7 @@ export const MODEL_CATALOG=[
  resource('Copper outcrop',copperOutcrop,'copper'),staticModel('Copper Ingot',ingot),
  ...[['copperDagger','Copper Dagger'],['copperShield','Copper Shield'],['bows','Training Bow'],['arrows','Training Arrow']].map(([id,name])=>staticModel(name,()=>tool(id))),
  {name:'Furnace',motions:['Burning','Static'],create(){const group=furnace();return {group,update:(time,motion)=>animateFurnace(group,motion==='Static'?0:time)};}},
- staticModel('Anvil (Cinderhold station)',anvil),staticModel('Loot pile',()=>makeLootPile()),staticModel('City wall (run)',()=>wallPiecePreview('run')),staticModel('City wall tower',()=>wallPiecePreview('tower')),staticModel('City gatehouse',()=>wallPiecePreview('gatehouse')),{name:'City gate (double doors)',motions:['Open','Closed'],create(){const gate=cityGateModel(3);return {group:gate.group,update(time,motion){gate.set(motion==='Open'?Math.min(1,(time%3)*.8):0);}};}},staticModel('Road bridge',()=>{const b=makeBridge(4,{width:3});b.setProgress(1);return b.group;}),staticModel('Loot pile (no gold)',()=>makeLootPile({gold:false})),staticModel('Job marker (offer)',()=>makeJobMarker('offer')),staticModel('Job marker (hand in)',()=>makeJobMarker('due')),staticModel('Provision shelf',supplyShelf),staticModel('Stone arch',stoneArch),
+ staticModel('Anvil (Cinderhold station)',anvil),...TREE_SPECIES_NAMES.filter(n=>n!=='oak').map(n=>staticModel(`Tree (${n})`,()=>makeTreeModel(n))),...COVER_KINDS.map(k=>staticModel(`Ground cover (${k})`,()=>coverModel(k))),staticModel('Loot pile',()=>makeLootPile()),staticModel('City wall (run)',()=>wallPiecePreview('run')),staticModel('City wall tower',()=>wallPiecePreview('tower')),staticModel('City gatehouse',()=>wallPiecePreview('gatehouse')),{name:'City gate (double doors)',motions:['Open','Closed'],create(){const gate=cityGateModel(3);return {group:gate.group,update(time,motion){gate.set(motion==='Open'?Math.min(1,(time%3)*.8):0);}};}},staticModel('Road bridge',()=>{const b=makeBridge(4,{width:3});b.setProgress(1);return b.group;}),staticModel('Loot pile (no gold)',()=>makeLootPile({gold:false})),staticModel('Job marker (offer)',()=>makeJobMarker('offer')),staticModel('Job marker (hand in)',()=>makeJobMarker('due')),staticModel('Provision shelf',supplyShelf),staticModel('Stone arch',stoneArch),
  staticModel('Stone tile',()=>stoneTile({x:0,z:0,h:1},new Map())),
  {name:'Practice target',motions:['Static','Hit'],create(){const group=trainingTarget();return {group,update:(time,motion)=>animateTarget(group,time,motion==='Hit'?1:0)};}},
  // Every spell look (charge orb and projectile) from the shared registry.
