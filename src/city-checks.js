@@ -4,8 +4,7 @@ import {propFootprint,PROPS} from './props.js';
 import {stairProblems,DIRS} from './city-terrain.js';
 import {interiorProblems} from './spaces.js';
 import {townsfolkProblems} from './townsfolk.js';
-// The streamer's chunk size (chunk-streamer.js CHUNK_SIZE; not imported, as that module needs a DOM).
-const CHUNK_SIZE=16;
+import {CHUNK,withinChunk} from './world-grid.js';
 
 // City checks (docs/CITY.md, Authoring: live checks; city Phase 6). The editor lists these; tests run
 // them over every city in the repo. Each problem: {kind, severity: 'error'|'warning', tile:[x, z],
@@ -63,8 +62,9 @@ export function cityProblems(data,built){
  // Townsfolk: homes and routines (townsfolk.js).
  problems.push(...townsfolkProblems(data,built));
  for(const p of built.props)for(const s of p.spots)if(s.tile&&(s.tile.blocked||!reach.has(s.tile)))add('spot','warning',[s.tile.x,s.tile.z],`${p.def.name}'s ${s.kind} spot can't be used.`);
- // Streaming: a building split by a chunk border keeps both chunks loaded (info only).
- for(const b of built.buildings){const {x0,z0,x1,z1}=b.plan;if(Math.floor(x0/CHUNK_SIZE)!==Math.floor(x1/CHUNK_SIZE)||Math.floor(z0/CHUNK_SIZE)!==Math.floor(z1/CHUNK_SIZE))add('chunks','info',[x0,z0],`${b.plan.desc.name||'A building'} spans a chunk border (both chunks stay loaded while it's on screen).`);}
+ // The grid (docs/WORLD.md, Design constraints): a building stays inside one chunk, so it streams, draws
+ // and is stored whole with it. Region lines are chunk lines, so this keeps it inside one region too.
+ for(const b of built.buildings){const {x0,z0,x1,z1}=b.plan;if(!withinChunk(x0,z0,x1,z1))add('chunks','error',[x0,z0],`${b.plan.desc.name||'A building'} crosses a chunk line (buildings must fit inside one ${CHUNK} × ${CHUNK} chunk).`);}
  return problems;
 }
 // Connected groups of tiles (4-neighbour, same walk rule).

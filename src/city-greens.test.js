@@ -11,9 +11,9 @@ import {key} from './world.js';
 const data=JSON.parse(readFileSync(new URL('./maps/capital.json',import.meta.url)));
 test('the city’s greens are themed mini biomes: each patch’s trees and flowers belong to its biome',()=>{
  const city=buildCity(structuredClone(data),{scene:new THREE.Group()}),g=cityGreens(city,{seed:data.greens.seed});
- assert.ok(g.regions.length>=20,'many mini biomes');
- for(const b of BIOME_NAMES)assert.ok(g.regions.some(r=>r.biome===b),`some ${b}`);
- const biomeOf=new Map();for(const r of g.regions)for(const t of r.tiles)biomeOf.set(key(t.x,t.z),r.biome);
+ assert.ok(g.patches.length>=20,'many mini biomes');
+ for(const b of BIOME_NAMES)assert.ok(g.patches.some(r=>r.biome===b),`some ${b}`);
+ const biomeOf=new Map();for(const r of g.patches)for(const t of r.tiles)biomeOf.set(key(t.x,t.z),r.biome);
  for(const tree of g.trees)assert.ok(BIOMES[biomeOf.get(key(tree.x,tree.z))].trees.includes(tree.species),`${tree.species} fits its patch`);
  for(const c of g.cover){const b=BIOMES[biomeOf.get(key(Math.round(c.x),Math.round(c.z)))];assert.ok(!b||b.flowers.includes(c.kind)||b.extras.includes(c.kind),`${c.kind} fits`);}
  assert.deepEqual(cityGreens(city,{seed:data.greens.seed}).trees,g.trees,'the same every time');

@@ -105,6 +105,7 @@ window.addEventListener('quadriaquest-level',()=>gameAudio.cue('level'));
 effect(()=>{const n=objectiveNotice.value;if(n)untracked(()=>gameAudio.cue(n.kind,n.part&&n.kind==='progress'?n.part.current/n.part.total:n.total?n.current/n.total:0));});
 import * as THREE from 'three';
 import {makeWorld,findPath,key,SPAWN,canStep} from './world.js';
+import {chunkId} from './world-grid.js';
 import {createFeedback} from './feedback.js';
 import {createContactShadow} from './contact-shadow.js';
 import {createOpening} from './opening.js';
@@ -436,7 +437,7 @@ const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},t
 const crowdsByArea=new Map();
 function attachCrowd(built){built.crowd?.dispose();built.crowd=createCrowd({city:built,parent:built.group,pickables,services:crowdServices});for(const p of built.crowd.folk)p.city=built;if(built.areaId)crowdsByArea.set(built.areaId,built.crowd);return built.crowd;}
 // Gelton, the capital (docs/CITY.md), inside its countryside (docs/WORLD.md): where players wake after
-// the tutorial. One continuous area: the city (src/maps/capital.json, built per 16 × 16 chunk and shown
+// the tutorial. One continuous area: the city (src/maps/capital.json, built per chunk (world-grid.js) and shown
 // around the player) and the generated countryside around it (countryside.js), streamed in chunks with
 // its resources, fishing spots, goblins and landmarks; you walk out through the city's gateways. Built
 // on first need (the waking farewell starts it).
@@ -450,13 +451,13 @@ function geltonReady(){
  return geltonLoading??=(async()=>{
   const [{buildCity},{default:data},{createCountryside},{createChunkStreamer},{surfaceColor}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json'),import('./countryside.js'),import('./chunk-streamer.js'),import('./city-terrain.js')]);
   const cityData=structuredClone(data),source=createCountryside({city:cityData});
-  // The city streams by the countryside's rule (radius 2, one ring of hysteresis), so they always match.
-  const built=buildCity(cityData,{scene,pickables,streamRadius:2,streamKeep:1,outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
+  // The city streams by the countryside's rule (radius 1, a band of hysteresis), so they always match.
+  const built=buildCity(cityData,{scene,pickables,streamRadius:1,outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
   built.areaId='gelton';attachCrowd(built);
   // Guards pacing the wall-top walkways (wall-sentries.js), hidden where the wall is cut down.
   built.sentries=built.walls?createWallSentries({walkways:built.walls.walkways,parent:built.group,hiddenAt:built.walls.cutAt,shownAt:built.isShown}):null;
   // Anything placed in the city goes in its chunk, so it shows and hides with it (city streaming).
-  const chunkRootOf=(x,z)=>built.chunks.get(`${Math.floor(x/16)},${Math.floor(z/16)}`)?.root||built.group;
+  const chunkRootOf=(x,z)=>built.chunks.get(chunkId(x,z))?.root||built.group;
   // Ground cover for the city's greens and the countryside, instanced (ground-cover.js).
   const coverPool=createGroundCoverPool({parent:built.group});
   // The city's green spaces as mini biomes (city-greens.js): themed trees (shared choppable resources, in
@@ -495,7 +496,7 @@ function geltonReady(){
    const water=streamWater.build(list.filter(t=>t.water||t.overWater),(x,z)=>{const n=tileAt(x,z);return !!n&&(n.water||!!n.overWater);},root);
    const cover=coverPool.add(source.cover(list));
    return {dispose(){water.dispose();cover.dispose();}};};
-  const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place,dress,radius:2,keep:1});
+  const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place,dress,radius:1});
   countryside={source,streamer,maps};built.countryside=countryside;
   areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
    arrival:()=>built.crystal?.tile||built.spawn,
@@ -805,7 +806,7 @@ if(__PLAYGROUND__){
  edgeFixtures=playground.createEdgeFixtures({scene,world,pickables,tile:()=>tile,stop:stopAll,moveTo:t=>moveTo(t),occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  carpentryFixture=playground.addCarpentryFixture({world:clearingTiles,currentWorld:world,scene:clearingGroup,pickables,clearingObjects});
  playground.addFishingFixture({world:clearingTiles,scene:clearingGroup,fishingSpots,clearingObjects});
- // Streaming test (playground only): a generated 512 × 512 world streamed in 16 × 16 chunks through the
+ // Streaming test (playground only): a generated 512 × 512 world streamed in chunks (world-grid.js) through the
  // shared chunk streamer. Created on first use; dynamic imports keep it out of the normal build.
  let streamSandbox=null;
  async function streamSandboxReady(){
@@ -930,9 +931,9 @@ if(__PLAYGROUND__){
   // spots, the chunk outlines, and streaming stats.
   async countrysideJump(place){
    const built=await geltonReady();if(areas.id!=='gelton')await playgroundApi.enterCapital();
-   const {source,streamer}=built.countryside,size=built.data.size[0];
+   const {source,streamer}=built.countryside,size=built.data.size[0],gate=side=>built.data.gates.find(g=>g.side===side),eastMid=gate('east').from+1;
    const spots={'west-road':[-source.roads.find(r=>r.side==='west').length+3,Math.round(source.roads.find(r=>r.side==='west').mid)],lake:[Math.round(source.lake.x),Math.round(source.lake.z+source.lake.r+3)],
-    bridge:[Math.round(source.riverX(71))-4,71],'west-gate':[5,74],'south-gate':[67,121],ruins:[size-26,-26],'south-road':[Math.round(size/2),size+40],hills:[size+20,-40],woods:[-30,110],pond:[Math.round(source.pond.x),Math.round(source.pond.z-source.pond.r-3)]};
+    bridge:[Math.round(source.riverX(eastMid))-4,eastMid],'west-gate':[5,gate('west').to+2],'south-gate':[gate('south').to+2,size-7],ruins:[size-26,-26],'south-road':[Math.round(size/2),size+40],hills:[size+20,-40],woods:[-30,110],pond:[Math.round(source.pond.x),Math.round(source.pond.z-source.pond.r-3)]};
    let [x,z]=Array.isArray(place)?place:spots[place]||[];if(x===undefined)return null;
    streamer.prime(x,z,2);
    for(let r=0;r<8;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const t=world.get(key(x+dx,z+dz));if(t&&!t.blocked&&!t.water&&!characterAt(t)){playgroundApi.teleport(t.x,t.z);return [t.x,t.z];}}
@@ -940,8 +941,8 @@ if(__PLAYGROUND__){
   },
   // City greens (city-greens.js): stand in the biggest mini biome of a kind.
   async cityBiomeJump(biome){const built=await geltonReady();if(areas.id!=='gelton')await playgroundApi.enterCapital();
-   const region=(built.greens?.regions||[]).filter(r=>r.biome===biome).sort((a,b)=>b.tiles.length-a.tiles.length)[0];if(!region)return null;
-   const free=region.tiles.filter(t=>!t.blocked),mid=free[Math.floor(free.length/2)];return mid&&playgroundApi.teleport(mid.x,mid.z)?[mid.x,mid.z]:null;},
+   const patch=(built.greens?.patches||[]).filter(r=>r.biome===biome).sort((a,b)=>b.tiles.length-a.tiles.length)[0];if(!patch)return null;
+   const free=patch.tiles.filter(t=>!t.blocked),mid=free[Math.floor(free.length/2)];return mid&&playgroundApi.teleport(mid.x,mid.z)?[mid.x,mid.z]:null;},
   countrysideSpots:['west-gate','south-gate','west-road','lake','pond','bridge','ruins','hills','woods','south-road'],
   get countrysideStats(){const c=gelton?.countryside;return c?{...c.streamer.stats,radius:c.streamer.radius}:null;},
   countrysideBounds(on){const c=gelton?.countryside;if(!c)return false;c.streamer.showBounds=on;return true;},

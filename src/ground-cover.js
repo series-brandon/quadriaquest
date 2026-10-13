@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {cachedMergedMesh,sharedVertexColorMaterial} from './merged-model.js';
+import {chunkId} from './world-grid.js';
 
 // Ground cover (docs/WORLD.md, Green spaces): small decoration nobody clicks or bumps into: flower
 // clumps in several colours, grass tufts, ferns, mushrooms, reeds, lily pads, shrubs and pebbles. Each
@@ -65,9 +66,9 @@ let coverMaterial=null;
 
 // Fixed ground cover (a city's greens) that follows a map's chunk streaming: each chunk's share is in the
 // pool only while that chunk is shown. sync(shown(id)) after the shown chunks change; ids are "cx,cz".
-export function chunkedCover(pool,items,size=16){
+export function chunkedCover(pool,items){
  const shares=new Map();
- for(const it of items){const id=`${Math.floor(it.x/size)},${Math.floor(it.z/size)}`;if(!shares.has(id))shares.set(id,{items:[],handle:null});shares.get(id).items.push(it);}
+ for(const it of items){const id=chunkId(it.x,it.z);if(!shares.has(id))shares.set(id,{items:[],handle:null});shares.get(id).items.push(it);}
  return {
   sync(shown){for(const [id,share] of shares){const on=!!shown(id);if(on&&!share.handle)share.handle=pool.add(share.items);else if(!on&&share.handle){share.handle.dispose();share.handle=null;}}},
   get shownChunks(){return [...shares].filter(([,s])=>s.handle).map(([id])=>id);},

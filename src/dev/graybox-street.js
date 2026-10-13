@@ -55,7 +55,9 @@ export const BUILDINGS=[
  {name:'terrace house (6×6)',kind:'house',x0:20,z0:12,x1:25,z1:17,door:'25,14,e'},
  {name:'terrace house (4×4)',kind:'house',x0:14,z0:13,x1:17,z1:16,door:'17,14,e'},
  {name:'guild hall (8×8, two storeys)',kind:'shell',storeys:2,x0:35,z0:11,x1:42,z1:18,door:'35,14,w'},
- {name:'castle keep',kind:'shell',storeys:3,x0:24,z0:2,x1:36,z1:7,door:'30,7,s'},
+ // The keep in two wings meeting on the chunk line at x = 32 (a building fits inside one chunk; docs/WORLD.md).
+ {name:'castle keep',kind:'shell',storeys:3,x0:24,z0:2,x1:31,z1:7,door:'30,7,s'},
+ {name:'castle keep (east wing)',kind:'shell',storeys:3,x0:32,z0:2,x1:36,z1:7},
  {name:'castle tower',kind:'shell',storeys:4,x0:21,z0:1,x1:23,z1:3},
  {name:'castle tower',kind:'shell',storeys:4,x0:37,z0:1,x1:39,z1:3},
  {name:'castle tower',kind:'shell',storeys:4,x0:21,z0:6,x1:23,z1:8},
@@ -78,7 +80,7 @@ export function kitDescription(b,i){
  if(b.door){const [x,z,side]=b.door.split(','),edge=SIDE_NAMES[side];doors.push({edge,at:edge==='north'?x-b.x0:edge==='east'?z-b.z0:edge==='south'?b.x1-x:b.z1-z});}
  const ring=b.name.startsWith('square '),castle=b.name.startsWith('castle'),tower=b.name==='castle tower';
  const style=castle||b.name.startsWith('terrace')||b.name.startsWith('guild')?'stone':i>=17&&i<=22?'brick':'timber';
- const roof=tower?'cone':b.name==='castle keep'?'flat':b.kind==='shell'||(b.storeys||1)>=3?'hip':i%3===2?'hip':'gable';
+ const roof=tower?'cone':b.name.startsWith('castle keep')?'flat':b.kind==='shell'||(b.storeys||1)>=3?'hip':i%3===2?'hip':'gable';
  const trade=ring&&i%2===0?SHOP_USES[(i/2)%SHOP_USES.length]:null,shop=trade?{icon:USE_ICONS[trade]||'star',edge:doors[0].edge}:null;
  return {name:b.name,footprint:[w,d],storeys:b.storeys||1,roof,style,doors,windows:tower?'none':'auto',chimney:!castle&&b.kind==='house',
   sign:shop,awning:shop?'striped':null,interior:b.kind==='shell'?'none':'inPlace',use:trade||(b.kind==='shell'?'none':'home'),seed:i*7+3,roofColor:b.name.startsWith('guild')?'#7a4a8c':undefined};

@@ -1,6 +1,6 @@
 import {h,mount} from '../ui/dom.js';
 import {keyedList} from '../ui/list.js';
-import {segmented} from '../ui/controls.js';
+import {segmented,toggleSwitch} from '../ui/controls.js';
 import {signal,computed} from '../reactive.js';
 import {createCityData,cityHeight,setCityHeight,setCitySurface,SURFACE_NAMES} from '../city-map.js';
 import {cityProblems} from '../city-checks.js';
@@ -8,6 +8,8 @@ import {planBuilding,BUILDING_PRESETS} from '../building-kit.js';
 import {PROPS,PROP_KINDS,propFootprint} from '../props.js';
 import {USE_NAMES,USE_ICONS} from '../furnish.js';
 import {DIRS} from '../city-terrain.js';
+import {CHUNK,withinChunk} from '../world-grid.js';
+import {createGridOverlay} from './grid-overlay.js';
 import {kitStreetData} from './kit-street.js';
 import {propGalleryData} from './prop-gallery.js';
 import './city-editor.css';
@@ -18,7 +20,8 @@ import './city-editor.css';
 //  - tools: inspect, raise/lower height (half blocks), paint surface, place a building (kit preset,
 //    rotation), place a prop, lay stairs, draw an edge by hand, erase, set the arrival tile;
 //  - Edit / Play: Play is a test walk in place (clicks move you as in the game); Reset rebuilds;
-//  - live checks (city-checks.js), each a button that takes you to the problem;
+//  - live checks (city-checks.js), each a button that takes you to the problem; chunk and region lines
+//    shown on the ground (a building must fit inside one chunk; placing one across a line is refused);
 //  - undo / redo, save to the repo (dev server endpoint), copy and download the JSON.
 // host (main.js playground API): editCity(data, {keepPlayer}) → built city, setTileClick(fn|null),
 // teleport(x, z), toast(text).
@@ -35,16 +38,19 @@ export function createCityEditor(host){
  let view=null,data=null,built=null;
  const tool=signal('inspect'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
  const options={use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
- const undo=[],redo=[],history=signal({undo:0,redo:0});
- const rebuild=async({keepPlayer=true}={})=>{built=await host.editCity(data,{keepPlayer});problems.value=cityProblems(data,built);revision.value++;};
+ const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
+ let overlay=null;
+ const showGrid=()=>{overlay?.dispose();overlay=grid.peek()&&built?createGridOverlay({tiles:built.tiles,parent:built.group}):null;};
+ const rebuild=async({keepPlayer=true}={})=>{built=await host.editCity(data,{keepPlayer});problems.value=cityProblems(data,built);showGrid();revision.value++;};
  const snapshot=()=>{undo.push(JSON.stringify(data));if(undo.length>60)undo.shift();redo.length=0;history.value={undo:undo.length,redo:0};};
- async function change(apply){const before=JSON.stringify(data);snapshot();try{apply();}catch(error){data=JSON.parse(before);undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return;}await rebuild();}
+ async function change(apply){const before=JSON.stringify(data);snapshot();try{apply();}catch(error){data=JSON.parse(before);undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return false;}await rebuild();return true;}
  const at=(x,z)=>built?.tiles.get(`${x},${z}`);
  const covers=(entry,x,z,kind)=>{try{if(kind==='building')return planBuilding(entry.desc,[entry.x,entry.z]).tiles.some(([a,b])=>a===x&&b===z);const [w,d]=propFootprint(entry.kind,entry.rotation||0);return x>=entry.x&&x<entry.x+w&&z>=entry.z&&z<entry.z+d;}catch{return false;}};
  function describe(x,z){const t=at(x,z);if(!t)return `${x},${z}: off the map`;
   const what=[t.stair?`stairs (${SIDE_LABELS[t.stair.dir]} up)`:null,data.buildings.find(b=>covers(b,x,z,'building'))?.desc.name,(()=>{const p=data.props.find(p=>covers(p,x,z,'prop'));return p&&PROPS[p.kind]?.name;})(),t.blocked?'solid':null].filter(Boolean);
   return `${x},${z} · height ${t.h} · ${t.surface}${what.length?' · '+what.join(', '):''}`;}
  // Placing over a building, a solid prop, stairs or off the map is refused (the checks still catch overlaps in loaded data).
+ const oneChunk=cells=>{const xs=cells.map(c=>c[0]),zs=cells.map(c=>c[1]);if(!withinChunk(Math.min(...xs),Math.min(...zs),Math.max(...xs),Math.max(...zs)))throw Error(`A building must fit inside one ${CHUNK} × ${CHUNK} chunk: this one crosses a chunk line.`);};
  const taken=cells=>{for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);if(t.indoor||t.blocked||t.stair)throw Error(`${a},${b} is taken.`);}};
  function brushTiles(x,z){const r=brush.peek()==='3'?1:0,out=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)out.push([x+dx,z+dz]);return out;}
  // A world click in Edit mode applies the tool; in Play mode the game handles it.
@@ -54,8 +60,8 @@ export function createCityEditor(host){
    case 'inspect':status.value=describe(x,z);break;
    case 'raise':case 'lower':await change(()=>{for(const [a,b] of brushTiles(x,z)){const h=cityHeight(data,a,b);if(h!==null)setCityHeight(data,a,b,h+(tool.peek()==='raise'?.5:-.5));}});status.value=describe(x,z);break;
    case 'surface':await change(()=>{for(const [a,b] of brushTiles(x,z))setCitySurface(data,a,b,o.surface);});break;
-   case 'building':await change(()=>{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};delete desc.name;desc.name=`${BUILDING_PRESETS[o.preset].name} ${data.buildings.length+1}`;taken(planBuilding(desc,[x,z]).tiles);data.buildings.push({x,z,desc});});status.value=`Placed ${BUILDING_PRESETS[o.preset].name} at ${x},${z}.`;break;
-   case 'prop':await change(()=>{const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);taken(cells);data.props.push({kind:o.prop,x,z,rotation});});status.value=`Placed ${PROPS[o.prop].name} at ${x},${z}.`;break;
+   case 'building':if(await change(()=>{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};delete desc.name;desc.name=`${BUILDING_PRESETS[o.preset].name} ${data.buildings.length+1}`;const cells=planBuilding(desc,[x,z]).tiles;oneChunk(cells);taken(cells);data.buildings.push({x,z,desc});}))status.value=`Placed ${BUILDING_PRESETS[o.preset].name} at ${x},${z}.`;break;
+   case 'prop':if(await change(()=>{const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);taken(cells);data.props.push({kind:o.prop,x,z,rotation});}))status.value=`Placed ${PROPS[o.prop].name} at ${x},${z}.`;break;
    case 'stairs':await change(()=>{data.stairs.push({x,z,dir:o.dir,length:+o.length,width:+o.width});});status.value=`Stairs from ${x},${z}, going up ${SIDE_LABELS[o.dir].toLowerCase()}.`;break;
    case 'edge':await change(()=>{const [dx,dz]=DIRS[o.side],b=[x+dx,z+dz],same=e=>[e.a,e.b].map(String).sort().join('|')===[[x,z],b].map(String).sort().join('|');
     data.edges=data.edges.filter(e=>!same(e));if(o.edge!=='none')data.edges.push({a:[x,z],b,kind:o.edge});});break;
@@ -107,6 +113,7 @@ export function createCityEditor(host){
    h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:save}},'Save to repo'),
     h('button',{type:'button',class:'q-button q-button--small',on:{click:async()=>{try{await navigator.clipboard.writeText(json());status.value='Copied the city JSON.';}catch{status.value='Copy failed: use Download.';}}}},'Copy JSON'),
     h('button',{type:'button',class:'q-button q-button--small',on:{click:download}},'Download')),
+   toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}}),
    h('h3',{class:'q-city-editor__title'},'Checks · ',counts),
    keyedList(h('ol',{class:'q-city-editor__checks'}),problems,p=>`${p.kind}:${p.tile.join(',')}:${p.text}`,p=>h('li',null,h('button',{type:'button',class:'q-city-editor__check','data-severity':p.peek().severity,
     on:{click:()=>{const [x,z]=p.peek().tile;const ok=[[0,0],[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1]].some(([dx,dz])=>host.teleport(x+dx,z+dz));status.value=ok?label(p.peek()):`Couldn't stand near ${x},${z}.`;}}},label(p.peek())))));
@@ -114,7 +121,8 @@ export function createCityEditor(host){
  const editor={
   get active(){return !!view;},get data(){return data;},get built(){return built;},get problems(){return problems.peek();},tool,mode,options,brush,
   async open(next=kitStreetData()){if(!view){view=mount(build);document.body.append(view.node);host.setTileClick(tile=>click(tile));}await load(next);return editor;},
-  close(){host.setTileClick(null);view?.dispose();view=null;},
+  close(){host.setTileClick(null);overlay?.dispose();overlay=null;view?.dispose();view=null;},
+  get grid(){return grid.peek();},set grid(v){grid.value=!!v;showGrid();},
   click,undo:()=>step(undo,redo),redo:()=>step(redo,undo),
  };
  return editor;

@@ -1171,80 +1171,80 @@
   },
   "capital-square": {
    "meta": {
-    "updated": "2026-10-12T07:46:07.530Z",
-    "note": "City mini biomes (about 210 themed trees, instanced ground cover), post office, conversational jobs",
+    "updated": "2026-10-12T20:58:10.766Z",
+    "note": "World grid: 32x32 chunks, 128x128 regions, tile-band hysteresis, stepped chunk builds; capital re-centred at 160x160 (178 buildings): more objects in the city group",
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
     "windows": 3,
     "windowMs": 2500,
-    "calibrationMs": 26.499998092651367
+    "calibrationMs": 26.200000762939453
    },
    "summary": {
     "counters": {
-     "draws": 1055.993,
-     "threeDrawCalls": 404.75,
-     "triangles": 604196,
-     "uploadsPerFrame": 0,
-     "uploadKBPerFrame": 0,
+     "draws": 1036.376,
+     "threeDrawCalls": 364,
+     "triangles": 669320,
+     "uploadsPerFrame": 0.04,
+     "uploadKBPerFrame": 0.798,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 109.732,
-     "mutationsPerSec": 3.987,
+     "programSwitchesPerFrame": 76.846,
+     "mutationsPerSec": 3.994,
      "layoutsPerSec": 0,
-     "styleRecalcsPerSec": 3.988,
-     "objects": 8546,
-     "visibleMeshes": 2608,
+     "styleRecalcsPerSec": 3.987,
+     "objects": 11308,
+     "visibleMeshes": 1880,
      "programs": 24,
-     "geometries": 282,
+     "geometries": 230,
      "textures": 7
     },
     "timing": {
-     "frameMs": 5.99,
-     "frameP95": 7.305,
-     "frameMax": 29.175,
+     "frameMs": 5.78,
+     "frameP95": 7.315,
+     "frameMax": 9.955,
      "intervalP95": 16.67,
-     "fps": 59.477,
-     "cpuPercent": 66.441,
-     "gpuMs": 3.734,
-     "scriptMsPerSec": 385.7,
-     "longTasks": 1
+     "fps": 59.536,
+     "cpuPercent": 62.683,
+     "gpuMs": 4.048,
+     "scriptMsPerSec": 368.49,
+     "longTasks": 0
     },
     "sections": {
-     "render": 4.185,
-     "other": 1.002,
-     "world": 0.58,
-     "hover": 0.275,
-     "systems": 0.186,
-     "interface": 0.09,
-     "player": 0.05,
-     "feedback": 0.014
+     "render": 4.042,
+     "other": 0.692,
+     "world": 0.548,
+     "systems": 0.19,
+     "hover": 0.155,
+     "interface": 0.135,
+     "player": 0.051,
+     "feedback": 0.015
     }
    },
    "samples": [
     {
-     "frameMs": 6.029998779296875,
-     "frameP95": 7.490001678466797,
+     "frameMs": 5.779998779296875,
+     "frameP95": 7.409999847412109,
      "intervalP95": 16.670000000000073,
-     "fps": 59.80455874582082,
-     "cpuPercent": 66.44080551140955,
-     "draws": 1087.0266666666666,
-     "gpuMs": 3.751
+     "fps": 59.51299194402729,
+     "cpuPercent": 75.36195671947196,
+     "draws": 1036.3758389261745,
+     "gpuMs": 4.039
     },
     {
-     "frameMs": 5.989997863769531,
-     "frameP95": 7.305000305175781,
+     "frameMs": 5.840000152587891,
+     "frameP95": 7.314998626708984,
      "intervalP95": 16.670000000000073,
-     "fps": 59.47688287060875,
-     "cpuPercent": 76.9675106442937,
-     "draws": 1055.993288590604,
-     "gpuMs": 3.734
+     "fps": 59.53570142429291,
+     "cpuPercent": 62.68267683377022,
+     "draws": 1037.6510067114093,
+     "gpuMs": 4.078
     },
     {
-     "frameMs": 5.770000457763672,
-     "frameP95": 7.215000152587891,
+     "frameMs": 5.3300018310546875,
+     "frameP95": 6.575000762939453,
      "intervalP95": 16.670000000000073,
-     "fps": 57.09186798809211,
-     "cpuPercent": 58.21867019694476,
-     "draws": 1038.2237762237762,
-     "gpuMs": 3.733
+     "fps": 59.536058331492654,
+     "cpuPercent": 53.498932491683334,
+     "draws": 1016.3691275167786,
+     "gpuMs": 4.048
     }
    ],
    "leak": null,
@@ -1258,99 +1258,99 @@
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "city capital": 8500
+     "city capital": 11262
     },
     "byKind": {
      "Mesh/PlaneGeometry/MeshStandardMaterial": 35,
-     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 15,
-     "Mesh/BufferGeometry/MeshBasicMaterial": 88,
-     "Mesh/BufferGeometry/MeshStandardMaterial": 69,
-     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 36,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 19,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 31,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 39,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 45,
      "Mesh/PlaneGeometry/ShaderMaterial": 9,
-     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 1866,
-     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 482,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 1441,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 252,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 4,
      "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 1,
-     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 3,
-     "Mesh/BoxGeometry/MeshBasicMaterial": 4
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 4
     }
    }
   },
   "countryside-walk": {
    "meta": {
-    "updated": "2026-10-12T07:46:07.530Z",
-    "note": "City mini biomes (about 210 themed trees, instanced ground cover), post office, conversational jobs",
+    "updated": "2026-10-12T20:58:10.766Z",
+    "note": "World grid: 32x32 chunks, 128x128 regions, tile-band hysteresis, stepped chunk builds; capital re-centred at 160x160 (178 buildings): more objects in the city group",
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
     "windows": 3,
     "windowMs": 2500,
-    "calibrationMs": 26.499998092651367
+    "calibrationMs": 26.200000762939453
    },
    "summary": {
     "counters": {
-     "draws": 468.322,
-     "threeDrawCalls": 203.1,
-     "triangles": 497628,
-     "uploadsPerFrame": 0.146,
-     "uploadKBPerFrame": 4.794,
+     "draws": 478.765,
+     "threeDrawCalls": 214.44,
+     "triangles": 434422,
+     "uploadsPerFrame": 0.282,
+     "uploadKBPerFrame": 1.028,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 46.134,
-     "mutationsPerSec": 3.948,
+     "programSwitchesPerFrame": 32.436,
+     "mutationsPerSec": 3.595,
      "layoutsPerSec": 0,
-     "styleRecalcsPerSec": 3.99,
-     "objects": 10566,
-     "visibleMeshes": 1203,
+     "styleRecalcsPerSec": 3.987,
+     "objects": 13843,
+     "visibleMeshes": 1196,
      "programs": 27,
-     "geometries": 280,
+     "geometries": 271,
      "textures": 4
     },
     "timing": {
-     "frameMs": 4.24,
-     "frameP95": 5.415,
-     "frameMax": 16.39,
+     "frameMs": 5.26,
+     "frameP95": 6.795,
+     "frameMax": 20.89,
      "intervalP95": 16.67,
-     "fps": 59.516,
-     "cpuPercent": 55.905,
-     "gpuMs": 3.093,
-     "scriptMsPerSec": 276.282,
+     "fps": 59.522,
+     "cpuPercent": 59.812,
+     "gpuMs": 3.221,
+     "scriptMsPerSec": 339.898,
      "longTasks": 0
     },
     "sections": {
-     "render": 3.169,
-     "other": 0.463,
-     "world": 0.431,
-     "systems": 0.165,
-     "hover": 0.12,
-     "interface": 0.119,
-     "player": 0.057,
-     "feedback": 0.014
+     "render": 3.607,
+     "systems": 0.639,
+     "other": 0.485,
+     "world": 0.433,
+     "interface": 0.18,
+     "hover": 0.076,
+     "player": 0.062,
+     "feedback": 0.012
     }
    },
    "samples": [
     {
-     "frameMs": 4.645000457763672,
-     "frameP95": 6.354999542236328,
+     "frameMs": 5.4850006103515625,
+     "frameP95": 7.465003967285156,
      "intervalP95": 16.670000000000073,
-     "fps": 59.6118126064408,
-     "cpuPercent": 55.90478273782359,
-     "draws": 517.4900662251656,
-     "gpuMs": 3.147
+     "fps": 59.1439997260138,
+     "cpuPercent": 60.359970293426514,
+     "draws": 483.48993288590606,
+     "gpuMs": 3.221
     },
     {
-     "frameMs": 4.239997863769531,
-     "frameP95": 5.415000915527344,
+     "frameMs": 5.260002136230469,
+     "frameP95": 6.795001983642578,
      "intervalP95": 16.670000000000073,
-     "fps": 59.516082287648686,
-     "cpuPercent": 53.47231256648757,
-     "draws": 468.32214765100673,
-     "gpuMs": 3.093
+     "fps": 59.521669461191586,
+     "cpuPercent": 59.8122225180158,
+     "draws": 478.76510067114094,
+     "gpuMs": 3.145
     },
     {
-     "frameMs": 4.145000457763672,
-     "frameP95": 5.084999084472656,
+     "frameMs": 5.049999237060547,
+     "frameP95": 6.109996795654297,
      "intervalP95": 16.670000000000073,
-     "fps": 59.503604179388454,
-     "cpuPercent": 57.85429876204539,
-     "draws": 449.6979865771812,
-     "gpuMs": 3.077
+     "fps": 59.557714077531664,
+     "cpuPercent": 49.921425333915764,
+     "draws": 469.7046979865772,
+     "gpuMs": 3.221
     }
    ],
    "leak": null,
@@ -1364,25 +1364,26 @@
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "city capital": 10520
+     "city capital": 13797
     },
     "byKind": {
      "Mesh/PlaneGeometry/MeshStandardMaterial": 9,
-     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 6,
-     "Mesh/BufferGeometry/MeshBasicMaterial": 31,
-     "Mesh/BufferGeometry/MeshStandardMaterial": 39,
-     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 20,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 26,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 13,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 27,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 38,
      "Mesh/PlaneGeometry/MeshBasicMaterial": 1,
      "Sprite/BufferGeometry/SpriteMaterial": 1,
      "Mesh/PlaneGeometry/ShaderMaterial": 9,
-     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 443,
-     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 547,
-     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 4,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 425,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 533,
+     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 16,
      "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 4,
-     "Mesh/BoxGeometry/MeshBasicMaterial": 54,
-     "LineSegments/BufferGeometry/LineBasicMaterial": 20,
-     "Mesh/BufferGeometry/ShaderMaterial": 9,
-     "Mesh/RingGeometry/MeshBasicMaterial": 6
+     "LineSegments/BufferGeometry/LineBasicMaterial": 6,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 61,
+     "Mesh/BufferGeometry/ShaderMaterial": 6,
+     "Mesh/CapsuleGeometry/MeshStandardMaterial/shadow": 12,
+     "Mesh/RingGeometry/MeshBasicMaterial": 9
     }
    }
   }
