@@ -12,13 +12,17 @@ test('a cut building keeps its walls up to one storey above their base, nothing 
  assert.equal(isCut(1+CUT_HEIGHT-.05,[3,-1,1],[3]),false,'the ground storey stays');
  assert.equal(isCut(1+CUT_HEIGHT+.2,[3,-1,1],[3]),true,'above it: cut');
  assert.equal(isCut(4,[7,-1,1],[3]),false,'another building');
- assert.equal(isCut(4,[7,3,1],[3]),true,'a wall shared with the cut building');
+ assert.equal(isCut(4,[7,3,1],[3]),false,'a wall shared with a building that isn’t cut stays whole (no peeking next door)');
+ assert.equal(isCut(4,[7,3,1],[3,7]),true,'a shared wall goes once both its buildings are cut');assert.equal(isCut(4,[7,3,1],[],true),true,'force cutaway cuts shared walls too');
  assert.equal(isCut(4,[7,-1,1],[],true),true,'force cutaway cuts every building');assert.equal(isCut(4,[-1,-1,1],[],true),false,'but not walls of no building');
 });
 test('the building you are in is cut, and so is any building between you and the camera',()=>{
  assert.deepEqual(cutBuildings({player,camera,building:3,boxes:[]}),[3]);
  const front=box(2,2,5,5,1+4.5),behind=box(-6,-6,-3,-3,1+4.5),beside=box(4,-9,8,-5,1+4.5),low=box(2,2,5,5,1+1.5);
  assert.deepEqual(cutBuildings({player,camera,boxes:[[1,front],[2,behind],[3,beside],[4,low]]}),[1],'only the tall building in front');
+ // A terrace goes together: the house you're in, its neighbour and the one past that; a house not joined stays.
+ assert.deepEqual(cutBuildings({player,camera,building:3,boxes:[],links:[[3,5],[5,6],[8,9]]}),[3,5,6],'the whole terrace, not the next one');
+ assert.deepEqual(cutBuildings({player,camera,boxes:[[1,front],[2,behind]],links:[[1,7]]}),[1,7],'a building cut for blocking the view takes its terrace too');
  assert.ok(segmentHitsBox({x:0,y:0,z:0},{x:10,y:10,z:10},{min:{x:4,y:4,z:4},max:{x:5,y:5,z:5}}));
  assert.ok(!segmentHitsBox({x:0,y:0,z:0},{x:10,y:10,z:10},{min:{x:4,y:6,z:4},max:{x:5,y:7,z:5}}));
 });

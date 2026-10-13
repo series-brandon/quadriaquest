@@ -122,18 +122,21 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
  function remove(a,b){const k=id(a,b),item=placed.get(k);if(!item)return;unbake();boxesDirty=true;placed.delete(k);drop(item);}
  // Building boxes for the cutaway's line-of-sight test, from every edge each building owns plus its
  // extra parts; recomputed only after changes.
- let boxesDirty=true,boxes=new Map();const cutParts=[];
+ let boxesDirty=true,boxes=new Map(),links=[];const cutParts=[];
  function grow(id,x0,z0,x1,z1,base,top){if(id<0)return;const b=boxes.get(id);if(!b){boxes.set(id,{x0,z0,x1,z1,base,top});return;}
   b.x0=Math.min(b.x0,x0);b.z0=Math.min(b.z0,z0);b.x1=Math.max(b.x1,x1);b.z1=Math.max(b.z1,z1);b.base=Math.min(b.base,base);b.top=Math.max(b.top,top);}
  function buildingBoxes(){
   if(!boxesDirty)return boxes;boxesDirty=false;boxes=new Map();
+  links=[...placed.values()].filter(p=>p.owners[0]>=0&&p.owners[1]>=0).map(p=>p.owners);
   for(const p of placed.values()){const place=edgePlacement(p.a,p.b,p.storeys||1);for(const o of p.owners)grow(o,place.x-.5,place.z-.5,place.x+.5,place.z+.5,place.y,place.y+place.height);}
   root.updateWorldMatrix(true,true);
   for(const {object,owners,box} of cutParts){const b=box||new Box3().setFromObject(object);if(b.isEmpty())continue;for(const o of owners)grow(o,b.min.x,b.min.z,b.max.x,b.max.z,b.min.y,b.max.y);}
   return boxes;
  }
  // cutaway: false for previews (the model viewer), which cut by hand.
- const unregister=!cutaway?()=>{}:registerCutSource({root,boxes:()=>buildingBoxes().entries(),
+ // links: buildings joined by a shared wall ([a, b] pairs, kept with the boxes), so the cutaway cuts a
+ // whole terrace together.
+ const unregister=!cutaway?()=>{}:registerCutSource({root,boxes:()=>buildingBoxes().entries(),links:()=>{buildingBoxes();return links;},
   parts:()=>[...[...placed.values()].filter(p=>p.door).map(p=>({object:p.door.model.upper,owners:p.owners})),...cutParts]});
  // Baking merges every static piece and post (not doors) into one vertex-coloured mesh, and glass into
  // one see-through mesh: a street of hundreds of wall pieces draws in a few calls. Each vertex keeps its
