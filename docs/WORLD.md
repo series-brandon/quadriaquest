@@ -9,10 +9,42 @@ Draft, 2026-10-11. This doc covers the open world outside cities: how it connect
 - **A ring around Gelton first**, about 64 tiles deep on every side (about 256 × 256 with the city).
 - **A few enemies, away from the roads.** Mostly passive near roads, so pacifists can avoid them.
 
+**User decisions (2026-10-12):**
+- **The client and the server use the same names for the same slices of the world** (the glossary below).
+- **The target world is 2,048 × 2,048 tiles**: 16 × 16 regions, 64 × 64 chunks.
+- **Chunks are 32 × 32 and regions 128 × 128.** They were 16 × 16 and 64 × 64. Bigger chunks let a large building (a keep) fit inside one, and mean fewer draws. A player sees a 96 × 96 area, close to the ~104 × 104 scene Old School RuneScape loads around a player.
+- **Buildings may not cross chunk or region lines** (*Design constraints*).
+- **The capital was re-centred at 160 × 160** so its axis (avenue, square, keep) runs down the middle of a chunk.
+
+## Glossary
+
+The world is one grid, defined in `src/world-grid.js` (no DOM or three.js, so the client, a future server, the editor and the checks all share it). Each size divides the next, so every region line is also a chunk line.
+
+| Term | Size | What it is the unit of (client and server alike) |
+|---|---|---|
+| **Tile** | 1 × 1 | Movement, occupancy, interaction. |
+| **Chunk** | 32 × 32 tiles (`CHUNK`) | Activity: client streaming and rendering, server interest (a client subscribes to the chunks near its player and gets their changes), and waking the simulation near players. |
+| **Region** | 128 × 128 tiles, 4 × 4 chunks (`REGION`) | Ownership and storage: map data files, persistence documents, and which server process owns which part of the world. City terrain is stored per region (`city-map.js`). |
+| **World** | 2,048 × 2,048 tiles (`WORLD`) | The whole grid. Ids and positions are world coordinates. |
+
+Ids are `"cx,cz"` for chunks and `"rx,rz"` for regions (`chunkId`, `regionId`). Words that are not grid sizes:
+- **Area:** an authored place that owns layout and story (Gelton, Willowbank; AGENTS.md). It covers some set of regions.
+- **Interior:** a separate space entered through a door (CITY.md).
+- **Shard:** one running copy of the world for a set of players ("World 1", "World 2"). "World" always means the map.
+- **Patch:** a connected piece of a city's grass, themed as a mini biome (`city-greens.js`).
+- **Cloud region:** a data-centre location such as us-central1. Always written in full.
+
+## Design constraints
+
+These keep rendering, streaming, storage and a future server simple. The city checks enforce the first; the rest are rules for new code.
+
+1. **A building fits inside one chunk.** It may not cross a chunk line (and so not a region line either), so it streams, draws, cuts away and is stored whole with its chunk. The largest building is 32 × 32. The city checks report a crossing as an error, and the city editor refuses to place one (its *Chunk and region lines* switch shows the lines). A layout that needs something bigger splits it into separate buildings.
+2. **Areas line up with the grid.** An area's origin is a region corner and its extent ends on chunk lines, so its chunks and regions are the world's. Gelton's city starts at 0; its countryside runs two chunks beyond it (−64 to 223).
+
 ## How it fits together
 
-- **One area.** Gelton's area (`main.js` `geltonReady`) is the city plus its countryside. The city is built per 16 × 16 chunk from `src/maps/capital.json` and shown around the player. The countryside (`countryside.js`) is a chunk-streamer source (`chunk-streamer.js`). It is loaded within 2 chunks of the player, released past a band of one more, and keeps state by stable id. Countryside tiles stream into the area's tile map, and into the live world map while Gelton is active, so pathfinding, picking, the minimap and occupancy see one world.
-- **Coordinates.** The city keeps its own tile coordinates (0–127). The countryside surrounds it, from −64 to 191 on both axes. The source returns no tiles inside the city, so the city's own tiles, walls and buildings are used there.
+- **One area.** Gelton's area (`main.js` `geltonReady`) is the city plus its countryside. The city is built per chunk from `src/maps/capital.json` and shown around the player. The countryside (`countryside.js`) is a chunk-streamer source (`chunk-streamer.js`). It is loaded within 1 chunk of the player (3 × 3 chunks, building each across frames), released once the player is more than 8 tiles past that (`BAND`), and keeps state by stable id. Countryside tiles stream into the area's tile map, and into the live world map while Gelton is active, so pathfinding, picking, the minimap and occupancy see one world.
+- **Coordinates.** The city keeps its own tile coordinates (0–159). The countryside surrounds it, from −64 to 223 on both axes. The source returns no tiles inside the city, so the city's own tiles, walls and buildings are used there.
 - **The wall and gateways.** See *City walls* below. Map data `gates` lists the gateways (west and east on the main street, south on the avenue), and the countryside's roads start at them, with a signpost outside each.
 
 ## The land (`countryside.js`)

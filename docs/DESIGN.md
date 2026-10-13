@@ -310,6 +310,8 @@ Findings:
 
 Sizes considered: Old School RuneScape uses 8 × 8-tile zones and 64 × 64-tile regions (8 × 8 zones) as its map storage unit, and rebuilds a ~104 × 104 scene when the player nears its edge. Our 16 × 16 chunks sit between those and are built incrementally instead. When the world becomes authored, saved content, **64 × 64 regions are a sensible storage unit** (they divide evenly into 16 × 16 chunks); drawing 8 × 8 pieces individually would cost more draw calls than it saves.
 
+**Update (2026-10-12):** chunks are now **32 × 32** and regions **128 × 128** (`src/world-grid.js`; names, sizes and design constraints in [WORLD.md](WORLD.md), *Glossary*). Streaming runs at radius 1 (3 × 3 chunks, 96 × 96 tiles, about OSRS's scene), with the same 32-tile guaranteed view ahead as 16-tile chunks at radius 2 and fewer draws; hysteresis is a band of 8 tiles rather than a ring of chunks. A 32-tile chunk is about four times the work to build, so the streamer builds it in steps across frames within its budget. The figures above are from the 16-tile prototype.
+
 Next steps for the prototype: enemies and NPCs streaming with their chunk (with the simulation-sleep policy below), crystal travel landing in a streamed area, and a perf scenario that walks across chunk borders.
 
 ### Shared infrastructure requirements for streaming

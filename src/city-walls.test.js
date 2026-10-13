@@ -9,17 +9,17 @@ import {wallPlan,THICKNESS,HEIGHT,WALL_IDS,cityGateModel} from './city-walls.js'
 import {key,canStep} from './world.js';
 
 const data=JSON.parse(readFileSync(new URL('./maps/capital.json',import.meta.url)));
-const city=buildCity(structuredClone(data),{scene:new THREE.Group()}),t=(x,z)=>city.tiles.get(key(x,z));
+const city=buildCity(structuredClone(data),{scene:new THREE.Group()}),t=(x,z)=>city.tiles.get(key(x,z)),N=data.size[0]-1;
 
 test('the wall is three tiles of solid stone around the city, open only at the gateways',()=>{
  assert.equal(data.walls.thickness,THICKNESS);
- for(const [x,z] of [[0,40],[2,40],[60,0],[60,2],[127,30],[30,127]])assert.ok(t(x,z).blocked&&t(x,z).blocksSight,`${x},${z} is wall`);
+ for(const [x,z] of [[0,40],[2,40],[60,0],[60,2],[N,30],[30,N]])assert.ok(t(x,z).blocked&&t(x,z).blocksSight,`${x},${z} is wall`);
  assert.ok(!t(3,40).blocked,'inside the wall is clear');
- for(const g of data.gates)for(let i=g.from;i<=g.to;i++)for(let d=0;d<THICKNESS;d++){const [x,z]=g.side==='west'?[d,i]:g.side==='east'?[127-d,i]:[i,127-d];assert.ok(!t(x,z).blocked,`${g.side} passage ${x},${z} open`);}
- const plan=wallPlan({size:128,gates:data.gates});assert.equal(plan.towers.length,4);
+ for(const g of data.gates)for(let i=g.from;i<=g.to;i++)for(let d=0;d<THICKNESS;d++){const [x,z]=g.side==='west'?[d,i]:g.side==='east'?[N-d,i]:[i,N-d];assert.ok(!t(x,z).blocked,`${g.side} passage ${x},${z} open`);}
+ const plan=wallPlan({size:N+1,gates:data.gates});assert.equal(plan.towers.length,4);
 });
 test('the double doors close a gateway like a door and open again',()=>{
- const west=city.walls.gates.find(g=>g.tile.x<=2),[a,b]=[t(1,71),t(0,71)];
+ const west=city.walls.gates.find(g=>g.tile.x<=2),mid=data.gates.find(g=>g.side==='west').from+1,[a,b]=[t(1,mid),t(0,mid)];
  assert.ok(west.open,'open by default');assert.ok(canStep(a,b));
  west.interact();assert.equal(west.open,false);assert.ok(!canStep(a,b),'closed: blocked');
  west.interact();assert.ok(canStep(a,b));

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {applyCutaway,registerCutSource,sectionMaterial,isBuildingCut} from './cutaway.js';
 import {setEdge,edgeBetween} from './world.js';
+import {CHUNK} from './world-grid.js';
 
 // City walls (docs/WORLD.md, City walls): a castle curtain wall around a city's square footprint, the
 // keep's look at city scale. Thick (THICKNESS tiles, room for slime guards to walk the top) and tall
@@ -139,7 +140,7 @@ export function buildCityWalls({plan,tileAt,chunkRoot,root,pickables=[],sound=()
    // The walkway along this stretch, for sentries (wall-sentries.js): tile centres from…to along `fixed`.
    if(b-a>2)walkways.push({side,horizontal:info.horizontal,fixed:info.fixed,outward:info.outward,from:Math.ceil(a+.5),to:Math.floor(b-.5),y:base+HEIGHT+.08});
    // Split at chunk borders so each piece lives in, streams with and cuts with its chunk.
-   while(b-a>.01){const c=Math.min(b,(Math.floor((a+.5)/16)+1)*16-.5),half=(c-a)/2;place(side,a,c,runParts(-half,half,1),HEIGHT+.9);a=c;}
+   while(b-a>.01){const c=Math.min(b,(Math.floor((a+.5)/CHUNK)+1)*CHUNK-.5),half=(c-a)/2;place(side,a,c,runParts(-half,half,1),HEIGHT+.9);a=c;}
   }
  }
  for(const t of towers){const at={x:Math.round(t.x),z:Math.round(t.z)};addPiece(towerParts().map(p=>({...p,position:[p.position[0]+t.x-at.x,p.position[1],p.position[2]+t.z-at.z]})),{x0:Math.floor(t.x-TOWER_RADIUS),z0:Math.floor(t.z-TOWER_RADIUS),x1:Math.ceil(t.x+TOWER_RADIUS),z1:Math.ceil(t.z+TOWER_RADIUS),top:TOWER_HEIGHT+.6},at);}

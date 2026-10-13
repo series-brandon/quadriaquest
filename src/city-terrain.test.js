@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {layStairs,railingEdges,retainingDrop,stairProblems,makeCityTile,surfaceColor} from './city-terrain.js';
 import {createProp,PROPS,PROP_KINDS,rotateOffset,rotateSide,propModel,seatPosition,SEAT_BACK} from './props.js';
-import {createCityData,setCityHeight,cityHeight,citySurface,setCitySurface,cityTiles,fillCity,buildCity,REGION} from './city-map.js';
+import {createCityData,setCityHeight,cityHeight,citySurface,setCitySurface,cityTiles,fillCity,buildCity} from './city-map.js';
+import {REGION} from './world-grid.js';
 import {findPath,key,canStep,edgeBetween} from './world.js';
 import {kitStreetData,KIT_ANNEX} from './dev/kit-street.js';
 
@@ -40,9 +41,9 @@ test('props: footprints rotate with their spots, block their tiles, and interact
  const hedge=createProp('hedge',{origin:[0,7],tileAt:t,parent:scene});assert.ok(t(0,7).blocksSight);hedge.dispose();assert.ok(!t(0,7).blocked&&!t(0,7).blocksSight);
  for(const kind of PROP_KINDS){const g=propModel(kind);g.updateMatrixWorld(true);let n=0;g.traverse(o=>{if(o.isMesh)n++;});assert.ok(n>0,kind);assert.ok(PROPS[kind].footprint.length===2);}
 });
-test('city data stores terrain per tile in 64 × 64 regions and builds live tiles',()=>{
- const data=createCityData({size:[70,10]});assert.equal(Object.keys(data.regions).length,2);assert.equal(data.regions['0,0'].heights.length,REGION);
- setCityHeight(data,65,3,2.5);setCitySurface(data,65,3,'cobble');assert.equal(cityHeight(data,65,3),2.5);assert.equal(citySurface(data,65,3),'cobble');assert.equal(cityHeight(data,64,3),1);
+test('city data stores terrain per tile by region and builds live tiles',()=>{
+ const R=REGION,data=createCityData({size:[R+6,10]});assert.equal(Object.keys(data.regions).length,2);assert.equal(data.regions['0,0'].heights.length,REGION);
+ setCityHeight(data,R+1,3,2.5);setCitySurface(data,R+1,3,'cobble');assert.equal(cityHeight(data,R+1,3),2.5);assert.equal(citySurface(data,R+1,3),'cobble');assert.equal(cityHeight(data,R,3),1);
  fillCity(data,{x0:0,z0:0,x1:2,z1:2},{h:2,surface:'plaza'});const tiles=cityTiles(data);assert.equal(tiles.get(key(1,1)).h,2);assert.equal(tiles.get(key(1,1)).surface,'plaza');
  assert.equal(JSON.parse(JSON.stringify(data)).regions['1,0'].surfaces[3][1],'c','plain JSON');
 });

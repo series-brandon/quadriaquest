@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {createCityData,fillCity,buildCity} from './city-map.js';
 import {cityProblems} from './city-checks.js';
 import {kitStreetData} from './dev/kit-street.js';
+import {CHUNK} from './world-grid.js';
 
 const kinds=problems=>[...new Set(problems.map(p=>p.kind))].sort();
 const check=data=>cityProblems(data,buildCity(data,{scene:new THREE.Group()}));
@@ -11,6 +12,13 @@ test('a clean little city has no errors',()=>{
  const data=createCityData({size:[20,16]});data.spawn=[10,12];
  data.buildings.push({x:4,z:4,desc:{name:'cottage',footprint:[3,3],doors:[{edge:'south',at:1}]}});
  assert.deepEqual(check(data).filter(p=>p.severity==='error'),[]);
+});
+test('a building must fit inside one chunk: crossing a chunk or region line is an error',()=>{
+ const C=CHUNK,data=createCityData({size:[C*2,20]});data.spawn=[2,18];
+ data.buildings.push({x:C-2,z:4,desc:{name:'straddler',footprint:[4,3],doors:[{edge:'south',at:1}]}});
+ const crossing=check(data).filter(p=>p.kind==='chunks');
+ assert.equal(crossing.length,1);assert.equal(crossing[0].severity,'error');assert.match(crossing[0].text,/straddler crosses a chunk line/);
+ data.buildings[0].x=C;assert.deepEqual(check(data).filter(p=>p.kind==='chunks'),[],'moved wholly into the next chunk');
 });
 test('checks find overlaps, a blocked doorstep, a terrace without stairs and stairs without a landing',()=>{
  const data=createCityData({size:[24,20]});data.spawn=[2,18];

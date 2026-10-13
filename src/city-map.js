@@ -12,16 +12,16 @@ import {doorSound} from './doors.js';
 import {furnishRoom,roomOfPlan,furnishingUse} from './furnish.js';
 import {makeCrystal} from './crystal-model.js';
 import {key} from './world.js';
+import {CHUNK,REGION,BAND,chunkId,regionId,chunkGap} from './world-grid.js';
 
 // Cities as data (docs/CITY.md, Authoring and Streaming; city Phases 5, 6 and 9). A city is a plain
 // object the editor edits and the repo stores, built by the shared builders:
 //   {id, name, size:[w, d], style, spawn:[x, z], crystal:[x, z],
-//    regions: {'rx,rz': {heights:[64 strings], surfaces:[64 strings]}},   // terrain, 64 × 64 per region
+//    regions: {'rx,rz': {heights:[REGION strings], surfaces:[REGION strings]}},   // terrain per region
 //    stairs:[{x, z, dir, length, width}], buildings:[{x, z, desc}], props:[{kind, x, z, rotation}],
 //    edges:[{a:[x, z], b:[x, z], kind}], townsfolk:[…], interiors:{…}}
-// Terrain is stored per tile in 64 × 64 regions (docs/DESIGN.md streaming notes): heights in half
+// Terrain is stored per tile by region (world-grid.js REGION; docs/WORLD.md, Glossary): heights in half
 // blocks as one character each ('0' + 2h), surfaces as one letter each.
-export const REGION=64;
 const SURFACE_CODES={grass:'g',dirt:'d',cobble:'c',flagstone:'f',plaza:'p',stone:'s',floor:'o',planks:'k',dungeon:'u'};
 const SURFACE_FROM=Object.fromEntries(Object.entries(SURFACE_CODES).map(([k,v])=>[v,k]));
 const heightChar=h=>String.fromCharCode(48+Math.round(h*2)),charHeight=c=>(c.charCodeAt(0)-48)/2;
@@ -32,7 +32,7 @@ export function createCityData({id='city',name='City',size=[64,64],base=1,surfac
   data.regions[`${rx},${rz}`]={heights:Array.from({length:REGION},()=>heightChar(base).repeat(REGION)),surfaces:Array.from({length:REGION},()=>SURFACE_CODES[surface].repeat(REGION))};
  return data;
 }
-const regionOf=(data,x,z)=>data.regions[`${Math.floor(x/REGION)},${Math.floor(z/REGION)}`];
+const regionOf=(data,x,z)=>data.regions[regionId(x,z)];
 const inside=(data,x,z)=>x>=0&&z>=0&&x<data.size[0]&&z<data.size[1];
 export function cityHeight(data,x,z){if(!inside(data,x,z))return null;const r=regionOf(data,x,z);return charHeight(r.heights[z%REGION][x%REGION]);}
 export function citySurface(data,x,z){if(!inside(data,x,z))return null;const r=regionOf(data,x,z);return SURFACE_FROM[r.surfaces[z%REGION][x%REGION]]||'grass';}
@@ -53,22 +53,22 @@ export function cityTiles(data){
 
 // Builds a city into the scene with the production builders. Returns its tiles, doors, buildings,
 // props, edge features, roofs and spawn, and dispose(). Building ids are their index in data.buildings.
-// Everything is built per chunk (CHUNK tiles square, the streamer's size): terrain, walls (one baked
+// Everything is built per chunk (world-grid.js CHUNK tiles square, the streamer's size): terrain, walls (one baked
 // mesh per chunk), buildings and props go into their chunk's group, so the renderer culls by chunk and
 // stream(tile) shows only the chunks around the player (docs/CITY.md, Streaming and the world). An edge
 // belongs to the chunk of its lower tile, so two buildings in different chunks still share one wall.
-export const CHUNK=16;
 // crystal(tile, parent): places the game's Iter Crystal (crystals.js) instead of a plain model.
 // outside(x, z): the land around the city (countryside.js), so its edge tiles join it without a lip.
-// streamRadius / streamKeep: chunks within the radius show; shown ones stay until past radius + keep (the
-// chunk streamer's rule, so a city and the land streamed around it always match).
-export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=null,streamKeep=0,crystal:placeCrystal=null,outside=null}){
+// streamRadius / streamBand: chunks within the radius show; shown ones stay until the player is more than
+// radius × CHUNK + band tiles from them (the chunk streamer's rule, so a city and the land streamed around
+// it always match).
+export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=null,streamBand=BAND,crystal:placeCrystal=null,outside=null}){
  const group=new THREE.Group();group.name='city '+data.id;group.visible=visible;scene.add(group);
  const map=cityTiles(data),t=(x,z)=>map.get(key(x,z)),tiles=[...map.values()];
  // Townsfolk posted just outside the city (gate guards) stand on the land around it: those tiles join
  // the city's map (not its terrain, which the land draws) so they have somewhere to stand.
  if(outside)for(const f of data.townsfolk||[])if(f.home&&!map.has(key(...f.home))){const o=outside(...f.home);if(o)map.set(key(...f.home),o);}
- const chunks=new Map(),chunkOf=(x,z)=>`${Math.floor(x/CHUNK)},${Math.floor(z/CHUNK)}`;
+ const chunks=new Map(),chunkOf=chunkId;
  function chunk(x,z){const id=chunkOf(x,z);if(!chunks.has(id)){const root=new THREE.Group();root.name='chunk '+id;group.add(root);const [cx,cz]=id.split(',').map(Number);
   chunks.set(id,{id,cx,cz,root,tiles:[],edges:createEdgeFeatures({parent:root,pickables,tileAt:t,style:data.style})});}return chunks.get(id);}
  // An edge lives in the chunk of its lower tile, unless a building placed it: a building's walls live in
@@ -134,15 +134,16 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
  const terrainMap=outside?{get:k=>map.get(k)??outside(...k.split(',').map(Number))}:map;
  for(const c of chunks.values()){if(c.tiles.length)createTerrainBatch({tiles:c.tiles,map:terrainMap,factory:tile=>makeCityTile(tile,terrainMap,{style:'stone'}),parent:c.root,pickables,roughness:.95,batchSize:CHUNK});c.edges.bake();}
  const broken=edges.doorProblems();if(broken.length)console.warn('Door rule: '+broken.map(r=>`${r.door.a.x},${r.door.a.z}: ${r.problems.join('; ')}`).join(' | '));
- let roofsShown=true,streamCenter=null;
+ let roofsShown=true,streamCenter=null,streamTile=null;
  // defineProperties, not Object.assign: assign would copy the getters as fixed values.
  return Object.defineProperties(city,Object.getOwnPropertyDescriptors({group,tiles:map,doors,edges,roofs,buildings,props,furniture,crystal,chunks,walls,spawn:t(...data.spawn)||tiles[0],
   get roofsShown(){return roofsShown;},setRoofs(on){roofsShown=!!on;for(const r of roofs){r.userData.hiddenByMap=!roofsShown;r.visible=roofsShown;}},
   // Shows only the chunks within `radius` chunks of the tile (render streaming; tiles stay resident).
-  stream(tile,radius=streamRadius){if(!tile||radius===null)return;const id=chunkOf(tile.x,tile.z);if(id===streamCenter)return;const first=streamCenter===null;streamCenter=id;const [cx,cz]=id.split(',').map(Number);
+  stream(tile,radius=streamRadius){if(!tile||radius===null)return;const at=`${tile.x},${tile.z}`;if(at===streamTile)return;const first=streamCenter===null;streamTile=at;const id=chunkOf(tile.x,tile.z);streamCenter=id;const [cx,cz]=id.split(',').map(Number);
    const shown=new Set();
    // The first time, only the radius (a fresh city starts with everything shown).
-   for(const c of chunks.values()){const d=Math.max(Math.abs(c.cx-cx),Math.abs(c.cz-cz));if(d<=radius||!first&&c.root.visible&&d<=radius+streamKeep)shown.add(c);}
+   for(const c of chunks.values()){const d=Math.max(Math.abs(c.cx-cx),Math.abs(c.cz-cz));if(d<=radius||!first&&c.root.visible&&chunkGap(c.cx,c.cz,tile.x,tile.z)<=radius*CHUNK+streamBand)shown.add(c);}
+   if([...chunks.values()].every(c=>c.root.visible===shown.has(c)))return;
    for(const c of chunks.values())c.root.visible=shown.has(c);
    // Things kept outside the chunk groups (instanced ground cover) follow the shown chunks.
    city.onStream?.(chunks);},
