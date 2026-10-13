@@ -143,6 +143,54 @@ From a RUN platform developer (Slack, paraphrased):
 
 **Our next step if 2, 3 and 7–9 come back well:** a spike on this branch. One countryside spoke behind the west gate, two clients chopping trees together under Syncplay, to measure how much of our shared gameplay survives deterministic lockstep.
 
+## A seamless world on today's RUN (2026-10-13)
+
+How we'd get closest to the original plan (one open world, no loading screens) using only systems RUN runs today.
+
+**The idea: seamless and shared are separate problems.** Our world is already seamless on the client: tiles, chunks and the countryside are generated and streamed locally (WORLD.md). The server never delivers the world. It shares only what's contested: other players, enemies, depleted resources, ground items and doors. Changing which server room you're in can then happen in the background while you keep walking, and the world never pauses. Other players fade in and out at the edges, like The Division's phasing.
+
+**Which system:** `GameRoom`, not Syncplay or SyncHub.
+- It runs our own JS on the server and can be persistent.
+- `maxPlayers` is set per room type in the game config. Only the default is 10, and the platform has no ceiling of its own (`RoomManager.ts`).
+- It has a server-driven transfer that re-points a player's connection to another room without closing it (`move_player`, `onMoved`; `ADVANCED-MULTIPLAYER.md`, *Server-driven player transfer*).
+- Syncplay makes every client simulate its whole instance and can't hand over part of a world, so it suits closed instances, not open land. SyncHub isn't in production and its raids end after 10 minutes.
+
+**Design:**
+1. **Zone rooms.**
+   - The world is divided into **zones**: sets of whole chunks with borders drawn along natural breaks (walls, rivers, ridges, forest edges).
+   - Each zone is one persistent `GameRoom` running the shared rules for its patch: who's where and doing what, enemy AI, resource depletion and respawn, ground items and doors.
+   - A zone is a multiplayer unit; regions stay the storage unit (WORLD.md, *Glossary*). The capital should be one zone: it spans four regions, with a region line through its eastern streets.
+2. **Background handoff.** When a player crosses a zone border plus the streamer's 8-tile band (`BAND`), the client switches rooms: by server transfer if a room may trigger it, otherwise a quiet leave-and-join. Movement and the land keep running locally throughout, and the new zone's players fade in.
+3. **Almost-stateless rooms.**
+   - Zone state is short-lived anyway (trees regrow in seconds, goblins return after 45 s), so rooms keep nothing durable.
+   - Progression (XP, items, gold, quests) goes through the Simulation API. The room checks an action, such as a successful chop, and grants the reward through `services.simulation`, batched to stay under about 200 calls a minute per user.
+   - This avoids the 1 MiB snapshot limit and the Firestore save problems.
+4. **Versioned room keys:** `persistentKey` = `zone:<id>:v<server version>`. RUN reconnects every socket about every 10 minutes (600 s timeout), so after a deploy everyone drifts into new-version rooms within 10 minutes and the old ones empty and freeze. That avoids ASCII World's "busy room keeps old code" trap without a RUN-side restart.
+5. **Shards per zone.** A zone that fills its cap (around 30) gets a second copy, chosen through the room-matching `criteria`. Parties and friends get pinned to the same copy.
+6. **Doors are the only true instances.** Interiors and dungeons are private rooms or purely local, and later possibly Syncplay raids for group fights. A door is already a natural seam, and it still needs no loading screen.
+7. **Empty zones freeze** and catch up from timestamps (respawns, restocks) when someone arrives.
+
+**How it fits the limits:**
+- **A zone of a few dozen players:**
+  - per-tick updates well under 16 KiB;
+  - kilobytes of state;
+  - a 128 × 128 zone's tiles and navigation comfortably inside the 64 MB heap;
+  - click-to-move at about 0.5 messages a second, against a limit of 30.
+- **The map ships in the server bundle** (rooms can't fetch; bundles are capped at 5 MB). The countryside works because it's generated from a seed. Authored areas need a compact format.
+- **Our gameplay rules must run in the room sandbox:** split from three.js and the DOM, no `performance`, guarded by the sandbox-globals test (*Lessons from ASCII World*). That split is game-logic work, so it belongs on main.
+
+**What we'd still lose:**
+- **Capacity:** 80 connections in total across all of RUN today. That's the ceiling until RUN scales the room server (*Platform asks*, 1).
+- **Seeing across zone borders:** players on the other side are invisible until you cross. Borders along walls, rivers and ridges hide most of it.
+- **Copies when busy:** in a crowded zone, someone standing next to you may be in the other copy. This is the limit RUN's developers described (*RUN's guidance*).
+- **Trust:** progression stays client-trusted until it moves to the Simulation API, and rooms can't check paid items.
+
+**Open questions:**
+- Can a `GameRoom` trigger the connection-preserving `move_player` transfer itself, or only through the Simulation API?
+- How much of our shared code runs in the sandbox without changes?
+
+**Spike:** two countryside zones either side of a gate, one room each. Two clients chop trees, see each other and walk across the line. It measures whether the handoff is invisible, answers both questions, and gives real numbers per zone.
+
 ## Changes since the first review
 
 Re-checked 2026-10-12 at `34aff2694c`. Unchanged unless listed here:
@@ -199,6 +247,6 @@ Their next release went out cleanly with this checklist, which we'll adopt:
 ## Suggested path
 
 1. **Make the game platform-ready:** storage adapter, SDK integration, deploy to RUN unlisted, and measure load and memory on real devices through the SDK heartbeat.
-2. **Multiplayer spike inside the current limits:** start with the sandbox-globals test and run rooms locally against RUN's room server. Then one persistent `GameRoom` for a single area, using the shared JS systems on the server, with several players seeing each other move, gather (shared resource depletion) and fight one enemy. This proves the shared-code architecture and shows us real numbers.
+2. **Multiplayer spike inside the current limits** (the zone spike in *A seamless world on today's RUN*): start with the sandbox-globals test and run rooms locally against RUN's room server. Then one persistent `GameRoom` for a single area, using the shared JS systems on the server, with several players seeing each other move, gather (shared resource depletion) and fight one enemy. This proves the shared-code architecture and shows us real numbers.
 3. **Design the world as regions** (WORLD.md, *Glossary*: 128 × 128 tiles, 4 × 4 chunks) that map to rooms, server processes or SyncHub spokes, joined at chokepoints that can act as airlocks (gates, bridges, passes, caves), plus instanced dungeons. The content plan then works with today's limits, with hub and spoke, and after the platform asks land. Copies of the whole world for more players are **shards**.
 4. **Take the platform asks to the RUN team,** using numbers from the spike.
