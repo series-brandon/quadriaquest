@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "build:dev-logs": "node scripts/build-dev-logs.js",
     "test": "node --test",
     "dev:debug": "vite --mode playground --host 127.0.0.1 --port 5174 --strictPort",
     "build:debug": "vite build --mode playground",
