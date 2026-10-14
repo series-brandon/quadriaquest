@@ -14,6 +14,12 @@ import {DIRS} from '../city-terrain.js';
 import {CHUNK,REGION,withinChunk,chunksAround} from '../world-grid.js';
 import {createGridOverlay,createCellOutline,createBiomeOverlay,createCellFill} from './grid-overlay.js';
 import {BIOME_IDS,biomeRule} from '../biome-rules.js';
+import {TERRAIN_IDS,terrainRule} from '../terrain-rules.js';
+import {ENEMIES} from '../combat-rules.js';
+import {GEAR} from '../equipment.js';
+import {ITEMS} from '../items.js';
+import {ACTIVITIES} from '../townsfolk.js';
+import {enemySize} from '../enemy-entity.js';
 import {townSource,resourceFits,coverId,placedId} from '../town-ground.js';
 import {TREE_SPECIES} from '../tree-models.js';
 import {COVER_KINDS} from '../ground-cover.js';
@@ -53,12 +59,19 @@ const SIDE_LABELS={n:'North',e:'East',s:'South',w:'West'};
 // The shortcut modifier as the platform shows it.
 const MOD=/Mac|iPhone|iPad/.test(globalThis.navigator?.platform||'')?'⌘':'Ctrl';
 // Each biome's colour in the paint overlay (distinct from one another, unlike their ground colours).
-const BIOME_PAINT={river:'#5fb0e8',meadow:'#b8e06a',forest:'#2f8f3f',pines:'#1d5d4b',hills:'#a8875a',coast:'#f0d78c',wetland:'#5f8f7a',sea:'#3a7bd5'};
-const PAINT_TOOLS=['raise','lower','flatten','surface','footprint','biome','nature'],CLOCKWISE={n:'e',e:'s',s:'w',w:'n'},KIND_LABELS={building:'building',prop:'prop',stairs:'stairs',townsfolk:'townsfolk',resource:'resource',cover:'ground cover',crystal:'crystal'};
+const BIOME_PAINT={meadow:'#b8e06a',forest:'#2f8f3f',pines:'#1d5d4b',hills:'#a8875a',coast:'#f0d78c',wetland:'#5f8f7a'};
+// Each terrain's colour in the terrain layer's overlay; 'usual' (unpainted: the biome's own) isn't drawn.
+const TERRAIN_PAINT={plains:'#e8e39a',rolling:'#9cc46a',lakeland:'#5fc0d8',uplands:'#c49a6c',hills:'#8a6a48',highlands:'#4f4038',marsh:'#4f8a76',river:'#3fa0e8',sea:'#2f62c8'};
+const PAINT_TOOLS=['raise','lower','flatten','surface','footprint','biome','nature'],CLOCKWISE={n:'e',e:'s',s:'w',w:'n'},KIND_LABELS={building:'building',prop:'prop',stairs:'stairs',townsfolk:'townsfolk',resource:'resource',cover:'ground cover',crystal:'crystal',enemy:'enemy spawn'};
+// Enemy spawns (docs/TOWN.md, Enemy spawns): respawn choices in seconds.
+// Townsfolk (docs/TOWN.md, Townsfolk tool): what they can wear and hold, and the routine's activities.
+const HEADS=Object.keys(GEAR).filter(id=>GEAR[id].slot==='head'),HANDS=Object.keys(GEAR).filter(id=>GEAR[id].slot==='hand');
+const FOLK_COLOURS=['#9ccf7a','#e0a96d','#9db8e3','#c7b46a','#a4ce77','#8fc9b8','#d9a3c4','#c88d6e'];
+const RESPAWNS=[['30','30 seconds'],['45','45 seconds'],['120','2 minutes'],['300','5 minutes'],['900','15 minutes']];
 // The Nature brush (docs/TOWN.md, Nature by hand): trees by species, resources, ground cover, or clear.
-const NATURE_CHOICES=[['clear','Clear nature'],...Object.entries(TREE_SPECIES).map(([id,t])=>[`tree:${id}`,`${t.name||id} tree`]),
+const NATURE_CHOICES=[['grow','Grow (biome)'],['clear','Clear nature'],['fishing','Fishing spot (on water)'],...Object.entries(TREE_SPECIES).map(([id,t])=>[`tree:${id}`,`${t.name||id} tree`]),
  ...['copper','boulder','sticks','stones','flint'].map(k=>[`resource:${k}`,k[0].toUpperCase()+k.slice(1)]),...COVER_KINDS.filter(k=>k!=='lilyPad').map(k=>[`cover:${k}`,`Cover: ${k}`])];
-const TOOLS=[['inspect','Inspect'],['select','Select'],['footprint','Footprint'],['walls','Walls'],['biome','Biome'],['use','Use'],['reroll','Reroll furniture'],['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['nature','Nature'],['crystal','Crystal'],['surface','Surface'],['building','Building'],['prop','Prop'],['stairs','Stairs'],['edge','Edge'],['erase','Erase'],['spawn','Arrival']];
+const TOOLS=[['inspect','Inspect'],['select','Select'],['footprint','Footprint'],['walls','Walls'],['biome','Biome'],['use','Use'],['reroll','Reroll furniture'],['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['surface','Surface'],['building','Building'],['prop','Prop'],['stairs','Stairs'],['edge','Edge'],['erase','Erase'],['spawn','Arrival']];
 export function cityCatalogue(){
  // The repo's maps first (the overworld), then the playground's.
  const list=Object.entries(repoCities).map(([path,data])=>({id:'repo:'+path,mapId:data.id,name:`${data.name} (src/maps/${path.split('/').pop()})`,make:()=>structuredClone(data)}));
@@ -71,7 +84,7 @@ export function createCityEditor(host){
  const catalogue=cityCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null;
  const tool=signal('inspect'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
  // The footprint being painted: tiles ('x,z'), and the building it reshapes (its index) or null for a new one.
@@ -81,9 +94,10 @@ export function createCityEditor(host){
  const selection=signal(null),moving=signal(false);let placing=null;
  const showDraft=()=>{draftOutline?.dispose();draftOutline=null;const cells=[...draft.peek()].map(id=>id.split(',').map(Number));if(built&&cells.length)draftOutline=createCellOutline({cells,tiles:built.tiles,parent:built.group,color:'#5fe0ff'});};
  const showBiomes=()=>{biomeOverlay?.dispose();biomeOverlay=null;if(!built||!data?.land||tool.peek()!=='biome')return;
-  biomeOverlay=createBiomeOverlay({cells:data.land.cells||{},cell:BIOME_CELL,colors:BIOME_PAINT,heightAt:(x,z)=>at(x,z)?.h,parent:built.group,origin:data.land.origin||[0,0]});};
+  const terrain=options.landLayer.peek()==='terrain';
+  biomeOverlay=createBiomeOverlay({cells:(terrain?data.land.terrain:data.land.cells)||{},cell:BIOME_CELL,colors:terrain?TERRAIN_PAINT:BIOME_PAINT,heightAt:(x,z)=>at(x,z)?.h,parent:built.group,origin:data.land.origin||[0,0],bounds:[0,0,data.size[0]-1,data.size[1]-1]});};
  const showGrid=()=>{overlay?.dispose();overlay=grid.peek()&&built?createGridOverlay({tiles:built.tiles,parent:built.group}):null;};
- const showSelection=()=>{outline?.dispose();outline=null;const sel=selection.peek(),entry=entryOf(sel);if(!built||!entry)return;outline=createCellOutline({cells:cellsOf(sel.kind,entry),tiles:built.tiles,parent:built.group,color:moving.peek()?'#5fe0ff':'#ffe14d'});};
+ const showSelection=()=>{outline?.dispose();outline=null;showPersonSpots();const sel=selection.peek(),entry=entryOf(sel);if(!built||!entry)return;outline=createCellOutline({cells:cellsOf(sel.kind,entry),tiles:built.tiles,parent:built.group,color:moving.peek()?'#5fe0ff':'#ffe14d'});};
  // Checks run a moment after editing stops (they take seconds on the capital).
  const scheduleChecks=(delay=250)=>{clearTimeout(checkTimer);checkTimer=setTimeout(()=>{if(built&&data)problems.value=cityProblems(data,built);},delay);};
  // Rebuilds run one at a time; edits that arrive meanwhile merge into the next one.
@@ -116,7 +130,7 @@ export function createCityEditor(host){
    if(!water&&t.water)throw Error(`${a},${b} is water.`);
    if(!mine.has(`${a},${b}`)&&(t.indoor||t.stair||t.prop||t.blocked&&!t.water))throw Error(`${a},${b} is taken.`);}};
  // Selection: what's at a tile, the tiles a thing covers, and the edits on it.
- const lists=()=>({building:data.buildings,prop:data.props,stairs:data.stairs,townsfolk:data.townsfolk||(data.townsfolk=[]),resource:data.resources||(data.resources=[]),cover:data.cover||(data.cover=[])});
+ const lists=()=>({building:data.buildings,prop:data.props,stairs:data.stairs,townsfolk:data.townsfolk||(data.townsfolk=[]),resource:data.resources||(data.resources=[]),cover:data.cover||(data.cover=[]),fishing:data.fishing||(data.fishing=[]),enemy:data.enemies||(data.enemies=[])});
  function entryOf(sel){if(!sel||!data)return null;if(sel.kind==='crystal')return data.crystal||null;return lists()[sel.kind]?.[sel.index]??null;}
  // Nature on the land (town-ground.js): what grows on a tile, generated or placed, as the streamer sees it.
  const nature=()=>built?.ground?townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data):null;
@@ -128,10 +142,10 @@ export function createCityEditor(host){
   if(!e.placed){removeGrown(e.id);lists()[which].push({kind:e.kind,...e.species?{species:e.species}:{},x,z});}
   return {kind:which,index:lists()[which].findIndex(r=>r.x===x&&r.z===z)};}
  const stairSteps=s=>stairCells(s).slice((s.width||1),-(s.width||1));
- function cellsOf(kind,entry){if(!entry)return [];if(kind==='crystal')return [entry];if(kind==='resource'||kind==='cover')return [[entry.x,entry.z]];if(kind==='building')return planBuilding(entry.desc,[entry.x,entry.z]).tiles;if(kind==='prop')return propCells(entry);if(kind==='stairs')return stairSteps(entry);return entry.home?[entry.home]:[];}
+ function cellsOf(kind,entry){if(!entry)return [];if(kind==='crystal')return [entry];if(kind==='resource'||kind==='cover')return [[entry.x,entry.z]];if(kind==='enemy'){const n=enemySize(entry.enemy),out=[];for(let b=0;b<n;b++)for(let a=0;a<n;a++)out.push([entry.x+a,entry.z+b]);return out;}if(kind==='building')return planBuilding(entry.desc,[entry.x,entry.z]).tiles;if(kind==='prop')return propCells(entry);if(kind==='stairs')return stairSteps(entry);return entry.home?[entry.home]:[];}
  function pickAt(x,z){const hit=(kind,list,test)=>{const index=list.findIndex(test);return index>=0?{kind,index}:null;},on=cells=>cells.some(([a,b])=>a===x&&b===z),l=lists();
-  return hit('townsfolk',l.townsfolk,f=>f.home&&f.home[0]===x&&f.home[1]===z)||(data.crystal&&data.crystal[0]===x&&data.crystal[1]===z?{kind:'crystal',index:0}:null)||hit('building',l.building,b=>on(cellsOf('building',b)))||hit('prop',l.prop,p=>on(propCells(p)))||hit('stairs',l.stairs,s=>on(stairSteps(s)))||hit('resource',l.resource,r=>r.x===x&&r.z===z)||hit('cover',l.cover,c=>c.x===x&&c.z===z);}
- const nameOf=(kind,entry)=>kind==='crystal'?'the Iter Crystal':kind==='resource'?natureName(entry):kind==='cover'?`${entry.kind} (cover)`:kind==='building'?entry.desc.name||'Building':kind==='prop'?PROPS[entry.kind]?.name||entry.kind:kind==='stairs'?`Stairs up ${SIDE_LABELS[entry.dir].toLowerCase()}`:entry.name||entry.id||'Townsfolk';
+  return hit('townsfolk',l.townsfolk,f=>f.home&&f.home[0]===x&&f.home[1]===z)||(data.crystal&&data.crystal[0]===x&&data.crystal[1]===z?{kind:'crystal',index:0}:null)||hit('building',l.building,b=>on(cellsOf('building',b)))||hit('prop',l.prop,p=>on(propCells(p)))||hit('stairs',l.stairs,s=>on(stairSteps(s)))||hit('enemy',l.enemy,e=>on(cellsOf('enemy',e)))||hit('resource',l.resource,r=>r.x===x&&r.z===z)||hit('cover',l.cover,c=>c.x===x&&c.z===z);}
+ const nameOf=(kind,entry)=>kind==='enemy'?`${ENEMIES[entry.enemy]?.name||entry.enemy}${entry.aggressive?' (aggressive)':''}`:kind==='crystal'?'the Iter Crystal':kind==='resource'?natureName(entry):kind==='cover'?`${entry.kind} (cover)`:kind==='building'?entry.desc.name||'Building':kind==='prop'?PROPS[entry.kind]?.name||entry.kind:kind==='stairs'?`Stairs up ${SIDE_LABELS[entry.dir].toLowerCase()}`:entry.name||entry.id||'Townsfolk';
  const anchorOf=(kind,entry)=>kind==='townsfolk'?entry.home:kind==='crystal'?entry:[entry.x,entry.z];
  const setAnchor=(kind,entry,[x,z])=>{if(kind==='townsfolk')entry.home=[x,z];else if(kind==='crystal')data.crystal=[x,z];else{entry.x=x;entry.z=z;}};
  // Checks an entry where it now stands (own: the tiles it covered before, which it may reuse).
@@ -139,10 +153,15 @@ export function createCityEditor(host){
  function validate(kind,entry,own,{dry=false}={}){const cells=cellsOf(kind,entry);
   if(kind==='building'){oneChunk(cells);taken(cells,own);}else if(kind==='prop')taken(cells,own,entry.kind);
   else if(kind==='crystal'){if(at(...cells[0])?.water)throw Error('The crystal needs dry ground.');taken(cells,own);}
+  // An enemy spawn: dry, open ground for its whole body, not on another spawn.
+  else if(kind==='enemy'){const mine=new Set(own.map(c=>c.join(',')));for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);if(t.water)throw Error(`${a},${b} is water.`);
+    if(!mine.has(`${a},${b}`)&&(t.blocked||t.indoor||t.stair))throw Error(`${a},${b} is taken.`);
+    if(!mine.has(`${a},${b}`)&&lists().enemy.some(e=>e!==entry&&cellsOf('enemy',e).some(([p,q])=>p===a&&q===b)))throw Error(`${a},${b} already has a spawn.`);}}
   else if(kind==='resource'||kind==='cover'){const [x,z]=cells[0],t=at(x,z);if(!t)throw Error(`${x},${z} is off the map.`);
    if(kind==='resource'&&(!resourceFits(t)||data.crystal&&data.crystal[0]===x&&data.crystal[1]===z))throw Error(`${x},${z} has no room for it.`);if(kind==='cover'&&(t.water||t.building!==undefined))throw Error(`${x},${z} has no room for it.`);
    if(lists()[kind].filter(e=>e.x===x&&e.z===z).length>1)throw Error(`${x},${z} already has one.`);
    const grown=natureAt(x,z)[kind];if(grown&&!grown.placed&&!dry)removeGrown(grown.id);}
+  else if(kind==='townsfolk'){for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);if(t.water||t.blocked)throw Error(`${a},${b} isn’t somewhere to stand.`);}}
   else for(const [a,b] of cells)if(!at(a,b))throw Error(`${a},${b} is off the map.`);
   return cells;}
  function selected(){const sel=selection.peek(),entry=entryOf(sel);if(!entry)throw Error('Select something first.');return {sel,entry};}
@@ -150,7 +169,7 @@ export function createCityEditor(host){
   if(await change(()=>{setAnchor(sel.kind,entry,[x,z]);return validate(sel.kind,entry,own);},own))status.value=`Moved ${nameOf(sel.kind,entry)} to ${x},${z}.`;showSelection();}
  const startMove=()=>{selected();moving.value=true;status.value='Click where it goes.';showSelection();};
  async function nudge(dx,dz){const {sel,entry}=selected(),[x,z]=anchorOf(sel.kind,entry);await moveSelection(x+dx,z+dz);}
- async function rotateSelection(){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover'].includes(sel.kind))throw Error('Nothing to rotate.');
+ async function rotateSelection(){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover','enemy'].includes(sel.kind))throw Error('Nothing to rotate.');
   if(await change(()=>{if(sel.kind==='building')entry.desc.rotation=((entry.desc.rotation||0)+90)%360;else if(sel.kind==='prop')entry.rotation=((entry.rotation||0)+90)%360;else entry.dir=CLOCKWISE[entry.dir];return validate(sel.kind,entry,own);},own))status.value=`Rotated ${nameOf(sel.kind,entry)}.`;}
  function duplicateSelection(){const {sel,entry}=selected();if(sel.kind==='crystal')throw Error('A map has one crystal.');const copy=structuredClone(entry);
   if(sel.kind==='building')copy.desc.name=`${entry.desc.name||'Building'} copy`;if(sel.kind==='townsfolk'&&copy.id)copy.id=`${copy.id}-copy`;
@@ -202,8 +221,10 @@ export function createCityEditor(host){
   const dirty=[];for(let cz=Math.floor(z0/CHUNK);cz<=Math.floor(z1/CHUNK);cz++)for(let cx=Math.floor(x0/CHUNK);cx<=Math.floor(x1/CHUNK);cx++)dirty.push(`${cx},${cz}`);
   return rebuild({dirty});}
  const cellOf=(x,z)=>{const [ox,oz]=data.land?.origin||[0,0];return [Math.floor((x+ox)/BIOME_CELL),Math.floor((z+oz)/BIOME_CELL)];};
- function paintBiome({x,z}){if(!data.land)return;const r=options.biomeBrush.peek()==='3'?1:options.biomeBrush.peek()==='5'?2:0,[cx,cz]=cellOf(x,z),id=options.biome.peek();
-  for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const k=`${cx+dx},${cz+dz}`;stroke?.cells?.add(k);if(id===data.land.default)delete data.land.cells[k];else data.land.cells[k]=id;}}
+ // The Biome tool paints the biome layer or the terrain layer (docs/BIOMES.md, Terrain and biome): painting
+ // the unpainted value (the default biome; 'usual' terrain, the biome's own) erases.
+ function paintBiome({x,z}){if(!data.land)return;const r=options.biomeBrush.peek()==='3'?1:options.biomeBrush.peek()==='5'?2:0,[cx,cz]=cellOf(x,z),terrain=options.landLayer.peek()==='terrain',id=terrain?options.terrain.peek():options.biome.peek(),layer=terrain?(data.land.terrain??={}):data.land.cells,unpainted=terrain?'usual':data.land.default;
+  for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const k=`${cx+dx},${cz+dz}`;stroke?.cells?.add(k);if(id===unpainted)delete layer[k];else layer[k]=id;}}
  // Walls: the building wall nearest a click. A click lands on the ground (walls aren't pickable), on a
  // tile inside or just outside a building; `point` (where the ray met the ground) picks between that
  // tile's walls: the one it was clicked towards.
@@ -246,6 +267,65 @@ export function createCityEditor(host){
  const colourControl=role=>h('label',{class:'q-city-editor__field'},role[0].toUpperCase()+role.slice(1),h('input',{type:'color',class:'q-city-editor__colour',
   value:()=>{revision.value;selection.value;const b=lookOf();return b?new THREE.Color(colourOf(b,role)).getHexString().replace(/^/,'#'):'#000000';},
   on:{change:e=>setLook(d=>{(d.colors||={})[role]=e.target.value;},`${role} colour`).catch(error=>{status.value=error.message;})}}));
+ // A selected enemy spawn's settings, changed in place (one undo step each).
+ const spawnOf=()=>{const sel=selection.peek();return sel?.kind==='enemy'?data.enemies[sel.index]:null;};
+ async function setSpawn(apply,label){const e=spawnOf();if(!e)throw Error('Select an enemy spawn.');const own=cellsOf('enemy',e);
+  if(await change(()=>{apply(e);return [...own,...validate('enemy',e,own)];},own))status.value=`${nameOf('enemy',e)}: ${label}.`;}
+ const spawnControl=(label,value,choices,apply)=>h('label',{class:'q-city-editor__field'},label,h('select',{class:'q-select',on:{change:e=>setSpawn(s=>apply(s,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
+  choices.map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const s=spawnOf();return !!s&&value(s)===id;}},name))));
+ function spawnPanel(){
+  return h('div',{class:'q-city-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='enemy';}},
+   h('strong',null,'Spawn'),
+   h('div',{class:'q-city-editor__options'},h('div',null,
+    spawnControl('Enemy',s=>s.enemy,Object.entries(ENEMIES).map(([id,e])=>[id,e.name]),(s,v)=>{s.enemy=v;}),
+    spawnControl('Behaviour',s=>s.aggressive?'aggressive':'passive',[['passive','Passive'],['aggressive','Aggressive']],(s,v)=>{s.aggressive=v==='aggressive';}),
+    spawnControl('Respawns after',s=>String(s.respawn??45),RESPAWNS,(s,v)=>{s.respawn=+v;}))));
+ }
+ // A selected townsfolk (docs/TOWN.md, Townsfolk tool): everything about them, changed in place (one undo
+ // step each, the crowd rebuilt), and their places drawn on the map.
+ let patrolling=false,spotsFill=null;const patrolOn=signal(false);
+ const personOf=()=>{const sel=selection.peek();return sel?.kind==='townsfolk'?data.townsfolk[sel.index]:null;};
+ const uniqueFolkId=base=>{const ids=new Set((data.townsfolk||[]).map(f=>f.id));let id=base.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'townsfolk',n=1;const root=id;while(ids.has(id))id=`${root}-${++n}`;return id;};
+ async function setPerson(apply,label){const p=personOf();if(!p)throw Error('Select a townsfolk.');const own=cellsOf('townsfolk',p);
+  if(await change(()=>{apply(p);return [...own,...validate('townsfolk',p,own),...(p.patrol||[])];},own)){status.value=`${p.name}: ${label}.`;showSelection();}}
+ const weightOf=(p,a)=>p.routine?.find(r=>r.do===a)?.weight??0;
+ // Their places: home (gold), their building (sand), patrol stops (pink) and the spots their routine uses (blue).
+ function showPersonSpots(){spotsFill?.dispose();spotsFill=null;const p=personOf();if(!built||!p)return;const cells=[],seen=new Set(),add=(x,z,color)=>{const k=`${x},${z}`;if(seen.has(k))return;seen.add(k);cells.push({x,z,color});};
+  if(p.home)add(...p.home,'#ffd23f');for(const pt of p.patrol||[])add(...pt,'#ff7ac8');
+  const b=p.house!==undefined?data.buildings[p.house]:null;if(b)for(const [x,z] of cellsOf('building',b))add(x,z,'#e8d6a8');
+  const kinds=new Set((p.routine||[]).filter(r=>(r.weight??1)>0).map(r=>r.do)),[hx,hz]=p.home||b&&[b.x,b.z]||[0,0];
+  for(const prop of [...built.props,...(built.furniture||[])])for(const s of prop.spots||[])if(kinds.has(s.kind)&&s.tile&&Math.abs(s.tile.x-hx)+Math.abs(s.tile.z-hz)<=48)add(s.tile.x,s.tile.z,'#5fc8ff');
+  spotsFill=createCellFill({cells,heightAt,parent:built.group,opacity:.55});}
+ const field=(label,input)=>h('label',{class:'q-city-editor__field'},label,input);
+ const personSelect=(label,value,choices,apply)=>field(label,h('select',{class:'q-select',on:{change:e=>setPerson(p=>apply(p,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
+  choices.map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const p=personOf();return !!p&&value(p)===id;}},name))));
+ const personText=(label,value,apply)=>field(label,h('input',{type:'text',class:'q-input',value:()=>{revision.value;selection.value;const p=personOf();return p?value(p)??'':'';},
+  on:{change:e=>setPerson(p=>apply(p,e.target.value.trim()),label.toLowerCase()).catch(error=>{status.value=error.message;})}}));
+ const loadoutSlot=(slot,ids)=>personSelect({head:'Hat',rightHand:'Right hand',leftHand:'Left hand'}[slot],p=>p.look?.loadout?.[slot]||'',[['','None'],...ids.map(id=>[id,ITEMS[id]?.name||GEAR[id]?.name||id])],
+  (p,v)=>{p.look??={};p.look.loadout??={};if(v)p.look.loadout[slot]=v;else delete p.look.loadout[slot];if(!Object.keys(p.look.loadout).length)delete p.look.loadout;});
+ const houseChoices=computed(()=>{revision.value;return [{id:'',name:'No building'},...(data?.buildings||[]).map((b,i)=>({id:String(i),name:b.desc.name||`Building ${i+1}`}))];});
+ function personPanel(){
+  return h('div',{class:'q-city-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='townsfolk';}},
+   h('strong',null,'Townsfolk'),
+   h('div',{class:'q-city-editor__options'},h('div',null,
+    personText('Name',p=>p.name,(p,v)=>{if(!v)throw Error('A townsfolk needs a name.');p.name=v;}),
+    personText('Line',p=>p.line,(p,v)=>{if(v)p.line=v;else delete p.line;}),
+    field('Colour',h('input',{type:'color',class:'q-city-editor__colour',value:()=>{revision.value;selection.value;return personOf()?.look?.color||'#9ccf7a';},on:{change:e=>setPerson(p=>{(p.look??={}).color=e.target.value;},'colour').catch(error=>{status.value=error.message;})}})),
+    loadoutSlot('head',HEADS),loadoutSlot('rightHand',HANDS),loadoutSlot('leftHand',HANDS),
+    personSelect('Pace',p=>String(p.pace??1),[['0.8','Unhurried'],['1','Usual'],['1.3','Brisk']],(p,v)=>{p.pace=+v;}),
+    // The map's buildings change as you build: the choices follow them (a keyed list).
+    field('Lives or works in',keyedList(h('select',{class:'q-select',on:{change:e=>setPerson(p=>{if(e.target.value==='')delete p.house;else p.house=+e.target.value;},'home building').catch(error=>{status.value=error.message;})}}),
+     houseChoices,c=>c.id,c=>h('option',{value:c.peek().id,selected:()=>{revision.value;selection.value;const p=personOf();return !!p&&(p.house===undefined?'':String(p.house))===c.value.id;}},()=>c.value.name))),
+    personSelect('Gives jobs',p=>p.giver==='post'?'post':'',[['','Only their shop’s'],['post','Post office deliveries']],(p,v)=>{if(v)p.giver=v;else delete p.giver;}),
+    personSelect('Faces at their post',p=>p.facing||'',[['','Any way'],...Object.entries(SIDE_LABELS)],(p,v)=>{if(v)p.facing=v;else delete p.facing;}))),
+   h('strong',null,'Routine'),
+   h('p',{class:'q-page__help'},'How often they do each (0: never). Spots they use are blue on the map.'),
+   h('div',{class:'q-city-editor__routine'},ACTIVITIES.map(a=>field(a,h('input',{type:'number',min:0,max:9,class:'q-input',value:()=>{revision.value;selection.value;const p=personOf();return p?String(weightOf(p,a)):'0';},
+    on:{change:e=>setPerson(p=>{const w=Math.max(0,Math.min(9,Math.round(+e.target.value||0)));p.routine=(p.routine||[]).filter(r=>r.do!==a);if(w)p.routine.push({do:a,weight:w});if(!p.routine.length)p.routine=[{do:'stroll',weight:1}];},`${a} ${e.target.value}`).catch(error=>{status.value=error.message;})}})))),
+   h('div',{class:'q-city-editor__row'},
+    h('button',{type:'button',class:'q-button q-button--small','aria-pressed':()=>String(patrolOn.value),on:{click:()=>{patrolling=!patrolling;patrolOn.value=patrolling;status.value=patrolling?'Click tiles to add patrol stops (Esc when done).':'Patrol route done.';}}},()=>patrolOn.value?'Done drawing patrol':'Draw patrol route'),
+    h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>setPerson(p=>{delete p.patrol;p.routine=(p.routine||[]).filter(r=>r.do!=='patrol');if(!p.routine.length)p.routine=[{do:'stroll',weight:1}];},'patrol cleared').catch(error=>{status.value=error.message;})}},'Clear patrol')));
+ }
  function lookPanel(){
   return h('div',{class:'q-city-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='building';}},
    h('strong',null,'Look'),
@@ -298,6 +378,8 @@ export function createCityEditor(host){
    return null;}
   switch(tool.peek()){
    case 'prop':return placed('prop',{kind:o.prop,x,z,rotation});
+   case 'townsfolk':return placed('townsfolk',{home:[x,z]});
+   case 'enemy':return placed('enemy',{enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z});
    case 'building':{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};let cells=[];try{cells=planBuilding(desc,[x,z]).tiles;}catch(error){return {cells:[],refused:error.message};}
     const refused=fits(()=>{oneChunk(cells);taken(cells);});return {cells:tint(cells,refused?NO:OK),refused};}
    case 'stairs':{const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
@@ -305,14 +387,14 @@ export function createCityEditor(host){
    case 'spawn':{const t=at(x,z),bad=!t||t.blocked||t.water;return {cells:tint([[x,z]],bad?NO:OK),refused:bad?'You can’t arrive there.':null};}
    case 'nature':{if(!data.land)return null;const choice=o.nature,[group]=choice.split(':');
     return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>{const t=at(a,b),n=natureAt(a,b);
-     const ok=choice==='clear'?!!(n.resource||n.cover):group==='cover'?!!t&&!t.water&&t.building===undefined:resourceFits(t)&&!(data.crystal&&data.crystal[0]===a&&data.crystal[1]===b);
+     const ok=choice==='fishing'?!!t?.water:choice==='grow'?!!t&&!t.water:choice==='clear'?!!(n.resource||n.cover):group==='cover'?!!t&&!t.water&&t.building===undefined:resourceFits(t)&&!(data.crystal&&data.crystal[0]===a&&data.crystal[1]===b);
      return {x:a,z:b,color:ok?(choice==='clear'?NO:OK):'#8a8a8a'};})};}
    case 'raise':case 'lower':case 'flatten':case 'surface':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:BRUSH}))};
    case 'footprint':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:o.draftMode==='add'?OK:NO}))};
    case 'biome':{if(!data.land)return null;const r=o.biomeBrush==='3'?1:o.biomeBrush==='5'?2:0,[cx,cz]=cellOf(x,z),[ox,oz]=data.land.origin||[0,0],cells=[];
-    for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)for(let b=0;b<BIOME_CELL;b++)for(let a=0;a<BIOME_CELL;a++)cells.push({x:(cx+dx)*BIOME_CELL+a-ox,z:(cz+dz)*BIOME_CELL+b-oz,color:BIOME_PAINT[o.biome]||BRUSH});return {cells};}
+    for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)for(let b=0;b<BIOME_CELL;b++)for(let a=0;a<BIOME_CELL;a++)cells.push({x:(cx+dx)*BIOME_CELL+a-ox,z:(cz+dz)*BIOME_CELL+b-oz,color:(o.landLayer==='terrain'?TERRAIN_PAINT[o.terrain]:BIOME_PAINT[o.biome])||BRUSH});return {cells};}
    case 'erase':{const hit=pickAt(x,z);if(hit&&hit.kind!=='townsfolk')return {cells:tint(cellsOf(hit.kind,entryOf(hit)),NO)};
-    const n=data.land?natureAt(x,z):{};return n.resource||n.cover||data.edges.some(e=>e.a[0]===x&&e.a[1]===z||e.b[0]===x&&e.b[1]===z)?{cells:tint([[x,z]],NO)}:null;}
+    const n=data.land?natureAt(x,z):{};return n.resource||n.cover||n.fishing||data.edges.some(e=>e.a[0]===x&&e.a[1]===z||e.b[0]===x&&e.b[1]===z)?{cells:tint([[x,z]],NO)}:null;}
    case 'use':case 'reroll':{const b=data.buildings.find(e=>covers(e,x,z,'building'));return b?{cells:tint(cellsOf('building',b),BRUSH)}:null;}
   }
   return null;}
@@ -324,7 +406,7 @@ export function createCityEditor(host){
   if(p.prop&&PROPS[p.prop.kind])showGhost(p.prop.kind,p.prop.rotation,p.prop.x,p.prop.z,!p.refused);
   previewNote.value=p.refused?`Can’t place here: ${p.refused}`:'';}
  function hover(tile){hoverAt=tile?{x:tile.x,z:tile.z}:null;refreshPreview();}
- function cancel(){if(placing||moving.peek()){placing=null;moving.value=false;status.value='Cancelled.';}else if(draft.peek().size&&tool.peek()==='footprint'){clearDraft();status.value='Footprint cleared.';}else selection.value=null;showSelection();}
+ function cancel(){if(patrolling){patrolling=false;patrolOn.value=false;status.value='Patrol route done.';return;}if(placing||moving.peek()){placing=null;moving.value=false;status.value='Cancelled.';}else if(draft.peek().size&&tool.peek()==='footprint'){clearDraft();status.value='Footprint cleared.';}else selection.value=null;showSelection();}
  // Keys while editing (not while typing in the panel): they never reach the camera.
  // Keys never take a movement key (WASD, arrows: the camera and the free camera keep them): Ctrl/⌘+Z undo,
  // Ctrl/⌘+Shift+Z or Ctrl/⌘+Y redo, and with a selection Ctrl/⌘+D duplicate, R rotate, M move, Delete.
@@ -346,7 +428,7 @@ export function createCityEditor(host){
    if(phase==='start'){snapshot();stroke={last:tile,cells:new Set()};paintBiome(tile);showBiomes();return Promise.resolve();}
    if(phase==='move'&&stroke){const {x:x0,z:z0}=stroke.last,n=Math.max(Math.abs(tile.x-x0),Math.abs(tile.z-z0));for(let i=1;i<=n;i++)paintBiome({x:Math.round(x0+(tile.x-x0)*i/n),z:Math.round(z0+(tile.z-z0)*i/n)});stroke.last=tile;showBiomes();return Promise.resolve();}
    // The land forgets what it worked out around the painted cells, and only the chunks there rebuild.
-   if(phase==='end'){const done=stroke;stroke=null;return repaintLand(done?.cells||new Set()).then(()=>{status.value=`Painted ${biomeRule(options.biome.peek()).name}: ${Object.keys(data.land.cells).length} cells painted in all.`;});}
+   if(phase==='end'){const done=stroke;stroke=null;return repaintLand(done?.cells||new Set()).then(()=>{status.value=options.landLayer.peek()==='terrain'?`Painted ${options.terrain.peek()==='usual'?'the biomes’ usual terrain':terrainRule(options.terrain.peek()).name}: ${Object.keys(data.land.terrain||{}).length} terrain cells painted in all.`:`Painted ${biomeRule(options.biome.peek()).name}: ${Object.keys(data.land.cells).length} cells painted in all.`;});}
    return Promise.resolve();
   }
   // The footprint tool paints the draft, not the map: no rebuild, no undo step until it's built.
@@ -367,9 +449,18 @@ export function createCityEditor(host){
  // clears paint so the biome's own ground shows.
  // Nature (docs/TOWN.md, Nature by hand): clear a tile, or put a tree, resource or cover on it, replacing
  // what grew or was placed there. A tile that can't take it is skipped.
- function clearNature(x,z){const n=natureAt(x,z);for(const which of ['resource','cover']){const e=n[which];if(!e)continue;
+ function clearNature(x,z){const n=natureAt(x,z);for(const which of ['resource','cover','fishing']){const e=n[which];if(!e)continue;
   if(e.placed){const list=lists()[which];list.splice(list.findIndex(r=>r.x===x&&r.z===z),1);}else removeGrown(e.id);}}
- function putNature(x,z,choice){const t=at(x,z);if(choice==='clear'){clearNature(x,z);return true;}
+ // Grow: what the biome grows on this tile from the map's seed (the land's own pick, placed as the map's
+ // own), so a blank map can be filled by hand with biome-appropriate nature.
+ function growNature(x,z){const t=at(x,z),land=built?.ground?.land;if(!t||!land||t.water)return false;let placed=false;
+  const [e]=land.entities([t]),[c]=land.cover([t]);
+  if(e&&resourceFits(t)&&!(data.crystal&&data.crystal[0]===x&&data.crystal[1]===z)){const list=lists().resource;const i=list.findIndex(r=>r.x===x&&r.z===z);if(i>=0)list.splice(i,1);list.push(e.kind==='tree'?{kind:'tree',species:e.species,x,z}:{kind:e.kind,x,z});placed=true;}
+  if(c&&t.building===undefined){const list=lists().cover;const i=list.findIndex(r=>r.x===x&&r.z===z);if(i>=0)list.splice(i,1);list.push({kind:c.kind,x,z});placed=true;}
+  return placed;}
+ function putNature(x,z,choice){const t=at(x,z);if(choice==='clear'){clearNature(x,z);return true;}if(choice==='grow')return growNature(x,z);
+  // A fishing spot goes on water; one per tile, replacing a generated one there.
+  if(choice==='fishing'){if(!t?.water)return false;const n=natureAt(x,z).fishing;if(n?.placed)return false;if(n)removeGrown(n.id);lists().fishing.push({x,z});return true;}
   const [group,kind]=choice.split(':');
   if(group==='cover'){if(!t||t.water||t.building!==undefined)return false;const n=natureAt(x,z).cover;if(n?.placed)lists().cover.splice(lists().cover.findIndex(c=>c.x===x&&c.z===z),1);else if(n)removeGrown(n.id);lists().cover.push({kind,x,z});return true;}
   if(!resourceFits(t)||data.crystal&&data.crystal[0]===x&&data.crystal[1]===z)return false;const n=natureAt(x,z).resource;
@@ -387,7 +478,10 @@ export function createCityEditor(host){
  function brushTiles(x,z){const r=brush.peek()==='3'?1:0,out=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)out.push([x+dx,z+dz]);return out;}
  // A world click in Edit mode applies the tool; in Play mode the game handles it.
  async function click(tile,point=null){
-  if(mode.peek()!=='edit')return false;const {x,z}=tile,o=Object.fromEntries(Object.entries(options).map(([k,s])=>[k,s.peek()])),rotation=+o.rotation;
+  if(mode.peek()!=='edit')return false;
+  // Drawing a patrol route: each click adds a stop (docs/TOWN.md, Townsfolk tool).
+  if(patrolling&&personOf()){const p=personOf(),{x:px,z:pz}=tile;await setPerson(e=>{(e.patrol??=[]).push([px,pz]);if(!e.routine.some(r=>r.do==='patrol'))e.routine.push({do:'patrol',weight:3});},`patrol stop ${p.patrol?.length+1||1} at ${px},${pz}`);return true;}
+  const {x,z}=tile,o=Object.fromEntries(Object.entries(options).map(([k,s])=>[k,s.peek()])),rotation=+o.rotation;
   switch(tool.peek()){
    case 'inspect':status.value=describe(x,z);break;
    case 'walls':await setWall(tile,point).catch(error=>{status.value=error.message;});break;
@@ -409,14 +503,18 @@ export function createCityEditor(host){
     data.edges=data.edges.filter(e=>!same(e));if(o.edge!=='none')data.edges.push({a:[x,z],b,kind:o.edge});return [[x,z],b];});break;
    case 'erase':{const hit=pickAt(x,z);
     if(hit&&hit.kind!=='townsfolk'){selection.value=hit;await deleteSelection();break;}
-    if(data.land&&(natureAt(x,z).resource||natureAt(x,z).cover)){await change(()=>{clearNature(x,z);return [[x,z]];});status.value=`Cleared nature at ${x},${z}.`;break;}
+    if(data.land&&(natureAt(x,z).resource||natureAt(x,z).cover||natureAt(x,z).fishing)){await change(()=>{clearNature(x,z);return [[x,z]];});status.value=`Cleared nature at ${x},${z}.`;break;}
     await change(()=>{const before=data.edges.length;data.edges=data.edges.filter(e=>!(e.a[0]===x&&e.a[1]===z||e.b[0]===x&&e.b[1]===z));if(data.edges.length===before)throw Error('Nothing to erase here.');return [[x,z]];});break;}
    // Use: what a building is furnished as (furnish.js); a shop's sign follows its trade. Reroll: a new
    // furnishing seed for the same use.
    case 'use':case 'reroll':await change(()=>{const b=data.buildings.find(e=>covers(e,x,z,'building'));if(!b)throw Error('Click a building.');
     if(tool.peek()==='use'){b.desc.use=o.use;if(b.desc.sign&&USE_ICONS[o.use])b.desc.sign={...b.desc.sign,icon:USE_ICONS[o.use]};status.value=`${b.desc.name||'Building'}: ${o.use}.`;}
     else{b.desc.furnishSeed=Math.floor(Math.random()*1e6);status.value=`${b.desc.name||'Building'}: refurnished.`;}return cellsOf('building',b);});break;
+   case 'townsfolk':{const n=(data.townsfolk||[]).length+1,person={id:uniqueFolkId('townsfolk'),name:`Townsfolk ${n}`,look:{color:FOLK_COLOURS[n%FOLK_COLOURS.length]},home:[x,z],routine:[{do:'stroll',weight:2},{do:'chat',weight:1},{do:'gaze',weight:1}],pace:1};
+    if(await change(()=>{const cells=validate('townsfolk',person,[]);lists().townsfolk.push(person);return cells;})){selection.value={kind:'townsfolk',index:data.townsfolk.length-1};showSelection();status.value=`${person.name} lives at ${x},${z}. Set them up in the Townsfolk panel.`;}break;}
    case 'spawn':await change(()=>{data.spawn=[x,z];return [];});status.value=`Arrival at ${x},${z}.`;break;
+   case 'enemy':{const spawn={enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z};
+    if(await change(()=>{const cells=validate('enemy',spawn,[]);lists().enemy.push(spawn);return cells;}))status.value=`${nameOf('enemy',spawn)} spawns at ${x},${z}.`;break;}
    case 'crystal':{const old=data.crystal?[data.crystal]:[];if(await change(()=>{data.crystal=[x,z];return validate('crystal',data.crystal,old);},old))status.value=`The Iter Crystal at ${x},${z}.`;break;}
   }
   return true;
@@ -431,24 +529,25 @@ export function createCityEditor(host){
  async function step(from,to){if(!from.length)return;to.push(JSON.stringify(data));const next=JSON.parse(from.pop()),diff=differences(data,next);
   for(const k of Object.keys(data))delete data[k];Object.assign(data,next);history.value={undo:undo.length,redo:redo.length};if(!entryOf(selection.peek()))selection.value=null;
   if(!diff||!built?.ground&&data.land){await rebuild();return;}
-  if(built?.ground){built.ground.land.useCells(data.land.cells);for(const r of diff.forget)built.ground.land.forget(...r);}
+  if(built?.ground){built.ground.land.useCells(data.land.cells,data.land.terrain);for(const r of diff.forget)built.ground.land.forget(...r);}
   await rebuild({dirty:[...new Set([...chunksAround(diff.cells),...diff.chunks])]});}
  // What differs between two states of a map: tiles to rebuild around, extra chunk ids and land areas to
  // forget (repainted biome cells); null when only a full rebuild will do.
  function differences(a,b){
-  const settings=d=>JSON.stringify([d.size,d.style,d.walls,d.gates,d.land&&{...d.land,cells:null,removed:null}]);if(settings(a)!==settings(b))return null;
+  const settings=d=>JSON.stringify([d.size,d.style,d.walls,d.gates,d.land&&{...d.land,cells:null,terrain:null,removed:null}]);if(settings(a)!==settings(b))return null;
   const cells=[],chunks=[],forget=[];
   // Ground, row by row and then tile by tile where a row differs.
   for(const [id,r] of Object.entries(b.regions)){const o=a.regions[id],[rx,rz]=id.split(',').map(Number);if(!o)return null;
    for(const layer of ['heights','offsets','surfaces'])(r[layer]||[]).forEach((row,z)=>{const old=o[layer]?.[z];if(row===old)return;for(let x=0;x<row.length;x++)if(row[x]!==old?.[x])cells.push([rx*REGION+x,rz*REGION+z]);});}
   // Placed things, entry by entry: the tiles of both versions of any that differ.
-  const placed={buildings:e=>{try{return planBuilding(e.desc,[e.x,e.z]).tiles;}catch{return [[e.x,e.z]];}},props:propCells,stairs:stairCells,resources:e=>[[e.x,e.z]],cover:e=>[[e.x,e.z]],
+  const placed={buildings:e=>{try{return planBuilding(e.desc,[e.x,e.z]).tiles;}catch{return [[e.x,e.z]];}},props:propCells,stairs:stairCells,resources:e=>[[e.x,e.z]],cover:e=>[[e.x,e.z]],fishing:e=>[[e.x,e.z]],enemies:e=>cellsOf('enemy',e),
    edges:e=>[e.a,e.b],townsfolk:e=>[e.home,...e.patrol||[]].filter(Boolean)};
   for(const [list,of] of Object.entries(placed)){const p=a[list]||[],q=b[list]||[];for(let i=0;i<Math.max(p.length,q.length);i++)if(JSON.stringify(p[i])!==JSON.stringify(q[i]))cells.push(...(p[i]?of(p[i]):[]),...(q[i]?of(q[i]):[]));}
   for(const k of ['crystal','spawn'])if(JSON.stringify(a[k])!==JSON.stringify(b[k]))cells.push(...[a[k],b[k]].filter(Boolean));
   if(b.land){const [ox,oz]=b.land.origin||[0,0],at=id=>id.match(/(-?\d+),(-?\d+)$/)?.slice(1).map(Number);
    const removed=new Set(a.land.removed||[]),now=new Set(b.land.removed||[]);for(const id of [...removed,...now])if(removed.has(id)!==now.has(id)){const c=at(id);if(c)cells.push(c);}
-   for(const k of new Set([...Object.keys(a.land.cells||{}),...Object.keys(b.land.cells||{})]))if(a.land.cells?.[k]!==b.land.cells?.[k]){const [cx,cz]=k.split(',').map(Number),
+   const changedCells=layer=>[...new Set([...Object.keys(a.land[layer]||{}),...Object.keys(b.land[layer]||{})])].filter(k=>a.land[layer]?.[k]!==b.land[layer]?.[k]);
+   for(const k of new Set([...changedCells('cells'),...changedCells('terrain')])){const [cx,cz]=k.split(',').map(Number),
     r=[cx*BIOME_CELL-ox-FORGET_MARGIN,cz*BIOME_CELL-oz-FORGET_MARGIN,(cx+1)*BIOME_CELL-ox+FORGET_MARGIN,(cz+1)*BIOME_CELL-oz+FORGET_MARGIN];forget.push(r);
     for(let z=Math.floor(r[1]/CHUNK);z<=Math.floor(r[3]/CHUNK);z++)for(let x=Math.floor(r[0]/CHUNK);x<=Math.floor(r[2]/CHUNK);x++)chunks.push(`${x},${z}`);}}
   return {cells,chunks,forget};
@@ -465,6 +564,8 @@ export function createCityEditor(host){
   try{const response=await fetch('/__city-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:json()})});
    const result=await response.json();status.value=response.ok?`Saved to ${result.path}.`:`Not saved: ${result.error}`;}catch{status.value='Saving needs the playground dev server (npm run dev:debug). Use Copy or Download instead.';}}
  function download(){const link=h('a',{href:URL.createObjectURL(new Blob([json()],{type:'application/json'})),download:`${data.id}.json`});link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
+ // A colour swatch choice (biomes, terrains): the colour the overlay paints, and the name.
+ const swatch=(value,id,name,color)=>h('button',{type:'button',class:'q-city-editor__swatch','aria-pressed':()=>String(value.value===id),on:{click:()=>{value.value=id;}}},h('span',{class:'q-city-editor__chip',style:color?`background:${color}`:'background:transparent'}),h('span',null,name));
  const select=(label,value,choices)=>h('label',{class:'q-city-editor__field'},label,h('select',{class:'q-select',on:{change:e=>{value.value=e.target.value;}}},choices.map(([id,name])=>h('option',{value:id,selected:()=>value.value===id},name))));
  const shown=(...tools)=>()=>!tools.includes(tool.value);
  const label=p=>`${p.severity==='error'?'Error':p.severity==='warning'?'Warning':'Note'} · ${p.tile.join(',')} · ${p.text}`;
@@ -483,17 +584,25 @@ export function createCityEditor(host){
     h('div',{hidden:shown('biome')},
      h('div',{hidden:()=>{revision.value;return !!data?.land;}},select('Unpainted land',options.landDefault,BIOME_IDS.map(id=>[id,biomeRule(id).name])),
       h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>addLand()}},'Add land')),
-     h('div',{hidden:()=>{revision.value;return !data?.land;}},select('Paint',options.biome,BIOME_IDS.map(id=>[id,biomeRule(id).name])),select('Brush',options.biomeBrush,[['1','1 cell (8 × 8)'],['3','3 × 3 cells'],['5','5 × 5 cells']]),
+     h('div',{hidden:()=>{revision.value;return !data?.land;}},
+      segmented({label:'Layer',value:()=>options.landLayer.value,onChange:v=>{options.landLayer.value=v;showBiomes();},options:[{value:'biome',label:'Biome'},{value:'terrain',label:'Terrain'}]}),
+      h('div',{class:'q-city-editor__swatches',hidden:()=>options.landLayer.value!=='biome'},BIOME_IDS.map(id=>swatch(options.biome,id,biomeRule(id).name,BIOME_PAINT[id]))),
+      h('div',{class:'q-city-editor__swatches',hidden:()=>options.landLayer.value!=='terrain'},[['usual','Biome’s usual',null],...TERRAIN_IDS.map(id=>[id,terrainRule(id).name,TERRAIN_PAINT[id]])].map(([id,name,color])=>swatch(options.terrain,id,name,color))),
+      select('Brush',options.biomeBrush,[['1','1 cell (8 × 8)'],['3','3 × 3 cells'],['5','5 × 5 cells']]),
+      toggleSwitch({label:'Generated fishing',description:'Fishing spots the water gets on its own',on:()=>{revision.value;return data?.land?.fishing!==false;},onChange:v=>setLand(()=>{data.land.fishing=v;status.value=v?'Generated fishing spots on.':'Generated fishing spots off: only placed ones.';})}),
+      toggleSwitch({label:'Generated enemies',description:'Goblins and others the biomes spawn',on:()=>{revision.value;return data?.land?.enemies!==false;},onChange:v=>setLand(()=>{data.land.enemies=v;status.value=v?'Generated enemies on.':'Generated enemies off.';})}),
+      toggleSwitch({label:'Generated nature',description:'Trees, resources and ground cover the biomes grow',on:()=>{revision.value;return data?.land?.nature!==false;},onChange:v=>setLand(()=>{data.land.nature=v;status.value=v?'Generated nature on.':'Generated nature off: only what you place.';})}),
       h('label',{class:'q-city-editor__field'},'Unpainted land',h('select',{class:'q-select',on:{change:e=>landDefault(e.target.value)}},BIOME_IDS.map(id=>h('option',{value:id,selected:()=>{revision.value;return data?.land?.default===id;}},biomeRule(id).name)))),
       h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>reseedLand()}},'New seed'),h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>removeLand()}},'Remove land')))),
     h('div',{hidden:shown('footprint')},select('Paint',options.draftMode,[['add','Add tiles'],['remove','Remove tiles']]),select('Storeys',options.storeys,[['1','1'],['2','2'],['3','3']]),select('Roof',options.roof,ROOF_TYPES.filter(r=>r!=='cone').map(r=>[r,r])),select('Walls',options.style,STYLE_NAMES.map(n=>[n,n])),select('Use',options.use,[...USE_NAMES,'none'].map(u=>[u,u])),
      h('p',{class:'q-page__help'},()=>{draft.value;revision.value;return `${draft.value.size} tiles${draftFor!==null?` · reshaping ${nameOf('building',data.buildings[draftFor])}`:''}`;}),
      h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>buildDraft().catch(error=>{status.value=error.message;})}},'Build it'),h('button',{type:'button',class:'q-button q-button--small',on:{click:clearDraft}},'Clear'))),
     h('div',{hidden:shown('nature')},select('Nature',options.nature,NATURE_CHOICES)),
+    h('div',{hidden:shown('enemy')},select('Enemy',options.enemyKind,Object.entries(ENEMIES).map(([id,e])=>[id,e.name])),select('Behaviour',options.enemyMood,[['passive','Passive (fights back)'],['aggressive','Aggressive']]),select('Respawns after',options.enemyRespawn,RESPAWNS)),
     h('div',{hidden:shown('raise','lower','flatten','nature','surface','footprint')},select('Brush',brush,[['1','1 tile'],['3','3 × 3']]),h('p',{class:'q-page__help'},'Drag to paint.')),
     h('div',{class:'q-city-editor__selection',hidden:()=>tool.value!=='select'},
      h('p',{class:'q-page__help'},()=>{revision.value;const sel=selection.value,entry=entryOf(sel);return entry?`${nameOf(sel.kind,entry)} · ${KIND_LABELS[sel.kind]} at ${anchorOf(sel.kind,entry)?.join(',')}${moving.value?' · click where it goes':''}`:'Click something to select it.';}),
-     lookPanel(),
+     lookPanel(),spawnPanel(),personPanel(),
      h('div',{class:'q-city-editor__row',hidden:()=>!selection.value},
       ...[['Move','M',startMove],['Rotate','R',rotateSelection],['Reshape',null,reshapeSelection],['Duplicate',`${MOD}+D`,duplicateSelection],['Delete','Del',deleteSelection],['Deselect','Esc',cancel],
        ['← Nudge',null,()=>nudge(-1,0)],['Nudge →',null,()=>nudge(1,0)],['↑ Nudge',null,()=>nudge(0,-1)],['Nudge ↓',null,()=>nudge(0,1)]]
@@ -534,7 +643,7 @@ export function createCityEditor(host){
    if(data&&here?.areaId==='city-editor'){showGrid();showSelection();showDraft();showBiomes();scheduleChecks(0);status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;return editor;}
    if(here?.data){await load(structuredClone(here.data),{at:here.at});return editor;}
    await load(catalogue[0].make());return editor;},
-  close(){host.setTileClick(null);host.setTileHover?.(null);stopPreview?.();stopPreview=null;clearPreview();hoverAt=null;stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
+  close(){host.setTileClick(null);host.setTileHover?.(null);spotsFill?.dispose();spotsFill=null;patrolling=false;patrolOn.value=false;stopPreview?.();stopPreview=null;clearPreview();hoverAt=null;stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
   get grid(){return grid.peek();},set grid(v){grid.value=!!v;showGrid();},
   click,undo:()=>step(undo,redo),redo:()=>step(redo,undo),
   // Fast editing, for scripted checks: the same actions as the panel and keys.

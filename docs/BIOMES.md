@@ -155,6 +155,56 @@ The area's music plays by default. When you stand in a biome with its own music 
   - atmosphere and the later biomes' models (step 4);
   - the minimap doesn't show biome colours yet.
 
+## Terrain and biome (2026-10-14)
+
+User request: separate terrain from biome, so any combination works.
+- **Two painted layers, both 8 × 8 cells:**
+  - **Biome** (`land.cells`, biome-rules.js): what grows and lives on the land, and how it looks and sounds (ground and colours, trees, cover, resources, fishing, enemies, ambience).
+  - **Terrain** (`land.terrain`, terrain-rules.js): the land's shape and its water (base, relief, scale, roughness, where rock shows, sea, river, ponds, marsh pools).
+- **Unpainted terrain** uses the biome's usual terrain:
+
+  | Biome | Usual terrain |
+  |---|---|
+  | meadow | rolling |
+  | forest | rolling |
+  | pines | uplands |
+  | hills | hills |
+  | coast | plains |
+  | wetland | marsh |
+
+- **Terrains:**
+
+  | Terrain | Shape and water |
+  |---|---|
+  | plains | flat, no ponds |
+  | rolling | gentle, a few ponds |
+  | lakeland | many ponds |
+  | uplands | rises to 4, stone on top |
+  | hills | rises to 6 |
+  | highlands | rises to about 9 |
+  | marsh | pools and ponds |
+  | river | water |
+  | sea | water |
+
+- **River and sea** are terrain now, no longer biomes. A sea cell's biome (coast, say) sets its fishing and ambience.
+- **Fewer ponds:** a meadow's ponds dropped from a 0.18 chance per 24-tile cell (its old built-in terrain) to 0.05 (rolling). Plains have none; lakeland has many.
+- **Generator:** heights blend between cells' terrains; water, ponds and pools follow the terrain; rock shows at the terrain's `rockAt` in the biome's rock colours. Tiles carry `biome` and `terrain`, and *What's here?* names both.
+- **City editor, Biome tool:**
+  - a **Layer** switch (Biome or Terrain);
+  - colour swatches instead of dropdowns (*Biome's usual* erases terrain paint);
+  - a stronger overlay: tints at 50% and dark borders wherever the paint changes, drawn over everything.
+- **Generated nature switch** (`land.nature: false`): the land grows no trees, resources or cover of its own, only what you place. The overworld starts this way: a blank slate.
+- **Generated enemies switch** (`land.enemies: false`, 2026-10-14): the biomes spawn no goblins or other enemies. The overworld starts this way too; spawns are placed with the editor's Enemy tool (TOWN.md, *Enemy spawns*).
+- **Generated fishing switch** (`land.fishing: false`): the water gets no fishing spots of its own.
+  - Placed spots (`data.fishing: [{x, z}]`) come from the Nature tool's *Fishing spot (on water)*.
+  - *Clear nature* and Erase remove them, and the map moves them when it grows.
+  - The overworld starts with none.
+- **The principle** (user, 2026-10-14): generation sets a map up and makes quick changes; what is placed is the map. Almost everything should be placed thoughtfully, not generated live. The overworld has generated nature, enemies and fishing all off.
+- **Grow (biome)** in the Nature tool: places, on each brushed tile, what the biome would grow there from the map's seed, as the map's own (movable, deletable) nature.
+- **Ground cover pools** grow when full (they used to stop at 5,000 of a kind, leaving the last chunks to load bare at far draw distances).
+- **The overworld:** migrated in place (its sea cells became sea terrain under the coast biome, its river cells river terrain).
+- **Tests:** biome-land.test.js covers any biome on any terrain, plains without ponds, lakeland with many, sea under any biome, and the usual terrain. town-ground.test.js covers the blank slate and Grow's pick. ground-cover-pool.test.js covers the pool growing.
+
 ## Open questions
 
 None for now. Later biomes, effects on play and region names on entry were each deferred (*User decisions*, above).

@@ -177,7 +177,7 @@ What Mistrom needs from the editor, in build order. Each is general: it works fo
      - a shipwreck;
      - tide pools;
      - a sawhorse.
-4. **Townsfolk tool:**
+4. **Townsfolk tool** (done 2026-10-14; see *Townsfolk tool* below):
    - place a person;
    - set their name, look (colour, hat, carried tool), home, routine, line, shop and job;
    - see their routine spots drawn on the map.
@@ -212,6 +212,50 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - the playground controls for everything new;
    - both builds;
    - one perf pass with Mistrom's scenarios.
+
+## Townsfolk tool (2026-10-14)
+
+User request: build the townsfolk tool (authoring tools, item 4). It replaces editing `townsfolk` JSON by hand.
+- **Townsfolk tool:** click to place a person (with a preview). They start with a name, a colour and a routine (stroll, chat, gaze), and are selected so you can set them up.
+- **Townsfolk panel** (any selected townsfolk), each change one undo step with the crowd rebuilt:
+  - name and line;
+  - colour;
+  - hat, and right-hand and left-hand items (`look.loadout`, from the game's gear);
+  - pace;
+  - the building they live in or keep (`house`, a list that follows the map's buildings);
+  - post-office jobs (`giver: 'post'`; shopkeepers give their shop's jobs anyway);
+  - which way they face at a post.
+- **Routine:** a weight from 0 to 9 for each activity (sit, sleep, cook, work, browse, vend, gaze, drink, read, chat, stroll, enter, patrol, home, keep, tend, post).
+- **Patrol:** *Draw patrol route*, then click tiles to add stops (adding `patrol` to the routine) and Esc or *Done* to finish. *Clear patrol* removes the route.
+- **Their places on the map:** while a townsfolk is selected, their home is drawn gold, their building sand, patrol stops pink, and the props and furniture spots their routine uses (within 48 tiles) blue.
+- **Moving:** select a townsfolk to move them (M) or delete them. Duplicate gives a new id.
+- **Checks:** the city checks report a townsfolk who can't do anything in their routine, or whose building isn't one they can live in.
+- **Checked in the browser:**
+  - placed a person beside a shop and a bench;
+  - set their name, line, hat, home building, a sit weight and a two-stop patrol;
+  - the crowd rebuilt with each change, and the overlay showed their places;
+  - no townsfolk check problems and no console errors.
+
+## Enemy spawns (2026-10-14)
+
+User request: an enemy spawn placement tool (generated enemies are off; spawns are placed, docs/BIOMES.md).
+- **Data:** `enemies: [{x, z, enemy, aggressive, respawn}]` in the map.
+  - `enemy` is a combat-rules.js kind: practice target, goblin scrapper, goblin bruiser or Cinder Golem.
+  - `respawn` is in seconds.
+  - The golem's 2 × 2 body has its spawn tile as the north-west corner.
+- **In play:** spawns come in through the land's streamer (town-ground.js `townSource` extras) like any other enemy, with their own respawn time (main.js `placeLandExtra`). A defeated enemy stays away for that time, even while its chunk is unloaded.
+- **City editor:**
+  - The **Enemy** tool sets the enemy, its behaviour (passive, which fights back, or aggressive) and its respawn time (30 s to 15 min). Its preview turns red, with the reason, on water, blocked tiles or another spawn.
+  - **Select** picks a spawn. Move (M), Delete and Duplicate (Ctrl/⌘+D) work, and a **Spawn** panel changes its enemy, behaviour and respawn in place.
+  - **Erase** removes one.
+  - Spawns move with the map when it grows, and undo covers them.
+- **Tests:** `town-ground.test.js` checks placed spawns stream with their settings while generated enemies are off, and move with growth.
+- **Checked in the browser:**
+  - placed a scrapper and an aggressive golem (both spawned);
+  - refused over the crystal;
+  - changed the scrapper to a bruiser from the Spawn panel;
+  - erased the golem;
+  - no errors in the checks.
 
 ## Auto graphics recovers (2026-10-14)
 

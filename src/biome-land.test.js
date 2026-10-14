@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createBiomeLand,CELL} from './biome-land.js';
 import {BIOME_RULES,BIOME_IDS,BIOME_DEFAULTS,biomeRule} from './biome-rules.js';
+import {TERRAIN_RULES,TERRAIN_DEFAULTS,terrainRule} from './terrain-rules.js';
 import {TREE_SPECIES} from './tree-models.js';
 import {COVER_KINDS} from './ground-cover.js';
 import {RESOURCE_RULES} from './resource-actions.js';
@@ -23,8 +24,9 @@ test('every rule names things that exist: trees, cover, resources, enemies, ambi
   for(const e of b.enemies.table)assert.ok(ENEMIES[e.enemy],`${id}: enemy ${e.enemy}`);
   assert.ok(AMBIENCE_PROFILES[b.audio.ambience],`${id}: ambience ${b.audio.ambience}`);
   assert.equal(b.ground.palette.length,2);}
- assert.equal(biomeRule('sea').terrain.relief,BIOME_DEFAULTS.terrain.relief,'defaults fill what a biome leaves out');
- assert.equal(biomeRule('hills').terrain.base,BIOME_DEFAULTS.terrain.base,'one level deep: a biome can set one terrain value');
+ assert.equal(biomeRule('coast').trees.clusterScale,BIOME_DEFAULTS.trees.clusterScale,'defaults fill what a biome leaves out (one level deep)');
+ for(const id of BIOME_IDS)assert.ok(TERRAIN_RULES[biomeRule(id).terrain],`${id}: its usual terrain exists`);
+ assert.equal(terrainRule('sea').relief,TERRAIN_DEFAULTS.relief,'terrain defaults fill what a terrain leaves out');assert.equal(terrainRule('hills').water.ponds,0);
 });
 test('the same seed and map always give the same land, and ids are stable',()=>{
  const a=only('forest',3,64),b=only('forest',3,64),ta=grid(a,64),tb=grid(b,64);
@@ -35,7 +37,7 @@ test('verticality follows the biome: flat meadows, coasts and wetlands; rising h
  const top=(id,seed)=>Math.max(...grid(only(id,seed),128).filter(t=>!t.water).map(t=>t.h));
  for(const seed of [1,7]){
   assert.ok(top('meadow',seed)<=2,'meadow');assert.ok(top('coast',seed)<=1.5,'coast');assert.ok(top('wetland',seed)<=1.5,'wetland');
-  for(const id of BIOME_IDS)if(!biomeRule(id).terrain.cliffs)assert.equal(steps(only(id,seed),128),0,`${id}: no full-block steps`);}
+  for(const id of BIOME_IDS)if(!terrainRule(biomeRule(id).terrain).cliffs)assert.equal(steps(only(id,seed),128),0,`${id}: no full-block steps`);}
  assert.ok(Math.max(top('hills',1),top('hills',7))>=5,'hills climb');
  assert.ok(grid(only('hills',7),128).some(t=>t.rocky&&t.surface==='stone'),'stone on the hilltops');
 });
@@ -50,8 +52,8 @@ test('a patchwork of biomes blends at its borders: no cliffs where they meet, an
  assert.ok(crossings.size>=4,`the border wanders (${crossings.size} positions)`);
 });
 test('water: the sea, ponds and marsh pools, always reachable from land half a block up',()=>{
- const cells={};for(let cz=0;cz<12;cz++)for(let cx=0;cx<12;cx++)cells[`${cx},${cz}`]=cz>=9?'sea':cz>=7?'wetland':'hills';
- const land=createBiomeLand({seed:4,bounds:[0,0,96,96],map:{cells}}),tiles=grid(land,96);
+ const cells={},terrain={};for(let cz=0;cz<12;cz++)for(let cx=0;cx<12;cx++){cells[`${cx},${cz}`]=cz>=9?'coast':cz>=7?'wetland':'hills';if(cz>=9)terrain[`${cx},${cz}`]='sea';}
+ const land=createBiomeLand({seed:4,bounds:[0,0,96,96],map:{cells,terrain}}),tiles=grid(land,96);
  assert.ok(tiles.some(t=>t.waterKind==='sea')&&tiles.some(t=>t.waterKind==='marsh'));
  for(const t of tiles){if(t.water)continue;const wet=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>land.tile(t.x+dx,t.z+dz)?.water);if(wet)assert.equal(t.h,1,`shore at ${t.x},${t.z}`);}
 });
@@ -74,15 +76,29 @@ test('extras and cover: fishing spots on water by land, enemies from the biome t
  assert.equal(only('coast',2,96).extras(grid(only('coast',2,96),96)).filter(e=>e.kind==='enemy').length,0,'no enemies on the coast');
 });
 test('rivers are water, and the land paints by the map it is given',()=>{
- const cells={};for(let cz=0;cz<10;cz++)cells[`5,${cz}`]='river';for(const a of [-1,0,1])for(const b of [-1,0,1])cells[`${1+a},${8+b}`]='coast';
- const land=createBiomeLand({seed:2,bounds:[0,0,80,80],map:{default:'hills',cells}});
+ const cells={},terrain={};for(let cz=0;cz<10;cz++)terrain[`5,${cz}`]='river';for(const a of [-1,0,1])for(const b of [-1,0,1])cells[`${1+a},${8+b}`]='coast';
+ const land=createBiomeLand({seed:2,bounds:[0,0,80,80],map:{default:'hills',cells,terrain}});
  assert.equal(land.tile(44,40).waterKind,'river');
  assert.equal(land.biomeAt(12,68),'coast');assert.equal(land.biomeAt(70,10),'hills','unpainted: the default');
  assert.equal(steps(land,80),0);
 });
 test('repainting: the land forgets an area and generates it again from the new paint; it can read new paint objects',()=>{
  const cells={};const land=createBiomeLand({seed:3,bounds:[0,0,96,96],map:{default:'meadow',cells}});
- const before=land.tile(40,40);cells['5,5']='sea';assert.equal(land.tile(40,40),before,'cached until forgotten');
- land.forget(0,0,95,95);assert.equal(land.tile(43,43).waterKind,'sea','painted sea');
- land.useCells({});land.forget(0,0,95,95);assert.ok(!land.tile(43,43).water,'new paint read');
+ const terrain={},land2=createBiomeLand({seed:3,bounds:[0,0,96,96],map:{default:'meadow',cells,terrain}});
+ const before=land2.tile(40,40);terrain['5,5']='sea';assert.equal(land2.tile(40,40),before,'cached until forgotten');
+ land2.forget(0,0,95,95);assert.equal(land2.tile(43,43).waterKind,'sea','painted sea');
+ land2.useCells({},{});land2.forget(0,0,95,95);assert.ok(!land2.tile(43,43).water,'new paint read');
+});
+test('terrain and biome are painted apart: any biome on any terrain; plains have no ponds, lakeland many',()=>{
+ const on=(biome,terrain,seed=1,size=128)=>{const terrainCells={};for(let cz=-3;cz<size/8+3;cz++)for(let cx=-3;cx<size/8+3;cx++)terrainCells[`${cx},${cz}`]=terrain;
+  return createBiomeLand({seed,bounds:[0,0,size,size],map:{default:biome,terrain:terrainCells}});};
+ const top=land=>Math.max(...grid(land,128).filter(t=>!t.water).map(t=>t.h)),ponds=land=>grid(land,128).filter(t=>t.waterKind==='pond').length;
+ assert.ok(Math.max(top(on('meadow','hills',1)),top(on('meadow','hills',7)))>=5,'a meadow in the hills climbs');
+ assert.ok(top(on('pines','plains'))<=1.5,'a pine forest on the plains stays flat');
+ assert.ok(grid(on('pines','plains'),128).filter(t=>!t.water).every(t=>t.biome==='pines'&&t.terrain==='plains'));
+ for(const seed of [1,2,3])assert.equal(ponds(on('meadow','plains',seed)),0,'plains: no ponds');
+ let rolling=0,lakes=0;for(const seed of [1,2,3]){rolling+=ponds(on('meadow','rolling',seed));lakes+=ponds(on('meadow','lakeland',seed));}
+ assert.ok(lakes>rolling*3,`lakeland has many more ponds (${lakes} vs ${rolling})`);
+ assert.equal(on('forest','sea').tile(40,40).waterKind,'sea','any biome over the sea is sea');
+ assert.equal(createBiomeLand({seed:1,bounds:[0,0,64,64],map:{default:'wetland'}}).terrainAt(30,30),'marsh','unpainted: the biome’s usual terrain');
 });

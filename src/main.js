@@ -476,11 +476,13 @@ function placeLandExtra(e,{tile:t,parent,tileAt},saved){
    return {dispose(){model.group.removeFromParent();for(const m of hits){const k=pickables.indexOf(m);if(k>=0)pickables.splice(k,1);}model.group.traverse(o=>o.geometry?.dispose());}};}
   if(e.kind==='prop'){try{const prop=createProp(e.prop,{origin:[e.x,e.z],rotation:e.rotation,tileAt,parent,pickables});return {dispose:()=>prop.dispose()};}catch{return null;}}
   if(e.kind==='enemy'){
-   // A defeated goblin stays away for ENEMY_RESPAWN seconds, even if its chunk unloads meanwhile.
+   // A defeated enemy stays away for its respawn time (a placed spawn's own, else ENEMY_RESPAWN seconds),
+   // even if its chunk unloads meanwhile.
+   const respawn=e.respawn??ENEMY_RESPAWN;
    if(saved?.away>elapsed)return {dispose(){},save:()=>saved};
    if(t.blocked||characterAt(t))return null;
-   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressive:e.aggressive,aggroRange:3,respawn:ENEMY_RESPAWN}));
-   return {dispose:()=>combat.remove(a),busy:()=>combat.matches(a)||combat.engagedEnemy===a,save:()=>a.opened?{away:elapsed+ENEMY_RESPAWN}:null};}
+   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressive:e.aggressive,aggroRange:3,respawn}));
+   return {dispose:()=>combat.remove(a),busy:()=>combat.matches(a)||combat.engagedEnemy===a,save:()=>a.opened?{away:elapsed+respawn}:null};}
   return null;}
 // A chunk's dressing: its animated water and its ground cover (flowers, grass, reeds, lily pads…),
 // the cover instanced across all loaded chunks (ground-cover.js).
@@ -887,8 +889,9 @@ if(__PLAYGROUND__){
   const sb=biomeSandbox;if(sb.source&&(seed===undefined||seed===sb.seed))return sb;
   if(seed!==undefined)sb.seed=seed;
   if(sb.streamer){sb.streamer.reset();sb.streamer.group.removeFromParent();}
-  const cells={};for(let cz=0;cz<BIOME_SIZE/8;cz++)for(let cx=0;cx<BIOME_SIZE/8;cx++)cells[`${cx},${cz}`]=BIOME_BANDS[Math.floor(cz/BIOME_BAND)]||'sea';
-  sb.source=createBiomeLand({seed:sb.seed,bounds:[0,0,BIOME_SIZE,BIOME_SIZE],map:{default:'meadow',cells}});
+  // Past the bands, the sea (terrain) off the coast.
+  const cells={},terrain={};for(let cz=0;cz<BIOME_SIZE/8;cz++)for(let cx=0;cx<BIOME_SIZE/8;cx++){const band=BIOME_BANDS[Math.floor(cz/BIOME_BAND)];cells[`${cx},${cz}`]=band||'coast';if(!band)terrain[`${cx},${cz}`]='sea';}
+  sb.source=createBiomeLand({seed:sb.seed,bounds:[0,0,BIOME_SIZE,BIOME_SIZE],map:{default:'meadow',cells,terrain}});
   const maps=[sb.tiles];if(areas.id==='biome-test')maps.push(world);
   sb.streamer=createChunkStreamer({source:sb.source,maps,parent:sb.group,pickables,resources:resourceActions,topColor:sb.source.topColor,place:placeLandExtra,dress:landDress(sb.source,sb.cover),radius:drawRadius()});
   sb.maps=maps;return sb;
@@ -971,7 +974,7 @@ if(__PLAYGROUND__){
   const [{townLand,townSource},{createChunkStreamer},{createGroundCoverPool}]=await Promise.all([import('./town-ground.js'),import('./chunk-streamer.js'),import('./ground-cover.js')]);
   // The land is kept between full builds while its settings are the same (generating it is the slow part).
   const landKey=JSON.stringify([data.land,data.size]),land=old?.landKey===landKey?old.land:townLand(data),source=townSource(land,()=>editorArea.built?.ground,()=>editorArea.built?.tiles,()=>editorArea.built?.data);
-  if(land===old?.land)land.useCells(data.land.cells);
+  if(land===old?.land)land.useCells(data.land.cells,data.land.terrain);
   editorArea.landCover??=createGroundCoverPool({parent:editorArea.group});
   const maps=[editorArea.tiles];if(areas.id==='city-editor')maps.push(world);
   const streamer=createChunkStreamer({source,maps,parent:editorArea.group,pickables,resources:resourceActions,topColor:source.topColor,place:placeLandExtra,dress:landDress(source,editorArea.landCover),radius:drawRadius()});

@@ -33,7 +33,7 @@ test('every shop has a shopkeeper (docs/TOWN.md)',()=>{
 test('the land around the village: painted biomes, the river down the east side, the coast and sea to the south',()=>{
  const {land}=data;assert.ok(land);assert.equal(townLand(data).tile(-1,10),null,'the land ends at the map’s edge: all of it can be edited');assert.ok(townLand(data).tile(0,10));
  for(const biome of Object.values(land.cells))assert.ok(biomeRule(biome).name,biome);
- assert.equal(land.cells['12,0'],'river','the river beside the village');assert.equal(land.cells['0,13'],'coast');assert.equal(land.cells['0,16'],'sea');
+ assert.equal(land.terrain['12,0'],'river','the river beside the village (terrain)');assert.equal(land.cells['0,13'],'coast');assert.equal(land.terrain['0,16'],'sea');
  assert.equal(OVERWORLD.size,data.size[0]);
  // Grown, the map takes them in: the river east of the village and the sea to the south are its own tiles.
  const tiles=cityTiles(data),{grow}=OVERWORLD;

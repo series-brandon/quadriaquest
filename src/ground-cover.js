@@ -36,6 +36,7 @@ const m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),s=new T
 // dozen draws in all, however many chunks), and a chunk only writes its instances' matrices into free
 // slots (64 bytes each) when it loads, instead of uploading a mesh. Releasing a chunk frees its slots.
 //   createGroundCoverPool({parent, capacity, offset}) → {add(items) → {dispose()}, stats}
+// A kind's pool doubles when it fills (zooming out, a far draw distance), so no chunk is left bare.
 export function createGroundCoverPool({parent,capacity=5000,offset=6}){
  const pools=new Map(),hidden=new THREE.Matrix4().makeScale(0,0,0);
  function pool(kind){
@@ -43,17 +44,20 @@ export function createGroundCoverPool({parent,capacity=5000,offset=6}){
    // Its own material: instanced and plain meshes compile different programs, and a separate material
    // lets the renderer draw all cover together instead of switching back and forth.
    coverMaterial??=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9});
-   const mesh=new THREE.InstancedMesh(template(kind),coverMaterial,capacity);mesh.name='ground-cover-'+kind;
-   mesh.count=0;mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=true;mesh.matrixAutoUpdate=false;parent.add(mesh);
-   pools.set(kind,{mesh,free:[],used:0});
+   pools.set(kind,{mesh:instanced(kind,capacity),free:[],used:0,capacity});
   }
   return pools.get(kind);
  }
+ const instanced=(kind,size)=>{const mesh=new THREE.InstancedMesh(template(kind),coverMaterial,size);mesh.name='ground-cover-'+kind;
+  mesh.count=0;mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=true;mesh.matrixAutoUpdate=false;parent.add(mesh);return mesh;};
+ // A full pool moves into one twice the size (its matrices copied; the template geometry is shared).
+ function grow(p,kind){const next=instanced(kind,p.capacity*2);next.instanceMatrix.array.set(p.mesh.instanceMatrix.array);next.count=p.mesh.count;next.instanceMatrix.needsUpdate=true;
+  p.mesh.removeFromParent();p.mesh.dispose();p.mesh=next;p.capacity*=2;}
  const write=(p,i,matrix)=>{p.mesh.setMatrixAt(i,matrix);p.mesh.instanceMatrix.addUpdateRange(i*16,16);p.mesh.instanceMatrix.needsUpdate=true;};
  return {
   add(items){
    const slots=[];
-   for(const it of items){const p=pool(it.kind);let i=p.free.pop();if(i===undefined){if(p.used>=capacity)continue;i=p.used++;p.mesh.count=p.used;}
+   for(const it of items){const p=pool(it.kind);let i=p.free.pop();if(i===undefined){if(p.used>=p.capacity)grow(p,it.kind);i=p.used++;p.mesh.count=p.used;}
     m.compose(v.set(it.x-offset,it.y,it.z-offset),q.setFromEuler(e.set(0,it.rotation||0,0)),s.setScalar(it.scale||1));write(p,i,m);slots.push([p,i]);}
    return {dispose(){for(const [p,i] of slots){write(p,i,hidden);p.free.push(i);}slots.length=0;}};
   },

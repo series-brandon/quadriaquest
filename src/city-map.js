@@ -80,7 +80,7 @@ export function growMap(data,{north=0,east=0,south=0,west=0}){
  // Everything placed, moved with it.
  const at=p=>p&&[p[0]+west,p[1]+north],xz=o=>{o.x+=west;o.z+=north;};
  data.spawn=at(data.spawn);if(data.crystal)data.crystal=at(data.crystal);
- for(const list of [data.buildings,data.props,data.stairs,data.resources||[],data.cover||[]])list.forEach(xz);
+ for(const list of [data.buildings,data.props,data.stairs,data.resources||[],data.cover||[],data.fishing||[],data.enemies||[]])list.forEach(xz);
  for(const e of data.edges){e.a=at(e.a);e.b=at(e.b);}
  for(const f of data.townsfolk||[]){if(f.home)f.home=at(f.home);if(f.patrol)f.patrol=f.patrol.map(at);}
  if(data.land){const [ox,oz]=data.land.origin||[0,0];data.land.origin=[ox-west,oz-north];

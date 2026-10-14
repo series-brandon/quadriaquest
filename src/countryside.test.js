@@ -73,5 +73,5 @@ test('ground cover is instanced: chunks take and free slots, one mesh per kind',
  assert.deepEqual(pool.stats,{grass:2,flowerPink:1});assert.equal(parent.children.length,2,'one mesh per kind');
  a.dispose();assert.deepEqual(pool.stats,{grass:0,flowerPink:0});
  pool.add([{kind:'grass',x:5,y:1,z:5}]);assert.equal(parent.children.find(m=>m.name==='ground-cover-grass').count,2,'freed slots are reused, not grown');
- pool.add(Array.from({length:20},(_,i)=>({kind:'fern',x:i,y:1,z:0})));assert.equal(pool.stats.fern,10,'never past capacity');
+ pool.add(Array.from({length:20},(_,i)=>({kind:'fern',x:i,y:1,z:0})));assert.equal(pool.stats.fern,20,'a full pool grows (no chunk left bare)');
 });

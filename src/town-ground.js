@@ -26,8 +26,9 @@ export const PAD_APRON=1;
 // The land covers the map exactly (user, 2026-10-14: no unusable land; everything you see can be edited
 // and reached). The map's edge is the world's edge.
 export function townLand(data){
- const {seed=1,default:fallback='meadow',cells={},origin:[ox,oz]=[0,0]}=data.land,[w,d]=data.size;
- const land=createBiomeLand({seed,bounds:[ox,oz,ox+w,oz+d],map:{default:fallback,cells}});
+ data.land.cells??={};data.land.terrain??={};// painted live by the editor (useCells after undo)
+ const {seed=1,default:fallback='meadow',cells,terrain,origin:[ox,oz]=[0,0]}=data.land,[w,d]=data.size;
+ const land=createBiomeLand({seed,bounds:[ox,oz,ox+w,oz+d],map:{default:fallback,cells,terrain}});
  return ox||oz?shiftLand(land,ox,oz):land;
 }
 // The land seen from a map whose 0, 0 lies at ox, oz: tiles, entities (their ids too), extras and cover
@@ -38,9 +39,9 @@ function shiftLand(land,ox,oz){
  return {...land,
   tile(x,z){const k=key(x,z);if(tiles.has(k))return tiles.get(k);const t=land.tile(x+ox,z+oz),out=t&&{...t,x,z};tiles.set(k,out);return out;},
   entities:list=>land.entities(list.map(world).filter(Boolean)).map(back),extras:list=>land.extras(list.map(world).filter(Boolean)).map(back),cover:list=>land.cover(list.map(world).filter(Boolean)).map(back),
-  useCells:next=>land.useCells(next),
+  useCells:(next,terrain)=>land.useCells(next,terrain),
   forget(x0,z0,x1,z1){land.forget(x0+ox,z0+oz,x1+ox,z1+oz);for(const k of [...tiles.keys()]){const [x,z]=k.split(',').map(Number);if(x>=x0&&x<=x1&&z>=z0&&z<=z1)tiles.delete(k);}},
-  biomeAt:(x,z)=>land.biomeAt(x+ox,z+oz),heightAt:(x,z)=>land.heightAt(x+ox,z+oz),describe:(x,z)=>land.describe(x+ox,z+oz).replace(/^-?\d+,-?\d+/,`${x},${z}`)};
+  biomeAt:(x,z)=>land.biomeAt(x+ox,z+oz),terrainAt:(x,z)=>land.terrainAt(x+ox,z+oz),heightAt:(x,z)=>land.heightAt(x+ox,z+oz),describe:(x,z)=>land.describe(x+ox,z+oz).replace(/^-?\d+,-?\d+/,`${x},${z}`)};
 }
 // The tiles a building stands on, without the door rule's checks (a pad needs only the footprint).
 export function footprintCells(b){
@@ -97,6 +98,11 @@ export function createTownGround(data,land=townLand(data),{offset=()=>0,surface=
 //   data.cover [{kind, x, z}]: placed ground cover (ground-cover.js kinds);
 //   data.land.removed ['tree:x,z', 'cover:x,z', …]: generated things taken away (entity ids, and cover by
 //   tile). One resource and one piece of cover per tile; a placed one replaces what grew there.
+//   data.land.nature false: the land grows no trees, resources or cover of its own (a blank slate; user,
+//   2026-10-14): only what is placed. data.land.enemies false: no enemies from the biomes either (spawns
+//   will be placed with the editor's tools). data.land.fishing false: no fishing spots of its own;
+//   data.fishing [{x, z}]: placed ones (on water). data.enemies [{x, z, enemy, aggressive, respawn}]: placed
+//   enemy spawns (combat-rules.js kinds; respawn in seconds). Generation sets a map up; what's placed is the map.
 export const coverId=(x,z)=>`cover:${x},${z}`;
 export const placedId=r=>`placed:${r.kind}:${r.x},${r.z}`;
 // Where a hand-placed resource may stand: dry ground with nothing built, placed or laid there.
@@ -108,6 +114,7 @@ export function townSource(land,ground,townTiles,townData=()=>null){
  const keep=list=>list.filter(t=>!inside(t.x,t.z)||free(t));
  const colors=new Map(),color=hex=>{if(!colors.has(hex))colors.set(hex,new THREE.Color(hex));return colors.get(hex);};
  // The hand edits, by tile, for the tiles asked about.
+ const grows=()=>townData()?.land?.nature!==false;
  const hand=list=>{const data=townData(),removed=new Set(data?.land?.removed||[]),at=new Set(list.map(t=>key(t.x,t.z)));
   const pick=entries=>new Map((entries||[]).filter(e=>at.has(key(e.x,e.z))).map(e=>[key(e.x,e.z),e]));
   return {removed,resources:pick(data?.resources),cover:pick(data?.cover)};};
@@ -115,20 +122,25 @@ export function townSource(land,ground,townTiles,townData=()=>null){
   tile(x,z){if(!inside(x,z))return ground().tile(x,z);return townTiles()?.get(key(x,z))||null;},
   topColor:t=>t.water?land.topColor(t):color(surfaceColor(t)),
   entities(list){const {removed,resources}=hand(list),byKey=new Map(list.map(t=>[key(t.x,t.z),t]));
-   const grown=land.entities(keep(list)).filter(e=>!removed.has(e.id)&&!resources.has(key(e.x,e.z)));
+   const grown=grows()?land.entities(keep(list)).filter(e=>!removed.has(e.id)&&!resources.has(key(e.x,e.z))):[];
    const crystal=townData()?.crystal,placed=[...resources.values()].filter(r=>resourceFits(byKey.get(key(r.x,r.z)))&&!(crystal&&crystal[0]===r.x&&crystal[1]===r.z)).map(r=>({id:placedId(r),kind:r.kind,x:r.x,z:r.z,...r.kind==='tree'?{species:r.species||'oak'}:{}}));
    return [...grown,...placed];},
-  extras:list=>land.extras(keep(list)),
+  extras(list){const data=townData(),{removed}=hand(list),on=new Set(list.map(t=>key(t.x,t.z)));
+   const grown=land.extras(keep(list)).filter(e=>!removed.has(e.id)&&(e.kind==='enemy'?data?.land?.enemies!==false:e.kind==='fishing'?data?.land?.fishing!==false:true));
+   const placed=(data?.fishing||[]).filter(f=>on.has(key(f.x,f.z))).map(f=>({id:`placed:fishing:${f.x},${f.z}`,kind:'fishing',x:f.x,z:f.z,fish:f.fish||'rawFish'}));
+   const spawns=(data?.enemies||[]).filter(e=>on.has(key(e.x,e.z))).map(e=>({id:`placed:enemy:${e.x},${e.z}`,kind:'enemy',enemy:e.enemy,aggressive:!!e.aggressive,respawn:e.respawn??null,x:e.x,z:e.z}));
+   const taken=new Set(placed.map(f=>key(f.x,f.z)));return [...grown.filter(e=>!(e.kind==='fishing'&&taken.has(key(e.x,e.z)))),...placed,...spawns];},
   cover(list){const {removed,cover}=hand(list),byKey=new Map(list.map(t=>[key(t.x,t.z),t]));
-   const grown=land.cover(keep(list)).filter(c=>{const k=key(Math.round(c.x),Math.round(c.z));return !removed.has(`cover:${k}`)&&!cover.has(k);});
+   const grown=!grows()?[]:land.cover(keep(list)).filter(c=>{const k=key(Math.round(c.x),Math.round(c.z));return !removed.has(`cover:${k}`)&&!cover.has(k);});
    const placed=[...cover.values()].map(c=>{const t=byKey.get(key(c.x,c.z));if(!t||t.water||t.building!==undefined)return null;const r=hash(c.x,c.z,77),r2=hash(c.x,c.z,78);
     return {kind:c.kind,x:c.x+(r2-.5)*.3,y:t.h,z:c.z+(r-.5)*.3,rotation:r2*6.28,scale:.9+r*.2};}).filter(Boolean);
    return [...grown,...placed];},
   // What grows on one tile, generated or placed (the editor's Select and Erase): {resource, cover}, each
   // {kind, species?, placed, id}.
-  natureAt(t){if(!t)return {resource:null,cover:null};const e=source.entities([t])[0]||null,c=source.cover([t])[0]||null,data=townData(),k=key(t.x,t.z);
+  natureAt(t){if(!t)return {resource:null,cover:null,fishing:null};const e=source.entities([t])[0]||null,c=source.cover([t])[0]||null,f=source.extras([t]).find(x=>x.kind==='fishing')||null,data=townData(),k=key(t.x,t.z);
    const placedCover=(data?.cover||[]).find(p=>key(p.x,p.z)===k);
-   return {resource:e&&{kind:e.kind,species:e.species,placed:e.id.startsWith('placed:'),id:e.id},cover:c&&{kind:c.kind,placed:!!placedCover,id:coverId(t.x,t.z)}};},
+   return {resource:e&&{kind:e.kind,species:e.species,placed:e.id.startsWith('placed:'),id:e.id},cover:c&&{kind:c.kind,placed:!!placedCover,id:coverId(t.x,t.z)},
+    fishing:f&&{kind:'fishing',placed:f.id.startsWith('placed:'),id:f.id}};},
  };
  return source;
 }

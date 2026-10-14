@@ -19,6 +19,8 @@ const MODELS={
  // A 2×2 body: its placement tile is the anchor corner (footprint.js).
  golem:{create:makeCinderGolem,animate:animateGolem,height:3.3,size:2,plateLift:3.1,aimHeight:1.4,scale:1.25,character:true},
 };
+// Tiles per side an enemy kind's body covers (its placement tile is the north-west corner).
+export const enemySize=kind=>MODELS[kind]?.size||1;
 // xp: optional placement-specific XP modifiers {multiplier, levelCap, afterCapMultiplier} (e.g. a tutorial boost).
 // territory: optional {minX,maxX,minZ,maxZ}; the enemy never walks out of it and stops pursuing a player
 // who leaves it (a boss arena). Without it, pursuit uses the leash distance from home.

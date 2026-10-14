@@ -110,3 +110,43 @@ test('repainting a biome rebuilds only around it, and matches a fresh build',()=
  const fresh=buildCity(structuredClone(data),{scene:new THREE.Group()});
  for(const [k,t] of fresh.tiles)assert.equal(city.tiles.get(k).h,t.h,k);
 });
+test('a blank slate: with generated nature off only placed nature grows; enemies and fishing still come from the biomes',()=>{
+ const data=createCityData({id:'blank',size:[64,64],land:{seed:2,default:'forest',cells:{},nature:false}});
+ const built=buildCity(data,{scene:new THREE.Group()}),source=townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data);
+ const all=[];for(let z=0;z<64;z++)for(let x=0;x<64;x++)all.push(built.tiles.get(key(x,z)));
+ assert.equal(source.entities(all).length,0,'no trees or resources of its own');assert.equal(source.cover(all).length,0,'no ground cover of its own');
+ // What the Grow brush places: the land's own pick for a tile (the generator, seeded), placed as the map's own.
+ const t=all.find(t=>!t.water&&built.ground.land.entities([t]).length);const [pick]=built.ground.land.entities([t]);
+ data.resources=[{kind:pick.kind,...pick.species?{species:pick.species}:{},x:t.x,z:t.z}];
+ assert.deepEqual(source.entities(all).map(e=>[e.kind,e.x,e.z]),[[pick.kind,t.x,t.z]],'placed nature still grows');
+ data.land.nature=true;assert.ok(source.entities(all).length>1,'on again: the forest grows');
+});
+test('generated enemies off: no goblins from the biomes, fishing spots stay',()=>{
+ const data=createCityData({id:'calm',size:[160,160],land:{seed:2,default:'forest',cells:{},terrain:{'5,5':'lakeland','6,5':'lakeland','5,6':'lakeland','6,6':'lakeland'}}});
+ const built=buildCity(data,{scene:new THREE.Group()}),source=townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data);
+ const all=[...built.tiles.values()],kinds=()=>new Set(source.extras(all).map(e=>e.kind));
+ assert.ok(kinds().has('enemy'),'the forest spawns goblins');
+ data.land.enemies=false;assert.ok(!kinds().has('enemy'),'none when off');
+ assert.ok(source.extras(all).every(e=>e.kind==='fishing'));
+});
+test('fishing spots: generated ones off, placed ones on water',()=>{
+ const terrain={};for(let cz=0;cz<20;cz++)for(let cx=0;cx<20;cx++)terrain[`${cx},${cz}`]=cx>=10?'sea':'plains';
+ const data=createCityData({id:'shore',size:[160,160],land:{seed:4,default:'coast',cells:{},terrain}});
+ const built=buildCity(data,{scene:new THREE.Group()}),source=townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data);
+ const all=[...built.tiles.values()],spots=()=>source.extras(all).filter(e=>e.kind==='fishing');
+ assert.ok(spots().length>0,'the sea gets spots of its own');
+ data.land.fishing=false;assert.equal(spots().length,0,'none when off');
+ const water=all.find(t=>t.water);data.fishing=[{x:water.x,z:water.z}];
+ assert.deepEqual(spots().map(e=>[e.id,e.x,e.z]),[[`placed:fishing:${water.x},${water.z}`,water.x,water.z]],'a placed spot');
+ assert.equal(source.natureAt(water).fishing.placed,true);
+});
+test('placed enemy spawns stream with their kind, behaviour and respawn, even with generated enemies off',()=>{
+ const data=createCityData({id:'camp',size:[64,64],land:{seed:2,default:'meadow',cells:{},enemies:false}});
+ const built=buildCity(data,{scene:new THREE.Group()}),source=townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data);
+ const all=[...built.tiles.values()],dry=all.find(t=>!t.water&&t.x>10&&t.z>10);
+ data.enemies=[{x:dry.x,z:dry.z,enemy:'bruiser',aggressive:true,respawn:120}];
+ const spawns=source.extras(all).filter(e=>e.kind==='enemy');
+ assert.deepEqual(spawns.map(e=>[e.enemy,e.aggressive,e.respawn,e.x,e.z]),[['bruiser',true,120,dry.x,dry.z]]);
+ assert.equal(spawns[0].id,`placed:enemy:${dry.x},${dry.z}`);
+ growMap(data,{west:32});assert.deepEqual([data.enemies[0].x,data.enemies[0].z],[dry.x+32,dry.z],'spawns move when the map grows');
+});

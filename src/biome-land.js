@@ -1,17 +1,20 @@
 import * as THREE from 'three';
 import {hash,valueNoise} from './noise.js';
 import {biomeRule,BIOME_RULES} from './biome-rules.js';
+import {terrainRule} from './terrain-rules.js';
 
-// Land made from biomes (docs/BIOMES.md, Placing biomes): a hand-painted biome map plus the biome rules
-// (biome-rules.js) give every tile, resource, fishing spot, enemy and bit of ground cover. It is a
-// chunk-streamer source (chunk-streamer.js), like countryside.js.
-//   createBiomeLand({seed, bounds:[x0, z0, x1, z1], map:{cell, default, cells:{'cx,cz': biome}}, rules})
+// Land made from biomes and terrain (docs/BIOMES.md, Placing biomes; Terrain and biome): two hand-painted
+// maps, the biome's (what grows, lives and shows) and the terrain's (the land's shape and water), plus
+// their rules (biome-rules.js, terrain-rules.js) give every tile, resource, fishing spot, enemy and bit of
+// ground cover. It is a chunk-streamer source (chunk-streamer.js), like countryside.js.
+//   createBiomeLand({seed, bounds:[x0, z0, x1, z1], map:{cell, default, cells:{'cx,cz': biome},
+//     terrain:{'cx,cz': terrain}}, rules})   an unpainted terrain cell uses its biome's usual terrain
 // A town stands on this land rather than cutting a hole in it (town-ground.js; docs/TOWN.md).
 //   → {tile, entities, extras, cover, topColor, biomeAt, heightAt, rules}
 // - The biome map is coarse (one biome per `cell` tiles, 8 by default); unpainted cells use `default`.
 // - Borders wander: what a tile looks like and grows comes from a lookup warped by noise.
-// - Heights blend: each tile's height is a weighted mix of the nearby cells' biome heights, the weights
-//   falling off smoothly with distance, so land rises gradually from one biome into the next.
+// - Heights blend: each tile's height is a weighted mix of the nearby cells' terrain heights, the weights
+//   falling off smoothly with distance, so land rises gradually from one terrain into the next.
 // - Land beside water stays low (a beach at water level plus half a block a tile), so water is always
 //   reachable, as in the countryside.
 // - The same seed and map always give the same land; ids are stable across loads.
@@ -21,34 +24,37 @@ export const CELL=8;
 export const FORGET_MARGIN=48;
 const BLEND=20,WARP=5,POND_CELL=24,WATER_H=.5;
 export function createBiomeLand({seed=1,bounds,map={},rules=BIOME_RULES}){
- const [x0,z0,x1,z1]=bounds,cell=map.cell||CELL,fallback=map.default||'meadow';let cells=map.cells||{};
+ const [x0,z0,x1,z1]=bounds,cell=map.cell||CELL,fallback=map.default||'meadow';let cells=map.cells||{},terrainCells=map.terrain||{};
  const rule=id=>biomeRule(rules[id]?id:fallback,rules);
  const painted=(cx,cz)=>cells[`${cx},${cz}`]||fallback;
- // The biome a tile shows: its cell, looked up through a gentle warp so borders aren't square.
- const biomeAt=(x,z)=>painted(Math.floor((x+(valueNoise(x,z,13,seed+401)-.5)*2*WARP)/cell),Math.floor((z+(valueNoise(x,z,13,seed+402)-.5)*2*WARP)/cell));
- // One biome's own height at a tile, before blending (continuous, in blocks).
- function ownHeight(b,x,z){const t=b.terrain;
+ // A cell's terrain: painted, else its biome's usual one.
+ const terrainOf=(cx,cz)=>terrainCells[`${cx},${cz}`]||rule(painted(cx,cz)).terrain;
+ // The cell a tile shows: its own, looked up through a gentle warp so borders aren't square.
+ const warped=(x,z)=>[Math.floor((x+(valueNoise(x,z,13,seed+401)-.5)*2*WARP)/cell),Math.floor((z+(valueNoise(x,z,13,seed+402)-.5)*2*WARP)/cell)];
+ const biomeAt=(x,z)=>painted(...warped(x,z)),terrainAt=(x,z)=>terrainRule(terrainOf(...warped(x,z)));
+ // One terrain's own height at a tile, before blending (continuous, in blocks).
+ function ownHeight(t,x,z){
   const e=valueNoise(x,z,t.scale,seed)*.65+valueNoise(x,z,t.scale/2.7,seed+1)*.35,u=Math.min(1,Math.max(0,(e-.3)/.45)),shape=u*u*(3-2*u);
   return t.base+t.relief*shape+t.roughness*(valueNoise(x,z,t.roughScale,seed+2)-.5);}
  // Blended height: nearby cells weighted by (1 − d/BLEND)², d from the tile to the cell's centre.
  function heightAt(x,z){
   let sum=0,total=0;const own=new Map();
   for(let cz=Math.floor((z-BLEND)/cell);cz<=Math.floor((z+BLEND)/cell);cz++)for(let cx=Math.floor((x-BLEND)/cell);cx<=Math.floor((x+BLEND)/cell);cx++){
-   const d=Math.hypot((cx+.5)*cell-.5-x,(cz+.5)*cell-.5-z);if(d>=BLEND)continue;const w=(1-d/BLEND)**2,id=painted(cx,cz);
-   if(!own.has(id))own.set(id,ownHeight(rule(id),x,z));sum+=w*own.get(id);total+=w;}
-  return total?sum/total:ownHeight(rule(fallback),x,z);
+   const d=Math.hypot((cx+.5)*cell-.5-x,(cz+.5)*cell-.5-z);if(d>=BLEND)continue;const w=(1-d/BLEND)**2,id=terrainOf(cx,cz);
+   if(!own.has(id))own.set(id,ownHeight(terrainRule(id),x,z));sum+=w*own.get(id);total+=w;}
+  return total?sum/total:ownHeight(terrainRule(rule(fallback).terrain),x,z);
  }
- // Water: the sea, ponds (one chance per 24-tile cell, by the biome at the pond) and marsh pools.
+ // Water: the sea, rivers, ponds (one chance per 24-tile cell, by the terrain at the pond) and marsh pools.
  function pondsNear(x,z){const out=[];
   for(let cz=Math.floor(z/POND_CELL)-1;cz<=Math.floor(z/POND_CELL)+1;cz++)for(let cx=Math.floor(x/POND_CELL)-1;cx<=Math.floor(x/POND_CELL)+1;cx++){
-   const px=cx*POND_CELL+6+Math.floor(hash(cx,cz,seed+71)*12),pz=cz*POND_CELL+6+Math.floor(hash(cx,cz,seed+72)*12),chance=rule(biomeAt(px,pz)).water.ponds;
+   const px=cx*POND_CELL+6+Math.floor(hash(cx,cz,seed+71)*12),pz=cz*POND_CELL+6+Math.floor(hash(cx,cz,seed+72)*12),chance=terrainAt(px,pz).water.ponds;
    if(hash(cx,cz,seed+70)<chance)out.push({x:px,z:pz,r:2+hash(cx,cz,seed+73)*2.2});}
   return out;}
  const waterSeen=new Map();
  function waterAt(x,z){const k=`${x},${z}`;if(waterSeen.has(k))return waterSeen.get(k);const w=findWater(x,z);waterSeen.set(k,w);return w;}
  function findWater(x,z){
-  const b=rule(biomeAt(x,z));if(b.water.sea)return 'sea';if(b.water.river)return 'river';
-  if(b.water.pools>0&&valueNoise(x,z,7,seed+90)>1-b.water.pools)return 'marsh';
+  const w=terrainAt(x,z).water;if(w.sea)return 'sea';if(w.river)return 'river';
+  if(w.pools>0&&valueNoise(x,z,7,seed+90)>1-w.pools)return 'marsh';
   if(pondsNear(x,z).some(p=>Math.hypot(x-p.x,z-p.z)<p.r+(valueNoise(x,z,4,seed+74)-.5)*1.6))return 'pond';
   return null;
  }
@@ -59,15 +65,15 @@ export function createBiomeLand({seed=1,bounds,map={},rules=BIOME_RULES}){
  function tile(x,z){
   if(!inside(x,z))return null;
   const k=`${x},${z}`;if(tiles.has(k))return tiles.get(k);
-  const id=biomeAt(x,z),b=rule(id),water=waterAt(x,z);let t;
-  if(water)t={x,z,h:WATER_H,water:true,blocked:true,surface:'water',still:water!=='sea',waterKind:water,biome:id};
+  const id=biomeAt(x,z),b=rule(id),terrain=terrainAt(x,z),water=waterAt(x,z);let t;
+  if(water)t={x,z,h:WATER_H,water:true,blocked:true,surface:'water',still:water!=='sea',waterKind:water,biome:id,terrain:terrain.id};
   else{
    // Land rises from water half a block a tile: look as far out as this tile's height needs, so the
    // ramp always meets the natural ground without a full-block step.
    const raw=Math.round(heightAt(x,z)*2)/2,near=waterDistance(x,z,Math.max(1,Math.ceil((raw-1)*2)+1));
    const h=Math.max(1,Math.min(raw,1+(near-1)*.5));
-   const rocky=h>=b.terrain.rockAt,shore=near===1,ground=rocky?b.ground.rock:shore?b.ground.shore:b.ground;
-   t={x,z,h,water:false,blocked:false,surface:ground.surface,palette:ground.palette,biome:id,shore,rocky};
+   const rocky=h>=terrain.rockAt,shore=near===1,ground=rocky?b.ground.rock:shore?b.ground.shore:b.ground;
+   t={x,z,h,water:false,blocked:false,surface:ground.surface,palette:ground.palette,biome:id,terrain:terrain.id,shore,rocky};
   }
   tiles.set(k,t);return t;
  }
@@ -124,8 +130,8 @@ export function createBiomeLand({seed=1,bounds,map={},rules=BIOME_RULES}){
  // past its cells (borders blend and wander, ponds and shores follow the biome).
  function forget(x0,z0,x1,z1){for(const cache of [tiles,waterSeen])for(const k of [...cache.keys()]){const [x,z]=k.split(',').map(Number);if(x>=x0&&x<=x1&&z>=z0&&z<=z1)cache.delete(k);}}
  // The same paint in a new object (a map's data replaced by undo): read it from now on.
- const useCells=next=>{cells=next||{};};
- return {tile,entities,extras,cover,topColor,biomeAt,heightAt,rules,forget,useCells,
+ const useCells=(next,nextTerrain)=>{cells=next||{};terrainCells=nextTerrain||{};};
+ return {tile,entities,extras,cover,topColor,biomeAt,terrainAt:(x,z)=>terrainAt(x,z).id,heightAt,rules,forget,useCells,
   // For the playground: what a tile is, in words.
-  describe(x,z){const t=tile(x,z);return t?`${x},${z} · ${rule(t.biome).name} · height ${t.h}${t.water?` · ${t.waterKind}`:''}`:`${x},${z}: beyond the land`;}};
+  describe(x,z){const t=tile(x,z);return t?`${x},${z} · ${rule(t.biome).name} on ${terrainRule(t.terrain).name.toLowerCase()} · height ${t.h}${t.water?` · ${t.waterKind}`:''}`:`${x},${z}: beyond the land`;}};
 }
