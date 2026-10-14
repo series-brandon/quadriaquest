@@ -37,6 +37,6 @@ export function createEnemyEntity({kind,tile,parent,pickables,patrol,respawn=nul
  Object.defineProperty(a,'label',{get(){return `Fight ${rules.name} · ${Math.ceil(hp.value)}/${rules.health} HP${rules.boss?' · Boss':''}${a.attacksPacifists?' · ⚠ Hunts pacifists':''}`;},enumerable:true});
  const meshes=[];group.traverse(m=>{if(m.isMesh){m.userData.actor=a;m.userData.tile=tile;pickables.push(m);meshes.push(m);}});
  a.highlight=highlightResource(group,{height:model.height});
- a.dispose=()=>{plateView.dispose();group.removeFromParent();for(const m of meshes){const index=pickables.indexOf(m);if(index>=0)pickables.splice(index,1);}group.traverse(m=>{m.geometry?.dispose();});};
+ a.dispose=()=>{plateView.dispose();group.removeFromParent();for(const m of meshes){const index=pickables.indexOf(m);if(index>=0)pickables.splice(index,1);}group.traverse(m=>{if(!m.geometry?.userData.shared)m.geometry?.dispose();});};
  return a;
 }

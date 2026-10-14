@@ -7,6 +7,7 @@ import {FURNITURE} from './prop-sets/furniture.js';
 import {TRADE} from './prop-sets/trade.js';
 import {STREET} from './prop-sets/street.js';
 import {NATURE} from './prop-sets/nature.js';
+import {VILLAGE} from './prop-sets/village.js';
 
 // Shared prop prefabs (docs/CITY.md, Props and decoration; city Phase 5). A prop is placed from its
 // kind, an origin tile and a rotation, in any map; it carries
@@ -15,7 +16,10 @@ import {NATURE} from './prop-sets/nature.js';
 //    `sight: false` for tall props that also block sight,
 //  - spots: where townsfolk and the player use it ({kind: sit | gaze | drink | read | browse | vend |
 //    work, at: [dx, dz] from the origin before rotation, facing: the way the user faces}),
-//  - an optional interaction (label, verb), handled by the game through configureProps.
+//  - an optional interaction (label, verb), handled by the game through configureProps;
+//  - optionally `water`: 'any' (may stand on water tiles) or 'only' (on water: a moored boat); `deck`: the
+//    height its water tiles are walked at (a quay or jetty: walkable boards, the water still drawn
+//    below); `spin`: {pivot, axis, speed (radians a second), parts}, a part that turns (a waterwheel).
 // Models are merged per kind (one draw per prop, one shared geometry per look). Spots are data
 // townsfolk (townsfolk.js) and the player share.
 // Rotation is 0/90/180/270 clockwise from above; "front" (the side spots usually face from) is south.
@@ -63,8 +67,8 @@ export const PROPS={
 const STARTER=Object.keys(PROPS);
 // The Phase 10 sets (src/prop-sets/): interior furniture, shop and trade fixtures, street and civic
 // pieces, nature and dungeon dressing.
-Object.assign(PROPS,FURNITURE,TRADE,STREET,NATURE);
-export const PROP_CATEGORIES={'Starter set':STARTER,'Interior furniture':Object.keys(FURNITURE),'Shop and trade':Object.keys(TRADE),'Street and civic':Object.keys(STREET),'Nature and dungeon':Object.keys(NATURE)};
+Object.assign(PROPS,FURNITURE,TRADE,STREET,NATURE,VILLAGE);
+export const PROP_CATEGORIES={'Starter set':STARTER,'Interior furniture':Object.keys(FURNITURE),'Shop and trade':Object.keys(TRADE),'Street and civic':Object.keys(STREET),'Nature and dungeon':Object.keys(NATURE),'Village and coast':Object.keys(VILLAGE)};
 export const PROP_KINDS=Object.keys(PROPS);
 const SIDES=['n','e','s','w'],ANGLE={n:Math.PI,e:Math.PI/2,s:0,w:-Math.PI/2};
 // The game supplies what interactions do (main.js): sit, sleep, cook, smith, open, read, examine,
@@ -95,16 +99,19 @@ export function propModel(kind){
  group.add(cachedMergedMesh('prop:'+kind,def.parts));
  if(def.tree){const tree=makeTree();tree.scale.setScalar(.8);group.add(tree);}
  for(const [x,y,z,r] of def.glow||[]){const glow=new THREE.Mesh(glowGeometry,glowMaterial);glow.scale.setScalar(r);glow.position.set(x,y,z);glow.name='prop-glow';group.add(glow);}
+ if(def.spin){const pivot=new THREE.Group();pivot.name='prop-spin';pivot.position.set(...def.spin.pivot);pivot.add(cachedMergedMesh(`prop:${kind}:spin`,def.spin.parts));group.add(pivot);group.userData.spin=pivot;}
  group.userData.moving=(def.moving||[]).map((m,i)=>{const pivot=new THREE.Group();pivot.name='prop-moving';pivot.position.set(...m.pivot);pivot.add(cachedMergedMesh(`prop:${kind}:moving${i}`,m.parts));group.add(pivot);return {pivot,spec:m,rest:pivot.position.clone()};});
  return group;
 }
 // Open (0 shut … 1 open): lids and doors turn by `open`, drawers slide by `offset`.
 export function setPropOpen(group,amount){for(const {pivot,spec,rest} of group.userData.moving||[]){pivot.rotation.set(...spec.open.map(a=>a*amount));pivot.position.copy(rest);if(spec.offset)pivot.position.add(new THREE.Vector3(...spec.offset).multiplyScalar(amount));}}
+// A spinning part's angle (the catalogue sets it; placed props turn in updateProps).
+export function spinProp(group,angle){const pivot=group.userData.spin;if(pivot)pivot.rotation[PROPS[group.name.slice(5)]?.spin.axis||'x']=angle;}
 // Props with moving parts animate towards their open state each frame (updateProps, main.js).
 // Only props on their way open or shut are visited; a settled one drops out. A prop in a frozen group
 // (furniture, which never moves) refreshes its own matrices while it moves.
-const animated=new Set();
-export function updateProps(dt){for(const p of animated){const target=p.open?1:0;p.amount+=Math.sign(target-p.amount)*Math.min(Math.abs(target-p.amount),dt*3);setPropOpen(p.group,p.amount);if(p.frozen)p.group.updateMatrixWorld(true);if(p.amount===target)animated.delete(p);}}
+const animated=new Set(),spinning=new Set();
+export function updateProps(dt){for(const p of spinning){if(!p.group.parent)continue;p.spin+=p.def.spin.speed*dt;spinProp(p.group,p.spin);}for(const p of animated){const target=p.open?1:0;p.amount+=Math.sign(target-p.amount)*Math.min(Math.abs(target-p.amount),dt*3);setPropOpen(p.group,p.amount);if(p.frozen)p.group.updateMatrixWorld(true);if(p.amount===target)animated.delete(p);}}
 // Loot taken from world chests, by stable id (survives rebuilding a map within a session).
 const takenLoot=new Set();
 export const lootTaken=id=>takenLoot.has(id);
@@ -119,6 +126,12 @@ export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id
  const def=PROPS[kind];if(!def)throw Error('Unknown prop: '+kind);
  const [ox,oz]=origin,[w,d]=propFootprint(kind,rotation),tiles=[];
  for(let z=0;z<d;z++)for(let x=0;x<w;x++){const t=tileAt(ox+x,oz+z);if(!t)throw Error(`${def.name}: no tile at ${ox+x},${oz+z}`);tiles.push(t);}
+ if(def.water==='only'&&tiles.some(t=>!t.water))throw Error(`${def.name} goes on water.`);
+ if(!def.water&&tiles.some(t=>t.water))throw Error(`${def.name} can't go on water.`);
+ // A deck (quay, jetty): its water tiles become boards at the deck's height, the water still drawn below
+ // (overWater; the streamed water draws it, the terrain skips the tile). Restored on dispose.
+ const decked=def.deck?tiles.filter(t=>t.water).map(t=>({t,was:{h:t.h,water:t.water,blocked:t.blocked,still:t.still,surface:t.surface}})):[];
+ for(const {t} of decked)Object.assign(t,{h:def.deck,water:false,blocked:false,overWater:true,noTerrain:true,surface:'planks'});
  const base=Math.max(...tiles.map(t=>t.h)),blocked=blockedOffsets(kind,rotation).map(([x,z])=>tileAt(ox+x,oz+z)).filter(Boolean);
  for(const t of blocked){t.blocked=true;if(def.sight===false)t.blocksSight=true;if(def.reachOver)t.reachOver=true;}
  for(const t of tiles)t.prop=id??kind;
@@ -130,13 +143,16 @@ export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id
  // The interaction anchor: the tile in front of the prop's middle that you walk up to.
  const anchor=blocked[Math.floor(blocked.length/2)]||tiles[0];
  const prop={kind,id,def,group,tiles,blocked,spots,tile:anchor,x:anchor.x,z:anchor.z,label:def.interaction?.label??def.name,ready:true,opened:false,duration:0,
-  station:def.station||null,loot,shop:shop??def.shop??null,open:false,amount:0,
+  station:def.station||null,loot,shop:shop??def.shop??null,open:false,amount:0,spin:0,
   available:()=>true,interact(){if(def.interaction)services.act(def.interaction.verb,prop);},
   toggle(){prop.open=!prop.open;animated.add(prop);return prop.open;},
-  dispose(){group.removeFromParent();animated.delete(prop);for(const t of blocked){t.blocked=false;if(def.sight===false)t.blocksSight=false;if(def.reachOver)delete t.reachOver;}for(const t of tiles)delete t.prop;for(const m of meshes){const i=pickables.indexOf(m);if(i>=0)pickables.splice(i,1);}}};
+  dispose(){group.removeFromParent();animated.delete(prop);spinning.delete(prop);for(const {t,was} of decked){Object.assign(t,was);delete t.overWater;delete t.noTerrain;}for(const t of blocked){t.blocked=false;if(def.sight===false)t.blocksSight=false;if(def.reachOver)delete t.reachOver;}for(const t of tiles)delete t.prop;for(const m of meshes){const i=pickables.indexOf(m);if(i>=0)pickables.splice(i,1);}}};
  for(const s of spots)s.prop=prop;
+ if(def.spin)spinning.add(prop);
  // Interactive props are picked like other actors (the game walks up and calls interact()).
  const meshes=[];if(def.interaction)group.traverse(m=>{if(m.isMesh){m.userData.actor=prop;m.userData.tile=prop.tile;pickables.push(m);meshes.push(m);}});
+ // A deck is clicked as the tile it covers (as the countryside bridge's deck is), to walk onto it.
+ else if(decked.length)group.traverse(m=>{if(m.isMesh){m.userData.tile=decked[0].t;pickables.push(m);meshes.push(m);}});
  return prop;
 }
 // Taking a chest's loot (once, by its id): the items, or null when there is nothing (city furniture) or

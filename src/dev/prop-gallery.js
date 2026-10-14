@@ -8,7 +8,9 @@ export function propGalleryData(){
  const rowsOf=Object.entries(PROP_CATEGORIES),data=createCityData({id:'prop-gallery',name:'Prop gallery',size:[64,14+rowsOf.length*12],surface:'plaza'});
  data.spawn=[4,4];let z=6;
  for(const [,kinds] of rowsOf){let x=3,rowDepth=0;
-  for(const kind of kinds){const [w,d]=propFootprint(kind,0);if(x+w>60){x=3;z+=rowDepth+3;rowDepth=0;}
+  // Props that only stand on water (a moored boat) aren't here: the gallery is paved; see them in the
+  // model catalogue or place them on water in the editor.
+  for(const kind of kinds.filter(k=>PROPS[k].water!=='only')){const [w,d]=propFootprint(kind,0);if(x+w>60){x=3;z+=rowDepth+3;rowDepth=0;}
    // Wall-mounted props need a wall behind them: a short stretch of wall on their north edge.
    if(PROPS[kind].mount==='wall')data.edges.push({a:[x,z],b:[x,z-1],kind:'wall'});
    data.props.push({kind,x,z,rotation:0,...kind==='chest'?{loot:{copperOre:2}}:{}});x+=w+2;rowDepth=Math.max(rowDepth,d);}

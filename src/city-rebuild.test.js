@@ -40,11 +40,16 @@ test('a partial rebuild leaves no stray clickable meshes or scene objects behind
  for(let i=0;i<3;i++)assert.ok(city.rebuild([...city.chunks.keys()]));
  assert.equal(pickables.length,before.picks,'pickables');assert.equal(count(),before.objects,'scene objects');
 });
-test('rebuild asks for a full build when buildings were added or removed, or a walled city\'s wall chunks change',()=>{
+test('new and removed buildings rebuild only the chunks whose building ids changed',()=>{
  const data=createCityData({size:[40,40]});fillCity(data,{x0:0,z0:0,x1:39,z1:39},{surface:'grass'});data.spawn=[20,20];
  data.buildings.push({x:4,z:4,desc:{name:'cottage',footprint:[3,3],doors:[{edge:'south',at:1}]}});
  const city=buildCity(data,{scene:new THREE.Group()});
  data.buildings.push({x:10,z:4,desc:{name:'cottage 2',footprint:[3,3],doors:[{edge:'south',at:1}]}});
- assert.equal(city.rebuild([chunkId(10,4)]),false,'a new building: full build');
- assert.equal(city.tiles.get(key(4,4)).building,0,'the city is left as it was');
+ assert.ok(city.rebuild([chunkId(10,4)]),'a new building: built in its chunk');
+ assert.equal(city.buildings.length,2);assert.equal(city.tiles.get(key(11,5)).building,1);assert.equal(city.roofs.length,2);
+ // Removing the first shifts the second's id: it rebuilds in its chunk as building 0.
+ data.buildings.shift();
+ assert.ok(city.rebuild([chunkId(4,4)]),'a removed building: rebuilt where the ids changed');
+ assert.equal(city.buildings.length,1);assert.equal(city.tiles.get(key(4,4)).building,undefined);assert.equal(city.tiles.get(key(11,5)).building,0);assert.equal(city.roofs.length,1);
+ const fresh=buildCity(structuredClone(data),{scene:new THREE.Group()});for(const [k,t] of fresh.tiles)assert.equal(city.tiles.get(k).building,t.building,k);
 });

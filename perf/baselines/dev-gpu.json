@@ -1386,6 +1386,131 @@
      "Mesh/RingGeometry/MeshBasicMaterial": 9
     }
    }
+  },
+  "overworld-pan": {
+   "meta": {
+    "updated": "2026-10-14T17:41:29.334Z",
+    "note": "Re-baselined after fixing missing tile sides in indexed chunk terrain (a shadowed vertex counter left side quads unindexed)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
+    "windows": 5,
+    "windowMs": 2500,
+    "calibrationMs": 26.549999237060547
+   },
+   "summary": {
+    "counters": {
+     "draws": 645.379,
+     "threeDrawCalls": 460.682,
+     "triangles": 481413,
+     "uploadsPerFrame": 7.628,
+     "uploadKBPerFrame": 86.354,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 19.573,
+     "mutationsPerSec": 10.771,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 8.364,
+     "objects": 2879,
+     "visibleMeshes": 605,
+     "programs": 17,
+     "geometries": 146,
+     "textures": 2
+    },
+    "timing": {
+     "frameMs": 2.915,
+     "frameP95": 12.675,
+     "frameMax": 23.005,
+     "intervalP95": 16.67,
+     "fps": 59.492,
+     "cpuPercent": 56.387,
+     "gpuMs": 3.046,
+     "scriptMsPerSec": 308.108,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 2.215,
+     "world": 1.312,
+     "other": 0.448,
+     "systems": 0.307,
+     "interface": 0.213,
+     "player": 0.088,
+     "hover": 0.032,
+     "feedback": 0.013
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 2.700000762939453,
+     "frameP95": 8.944999694824219,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.4920813680295,
+     "cpuPercent": 40.90053310247242,
+     "draws": 417.90604026845637,
+     "gpuMs": 2.35
+    },
+    {
+     "frameMs": 2.914997100830078,
+     "frameP95": 14.314998626708984,
+     "intervalP95": 16.670000000000073,
+     "fps": 57.73844482731191,
+     "cpuPercent": 56.386679996954356,
+     "draws": 645.3793103448276,
+     "gpuMs": 3.194
+    },
+    {
+     "frameMs": 2.904998779296875,
+     "frameP95": 11.954998016357422,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.508951286371165,
+     "cpuPercent": 51.32619527866641,
+     "draws": 566.3892617449665,
+     "gpuMs": 2.156
+    },
+    {
+     "frameMs": 4.154998779296875,
+     "frameP95": 14.395000457763672,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.32508756594491,
+     "cpuPercent": 58.41412119878137,
+     "draws": 782.1409395973154,
+     "gpuMs": 3.063
+    },
+    {
+     "frameMs": 3.6599998474121094,
+     "frameP95": 12.674995422363281,
+     "intervalP95": 16.67000000000189,
+     "fps": 59.84130093566225,
+     "cpuPercent": 56.95225296119133,
+     "draws": 665.9866666666667,
+     "gpuMs": 3.046
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "Mesh": 11,
+     "Group": 29,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1,
+     "city-editor": 2833
+    },
+    "byKind": {
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 15,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 1,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 13,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 15,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 492,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 4,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 45,
+     "Mesh/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 8,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/CapsuleGeometry/MeshStandardMaterial/shadow": 8
+    }
+   }
   }
  }
 }

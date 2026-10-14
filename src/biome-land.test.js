@@ -80,3 +80,9 @@ test('rivers are water, and the land paints by the map it is given',()=>{
  assert.equal(land.biomeAt(12,68),'coast');assert.equal(land.biomeAt(70,10),'hills','unpainted: the default');
  assert.equal(steps(land,80),0);
 });
+test('repainting: the land forgets an area and generates it again from the new paint; it can read new paint objects',()=>{
+ const cells={};const land=createBiomeLand({seed:3,bounds:[0,0,96,96],map:{default:'meadow',cells}});
+ const before=land.tile(40,40);cells['5,5']='sea';assert.equal(land.tile(40,40),before,'cached until forgotten');
+ land.forget(0,0,95,95);assert.equal(land.tile(43,43).waterKind,'sea','painted sea');
+ land.useCells({});land.forget(0,0,95,95);assert.ok(!land.tile(43,43).water,'new paint read');
+});

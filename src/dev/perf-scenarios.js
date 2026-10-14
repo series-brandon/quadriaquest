@@ -17,6 +17,7 @@ export const PERF_SCENARIOS=[
  {id:'city-walk',description:'Kit street (city Phases 4–8): walking across the town square past buildings, props and its 14 townsfolk'},
  {id:'city-crowd',description:'Kit street square with a generated crowd of 60 townsfolk (crowd budget rings)'},
  {id:'capital-square',description:'The capital (160 × 160, city Phase 9): the town square at the default view, chunks streamed, its townsfolk'},
+ {id:'overworld-pan',description:'The overworld (288 × 288) in the city editor, the free camera panning back and forth across it at zoom 40: chunks of land, nature and water streaming in and out'},
  {id:'countryside-walk',description:'Gelton\'s countryside (docs/WORLD.md): walking the west road out of the city and back, loading and unloading countryside chunks (woods, rocks, goblins) on the way'}
 ];
 
@@ -33,7 +34,8 @@ export function createPerfScenarios({api,probe,setView,walkTo,state}){
  }
  function settle(view=DEFAULT_VIEW){canvas()?.dispatchEvent(new PointerEvent('pointerleave'));setView(view);api.wake();}
  function every(ms,fn){timers.push(setInterval(fn,ms));}
- function clear(){for(const t of timers)clearInterval(t);timers=[];}
+ let cleanups=[];
+ function clear(){for(const t of timers)clearInterval(t);timers=[];for(const f of cleanups)f();cleanups=[];}
  async function checkpoint(id,{keepDialogue=false}={}){await api.loadCheckpoint(getCheckpoint(id));await wait(600);if(!keepDialogue)await dismiss();}
  async function arrive(area){for(let i=0;i<120&&state().area!==area;i++)await wait(100);for(let i=0;i<60&&state().travel;i++)await wait(100);await wait(400);await dismiss();}
  const setups={
@@ -51,6 +53,9 @@ export function createPerfScenarios({api,probe,setView,walkTo,state}){
   async 'city-walk'(){api.reset('all');await dismiss();await api.enterCityMap('kit-street');await wait(800);settle();const ends=[[27,29],[33,35]];let next=1;every(200,()=>{if(state().moving)return;const [x,z]=ends[next];next=1-next;walkTo(x,z);});},
   async 'countryside-walk'(){api.reset('all');await dismiss();await api.countrysideJump([-6,87]);await wait(1500);settle();const ends=[[-6,87],[-40,87]];let next=1;every(200,()=>{if(state().moving)return;const [x,z]=ends[next];next=1-next;walkTo(x,z);});},
   async 'capital-square'(){api.reset('all');await dismiss();await api.enterCapital();await wait(1500);settle();},
+  async 'overworld-pan'(){api.reset('all');await dismiss();const {default:data}=await import('../maps/overworld.json');await api.editCity(structuredClone(data),{keepPlayer:false});await wait(1500);
+   settle({...DEFAULT_VIEW,zoom:40});api.freeCamera(true);const key=(type,k)=>dispatchEvent(new KeyboardEvent(type,{key:k}));let dir='w';key('keydown',dir);
+   every(3000,()=>{key('keyup',dir);dir=dir==='w'?'s':'w';key('keydown',dir);});cleanups.push(()=>{key('keyup','w');key('keyup','s');api.freeCamera(false);});},
   async 'city-crowd'(){api.reset('all');await dismiss();await api.enterCityMap('kit-street');await api.crowd(60);await wait(1500);settle();}
  };
  return {

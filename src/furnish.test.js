@@ -57,12 +57,12 @@ test('chest loot is given once, by id, and resets',()=>{
  assert.equal(takeLoot(plain),null,'city chests: nothing interesting');
  resetLoot();assert.deepEqual(takeLoot(chest),{logs:2});resetLoot();
 });
-test('the prop gallery builds with every prop',()=>{
- const data=propGalleryData(),city=buildCity(data,{scene:new THREE.Group()});
+test('the prop gallery builds with every prop that stands on land',()=>{
+ const data=propGalleryData(),city=buildCity(data,{scene:new THREE.Group()}),onLand=PROP_KINDS.filter(k=>PROPS[k].water!=='only');
  const placed=new Set(data.props.map(p=>p.kind));
- for(const kinds of Object.values(PROP_CATEGORIES))for(const k of kinds)assert.ok(placed.has(k),k);
- assert.equal(placed.size,PROP_KINDS.length);
- assert.ok(city.props.length>=PROP_KINDS.length);
+ for(const kinds of Object.values(PROP_CATEGORIES))for(const k of kinds)assert.equal(placed.has(k),PROPS[k].water!=='only',k);
+ assert.equal(placed.size,onLand.length);
+ assert.ok(city.props.length>=onLand.length,'every one built');
 });
 test('sitting and sleeping put you on the piece, not beside it, whichever way it turns',()=>{
  for(const kind of Object.keys(PROPS).filter(k=>PROPS[k].spots?.some(s=>s.seat)))for(const rotation of [0,90,180,270]){

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {createTerrainBatch} from './terrain-batch.js';
 import {createEdgeFeatures} from './doors.js';
 import {createBuilding} from './building-kit.js';
-import {createProp,propFootprint} from './props.js';
+import {createProp,propFootprint,PROPS} from './props.js';
 import {makeCityTile,layStairs,railingEdges,stairRailParts,SURFACE_NAMES} from './city-terrain.js';
 import {mergedMesh} from './merged-model.js';
 import {mergeStatic} from './static-merge.js';
@@ -23,7 +23,7 @@ import {createTownGround,townLand} from './town-ground.js';
 //    edges:[{a:[x, z], b:[x, z], kind}], townsfolk:[…], interiors:{…}}
 // Terrain is stored per tile by region (world-grid.js REGION; docs/WORLD.md, Glossary): heights in half
 // blocks as one character each ('0' + 2h), surfaces as one letter each.
-// A town on the land (`land`: {seed, ring, default, cells}; town-ground.js, docs/TOWN.md) stores no
+// A town on the land (`land`: {seed, default, cells, origin}; town-ground.js, docs/TOWN.md) stores no
 // heights of its own: its regions hold `offsets` instead, hand edits as deltas on the land's ground in
 // half blocks ('0' + 2 × (offset + 10), so 'D' is none), and '.' surfaces, which show the land's ground.
 const SURFACE_CODES={grass:'g',dirt:'d',cobble:'c',flagstone:'f',plaza:'p',stone:'s',floor:'o',planks:'k',dungeon:'u'};
@@ -54,13 +54,38 @@ export function setCityHeight(data,x,z,h){if(inside(data,x,z))setChar(regionOf(d
 export function setCitySurface(data,x,z,surface){if(inside(data,x,z)&&SURFACE_CODES[surface])setChar(regionOf(data,x,z).surfaces,x,z,SURFACE_CODES[surface]);}
 export function fillCity(data,{x0,z0,x1,z1},{h,surface}){for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){if(h!==undefined)setCityHeight(data,x,z,h);if(surface)setCitySurface(data,x,z,surface);}}
 export {SURFACE_NAMES};
-// Puts a city on the land (`land`: {seed, ring, default, cells}) or takes it off. On: its heights become
+// Puts a city on the land (`land`: {seed, default, cells, origin}) or takes it off. On: its heights become
 // offsets on the land's ground (a terrace a block above ground level stays a block above the land) and
 // its grass becomes the land's own ground. Off: the ground goes flat at level 1, keeping the offsets.
 export function putOnLand(data,land){
  if(data.land){data.land=land;return data;}
  for(const r of Object.values(data.regions)){r.offsets=r.heights.map(row=>[...row].map(c=>heightChar(OFFSET_BIAS+charHeight(c)-1)).join(''));delete r.heights;r.surfaces=r.surfaces.map(row=>row.replaceAll(SURFACE_CODES.grass,UNPAINTED));}
  data.land=land;return data;
+}
+// Grows a map by whole chunks on any side (docs/TOWN.md, Growing the overworld): new ground is plain
+// (unpainted on the land, grass at level 1 otherwise), and growing west or north moves everything built
+// (and, on the land, the map's origin in it, so the land stays where it was under what was built).
+// Shrinking isn't supported; nor is a walled city (its walls follow its size).
+export function growMap(data,{north=0,east=0,south=0,west=0}){
+ for(const n of [north,east,south,west])if(n<0||n%CHUNK)throw Error(`Grow by whole ${CHUNK}-tile chunks.`);
+ if(data.walls)throw Error('A walled city can’t grow: its walls follow its size.');
+ const [W,D]=data.size,next=createCityData({id:data.id,name:data.name,size:[W+west+east,D+north+south],style:data.style,land:data.land?{...data.land}:null});
+ // The ground: each tile's own values, moved (only those that differ from plain ground).
+ const plainOffset=heightChar(OFFSET_BIAS),plainHeight=heightChar(1);
+ for(let z=0;z<D;z++)for(let x=0;x<W;x++){const r=regionOf(data,x,z),s=r.surfaces[z%REGION][x%REGION];
+  if(s!==(data.land?UNPAINTED:SURFACE_CODES.grass))setChar(regionOf(next,x+west,z+north).surfaces,x+west,z+north,s);
+  if(data.land){const c=r.offsets[z%REGION][x%REGION];if(c!==plainOffset)setChar(regionOf(next,x+west,z+north).offsets,x+west,z+north,c);}
+  else{const c=r.heights[z%REGION][x%REGION];if(c!==plainHeight)setChar(regionOf(next,x+west,z+north).heights,x+west,z+north,c);}}
+ data.regions=next.regions;data.size=next.size;
+ // Everything placed, moved with it.
+ const at=p=>p&&[p[0]+west,p[1]+north],xz=o=>{o.x+=west;o.z+=north;};
+ data.spawn=at(data.spawn);if(data.crystal)data.crystal=at(data.crystal);
+ for(const list of [data.buildings,data.props,data.stairs,data.resources||[],data.cover||[]])list.forEach(xz);
+ for(const e of data.edges){e.a=at(e.a);e.b=at(e.b);}
+ for(const f of data.townsfolk||[]){if(f.home)f.home=at(f.home);if(f.patrol)f.patrol=f.patrol.map(at);}
+ if(data.land){const [ox,oz]=data.land.origin||[0,0];data.land.origin=[ox-west,oz-north];
+  if(data.land.removed)data.land.removed=data.land.removed.map(id=>id.replace(/(-?\d+),(-?\d+)$/,(m,x,z)=>`${+x+west},${+z+north}`));}
+ return data;
 }
 export function takeOffLand(data){
  if(!data.land)return data;
@@ -77,15 +102,20 @@ export function stairCells(s){const [dx,dz]={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]}[
 // paint. `land`: the biome land to build on (shared with the land streamed around it), made from
 // data.land when not given. Props, stairs and the crystal count as made (nothing grows there).
 export function cityGround(data,land=townLand(data)){
- const extraMade=[...data.props.flatMap(propCells),...data.stairs.flatMap(stairCells),...data.crystal?[data.crystal]:[]];
+ // Props that may stand on water (a jetty, a boat) leave the water as it is under them.
+ const extraMade=[...data.props.filter(p=>!PROPS[p.kind]?.water).flatMap(propCells),...data.stairs.flatMap(stairCells),...data.crystal?[data.crystal]:[]];
  return createTownGround(data,land,{offset:(x,z)=>cityOffset(data,x,z)||0,surface:(x,z)=>citySurface(data,x,z),extraMade});
 }
 // The live tiles of a city (no models): terrain, then stairs (which set their own heights). A town on
 // the land takes its terrain from its ground (cityGround).
-export function cityTiles(data,ground=data.land?cityGround(data):null){
- const map=new Map();
- for(let z=0;z<data.size[1];z++)for(let x=0;x<data.size[0];x++)map.set(key(x,z),ground?ground.tile(x,z):{x,z,h:cityHeight(data,x,z),surface:citySurface(data,x,z),blocked:false,water:false,buildable:true});
- for(const s of data.stairs){const [dx,dz]={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]}[s.dir],behind=map.get(key(s.x-dx,s.z-dz));
+// chunkIds: only the tiles of these chunks (a partial rebuild), with `around` (the built tiles) to look
+// up a stair's foot outside them.
+export function cityTiles(data,ground=data.land?cityGround(data):null,chunkIds=null,around=null){
+ const map=new Map(),[W,D]=data.size,add=(x,z)=>map.set(key(x,z),ground?ground.tile(x,z):{x,z,h:cityHeight(data,x,z),surface:citySurface(data,x,z),blocked:false,water:false,buildable:true});
+ if(!chunkIds){for(let z=0;z<D;z++)for(let x=0;x<W;x++)add(x,z);}
+ else for(const id of chunkIds){const [cx,cz]=id.split(',').map(Number);for(let z=Math.max(0,cz*CHUNK);z<Math.min(D,(cz+1)*CHUNK);z++)for(let x=Math.max(0,cx*CHUNK);x<Math.min(W,(cx+1)*CHUNK);x++)add(x,z);}
+ for(const s of data.stairs){if(chunkIds&&!stairCells(s).some(([x,z])=>map.has(key(x,z))))continue;
+  const [dx,dz]={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]}[s.dir],behind=map.get(key(s.x-dx,s.z-dz))??around?.get(key(s.x-dx,s.z-dz));
   layStairs(map,{...s,base:s.base??behind?.h??1});}
  return map;
 }
@@ -112,6 +142,13 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
  const map=cityTiles(data,ground),t=(x,z)=>map.get(key(x,z)),tiles=[...map.values()];
  // Each tile's ground as built (before buildings and props mark it), for rebuild() to compare against.
  const groundOf=new WeakMap();for(const tile of tiles)groundOf.set(tile,{...tile});
+ // The tiles of each chunk, worked out once: partial rebuilds visit only the chunks they rebuild
+ // (a large map has tens of thousands of tiles).
+ const byChunk=new Map();for(const tile of tiles){const id=chunkId(tile.x,tile.z);if(!byChunk.has(id))byChunk.set(id,[]);byChunk.get(id).push(tile);}
+ const tilesOf=ids=>[...ids].flatMap(id=>byChunk.get(id)||[]);
+ // The tiles just outside these chunks, along their edges (railings on a chunk's border look one tile out).
+ const borderOf=ids=>{const out=[];for(const id of ids){const [cx,cz]=id.split(',').map(Number),x0=cx*CHUNK,z0=cz*CHUNK;
+  for(let i=0;i<CHUNK;i++)for(const [x,z] of [[x0-1,z0+i],[x0+CHUNK,z0+i],[x0+i,z0-1],[x0+i,z0+CHUNK]]){const tile=map.get(key(x,z));if(tile&&!ids.has(chunkOf(x,z)))out.push(tile);}}return out;};
  // Townsfolk posted just outside the city (gate guards) stand on the land around it: those tiles join
  // the city's map (not its terrain, which the land draws) so they have somewhere to stand.
  if(outside)for(const f of data.townsfolk||[])if(f.home&&!map.has(key(...f.home))){const o=outside(...f.home);if(o)map.set(key(...f.home),o);}
@@ -155,7 +192,7 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   if(!only&&data.walls)walls=buildCityWalls({plan:wallPlan({size:data.size[0],gates:data.gates||[],thickness:data.walls.thickness}),tileAt:t,chunkRoot:(x,z)=>chunk(x,z).root,root:group,pickables,sound:doorSound});
   // Railings along stair sides and terrace edges (city-terrain.js), unless an edge is already there.
   // A partial rebuild looks one tile past its chunks, for railings on their borders.
-  const scope=only?tiles.filter(tile=>[[0,0],[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>only.has(chunkOf(tile.x+dx,tile.z+dz)))):tiles;
+  const scope=only?[...tilesOf(only),...borderOf(only)]:tiles;
   const stairSides=new Map();
   for(const [high,low,stair] of railingEdges(scope,map)){const home=edgeChunk(high,low);if(!want(home)||edges.info(high,low)||high.indoor||low.indoor)continue;
    edges.add(high,low,'railing',{hidden:!!stair});if(stair){if(!stairSides.has(home))stairSides.set(home,[]);stairSides.get(home).push([high,low]);}}
@@ -184,10 +221,10 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   // Always-visible decoration merged per chunk (static-merge.js): building decor (awnings, sign boards,
   // flower boxes) and props nobody clicks. Clickable props, doors, sign icons, roofs and caps stay apart.
   for(const c of chunks.values()){if(!want(c))continue;
-   const objects=[...c.items.buildings.map(i=>buildings[i].decor),...c.items.props.filter(p=>!p.def.interaction).map(p=>p.group)];
+   const objects=[...c.items.buildings.map(i=>buildings[i].decor),...c.items.props.filter(p=>!p.def.interaction&&!p.def.spin&&!p.def.deck).map(p=>p.group)];
    if(objects.length)mergeStatic(c.root,objects,{name:'chunk-statics'});}
   // A building's floor tiles belong to its home chunk too.
-  for(const tile of tiles){const c=tile.building!==undefined&&data.buildings[tile.building]?chunk(data.buildings[tile.building].x,data.buildings[tile.building].z):chunk(tile.x,tile.z);if(want(c))c.tiles.push(tile);}
+  for(const tile of only?tilesOf(only):tiles){const c=tile.building!==undefined&&data.buildings[tile.building]?chunk(data.buildings[tile.building].x,data.buildings[tile.building].z):chunk(tile.x,tile.z);if(want(c))c.tiles.push(tile);}
   const terrainMap=outside?{get:k=>map.get(k)??outside(...k.split(',').map(Number))}:map;
   for(const c of chunks.values()){if(!want(c))continue;const dry=c.tiles.filter(tile=>ground?tile.stair:!tile.water);if(dry.length)createTerrainBatch({tiles:dry,map:terrainMap,factory:tile=>makeCityTile(tile,terrainMap,{style:'stone'}),parent:c.root,pickables,roughness:.95,batchSize:CHUNK});c.edges.bake();}
   // The city-wide lists, in chunk order.
@@ -222,31 +259,42 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   // city editor's fast path (docs/TOWN.md, Authoring tools). `dirty`: chunk ids an edit touched; pass
   // the chunks of every tile it changed, before and after, one tile out. Anything spanning chunks
   // (props, stairs) pulls its other chunks in, and so does any chunk whose ground changed. Returns the
-  // chunk ids it rebuilt (a Set), or false, leaving the city untouched, when only a full build will do: the building list changed length, or the city has walls (they span every edge
+  // chunk ids it rebuilt (a Set), or false, leaving the city untouched, when only a full build will do: the city has walls (they span every edge
   // chunk) and an edit touches one of their chunks. wrap(only, run): runs the rebuild itself (run()), so
   // the land streamed under a town can step aside for it (chunk-streamer.js reload).
   rebuild(dirty,{wrap=null}={}){
-   if(data.buildings.length!==buildings.length)return false;
    const only=new Set(dirty);
+   // Buildings whose place in the list changed (added, or after a removed one: their ids shifted, and
+   // ids mark their tiles and walls) rebuild in their chunks, where they were and where they are.
+   for(let i=0;i<Math.max(buildings.length,data.buildings.length);i++){const old=buildings[i],now=data.buildings[i];if(old?.data===now)continue;
+    if(old)only.add(chunkOf(old.plan.x0,old.plan.z0));if(now)only.add(chunkOf(now.x,now.z));}
    // Buildings sharing a wall across a chunk line: the wall lives in one of their chunks, but both
    // buildings shape it, so they rebuild together.
    const homeOf=i=>data.buildings[i]?chunkOf(data.buildings[i].x,data.buildings[i].z):null,shared=[];
    for(const tile of tiles)if(tile.building!==undefined)for(const [dx,dz] of [[1,0],[0,1]]){const n=map.get(key(tile.x+dx,tile.z+dz));
     if(n?.building!==undefined&&n.building!==tile.building&&homeOf(n.building)!==homeOf(tile.building))shared.push([homeOf(tile.building),homeOf(n.building)].filter(Boolean));}
-   for(let grew=true;grew;){grew=false;
-    const spans=[...shared,...data.props.map(p=>spanChunks(propCells(p))),...data.stairs.map(s=>spanChunks(stairCells(s))),...[...chunks.values()].flatMap(c=>c.items.props.map(p=>spanChunks((p.tiles||[p.tile]).map(tile=>tile&&[tile.x,tile.z]))))];
-    for(const ids of spans)if(ids.some(id=>only.has(id)))for(const id of ids)if(!only.has(id)){only.add(id);grew=true;}}
+   const spans=[...shared,...data.props.map(p=>spanChunks(propCells(p))),...data.stairs.map(s=>spanChunks(stairCells(s))),...[...chunks.values()].flatMap(c=>c.items.props.map(p=>spanChunks((p.tiles||[p.tile]).map(tile=>tile&&[tile.x,tile.z]))))];
+   const spread=()=>{for(let grew=true;grew;){grew=false;for(const ids of spans)if(ids.some(id=>only.has(id)))for(const id of ids)if(!only.has(id)){only.add(id);grew=true;}}};
+   spread();
    // The ground as the data now has it. A town on the land re-levels its pads, so an edit can move
-   // ground well past the tiles it touched: any chunk whose ground changed rebuilds too.
-   if(ground)ground=cityGround(data,onLand);
-   const fresh=cityTiles(data,ground),shape=tile=>tile&&`${tile.h}|${tile.surface}|${!!tile.water}|${tile.stair?.dir||''}|${tile.palette?.[0]||''}`;
-   for(const tile of tiles){const id=chunkOf(tile.x,tile.z);if(!only.has(id)&&chunks.has(id)&&ground&&shape(fresh.get(key(tile.x,tile.z)))!==shape(groundOf.get(tile)))only.add(id);}
-   if(walls&&[...only].some(id=>tiles.some(tile=>tile.cityWall&&chunkOf(tile.x,tile.z)===id)))return false;
+   // ground well past the tiles it touched: the chunks around any pad that moved or changed level are
+   // checked too, and those whose ground changed rebuild. Only these chunks' ground is worked out.
+   const check=new Set();
+   if(ground){const before=ground.pads,padKey=p=>p&&`${p.level}|${p.cells.join(';')}`;ground=cityGround(data,onLand);
+    for(let i=0;i<Math.max(before.length,ground.pads.length);i++){if(padKey(before[i])===padKey(ground.pads[i]))continue;
+     for(const p of [before[i],ground.pads[i]].filter(Boolean))for(let cz=Math.floor((p.z0-PAD_REACH)/CHUNK);cz<=Math.floor((p.z1+PAD_REACH)/CHUNK);cz++)for(let cx=Math.floor((p.x0-PAD_REACH)/CHUNK);cx<=Math.floor((p.x1+PAD_REACH)/CHUNK);cx++)if(chunks.has(`${cx},${cz}`))check.add(`${cx},${cz}`);}}
+   const shape=tile=>tile&&`${tile.h}|${tile.surface}|${!!tile.water}|${tile.stair?.dir||''}|${tile.palette?.[0]||''}`;
+   const fresh=cityTiles(data,ground,[...new Set([...only,...check])],map);
+   for(const tile of tilesOf([...check].filter(id=>!only.has(id)))){if(shape(fresh.get(key(tile.x,tile.z)))!==shape(groundOf.get(tile)))only.add(chunkOf(tile.x,tile.z));}
+   // Chunks pulled in by what spans them get their fresh ground too.
+   spread();
+   for(const [k,v] of cityTiles(data,ground,[...only].filter(id=>!fresh.has(firstTileOf(id))),map))fresh.set(k,v);
+   if(walls&&tilesOf(only).some(tile=>tile.cityWall))return false;
    const run=()=>{
-   for(const id of only)clearChunk(id);
+   for(const id of only)clearChunk(id);buildings.length=data.buildings.length;
    // Fresh terrain for their tiles, the same objects refilled (edges on their borders that other chunks
    // own are kept: they live in those chunks' edge features).
-   for(const tile of tiles){if(!only.has(chunkOf(tile.x,tile.z)))continue;const next=fresh.get(key(tile.x,tile.z));if(!next)continue;
+   for(const tile of tilesOf(only)){const next=fresh.get(key(tile.x,tile.z));if(!next)continue;
     for(const k of [...GROUND_KEYS,'stair','indoor','building','prop','blocksSight','reachOver','cityWall'])delete tile[k];
     Object.assign(tile,next,{x:tile.x,z:tile.z});groundOf.set(tile,{...next});}
    populate(only);};
@@ -267,10 +315,16 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   // groups (townsfolk, sentries) hide with it.
   // Tiles outside the city (gate guards on the land around it) count as shown.
   isShown:(x,z)=>{const c=chunks.get(chunkOf(x,z));return streamCenter===null||!c||c.root.visible;},
+  // The streaming radius (chunks; a draw distance change): the next stream() call applies it.
+  get streamRadius(){return streamRadius;},set streamRadius(value){streamRadius=value;streamTile=null;},
   get shownChunks(){return [...chunks.values()].filter(c=>c.root.visible).length;},
   dispose(){walls?.dispose();edges.dispose();for(const p of props)p.dispose();const owned=new Set();group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)owned.add(o.geometry);});for(const g of owned)g.dispose();
    for(const m of [...pickables])if(isUnder(m,group))pickables.splice(pickables.indexOf(m),1);group.removeFromParent();}}));
 }
+// How far a building pad's ease can reach past it (tiles; town-ground.js), for partial rebuilds.
+const PAD_REACH=16;
+// A chunk's first tile key (to tell whether a partial ground covers it).
+const firstTileOf=id=>{const [cx,cz]=id.split(',').map(Number);return key(Math.max(0,cx*CHUNK),Math.max(0,cz*CHUNK));};
 // What a tile's ground sets (cleared before a rebuild refills a tile).
 const GROUND_KEYS=['h','surface','blocked','water','buildable','palette','biome','shore','rocky','made','still','waterKind'];
 const isUnder=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};

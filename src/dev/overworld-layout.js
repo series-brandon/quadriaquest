@@ -1,20 +1,22 @@
-import {createCityData} from '../city-map.js';
+import {createCityData,growMap} from '../city-map.js';
 
 // The Quadria overworld: the start of the world map, where Mistrom, the starting village, will be built
 // (docs/TOWN.md). Its wild starting point. Dev only: it writes src/maps/overworld.json once
 // (scripts/generate-overworld.mjs), and from then on the city editor is where it is built by hand;
 // regenerating overwrites those edits.
-//  - 96 × 96 tiles at the world origin (3 × 3 chunks), on the land (docs/TOWN.md, The town on the land);
+//  - 288 × 288 tiles (9 × 9 chunks; docs/TOWN.md, Growing the overworld), on the land (The town on the
+//    land): the village's 96 × 96 in the middle, grown by three chunks on every side so the woods, hills,
+//    river, coast and sea are part of the map;
 //  - nothing built yet: no buildings, props, paths, townsfolk or offsets, only the Iter Crystal and the
 //    arrival spot in the middle chunk;
 //  - the land painted in biomes (docs/BIOMES.md): meadow under the village, woods, pines and hills to the
 //    north and a quarry up the river, the river down the east side into an estuary, coast along the
 //    south, then the sea.
-export const OVERWORLD={size:96,crystal:[48,48],spawn:[48,51]};
+export const OVERWORLD={size:288,village:96,grow:96,crystal:[144,144],spawn:[144,147]};
 
 export function overworldData(){
- const M=OVERWORLD,data=createCityData({id:'overworld',name:'Quadria overworld',size:[M.size,M.size],style:'timber',land:{seed:3,ring:96,default:'meadow',cells:{}}});
- data.crystal=[...M.crystal];data.spawn=[...M.spawn];
+ const M=OVERWORLD,data=createCityData({id:'overworld',name:'Quadria overworld',size:[M.village,M.village],style:'timber',land:{seed:3,default:'meadow',cells:{}}});
+ data.crystal=M.crystal.map(v=>v-M.grow);data.spawn=M.spawn.map(v=>v-M.grow);
  // The land around the village (docs/BIOMES.md): one biome per 8 × 8 cell; unpainted cells are meadow.
  const cells=data.land.cells,paint=(cx0,cz0,cx1,cz1,biome)=>{for(let cz=cz0;cz<=cz1;cz++)for(let cx=cx0;cx<=cx1;cx++)cells[`${cx},${cz}`]=biome;};
  paint(-12,-12,23,-9,'hills');paint(-10,-8,15,-5,'pines');paint(-8,-4,11,-1,'forest');
@@ -23,5 +25,6 @@ export function overworldData(){
  paint(-12,12,23,13,'coast');paint(-12,14,23,23,'sea');paint(20,-2,23,11,'coast');
  paint(14,8,17,13,'wetland');paint(10,12,11,13,'wetland');   // the estuary marsh
  paint(12,-12,12,12,'river');paint(12,12,13,13,'river');     // the river down the east side to the sea
- return data;
+ // Grown around the village (the land stays put: its origin moves).
+ return growMap(data,{north:M.grow,east:M.grow,south:M.grow,west:M.grow});
 }

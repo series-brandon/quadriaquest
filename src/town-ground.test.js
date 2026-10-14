@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createCityData,buildCity,cityTiles,cityGround,setCitySurface,clearCitySurface,setCityOffset,cityOffset,citySurface,putOnLand,takeOffLand,fillCity,cityHeight} from './city-map.js';
+import {createCityData,buildCity,cityTiles,cityGround,setCitySurface,clearCitySurface,setCityOffset,cityOffset,citySurface,putOnLand,takeOffLand,fillCity,cityHeight,growMap} from './city-map.js';
 import {townLand,townSource,footprintCells,PAD_APRON} from './town-ground.js';
 import {surfaceColor} from './city-terrain.js';
 import {BUILDING_PRESETS} from './building-kit.js';
@@ -9,7 +9,7 @@ import {key} from './world.js';
 import {chunkId} from './world-grid.js';
 
 // A town on rolling hills (docs/TOWN.md, The town on the land).
-const hillTown=()=>createCityData({id:'hill-town',size:[64,64],land:{seed:7,ring:32,default:'hills',cells:{}}});
+const hillTown=()=>createCityData({id:'hill-town',size:[64,64],land:{seed:7,default:'hills',cells:{}}});
 const steps=map=>{let n=0;for(const t of map.values()){if(t.water)continue;for(const [dx,dz] of [[1,0],[0,1]]){const o=map.get(key(t.x+dx,t.z+dz));if(o&&!o.water&&!t.stair&&!o.stair&&Math.abs(o.h-t.h)>.5)n++;}}return n;};
 // The steepest spot in the town: where a building most needs its pad.
 function steepest(data){const land=townLand(data);let best=null;
@@ -34,7 +34,7 @@ test('a building levels a pad: its footprint and a one-tile apron at one height,
  const built=buildCity(structuredClone(data),{scene:new THREE.Group()});assert.ok(built.buildings[0].plan.tiles.every(([x,z])=>built.tiles.get(key(x,z)).h===pad.level));
 });
 test('offsets are deltas on the land; water stays only where nothing is made',()=>{
- const data=createCityData({id:'wet',size:[64,64],land:{seed:4,ring:32,default:'wetland',cells:{}}}),land=townLand(data);
+ const data=createCityData({id:'wet',size:[64,64],land:{seed:4,default:'wetland',cells:{}}}),land=townLand(data);
  const wet=[...cityTiles(data).values()].find(t=>t.water&&t.x>2&&t.z>2&&t.x<60&&t.z<60),dry=[...cityTiles(data).values()].find(t=>!t.water);
  assert.ok(wet&&dry);
  setCityOffset(data,dry.x,dry.z,1.5);assert.equal(cityOffset(data,dry.x,dry.z),1.5);assert.equal(cityTiles(data).get(key(dry.x,dry.z)).h,land.tile(dry.x,dry.z).h+1.5);
@@ -42,7 +42,7 @@ test('offsets are deltas on the land; water stays only where nothing is made',()
  assert.equal(cityTiles(data).get(key(wet.x,wet.z)).surface,'dirt');
 });
 test('the land under a town grows nothing on what people made: roads, pads, props',()=>{
- const data=createCityData({id:'woods',size:[64,64],land:{seed:2,ring:32,default:'forest',cells:{}}});
+ const data=createCityData({id:'woods',size:[64,64],land:{seed:2,default:'forest',cells:{}}});
  fillCity(data,{x0:0,z0:30,x1:63,z1:32},{surface:'dirt'});
  data.buildings.push({x:10,z:10,desc:{...structuredClone(BUILDING_PRESETS.cottage),name:'Cottage'}});data.props.push({kind:'bench',x:40,z:40});
  const built=buildCity(data,{scene:new THREE.Group()}),source=townSource(built.ground.land,()=>built.ground,()=>built.tiles);
@@ -64,12 +64,12 @@ test('moving a building re-levels its pad; the rebuild covers every chunk whose 
 });
 test('a flat city goes onto the land and off again, keeping its terraces and paint',()=>{
  const data=createCityData({id:'flat',size:[32,32]});fillCity(data,{x0:4,z0:4,x1:8,z1:8},{h:2,surface:'cobble'});
- putOnLand(data,{seed:1,ring:32,default:'meadow',cells:{}});
+ putOnLand(data,{seed:1,default:'meadow',cells:{}});
  assert.equal(cityOffset(data,5,5),1,'a block above the land');assert.equal(cityOffset(data,20,20),0);assert.equal(citySurface(data,20,20),null,'grass is the land’s own ground');assert.equal(citySurface(data,5,5),'cobble');
  takeOffLand(data);assert.equal(cityHeight(data,5,5),2);assert.equal(cityHeight(data,20,20),1);assert.equal(citySurface(data,20,20),'grass');assert.equal(data.land,undefined);
 });
 test('nature by hand: placed trees and cover stream like grown ones; removed ones stay gone',()=>{
- const data=createCityData({id:'woods',size:[64,64],land:{seed:2,ring:32,default:'forest',cells:{}}});
+ const data=createCityData({id:'woods',size:[64,64],land:{seed:2,default:'forest',cells:{}}});
  const built=buildCity(data,{scene:new THREE.Group()}),source=townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data);
  const all=[];for(let z=0;z<64;z++)for(let x=0;x<64;x++)all.push(built.tiles.get(key(x,z)));
  const tree=source.entities(all).find(e=>e.kind==='tree'),flower=source.cover(all)[0],fx=Math.round(flower.x),fz=Math.round(flower.z);
@@ -84,4 +84,29 @@ test('nature by hand: placed trees and cover stream like grown ones; removed one
  // A placed resource replaces whatever grew on its tile: one per tile.
  const grownTile=all.find(t=>source.natureAt(t).resource&&!source.natureAt(t).resource.placed);
  data.resources.push({kind:'boulder',x:grownTile.x,z:grownTile.z});assert.deepEqual(source.entities([grownTile]).map(e=>e.kind),['boulder']);
+});
+test('growing a map keeps the land and what was built where they were',()=>{
+ const data=createCityData({id:'grow',size:[64,64],land:{seed:7,default:'hills',cells:{'2,2':'forest'}}});
+ data.buildings.push({x:10,z:10,desc:{...structuredClone(BUILDING_PRESETS.cottage),name:'Cottage'}});data.props.push({kind:'bench',x:30,z:40});
+ setCitySurface(data,5,5,'cobble');setCityOffset(data,6,6,1);data.crystal=[20,20];data.resources=[{kind:'tree',species:'oak',x:40,z:12}];data.land.removed=['tree:12,30'];
+ const before=cityTiles(data);
+ growMap(data,{west:32,north:64,east:32});
+ assert.deepEqual(data.size,[128,128]);assert.deepEqual(data.land.origin,[-32,-64]);
+ const after=cityTiles(data);
+ for(const [x,z] of [[3,3],[6,6],[13,12],[50,50],[63,1]])assert.equal(after.get(key(x+32,z+64)).h,before.get(key(x,z)).h,`${x},${z}`);
+ assert.equal(citySurface(data,37,69),'cobble');assert.equal(cityOffset(data,38,70),1);
+ assert.deepEqual([data.buildings[0].x,data.buildings[0].z,data.props[0].x,data.crystal[0],data.resources[0].z],[42,74,62,52,76]);
+ assert.deepEqual(data.land.removed,['tree:44,94']);
+ assert.equal(townLand(data).biomeAt(16+32+3,16+64+3),'forest','painted cells stay with the land');
+ assert.throws(()=>growMap(data,{west:10}),/whole/);
+ buildCity(data,{scene:new THREE.Group()});
+});
+test('repainting a biome rebuilds only around it, and matches a fresh build',()=>{
+ const data=createCityData({id:'paint',size:[128,128],land:{seed:5,default:'meadow',cells:{}}}),city=buildCity(data,{scene:new THREE.Group()});
+ data.land.cells['8,8']='hills';data.land.cells['8,9']='hills';
+ const m=48,x0=64-m,z0=64-m,x1=72+m,z1=80+m;city.ground.land.forget(x0,z0,x1,z1);
+ const dirty=[];for(let cz=Math.floor(z0/32);cz<=Math.floor(z1/32);cz++)for(let cx=Math.floor(x0/32);cx<=Math.floor(x1/32);cx++)dirty.push(`${cx},${cz}`);
+ assert.ok(city.rebuild(dirty));
+ const fresh=buildCity(structuredClone(data),{scene:new THREE.Group()});
+ for(const [k,t] of fresh.tiles)assert.equal(city.tiles.get(k).h,t.h,k);
 });

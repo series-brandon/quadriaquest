@@ -13,8 +13,11 @@ test('a chunk is one colored mesh with only visible sides, and faces map back to
  const raised=buildChunkTerrain({tiles:hill,tileAt:hillAt,topColor:()=>new THREE.Color('#00ff00')}).mesh;
  assert.ok(flatCount>0);assert.ok(mesh.castShadow&&mesh.receiveShadow);
  assert.equal(mesh.geometry.attributes.color.count,flatCount,'every vertex is colored');
+ // Indexed: every vertex is used by some face (a side's quad included).
+ const used=new Set(raised.geometry.index.array);assert.equal(used.size,raised.geometry.attributes.position.count,'no vertex left out');
+ assert.ok([...used].some(k=>raised.geometry.attributes.position.getY(k)===0),'sides reach the ground at the edge');
  // Every face resolves to a tile, in order.
- const faces=raised.geometry.attributes.position.count/3,seen=new Set();for(let f=0;f<faces;f++)seen.add(raised.userData.tileForFace(f));
+ const faces=raised.geometry.index.count/3,seen=new Set();assert.ok(raised.geometry.attributes.position.count<faces*3,'indexed: vertices are shared');for(let f=0;f<faces;f++)seen.add(raised.userData.tileForFace(f));
  assert.equal(seen.size,hill.length,'each tile owns faces');
  assert.equal(raised.userData.tileForFace(0),hill[0]);assert.equal(raised.userData.tileForFace(faces-1),hill[hill.length-1]);
  assert.ok(lines.geometry.attributes.position.count>0,'seams between level tiles');

@@ -209,7 +209,7 @@ A building can have any connected footprint, painted tile by tile (TOWN.md, *Aut
 - **Presets:** an L-shaped house, a T-shaped hall and a U-shaped house (`BUILDING_PRESETS`). They're in the model catalogue's Building entry and the editor's Building tool.
 - **Editor:**
   - **Footprint** tool: paint tiles (Add or Remove; drag works), choose storeys, roof, walls and use, then *Build it*.
-  - **Select → Reshape (S)** loads a building's tiles to edit and rebuilds it in place. Its doors are kept where they still sit on an outside wall; otherwise a new door goes in.
+  - **Select → Reshape** loads a building's tiles to edit and rebuilds it in place. Its doors are kept where they still sit on an outside wall; otherwise a new door goes in.
   - A new footprint's first door goes in the middle of its longest south-facing wall (or longest wall).
   - Footprints must be connected and inside one chunk, and can't overlap anything.
 - **Hand-set walls, doors and signs** (2026-10-14):
@@ -425,7 +425,7 @@ A dev-only editor (compile-time isolated like the rest of the playground) that e
 
 - `src/dev/city-editor.js` (dev only): a docked panel (a bottom sheet on phones) over the live map. Tools: inspect, raise and lower (half blocks, 1 or 3 × 3 brush), surface, building (kit presets, rotation), prop (kind, rotation), stairs (direction, length, width), edge (wall, window, fence, railing, counter, door, remove), erase, arrival. Placing over something taken, or a building across a chunk line, is refused. A *Chunk and region lines* switch (on by default) draws the grid on the ground (`dev/grid-overlay.js`). Every edit rebuilds the map with `buildCity` (about 0.3 s for the kit street, 1 s for the capital) and keeps you where you stand.
 - **Fast editing** (2026-10-13; TOWN.md, *Authoring tools*):
-  - **Select** a building, prop, stair or townsfolk (by their home tile) and move, rotate, duplicate or delete it. It's outlined in yellow (cyan while moving). Use the panel's buttons or the keys: M move, R rotate, D duplicate, Delete, arrows to nudge one tile, Esc to cancel. Keys never reach the camera while the editor has them. Hand-drawn edges are still added and removed with the Edge and Erase tools.
+  - **Select** a building, prop, stair or townsfolk (by their home tile) and move, rotate, duplicate or delete it. It's outlined in yellow (cyan while moving). Use the panel's buttons (nudge one tile and reshape are buttons only) or the keys: M move, R rotate, Ctrl/⌘+D duplicate, Delete, Esc to cancel; Ctrl/⌘+Z undo, Ctrl/⌘+Shift+Z (or Ctrl/⌘+Y) redo. No shortcut takes a movement key: WASD and the arrows always belong to the camera (2026-10-14, user request). Hand-drawn edges are still added and removed with the Edge and Erase tools.
   - **Raise, Lower and Surface paint as you drag.** Each tile changes once per stroke, a stroke is one undo step, and right-drag or the arrow keys still turn the camera.
   - **Only the chunks an edit touches are rebuilt** (`city.rebuild(dirty)` in `city-map.js`). It covers each touched tile's chunk, one tile out. Props, stairs and buildings that share a wall across a chunk line pull in their other chunks.
   - **A full rebuild still happens when needed:** when buildings are added or removed (their indices shift), after undo and redo, and in a walled city when an edit touches a wall chunk.

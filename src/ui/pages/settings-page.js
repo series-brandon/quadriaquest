@@ -1,6 +1,6 @@
 import {h} from '../dom.js';
 import {segmented, slider, toggleSwitch} from '../controls.js';
-import {QUALITY_TIERS} from '../../render-quality.js';
+import {QUALITY_TIERS,DRAW_DISTANCES} from '../../render-quality.js';
 
 const CHANNELS = [['music', 'Music'], ['effects', 'Effects'], ['ambience', 'Ambience']];
 
@@ -16,7 +16,11 @@ export function settingsPage({audio, quality = null}) {
       h('p', {class: 'q-page__help'}, () => (quality.mode.value === 'auto'
         ? `Auto lowers detail if the game runs slowly. Now: ${QUALITY_TIERS[quality.tier.value].label}.`
         : 'Lower settings draw fewer pixels and simpler shadows for weaker devices.')),
-      h('p', {class: 'q-page__help', hidden: () => (quality.tier.value, !quality.antialiasMismatch)}, 'Edge smoothing changes apply the next time you open the game.')),
+      h('p', {class: 'q-page__help', hidden: () => (quality.tier.value, !quality.antialiasMismatch)}, 'Edge smoothing changes apply the next time you open the game.'),
+      h('strong', null, 'Draw distance'),
+      segmented({label: 'Draw distance', value: () => String(quality.drawDistance.value), onChange: next => quality.setDrawDistance(+next),
+        options: DRAW_DISTANCES.map(d => ({value: String(d.chunks), label: d.label}))}),
+      h('p', {class: 'q-page__help'}, 'Farther shows more of the world around you and needs a faster device.')),
   ] : null;
   return h('div', {class: 'q-page q-page--form q-settings-page'},
     h('span', {class: 'q-label'}, 'Sound'),

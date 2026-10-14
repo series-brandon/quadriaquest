@@ -19,7 +19,10 @@
   const wrap=(name,count)=>{const original=proto[name];if(!original)return;proto[name]=function(...args){if(P.recording)count(args);return original.apply(this,args);};};
   for(const name of ['drawElements','drawArrays','drawElementsInstanced','drawArraysInstanced','drawRangeElements'])wrap(name,()=>P.draws++);
   wrap('bufferData',args=>{P.uploads++;P.uploadBytes+=bytes(args[1]);});
-  wrap('bufferSubData',args=>{P.uploads++;P.uploadBytes+=bytes(args[2]);});
+  // bufferSubData(target, offset, data, srcOffset, length): a ranged update sends only `length` elements
+  // (from srcOffset), not the whole array (three.js update ranges, instanced ground cover).
+  wrap('bufferSubData',args=>{P.uploads++;const data=args[2],per=data?.BYTES_PER_ELEMENT||1;
+   P.uploadBytes+=args.length>=5&&args[4]?args[4]*per:args.length>=4&&ArrayBuffer.isView(data)?(data.length-(args[3]||0))*per:bytes(data);});
   for(const name of ['texImage2D','texSubImage2D','texImage3D','texSubImage3D'])wrap(name,()=>P.textureUploads++);
   wrap('useProgram',()=>P.programSwitches++);
  }

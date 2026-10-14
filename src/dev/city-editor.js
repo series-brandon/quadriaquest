@@ -2,21 +2,22 @@ import * as THREE from 'three';
 import {h,mount} from '../ui/dom.js';
 import {keyedList} from '../ui/list.js';
 import {segmented,toggleSwitch} from '../ui/controls.js';
-import {signal,computed,effect} from '../reactive.js';
-import {createCityData,cityHeight,setCityHeight,setCitySurface,clearCitySurface,cityOffset,setCityOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells} from '../city-map.js';
+import {signal,computed,effect,untracked} from '../reactive.js';
+import {createCityData,growMap,cityHeight,setCityHeight,setCitySurface,clearCitySurface,cityOffset,setCityOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells} from '../city-map.js';
 import {cityProblems} from '../city-checks.js';
 import {planBuilding,BUILDING_PRESETS,ROOF_TYPES,ROOF_COLORS,AWNINGS,toShaped,shiftShaped,shapeRuns,connectedCells} from '../building-kit.js';
 import {STYLE_NAMES,stylePalette} from '../edge-models.js';
-import {PROPS,PROP_KINDS,propFootprint} from '../props.js';
+import {PROPS,PROP_CATEGORIES,propFootprint,propModel} from '../props.js';
+import {propThumbnail} from './prop-thumbnails.js';
 import {USE_NAMES,USE_ICONS} from '../furnish.js';
 import {DIRS} from '../city-terrain.js';
-import {CHUNK,withinChunk,chunksAround} from '../world-grid.js';
-import {createGridOverlay,createCellOutline,createBiomeOverlay} from './grid-overlay.js';
+import {CHUNK,REGION,withinChunk,chunksAround} from '../world-grid.js';
+import {createGridOverlay,createCellOutline,createBiomeOverlay,createCellFill} from './grid-overlay.js';
 import {BIOME_IDS,biomeRule} from '../biome-rules.js';
 import {townSource,resourceFits,coverId,placedId} from '../town-ground.js';
 import {TREE_SPECIES} from '../tree-models.js';
 import {COVER_KINDS} from '../ground-cover.js';
-import {CELL as BIOME_CELL} from '../biome-land.js';
+import {CELL as BIOME_CELL,FORGET_MARGIN} from '../biome-land.js';
 import {propGalleryData} from './prop-gallery.js';
 import './city-editor.css';
 
@@ -26,7 +27,8 @@ import './city-editor.css';
 //  - tools: inspect, select, raise/lower/flatten height (half blocks), paint surface, place a building (kit
 //    preset, rotation), place a prop, lay stairs, draw an edge by hand, erase, set the arrival tile;
 //  - fast editing (docs/TOWN.md, Authoring tools): select a building, prop, stair or townsfolk and move,
-//    rotate, duplicate or delete it (buttons or keys: M, R, D, Delete, arrows to nudge, Esc); raise,
+//    rotate, duplicate or delete it (buttons, or keys that never take a movement key: M, R, Ctrl/⌘+D,
+//    Delete, Esc; Ctrl/⌘+Z and Ctrl/⌘+Shift+Z undo and redo; nudge and reshape are buttons); raise,
 //    lower and surface paint as you drag; each edit rebuilds only the chunks it touched (city-map.js
 //    rebuild), and the checks run a moment after editing stops;
 //  - Edit / Play: Play is a test walk in place (clicks move you as in the game); Reset rebuilds;
@@ -48,6 +50,8 @@ import './city-editor.css';
 // setTileDrag(fn('start'|'move'|'end', tile)|null), teleport(x, z), toast(text).
 const repoCities=import.meta.glob('../maps/*.json',{eager:true,import:'default'});
 const SIDE_LABELS={n:'North',e:'East',s:'South',w:'West'};
+// The shortcut modifier as the platform shows it.
+const MOD=/Mac|iPhone|iPad/.test(globalThis.navigator?.platform||'')?'⌘':'Ctrl';
 // Each biome's colour in the paint overlay (distinct from one another, unlike their ground colours).
 const BIOME_PAINT={river:'#5fb0e8',meadow:'#b8e06a',forest:'#2f8f3f',pines:'#1d5d4b',hills:'#a8875a',coast:'#f0d78c',wetland:'#5f8f7a',sea:'#3a7bd5'};
 const PAINT_TOOLS=['raise','lower','flatten','surface','footprint','biome','nature'],CLOCKWISE={n:'e',e:'s',s:'w',w:'n'},KIND_LABELS={building:'building',prop:'prop',stairs:'stairs',townsfolk:'townsfolk',resource:'resource',cover:'ground cover',crystal:'crystal'};
@@ -65,9 +69,9 @@ export function cityCatalogue(){
 
 export function createCityEditor(host){
  const catalogue=cityCatalogue(),choice=signal(catalogue[0].id);
- let view=null,data=null,built=null,stopDrag=null,stopBiomes=null;
+ let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null;
  const tool=signal('inspect'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),biomeBrush:signal('1'),landRing:signal('64'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
  // The footprint being painted: tiles ('x,z'), and the building it reshapes (its index) or null for a new one.
@@ -77,7 +81,7 @@ export function createCityEditor(host){
  const selection=signal(null),moving=signal(false);let placing=null;
  const showDraft=()=>{draftOutline?.dispose();draftOutline=null;const cells=[...draft.peek()].map(id=>id.split(',').map(Number));if(built&&cells.length)draftOutline=createCellOutline({cells,tiles:built.tiles,parent:built.group,color:'#5fe0ff'});};
  const showBiomes=()=>{biomeOverlay?.dispose();biomeOverlay=null;if(!built||!data?.land||tool.peek()!=='biome')return;
-  biomeOverlay=createBiomeOverlay({cells:data.land.cells||{},cell:BIOME_CELL,colors:BIOME_PAINT,heightAt:(x,z)=>at(x,z)?.h,parent:built.group});};
+  biomeOverlay=createBiomeOverlay({cells:data.land.cells||{},cell:BIOME_CELL,colors:BIOME_PAINT,heightAt:(x,z)=>at(x,z)?.h,parent:built.group,origin:data.land.origin||[0,0]});};
  const showGrid=()=>{overlay?.dispose();overlay=grid.peek()&&built?createGridOverlay({tiles:built.tiles,parent:built.group}):null;};
  const showSelection=()=>{outline?.dispose();outline=null;const sel=selection.peek(),entry=entryOf(sel);if(!built||!entry)return;outline=createCellOutline({cells:cellsOf(sel.kind,entry),tiles:built.tiles,parent:built.group,color:moving.peek()?'#5fe0ff':'#ffe14d'});};
  // Checks run a moment after editing stops (they take seconds on the capital).
@@ -86,7 +90,7 @@ export function createCityEditor(host){
  let rebuilding=null,queued=null;
  async function rebuild({keepPlayer=true,dirty=null}={}){
   if(rebuilding){queued=queued?{keepPlayer,dirty:queued.dirty&&dirty?[...new Set([...queued.dirty,...dirty])]:null}:{keepPlayer,dirty};return rebuilding;}
-  rebuilding=(async()=>{built=await host.editCity(data,{keepPlayer,dirty});scheduleChecks(dirty?250:0);showGrid();showSelection();showDraft();showBiomes();revision.value++;})();
+  rebuilding=(async()=>{built=await host.editCity(data,{keepPlayer,dirty});scheduleChecks(dirty?250:0);showGrid();showSelection();showDraft();showBiomes();refreshPreview();revision.value++;})();
   try{await rebuilding;}finally{rebuilding=null;}
   if(queued){const next=queued;queued=null;await rebuild(next);}
  }
@@ -105,7 +109,12 @@ export function createCityEditor(host){
   return `${x},${z} · height ${t.h} · ${t.surface}${what.length?' · '+what.join(', '):''}`;}
  // Placing over a building, a solid prop, stairs or off the map is refused (the checks still catch overlaps in loaded data).
  const oneChunk=cells=>{const xs=cells.map(c=>c[0]),zs=cells.map(c=>c[1]);if(!withinChunk(Math.min(...xs),Math.min(...zs),Math.max(...xs),Math.max(...zs)))throw Error(`A building must fit inside one ${CHUNK} × ${CHUNK} chunk: this one crosses a chunk line.`);};
- const taken=(cells,own=[])=>{const mine=new Set(own.map(c=>c.join(',')));for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);if(!mine.has(`${a},${b}`)&&(t.indoor||t.blocked||t.stair))throw Error(`${a},${b} is taken.`);}};
+ // kind: a prop's kind, for the props that stand on water (props.js `water`).
+ const taken=(cells,own=[],kind=null)=>{const mine=new Set(own.map(c=>c.join(','))),water=PROPS[kind]?.water;
+  for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);
+   if(water==='only'&&!t.water&&!t.overWater)throw Error(`${PROPS[kind].name} goes on water.`);
+   if(!water&&t.water)throw Error(`${a},${b} is water.`);
+   if(!mine.has(`${a},${b}`)&&(t.indoor||t.stair||t.prop||t.blocked&&!t.water))throw Error(`${a},${b} is taken.`);}};
  // Selection: what's at a tile, the tiles a thing covers, and the edits on it.
  const lists=()=>({building:data.buildings,prop:data.props,stairs:data.stairs,townsfolk:data.townsfolk||(data.townsfolk=[]),resource:data.resources||(data.resources=[]),cover:data.cover||(data.cover=[])});
  function entryOf(sel){if(!sel||!data)return null;if(sel.kind==='crystal')return data.crystal||null;return lists()[sel.kind]?.[sel.index]??null;}
@@ -126,18 +135,20 @@ export function createCityEditor(host){
  const anchorOf=(kind,entry)=>kind==='townsfolk'?entry.home:kind==='crystal'?entry:[entry.x,entry.z];
  const setAnchor=(kind,entry,[x,z])=>{if(kind==='townsfolk')entry.home=[x,z];else if(kind==='crystal')data.crystal=[x,z];else{entry.x=x;entry.z=z;}};
  // Checks an entry where it now stands (own: the tiles it covered before, which it may reuse).
- function validate(kind,entry,own){const cells=cellsOf(kind,entry);
-  if(kind==='building'){oneChunk(cells);taken(cells,own);}else if(kind==='prop')taken(cells,own);
+ // dry: only check (previews); otherwise placing nature also takes away what grew on its tile.
+ function validate(kind,entry,own,{dry=false}={}){const cells=cellsOf(kind,entry);
+  if(kind==='building'){oneChunk(cells);taken(cells,own);}else if(kind==='prop')taken(cells,own,entry.kind);
   else if(kind==='crystal'){if(at(...cells[0])?.water)throw Error('The crystal needs dry ground.');taken(cells,own);}
   else if(kind==='resource'||kind==='cover'){const [x,z]=cells[0],t=at(x,z);if(!t)throw Error(`${x},${z} is off the map.`);
    if(kind==='resource'&&(!resourceFits(t)||data.crystal&&data.crystal[0]===x&&data.crystal[1]===z))throw Error(`${x},${z} has no room for it.`);if(kind==='cover'&&(t.water||t.building!==undefined))throw Error(`${x},${z} has no room for it.`);
    if(lists()[kind].filter(e=>e.x===x&&e.z===z).length>1)throw Error(`${x},${z} already has one.`);
-   const grown=natureAt(x,z)[kind];if(grown&&!grown.placed)removeGrown(grown.id);}
+   const grown=natureAt(x,z)[kind];if(grown&&!grown.placed&&!dry)removeGrown(grown.id);}
   else for(const [a,b] of cells)if(!at(a,b))throw Error(`${a},${b} is off the map.`);
   return cells;}
  function selected(){const sel=selection.peek(),entry=entryOf(sel);if(!entry)throw Error('Select something first.');return {sel,entry};}
  async function moveSelection(x,z){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);moving.value=false;
   if(await change(()=>{setAnchor(sel.kind,entry,[x,z]);return validate(sel.kind,entry,own);},own))status.value=`Moved ${nameOf(sel.kind,entry)} to ${x},${z}.`;showSelection();}
+ const startMove=()=>{selected();moving.value=true;status.value='Click where it goes.';showSelection();};
  async function nudge(dx,dz){const {sel,entry}=selected(),[x,z]=anchorOf(sel.kind,entry);await moveSelection(x+dx,z+dz);}
  async function rotateSelection(){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover'].includes(sel.kind))throw Error('Nothing to rotate.');
   if(await change(()=>{if(sel.kind==='building')entry.desc.rotation=((entry.desc.rotation||0)+90)%360;else if(sel.kind==='prop')entry.rotation=((entry.rotation||0)+90)%360;else entry.dir=CLOCKWISE[entry.dir];return validate(sel.kind,entry,own);},own))status.value=`Rotated ${nameOf(sel.kind,entry)}.`;}
@@ -177,13 +188,22 @@ export function createCityEditor(host){
  // Biome land (docs/BIOMES.md): add or remove it, its default and seed, and painting its cells. The
  // town stands on the land (docs/TOWN.md, The town on the land), so any change rebuilds the whole map.
  async function setLand(apply){snapshot();apply();revision.value++;await rebuild();}
- const addLand=()=>setLand(()=>{putOnLand(data,{seed:1,ring:+options.landRing.peek(),default:options.landDefault.peek(),cells:{}});status.value=`On the land: ${data.land.ring} tiles of ${biomeRule(data.land.default).name.toLowerCase()} around and under the map.`;});
+ const addLand=()=>setLand(()=>{putOnLand(data,{seed:1,default:options.landDefault.peek(),cells:{}});status.value=`On the land: ${biomeRule(data.land.default).name.toLowerCase()} under the whole map.`;});
  const removeLand=()=>setLand(()=>{takeOffLand(data);status.value='Land removed: the ground is flat again.';});
  const landDefault=id=>setLand(()=>{data.land.default=id;status.value=`Unpainted land: ${biomeRule(id).name}.`;});
  const reseedLand=()=>setLand(()=>{data.land.seed=(data.land.seed||1)+1;status.value=`Land seed ${data.land.seed}.`;});
- const cellOf=(x,z)=>[Math.floor(x/BIOME_CELL),Math.floor(z/BIOME_CELL)];
+ // Biome cells are the land's (data.land.origin: the map's 0, 0 in the land).
+ // Rebuilds only around repainted biome cells (the land forgets them first; town-ground.js, biome-land.js).
+ function repaintLand(cells){
+  if(!cells.size||!built?.ground)return rebuild();
+  const [ox,oz]=data.land.origin||[0,0],xs=[...cells].map(k=>+k.split(',')[0]),zs=[...cells].map(k=>+k.split(',')[1]);
+  const x0=Math.min(...xs)*BIOME_CELL-ox-FORGET_MARGIN,z0=Math.min(...zs)*BIOME_CELL-oz-FORGET_MARGIN,x1=(Math.max(...xs)+1)*BIOME_CELL-ox+FORGET_MARGIN,z1=(Math.max(...zs)+1)*BIOME_CELL-oz+FORGET_MARGIN;
+  built.ground.land.forget(x0,z0,x1,z1);
+  const dirty=[];for(let cz=Math.floor(z0/CHUNK);cz<=Math.floor(z1/CHUNK);cz++)for(let cx=Math.floor(x0/CHUNK);cx<=Math.floor(x1/CHUNK);cx++)dirty.push(`${cx},${cz}`);
+  return rebuild({dirty});}
+ const cellOf=(x,z)=>{const [ox,oz]=data.land?.origin||[0,0];return [Math.floor((x+ox)/BIOME_CELL),Math.floor((z+oz)/BIOME_CELL)];};
  function paintBiome({x,z}){if(!data.land)return;const r=options.biomeBrush.peek()==='3'?1:options.biomeBrush.peek()==='5'?2:0,[cx,cz]=cellOf(x,z),id=options.biome.peek();
-  for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const k=`${cx+dx},${cz+dz}`;if(id===data.land.default)delete data.land.cells[k];else data.land.cells[k]=id;}}
+  for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const k=`${cx+dx},${cz+dz}`;stroke?.cells?.add(k);if(id===data.land.default)delete data.land.cells[k];else data.land.cells[k]=id;}}
  // Walls: the building wall nearest a click. A click lands on the ground (walls aren't pickable), on a
  // tile inside or just outside a building; `point` (where the ray met the ground) picks between that
  // tile's walls: the one it was clicked towards.
@@ -239,12 +259,81 @@ export function createCityEditor(host){
     h('div',null,...['wall','trim','base','door','roof'].map(colourControl))),
    h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>setLook(d=>{delete d.colors;delete d.roofColor;},'colours reset').catch(error=>{status.value=error.message;})}},'Reset colours')));
  }
+ // The prop palette (docs/TOWN.md, Prop palette): a search box over the prop groups, each prop a button
+ // with its thumbnail (drawn from its real model the first time the Prop tool opens) and name.
+ const propSearch=signal('');
+ const matches=kind=>{const q=propSearch.value.trim().toLowerCase();return !q||`${PROPS[kind].name} ${kind}`.toLowerCase().includes(q);};
+ function propPalette(){
+  const item=kind=>{const [w,d]=PROPS[kind].footprint;
+   return h('button',{type:'button',class:'q-city-editor__prop',title:`${PROPS[kind].name} (${w} × ${d})`,'aria-pressed':()=>String(options.prop.value===kind),hidden:()=>!matches(kind),on:{click:()=>{options.prop.value=kind;}}},
+    h('img',{class:'q-city-editor__thumb',alt:'',width:48,height:48,src:()=>tool.value==='prop'?propThumbnail(kind).value||undefined:undefined}),h('span',null,PROPS[kind].name));};
+  return h('div',{class:'q-city-editor__palette'},
+   h('input',{type:'search',class:'q-input',placeholder:'Search props',value:()=>propSearch.value,on:{input:e=>{propSearch.value=e.target.value;}}}),
+   h('p',{class:'q-page__help'},()=>`${PROPS[options.prop.value]?.name||''} selected.`),
+   h('div',{class:'q-city-editor__shelf'},...Object.entries(PROP_CATEGORIES).map(([group,kinds])=>h('section',{class:'q-city-editor__group',hidden:()=>!kinds.some(matches)},h('strong',null,group),h('div',{class:'q-city-editor__props'},kinds.map(item))))));
+ }
+ // Previews (docs/TOWN.md, Preview ghosts): under the pointer, what a click or a stroke would change,
+ // green where it fits and red where it doesn't, with a see-through model for props and the reason a
+ // spot is refused. They use the same checks as placing, without changing anything.
+ const OK='#45d483',NO='#ff5a5a',BRUSH='#5fc8ff';
+ let hoverAt=null,fill=null,ghost=null;const previewNote=signal('');
+ const ghostMaterials={ok:new THREE.MeshBasicMaterial({color:OK,transparent:true,opacity:.5,depthWrite:false}),no:new THREE.MeshBasicMaterial({color:NO,transparent:true,opacity:.5,depthWrite:false})};
+ const heightAt=(x,z)=>at(x,z)?.h??built?.ground?.tile(x,z)?.h??1;
+ function clearPreview(){fill?.dispose();fill=null;ghost?.group.removeFromParent();previewNote.value='';}
+ // A prop's model, see-through, where it would stand (as createProp places it).
+ function showGhost(kind,rotation,x,z,ok){
+  if(!ghost||ghost.kind!==kind){ghost?.group.removeFromParent();const group=propModel(kind);group.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=false;m.renderOrder=23;}});ghost={kind,group};}
+  ghost.group.traverse(m=>{if(m.isMesh)m.material=ok?ghostMaterials.ok:ghostMaterials.no;});
+  const [w,d]=propFootprint(kind,rotation),steps=((Math.round(rotation/90)%4)+4)%4;let base=0;for(let b=0;b<d;b++)for(let a=0;a<w;a++)base=Math.max(base,heightAt(x+a,z+b));
+  ghost.group.rotation.y=-steps*Math.PI/2;ghost.group.position.set(x+(w-1)/2-6,base,z+(d-1)/2-6);built.group.add(ghost.group);}
+ const fits=check=>{try{check();return null;}catch(error){return error.message;}};
+ const tint=(cells,color)=>cells.map(([x,z])=>({x,z,color}));
+ // What the current tool would do at a tile: {cells:[{x, z, color}], prop:{kind, rotation, x, z}, refused}.
+ function previewAt(x,z){const o=Object.fromEntries(Object.entries(options).map(([k,v])=>[k,v.peek()])),rotation=+o.rotation,inMap=(a,b)=>a>=0&&b>=0&&a<data.size[0]&&b<data.size[1];
+  const placed=(kind,entry,own=[])=>{let cells=[];try{cells=cellsOf(kind,entry);}catch{return {cells:[],refused:'That doesn’t fit here.'};}const refused=fits(()=>validate(kind,entry,own,{dry:true}));
+   return {cells:tint(cells,refused?NO:OK),refused,prop:kind==='prop'?{kind:entry.kind,rotation:entry.rotation||0,x:entry.x,z:entry.z}:null};};
+  if(tool.peek()==='select'){
+   if(placing)return placed(placing.kind,{...structuredClone(placing.entry),...anchorPatch(placing.kind,[x,z])});
+   const sel=selection.peek(),entry=entryOf(sel);if(moving.peek()&&entry){const own=cellsOf(sel.kind,entry);return placed(sel.kind,sel.kind==='crystal'?[x,z]:{...structuredClone(entry),...anchorPatch(sel.kind,[x,z])},own);}
+   return null;}
+  switch(tool.peek()){
+   case 'prop':return placed('prop',{kind:o.prop,x,z,rotation});
+   case 'building':{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};let cells=[];try{cells=planBuilding(desc,[x,z]).tiles;}catch(error){return {cells:[],refused:error.message};}
+    const refused=fits(()=>{oneChunk(cells);taken(cells);});return {cells:tint(cells,refused?NO:OK),refused};}
+   case 'stairs':{const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
+   case 'crystal':return placed('crystal',[x,z],data.crystal?[data.crystal]:[]);
+   case 'spawn':{const t=at(x,z),bad=!t||t.blocked||t.water;return {cells:tint([[x,z]],bad?NO:OK),refused:bad?'You can’t arrive there.':null};}
+   case 'nature':{if(!data.land)return null;const choice=o.nature,[group]=choice.split(':');
+    return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>{const t=at(a,b),n=natureAt(a,b);
+     const ok=choice==='clear'?!!(n.resource||n.cover):group==='cover'?!!t&&!t.water&&t.building===undefined:resourceFits(t)&&!(data.crystal&&data.crystal[0]===a&&data.crystal[1]===b);
+     return {x:a,z:b,color:ok?(choice==='clear'?NO:OK):'#8a8a8a'};})};}
+   case 'raise':case 'lower':case 'flatten':case 'surface':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:BRUSH}))};
+   case 'footprint':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:o.draftMode==='add'?OK:NO}))};
+   case 'biome':{if(!data.land)return null;const r=o.biomeBrush==='3'?1:o.biomeBrush==='5'?2:0,[cx,cz]=cellOf(x,z),[ox,oz]=data.land.origin||[0,0],cells=[];
+    for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)for(let b=0;b<BIOME_CELL;b++)for(let a=0;a<BIOME_CELL;a++)cells.push({x:(cx+dx)*BIOME_CELL+a-ox,z:(cz+dz)*BIOME_CELL+b-oz,color:BIOME_PAINT[o.biome]||BRUSH});return {cells};}
+   case 'erase':{const hit=pickAt(x,z);if(hit&&hit.kind!=='townsfolk')return {cells:tint(cellsOf(hit.kind,entryOf(hit)),NO)};
+    const n=data.land?natureAt(x,z):{};return n.resource||n.cover||data.edges.some(e=>e.a[0]===x&&e.a[1]===z||e.b[0]===x&&e.b[1]===z)?{cells:tint([[x,z]],NO)}:null;}
+   case 'use':case 'reroll':{const b=data.buildings.find(e=>covers(e,x,z,'building'));return b?{cells:tint(cellsOf('building',b),BRUSH)}:null;}
+  }
+  return null;}
+ // An entry's anchor moved to a tile, as a patch (townsfolk are anchored by their home).
+ const anchorPatch=(kind,[x,z])=>kind==='townsfolk'?{home:[x,z]}:kind==='crystal'?{0:x,1:z}:{x,z};
+ function refreshPreview(){clearPreview();if(!built||!view||mode.peek()!=='edit'||!hoverAt)return;
+  let p=null;try{p=previewAt(hoverAt.x,hoverAt.z);}catch{p=null;}if(!p)return;
+  if(p.cells?.length)fill=createCellFill({cells:p.cells,heightAt,parent:built.group});
+  if(p.prop&&PROPS[p.prop.kind])showGhost(p.prop.kind,p.prop.rotation,p.prop.x,p.prop.z,!p.refused);
+  previewNote.value=p.refused?`Can’t place here: ${p.refused}`:'';}
+ function hover(tile){hoverAt=tile?{x:tile.x,z:tile.z}:null;refreshPreview();}
  function cancel(){if(placing||moving.peek()){placing=null;moving.value=false;status.value='Cancelled.';}else if(draft.peek().size&&tool.peek()==='footprint'){clearDraft();status.value='Footprint cleared.';}else selection.value=null;showSelection();}
  // Keys while editing (not while typing in the panel): they never reach the camera.
+ // Keys never take a movement key (WASD, arrows: the camera and the free camera keep them): Ctrl/⌘+Z undo,
+ // Ctrl/⌘+Shift+Z or Ctrl/⌘+Y redo, and with a selection Ctrl/⌘+D duplicate, R rotate, M move, Delete.
  function onKey(e){if(!view||mode.peek()!=='edit'||/^(INPUT|SELECT|TEXTAREA)$/.test(e.target?.tagName||''))return;
-  const arrows={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]},k=e.key.toLowerCase();
+  const k=e.key.toLowerCase(),mod=e.ctrlKey||e.metaKey;
   let act=null;
-  if(e.key==='Escape')act=cancel;else if(selection.peek()){if(arrows[e.key])act=()=>nudge(...arrows[e.key]);else if(k==='r')act=rotateSelection;else if(k==='d')act=duplicateSelection;else if(k==='m')act=()=>{moving.value=true;status.value='Click where it goes.';showSelection();};else if(k==='s')act=reshapeSelection;else if(e.key==='Delete'||e.key==='Backspace')act=deleteSelection;}
+  if(e.key==='Escape')act=cancel;
+  else if(mod&&k==='z')act=e.shiftKey?()=>step(redo,undo):()=>step(undo,redo);else if(mod&&k==='y')act=()=>step(redo,undo);
+  else if(selection.peek()){if(mod&&k==='d')act=duplicateSelection;else if(mod||e.altKey)act=null;else if(k==='r')act=rotateSelection;else if(k==='m')act=startMove;else if(e.key==='Delete'||e.key==='Backspace')act=deleteSelection;}
   if(!act)return;e.preventDefault();e.stopImmediatePropagation();Promise.resolve().then(act).catch(error=>{status.value=error.message;});}
  // Brushes paint as you drag: each tile once per stroke, the stroke one undo step, and the chunks it
  // reached rebuilt as it goes.
@@ -254,9 +343,10 @@ export function createCityEditor(host){
   if(tool.peek()==='nature'&&!data.land){if(phase==='end')status.value='Add land first.';return Promise.resolve();}
   if(tool.peek()==='biome'){
    if(!data.land){if(phase==='end')status.value='Add land first.';return Promise.resolve();}
-   if(phase==='start'){snapshot();stroke={last:tile};paintBiome(tile);showBiomes();return Promise.resolve();}
+   if(phase==='start'){snapshot();stroke={last:tile,cells:new Set()};paintBiome(tile);showBiomes();return Promise.resolve();}
    if(phase==='move'&&stroke){const {x:x0,z:z0}=stroke.last,n=Math.max(Math.abs(tile.x-x0),Math.abs(tile.z-z0));for(let i=1;i<=n;i++)paintBiome({x:Math.round(x0+(tile.x-x0)*i/n),z:Math.round(z0+(tile.z-z0)*i/n)});stroke.last=tile;showBiomes();return Promise.resolve();}
-   if(phase==='end'){stroke=null;return rebuild().then(()=>{status.value=`Painted ${biomeRule(options.biome.peek()).name}: ${Object.keys(data.land.cells).length} cells painted in all.`;});}
+   // The land forgets what it worked out around the painted cells, and only the chunks there rebuild.
+   if(phase==='end'){const done=stroke;stroke=null;return repaintLand(done?.cells||new Set()).then(()=>{status.value=`Painted ${biomeRule(options.biome.peek()).name}: ${Object.keys(data.land.cells).length} cells painted in all.`;});}
    return Promise.resolve();
   }
   // The footprint tool paints the draft, not the map: no rebuild, no undo step until it's built.
@@ -313,7 +403,7 @@ export function createCityEditor(host){
    // Brushes: a click is a one-tile stroke (dragging paints; see paint()).
    case 'raise':case 'lower':case 'flatten':case 'nature':case 'surface':case 'footprint':case 'biome':await paint('start',tile);await paint('end',tile);break;
    case 'building':if(await change(()=>{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};delete desc.name;desc.name=`${BUILDING_PRESETS[o.preset].name} ${data.buildings.length+1}`;const cells=planBuilding(desc,[x,z]).tiles;oneChunk(cells);taken(cells);data.buildings.push({x,z,desc});return cells;}))status.value=`Placed ${BUILDING_PRESETS[o.preset].name} at ${x},${z}.`;break;
-   case 'prop':if(await change(()=>{const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);taken(cells);data.props.push({kind:o.prop,x,z,rotation});return cells;}))status.value=`Placed ${PROPS[o.prop].name} at ${x},${z}.`;break;
+   case 'prop':if(await change(()=>{const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);taken(cells,[],o.prop);data.props.push({kind:o.prop,x,z,rotation});return cells;}))status.value=`Placed ${PROPS[o.prop].name} at ${x},${z}.`;break;
    case 'stairs':await change(()=>{const s={x,z,dir:o.dir,length:+o.length,width:+o.width};data.stairs.push(s);return stairCells(s);});status.value=`Stairs from ${x},${z}, going up ${SIDE_LABELS[o.dir].toLowerCase()}.`;break;
    case 'edge':await change(()=>{const [dx,dz]=DIRS[o.side],b=[x+dx,z+dz],same=e=>[e.a,e.b].map(String).sort().join('|')===[[x,z],b].map(String).sort().join('|');
     data.edges=data.edges.filter(e=>!same(e));if(o.edge!=='none')data.edges.push({a:[x,z],b,kind:o.edge});return [[x,z],b];});break;
@@ -335,7 +425,41 @@ export function createCityEditor(host){
  async function load(next,{at=null}={}){data=next;undo.length=0;redo.length=0;history.value={undo:0,redo:0};selection.value=null;placing=null;moving.value=false;draft.value=new Set();draftFor=null;
   const listed=catalogue.find(c=>c.mapId===data.id);if(listed)choice.value=listed.id;
   if(rebuilding)await rebuilding;built=await host.editCity(data,{keepPlayer:false,at});scheduleChecks(0);showGrid();showSelection();showDraft();showBiomes();revision.value++;status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;}
- async function step(from,to){if(!from.length)return;to.push(JSON.stringify(data));data=JSON.parse(from.pop());history.value={undo:undo.length,redo:redo.length};if(!entryOf(selection.peek()))selection.value=null;await rebuild();}
+ // Undo and redo: the saved state replaces the data in place (the city being edited stays the same
+ // object), and only what differs between the two states rebuilds (whole when the map's size or land
+ // settings differ).
+ async function step(from,to){if(!from.length)return;to.push(JSON.stringify(data));const next=JSON.parse(from.pop()),diff=differences(data,next);
+  for(const k of Object.keys(data))delete data[k];Object.assign(data,next);history.value={undo:undo.length,redo:redo.length};if(!entryOf(selection.peek()))selection.value=null;
+  if(!diff||!built?.ground&&data.land){await rebuild();return;}
+  if(built?.ground){built.ground.land.useCells(data.land.cells);for(const r of diff.forget)built.ground.land.forget(...r);}
+  await rebuild({dirty:[...new Set([...chunksAround(diff.cells),...diff.chunks])]});}
+ // What differs between two states of a map: tiles to rebuild around, extra chunk ids and land areas to
+ // forget (repainted biome cells); null when only a full rebuild will do.
+ function differences(a,b){
+  const settings=d=>JSON.stringify([d.size,d.style,d.walls,d.gates,d.land&&{...d.land,cells:null,removed:null}]);if(settings(a)!==settings(b))return null;
+  const cells=[],chunks=[],forget=[];
+  // Ground, row by row and then tile by tile where a row differs.
+  for(const [id,r] of Object.entries(b.regions)){const o=a.regions[id],[rx,rz]=id.split(',').map(Number);if(!o)return null;
+   for(const layer of ['heights','offsets','surfaces'])(r[layer]||[]).forEach((row,z)=>{const old=o[layer]?.[z];if(row===old)return;for(let x=0;x<row.length;x++)if(row[x]!==old?.[x])cells.push([rx*REGION+x,rz*REGION+z]);});}
+  // Placed things, entry by entry: the tiles of both versions of any that differ.
+  const placed={buildings:e=>{try{return planBuilding(e.desc,[e.x,e.z]).tiles;}catch{return [[e.x,e.z]];}},props:propCells,stairs:stairCells,resources:e=>[[e.x,e.z]],cover:e=>[[e.x,e.z]],
+   edges:e=>[e.a,e.b],townsfolk:e=>[e.home,...e.patrol||[]].filter(Boolean)};
+  for(const [list,of] of Object.entries(placed)){const p=a[list]||[],q=b[list]||[];for(let i=0;i<Math.max(p.length,q.length);i++)if(JSON.stringify(p[i])!==JSON.stringify(q[i]))cells.push(...(p[i]?of(p[i]):[]),...(q[i]?of(q[i]):[]));}
+  for(const k of ['crystal','spawn'])if(JSON.stringify(a[k])!==JSON.stringify(b[k]))cells.push(...[a[k],b[k]].filter(Boolean));
+  if(b.land){const [ox,oz]=b.land.origin||[0,0],at=id=>id.match(/(-?\d+),(-?\d+)$/)?.slice(1).map(Number);
+   const removed=new Set(a.land.removed||[]),now=new Set(b.land.removed||[]);for(const id of [...removed,...now])if(removed.has(id)!==now.has(id)){const c=at(id);if(c)cells.push(c);}
+   for(const k of new Set([...Object.keys(a.land.cells||{}),...Object.keys(b.land.cells||{})]))if(a.land.cells?.[k]!==b.land.cells?.[k]){const [cx,cz]=k.split(',').map(Number),
+    r=[cx*BIOME_CELL-ox-FORGET_MARGIN,cz*BIOME_CELL-oz-FORGET_MARGIN,(cx+1)*BIOME_CELL-ox+FORGET_MARGIN,(cz+1)*BIOME_CELL-oz+FORGET_MARGIN];forget.push(r);
+    for(let z=Math.floor(r[1]/CHUNK);z<=Math.floor(r[3]/CHUNK);z++)for(let x=Math.floor(r[0]/CHUNK);x<=Math.floor(r[2]/CHUNK);x++)chunks.push(`${x},${z}`);}}
+  return {cells,chunks,forget};
+ }
+ // Grows the map by whole chunks (docs/TOWN.md, Growing the overworld): one undo step, a full rebuild,
+ // and you stay on the same spot of ground (it moves with everything else when the map grows west or north).
+ async function growBy(){const n=+options.growBy.peek()*CHUNK,side=options.growSide.peek(),sides=side==='all'?{north:n,east:n,south:n,west:n}:{[side]:n};
+  const here=host.currentCity?.()?.at;snapshot();
+  try{growMap(data,sides);}catch(error){undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return;}
+  if(rebuilding)await rebuilding;built=await host.editCity(data,{keepPlayer:false,at:here&&{x:here.x+(sides.west||0),z:here.z+(sides.north||0)}});
+  scheduleChecks(0);showGrid();showSelection();showDraft();showBiomes();revision.value++;status.value=`${data.name} is now ${data.size.join(' × ')}.`;}
  const json=()=>JSON.stringify(data,null,1);
  async function save(){
   try{const response=await fetch('/__city-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:json()})});
@@ -351,13 +475,13 @@ export function createCityEditor(host){
    h('div',{class:'q-city-editor__row'},select('City',choice,catalogue.map(c=>[c.id,c.name])),h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>load(catalogue.find(c=>c.id===choice.peek()).make())}},'Open')),
    segmented({label:'Mode',options:[{value:'edit',label:'Edit'},{value:'play',label:'Play (test walk)'}],value:mode,onChange:v=>{mode.value=v;status.value=v==='play'?'Test walk: clicks move you. Reset rebuilds the edited state.':'Edit: clicks use the tool.';}}),
    h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>rebuild({keepPlayer:false})}},'Reset'),
-    h('button',{type:'button',class:'q-button q-button--small',disabled:()=>!history.value.undo,on:{click:()=>step(undo,redo)}},'Undo'),
-    h('button',{type:'button',class:'q-button q-button--small',disabled:()=>!history.value.redo,on:{click:()=>step(redo,undo)}},'Redo')),
+    h('button',{type:'button',class:'q-button q-button--small',title:`${MOD}+Z`,disabled:()=>!history.value.undo,on:{click:()=>step(undo,redo)}},'Undo'),
+    h('button',{type:'button',class:'q-button q-button--small',title:`${MOD}+Shift+Z`,disabled:()=>!history.value.redo,on:{click:()=>step(redo,undo)}},'Redo')),
    h('div',{class:'q-city-editor__tools',hidden:()=>mode.value!=='edit'},TOOLS.map(([id,name])=>h('button',{type:'button',class:'q-button q-button--small','aria-pressed':()=>tool.value===id,on:{click:()=>{tool.value=id;}}},name))),
    h('div',{class:'q-city-editor__options',hidden:()=>mode.value!=='edit'},
     h('div',{hidden:shown('walls')},select('Make it',options.wallKind,[['window','A window'],['wall','A plain wall'],['door','A door'],['sign','The sign'],['nosign','No sign'],['flowers','Flower box (toggle)']]),h('p',{class:'q-page__help'},'Click beside a wall.')),
     h('div',{hidden:shown('biome')},
-     h('div',{hidden:()=>{revision.value;return !!data?.land;}},select('Land around the map',options.landRing,[['32','32 tiles'],['64','64 tiles'],['96','96 tiles']]),select('Unpainted land',options.landDefault,BIOME_IDS.map(id=>[id,biomeRule(id).name])),
+     h('div',{hidden:()=>{revision.value;return !!data?.land;}},select('Unpainted land',options.landDefault,BIOME_IDS.map(id=>[id,biomeRule(id).name])),
       h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>addLand()}},'Add land')),
      h('div',{hidden:()=>{revision.value;return !data?.land;}},select('Paint',options.biome,BIOME_IDS.map(id=>[id,biomeRule(id).name])),select('Brush',options.biomeBrush,[['1','1 cell (8 × 8)'],['3','3 × 3 cells'],['5','5 × 5 cells']]),
       h('label',{class:'q-city-editor__field'},'Unpainted land',h('select',{class:'q-select',on:{change:e=>landDefault(e.target.value)}},BIOME_IDS.map(id=>h('option',{value:id,selected:()=>{revision.value;return data?.land?.default===id;}},biomeRule(id).name)))),
@@ -371,19 +495,24 @@ export function createCityEditor(host){
      h('p',{class:'q-page__help'},()=>{revision.value;const sel=selection.value,entry=entryOf(sel);return entry?`${nameOf(sel.kind,entry)} · ${KIND_LABELS[sel.kind]} at ${anchorOf(sel.kind,entry)?.join(',')}${moving.value?' · click where it goes':''}`:'Click something to select it.';}),
      lookPanel(),
      h('div',{class:'q-city-editor__row',hidden:()=>!selection.value},
-      ...[['Move','M',()=>{moving.value=true;status.value='Click where it goes.';showSelection();}],['Rotate','R',rotateSelection],['Reshape','S',reshapeSelection],['Duplicate','D',duplicateSelection],['Delete','Del',deleteSelection],['Deselect','Esc',cancel]]
-       .map(([name,keyName,act])=>h('button',{type:'button',class:'q-button q-button--small','aria-keyshortcuts':keyName,on:{click:()=>Promise.resolve().then(act).catch(error=>{status.value=error.message;})}},`${name} (${keyName})`)))),
+      ...[['Move','M',startMove],['Rotate','R',rotateSelection],['Reshape',null,reshapeSelection],['Duplicate',`${MOD}+D`,duplicateSelection],['Delete','Del',deleteSelection],['Deselect','Esc',cancel],
+       ['← Nudge',null,()=>nudge(-1,0)],['Nudge →',null,()=>nudge(1,0)],['↑ Nudge',null,()=>nudge(0,-1)],['Nudge ↓',null,()=>nudge(0,1)]]
+       .map(([name,keyName,act])=>h('button',{type:'button',class:'q-button q-button--small','aria-keyshortcuts':keyName?.replace('⌘','Meta').replace('Del','Delete')||undefined,on:{click:()=>Promise.resolve().then(act).catch(error=>{status.value=error.message;})}},keyName?`${name} (${keyName})`:name)))),
     h('div',{hidden:shown('surface')},select('Surface',options.surface,[['land',"Land's own"],...SURFACE_NAMES.map(s=>[s,s])])),
     h('div',{hidden:shown('use')},select('Use',options.use,[...USE_NAMES,'none'].map(u=>[u,u]))),
     h('div',{hidden:shown('building')},select('Building',options.preset,Object.entries(BUILDING_PRESETS).map(([id,p])=>[id,p.name]))),
-    h('div',{hidden:shown('prop')},select('Prop',options.prop,PROP_KINDS.map(k=>[k,PROPS[k].name]))),
+    h('div',{hidden:shown('prop')},propPalette()),
     h('div',{hidden:shown('building','prop')},select('Rotation',options.rotation,[['0','0°'],['90','90°'],['180','180°'],['270','270°']])),
     h('div',{hidden:shown('stairs')},select('Up towards',options.dir,Object.entries(SIDE_LABELS)),select('Length',options.length,[1,2,3,4].map(n=>[String(n),`${n} (${n/2} block${n>2?'s':''})`])),select('Width',options.width,[1,2,3,4,5].map(n=>[String(n),String(n)]))),
     h('div',{hidden:shown('edge')},select('Edge',options.edge,[['wall','Wall'],['window','Window'],['fence','Fence'],['railing','Railing'],['low','Counter'],['door','Door'],['none','Remove']]),select('Side',options.side,Object.entries(SIDE_LABELS)))),
    h('p',{class:'q-page__help',role:'status'},status),
+   h('p',{class:'q-page__help q-city-editor__refused',hidden:()=>!previewNote.value},previewNote),
+   h('div',{class:'q-city-editor__row'},select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 chunk (${CHUNK})`],['2','2 chunks'],['3','3 chunks']]),
+    h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>growBy()}},'Grow map')),
    h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:save}},'Save to repo'),
     h('button',{type:'button',class:'q-button q-button--small',on:{click:async()=>{try{await navigator.clipboard.writeText(json());status.value='Copied the city JSON.';}catch{status.value='Copy failed: use Download.';}}}},'Copy JSON'),
     h('button',{type:'button',class:'q-button q-button--small',on:{click:download}},'Download')),
+   host.freeCameraOn?toggleSwitch({label:'Free camera',description:'WASD or middle-drag to pan',on:()=>host.freeCameraOn.value,onChange:v=>host.freeCamera(v)}):null,
    toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}}),
    h('h3',{class:'q-city-editor__title'},'Checks · ',counts),
    keyedList(h('ol',{class:'q-city-editor__checks'}),problems,p=>`${p.kind}:${p.tile.join(',')}:${p.text}`,p=>h('li',null,h('button',{type:'button',class:'q-city-editor__check','data-severity':p.peek().severity,
@@ -395,20 +524,22 @@ export function createCityEditor(host){
   // (you stay where you are), else the overworld. `next` opens that data instead.
   async open(next=null){if(!view){view=mount(build);document.body.append(view.node);window.addEventListener('keydown',onKey,{capture:true});
     // World clicks and left-drag belong to the editor only in Edit mode; in Play they reach the game.
-    stopDrag=effect(()=>{const editing=mode.value==='edit';host.setTileClick(editing?(tile,point)=>click(tile,point):null);host.setTileDrag?.(editing&&PAINT_TOOLS.includes(tool.value)?paint:null);});
+    stopDrag=effect(()=>{const editing=mode.value==='edit';host.setTileClick(editing?(tile,point)=>click(tile,point):null);host.setTileHover?.(editing?hover:null);if(!editing)clearPreview();host.setTileDrag?.(editing&&PAINT_TOOLS.includes(tool.value)?paint:null);});
     // The biome overlay shows while the Biome tool is chosen.
-    stopBiomes=effect(()=>{tool.value;showBiomes();});}
+    stopBiomes=effect(()=>{tool.value;showBiomes();});
+    // Previews follow the tool and its options, the selection and moving.
+    stopPreview=effect(()=>{tool.value;brush.value;selection.value;moving.value;for(const s of Object.values(options))s.value;untracked(refreshPreview);});}
    if(next){await load(next);return editor;}
    const here=host.currentCity?.();
    if(data&&here?.areaId==='city-editor'){showGrid();showSelection();showDraft();showBiomes();scheduleChecks(0);status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;return editor;}
    if(here?.data){await load(structuredClone(here.data),{at:here.at});return editor;}
    await load(catalogue[0].make());return editor;},
-  close(){host.setTileClick(null);stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
+  close(){host.setTileClick(null);host.setTileHover?.(null);stopPreview?.();stopPreview=null;clearPreview();hoverAt=null;stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
   get grid(){return grid.peek();},set grid(v){grid.value=!!v;showGrid();},
   click,undo:()=>step(undo,redo),redo:()=>step(redo,undo),
   // Fast editing, for scripted checks: the same actions as the panel and keys.
   selection,moving,select(kind,index){selection.value={kind,index};showSelection();},moveSelection,nudge,rotateSelection,duplicateSelection,placeCopy,deleteSelection,paint,
-  draft,reshapeSelection,buildDraft,clearDraft,setWall,wallAt,setLook,addLand,removeLand,landDefault,reseedLand,
+  growMap:growBy,draft,reshapeSelection,buildDraft,clearDraft,setWall,wallAt,setLook,addLand,removeLand,landDefault,reseedLand,
   get checksPending(){return !!checkTimer;},runChecks(){clearTimeout(checkTimer);if(built)problems.value=cityProblems(data,built);return problems.peek();},
  };
  return editor;

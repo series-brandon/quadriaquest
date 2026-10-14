@@ -213,6 +213,158 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - both builds;
    - one perf pass with Mistrom's scenarios.
 
+## No land outside the map; free camera speed (2026-10-14)
+
+User request: "All the map should be editable and reachable. There shouldn't be any unusable map."
+- **The land covers the map exactly.** `townLand` no longer generates a ring around it, and `land.ring` is gone from the data and the editor (*Add land* just puts the map on the land). The overworld's 288 × 288 is all the land there is, and its edge is the world's edge (where the mist wall will go).
+- **Free camera:**
+  - Panning was slow and stuttery. The fixes:
+    - goblins share their geometry and materials, so a chunk spawning one builds nothing new;
+    - hover picking pauses while the camera pans;
+    - chunk terrain is indexed, about a quarter of the mesh per chunk;
+    - nothing streams outside the map any more.
+  - A middle-drag now grabs the ground (it stays under the pointer), and WASD is faster.
+  - Measured with the `overworld-pan` perf scenario (PERFORMANCE.md ledger): 95th-percentile frame from 18 ms to about 10 ms, the worst from 80 ms to about 28 ms, no long tasks.
+
+## Shortcuts and preview ghosts (2026-10-14)
+
+User request: more intuitive shortcuts that never rebind movement keys, and preview ghosts.
+- **Shortcuts** (city editor, Edit mode):
+
+  | Key | Action |
+  |---|---|
+  | Ctrl/⌘+D | duplicate |
+  | R | rotate |
+  | M | move |
+  | Delete | delete |
+  | Esc | cancel |
+  | Ctrl/⌘+Z | undo |
+  | Ctrl/⌘+Shift+Z or Ctrl/⌘+Y | redo |
+
+  - WASD and the arrow keys always belong to the camera (and the free camera).
+  - Nudging one tile is four buttons.
+  - *Reshape* (repaint a selected building's footprint tile by tile, then *Build*) is a button with no key.
+- **Previews:** under the pointer, what a click or a stroke would change. Green means it fits, red means it doesn't, and the reason shows under the status line ("Can't place here: …"). They use the same checks as placing (`validate(…, {dry: true})`), without changing anything:
+  - **props:** their footprint plus a see-through model, the real one, rotated, at its height;
+  - **buildings:** the footprint of the chosen preset and rotation (the one-chunk rule and overlaps);
+  - **stairs:** the flight with its landings;
+  - **the crystal and the arrival spot;**
+  - **moving and placing a copy:** the selection where it would go, with its model for props;
+  - **nature:** the brush, green where each choice can go and grey where it can't (red when clearing);
+  - **raise, lower, flatten and surface:** the brush area, in blue;
+  - **footprint:** green to add, red to remove;
+  - **biome:** the cells, in the biome's colour;
+  - **erase:** what would go, in red;
+  - **use and reroll:** the building under the pointer.
+- **How it works:**
+  - The game tells the editor the tile under the pointer (`setTileHover`, only in Edit mode and only when the tile changes).
+  - The fill is one instanced mesh (`createCellFill`, grid-overlay.js).
+  - Previews follow the tool, its options, the brush size, the selection and moving, and redraw after each rebuild. Play mode clears them.
+- **Checked in the browser:**
+  - a lighthouse (green fill and ghost), and refused over the crystal (red, with the reason);
+  - a 3 × 3 raise brush, a cottage's footprint, the biome cells, and Play clearing them;
+  - Ctrl+D showing the copy's ghost and placing it, then Ctrl+Z;
+  - an arrow key no longer nudging the selection.
+
+## Editor speed, draw distance and the free camera (2026-10-14)
+
+User report: editor performance was "atrocious". Measured on the 288 × 288 overworld:
+- **Strokes:**
+  - The cause: every brush step rebuilt a chunk in about 70 ms, so drags ran at about 13 fps. Several loops in `rebuild`/`populate` walked every tile of the map (about 83,000), building a chunk id string for each.
+  - The fix: a per-chunk tile index (`byChunk`), so a partial rebuild visits only its chunks and their border. A step now takes about 16 ms (about 9 ms for the city's part).
+- **Adding and deleting buildings:**
+  - These no longer force a full rebuild. Buildings whose place in the list changed (added, or after a removed one) rebuild in their chunks.
+  - Adding a building took about 1 s; it now takes about 0.1–0.4 s.
+  - Deleting one took about 2 s; it now takes about 0.2 s.
+- **Biome painting:**
+  - The land forgets only the area around the painted cells (`forget`, 48 tiles past them) and only those chunks rebuild. A warm stroke went from about 2 s to about 0.6 s.
+  - The land is kept between full builds while its settings are unchanged (`useCells` reads a new paint object after undo).
+- **Undo and redo:**
+  - They apply the saved state in place and rebuild only what differs: ground rows, entries, the crystal and arrival, removed nature, and repainted cells.
+  - A change of size or land settings still rebuilds everything.
+- **Still slow:**
+  - The first open generates the whole map's land (about 1.3 s).
+  - A full rebuild takes about 0.7 s once the land is generated.
+  - The checks take about 0.15 s, run once after editing stops.
+  - Building the map's content per chunk, streamed like its ground, is the next step for large maps.
+- **Draw distance** (Settings → Graphics; `render-quality.js` `drawDistance`):
+  - Near, Medium, Far or Very far: 1–4 chunks around you, saved per device.
+  - Every streamed land and town streams that far, and the camera's far plane follows.
+  - Far took the overworld from 326 to 1,093 draw calls.
+- **Free camera** (playground; docs/PLAYGROUND.md): the camera pans on its own and zooms out to 140, with streaming and shadows following it, so you can edit anywhere without walking.
+- **Naming:** `growMap` (not `growCity`). Maps aren't cities; the remaining `city` names (`city-map.js`, `buildCity`, the city editor) are older and can be renamed separately.
+
+## Growing the overworld (2026-10-14)
+
+User request: grow the overworld, so the river, coast and sea (and the woods and hills) are part of the map you edit.
+- **The overworld:** 288 × 288 tiles (9 × 9 chunks). Mistrom's 96 × 96 sits in the middle, with the crystal at 144, 144. The woods and hills to the north and west, the river to the east, and the coast and sea to the south are all its own tiles now. `src/dev/overworld-layout.js` builds the wild start, then grows it by three chunks on every side.
+- **`growMap(data, {north, east, south, west})`** (city-map.js):
+  - grows a map by whole chunks on any side;
+  - growing west or north moves everything built: ground paint and offsets, buildings, props, stairs, edges, resources, cover, the crystal, the arrival spot, townsfolk homes and patrols, and removed nature;
+  - on the land it moves the map's `land.origin` (where its 0, 0 lies in the land), so the land stays exactly where it was under what was built. Biome cells stay in the land's own cells.
+  - It refuses a walled city.
+- **Land origin:** `townLand` shows the land from the map's origin, covering tiles, entities and their ids, extras, cover and biomes. The editor's biome brush and overlay follow it.
+- **Faster partial rebuilds:**
+  - a rebuild now works out fresh ground only for the chunks an edit touched, plus the chunks within 16 tiles of any building pad that moved or changed level;
+  - it no longer works out the whole map's ground.
+- **Editor:** *Grow* (all sides or one) *by* 1–3 chunks, then *Grow map*. It's one undo step and a full rebuild, and you stay on the same ground.
+- **Measured in the browser (288 × 288 overworld):**
+  - opening the editor takes about 1.2 s;
+  - a surface stroke takes 0.1 s;
+  - moving a building takes 0.14 s;
+  - adding a building (a full rebuild) takes about 1 s;
+  - growing by a chunk takes about 1 s.
+- **Checked in the browser:**
+  - placed a lighthouse on the coast's sand, a jetty out into the sea with a rowboat, and a shipwreck;
+  - grew the map west by a chunk (everything moved with it, the land stayed) and undid it;
+  - no errors in the checks.
+- **Tests:**
+  - `town-ground.test.js` checks that growth keeps the land and what was built where they were;
+  - `overworld.test.js` checks the size, the origin, the middle chunk, and the river and sea being the map's own tiles.
+- **Not yet:**
+  - Adding a building still does a full rebuild.
+  - The map file is about 330 KB, mostly unedited rows; a sparser format can come later.
+  - The overworld will need to stream its city content (not only its ground) as it nears the world's 2048 × 2048.
+
+## Prop palette and village props (2026-10-14)
+
+User request: the prop palette next, then the props the village needs.
+- **Palette** (city editor, Prop tool):
+  - a search box over the prop groups;
+  - each prop is a button with a thumbnail and its name, and the footprint shows on hover;
+  - thumbnails are drawn from each prop's real model, from the game's angle, a few per frame the first time the tool opens (`src/dev/prop-thumbnails.js`, dev only; one offscreen renderer, freed when done).
+- **Village and coast** (`src/prop-sets/village.js`), a new palette group:
+  - waterwheel (turning);
+  - cabbage and wheat rows;
+  - scarecrow;
+  - shrine (look at it);
+  - quay and jetty pieces;
+  - mooring post;
+  - rowboat;
+  - lighthouse (lit lantern);
+  - shipwreck;
+  - tide pools;
+  - sawhorse.
+- **New shared prop options** (props.js), for any prop:
+  - `water: 'any' | 'only'` lets a prop stand on water tiles. The editor and `createProp` refuse a land prop on water and a boat on land. In a town on the land, a water prop's tiles stay water instead of becoming made ground.
+  - `deck`: the prop's water tiles become walkable boards at ground level, with the water still drawn below (`overWater`, like the countryside bridge). They're clicked as their tile, and given back when the prop goes.
+  - `spin: {pivot, axis, speed, parts}`: a part that turns every frame (`updateProps`, `spinProp`). The model catalogue shows it Turning or Still. Spinning and deck props stay out of the per-chunk static merge.
+- **Prop gallery:** shows every prop that stands on land. Water-only props (the rowboat) are in the model catalogue and can be placed on water in the editor.
+- **Tests:** `village-props.test.js`, which checks:
+  - every new prop builds;
+  - a jetty's boards are walkable and given back when it goes;
+  - water props are refused off water, and land props on it;
+  - the waterwheel turns;
+  - a jetty on a town pond keeps its water.
+- **Checked in the browser (overworld):**
+  - searched and placed from the palette;
+  - placed two jetty pieces, a rowboat and a mooring post on a pond, and walked out onto the jetty in Play mode;
+  - placed the waterwheel, crops, scarecrow, shrine, sawhorse, lighthouse and tide pools;
+  - no errors in the checks or the console.
+- **Not yet:**
+  - The coast, the river and the sea lie outside the overworld's 96 × 96 editable bounds, so the quay, lighthouse and shipwreck can only go by ponds for now. That waits on growing the overworld.
+  - Reworking the most-used existing props (stalls, counters, fences, lamps, crates, barrels, trees) is the palette's second half.
+
 ## The overworld map (2026-10-14)
 
 User decision: the map holding Mistrom is the start of the whole world map, not a town map.

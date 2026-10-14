@@ -26,12 +26,12 @@ test('a tier sets resolution, shadow map and shadow cadence',()=>{
  q.afterRender(scene);q.frame(16);q.frame(16);assert.equal(due(),true,'a caster appeared');
  q.afterRender(scene);for(let i=0;i<4;i++)q.frame(16);assert.equal(due(),false);
  assert.deepEqual(changes,['low']);
- assert.deepEqual(JSON.parse(f.store.get('quadriaquest-graphics')),{mode:'low',autoTier:'high'},'the choice is saved');
+ assert.deepEqual(JSON.parse(f.store.get('quadriaquest-graphics')),{v:2,mode:'low',autoTier:'high'},'the choice is saved');
  assert.equal(q.antialiasMismatch,true,'Low has no MSAA, so the change applies at the next load');
  assert.equal(initialTier(loadQualitySetting(f.storage),''),'low');
 });
 
-test('Auto starts software rendering on Lowest and steps down when frames stay slow',()=>{
+test('Auto starts software rendering on Lowest, steps down when frames stay slow, and back up when steady',()=>{
  const soft=fakes();createRenderQuality({...soft,rendererName:'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device))',search:''});
  assert.equal(soft.renderer.pixelRatio,QUALITY_TIERS.lowest.scale,'software rendering starts on Lowest');
  const f=fakes(),q=createRenderQuality({...f,rendererName:'Apple M2',search:''});
@@ -46,8 +46,20 @@ test('Auto starts software rendering on Lowest and steps down when frames stay s
  for(let i=0;i<20;i++)q.frame(1000);assert.equal(q.tier.peek(),'medium','hitches (a background tab) are ignored');
  q.settle();for(let i=0;i<150;i++)q.frame(40);assert.equal(q.tier.peek(),'medium','an arrival warms up again');
  run(2,40);assert.equal(q.tier.peek(),'low');
- fresh();run(4,16);assert.equal(q.tier.peek(),'low','never steps back up during play');
  assert.equal(loadQualitySetting(f.storage).autoTier,'low','the next load starts on Low');
+ // Steady at the display's rate for three windows: one step back up, but never to a tier it had to leave.
+ fresh();run(2,16);assert.equal(q.tier.peek(),'low','two steady windows are not enough');
+ run(1,16);assert.equal(q.tier.peek(),'low','Medium was too much this session: not tried again');
+ const g=fakes(),r=createRenderQuality({...g,rendererName:'Apple M2',search:''}),go=(windows,ms)=>{for(let i=0;i<Math.ceil(windows*5000/ms);i++)r.frame(ms);};
+ for(let i=0;i<150;i++)r.frame(40);go(2,40);assert.equal(r.tier.peek(),'medium');
+ r.settle();for(let i=0;i<150;i++)r.frame(16);go(3,16);assert.equal(r.tier.peek(),'medium','High failed: no climb back to it');
+ // A saved Auto tier from before recovery starts over at High (a chosen mode is kept).
+ g.store.set('quadriaquest-graphics',JSON.stringify({mode:'auto',autoTier:'lowest'}));assert.equal(loadQualitySetting(g.storage).autoTier,'high');
+ g.store.set('quadriaquest-graphics',JSON.stringify({mode:'low',autoTier:'lowest'}));assert.equal(loadQualitySetting(g.storage).mode,'low');
+ // A tier left only for a slow moment elsewhere (Low, from Lowest after a start on Lowest) can recover.
+ const h=fakes();h.store.set('quadriaquest-graphics',JSON.stringify({v:2,mode:'auto',autoTier:'lowest'}));const u=createRenderQuality({...h,rendererName:'Apple M2',search:''});
+ for(let i=0;i<375;i++)u.frame(16);for(let i=0;i<940;i++)u.frame(16);assert.equal(u.tier.peek(),"low","three steady windows climb a tier");
+ for(let i=0;i<Math.ceil(21000/16);i++)u.frame(16);assert.equal(u.tier.peek(),'medium','and on, while it stays steady');
  q.setMode('high');for(let i=0;i<800;i++)q.frame(40);assert.equal(q.tier.peek(),'high','a manual choice is kept');
 });
 
@@ -71,4 +83,9 @@ test('casters count as moved past small tolerances, or when they appear or disap
  tree.visible=false;assert.equal(check(),true,'a felled tree disappears');assert.equal(check(),false);
  tree.visible=true;tree.rotation.z=.3;assert.equal(check(),true,'and falls or regrows');
  const glow=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial());scene.add(glow);glow.position.y=3;assert.equal(check(),false,'non-casters never count');
+});
+test('draw distance: Near by default, saved per device, only the listed choices',()=>{
+ const f=fakes(),q=createRenderQuality({...f,search:''});
+ assert.equal(q.drawDistance.value,1);assert.equal(q.setDrawDistance(3),true);assert.equal(q.drawDistance.value,3);assert.equal(q.setDrawDistance(9),false);
+ assert.equal(createRenderQuality({...f,search:''}).drawDistance.value,3,'remembered');
 });

@@ -16,9 +16,12 @@ import {biomeRule,BIOME_RULES} from './biome-rules.js';
 //   reachable, as in the countryside.
 // - The same seed and map always give the same land; ids are stable across loads.
 export const CELL=8;
+// How far a repainted cell can change the land around it (tiles): blending, wandering borders, ponds
+// whose biome decides them, and shores easing up from water.
+export const FORGET_MARGIN=48;
 const BLEND=20,WARP=5,POND_CELL=24,WATER_H=.5;
 export function createBiomeLand({seed=1,bounds,map={},rules=BIOME_RULES}){
- const [x0,z0,x1,z1]=bounds,cell=map.cell||CELL,fallback=map.default||'meadow',cells=map.cells||{};
+ const [x0,z0,x1,z1]=bounds,cell=map.cell||CELL,fallback=map.default||'meadow';let cells=map.cells||{};
  const rule=id=>biomeRule(rules[id]?id:fallback,rules);
  const painted=(cx,cz)=>cells[`${cx},${cz}`]||fallback;
  // The biome a tile shows: its cell, looked up through a gentle warp so borders aren't square.
@@ -116,7 +119,13 @@ export function createBiomeLand({seed=1,bounds,map={},rules=BIOME_RULES}){
    for(const c of b.cover){if(!fits(c.where,p))continue;if(left<c.density){add(c.kind);break;}left-=c.density;}}
   return out;
  }
- return {tile,entities,extras,cover,topColor,biomeAt,heightAt,rules,
+ // After repainting cells (the map's `cells` object is read live): forget what was worked out in a
+ // rectangle of tiles, so it is generated again from the new paint. Painting reaches FORGET_MARGIN tiles
+ // past its cells (borders blend and wander, ponds and shores follow the biome).
+ function forget(x0,z0,x1,z1){for(const cache of [tiles,waterSeen])for(const k of [...cache.keys()]){const [x,z]=k.split(',').map(Number);if(x>=x0&&x<=x1&&z>=z0&&z<=z1)cache.delete(k);}}
+ // The same paint in a new object (a map's data replaced by undo): read it from now on.
+ const useCells=next=>{cells=next||{};};
+ return {tile,entities,extras,cover,topColor,biomeAt,heightAt,rules,forget,useCells,
   // For the playground: what a tile is, in words.
   describe(x,z){const t=tile(x,z);return t?`${x},${z} · ${rule(t.biome).name} · height ${t.h}${t.water?` · ${t.waterKind}`:''}`:`${x},${z}: beyond the land`;}};
 }

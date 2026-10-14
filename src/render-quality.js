@@ -22,13 +22,23 @@ export const QUALITY_TIERS={
  lowest:{label:'Lowest',pixelCap:1,scale:.5,shadowSize:1024,shadowType:THREE.BasicShadowMap,shadowEvery:2,antialias:false,normalBias:.04,bias:-.0015,simple:true},
 };
 export const QUALITY_MODES=['auto','high','medium','low','lowest'];
+// Draw distance: how many chunks around yours the world shows (land and towns stream that far; the
+// camera's far plane follows). A per-device choice, saved apart from the quality tier; Auto never
+// changes it.
+export const DRAW_DISTANCES=[{chunks:1,label:'Near'},{chunks:2,label:'Medium'},{chunks:3,label:'Far'},{chunks:4,label:'Very far'}];
+const DRAW_KEY='quadriaquest-draw-distance';
+export function loadDrawDistance(storage=globalThis.localStorage){try{const n=+storage?.getItem(DRAW_KEY);if(DRAW_DISTANCES.some(d=>d.chunks===n))return n;}catch{}return 1;}
 const ORDER=['high','medium','low','lowest'];
 const STORAGE_KEY='quadriaquest-graphics';
-// Auto steps down one tier when frames average slower than this for two windows in a row. Startup
-// and arrivals (shader compiles, loading) get a warm-up first (`settle`), so a slow moment never
-// sticks. It never steps back up during play (no flicker between tiers); the next load starts from
-// the saved tier.
-const SLOW_FRAME_MS=28,WINDOW_MS=5000,HITCH_MS=250,WARMUP_MS=6000,SLOW_WINDOWS=2;
+// Auto steps down one tier when frames average slower than this for two windows in a row. Startup,
+// arrivals and editor rebuilds (shader compiles, loading) get a warm-up first (`settle`), so a slow
+// moment never sticks. It steps back up one tier after three windows in a row at the display's own
+// rate (no headroom can be seen past vsync, so it tries): a tier it had to leave is not tried again
+// this session (no flicker between tiers). The next load starts from the saved tier.
+const SLOW_FRAME_MS=28,STEADY_FRAME_MS=17.6,WINDOW_MS=5000,HITCH_MS=250,WARMUP_MS=6000,SLOW_WINDOWS=2,STEADY_WINDOWS=3;
+// Saved choices from before recovery existed (2026-10-14) may hold a tier Auto fell to for good (an
+// editor stall, a loading burst): their Auto tier starts over at High; a chosen mode is kept.
+const SAVE_VERSION=2;
 // Shadow caster movement below these (world units for translation, matrix units for rotation and
 // scale) leaves the map as it is: about 3 cm, or a 6% change in size or angle.
 const MOVE=.03,TURN=.06;
@@ -50,7 +60,7 @@ export function castersChanged(scene,seen){
 
 // Saved choice: {mode, autoTier}. Storage can be missing or throw (private windows); defaults then.
 export function loadQualitySetting(storage=globalThis.localStorage){
- try{const value=JSON.parse(storage?.getItem(STORAGE_KEY)||'null');if(value&&QUALITY_MODES.includes(value.mode))return {mode:value.mode,autoTier:QUALITY_TIERS[value.autoTier]?value.autoTier:'high'};}catch{}
+ try{const value=JSON.parse(storage?.getItem(STORAGE_KEY)||'null');if(value&&QUALITY_MODES.includes(value.mode))return {mode:value.mode,autoTier:value.v===SAVE_VERSION&&QUALITY_TIERS[value.autoTier]?value.autoTier:'high'};}catch{}
  return {mode:'auto',autoTier:'high'};
 }
 // The tier the renderer should be created for (its antialias), from a URL override or the saved choice.
@@ -67,12 +77,14 @@ const SOFTWARE=/swiftshader|llvmpipe|software|softpipe|microsoft basic render/i;
 export function createRenderQuality({renderer,light,devicePixelRatio=()=>globalThis.devicePixelRatio||1,storage=globalThis.localStorage,
  search=globalThis.location?.search||'',rendererName='',onChange=()=>{}}){
  const saved=loadQualitySetting(storage),forced=new URLSearchParams(search).get('quality');
- const mode=signal(QUALITY_TIERS[forced]?forced:saved.mode),tier=signal('high');
- let simpleDue=true,simpleScene=null,autoTier=saved.autoTier,frame=0,windowMs=0,frames=0,warmupMs=WARMUP_MS,slowWindows=0,shadowsDue=true,sinceShadow=0;
+ const mode=signal(QUALITY_TIERS[forced]?forced:saved.mode),tier=signal('high'),drawDistance=signal(loadDrawDistance(storage));
+ let simpleDue=true,simpleScene=null,autoTier=saved.autoTier,frame=0,windowMs=0,frames=0,warmupMs=WARMUP_MS,slowWindows=0,steadyWindows=0,shadowsDue=true,sinceShadow=0;
+ // Tiers Auto had to leave this session: not climbed back to.
+ const tooMuch=new Set();
  const casters=new Map(),baseNormalBias=light.shadow.normalBias??0,baseBias=light.shadow.bias??0;
  // Software rendering is the weakest case: start on the floor rather than stepping down to it.
  if(mode.peek()==='auto'&&SOFTWARE.test(rendererName))autoTier='lowest';
- const save=()=>{if(QUALITY_TIERS[forced])return;try{storage?.setItem(STORAGE_KEY,JSON.stringify({mode:mode.peek(),autoTier}));}catch{}};
+ const save=()=>{if(QUALITY_TIERS[forced])return;try{storage?.setItem(STORAGE_KEY,JSON.stringify({v:SAVE_VERSION,mode:mode.peek(),autoTier}));}catch{}};
  function apply(next,notify=true){
   const t=QUALITY_TIERS[next];
   renderer.setPixelRatio(Math.min(devicePixelRatio(),t.pixelCap)*t.scale);
@@ -86,9 +98,10 @@ export function createRenderQuality({renderer,light,devicePixelRatio=()=>globalT
  const target=()=>mode.peek()==='auto'?autoTier:mode.peek();
  apply(target(),false); // the host sizes the canvas once it is ready
  return {
-  tier,mode,
+  tier,mode,drawDistance,
+  setDrawDistance(chunks){if(!DRAW_DISTANCES.some(d=>d.chunks===chunks))return false;drawDistance.value=chunks;try{storage?.setItem(DRAW_KEY,String(chunks));}catch{}return true;},
   get antialiasMismatch(){return renderer.getContextAttributes?.()?.antialias!==QUALITY_TIERS[tier.peek()].antialias;},
-  setMode(next){if(!QUALITY_MODES.includes(next))return false;mode.value=next;windowMs=frames=slowWindows=0;save();if(target()!==tier.peek())apply(target());return true;},
+  setMode(next){if(!QUALITY_MODES.includes(next))return false;mode.value=next;windowMs=frames=slowWindows=steadyWindows=0;save();if(target()!==tier.peek())apply(target());return true;},
   // Per rendered frame, before rendering: the shadow redraw cadence and Auto's frame-time watch.
   // elapsedMs is the real time since the previous frame (not the clamped game step).
   frame(elapsedMs){
@@ -100,12 +113,13 @@ export function createRenderQuality({renderer,light,devicePixelRatio=()=>globalT
    windowMs+=elapsedMs;frames++;
    if(windowMs<WINDOW_MS)return;
    const average=windowMs/frames;windowMs=frames=0;
-   slowWindows=average>SLOW_FRAME_MS?slowWindows+1:0;
-   const i=ORDER.indexOf(tier.peek());
-   if(slowWindows>=SLOW_WINDOWS&&i<ORDER.length-1){slowWindows=0;warmupMs=WARMUP_MS;autoTier=ORDER[i+1];save();apply(autoTier);}
+   slowWindows=average>SLOW_FRAME_MS?slowWindows+1:0;steadyWindows=average<=STEADY_FRAME_MS?steadyWindows+1:0;
+   const i=ORDER.indexOf(tier.peek()),step=next=>{slowWindows=steadyWindows=0;warmupMs=WARMUP_MS;autoTier=next;save();apply(autoTier);};
+   if(slowWindows>=SLOW_WINDOWS&&i<ORDER.length-1){tooMuch.add(ORDER[i]);step(ORDER[i+1]);}
+   else if(steadyWindows>=STEADY_WINDOWS&&i>0&&!tooMuch.has(ORDER[i-1]))step(ORDER[i-1]);
   },
   // After loading a new area: a warm-up before frame times count again.
-  settle(){warmupMs=WARMUP_MS;windowMs=frames=slowWindows=0;},
+  settle(){warmupMs=WARMUP_MS;windowMs=frames=slowWindows=steadyWindows=0;},
   // After each render: whether shadow casters moved since the map was last drawn (it is redrawn
   // the next frame; a one-frame lag when something starts moving).
   afterRender(scene){

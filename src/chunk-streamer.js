@@ -73,7 +73,7 @@ export function createChunkStreamer({source,maps,parent,pickables,resources,topC
   chunk.dressed?.dispose();
   for(const {id,handle} of chunk.extras){const saved=handle.save?.();if(saved!==undefined&&saved!==null)state.set(id,saved);handle.dispose();}
   for(const mesh of chunk.meshes){const i=pickables.indexOf(mesh);if(i>=0)pickables.splice(i,1);}
-  chunk.root?.traverse(o=>{o.geometry?.dispose();});chunk.root?.removeFromParent();
+  chunk.root?.traverse(o=>{if(!o.geometry?.userData.shared)o.geometry?.dispose();});chunk.root?.removeFromParent();
   for(const t of chunk.tiles)for(const map of maps)if(map.get(key(t.x,t.z))===t)map.delete(key(t.x,t.z));
   chunks.delete(id);
  }

@@ -18,12 +18,29 @@ import {hash} from './noise.js';
 // Water stays where nothing is made on it; a made tile over water (a road across a pond) is dry ground.
 // Made tiles (painted, offset, pads, props, the crystal) grow no trees, cover or enemies (townSource).
 // createTownGround(data, land?) → {land, inside(x, z), tile(x, z), base(x, z), made(x, z), pads}
-//   tile(x, z): the town's ground there (a fresh tile inside the town, for the city to build on; the
-//   land, with pads eased into it, outside)
+//   tile(x, z): the town's ground there (a fresh tile, for the city to build on; null past the map's edge)
 export const PAD_APRON=1;
+// data.land.origin [ox, oz]: where the map's 0, 0 lies in the land (world tiles); cells are painted in
+// the land's own cells. A map that grows west or north moves its origin, so the land stays put under
+// what was built (growMap, city-map.js).
+// The land covers the map exactly (user, 2026-10-14: no unusable land; everything you see can be edited
+// and reached). The map's edge is the world's edge.
 export function townLand(data){
- const {seed=1,ring=96,default:fallback='meadow',cells={}}=data.land,[w,d]=data.size;
- return createBiomeLand({seed,bounds:[-ring,-ring,w+ring,d+ring],map:{default:fallback,cells}});
+ const {seed=1,default:fallback='meadow',cells={},origin:[ox,oz]=[0,0]}=data.land,[w,d]=data.size;
+ const land=createBiomeLand({seed,bounds:[ox,oz,ox+w,oz+d],map:{default:fallback,cells}});
+ return ox||oz?shiftLand(land,ox,oz):land;
+}
+// The land seen from a map whose 0, 0 lies at ox, oz: tiles, entities (their ids too), extras and cover
+// in the map's own tiles.
+const ID_AT=/(-?\d+),(-?\d+)$/;
+function shiftLand(land,ox,oz){
+ const tiles=new Map(),world=t=>land.tile(t.x+ox,t.z+oz),back=e=>({...e,x:e.x-ox,z:e.z-oz,...e.id?{id:e.id.replace(ID_AT,(m,x,z)=>`${+x-ox},${+z-oz}`)}:{}});
+ return {...land,
+  tile(x,z){const k=key(x,z);if(tiles.has(k))return tiles.get(k);const t=land.tile(x+ox,z+oz),out=t&&{...t,x,z};tiles.set(k,out);return out;},
+  entities:list=>land.entities(list.map(world).filter(Boolean)).map(back),extras:list=>land.extras(list.map(world).filter(Boolean)).map(back),cover:list=>land.cover(list.map(world).filter(Boolean)).map(back),
+  useCells:next=>land.useCells(next),
+  forget(x0,z0,x1,z1){land.forget(x0+ox,z0+oz,x1+ox,z1+oz);for(const k of [...tiles.keys()]){const [x,z]=k.split(',').map(Number);if(x>=x0&&x<=x1&&z>=z0&&z<=z1)tiles.delete(k);}},
+  biomeAt:(x,z)=>land.biomeAt(x+ox,z+oz),heightAt:(x,z)=>land.heightAt(x+ox,z+oz),describe:(x,z)=>land.describe(x+ox,z+oz).replace(/^-?\d+,-?\d+/,`${x},${z}`)};
 }
 // The tiles a building stands on, without the door rule's checks (a pad needs only the footprint).
 export function footprintCells(b){
@@ -57,13 +74,8 @@ export function createTownGround(data,land=townLand(data),{offset=()=>0,surface=
  // The made ground before hand offsets: the land with the pads in it (water counts as ground level, as
  // a made tile over water is dry ground).
  function base(x,z){const t=land.tile(x,z);if(!t)return null;return padded(x,z,t.water?1:t.h);}
- const outside=new Map();
  function tile(x,z){
-  const t=land.tile(x,z);if(!t)return null;
-  if(!inside(x,z)){
-   // Outside the town the land is untouched, except where a pad's ease reaches past the edge.
-   if(t.water||!pads.length)return t;const k=key(x,z);if(outside.has(k))return outside.get(k);
-   const h=padded(x,z,t.h),out=h===t.h?t:{...t,h};outside.set(k,out);return out;}
+  if(!inside(x,z))return null;const t=land.tile(x,z);if(!t)return null;
   const own=surface(x,z),m=isMade(x,z);
   if(t.water&&!m)return {...t};
   const h=Math.max(.5,base(x,z)+offset(x,z));
@@ -77,7 +89,7 @@ export function createTownGround(data,land=townLand(data),{offset=()=>0,surface=
 // regular chunks that happen to have buildings on them. Inside the town the streamer gets the town's own
 // tiles (townTiles(), the same objects the city built on) and draws their ground like any other: one
 // renderer, one look (topColor: painted surfaces, else the biome's colours, else water). Outside, the land
-// with pads eased in (ground(): the town's current ground, which a rebuild replaces). Generated trees,
+// ends at the map's edge (ground(): the town's current ground, which a rebuild replaces). Generated trees,
 // resources, enemies, ground cover and fishing spots grow only on free tiles (nothing made, built or
 // placed there).
 // Nature by hand (townData(): the map's data; docs/TOWN.md, Nature by hand), anywhere in the land:

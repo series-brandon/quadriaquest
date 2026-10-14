@@ -137,6 +137,15 @@ addEventListener('keydown', event => {
 addEventListener('keyup', event => rotationKeys.delete(event.key));
 addEventListener('blur', () => rotationKeys.clear());
 document.addEventListener('visibilitychange', () => { if (document.hidden) rotationKeys.clear(); });
+// Free camera (playground only; docs/PLAYGROUND.md): the camera leaves the slime and moves on its own,
+// panned with WASD (Shift: faster) or a middle-button drag, zoomed much farther out. The land, towns and
+// the sun's shadows follow the camera instead of the slime while it's on.
+let freeCam=null;const panKeys=new Set(),freeCamOn=signal(false);
+if(__PLAYGROUND__){
+ addEventListener('keydown',e=>{if(!freeCam||e.altKey||e.ctrlKey||e.metaKey)return;const k=e.key.toLowerCase();if(!['w','a','s','d','shift'].includes(k))return;
+  if(e.target instanceof Element&&e.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])'))return;panKeys.add(k);});
+ addEventListener('keyup',e=>panKeys.delete(e.key.toLowerCase()));addEventListener('blur',()=>panKeys.clear());
+}
 scene.add(new THREE.HemisphereLight('#fffce8','#879981',2.6));const sun=new THREE.DirectionalLight('#fff3d3',3);sun.position.set(-8,19,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,far:80});sun.shadow.normalBias=.008;scene.add(sun);
 // Resolution, shadow map and shadow cadence by tier; Auto starts software rendering on Low and steps down when slow.
 const quality=createRenderQuality({renderer,light:sun,rendererName:(()=>{const gl=renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'';})(),onChange:()=>resize?.()});
@@ -201,7 +210,9 @@ let forceCutaway=false;
 // Sitting on a bench (props.js): the seat you sit on, the one you're walking to.
 let seat=null,pendingSeat=null,wasSeated=false;
 // Playground: the city editor takes world clicks while it is in Edit mode.
-let tileClick=null,tileDrag=null,painting=false;
+let tileClick=null,tileDrag=null,painting=false,tileHover=null,hoverTileId=null;
+// The tile under the pointer, for the city editor's previews (playground): told only when it changes.
+function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=data?.tile||data?.actor?.tile||null,id=at?`${at.x},${at.z}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,hit?.point||null);}
 let edgeFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
@@ -259,6 +270,11 @@ function crystalRestore(){health.max=character.maxima.health;health.restore();pl
 // Utility dialogs (stations, destinations, naming, confirmations) share one modal host.
 const modals=createModalHost();
 const settingsUI=createSettingsMenu({audio:gameAudio,quality,modals});
+// Draw distance (Settings; render-quality.js): the chunks streamed around you, for every streamed land
+// and town, and the camera's far plane to match.
+const drawRadius=()=>quality.drawDistance.peek(),streamedWorlds=new Set();
+let baseFar=120;
+effect(()=>{const r=quality.drawDistance.value;baseFar=camera.far=120+(r-1)*72;camera.updateProjectionMatrix();for(const w of streamedWorlds){if(w.streamer)w.streamer.radius=r;if(w.city?.streamRadius!=null)w.city.streamRadius=r;}});
 // Once Cinderhold is complete, the crystals offer "???": ending the tutorial (waking.js).
 destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,
  extras:()=>cinder?.tutorialComplete&&!waking?.isWoken?[{id:'awaken',name:'???',description:'Somewhere beyond the dream',
@@ -480,7 +496,7 @@ function geltonReady(){
   const [{buildCity},{default:data},{createCountryside},{createChunkStreamer},{surfaceColor}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json'),import('./countryside.js'),import('./chunk-streamer.js'),import('./city-terrain.js')]);
   const cityData=structuredClone(data),source=createCountryside({city:cityData});
   // The city streams by the countryside's rule (radius 1, a band of hysteresis), so they always match.
-  const built=buildCity(cityData,{scene,pickables,streamRadius:1,outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
+  const built=buildCity(cityData,{scene,pickables,streamRadius:drawRadius(),outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
   built.areaId='gelton';attachCrowd(built);
   // Guards pacing the wall-top walkways (wall-sentries.js), hidden where the wall is cut down.
   built.sentries=built.walls?createWallSentries({walkways:built.walls.walkways,parent:built.group,hiddenAt:built.walls.cutAt,shownAt:built.isShown}):null;
@@ -501,13 +517,13 @@ function geltonReady(){
   // The countryside streams into the area's tiles, and into the live world map while Gelton is active.
   const maps=[built.tiles];
   const topColor=t=>{if(t.water)return WATER_TOP;const hex=surfaceColor(t);if(!surfaceTop.has(hex))surfaceTop.set(hex,new THREE.Color(hex));return surfaceTop.get(hex);};
-  const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place:placeLandExtra,dress:landDress(source,coverPool),radius:1});
-  countryside={source,streamer,maps};built.countryside=countryside;
+  const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place:placeLandExtra,dress:landDress(source,coverPool),radius:drawRadius()});
+  countryside={source,streamer,maps};built.countryside=countryside;streamedWorlds.add({streamer,city:built});
   areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
    arrival:()=>built.crystal?.tile||built.spawn,
    enter(){if(!maps.includes(world))maps.push(world);streamer.prime(tile.x,tile.z,1);},
    leave(){const i=maps.indexOf(world);if(i>=0)maps.splice(i,1);},
-   update:(dt,time,view)=>{const at=segment?.to||tile;built.stream(at);streamer.update(dt,at);streamWater.update(dt);built.walls?.update(dt);built.sentries?.update(dt,time,tile);built.crowd?.update(dt,time,{camera:view});},
+   update:(dt,time,view)=>{const at=viewTile();built.stream(at);streamer.update(dt,at);streamWater.update(dt);built.walls?.update(dt);built.sentries?.update(dt,time,tile);built.crowd?.update(dt,time,{camera:view});},
    reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
   return gelton=built;
  })();
@@ -644,6 +660,7 @@ canvas.addEventListener('pointerdown',e=>{
 canvas.addEventListener('pointermove',e=>{
  if(!areas.canOrbit||travel.busy)return;
  pointerOnCanvas=true;pointerClient={x:e.clientX,y:e.clientY};hoverDirty=true;
+ if(__PLAYGROUND__&&tileHover&&!(down&&dragged&&!painting))hoverTile(e);
  if(__PLAYGROUND__&&painting){const at=terrainHitData(pick(e))?.tile;if(at)tileDrag?.('move',at);return;}
  if(!activePointers.has(e.pointerId)||!down)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -652,6 +669,10 @@ canvas.addEventListener('pointermove',e=>{
   pinchDistance=distance;dragged=true;return;
  }
  if(Math.hypot(e.clientX-down.x,e.clientY-down.y)>6)dragged=true;
+ // A middle-button drag grabs the ground: what was under the pointer stays under it (the view's height in
+ // world units at the focus, per pixel; forward is foreshortened by the camera's tilt).
+ if(__PLAYGROUND__&&freeCam&&down.button===1){dragged=true;const k=2*zoom*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/Math.max(1,canvas.clientHeight);
+  moveFreeCamera(-(e.clientX-down.lastX)*k,(e.clientY-down.lastY)*k/Math.max(.3,Math.sin(elevation)));down.lastX=e.clientX;down.lastY=e.clientY;return;}
  if(dragged){
   const delta=-(e.clientX-down.lastX)*.008,oldElevation=elevation;
   angle+=delta;elevation=THREE.MathUtils.clamp(elevation+(e.clientY-down.lastY)*.005,THREE.MathUtils.degToRad(20),THREE.MathUtils.degToRad(75));
@@ -674,10 +695,12 @@ canvas.addEventListener('pointerup',e=>{
 });
 function cancelGesture(){activePointers.clear();down=null;pinchDistance=null;dragged=true;}
 canvas.addEventListener('pointercancel',cancelGesture);addEventListener('blur',cancelGesture);
-canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;hoverCleared=true;campfires.hoverPlacement(null);$('tooltip').style.display='none';feedback.hover(null);});
+canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;hoverCleared=true;if(__PLAYGROUND__&&tileHover){hoverTileId=null;tileHover(null);}campfires.hoverPlacement(null);$('tooltip').style.display='none';feedback.hover(null);});
 // Re-pick immediately after pointer movement; otherwise refresh at 10 Hz for moving actors and camera follow.
 function updateHover(){
  if(!pointerOnCanvas||!canMove()){if(!hoverCleared){hoverCleared=true;hoverDirty=true;hover=null;campfires.hoverPlacement(null);feedback.hover(null);$('tooltip').style.display='none';}return;}
+ // The free camera panning (keys or a drag): no hover picking until it stops (playground).
+ if(__PLAYGROUND__&&freeCam&&(panKeys.has('w')||panKeys.has('a')||panKeys.has('s')||panKeys.has('d')||down))return;
  const now=performance.now();if(!hoverDirty&&!hoverCleared&&now-hoverAt<100)return;hoverDirty=false;hoverCleared=false;hoverAt=now;
  const hit=pick({clientX:pointerClient.x,clientY:pointerClient.y});hover=terrainHitData(hit);
  const t=hover?.tile,tree=hover?.tree,actor=hover?.actor,placementStatus=campfires.hoverPlacement(t),valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&!!routeToTree(actor):tree?(['boulder','copper'].includes(tree.kind)?inventory.pickaxes>0:inventory.axes>0)&&!!routeToTree(tree):hover?.resource?!!routeToTree(hover.resource):!!t&&findPath(world,segment?segment.to:tile,t)!==null;
@@ -686,7 +709,7 @@ function updateHover(){
  $('tooltip').style.display=t?'block':'none';
  if(t){$('tooltip').textContent=placementStatus?placementStatus.label:actor?(actor.opened?(actor.enemy?'Recovering…':'Empty chest'):!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(valid?(tree.kind==='copper'?'Mine copper':['boulder','copper'].includes(tree.kind)?'Mine Boulder':'Chop tree'):!inventory[['boulder','copper'].includes(tree.kind)?'pickaxes':'axes']?'Missing the required tool!':'No safe route'):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+ITEMS[hover.resource.kind].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
 }
-function changeZoom(delta){if(!areas.canOrbit||travel.busy)return;if(!opening.playable){introZoom=THREE.MathUtils.clamp(introZoom*Math.exp(delta/22),3,10);return;}const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,areas.active?.maxZoom??34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});
+function changeZoom(delta){if(!areas.canOrbit||travel.busy)return;if(!opening.playable){introZoom=THREE.MathUtils.clamp(introZoom*Math.exp(delta/22),3,10);return;}const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,__PLAYGROUND__&&freeCam?FREE_MAX_ZOOM:areas.active?.maxZoom??34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});
 function resize(){const {left,width,height}=measureGameViewport();document.documentElement.style.setProperty('--game-viewport-width',`${width}px`);document.documentElement.style.setProperty('--game-viewport-center',`${left+width/2}px`);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);}addEventListener('resize',resize);new ResizeObserver(resize).observe($('game'));resize();
 const clock=new THREE.Clock();let elapsed=0;
 const focusLift=new THREE.Vector3(),cameraFocus=new THREE.Vector3();
@@ -696,7 +719,19 @@ function animate(){requestAnimationFrame(animate);if(__PLAYGROUND__&&perfProbe.a
 // The sun's shadow area (±24 tiles) follows the player in 4-tile steps, so large areas and streamed
 // worlds keep shadows everywhere; each step redraws the shadow map once.
 let sunAnchor='';
-function followSun(){const fx=Math.round(player.position.x/4)*4,fz=Math.round(player.position.z/4)*4,anchor=`${fx},${fz}`;if(anchor===sunAnchor)return;sunAnchor=anchor;sun.target.position.set(fx,0,fz);sun.position.set(fx-8,19,fz+5);sun.target.updateMatrixWorld();quality.shadowsChanged();}
+ // Where the world streams around: the slime (its next step), or the free camera's focus.
+function viewTile(){return __PLAYGROUND__&&freeCam?{x:Math.round(freeCam.focus.x+6),z:Math.round(freeCam.focus.z+6)}:segment?.to||tile;}
+const FREE_MAX_ZOOM=140;
+// The free camera's focus moves along the ground: right and forward (away from the camera), in tiles.
+function moveFreeCamera(right,forward){const s=Math.sin(angle),c=Math.cos(angle);freeCam.focus.x+=right*c-forward*s;freeCam.focus.z+=-right*s-forward*c;}
+function panFreeCamera(dt){
+ const speed=(panKeys.has('shift')?3:1)*Math.max(12,zoom*1.8)*dt,f=(panKeys.has('w')?1:0)-(panKeys.has('s')?1:0),r=(panKeys.has('d')?1:0)-(panKeys.has('a')?1:0);
+ if(f||r)moveFreeCamera(r*speed,f*speed);
+ // It rides the ground below it (smoothly), so zooming in on a hill still looks at the hill.
+ const under=world.get(key(Math.round(freeCam.focus.x+6),Math.round(freeCam.focus.z+6)));if(under)freeCam.focus.y+=(under.h+.35-freeCam.focus.y)*Math.min(1,dt*6);
+ const far=Math.max(baseFar,zoom*3+60);if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
+}
+function followSun(){const at=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,fx=Math.round(at.x/4)*4,fz=Math.round(at.z/4)*4,anchor=`${fx},${fz}`;if(anchor===sunAnchor)return;sunAnchor=anchor;sun.target.position.set(fx,0,fz);sun.position.set(fx-8,19,fz+5);sun.target.updateMatrixWorld();quality.shadowsChanged();}
 function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);followSun();quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);// Ambience: a breeze on the splash, silence in the opening scene, then the area's own profile.
  gameAudio.update(dt,splash.active?'splash':opening.finished?areas.active?.music||'clearing':'intro',narrator.visible.peek(),!!combat?.inCombat,splash.active?'breeze':opening.inClearing?areas.active?.ambience||'meadow':'none');if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);spaces.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);lootPiles.update(dt,elapsed,hover?.actor);jobs.update();updateJobMarkers(dt);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
@@ -804,7 +839,8 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  const closeup=celebration?Math.min(THREE.MathUtils.smoothstep(celebration.age,0,1),1-THREE.MathUtils.smoothstep(celebration.age,3.3,4.3)):0;
  const areaFocus=areas.cameraFocus;
  let viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
- const focus=cameraFocus.copy(player.position).add(focusLift.set(0,.35+closeup*.3,0));if(areaFocus){focus.lerp(areaFocus.position,areaFocus.blend);viewZoom=THREE.MathUtils.lerp(viewZoom,areaFocus.zoom??viewZoom,areaFocus.blend);viewElevation=THREE.MathUtils.lerp(viewElevation,areaFocus.elevation??viewElevation,areaFocus.blend);}
+ if(__PLAYGROUND__&&freeCam)panFreeCamera(dt);
+ const focus=__PLAYGROUND__&&freeCam?cameraFocus.copy(freeCam.focus):cameraFocus.copy(player.position).add(focusLift.set(0,.35+closeup*.3,0));if(!(__PLAYGROUND__&&freeCam)&&areaFocus){focus.lerp(areaFocus.position,areaFocus.blend);viewZoom=THREE.MathUtils.lerp(viewZoom,areaFocus.zoom??viewZoom,areaFocus.blend);viewElevation=THREE.MathUtils.lerp(viewElevation,areaFocus.elevation??viewElevation,areaFocus.blend);}
  if(__PLAYGROUND__)perfProbe.lap('player');
  const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateCutaway({player:player.position,camera:camera.position,building:tile?.building??-1,force:forceCutaway});updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);updatePlayerPlate();if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);quality.afterRender(scene);
 }
@@ -842,19 +878,19 @@ if(__PLAYGROUND__){
  async function biomeSandboxReady(seed){
   const [{createBiomeLand},{createChunkStreamer},{createGroundCoverPool}]=await Promise.all([import('./biome-land.js'),import('./chunk-streamer.js'),import('./ground-cover.js')]);
   if(!biomeSandbox){const group=new THREE.Group(),tiles=new Map();scene.add(group);
-   biomeSandbox={group,tiles,seed:1,source:null,streamer:null,cover:createGroundCoverPool({parent:group})};
+   biomeSandbox={group,tiles,seed:1,source:null,streamer:null,cover:createGroundCoverPool({parent:group})};streamedWorlds.add(biomeSandbox);
    areas.register({id:'biome-test',name:'Biome test',description:'Playground: every biome side by side',listed:()=>false,group,tiles,music:'world',ambience:'meadow',
     camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>biomeSandbox.landing,
     // Streamed tiles join the live world map only while you're here (as Gelton's countryside does).
     enter(){if(!biomeSandbox.maps.includes(world))biomeSandbox.maps.push(world);},leave(){const i=biomeSandbox.maps.indexOf(world);if(i>=0)biomeSandbox.maps.splice(i,1);},
-    update:dt=>{biomeSandbox.streamer.update(dt,segment?.to||tile);streamWater?.update(dt);}});}
+    update:dt=>{biomeSandbox.streamer.update(dt,viewTile());streamWater?.update(dt);}});}
   const sb=biomeSandbox;if(sb.source&&(seed===undefined||seed===sb.seed))return sb;
   if(seed!==undefined)sb.seed=seed;
   if(sb.streamer){sb.streamer.reset();sb.streamer.group.removeFromParent();}
   const cells={};for(let cz=0;cz<BIOME_SIZE/8;cz++)for(let cx=0;cx<BIOME_SIZE/8;cx++)cells[`${cx},${cz}`]=BIOME_BANDS[Math.floor(cz/BIOME_BAND)]||'sea';
   sb.source=createBiomeLand({seed:sb.seed,bounds:[0,0,BIOME_SIZE,BIOME_SIZE],map:{default:'meadow',cells}});
   const maps=[sb.tiles];if(areas.id==='biome-test')maps.push(world);
-  sb.streamer=createChunkStreamer({source:sb.source,maps,parent:sb.group,pickables,resources:resourceActions,topColor:sb.source.topColor,place:placeLandExtra,dress:landDress(sb.source,sb.cover),radius:1});
+  sb.streamer=createChunkStreamer({source:sb.source,maps,parent:sb.group,pickables,resources:resourceActions,topColor:sb.source.topColor,place:placeLandExtra,dress:landDress(sb.source,sb.cover),radius:drawRadius()});
   sb.maps=maps;return sb;
  }
  // The middle of a biome's band (x across the land, z its band's centre), or of the meadow.
@@ -901,27 +937,31 @@ if(__PLAYGROUND__){
    // Only the city's own tiles are refreshed in the area's map; the streamed land's stay, except the
    // chunks under the edit, which reload around it (their trees and cover follow the town's ground).
    const streamer=editorArea.land?.streamer,wrap=streamer?(only,run)=>streamer.reload(only,run):null;
-   if(current.rebuild(dirty,{wrap})){attachCrowd(current);for(const [k,t] of current.tiles)editorArea.tiles.set(k,t);return current;}}
+   // A rebuild refills the same tile objects, so the area's map needs nothing new.
+   // The land is kept in step with the data by partial rebuilds (a repainted biome forgets its area first).
+   // An editor rebuild is a loading stall, not the device's speed: Auto quality warms up again.
+   if(current.rebuild(dirty,{wrap})){quality.settle();attachCrowd(current);if(editorArea.land)editorArea.land.landKey=JSON.stringify([data.land,data.size]);return current;}}
   if(!editorArea){const group=new THREE.Group();group.name='city-editor';scene.add(group);editorArea={group,tiles:new Map(),built:null,land:null};
+   streamedWorlds.add({get streamer(){return editorArea.land?.streamer;},get city(){return editorArea.land?editorArea.built:null;}});
    areas.register({id:'city-editor',name:'City editor',description:'Playground: city editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,
     // The land around the map joins the live world map while you're here (as any streamed countryside).
     enter(){const m=editorArea.land?.maps;if(m&&!m.includes(world))m.push(world);},leave(){const m=editorArea.land?.maps,i=m?m.indexOf(world):-1;if(i>=0)m.splice(i,1);},
-    update:(dt,time,view)=>{editorArea.built?.crowd?.update(dt,time,{camera:view});if(editorArea.land){const at=segment?.to||tile;editorArea.built?.stream(at);editorArea.land.streamer.update(dt,at);streamWater?.update(dt);}},
+    update:(dt,time,view)=>{editorArea.built?.crowd?.update(dt,time,{camera:view});if(editorArea.land){const at=viewTile();editorArea.built?.stream(at);editorArea.land.streamer.update(dt,at);streamWater?.update(dt);}},
     reset(){for(const d of editorArea.built?.doors||[])if(!d.locked)d.setOpen(false,{quiet:true});}});}
   const here=at||(keepPlayer&&areas.id==='city-editor'?{x:tile.x,z:tile.z}:null);
   if(editorArea.built){spaces.forget(editorArea.built);editorArea.built.crowd?.dispose();editorArea.built.dispose();}
   await editorLand(data);
   // On the land, the town's chunks show by the land's rule (radius 1), so ground and buildings stream together.
-  const built=buildCity(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?1:null});built.areaId='city-editor';editorArea.built=built;attachCrowd(built);cityMaps['city-editor']=built;
+  const built=buildCity(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?drawRadius():null});built.areaId='city-editor';editorArea.built=built;attachCrowd(built);cityMaps['city-editor']=built;
   editorArea.tiles.clear();for(const [k,t] of built.tiles)editorArea.tiles.set(k,t);
   let landing=here&&(built.tiles.get(key(here.x,here.z))||built.ground?.tile(here.x,here.z));if(!landing||landing.blocked||landing.water)landing=built.spawn;
   const first=areas.id!=='city-editor';stopAll();splash.close();opening.enterFreePlay();if(first)craftingTutorial.reset();
   // The land around the landing loads first, so a landing out on it has ground.
   editorArea.land?.streamer.prime(landing.x,landing.z);built.stream(landing);areas.activate('city-editor',{landing,arrival:false});
-  companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;
+  companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;quality.settle();
   return built;
  }
- // The biome land a map in the editor stands on (data.land: {seed, ring, default, cells}; docs/BIOMES.md,
+ // The biome land a map in the editor stands on (data.land: {seed, default, cells, origin}; docs/BIOMES.md,
  // docs/TOWN.md): generated by biome-land.js under and around the map, and streamed with the shared land
  // gameplay (town-ground.js townSource: the town's chunks are regular chunks; the city adds what is built on them).
  // Made again with each full build.
@@ -929,11 +969,13 @@ if(__PLAYGROUND__){
   const old=editorArea.land;if(old){old.streamer.reset();old.streamer.group.removeFromParent();editorArea.land=null;}
   if(!data.land)return null;
   const [{townLand,townSource},{createChunkStreamer},{createGroundCoverPool}]=await Promise.all([import('./town-ground.js'),import('./chunk-streamer.js'),import('./ground-cover.js')]);
-  const land=townLand(data),source=townSource(land,()=>editorArea.built?.ground,()=>editorArea.built?.tiles,()=>editorArea.built?.data);
+  // The land is kept between full builds while its settings are the same (generating it is the slow part).
+  const landKey=JSON.stringify([data.land,data.size]),land=old?.landKey===landKey?old.land:townLand(data),source=townSource(land,()=>editorArea.built?.ground,()=>editorArea.built?.tiles,()=>editorArea.built?.data);
+  if(land===old?.land)land.useCells(data.land.cells);
   editorArea.landCover??=createGroundCoverPool({parent:editorArea.group});
   const maps=[editorArea.tiles];if(areas.id==='city-editor')maps.push(world);
-  const streamer=createChunkStreamer({source,maps,parent:editorArea.group,pickables,resources:resourceActions,topColor:source.topColor,place:placeLandExtra,dress:landDress(source,editorArea.landCover),radius:1});
-  return editorArea.land={land,source,streamer,maps};
+  const streamer=createChunkStreamer({source,maps,parent:editorArea.group,pickables,resources:resourceActions,topColor:source.topColor,place:placeLandExtra,dress:landDress(source,editorArea.landCover),radius:drawRadius()});
+  return editorArea.land={land,landKey,source,streamer,maps};
  }
  let testCounter=null,testBoard=null;
  // Stand-ins for jobs in any map: a giver of each kind, and a recipient deliveries can go to.
@@ -955,7 +997,13 @@ if(__PLAYGROUND__){
   get seated(){return !!seat;},
   // Uses whatever actor (door, stairwell, prop…) is nearest a tile position, as a click on it would.
   useActorAt(x,z){const actor=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a&&a.x!==undefined))].filter(a=>{let o=null;for(const m of pickables)if(m.userData.actor===a){o=m;break;}return o&&isVisible(o);}).sort((a,b)=>Math.hypot(a.x-x,a.z-z)-Math.hypot(b.x-x,b.z-z))[0];if(!actor||Math.hypot(actor.x-x,actor.z-z)>1.5)return false;selectActor(actor);return actor.label||actor.kind||true;},
-  editCity,setTileClick(fn){tileClick=fn;},
+  editCity,setTileClick(fn){tileClick=fn;},setTileHover(fn){tileHover=fn;hoverTileId=null;},
+  // Free camera (docs/PLAYGROUND.md): on (from where the camera looks now) or off (back to the slime).
+  freeCameraOn:freeCamOn,
+  freeCamera(on=!freeCam){
+   if(on&&!freeCam)freeCam={focus:cameraFocus.clone()};
+   else if(!on&&freeCam){freeCam=null;panKeys.clear();zoom=Math.min(zoom,areas.active?.maxZoom??34);camera.far=baseFar;camera.updateProjectionMatrix();sunAnchor='';}
+   freeCamOn.value=!!freeCam;return !!freeCam;},
   // The city map you stand in, for the editor to open on: its data, area and your tile (null elsewhere).
   currentCity(){const map=areas.id==='city-editor'?editorArea?.built:currentCityMap();return map?.data?{data:map.data,areaId:areas.id,at:{x:tile.x,z:tile.z}}:null;},setTileDrag(fn){tileDrag=fn;if(!fn)painting=false;},toast:text=>toast(text),
   // Townsfolk (city Phase 8): replace the current city's crowd with n generated townsfolk (0 = the city's own).

@@ -39,13 +39,26 @@ export function createCellOutline({cells,tiles,parent,color='#ffe14d'}){
 // The painted biome map (docs/BIOMES.md, Placing biomes): a soft tint over each painted cell, in its
 // biome's colour, just above the ground and over everything. Unpainted cells (the default) aren't drawn.
 //   createBiomeOverlay({cells:{'cx,cz': biome}, cell, colors:{biome: '#hex'}, heightAt(x, z), parent})
-export function createBiomeOverlay({cells,cell=8,colors,heightAt,parent}){
+// origin: where the map's 0, 0 lies in the land (cells are the land's).
+export function createBiomeOverlay({cells,cell=8,colors,heightAt,parent,origin=[0,0]}){
  const entries=Object.entries(cells),group=new THREE.Group();group.name='biome-overlay';parent.add(group);
  if(!entries.length)return {group,dispose(){group.removeFromParent();}};
  const geometry=new THREE.PlaneGeometry(cell-.3,cell-.3).rotateX(-Math.PI/2),material=new THREE.MeshBasicMaterial({transparent:true,opacity:.28,depthTest:false,depthWrite:false,vertexColors:false});
  const mesh=new THREE.InstancedMesh(geometry,material,entries.length),m=new THREE.Matrix4(),c=new THREE.Color();
- entries.forEach(([id,biome],i)=>{const [cx,cz]=id.split(',').map(Number),x=cx*cell+cell/2-.5,z=cz*cell+cell/2-.5;
+ entries.forEach(([id,biome],i)=>{const [cx,cz]=id.split(',').map(Number),x=cx*cell+cell/2-.5-origin[0],z=cz*cell+cell/2-.5-origin[1];
   m.makeTranslation(x-6,(heightAt(Math.round(x),Math.round(z))??1)+.25,z-6);mesh.setMatrixAt(i,m);mesh.setColorAt(i,c.set(colors[biome]||'#ffffff'));});
  mesh.renderOrder=19;mesh.name='biome-cells';group.add(mesh);
  return {group,dispose(){group.removeFromParent();geometry.dispose();material.dispose();mesh.dispose();}};
+}
+
+// A see-through fill over tiles, each in its own colour ({x, z, color}), just above the ground and over
+// everything: the city editor's placement and brush previews (green where it fits, red where it doesn't).
+//   createCellFill({cells, heightAt(x, z), parent, opacity}) → {dispose()}
+const fillGeometry=new THREE.PlaneGeometry(.94,.94).rotateX(-Math.PI/2);
+export function createCellFill({cells,heightAt,parent,opacity=.42}){
+ const material=new THREE.MeshBasicMaterial({transparent:true,opacity,depthTest:false,depthWrite:false});
+ const mesh=new THREE.InstancedMesh(fillGeometry,material,Math.max(1,cells.length)),m=new THREE.Matrix4(),c=new THREE.Color();
+ mesh.count=cells.length;cells.forEach(({x,z,color},i)=>{m.makeTranslation(x-6,(heightAt(x,z)??1)+.07,z-6);mesh.setMatrixAt(i,m);mesh.setColorAt(i,c.set(color));});
+ mesh.renderOrder=22;mesh.name='cell-fill';mesh.frustumCulled=false;parent.add(mesh);
+ return {mesh,dispose(){mesh.removeFromParent();material.dispose();mesh.dispose();}};
 }
