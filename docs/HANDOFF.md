@@ -18,7 +18,30 @@ Only layout and narrative belong to a particular area. Gameplay systems must wor
 
 Use shared action completion/progress callbacks for tutorial updates. Normal gameplay must not require that a tutorial objective is active. Avoid copying the same action into the next map. Do not use a debugging shortcut that teleports the player just to preview shared UI.
 
+## Open follow-ups
+
+- **Kit street test map — remove it or turn it into a proper test bed** (user, 2026-10-14). `src/dev/kit-street.js` is a leftover of the city Phase 2–7 prototypes, kept only because tests and perf scenarios use it:
+  - tests: `city-terrain`, `city-checks`, `city-rebuild`, `townsfolk`, `dev/kit-street`;
+  - perf scenarios: `city-walk`, `city-crowd`.
+
+  It's no longer in the playground panel or the editor's City list. Either:
+  - replace it with small purpose-built test maps (stairs and terraces, a separate interior with a stairwell, a crypt, townsfolk routines, shared walls), move the two perf scenarios to the overworld or Gelton, and rebaseline them; or
+  - clean it up into a deliberate, documented test bed area that's reachable from the playground.
+
 ## Recent fixes already made
+
+### Playground cleanup; city editor opens where you are; Play clicks — 2026-10-14 (user request)
+
+- **Buttons removed** from City streets: the graybox and kit streets (and their jumps), Enter Gelton, the crowd buttons, roofs, cutaway, open/close all doors, and zoom. The API calls only they used are gone too. Prop gallery, Force cutaway and Open city editor remain.
+- **Graybox street deleted** (`src/dev/graybox-street.js` and its test). Its layout moved into `src/dev/kit-street.js`. The kit street remains only as a test street: about a dozen tests and the `city-walk` and `city-crowd` perf scenarios use it (`enterCityMap('kit-street')`). It's no longer in the panel or the editor's City list.
+- **City editor opens on the map you're on:** the one being edited (as left), else the city you stand in (you stay put), else the overworld.
+- **Play-mode clicks fixed:** the editor took every world click, even in Play. It now takes clicks and drags only in Edit mode.
+
+### Towns stand on the land — 2026-10-14 (user report: towns felt disconnected from the world)
+
+- A town with `land` takes its ground from the biome land under it: buildings level pads, and height edits are offsets on the land. Unpainted tiles are the biome's ground, and trees, cover and goblins grow on whatever is left free.
+- Code: `src/town-ground.js`, plus `cityGround`, `putOnLand` and `takeOffLand` in city-map.js. The streamer gained `reload` for editor rebuilds, and the editor gained a Flatten tool and a *Land's own* surface.
+- Design and status: TOWN.md, *The town on the land*. Mistrom has been regenerated on the land. Gelton is untouched.
 
 ### World grid: shared names, 32 × 32 chunks, buildings inside one chunk — 2026-10-12 (user decision)
 

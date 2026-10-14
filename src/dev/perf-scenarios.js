@@ -48,10 +48,10 @@ export function createPerfScenarios({api,probe,setView,walkTo,state}){
   async menus(){api.reset('all');await dismiss();settle();api.openInterface('inventory');},
   async dialogue(){await checkpoint('willowbank:dialogue',{keepDialogue:true});settle();},
   async travel(){api.reset('all');await dismiss();settle();},
-  async 'city-walk'(){api.reset('all');await dismiss();await api.enterGrayboxStreet(true);await wait(800);settle();const ends=[[27,29],[33,35]];let next=1;every(200,()=>{if(state().moving)return;const [x,z]=ends[next];next=1-next;walkTo(x,z);});},
+  async 'city-walk'(){api.reset('all');await dismiss();await api.enterCityMap('kit-street');await wait(800);settle();const ends=[[27,29],[33,35]];let next=1;every(200,()=>{if(state().moving)return;const [x,z]=ends[next];next=1-next;walkTo(x,z);});},
   async 'countryside-walk'(){api.reset('all');await dismiss();await api.countrysideJump([-6,87]);await wait(1500);settle();const ends=[[-6,87],[-40,87]];let next=1;every(200,()=>{if(state().moving)return;const [x,z]=ends[next];next=1-next;walkTo(x,z);});},
   async 'capital-square'(){api.reset('all');await dismiss();await api.enterCapital();await wait(1500);settle();},
-  async 'city-crowd'(){api.reset('all');await dismiss();await api.enterGrayboxStreet(true);await api.crowd(60);await wait(1500);settle();}
+  async 'city-crowd'(){api.reset('all');await dismiss();await api.enterCityMap('kit-street');await api.crowd(60);await wait(1500);settle();}
  };
  return {
   scenarios:PERF_SCENARIOS,

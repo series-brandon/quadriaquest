@@ -17,5 +17,8 @@ export const regionId=(x,z)=>regionOf(x,z).join(',');
 // back over a chunk line doesn't reload it, without keeping a whole extra ring of 32-tile chunks.
 export const BAND=8;
 export const chunkGap=(cx,cz,x,z)=>Math.max(cx*CHUNK-x,x-(cx*CHUNK+CHUNK-1),cz*CHUNK-z,z-(cz*CHUNK+CHUNK-1),0);
+// The chunks an edit to these tiles ([[x, z]]) touches: each tile's chunk, and its neighbours' within
+// `reach` tiles (terrain sides, kerbs and railings look one tile across).
+export const chunksAround=(cells,reach=1)=>{const ids=new Set();for(const [x,z] of cells)for(let dz=-reach;dz<=reach;dz++)for(let dx=-reach;dx<=reach;dx++)ids.add(chunkId(x+dx,z+dz));return [...ids];};
 // Whether a tile rectangle (inclusive corners) lies inside one chunk (and so inside one region).
 export const withinChunk=(x0,z0,x1,z1)=>Math.floor(x0/CHUNK)===Math.floor(x1/CHUNK)&&Math.floor(z0/CHUNK)===Math.floor(z1/CHUNK);

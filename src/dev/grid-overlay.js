@@ -22,3 +22,30 @@ export function createGridOverlay({tiles,parent}){
  parent.add(group);
  return {group,dispose(){group.removeFromParent();for(const s of group.children)s.geometry.dispose();}};
 }
+
+// The outline of a set of tiles ([[x, z]]), drawn over everything just above the ground: the city
+// editor's selection (yellow) and its pending placement (cyan, `color`).
+export function createCellOutline({cells,tiles,parent,color='#ffe14d'}){
+ const inside=new Set(cells.map(([x,z])=>`${x},${z}`)),points=[],lift=.09;
+ for(const [x,z] of cells){const t=tiles.get(`${x},${z}`),y=(t?.h??1)+lift;
+  for(const [dx,dz,a,b] of [[0,-1,[-.5,-.5],[.5,-.5]],[0,1,[-.5,.5],[.5,.5]],[-1,0,[-.5,-.5],[-.5,.5]],[1,0,[.5,-.5],[.5,.5]]])
+   if(!inside.has(`${x+dx},${z+dz}`))points.push(x-6+a[0],y,z-6+a[1],x-6+b[0],y,z-6+b[1]);}
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
+ const lines=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color,transparent:true,opacity:1,depthTest:false}));
+ lines.renderOrder=21;lines.name='cell-outline';parent.add(lines);
+ return {lines,dispose(){lines.removeFromParent();geometry.dispose();lines.material.dispose();}};
+}
+
+// The painted biome map (docs/BIOMES.md, Placing biomes): a soft tint over each painted cell, in its
+// biome's colour, just above the ground and over everything. Unpainted cells (the default) aren't drawn.
+//   createBiomeOverlay({cells:{'cx,cz': biome}, cell, colors:{biome: '#hex'}, heightAt(x, z), parent})
+export function createBiomeOverlay({cells,cell=8,colors,heightAt,parent}){
+ const entries=Object.entries(cells),group=new THREE.Group();group.name='biome-overlay';parent.add(group);
+ if(!entries.length)return {group,dispose(){group.removeFromParent();}};
+ const geometry=new THREE.PlaneGeometry(cell-.3,cell-.3).rotateX(-Math.PI/2),material=new THREE.MeshBasicMaterial({transparent:true,opacity:.28,depthTest:false,depthWrite:false,vertexColors:false});
+ const mesh=new THREE.InstancedMesh(geometry,material,entries.length),m=new THREE.Matrix4(),c=new THREE.Color();
+ entries.forEach(([id,biome],i)=>{const [cx,cz]=id.split(',').map(Number),x=cx*cell+cell/2-.5,z=cz*cell+cell/2-.5;
+  m.makeTranslation(x-6,(heightAt(Math.round(x),Math.round(z))??1)+.25,z-6);mesh.setMatrixAt(i,m);mesh.setColorAt(i,c.set(colors[biome]||'#ffffff'));});
+ mesh.renderOrder=19;mesh.name='biome-cells';group.add(mesh);
+ return {group,dispose(){group.removeFromParent();geometry.dispose();material.dispose();mesh.dispose();}};
+}

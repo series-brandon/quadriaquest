@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CHUNK,REGION,WORLD,BAND,chunkOf,regionOf,chunkId,regionId,withinChunk,chunkGap} from './world-grid.js';
+import {CHUNK,REGION,WORLD,BAND,chunkOf,regionOf,chunkId,regionId,withinChunk,chunkGap,chunksAround} from './world-grid.js';
 
 test('the grid nests: tiles in chunks in regions in the world, each dividing the next',()=>{
  assert.equal(REGION%CHUNK,0);assert.equal(WORLD%REGION,0);
@@ -17,4 +17,8 @@ test('a tile’s gap to a chunk: 0 inside, tiles to its nearest edge outside',()
 test('a rectangle is within one chunk only if no chunk line runs through it',()=>{
  assert.ok(withinChunk(0,0,CHUNK-1,CHUNK-1));assert.ok(!withinChunk(CHUNK-1,0,CHUNK,0));assert.ok(!withinChunk(0,CHUNK-1,0,CHUNK));
  assert.ok(!withinChunk(REGION-2,4,REGION+1,6),'a region line is a chunk line');
+});
+test('the chunks an edit touches: each tile’s chunk, and across a line when the tile is next to it',()=>{
+ assert.deepEqual(chunksAround([[5,5]]),['0,0']);assert.deepEqual(chunksAround([[CHUNK-1,5]]).sort(),['0,0','1,0']);
+ assert.deepEqual(chunksAround([[0,0]]).sort(),['-1,-1','-1,0','0,-1','0,0']);assert.deepEqual(chunksAround([[5,5],[6,5]],0),['0,0']);
 });

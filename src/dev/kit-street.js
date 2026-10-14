@@ -1,9 +1,12 @@
 import {createCityData,fillCity} from '../city-map.js';
-import {BUILDINGS,GRAYBOX,STREETS,kitDescription} from './graybox-street.js';
+import {USE_ICONS} from '../furnish.js';
 
-// Kit street as city data (playground only; city Phases 4–5): the graybox layout built by the building
-// kit, plus an annex to the east for elevation, stairs, retaining walls and the prop set, clear of the
-// existing buildings. It is ordinary city data, so the city editor (Phase 6) opens it like any city.
+// Kit street as city data (dev only; city Phases 4–7): a test street for the building kit and the city
+// systems, used by tests and the perf scenarios (city-walk, city-crowd); not in the playground panel.
+// To do (docs/HANDOFF.md, Open follow-ups): remove it or clean it up into a proper test bed.
+// A 13 × 13 town square ringed by two- and three-storey buildings, a 5-wide avenue north to the castle,
+// 3-wide streets, 2-wide alleys, small and medium houses, a terraced row sharing walls and locked shells,
+// plus an annex to the east for elevation, stairs, retaining walls and the prop set.
 // Annex (x 59–90):
 //  - a connecting street from the east street, then a paved lower plaza (h 1) with the props: benches,
 //    stalls, a well, a noticeboard, lamps, a statue, crates, barrels, sacks, a cart, a signpost, a banner;
@@ -13,6 +16,70 @@ import {BUILDINGS,GRAYBOX,STREETS,kitDescription} from './graybox-street.js';
 //  - a garden to the south: flower beds, hedges, trees in grates, planters;
 //  - Phase 7: a two-storey guild house on terrace A with a separate interior and a stairwell, and a
 //    dungeon entrance in the garden down to a small crypt.
+// The layout (from the city Phase 2 graybox, at the proposed scale). House: enterable ground floor.
+// Shell: solid, locked door. Doors are 'x,z,side'.
+export const GRAYBOX={W:60,H:60,spawn:[30,36],plaza:{x0:24,z0:25,x1:36,z1:37},fountain:{x0:29,z0:30,x1:31,z1:32},crystal:[30,34]};
+// House: enterable ground floor (upper storeys are Phase 7). Shell: solid, locked door. Doors are 'x,z,side'.
+export const BUILDINGS=[
+ // Around the square.
+ {name:'square north-west (3 storeys)',kind:'house',storeys:3,x0:24,z0:21,x1:27,z1:24,door:'25,24,s'},
+ {name:'square north-east (3 storeys)',kind:'house',storeys:3,x0:33,z0:21,x1:36,z1:24,door:'35,24,s'},
+ {name:'square west (2 storeys)',kind:'house',storeys:2,x0:20,z0:25,x1:23,z1:28,door:'23,26,e'},
+ {name:'square west (3 storeys)',kind:'house',storeys:3,x0:20,z0:33,x1:23,z1:37,door:'23,35,e'},
+ {name:'square east (3 storeys)',kind:'house',storeys:3,x0:37,z0:25,x1:40,z1:28,door:'37,26,w'},
+ {name:'square east (2 storeys)',kind:'house',storeys:2,x0:37,z0:33,x1:40,z1:37,door:'37,35,w'},
+ {name:'square south-west (2 storeys)',kind:'house',storeys:2,x0:24,z0:38,x1:28,z1:41,door:'26,38,n'},
+ {name:'square south-east (3 storeys)',kind:'house',storeys:3,x0:32,z0:38,x1:36,z1:41,door:'34,38,n'},
+ {name:'corner north-west (2 storeys)',kind:'house',storeys:2,x0:20,z0:21,x1:23,z1:24,door:'20,22,w'},
+ {name:'corner north-east (2 storeys)',kind:'house',storeys:2,x0:37,z0:21,x1:40,z1:24,door:'40,22,e'},
+ {name:'corner south-west (2 storeys)',kind:'house',storeys:2,x0:20,z0:38,x1:23,z1:41,door:'20,39,w'},
+ {name:'corner south-east (2 storeys)',kind:'house',storeys:2,x0:37,z0:38,x1:40,z1:41,door:'40,40,e'},
+ // Along the streets.
+ {name:'small house',kind:'house',x0:4,z0:25,x1:6,z1:27,door:'5,27,s'},
+ {name:'small house (4×4)',kind:'house',x0:9,z0:24,x1:12,z1:27,door:'10,27,s'},
+ {name:'medium house (5×5)',kind:'house',x0:13,z0:23,x1:17,z1:27,door:'15,27,s'},
+ {name:'medium house (7×6)',kind:'house',x0:4,z0:34,x1:10,z1:39,door:'7,34,n'},
+ {name:'large hall (6×8, two storeys)',kind:'shell',storeys:2,x0:12,z0:34,x1:17,z1:41,door:'14,34,n'},
+ {name:'small house',kind:'house',x0:45,z0:25,x1:47,z1:27,door:'46,27,s'},
+ {name:'two-storey house (6×5)',kind:'shell',storeys:2,x0:50,z0:23,x1:55,z1:27,door:'52,27,s'},
+ {name:'terraced house 1',kind:'house',x0:43,z0:34,x1:45,z1:37,door:'44,34,n'},
+ {name:'terraced house 2',kind:'house',x0:46,z0:34,x1:48,z1:37,door:'47,34,n'},
+ {name:'terraced house 3',kind:'house',x0:49,z0:34,x1:51,z1:37,door:'50,34,n'},
+ {name:'medium house (6×6)',kind:'house',x0:54,z0:34,x1:59,z1:39,door:'56,34,n'},
+ {name:'south house (3×3)',kind:'house',x0:24,z0:45,x1:26,z1:47,door:'26,46,e'},
+ {name:'south house (6×5)',kind:'house',x0:33,z0:45,x1:38,z1:49,door:'33,47,w'},
+ // The north terrace and the castle.
+ {name:'terrace house (6×6)',kind:'house',x0:20,z0:12,x1:25,z1:17,door:'25,14,e'},
+ {name:'terrace house (4×4)',kind:'house',x0:14,z0:13,x1:17,z1:16,door:'17,14,e'},
+ {name:'guild hall (8×8, two storeys)',kind:'shell',storeys:2,x0:35,z0:11,x1:42,z1:18,door:'35,14,w'},
+ // The keep in two wings meeting on the chunk line at x = 32 (a building fits inside one chunk; docs/WORLD.md).
+ {name:'castle keep',kind:'shell',storeys:3,x0:24,z0:2,x1:31,z1:7,door:'30,7,s'},
+ {name:'castle keep (east wing)',kind:'shell',storeys:3,x0:32,z0:2,x1:36,z1:7},
+ {name:'castle tower',kind:'shell',storeys:4,x0:21,z0:1,x1:23,z1:3},
+ {name:'castle tower',kind:'shell',storeys:4,x0:37,z0:1,x1:39,z1:3},
+ {name:'castle tower',kind:'shell',storeys:4,x0:21,z0:6,x1:23,z1:8},
+ {name:'castle tower',kind:'shell',storeys:4,x0:37,z0:6,x1:39,z1:8},
+];
+export const STREETS=[{x0:28,z0:9,x1:32,z1:24},{x0:2,z0:30,x1:23,z1:32},{x0:37,z0:30,x1:58,z1:32},{x0:29,z0:38,x1:31,z1:58},{x0:29,z0:8,x1:31,z1:8},{x0:2,z0:28,x1:23,z1:29},{x0:37,z0:28,x1:58,z1:29},{x0:2,z0:33,x1:23,z1:33},{x0:37,z0:33,x1:58,z1:33}];
+
+// Each layout building as a building-kit description.
+// Districts by style: timber around the square and west street, brick for the east (craft) street,
+// stone for the castle quarter; the guild hall's roof colour marks it as public. Ring buildings facing
+// the square are shops with awnings and signs. Shells (no interior) keep their locked doors.
+// Shops on the square, by trade (Phase 10 furnishing); their signs follow the trade (furnish.js USE_ICONS).
+const SHOP_USES=['smithy','fishmonger','grocer','weaponsmith','armourer','apothecary','bakery','tailor'];
+const SIDE_NAMES={n:'north',e:'east',s:'south',w:'west'};
+export function kitDescription(b,i){
+ const w=b.x1-b.x0+1,d=b.z1-b.z0+1,doors=[];
+ if(b.door){const [x,z,side]=b.door.split(','),edge=SIDE_NAMES[side];doors.push({edge,at:edge==='north'?x-b.x0:edge==='east'?z-b.z0:edge==='south'?b.x1-x:b.z1-z});}
+ const ring=b.name.startsWith('square '),castle=b.name.startsWith('castle'),tower=b.name==='castle tower';
+ const style=castle||b.name.startsWith('terrace')||b.name.startsWith('guild')?'stone':i>=17&&i<=22?'brick':'timber';
+ const roof=tower?'cone':b.name.startsWith('castle keep')?'flat':b.kind==='shell'||(b.storeys||1)>=3?'hip':i%3===2?'hip':'gable';
+ const trade=ring&&i%2===0?SHOP_USES[(i/2)%SHOP_USES.length]:null,shop=trade?{icon:USE_ICONS[trade]||'star',edge:doors[0].edge}:null;
+ return {name:b.name,footprint:[w,d],storeys:b.storeys||1,roof,style,doors,windows:tower?'none':'auto',chimney:!castle&&b.kind==='house',
+  sign:shop,awning:shop?'striped':null,interior:b.kind==='shell'?'none':'inPlace',use:trade||(b.kind==='shell'?'none':'home'),seed:i*7+3,roofColor:b.name.startsWith('guild')?'#7a4a8c':undefined};
+}
+
 export const KIT_ANNEX={
  plaza:{x0:66,z0:28,x1:89,z1:38},terraceA:{x0:66,z0:16,x1:89,z1:27},terraceB:{x0:78,z0:16,x1:89,z1:21},terraceC:{x0:61,z0:41,x1:64,z1:46},landing:{x0:66,z0:42,x1:66,z1:45},
  garden:{x0:68,z0:40,x1:89,z1:50},

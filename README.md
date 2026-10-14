@@ -35,6 +35,8 @@ After the axe is crafted, dialogue introduces woodcutting. Trees receive golden 
 
 ## Development playground
 
+What each playground section does is described in [docs/PLAYGROUND.md](docs/PLAYGROUND.md); the panel itself carries only labels and controls.
+
 **Required for every addition:** Update playground support in the same change whenever anything new is added, and keep it current when behavior changes. Never finish or move on with outdated debug coverage. If unsure whether or how something should be exposed, ask the user. The standing contributor rules are in [AGENTS.md](AGENTS.md#keep-the-dev-playground-current).
 
 Run `npm run dev:debug`, then open **http://127.0.0.1:5174/**. It skips the opening and all tutorials and drops Pip into the clearing with Sticks ×10, Rocks ×10, and Crude Axe ×1. Normal movement, gathering, crafting, and chopping are available immediately. Refreshing retains debug mode but resets the session.
@@ -52,7 +54,7 @@ The collapsible DEV PLAYGROUND panel provides:
 - Add/remove quantities of any currently implemented item. Removal clamps at zero. Edits show the actual item gain/loss using the same notification as gameplay; zero changes do not show a notification.
 - Trigger Going, interaction spinners, Arrived/Done, blocked clicks, XP text, level-up feedback, and item gain/loss notifications independently of gameplay rewards.
 - Restore ground items, restore trees, or reset the entire test area (including skills, starter inventory, player position, and camera).
-- **World & water → City streets**: the graybox and kit streets (buildings, terraces, stairs, props, townsfolk, interiors, a crypt), Gelton (the capital, where players wake), the prop gallery (every prop, live interactions), furnished interiors, the city editor (save to `src/maps/` while `npm run dev:debug` runs), crowd and cutaway toggles. See [docs/CITY.md](docs/CITY.md). `node scripts/generate-capital.mjs` regenerates `src/maps/capital.json` from its layout and overwrites editor changes.
+- **World & water → City streets**: the city editor (opens on the map you're on; save to `src/maps/` while `npm run dev:debug` runs), the prop gallery (every prop, live interactions) and force cutaway. See [docs/CITY.md](docs/CITY.md). `node scripts/generate-capital.mjs` regenerates `src/maps/capital.json` from its layout and overwrites editor changes.
 - **Economy**: set or reset gold, open any shop, place a real shop counter beside you in any map, reset shop stock, and a price list. See [docs/ECONOMY.md](docs/ECONOMY.md).
 - **Countryside**: jump to places around Gelton (road ends, lake, pond, bridge, ruins, hills, woods), chunk outlines, streaming stats and radius. See [docs/WORLD.md](docs/WORLD.md).
 - **Drops & jobs**: roll any enemy's drops (with odds, optionally seeded), drop a loot pile beside you, open the job board or place a noticeboard anywhere, stand-in job givers and a delivery recipient, and finish, hand in, abandon or reset jobs.

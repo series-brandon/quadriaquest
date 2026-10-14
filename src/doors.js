@@ -3,7 +3,7 @@ import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {applyCutaway,registerCutSource,sectionMaterial,restoreCutPart} from './cutaway.js';
 import {setEdge,edgeBetween} from './world.js';
 import {occupancy} from './world-occupancy.js';
-import {edgePiece,doorModel,animateDoor,edgePlacement,cornerPost,hasPosts,setDoorHinge,STYLES} from './edge-models.js';
+import {edgePiece,doorModel,animateDoor,edgePlacement,cornerPost,hasPosts,setDoorHinge,STYLES,stylePalette} from './edge-models.js';
 
 // Doors are shared entities that sit on a tile edge (docs/CITY.md, Walls and doors on tile edges).
 // RuneScape-style: a closed door blocks walking, sight and reach like a wall, so routes never pass
@@ -108,7 +108,7 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
   const spans=[...post.users.values()];
   // Seamless styles (stone, brick, graybox) have a post only where walls turn, meet, or end; timber
   // keeps one on every corner, which reads as half-timbering.
-  if(STYLES[spans[0].style]?.seamless&&spans.length===2&&spans[0].axis===spans[1].axis)return;
+  if(stylePalette(spans[0].style).seamless&&spans.length===2&&spans[0].axis===spans[1].axis)return;
   const base=Math.min(...spans.map(s=>s.base)),top=Math.max(...spans.map(s=>s.top));
   post.group=cornerPost(top-base+.03,{style:spans[0].style});post.group.position.set(post.x-6,base,post.z-6);root.add(post.group);
  }

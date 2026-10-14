@@ -31,6 +31,8 @@ Characters automatically climb or hop up and down half-height ledges. Uninterrup
 
 **The open world** (2026-10-11): Gelton's countryside, generated land around the city that you walk out into, is in [WORLD.md](WORLD.md).
 
+**Starting village (2026-10-13):** players will wake in **Mistrom**, a small hand-built village where a river meets the sea, with generated coast and countryside around it ending in a mist wall, instead of Gelton. Gelton is hidden for the prototype. See [TOWN.md](TOWN.md) (draft).
+
 **World structure.** Tutorial destinations are connected by Iter Crystals and grow in scale: The Clearing → Willowbank → Cinderhold. This is the recommended teaching order; the third-area draft specifies the proposed destination-menu availability. Beyond the tutorial, the intended game world is a massive continuous open world, streamed in nearby chunks to keep runtime work and memory bounded. Players can return to earlier destinations. See [World scale and streaming direction](#world-scale-and-streaming-direction) for the architecture direction; streaming is not implemented yet.
 
 Character level does not gate map entry. A level 5 player may visit a level 100 area and face its danger. Any difficulty guidance should inform the player rather than prevent entry.

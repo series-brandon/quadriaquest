@@ -44,3 +44,8 @@
 @media (max-width: 700px) {
   .q-city-editor { inset: auto 0 0; inline-size: 100%; max-block-size: 45dvh; border-radius: var(--q-modal-radius) var(--q-modal-radius) 0 0; padding-block-end: calc(12px + env(safe-area-inset-bottom)); }
 }
+.q-city-editor__selection { display: grid; gap: 6px; }
+.q-city-editor__selection[hidden], .q-city-editor__selection > [hidden] { display: none; }
+.q-city-editor__look { display: grid; gap: 6px; padding-block-start: 6px; border-block-start: 1px solid var(--q-modal-border); }
+.q-city-editor__look[hidden] { display: none; }
+.q-city-editor__colour { inline-size: 100%; block-size: 32px; padding: 0; border: 1px solid var(--q-modal-border); border-radius: 6px; background: none; }

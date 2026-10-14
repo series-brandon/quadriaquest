@@ -3,7 +3,7 @@
 Draft, 2026-10-10. Nothing here is implemented. It is the design for review before any code. Numbers are starting proposals to check in a graybox, not final tuning.
 
 **Decisions already made by the user (2026-10-10):**
-- **Hybrid interiors.** Small and medium buildings open in place: the roof lifts and the walls are cut to one storey. Large or multi-storey interiors (castle, inn upstairs, guild halls) are separate spaces entered through a door.
+- **Hybrid interiors.** Small and medium buildings open in place: the roof lifts and the walls are cut to one storey. Large or multi-storey interiors (castle, inn upstairs, guild halls) are separate spaces entered through a door. **Revised 2026-10-13:** ground floors open in place, inns included. Upper floors, cellars and dungeons are separate spaces as the norm. A separate space for a *ground* floor is rare, kept for exceedingly large, detailed or instanced locations (TOWN.md).
 - **No stacked walkable layers yet.** Outdoors keeps one floor height per tile. Elevation comes from terraces and stairs. Upper floors are separate interior spaces. Castle walkways over a gate, bridges over streets and walkable balconies are out of scope for the first city.
 - **Cities are built in a playground city editor**, not by typing tile strings.
 - **Design doc first**, then build in the phases below.
@@ -52,7 +52,7 @@ A tile is about one slime wide, and a slime is about one block tall.
 | Storey height | **1.5 blocks** of wall per floor. Taller looks realistic but hides the street from the camera. |
 | Small building | 3 × 3 to 4 × 4 tiles, one room, opens in place. Cottage, shed, kiosk. |
 | Medium building | 5 × 4 to 7 × 6, one or two rooms, opens in place. Shop, smithy, small house, tavern ground floor. |
-| Large building | 8 × 8 and up, or more than one storey. Separate interior. Inn, guild hall, temple. |
+| Large building | 8 × 8 and up, or more than one storey. The ground floor opens in place (2026-10-13); upper floors are separate spaces. A separate ground floor only for exceedingly large, detailed or instanced places. |
 | Castle | A landmark of about 24 × 20 on the highest terrace. Separate interiors, with a grand stair and a view from the plaza. |
 | Main avenue | 5 tiles wide. Street 3, alley 2. Never narrower than 2, so two slimes can pass. |
 | Plaza | At least 12 × 12, with a focal point (fountain or statue) and benches around it. **The square is the liveliest place in the city** (user, 2026-10-11): ringed shoulder to shoulder by multi-storey buildings whose ground floors open onto it, gaps only for the streets, and later stalls, benches and crowds (Phases 5 and 8). |
@@ -188,6 +188,49 @@ Buildings are **made from a short description, not modelled by hand**:
 - **Landmarks** (castle, temple, fountain) are authored from the same parts plus a few unique pieces. They still produce edges and anchors the same way.
 - **Performance:** the outside shell is merged per chunk. Each building's roof and cutaway walls stay separate, so they can hide. Repeated parts share geometry (`cachedMergedMesh`).
 - **Model catalogue:** a Building entry with controls for footprint, roof, style, doors, rotation, seed, open/closed door and cutaway angle, using the real builder.
+
+### Land around a map (2026-10-14)
+
+A map can carry biome land around it (`land` in its data; BIOMES.md, *Placing biomes*), painted in the city editor with the **Biome** tool. The editor streams it around the map with the shared countryside gameplay (fishing spots, enemies, resources, water and ground cover), so a town and its countryside are edited together and saved in one file. The town stands on that land: its ground is the land's, buildings level pads, and height edits are offsets (TOWN.md, *The town on the land*).
+
+### Hand-shaped buildings (2026-10-14)
+
+A building can have any connected footprint, painted tile by tile (TOWN.md, *Authoring tools*). User decision: paint any shape; zig-zags are allowed, not prevented.
+- **Data:** `cells: [[x, z], …]` (offsets from the north-west of its bounds) and doors as `{tile: [x, z], side}`. Rectangular buildings keep `footprint` and `{edge, at}`, and their code path is unchanged. `toShaped(desc)` turns one into the other, and the tests check that a rectangle written as a shape plans exactly the same walls, windows, doors and flower boxes.
+- **Walls** follow the outline (`shapeRuns`), in straight runs going clockwise within each side. The door rule (wall on both sides of a door before a corner) and the window rhythm apply per run.
+- **Roofs** (`shapeRoofGeometry`):
+  - the shape is split into rectangles, largest first (`shapeRects`);
+  - the main block's ridge runs lengthwise;
+  - a smaller wing joined on one axis points its ridge at the block it joins and runs on to that block's ridge, so an L, T or U reads as one roof with cross gables;
+  - a flat roof is one slab per rectangle with a parapet around the whole outline;
+  - floors between storeys and the solid cap follow the rectangles;
+  - a zig-zag gets a patchwork of small roofs.
+- **Rotation** turns the cells, doors and sign together.
+- **Presets:** an L-shaped house, a T-shaped hall and a U-shaped house (`BUILDING_PRESETS`). They're in the model catalogue's Building entry and the editor's Building tool.
+- **Editor:**
+  - **Footprint** tool: paint tiles (Add or Remove; drag works), choose storeys, roof, walls and use, then *Build it*.
+  - **Select → Reshape (S)** loads a building's tiles to edit and rebuilds it in place. Its doors are kept where they still sit on an outside wall; otherwise a new door goes in.
+  - A new footprint's first door goes in the middle of its longest south-facing wall (or longest wall).
+  - Footprints must be connected and inside one chunk, and can't overlap anything.
+- **Hand-set walls, doors and signs** (2026-10-14):
+  - **Data:** `walls: {'x,z,side': 'window'|'wall'}` lays hand-set walls over the automatic window rhythm (a door always wins). Doors stay in `doors` as `{tile, side}`. `sign: {icon, tile, side}` hangs the sign on that wall; without a tile it goes beside the first door, as before.
+  - **Turning and reshaping:** rotation carries all of these, and `toShaped` folds a rotation into a shaped building.
+  - **The editor's Walls tool:** choose *A window*, *A plain wall*, *A door*, *The sign* or *No sign*, then click beside (or inside) a wall. The click point picks which wall of that tile you meant.
+    - A rectangular building becomes a shaped one on its first edit; the plan is identical.
+    - A door that would break the door rule is refused, with the reason.
+  - **Tests:** a hand-set wall changes exactly one wall at every rotation; a sign set on a door falls back beside it; folding a rotation in plans the same building.
+  - **Checked in the browser:** a plain wall made a window, a second door added, a corner door refused, and the sign moved to the east wall, with no check or console errors.
+- **Hand colours and trim** (2026-10-14):
+  - **Data:** `colors: {wall, trim, base, door, roof}` over the style's palette, an exact roof colour with no seeded shading, `chimney: {along, side}`, `flowerBoxes: ['x,z,side', …]` and `awningColors`. Unset, each comes from the seed.
+  - **Implementation:** `stylePalette` and `buildingStyle` (edge-models.js) let a style carry its own colours; wall materials are shared by colour. Hand choices are applied after the seed is drawn from, so setting one never reshuffles the others.
+  - **Editor:** selecting a building shows a **Look** section with walls style, storeys, roof, chimney (none, seeded, or one of six spots), awning (none, seeded or one of four colours), five colour pickers, and *Reset colours*. The Walls tool's *Flower box* toggles one under a window. The first toggle keeps the seeded boxes, so it changes only that window.
+  - **Checked:** a test that the colours reach the built walls, trim and roof, and that hand choices leave the seeded values alone. In the browser, a shop recoloured, given brick walls, two storeys, a hip roof, a chimney, a blue awning and an extra flower box.
+- **Separate interiors** still use a building's bounding box (spaces.js). That's fine until upper floors become separate spaces (TOWN.md).
+- **Verified in the browser:**
+  - built an L from a blank map, with a cross-gabled roof and the door in the inside corner;
+  - rotated it and reshaped it with an extra bay;
+  - built a stair-step zig-zag (9 roof pieces);
+  - no check errors and no console errors.
 
 ### As implemented (Phase 4, 2026-10-11)
 
@@ -381,6 +424,16 @@ A dev-only editor (compile-time isolated like the rest of the playground) that e
 ### As implemented (Phase 6, 2026-10-11)
 
 - `src/dev/city-editor.js` (dev only): a docked panel (a bottom sheet on phones) over the live map. Tools: inspect, raise and lower (half blocks, 1 or 3 × 3 brush), surface, building (kit presets, rotation), prop (kind, rotation), stairs (direction, length, width), edge (wall, window, fence, railing, counter, door, remove), erase, arrival. Placing over something taken, or a building across a chunk line, is refused. A *Chunk and region lines* switch (on by default) draws the grid on the ground (`dev/grid-overlay.js`). Every edit rebuilds the map with `buildCity` (about 0.3 s for the kit street, 1 s for the capital) and keeps you where you stand.
+- **Fast editing** (2026-10-13; TOWN.md, *Authoring tools*):
+  - **Select** a building, prop, stair or townsfolk (by their home tile) and move, rotate, duplicate or delete it. It's outlined in yellow (cyan while moving). Use the panel's buttons or the keys: M move, R rotate, D duplicate, Delete, arrows to nudge one tile, Esc to cancel. Keys never reach the camera while the editor has them. Hand-drawn edges are still added and removed with the Edge and Erase tools.
+  - **Raise, Lower and Surface paint as you drag.** Each tile changes once per stroke, a stroke is one undo step, and right-drag or the arrow keys still turn the camera.
+  - **Only the chunks an edit touches are rebuilt** (`city.rebuild(dirty)` in `city-map.js`). It covers each touched tile's chunk, one tile out. Props, stairs and buildings that share a wall across a chunk line pull in their other chunks.
+  - **A full rebuild still happens when needed:** when buildings are added or removed (their indices shift), after undo and redo, and in a walled city when an edit touches a wall chunk.
+  - **Checks run 250 ms after editing stops.**
+  - **Measured:**
+    - **In Node, one chunk:** about 40–60 ms on a 96 × 96 map (a full rebuild is about 350 ms), and about 100 ms on the capital (about 2 s full).
+    - **In the browser, on the kit street, host work included:** an edit takes about 90–190 ms, against about 280 ms for a full rebuild.
+  - **Tests** (`city-rebuild.test.js`): after a terrain paint, a moved building, a moved prop and new stairs, a partial rebuild matches a fresh build tile for tile (edges, doors, props, buildings, roofs, furniture), and it leaves no stray clickable meshes or scene objects. In the browser, the checks after a run of partial edits matched a full rebuild's exactly.
 - Edit / Play (a test walk in place), Reset, Undo / Redo (60 steps), open the kit street, a blank 64 × 64 city or any city in `src/maps/`.
 - Live checks (`src/city-checks.js`), each a button that takes you there: arrival tile; overlapping buildings, props and stairs; doorsteps blocked or unreachable from the arrival point; the door rule; stairs without a landing; open ground that can't be reached (a terrace without stairs); one-tile dead ends and passages under two tiles; prop spots that can't be used; interiors and dungeons (Phase 7); townsfolk (Phase 8); buildings across chunk or region lines (an error since 2026-10-12).
 - Saving: *Save to repo* posts to a playground-only dev server endpoint (`vite.config.js`, `/__city-save`) that writes `src/maps/<id>.json`; *Copy JSON* and *Download* work anywhere. Normal builds include none of it (`check:debug-isolation` checks the markers).

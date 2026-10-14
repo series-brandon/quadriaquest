@@ -19,7 +19,7 @@ import {makeBridge} from '../bridge-model.js';
 import {fishingSpot,animateFishingSpot} from '../fishing-spot-model.js';
 import {campfire,animateCampfire} from '../campfire-model.js';
 import {edgePiece,doorModel,animateDoor,STYLE_NAMES} from '../edge-models.js';
-import {createBuilding,BUILDING_PRESETS,ROOF_TYPES} from '../building-kit.js';
+import {createBuilding,normalizeBuilding,BUILDING_PRESETS,ROOF_TYPES} from '../building-kit.js';
 import {createEdgeFeatures} from '../doors.js';
 import {PROPS,PROP_KINDS,propModel,setPropOpen} from '../props.js';
 import {makeCityTile,layStairs,railingEdges,stairRailParts} from '../city-terrain.js';
@@ -125,7 +125,7 @@ export function buildingPreview(){
   const id=JSON.stringify(options);if(id===key0)return;key0=id;
   if(built){built.dispose();edges.dispose();}
   const preset=BUILDING_PRESETS[options.preset||'cottage'],desc={...preset,...options.style?{style:options.style}:{},...options.roof?{roof:options.roof}:{},rotation:+(options.rotation||0),...options.seed?{seed:+options.seed}:{}};
-  const [w,d]=desc.rotation%180?[preset.footprint[1],preset.footprint[0]]:preset.footprint,tiles=new Map();
+  const [w,d]=normalizeBuilding(desc).footprint,tiles=new Map();
   for(let x=0;x<w+2;x++)for(let z=0;z<d+2;z++)tiles.set(key(x,z),{x,z,h:0});
   const tileAt=(x,z)=>tiles.get(key(x,z));
   edges=createEdgeFeatures({parent:group,tileAt,cutaway:false});

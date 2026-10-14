@@ -17,6 +17,9 @@ export const SHOPS={
   stock:[{item:'copperDagger',limit:3},{item:'swords'},{item:'bows',limit:2},{item:'arrows'},{item:'staffs',limit:1}]},
  armour:{name:'Armourer',greeting:'Shields and helms. Mind the edges.',buys:['armour','hat','metal'],
   stock:[{item:'copperShield',limit:2},{item:'shields'},{item:'ironSkullcap',limit:1}]},
+ // A village smith (docs/TOWN.md, Mistrom): a little of the smithy, weaponsmith and armourer in one.
+ villageSmith:{name:'Smith',greeting:'Metal, blades and shields. Whatever the forge can make.',buys:['metal','weapon','armour','tool','ammo'],
+  stock:[{item:'copperOre'},{item:'copperIngots'},{item:'copperDagger',limit:3},{item:'swords',limit:2},{item:'copperShield',limit:2},{item:'shields',limit:1},{item:'ironSkullcap',limit:1},{item:'hammers'},{item:'pickaxes'},{item:'arrows'}]},
  fishmonger:{name:'Fishmonger',greeting:'Caught this morning, every one.',buys:['fish','food'],
   stock:[{item:'rawFish'},{item:'cookedFish'},{item:'rods'}]},
  grocer:{name:'Grocer',greeting:'Fresh and filling.',...FOOD},

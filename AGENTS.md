@@ -4,7 +4,7 @@
 
 Every new game feature, system, item, skill, animation, visual effect, interaction, UI flow, or world element must receive corresponding dev playground support in the same change. Updates to existing behavior must keep its playground support current. Do not mark work complete or move on to another feature while the playground is outdated.
 
-Make each addition easy to reach, exercise, repeat, and reset without replaying the tutorial. As applicable, extend inventory and skill controls, animation playback/looping, visual feedback triggers, test-area content, and state/reset controls. Use the real gameplay implementation so debug behavior cannot drift into a separate imitation. An existing control or test-area interaction may cover an addition if it exposes the new behavior fully; verify that coverage explicitly.
+Make each addition easy to reach, exercise, repeat, and reset without replaying the tutorial. Keep the panel itself to labels, controls and short status lines; explanations of what a section does go in [docs/PLAYGROUND.md](docs/PLAYGROUND.md), not in the panel. As applicable, extend inventory and skill controls, animation playback/looping, visual feedback triggers, test-area content, and state/reset controls. Use the real gameplay implementation so debug behavior cannot drift into a separate imitation. An existing control or test-area interaction may cover an addition if it exposes the new behavior fully; verify that coverage explicitly.
 
 If unsure whether an addition is covered, or how it should be exposed in the playground, ask the user before proceeding with that uncertain part. Do not silently omit or defer debug support.
 

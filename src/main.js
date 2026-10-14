@@ -197,11 +197,11 @@ const opening=(playground?.createFreeOpening||createOpening)({narrator,tip,playe
 });
 const playerOccupant={kind:'player'},companionOccupant={kind:'companion'};
 // Seeing into and past buildings (cutaway.js); the playground can switch it off to compare.
-let cutawayOn=true,forceCutaway=false;
+let forceCutaway=false;
 // Sitting on a bench (props.js): the seat you sit on, the one you're walking to.
 let seat=null,pendingSeat=null,wasSeated=false;
 // Playground: the city editor takes world clicks while it is in Edit mode.
-let tileClick=null;
+let tileClick=null,tileDrag=null,painting=false;
 let edgeFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
@@ -449,6 +449,32 @@ const GELTON_CAMERA={zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(
 const WATER_TOP=new THREE.Color('#a6b3a0'),surfaceTop=new Map();
 let streamWater=null;
 const ENEMY_RESPAWN=45;
+// Streamed land (Gelton's countryside, biome land; docs/BIOMES.md): one way to put a generated source's
+// extras in the world: fishing spots, the shared bridge, props and enemies, each by its real system.
+function placeLandExtra(e,{tile:t,parent,tileAt},saved){
+  if(e.kind==='fishing'){const spot=fishingSpots.add({tile:t,parent,height:t.h+.35});return {dispose:()=>fishingSpots.remove(spot),busy:()=>fishing.matches(spot)};}
+  if(e.kind==='bridge'){
+   // The shared bridge model, road-wide, over the river; its deck is what you click to walk on.
+   const model=makeBridge(e.length,{width:e.width});model.setProgress(1);model.group.position.set(e.x-6,0,e.z-6);if(e.axis==='z')model.group.rotation.y=-Math.PI/2;parent.add(model.group);
+   const hits=model.surfaces.map((m,i)=>{const deck=e.axis==='x'?tileAt(e.x+i,e.z):tileAt(e.x,e.z+i);m.userData.tile=deck;pickables.push(m);return m;});
+   return {dispose(){model.group.removeFromParent();for(const m of hits){const k=pickables.indexOf(m);if(k>=0)pickables.splice(k,1);}model.group.traverse(o=>o.geometry?.dispose());}};}
+  if(e.kind==='prop'){try{const prop=createProp(e.prop,{origin:[e.x,e.z],rotation:e.rotation,tileAt,parent,pickables});return {dispose:()=>prop.dispose()};}catch{return null;}}
+  if(e.kind==='enemy'){
+   // A defeated goblin stays away for ENEMY_RESPAWN seconds, even if its chunk unloads meanwhile.
+   if(saved?.away>elapsed)return {dispose(){},save:()=>saved};
+   if(t.blocked||characterAt(t))return null;
+   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressive:e.aggressive,aggroRange:3,respawn:ENEMY_RESPAWN}));
+   return {dispose:()=>combat.remove(a),busy:()=>combat.matches(a)||combat.engagedEnemy===a,save:()=>a.opened?{away:elapsed+ENEMY_RESPAWN}:null};}
+  return null;}
+// A chunk's dressing: its animated water and its ground cover (flowers, grass, reeds, lily pads…),
+// the cover instanced across all loaded chunks (ground-cover.js).
+function landDress(source,coverPool){
+ streamWater??=createStreamedWater(renderer);
+ return (list,{root,tileAt})=>{
+  const water=streamWater.build(list.filter(t=>t.water||t.overWater),(x,z)=>{const n=tileAt(x,z);return !!n&&(n.water||!!n.overWater);},root);
+  const cover=coverPool.add(source.cover(list));
+  return {dispose(){water.dispose();cover.dispose();}};};
+}
 function geltonReady(){
  return geltonLoading??=(async()=>{
   const [{buildCity},{default:data},{createCountryside},{createChunkStreamer},{surfaceColor}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json'),import('./countryside.js'),import('./chunk-streamer.js'),import('./city-terrain.js')]);
@@ -475,30 +501,7 @@ function geltonReady(){
   // The countryside streams into the area's tiles, and into the live world map while Gelton is active.
   const maps=[built.tiles];
   const topColor=t=>{if(t.water)return WATER_TOP;const hex=surfaceColor(t);if(!surfaceTop.has(hex))surfaceTop.set(hex,new THREE.Color(hex));return surfaceTop.get(hex);};
-  const place=(e,{tile:t,parent,tileAt},saved)=>{
-   if(e.kind==='fishing'){const spot=fishingSpots.add({tile:t,parent,height:t.h+.35});return {dispose:()=>fishingSpots.remove(spot),busy:()=>fishing.matches(spot)};}
-   if(e.kind==='bridge'){
-    // The shared bridge model, road-wide, over the river; its deck is what you click to walk on.
-    const model=makeBridge(e.length,{width:e.width});model.setProgress(1);model.group.position.set(e.x-6,0,e.z-6);if(e.axis==='z')model.group.rotation.y=-Math.PI/2;parent.add(model.group);
-    const hits=model.surfaces.map((m,i)=>{const deck=e.axis==='x'?tileAt(e.x+i,e.z):tileAt(e.x,e.z+i);m.userData.tile=deck;pickables.push(m);return m;});
-    return {dispose(){model.group.removeFromParent();for(const m of hits){const k=pickables.indexOf(m);if(k>=0)pickables.splice(k,1);}model.group.traverse(o=>o.geometry?.dispose());}};}
-   if(e.kind==='prop'){try{const prop=createProp(e.prop,{origin:[e.x,e.z],rotation:e.rotation,tileAt,parent,pickables});return {dispose:()=>prop.dispose()};}catch{return null;}}
-   if(e.kind==='enemy'){
-    // A defeated goblin stays away for ENEMY_RESPAWN seconds, even if its chunk unloads meanwhile.
-    if(saved?.away>elapsed)return {dispose(){},save:()=>saved};
-    if(t.blocked||characterAt(t))return null;
-    const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressive:e.aggressive,aggroRange:3,respawn:ENEMY_RESPAWN}));
-    return {dispose:()=>combat.remove(a),busy:()=>combat.matches(a)||combat.engagedEnemy===a,save:()=>a.opened?{away:elapsed+ENEMY_RESPAWN}:null};}
-   return null;};
-  // Radius 2 (5 × 5 chunks, about 40 tiles each way) covers the default view; perf: docs/PERFORMANCE.md.
-  streamWater??=createStreamedWater(renderer);
-  // A chunk's dressing: its animated water and its ground cover (flowers, grass, reeds, lily pads…),
-  // the cover instanced across all loaded chunks (ground-cover.js).
-  const dress=(list,{root,tileAt})=>{
-   const water=streamWater.build(list.filter(t=>t.water||t.overWater),(x,z)=>{const n=tileAt(x,z);return !!n&&(n.water||!!n.overWater);},root);
-   const cover=coverPool.add(source.cover(list));
-   return {dispose(){water.dispose();cover.dispose();}};};
-  const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place,dress,radius:1});
+  const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place:placeLandExtra,dress:landDress(source,coverPool),radius:1});
   countryside={source,streamer,maps};built.countryside=countryside;
   areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
    arrival:()=>built.crystal?.tile||built.spawn,
@@ -633,12 +636,15 @@ function spread(){const [a,b]=[...activePointers.values()];return Math.hypot(a.x
 canvas.addEventListener('pointerdown',e=>{
  if(!areas.canOrbit||travel.busy)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
+ // City editor brushes (playground): a left-button drag paints tiles instead of turning the camera.
+ if(__PLAYGROUND__&&tileDrag&&e.button===0&&activePointers.size===1){const at=terrainHitData(pick(e))?.tile;if(at){painting=true;down=null;tileDrag('start',at);return;}}
  if(activePointers.size===1){down={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,button:e.button};dragged=false;}
  else{dragged=true;pinchDistance=spread();}
 });
 canvas.addEventListener('pointermove',e=>{
  if(!areas.canOrbit||travel.busy)return;
  pointerOnCanvas=true;pointerClient={x:e.clientX,y:e.clientY};hoverDirty=true;
+ if(__PLAYGROUND__&&painting){const at=terrainHitData(pick(e))?.tile;if(at)tileDrag?.('move',at);return;}
  if(!activePointers.has(e.pointerId)||!down)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(activePointers.size>=2){
@@ -654,11 +660,12 @@ canvas.addEventListener('pointermove',e=>{
  down.lastX=e.clientX;down.lastY=e.clientY;
 });
 canvas.addEventListener('pointerup',e=>{
+ if(__PLAYGROUND__&&painting){painting=false;tileDrag?.('end');activePointers.delete(e.pointerId);if(!activePointers.size)down=null;return;}
  if(activePointers.size===1&&down?.button===0&&!dragged)idleClock.wake();
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=terrainHitData(hit);
   const clicked=data?.tile||data?.actor?.tile;
-  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(clicked);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
+  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(clicked,hit?.point||null);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
   else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the area.');}
  }
  activePointers.delete(e.pointerId);pinchDistance=null;
@@ -799,7 +806,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  let viewAngle=angle+(celebration?Math.atan2(Math.sin(celebration.angle-angle),Math.cos(celebration.angle-angle))*closeup:0),viewZoom=THREE.MathUtils.lerp(zoom,4.6,closeup),viewElevation=THREE.MathUtils.lerp(elevation,.27,closeup);
  const focus=cameraFocus.copy(player.position).add(focusLift.set(0,.35+closeup*.3,0));if(areaFocus){focus.lerp(areaFocus.position,areaFocus.blend);viewZoom=THREE.MathUtils.lerp(viewZoom,areaFocus.zoom??viewZoom,areaFocus.blend);viewElevation=THREE.MathUtils.lerp(viewElevation,areaFocus.elevation??viewElevation,areaFocus.blend);}
  if(__PLAYGROUND__)perfProbe.lap('player');
- const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateCutaway({player:player.position,camera:camera.position,building:tile?.building??-1,on:cutawayOn,force:forceCutaway});updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);updatePlayerPlate();if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);quality.afterRender(scene);
+ const horizontalDistance=viewZoom*Math.cos(viewElevation);camera.position.set(focus.x+Math.sin(viewAngle)*horizontalDistance,focus.y+Math.sin(viewElevation)*viewZoom,focus.z+Math.cos(viewAngle)*horizontalDistance);camera.lookAt(focus);camera.updateMatrixWorld();updateCutaway({player:player.position,camera:camera.position,building:tile?.building??-1,force:forceCutaway});updateHover();if(__PLAYGROUND__)perfProbe.lap('hover');for(const resource of resources)resource.highlight.update(showResourceArrows&&!resource.depleted,elapsed,pointerOnCanvas&&canMove()&&hover?.resource===resource&&!resource.depleted);feedback.update(dt,elapsed,camera);updateSkillRewards(dt,camera,gameViewport().width,gameViewport().height);sleepFeedback.update(dt,sleeping,player.position,camera);updatePlayerPlate();if(__PLAYGROUND__)perfProbe.lap('feedback');renderer.render(scene,camera);quality.afterRender(scene);
 }
 if(__PLAYGROUND__){
  trainingFixtures=playground.createTrainingFixtures({scene,world,pickables,resources:resourceActions,combat,styles,supplies,openStation,stop:stopAll,approach:selectActor,tile:()=>tile,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.actor||m.userData.resource)),clearUI:()=>areas.notify('clearUI')});
@@ -827,6 +834,37 @@ if(__PLAYGROUND__){
   for(let r=0;r<12;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const t=source.tile(x+dx,z+dz);if(!t||t.water)continue;streamer.prime(t.x,t.z);const landing=tiles.get(key(t.x,t.z));if(landing&&!landing.blocked)return landing;}
   return null;
  }
+ // Biome test (playground only; docs/BIOMES.md): every starter biome as a band of land, north to south,
+ // hills down to the sea, streamed through the shared chunk streamer with the real fishing spots,
+ // enemies, resources, water and ground cover. Reseeding rebuilds it.
+ const BIOME_BANDS=['hills','pines','forest','meadow','wetland','coast'],BIOME_BAND=3,BIOME_SIZE=192;
+ let biomeSandbox=null;
+ async function biomeSandboxReady(seed){
+  const [{createBiomeLand},{createChunkStreamer},{createGroundCoverPool}]=await Promise.all([import('./biome-land.js'),import('./chunk-streamer.js'),import('./ground-cover.js')]);
+  if(!biomeSandbox){const group=new THREE.Group(),tiles=new Map();scene.add(group);
+   biomeSandbox={group,tiles,seed:1,source:null,streamer:null,cover:createGroundCoverPool({parent:group})};
+   areas.register({id:'biome-test',name:'Biome test',description:'Playground: every biome side by side',listed:()=>false,group,tiles,music:'world',ambience:'meadow',
+    camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>biomeSandbox.landing,
+    // Streamed tiles join the live world map only while you're here (as Gelton's countryside does).
+    enter(){if(!biomeSandbox.maps.includes(world))biomeSandbox.maps.push(world);},leave(){const i=biomeSandbox.maps.indexOf(world);if(i>=0)biomeSandbox.maps.splice(i,1);},
+    update:dt=>{biomeSandbox.streamer.update(dt,segment?.to||tile);streamWater?.update(dt);}});}
+  const sb=biomeSandbox;if(sb.source&&(seed===undefined||seed===sb.seed))return sb;
+  if(seed!==undefined)sb.seed=seed;
+  if(sb.streamer){sb.streamer.reset();sb.streamer.group.removeFromParent();}
+  const cells={};for(let cz=0;cz<BIOME_SIZE/8;cz++)for(let cx=0;cx<BIOME_SIZE/8;cx++)cells[`${cx},${cz}`]=BIOME_BANDS[Math.floor(cz/BIOME_BAND)]||'sea';
+  sb.source=createBiomeLand({seed:sb.seed,bounds:[0,0,BIOME_SIZE,BIOME_SIZE],map:{default:'meadow',cells}});
+  const maps=[sb.tiles];if(areas.id==='biome-test')maps.push(world);
+  sb.streamer=createChunkStreamer({source:sb.source,maps,parent:sb.group,pickables,resources:resourceActions,topColor:sb.source.topColor,place:placeLandExtra,dress:landDress(sb.source,sb.cover),radius:1});
+  sb.maps=maps;return sb;
+ }
+ // The middle of a biome's band (x across the land, z its band's centre), or of the meadow.
+ const biomeSpot=id=>{const i=BIOME_BANDS.indexOf(id);return [BIOME_SIZE/2,(i<0?3:i)*BIOME_BAND*8+BIOME_BAND*4];};
+ // Lands on the nearest dry tile to (x, z) in the biome test, loading around it first.
+ function biomeLand(x,z){
+  const {streamer,tiles,source}=biomeSandbox;
+  for(let r=0;r<16;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){const t=source.tile(x+dx,z+dz);if(!t||t.water)continue;streamer.prime(t.x,t.z);const landing=tiles.get(key(t.x,t.z));if(landing&&!landing.blocked)return landing;}
+  return null;
+ }
  // Building test map (playground only): three buildings of shared walls and doors. Created on first use.
  let buildingTest=null;
  async function buildingTestReady(){
@@ -838,35 +876,64 @@ if(__PLAYGROUND__){
    reset(){for(const d of built.doors){d.setLocked(false);d.setOpen(false);}}});
   return buildingTest=built;
  }
- // Graybox street (playground only; city Phase 2): plain grey buildings at the proposed scale; and the
- // kit street (Phase 4): the same layout built with the building kit.
+ // Playground city maps (city data built by the shared builder): the prop gallery (city Phase 10) and the
+ // kit street (the building kit's test street: terraces, stairs, interiors, a crypt, townsfolk).
  const cityMaps={};
  async function cityMapReady(id){
   if(cityMaps[id])return cityMaps[id];
-  const {createGrayboxStreet}=await import('./dev/graybox-street.js');
-  // The prop gallery (Phase 10) is city data too.
-  const built=id==='prop-gallery'?(await import('./city-map.js')).buildCity((await import('./dev/prop-gallery.js')).propGalleryData(),{scene,pickables}):createGrayboxStreet({scene,pickables,kit:id==='kit-street'});built.areaId=id;
+  const [{buildCity},data]=await Promise.all([import('./city-map.js'),id==='kit-street'?import('./dev/kit-street.js').then(m=>m.kitStreetData()):import('./dev/prop-gallery.js').then(m=>m.propGalleryData())]);
+  const built=buildCity(data,{scene,pickables});built.areaId=id;
   if(id==='kit-street')attachCrowd(built);
-  areas.register({id,name:{'kit-street':'Kit street','prop-gallery':'Prop gallery'}[id]||'Graybox street',description:id==='kit-street'?'Playground: the building kit':'Playground: city scale graybox',listed:()=>false,group:built.group,tiles:built.tiles,update:(dt,time,view)=>{built.crowd?.update(dt,time,{camera:view});},
+  areas.register({id,name:{'kit-street':'Kit street','prop-gallery':'Prop gallery'}[id],description:'Playground: '+(id==='kit-street'?'the building kit':'every prop'),listed:()=>false,group:built.group,tiles:built.tiles,update:(dt,time,view)=>{built.crowd?.update(dt,time,{camera:view});},
    camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>built.spawn,
    reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
   return cityMaps[id]=built;
  }
  // City editor (playground only; city Phase 6): one area whose contents the editor rebuilds from data.
  let editorArea=null;
- async function editCity(data,{keepPlayer=true}={}){
+ // dirty: the chunk ids an edit touched. When the city being edited is this same data, only those
+ // chunks are rebuilt (city-map.js rebuild); otherwise, or when rebuild declines, everything is.
+ // at: {x, z} to land on instead (the editor opening on the map you stand in).
+ async function editCity(data,{keepPlayer=true,dirty=null,at=null}={}){
   const {buildCity}=await import('./city-map.js');
-  if(!editorArea){const group=new THREE.Group();group.name='city-editor';scene.add(group);editorArea={group,tiles:new Map(),built:null};
-   areas.register({id:'city-editor',name:'City editor',description:'Playground: city editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,update:(dt,time,view)=>{editorArea.built?.crowd?.update(dt,time,{camera:view});},
+  const current=editorArea?.built;
+  if(dirty&&current&&current.data===data&&areas.id==='city-editor'){spaces.forget(current);
+   // Only the city's own tiles are refreshed in the area's map; the streamed land's stay, except the
+   // chunks under the edit, which reload around it (their trees and cover follow the town's ground).
+   const streamer=editorArea.land?.streamer,wrap=streamer?(only,run)=>streamer.reload(only,run):null;
+   if(current.rebuild(dirty,{wrap})){attachCrowd(current);for(const [k,t] of current.tiles)editorArea.tiles.set(k,t);return current;}}
+  if(!editorArea){const group=new THREE.Group();group.name='city-editor';scene.add(group);editorArea={group,tiles:new Map(),built:null,land:null};
+   areas.register({id:'city-editor',name:'City editor',description:'Playground: city editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,
+    // The land around the map joins the live world map while you're here (as any streamed countryside).
+    enter(){const m=editorArea.land?.maps;if(m&&!m.includes(world))m.push(world);},leave(){const m=editorArea.land?.maps,i=m?m.indexOf(world):-1;if(i>=0)m.splice(i,1);},
+    update:(dt,time,view)=>{editorArea.built?.crowd?.update(dt,time,{camera:view});if(editorArea.land){const at=segment?.to||tile;editorArea.built?.stream(at);editorArea.land.streamer.update(dt,at);streamWater?.update(dt);}},
     reset(){for(const d of editorArea.built?.doors||[])if(!d.locked)d.setOpen(false,{quiet:true});}});}
-  const here=keepPlayer&&areas.id==='city-editor'?{x:tile.x,z:tile.z}:null;
+  const here=at||(keepPlayer&&areas.id==='city-editor'?{x:tile.x,z:tile.z}:null);
   if(editorArea.built){spaces.forget(editorArea.built);editorArea.built.crowd?.dispose();editorArea.built.dispose();}
-  const built=buildCity(data,{scene:editorArea.group,pickables,visible:true});built.areaId='city-editor';editorArea.built=built;attachCrowd(built);cityMaps['city-editor']=built;
+  await editorLand(data);
+  // On the land, the town's chunks show by the land's rule (radius 1), so ground and buildings stream together.
+  const built=buildCity(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?1:null});built.areaId='city-editor';editorArea.built=built;attachCrowd(built);cityMaps['city-editor']=built;
   editorArea.tiles.clear();for(const [k,t] of built.tiles)editorArea.tiles.set(k,t);
-  let landing=here&&built.tiles.get(key(here.x,here.z));if(!landing||landing.blocked)landing=built.spawn;
+  let landing=here&&(built.tiles.get(key(here.x,here.z))||built.ground?.tile(here.x,here.z));if(!landing||landing.blocked||landing.water)landing=built.spawn;
   const first=areas.id!=='city-editor';stopAll();splash.close();opening.enterFreePlay();if(first)craftingTutorial.reset();
-  areas.activate('city-editor',{landing,arrival:false});companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;
+  // The land around the landing loads first, so a landing out on it has ground.
+  editorArea.land?.streamer.prime(landing.x,landing.z);built.stream(landing);areas.activate('city-editor',{landing,arrival:false});
+  companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;
   return built;
+ }
+ // The biome land a map in the editor stands on (data.land: {seed, ring, default, cells}; docs/BIOMES.md,
+ // docs/TOWN.md): generated by biome-land.js under and around the map, and streamed with the shared land
+ // gameplay (town-ground.js townSource: the town's chunks are regular chunks; the city adds what is built on them).
+ // Made again with each full build.
+ async function editorLand(data){
+  const old=editorArea.land;if(old){old.streamer.reset();old.streamer.group.removeFromParent();editorArea.land=null;}
+  if(!data.land)return null;
+  const [{townLand,townSource},{createChunkStreamer},{createGroundCoverPool}]=await Promise.all([import('./town-ground.js'),import('./chunk-streamer.js'),import('./ground-cover.js')]);
+  const land=townLand(data),source=townSource(land,()=>editorArea.built?.ground,()=>editorArea.built?.tiles,()=>editorArea.built?.data);
+  editorArea.landCover??=createGroundCoverPool({parent:editorArea.group});
+  const maps=[editorArea.tiles];if(areas.id==='city-editor')maps.push(world);
+  const streamer=createChunkStreamer({source,maps,parent:editorArea.group,pickables,resources:resourceActions,topColor:source.topColor,place:placeLandExtra,dress:landDress(source,editorArea.landCover),radius:1});
+  return editorArea.land={land,source,streamer,maps};
  }
  let testCounter=null,testBoard=null;
  // Stand-ins for jobs in any map: a giver of each kind, and a recipient deliveries can go to.
@@ -877,18 +944,20 @@ if(__PLAYGROUND__){
  const currentCityMap=()=>areas.id==='building-test'?buildingTest:areas.id==='gelton'?gelton:cityMaps[areas.id]||null;
  playgroundApi={
   companions,
-  async enterGrayboxStreet(kit=false){
-   const id=kit==='gallery'?'prop-gallery':kit?'kit-street':'graybox-street',{spawn}=await cityMapReady(id);stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
+  // Playground city maps: 'prop-gallery' or 'kit-street' (the perf scenarios' street).
+  async enterCityMap(id){
+   const {spawn}=await cityMapReady(id);stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
    areas.activate(id,{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
   },
-  toggleCutaway(){cutawayOn=!cutawayOn;return cutawayOn;},
   // Walks to a tile (scripted checks), and uses the nearest prop of a kind (props.js) as a click would.
   walkTo(x,z){const t=world.get(key(x,z));if(!t)return false;moveTo(t);return path.length>0||t===tile;},
   useProp(kind){const props=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a?.def&&a.kind===kind&&isVisible(a.group)))].sort((a,b)=>Math.hypot(a.x-tile.x,a.z-tile.z)-Math.hypot(b.x-tile.x,b.z-tile.z));if(!props[0])return false;selectActor(props[0]);return true;},
   get seated(){return !!seat;},
   // Uses whatever actor (door, stairwell, prop…) is nearest a tile position, as a click on it would.
   useActorAt(x,z){const actor=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a&&a.x!==undefined))].filter(a=>{let o=null;for(const m of pickables)if(m.userData.actor===a){o=m;break;}return o&&isVisible(o);}).sort((a,b)=>Math.hypot(a.x-x,a.z-z)-Math.hypot(b.x-x,b.z-z))[0];if(!actor||Math.hypot(actor.x-x,actor.z-z)>1.5)return false;selectActor(actor);return actor.label||actor.kind||true;},
-  editCity,setTileClick(fn){tileClick=fn;},toast:text=>toast(text),
+  editCity,setTileClick(fn){tileClick=fn;},
+  // The city map you stand in, for the editor to open on: its data, area and your tile (null elsewhere).
+  currentCity(){const map=areas.id==='city-editor'?editorArea?.built:currentCityMap();return map?.data?{data:map.data,areaId:areas.id,at:{x:tile.x,z:tile.z}}:null;},setTileDrag(fn){tileDrag=fn;if(!fn)painting=false;},toast:text=>toast(text),
   // Townsfolk (city Phase 8): replace the current city's crowd with n generated townsfolk (0 = the city's own).
   async crowd(n){const map=currentCityMap();if(!map?.crowd)return null;const {generateTownsfolk}=await import('./townsfolk.js');map.data.ownTownsfolk??=map.data.townsfolk;map.data.townsfolk=n?generateTownsfolk(map,n):map.data.ownTownsfolk;attachCrowd(map);return map.crowd.folk.length;},
   get crowdStats(){const map=currentCityMap();return map?.crowd?{count:map.crowd.folk.length,...map.crowd.stats,fields:map.crowd.navigator.cached,activities:Object.fromEntries(map.crowd.folk.reduce((m,p)=>m.set(p.activity||'idle',(m.get(p.activity||'idle')||0)+1),new Map())),folk:map.crowd.folk.map(p=>({name:p.name,tile:[p.tile.x,p.tile.z],activity:p.activity||'idle',state:p.state,ring:p.ring,visible:p.group.visible,parentVisible:!!p.group.parent?.visible,y:+p.group.position.y.toFixed(2)}))}:null;},
@@ -956,16 +1025,20 @@ if(__PLAYGROUND__){
   teleport(x,z){const t=world.get(key(x,z));if(!t||t.blocked||t.water)return false;stopAll();segment=null;path=[];tile=t;player.position.set(t.x-6,t.h,t.z-6);companions.resetRoute(t);return true;},
   // Force cutaway: every building cut (no roofs, walls one storey), like the building test map.
   toggleForceCutaway(){forceCutaway=!forceCutaway;return forceCutaway;},
-  // Shows or hides the roofs of the graybox or kit street you are in; returns whether they are now shown (null elsewhere).
-  toggleGrayboxRoofs(){const map=cityMaps[areas.id];if(!map)return null;map.setRoofs(!map.roofsShown);return map.roofsShown;},
-  // Camera zoom for judging scale (3 closest … 34 farthest, the player's own limits).
-  cameraZoom(value){zoom=THREE.MathUtils.clamp(value,3,34);return zoom;},
-  // Opens or closes every door on the building test map, graybox or kit street, whichever you are in.
-  buildingDoors(open){const map=currentCityMap();if(!map)return false;for(const d of map.doors)d.setOpen(open,{quiet:true});return true;},
   async enterBuildingTest(){
    const {spawn}=await buildingTestReady();stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
    areas.activate('building-test',{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
   },
+  // Biome test (docs/BIOMES.md): enter, stand in a biome, reseed, and what's under you.
+  biomeIds:BIOME_BANDS,
+  async enterBiomeTest(id='meadow'){const sb=await biomeSandboxReady();const [x,z]=biomeSpot(id);sb.landing=biomeLand(x,z);if(!sb.landing)return false;
+   stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();areas.activate('biome-test',{landing:sb.landing,arrival:false});
+   sb.streamer.prime(sb.landing.x,sb.landing.z);companions.resetRoute(sb.landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;},
+  async biomeJump(id){if(areas.id!=='biome-test')return playgroundApi.enterBiomeTest(id);const [x,z]=biomeSpot(id),t=biomeLand(x,z);return t?playgroundApi.teleport(t.x,t.z):false;},
+  async biomeReseed(){const sb=biomeSandbox;if(!sb)return null;const at=[tile.x,tile.z];await biomeSandboxReady(sb.seed+1);if(areas.id==='biome-test'){const t=biomeLand(...at);if(t)playgroundApi.teleport(t.x,t.z);}return sb.seed;},
+  get biomeHere(){return areas.id==='biome-test'&&biomeSandbox?`${biomeSandbox.source.describe(tile.x,tile.z)} · seed ${biomeSandbox.seed}`:null;},
+  biomeBounds(on){if(!biomeSandbox?.streamer)return false;biomeSandbox.streamer.showBounds=on;return true;},
+  get biomeStats(){return biomeSandbox?{seed:biomeSandbox.seed,...biomeSandbox.streamer.stats}:null;},
   async enterStreamTest(){
    const {spawn}=await streamSandboxReady();stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
    const landing=streamLand(spawn.x,spawn.z);if(!landing)return false;

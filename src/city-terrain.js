@@ -19,12 +19,13 @@ export const SURFACES={
  dungeon:['#55524b','#4f4c45'],
 };
 export const SURFACE_NAMES=Object.keys(SURFACES);
-const PAVED=new Set(['cobble','flagstone','plaza','stone']),SOFT=new Set(['grass','dirt']);
+const PAVED=new Set(['cobble','flagstone','plaza','stone']),SOFT=new Set(['grass','dirt','sand','mud']);
 export const WALL_STONES={timber:['#a8a196','#9f988d'],stone:['#b9b2a6','#aea79b'],brick:['#9a8f86','#8f857c'],graybox:['#bdb9b3','#b3afa9']};
 const COPING='#d2ccc0',KERB='#d8d2c6',DIRT_SIDE='#a5a084';
 export const DIRS={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]};
 export const surfaceOf=tile=>tile.surface||'grass';
-export function surfaceColor(tile){const pair=SURFACES[surfaceOf(tile)]||SURFACES.grass;return pair[(tile.x+tile.z)&1];}
+// A town on the land (town-ground.js) leaves unpainted tiles with their biome's own colours (`palette`).
+export function surfaceColor(tile){const pair=tile.palette||SURFACES[surfaceOf(tile)]||SURFACES.grass;return pair[(tile.x+tile.z)&1];}
 
 const materials=new Map();
 const material=color=>{if(!materials.has(color))materials.set(color,new THREE.MeshStandardMaterial({color,roughness:.92}));return materials.get(color);};

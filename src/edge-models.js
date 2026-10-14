@@ -15,13 +15,22 @@ export const STYLES={
  dungeon:{base:'#4a4740',wall:'#5e5a52',trim:'#3d3a35',door:'#4b3a2a',seamless:true},
 };
 export const STYLE_NAMES=Object.keys(STYLES);
+// A style's palette. A style is a name, or a name with its own colours (a hand-coloured building,
+// docs/TOWN.md): {name, wall?, trim?, base?, door?} over that style's palette.
+export function stylePalette(style){
+ if(!style||typeof style==='string')return STYLES[style]||STYLES.timber;
+ const base=STYLES[style.name]||STYLES.timber,out={...base};for(const role of ['wall','trim','base','door'])if(style[role])out[role]=style[role];return out;
+}
+// A building's style as edge pieces take it: just the name, or the name with its colours.
+export const buildingStyle=(name,colors)=>colors&&['wall','trim','base','door'].some(r=>colors[r])?{name,...Object.fromEntries(['wall','trim','base','door'].filter(r=>colors[r]).map(r=>[r,colors[r]]))}:name;
 const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.85,...extra});
 const shared={glass:mat('#a9d3e3',{transparent:true,opacity:.45,roughness:.15}),fence:mat('#9b6c46'),iron:mat('#4b4651',{roughness:.5,metalness:.3}),sill:mat('#b6afa3')};
 const materials=new Map();
 function material(style,role){
  if(shared[role])return shared[role];
- const palette=STYLES[style]||STYLES.timber,id=`${style in STYLES?style:'timber'}:${role}`;
- if(!materials.has(id))materials.set(id,mat(palette[role]));return materials.get(id);
+ // Materials are shared by colour, so hand-coloured buildings reuse them too.
+ const color=stylePalette(style)[role],id=`${role}:${color}`;
+ if(!materials.has(id))materials.set(id,mat(color));return materials.get(id);
 }
 const geometries=new Map();
 function box(w,h,d){const id=`${w},${h},${d}`;if(!geometries.has(id))geometries.set(id,new THREE.BoxGeometry(w,h,d));return geometries.get(id);}
@@ -40,7 +49,7 @@ function storeyRows(height,storeys){const extra=Math.max(0,height-STOREY*storeys
 // One storey of wall between y0 and y1: a base (ground storey) or a floor band (upper storeys), the
 // wall or a window opening, and the cap (top storey).
 function storeyBand(g,style,y0,y1,{ground,top,window}){
- const m=role=>material(style,role),flat=!!STYLES[style]?.flat,proud=flat?0:PROUD;
+ const m=role=>material(style,role),flat=!!stylePalette(style).flat,proud=flat?0:PROUD;
  const band=(a,b,role,thickness=WALL_THICKNESS,width=1)=>{if(b>a+1e-4)piece(g,width,b-a,thickness,m(role),0,(a+b)/2);};
  let lo=y0,hi=y1;
  if(!flat){if(ground){band(y0,y0+BASE,'base',WALL_THICKNESS+proud);lo=y0+BASE;}else{band(y0,y0+FLOOR_BAND,'trim',WALL_THICKNESS+proud);lo=y0+FLOOR_BAND;}
@@ -92,7 +101,7 @@ function gateModel(style){
 }
 export function doorModel({height=STOREY,storeys=Math.max(1,Math.floor((height)/STOREY+.01)),sill=0,lower=1,style,upperWindows=false}={}){
  if(GATE_STYLES.includes(style))return gateModel(style);
- const g=new THREE.Group();g.name='edge-door';const m=role=>material(style,role),flat=!!STYLES[style]?.flat,proud=flat?0:PROUD;
+ const g=new THREE.Group();g.name='edge-door';const m=role=>material(style,role),flat=!!stylePalette(style).flat,proud=flat?0:PROUD;
  const band=(parent,a,b,role,thickness=WALL_THICKNESS)=>{if(b>a+1e-4)piece(parent,1,b-a,thickness,m(role),0,(a+b)/2);};
  const rows=storeyRows(height,storeys),ground=rows[1];
  for(const x of [-.465,.465])piece(g,.07,DOOR_HEIGHT,WALL_THICKNESS+PROUD,m('trim'),x,sill+DOOR_HEIGHT/2);

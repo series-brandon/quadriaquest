@@ -36,8 +36,8 @@ export function buildChunkTerrain({tiles,tileAt,topColor,sideColor='#a5a084',sea
  for(const t of tiles)grid[(t.z-z0)*w+t.x-x0]=t;
  const at=(x,z)=>grid[(z-z0)*w+x-x0];
  for(const tile of tiles){
-  // A tile with its own model (a bridge deck) is only a neighbour here.
-  if(tile.noTerrain)continue;
+  // A tile with its own model (a bridge deck, a stair's treads) is only a neighbour here.
+  if(tile.noTerrain||tile.stair)continue;
   const neighbors=DIRS.map(([dx,dz])=>at(tile.x+dx,tile.z+dz));
   const mask=neighbors.reduce((m,n,i)=>(!n||n.h<tile.h||n.water?m|(1<<i):m),0);
   const top=topTemplate(mask),c=topColor(tile),ox=tile.x-offset,oz=tile.z-offset;

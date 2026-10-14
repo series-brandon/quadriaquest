@@ -102,6 +102,11 @@ export function createChunkStreamer({source,maps,parent,pickables,resources,topC
   get loaded(){return chunks.size;},
   get stats(){let tiles=0,entities=0;for(const c of chunks.values()){tiles+=c.tiles.length;entities+=c.nodes.length+c.extras.length;}return {chunks:chunks.size,tiles,entities,remembered:state.size,lastBuildMs:+lastBuildMs.toFixed(1),built:builtTotal,building:pending?.id??null,center};},
   isLoaded:(x,z)=>chunks.has(chunkOf(x,z).join(',')),
+  // Rebuilds the given chunks (ids) that are loaded around a change to their source's tiles: they unload
+  // (keeping entity state by id), change() runs, and they load again. A town's editor uses it, so trees
+  // and cover follow a road painted through them (town-ground.js townSource).
+  reload(ids,change){advance(null);const gone=[...ids].filter(id=>chunks.has(id));for(const id of gone)unload(id);const out=change();
+   for(const id of gone)load(...id.split(',').map(Number));return out;},
   reset(){pending=null;for(const id of [...chunks.keys()])unload(id);state.clear();time=0;builtTotal=0;},
  };
 }
