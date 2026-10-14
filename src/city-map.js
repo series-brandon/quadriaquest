@@ -8,7 +8,8 @@ import {mergedMesh} from './merged-model.js';
 import {mergeStatic} from './static-merge.js';
 import {shopForBuilding} from './shops.js';
 import {buildCityWalls,wallPlan} from './city-walls.js';
-import {doorSound} from './doors.js';
+import {doorSound,enterLink} from './doors.js';
+import {createStairwell,floorLevels,flightOf} from './spaces.js';
 import {furnishRoom,roomOfPlan,furnishingUse} from './furnish.js';
 import {makeCrystal} from './crystal-model.js';
 import {key} from './world.js';
@@ -203,7 +204,17 @@ export function buildCity(data,{scene,pickables=[],visible=false,streamRadius=nu
   // Furniture (furnish.js): each in-place building furnished by its use, around hand-placed props, in a
   // group of its own that shows only while the building is cut (the roof hides it otherwise). Static
   // pieces merge into one mesh per building; interactive ones stay pickable.
-  data.buildings.forEach((b,i)=>{const home=chunk(b.x,b.z);if(!want(home))return;const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];built.shop=use?shopForBuilding(b.desc,use):null;if(!use||b.desc.interior!=='inPlace')return;
+  data.buildings.forEach((b,i)=>{const home=chunk(b.x,b.z);if(!want(home))return;const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];built.shop=use?shopForBuilding(b.desc,use):null;
+   // Floors by hand (spaces.js; docs/CITY.md, Floors): an in-place building's ground floor shows its own
+   // placed furniture and the stairwells to the floors above and below; nothing is furnished for it.
+   const levels=built.plan.desc.interior==='inPlace'?floorLevels(b):null;
+   if(levels){const byLevel=new Map(levels.map(f=>[f.level,f])),plan=built.plan,tl=([dx,dz])=>t(plan.x0+dx,plan.z0+dz),live=f=>({bottom:tl(f.bottom),top:tl(f.top),front:tl(f.front)});
+    const group=new THREE.Group();group.name='furniture';group.userData.showWhenCut=true;group.visible=false;home.root.add(group);
+    const well=(up,direction,level)=>{const place=live(flightOf(up));if(place.bottom?.building===i&&place.top?.building===i)built.stairwells.push(createStairwell({place,direction,link:{kind:'floor',city,building:i,level,via:direction},parent:group,pickables,services:{enter:enterLink},tileAt:t}));};
+    built.stairwells=[];if(byLevel.get(0)?.up&&byLevel.has(1))well(byLevel.get(0).up,'up',1);if(byLevel.get(-1)?.up)well(byLevel.get(-1).up,'down',-1);
+    for(const f of byLevel.get(0)?.furniture||[]){try{const prop=createProp(f.kind,{origin:[plan.x0+f.at[0],plan.z0+f.at[1]],rotation:f.rotation||0,tileAt:t,parent:group,pickables,shop:built.shop});prop.building=i;built.furniture.push(prop);home.items.furniture.push(prop);}catch{}}
+    mergeStatic(group,built.furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});home.edges.addCutPart(group,i);return;}
+   if(!use||b.desc.interior!=='inPlace')return;
    const keep=built.plan.tiles.filter(([x,z])=>t(x,z)?.blocked);
    const layout=furnishRoom(roomOfPlan(built.plan,{keep}),use,b.desc.furnishSeed??b.desc.seed??i);if(!layout.length)return;
    if(layout.keeper)built.anchors.keeper=t(...layout.keeper);

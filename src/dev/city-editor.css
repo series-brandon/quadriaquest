@@ -77,3 +77,7 @@
 .q-city-editor__routine { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 4px; }
 .q-city-editor__routine .q-city-editor__field { font-weight: 500; font-size: 12px; }
 .q-city-editor__routine .q-input { inline-size: 100%; }
+
+/* Panels (look, floors, spawn, townsfolk) span the options' full width. */
+.q-city-editor__look { grid-column: 1 / -1; }
+.q-city-editor__floors { display: grid; gap: 4px; }

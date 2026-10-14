@@ -161,7 +161,7 @@ What Mistrom needs from the editor, in build order. Each is general: it works fo
    - **any connected footprint, painted tile by tile** (done 2026-10-14; CITY.md, *Hand-shaped buildings*), with joined roofs over L, T and U shapes;
    - click a wall to add, move or remove a door, window or sign (done 2026-10-14; CITY.md, *Hand-shaped buildings*);
    - per building: roof style and colour, wall style and colour, trim, chimney, flower boxes and awning, chosen rather than seeded (done 2026-10-14);
-   - an upper floor as a separate space with an inside stair (the inn's rooms);
+   - an upper floor as a separate space with an inside stair (the inn's rooms) (done 2026-10-14; CITY.md, *Floors*);
    - the one-chunk rule still holds.
 3. **Prop polish and palette:**
    - **A searchable palette** with a thumbnail per prop, grouped as now.

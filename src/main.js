@@ -141,6 +141,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) rotat
 // panned with WASD (Shift: faster) or a middle-button drag, zoomed much farther out. The land, towns and
 // the sun's shadows follow the camera instead of the slime while it's on.
 let freeCam=null;const panKeys=new Set(),freeCamOn=signal(false);
+// The floor of an editor building you stand in (playground: the city editor's floors), or null.
+const floorHere=signal(null);
 if(__PLAYGROUND__){
  addEventListener('keydown',e=>{if(!freeCam||e.altKey||e.ctrlKey||e.metaKey)return;const k=e.key.toLowerCase();if(!['w','a','s','d','shift'].includes(k))return;
   if(e.target instanceof Element&&e.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])'))return;panKeys.add(k);});
@@ -210,6 +212,8 @@ let forceCutaway=false;
 // Sitting on a bench (props.js): the seat you sit on, the one you're walking to.
 let seat=null,pendingSeat=null,wasSeated=false;
 // Playground: the city editor takes world clicks while it is in Edit mode.
+// Set by the playground's city editor host (it knows the city being edited).
+let updateFloorHere=()=>{};
 let tileClick=null,tileDrag=null,painting=false,tileHover=null,hoverTileId=null;
 // The tile under the pointer, for the city editor's previews (playground): told only when it changes.
 function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=data?.tile||data?.actor?.tile||null,id=at?`${at.x},${at.z}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,hit?.point||null);}
@@ -264,7 +268,7 @@ const travel=createTravelSystem({areas,stop:stopAll,blocked:()=>!areas.canMove||
 
 // Separate interiors, stairwells and dungeons (spaces.js): a quick fade between spaces of any map.
 const spaces=createSpaces({areas,scene,pickables,stop:stopAll,fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},
- arrived(landing){companions.resetRoute(landing);},view:{get:()=>({zoom,angle,elevation}),set(v){zoom=v.zoom;angle=v.angle;elevation=v.elevation;}}});// Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
+ arrived(landing){companions.resetRoute(landing);if(__PLAYGROUND__)updateFloorHere();},view:{get:()=>({zoom,angle,elevation}),set(v){zoom=v.zoom;angle=v.angle;elevation=v.elevation;}}});// Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
 // Restore keeps active auras (and their upkeep) and just announces itself; respec turns them off and refunds invested attribute points.
 function crystalRestore(){health.max=character.maxima.health;health.restore();playerResources.restoreAll();}
 // Utility dialogs (stations, destinations, naming, confirmations) share one modal host.
@@ -688,7 +692,7 @@ canvas.addEventListener('pointerup',e=>{
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=terrainHitData(hit);
   const clicked=data?.tile||data?.actor?.tile;
-  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(clicked,hit?.point||null);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
+  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(clicked,hit?.point||null,data?.actor||null);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
   else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the area.');}
  }
  activePointers.delete(e.pointerId);pinchDistance=null;
@@ -930,6 +934,7 @@ if(__PLAYGROUND__){
  }
  // City editor (playground only; city Phase 6): one area whose contents the editor rebuilds from data.
  let editorArea=null;
+ updateFloorHere=()=>{const h=spaces.here;floorHere.value=h&&h.city===editorArea?.built?{building:h.building,level:h.level}:null;};
  // dirty: the chunk ids an edit touched. When the city being edited is this same data, only those
  // chunks are rebuilt (city-map.js rebuild); otherwise, or when rebuild declines, everything is.
  // at: {x, z} to land on instead (the editor opening on the map you stand in).
@@ -1000,7 +1005,18 @@ if(__PLAYGROUND__){
   get seated(){return !!seat;},
   // Uses whatever actor (door, stairwell, prop…) is nearest a tile position, as a click on it would.
   useActorAt(x,z){const actor=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a&&a.x!==undefined))].filter(a=>{let o=null;for(const m of pickables)if(m.userData.actor===a){o=m;break;}return o&&isVisible(o);}).sort((a,b)=>Math.hypot(a.x-x,a.z-z)-Math.hypot(b.x-x,b.z-z))[0];if(!actor||Math.hypot(actor.x-x,actor.z-z)>1.5)return false;selectActor(actor);return actor.label||actor.kind||true;},
-  editCity,setTileClick(fn){tileClick=fn;},setTileHover(fn){tileHover=fn;hoverTileId=null;},
+  editCity,setTileClick(fn){tileClick=fn;},
+  // Floors (spaces.js; docs/CITY.md, Floors): where you are, going to a floor or back out, following a door
+  // or stairwell, and rebuilding a building's floors after an edit (you stay where you are).
+  floorHere,
+  enterLink(link){return !!link&&spaces.enter(link);},
+  enterFloor(building,level){const city=editorArea?.built;if(!city)return false;const entry=city.data.buildings[building];
+   if(level===0&&entry?.desc.interior!=='separate'){const t=city.buildings[building]?.anchors.doors[0]?.doorstep;return spaces.enter({kind:'exit',area:'city-editor',tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...city.data.spawn]});}
+   return spaces.enter({kind:'floor',city,building,level,via:null});},
+  leaveFloor(){const here=spaces.here;if(!here)return false;const city=here.city,entry=city.data.buildings[here.building],t=city.buildings[here.building]?.anchors.doors[0]?.doorstep;
+   return spaces.enter({kind:'exit',area:city.areaId,tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...city.data.spawn]});},
+  rebuildFloors(building){const city=editorArea?.built;if(!city)return false;spaces.rebuild(city,building,{at:[tile.x,tile.z]});updateFloorHere();return true;},
+  get floorTiles(){return spaces.here?.tiles||null;},setTileHover(fn){tileHover=fn;hoverTileId=null;},
   // Free camera (docs/PLAYGROUND.md): on (from where the camera looks now) or off (back to the slime).
   freeCameraOn:freeCamOn,
   freeCamera(on=!freeCam){

@@ -161,11 +161,83 @@ The first version (front walls to stubs, a dithered see-through cylinder) was mo
 - Checks (`interiorProblems`): interior floors versus storeys outside, a stairwell inside the footprint and off the door tiles, a door; a dungeon at least 4 × 4 with its exit inside and an entrance in the city.
 - Playground: the kit street's guild house (two floors) and the garden's crypt. `areas.unregister` was added for rebuilt interiors.
 
+### Floors (2026-10-14)
+
+User decisions:
+- floors start empty, with a *Generate* action to roll furniture;
+- separate ground floors use the same editor;
+- doors and stairs take you between spaces, in the editor too;
+- townsfolk upstairs is planned, but not built yet;
+- a cellar is just a floor below the ground.
+
+**Data.** A building entry may carry `floors: [{level, use, surface, cells, furniture, edges, up}]` (spaces.js), in coordinates local to the building's north-west tile:
+- `level`: −1 for a cellar, 0 for the ground, 1 and up for upper floors.
+- `cells`: the floor's own shape, any size (an attic, a wing over the street, a big cellar); the default is the footprint.
+- `furniture`: `[{kind, at, rotation}]`, placed by hand or by Generate.
+- `edges`: inside walls, doors, windows and railings.
+- `up: {at, dir}`: the flight up from this floor, its bottom step and the way up. The floor above has the opening down on the same two tiles.
+
+**In-place buildings.** The ground floor is the overworld, and its `floors` entry at level 0 holds only its flight up and its furniture.
+- The overworld shows that furniture and the stairwells up (to level 1) and down (to a cellar) inside the building. Nothing on the ground floor is generated for it.
+- Each other level is a space (spaces.js `buildFloorSpace`): the floor's shape, walled, with the outside's windows on a full floor and stone in a cellar; its inside walls and doors; stairwells to the floors above and below; and its furniture.
+- The stairs from the first floor and the cellar lead back onto the overworld at the ground floor's stairwell.
+
+**Separate buildings.** The ground floor is a space too, entered by the building's doors.
+
+**Legacy interiors.** Buildings without `floors` (Gelton's separate interiors, the kit street's guild house) keep the old interior spec and its automatic furnishing.
+
+**Checks** (`interiorProblems`):
+- **size** (user, 2026-10-14):
+  - a floor may be any size;
+  - a floor above the ground that is wider or deeper than the floor below it is a warning; a smaller one is fine;
+  - floors below the ground aren't limited at all (digging can go anywhere);
+  - a separate ground floor has nothing below it, so any size;
+- stairs that leave either floor they join are an error;
+- more floors above the ground than the outside's storeys is an error;
+- a floor with no stairs to it is a warning.
+
+**City editor:**
+- **Floors panel**, for the selected building or the floor you're in:
+  - the floors with Go and Remove (top or bottom first);
+  - Add floor above (up to the storeys outside) and Add cellar;
+  - Place stairs up: click the bottom step; it rises the Stairs tool's *Up towards* way, with a preview;
+  - Generate furniture (rolls the floor's use; again for another roll) and Clear furniture;
+  - *This floor is a* (its use);
+  - Back outside.
+- **Tools inside a floor:**
+  - Prop places furniture, with its ghost;
+  - Erase removes furniture or an inside wall;
+  - Edge adds inside walls and doors;
+  - Footprint paints the floor's shape (paint onto the solid ring around it to grow it, past the walls if you like);
+  - Surface sets its floor material;
+  - Inspect names the tile.
+- **Rebuilding:** each edit rebuilds only that building's floors and keeps you where you stand (`spaces.rebuild`). Undo works the same way. The map's chunk catches up when you step out.
+- **Going through:** with Inspect or Select, clicking a door into a building or a stairwell takes you through it.
+
+**Tests:** `floors.test.js` covers:
+- ground stairwells, and only placed furniture;
+- up, down and back between the overworld, the first floor and the cellar;
+- an attic's shape and a separate building's ground floor;
+- rebuilding the floor you stand in;
+- the checks.
+
+**Checked in the browser:**
+- added a floor and a cellar to a townhouse and placed the ground floor's stairs;
+- clicked the stairwell to go up;
+- placed a bed, generated furniture (and rolled again), undid while staying inside;
+- went back outside;
+- a missing-stairs warning for the empty cellar.
+
 ### Interior size rules (user decision, 2026-10-10)
 
 - **Most ground floors are overworld**, open in place. Only large or unique ground floors are separate spaces.
 - **Separate spaces follow the footprint they sit in, as a rule of thumb.** A separate ground floor matches the building outside. An upper floor matches the floor below.
-- **Normal exceptions:** smaller upper floors (attics, towers, floors under a sloped roof) and partial basements or cellars. Neither may extend beyond the building's outside footprint.
+- **Normal exceptions:** smaller upper floors (attics, towers, floors under a sloped roof) and partial basements or cellars.
+- **Revised 2026-10-14 (floors by hand):**
+  - A floor may be any size.
+  - The editor warns when a floor above the ground is wider or deeper than the floor below it.
+  - Floors below the ground aren't limited.
+  - See *Floors*.
 - **Dungeons and caves** may be any size behind a small entrance (a cave mouth, a trapdoor, a well). With **more than one entrance**, the overworld distance between entrances has to make sense of the distance inside. A 100-tile dungeon can't have its two ends five tiles apart outside.
 - **Editor checks:** a separate floor or basement outside its building's footprint is an error unless marked as an exception with a reason. For linked entrances, the editor compares overworld distance with the shortest walk inside and warns when they disagree by a large factor (starting at 3×, to tune).
 - **Not every building or floor needs to be enterable.** A decorative building has no door, or a door that is visibly shut ("It's locked." / "Nobody's home."). The editor allows it but lists decorative buildings so it's always a deliberate choice.

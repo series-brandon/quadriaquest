@@ -48,7 +48,7 @@ export const SPACE_BACKGROUND='#2b2622';
 const ARRIVAL_ORDER=[[0,1],[1,0],[-1,0],[0,-1]];
 // A stairwell entity on two tiles (bottom and top): solid, picked like any actor; interact() follows its
 // link. Going up you approach the bottom step; going down, the top.
-function createStairwell({place,direction,link,parent,pickables,services,tileAt}){
+export function createStairwell({place,direction,link,parent,pickables,services,tileAt}){
  const {bottom,top}=place,ux=top.x-bottom.x,uz=top.z-bottom.z,angle=Math.atan2(ux,uz);
  // The rail goes on the side away from the wall.
  const side=[Math.cos(angle),-Math.sin(angle)],beside=tileAt(bottom.x+Math.round(side[0]),bottom.z+Math.round(side[1]));
@@ -110,6 +110,58 @@ export function buildSpace({pickables=[],plan=null,size=null,origin=[0,0],floor=
    return inner.find(n=>!n.blocked);},
   dispose(){edges.dispose();for(const m of [...pickables]){let o=m;while(o&&o!==group)o=o.parent;if(o===group)pickables.splice(pickables.indexOf(m),1);}group.removeFromParent();group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();});}};
 }
+// Floors by hand (docs/CITY.md, Floors; user, 2026-10-14). A building entry may carry
+//   floors: [{level, use, surface, cells:[[dx, dz]…] (its own shape, any size; default the footprint), furniture:
+//     [{kind, at:[dx, dz], rotation}], edges:[{a:[dx, dz], b:[dx, dz], kind}] (inside walls, doors…),
+//     up:{at:[dx, dz], dir} (the flight up from this floor: its bottom step and the way up)}]
+// Levels: −1 a cellar, 0 the ground, 1… upper floors. An in-place building's ground floor is the overworld
+// (its level-0 entry only holds the flight up, and the opening down to a cellar is the cellar's flight);
+// a separate building's ground floor is a space too. Floors start empty: furniture is placed, or rolled
+// with the editor's Generate (furnish.js). Every coordinate is local to the building's north-west tile.
+export const FLOOR_DIRS={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]};
+export const floorLevels=entry=>Array.isArray(entry?.floors)?[...entry.floors].sort((a,b)=>a.level-b.level):null;
+// A flight's tiles (local): its bottom step, its top and the tile in front of the bottom.
+export function flightOf(up){const [dx,dz]=FLOOR_DIRS[up.dir]||FLOOR_DIRS.n,[x,z]=up.at;return {bottom:[x,z],top:[x+dx,z+dz],front:[x-dx,z-dz]};}
+// One floor of a building as a space: its shape walled (the outside's windows on a full floor, its doors
+// on a separate ground floor), inside walls and doors, stairwells to the floors above and below, and its
+// furniture. links: {exit(edge) (a door out), floor(level, via), ground(via, tile) (an in-place building's
+// overworld floor)}.
+export function buildFloorSpace({pickables=[],plan,entry,level,style='timber',base=1,links,services,inPlace=true}){
+ const levels=new Map(floorLevels(entry).map(f=>[f.level,f])),spec=levels.get(level)||{level},group=new THREE.Group(),tiles=new Map(),inner=[];
+ const local=(x,z)=>[x-plan.x0,z-plan.z0],world=([dx,dz])=>[plan.x0+dx,plan.z0+dz];
+ const footprint=plan.tiles.map(([x,z])=>local(x,z)),shape=new Set((spec.cells?.length?spec.cells:footprint).map(c=>c.join(',')));
+ const surface=spec.surface||(level<0?'stone':level>0?'planks':'floor');
+ // The floor's own shape (any size: user, 2026-10-14), with a ring of solid tiles around it.
+ for(const [dx,dz] of [...shape].map(k=>k.split(',').map(Number)))for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const [x,z]=world([dx+a,dz+b]),k=key(x,z);if(tiles.has(k))continue;const inside=shape.has(`${dx+a},${dz+b}`);
+  const t={x,z,h:base,surface,blocked:!inside,water:false,indoor:inside,building:inside?0:undefined,space:true};tiles.set(k,t);if(inside)inner.push(t);}
+ const t=(x,z)=>tiles.get(key(x,z)),tl=([dx,dz])=>t(...world([dx,dz]));
+ const edges=createEdgeFeatures({parent:group,pickables,tileAt:t,style:level<0?'stone':style}),doors=[];
+ // The outside walls: where a floor's edge lies on the building's, it keeps the outside's windows (and, a
+ // separate ground floor, its doors); anywhere else it's a plain wall.
+ const outside=new Map(plan.edges.map(e=>[[e.a.join(','),e.b.join(',')].join('|'),e]));
+ for(const n of inner)for(const [dx,dz] of Object.values(DIRS)){const m=t(n.x+dx,n.z+dz);if(!m||m.indoor)continue;const e=outside.get(`${n.x},${n.z}|${m.x},${m.z}`);
+  if(e?.kind==='door'&&level===0&&!inPlace){const door=edges.add(n,m,'door',{owner:0,style,locked:!!e.door?.locked});door.link=links.exit(e);doors.push(door);}
+  else edges.add(n,m,level>=0&&e?.kind==='window'?'window':'wall',{owner:0,style:level<0?'stone':style});}
+ for(const e of spec.edges||[]){const a=tl(e.a),b=tl(e.b);if(a&&b&&!edges.info(a,b))edges.add(a,b,e.kind,{style});}
+ // Stairwells: this floor's flight up, and the opening down where the floor below's flight arrives.
+ const stairs=[],live=f=>({bottom:tl(f.bottom),top:tl(f.top),front:tl(f.front)}),ok=p=>p.bottom?.indoor&&p.top?.indoor;
+ const toLevel=(l,via)=>l===0&&inPlace?links.ground(via,flightOf(via==='up'?levels.get(-1).up:levels.get(0).up)):links.floor(l,via);
+ if(spec.up&&levels.has(level+1)){const place=live(flightOf(spec.up));if(ok(place))stairs.push(createStairwell({place,direction:'up',link:toLevel(level+1,'up'),parent:group,pickables,services,tileAt:t}));}
+ const below=levels.get(level-1);if(below?.up&&(levels.has(level-1)||level-1===0)){const place=live(flightOf(below.up));if(ok(place))stairs.push(createStairwell({place,direction:'down',link:toLevel(level-1,'down'),parent:group,pickables,services,tileAt:t}));}
+ const furniture=[];
+ for(const f of spec.furniture||[]){try{furniture.push(createProp(f.kind,{origin:world(f.at),rotation:f.rotation||0,tileAt:t,parent:group,pickables}));}catch{}}
+ mergeStatic(group,furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});
+ createTerrainBatch({tiles:inner,map:tiles,factory:tile=>floorTile(tile,tiles),parent:group,pickables});
+ edges.bake();
+ const free=n=>n&&n.indoor&&!n.blocked,besideTop=well=>ARRIVAL_ORDER.map(([dx,dz])=>t(well.place.top.x+dx,well.place.top.z+dz)).find(free);
+ return {group,tiles,doors,stairs,edges,inner,furniture,level,
+  arrival(from){if(from?.door!==undefined){const door=doors[from.door];return door?.a||inner.find(free);}
+   const down=stairs.find(s=>s.direction==='down'),up=stairs.find(s=>s.direction==='up');
+   if(from==='up'&&down)return besideTop(down)||inner.find(free);
+   if(from==='down'&&up&&free(up.place.front))return up.place.front;
+   return (up&&free(up.place.front)?up.place.front:null)||inner.find(free);},
+  dispose(){edges.dispose();for(const m of [...pickables]){let o=m;while(o&&o!==group)o=o.parent;if(o===group)pickables.splice(pickables.indexOf(m),1);}group.removeFromParent();group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();});for(const p of furniture)p.dispose?.();}};
+}
 // Where stairs can go: two tiles along a wall rising into a corner (the top), with a free tile in front
 // of the bottom step, none of them a door's inside tile. Corners are tried farthest from the door
 // first (spec.stairs: a top tile of your own first). Returns local placements {top, bottom, front}
@@ -134,12 +186,28 @@ export function stairsPlacements(plan,spec={}){
 export function interiorProblems(data){
  const out=[];
  data.buildings.forEach((b,i)=>{if(b.desc.interior!=='separate')return;let plan;try{plan=planBuilding(b.desc,[b.x,b.z]);}catch{return;}
+  if(floorLevels(b))return;
   const spec=b.interior||{},places=stairsPlacements(plan,spec),floors=spec.floors||b.desc.storeys||1;
   if(floors<1||floors>b.desc.storeys)out.push({kind:'interior',severity:'error',tile:[b.x,b.z],text:`${b.desc.name||'A building'} has ${floors} interior floors for ${b.desc.storeys} storeys outside.`});
   if(floors>1&&!places.length)out.push({kind:'interior',severity:'error',tile:[b.x,b.z],text:`${b.desc.name||'A building'} has no room for its stairs (two tiles along a wall and a free tile in front).`});
   if(floors>2&&places.length<2)out.push({kind:'interior',severity:'error',tile:[b.x,b.z],text:`${b.desc.name||'A building'} needs two stair corners for ${floors} floors.`});
   if(!plan.doors.length)out.push({kind:'interior',severity:'error',tile:[b.x,b.z],text:`${b.desc.name||'A building'} has a separate interior but no door.`});
   void i;});
+ // Floors by hand (user, 2026-10-14): a floor may be any size, but one above the ground that is wider or
+ // deeper than the floor below it is a warning (underground floors aren't limited at all); each flight is on
+ // both floors it joins; the outside is tall enough for the floors above the ground.
+ data.buildings.forEach(b=>{const levels=floorLevels(b);if(!levels)return;let plan;try{plan=planBuilding(b.desc,[b.x,b.z]);}catch{return;}
+  const name=b.desc.name||'A building',at=[b.x,b.z],foot=plan.tiles.map(([x,z])=>[x-plan.x0,z-plan.z0]),byLevel=new Map(levels.map(f=>[f.level,f]));
+  const cellsOf=f=>f?.cells?.length?f.cells:foot,shape=f=>new Set(cellsOf(f).map(c=>c.join(','))),span=cells=>{const xs=cells.map(c=>c[0]),zs=cells.map(c=>c[1]);return [Math.max(...xs)-Math.min(...xs)+1,Math.max(...zs)-Math.min(...zs)+1];};
+  const label=l=>l<0?'the cellar':l===0?'the ground':`floor ${l+1}`;
+  const above=levels.filter(f=>f.level>0).length;if(above>(b.desc.storeys||1)-1)out.push({kind:'floors',severity:'error',tile:at,text:`${name} has ${above} floor${above>1?'s':''} above the ground but ${b.desc.storeys||1} storey${(b.desc.storeys||1)>1?'s':''} outside.`});
+  for(const f of levels){
+   if(f.level>0){const [w,d]=span(cellsOf(f)),[bw,bd]=span(cellsOf(byLevel.get(f.level-1)));
+    if(w>bw||d>bd)out.push({kind:'floors',severity:'warning',tile:at,text:`${name}: floor ${f.level+1} is ${w} × ${d}, bigger than the floor below (${bw} × ${bd}).`});}
+   if(!f.up)continue;const next=byLevel.get(f.level+1);if(!next&&f.level!==-1)continue;const fl=flightOf(f.up),own=shape(f),onto=shape(next);
+   for(const [part,c] of [['bottom',fl.bottom],['top',fl.top]])if(!own.has(c.join(','))||!onto.has(c.join(',')))out.push({kind:'floors',severity:'error',tile:[plan.x0+c[0],plan.z0+c[1]],text:`${name}: the stairs up from ${label(f.level)} leave the floor (${part}).`});}
+  for(const f of levels)if(f.level!==0&&!levels.some(o=>o.level===f.level-1&&o.up||f.level<0&&f.up))out.push({kind:'floors',severity:'warning',tile:at,text:`${name}: ${f.level<0?'the cellar':`floor ${f.level+1}`} has no stairs to it.`});
+ });
  for(const [id,spec] of Object.entries(data.interiors||{})){if(spec.kind!=='dungeon')continue;const [w,d]=spec.size||[0,0];
   if(!(w>=4&&d>=4))out.push({kind:'dungeon',severity:'error',tile:data.spawn,text:`Dungeon ${id} needs a size of at least 4 × 4.`});
   if(!spec.exit||spec.exit[0]<0||spec.exit[1]<0||spec.exit[0]>=w||spec.exit[1]>=d)out.push({kind:'dungeon',severity:'error',tile:data.spawn,text:`Dungeon ${id}'s exit must be inside it.`});
@@ -158,7 +226,18 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
  function spacesFor(city,building){
   const id=`${cityKey(city)}:${building}`;if(built.has(id))return built.get(id);
   const entry=city.data.buildings[building],plan=city.buildings[building].plan,spec=entry.interior||{},floors=Math.min(spec.floors||entry.desc.storeys||1,entry.desc.storeys||1),base=city.buildings[building].top-(entry.desc.storeys||1)*1.5;
-  const record={ids:[],spaces:[]};built.set(id,record);
+  const record={ids:[],spaces:[],byLevel:new Map()};built.set(id,record);
+  // Floors by hand: one space per level (an in-place building's ground floor is the overworld itself).
+  const levels=floorLevels(entry);
+  if(levels){const inPlace=entry.desc.interior!=='separate',ground=city.buildings[building].groundHeight??(plan.tiles.map(([x,z])=>city.tiles.get(key(x,z))?.h??1).reduce((a,b)=>Math.max(a,b),1));
+   for(const f of levels){if(f.level===0&&inPlace)continue;
+    const links={exit:e=>({kind:'exit',area:city.areaId,tile:e.b}),floor:(level,via)=>({kind:'floor',city,building,level,via}),
+     ground:(via,flight)=>({kind:'exit',area:city.areaId,tile:[plan.x0+flight[via==='up'?'top':'front'][0],plan.z0+flight[via==='up'?'top':'front'][1]]})};
+    const space=buildFloorSpace({pickables,plan,entry,level:f.level,style:entry.desc.style,base:ground,links,services,inPlace}),areaId=`${id}:L${f.level}#${++serial}`;scene.add(space.group);
+    const name=entry.desc.name||'Building',floorName=f.level<0?'cellar':f.level===0?'ground floor':`floor ${f.level+1}`;
+    areas.register({id:areaId,name:`${name} (${floorName})`,description:'Interior',listed:()=>false,group:space.group,tiles:space.tiles,maxZoom:INTERIOR_MAX_ZOOM,interior:true,camera:{background:SPACE_BACKGROUND},building,level:f.level,city});
+    record.ids.push(areaId);record.spaces.push(space);record.byLevel.set(f.level,{areaId,space});}
+   return record;}
   for(let floor=0;floor<floors;floor++){
    const links={exit:e=>({kind:'exit',area:city.areaId,tile:e.b}),floor:(f,via)=>({kind:'floor',city,building,floor:f,via})};
    const use=floor===0?furnishingUse(entry.desc):upstairsUse(entry.desc.use);
@@ -180,7 +259,8 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
  }
  // Where a link leads: [area id, landing tile].
  function resolve(link,from){
-  if(link.kind==='interior'){const r=spacesFor(link.city,link.building);return [r.ids[0],r.spaces[0].arrival({door:link.door})];}
+  if(link.kind==='interior'){const r=spacesFor(link.city,link.building),g=r.byLevel.get(0);if(g)return [g.areaId,g.space.arrival({door:link.door})];return [r.ids[0],r.spaces[0].arrival({door:link.door})];}
+  if(link.kind==='floor'&&link.level!==undefined){const r=spacesFor(link.city,link.building),f=r.byLevel.get(link.level);return f?[f.areaId,f.space.arrival(link.via||null)]:[null,null];}
   if(link.kind==='floor'){const r=spacesFor(link.city,link.building);return [r.ids[link.floor],r.spaces[link.floor].arrival(link.via||null)];}
   if(link.kind==='dungeon'){const r=dungeonFor(link.city,link.id);return [r.ids[0],r.spaces[0].arrival(null)];}
   if(link.kind==='exit'){const area=areas.get(link.area);return [link.area,area?.tiles.get(key(...link.tile))];}
@@ -206,6 +286,18 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
    if(tr.age>=FADE*2){transition=null;fade(0);areas.enter({arrival:false});}
    else fade(tr.age<FADE?tr.age/FADE:1-(tr.age-FADE)/FADE);
   },
+  // Rebuilds one building's spaces from its (edited) data, the one you stand in included: the editor's
+  // floors (docs/CITY.md, Floors). Returns the record; the caller re-activates where you were.
+  // at: [x, z] where you stand, kept when you're inside one of them.
+  rebuild(city,building,{at=null}={}){const id=`${cityKey(city)}:${building}`,old=built.get(id),inside=old&&old.ids.includes(areas.id)?areas.active.level:null;built.delete(id);
+   const record=spacesFor(city,building);
+   if(inside!==null){const next=record.byLevel?.get(inside)||[...(record.byLevel?.values()||[])][0];
+    if(next){const landing=(at&&next.space.tiles.get(key(...at)))||next.space.arrival(null);const t=landing&&!landing.blocked&&landing.indoor?landing:next.space.arrival(null);areas.activate(next.areaId,{landing:t,announce:false,arrival:false});arrived(t);}
+    else{const area=areas.get(city.areaId);if(area)areas.activate(city.areaId,{landing:city.spawn,announce:false,arrival:false});}}
+   if(old){for(const a of old.ids)areas.unregister?.(a);for(const sp of old.spaces)sp.dispose();}
+   return record;},
+  // The building and level of the space you're in (floors by hand), or null.
+  get here(){const a=areas.active;return a?.interior&&a.level!==undefined?{city:a.city,building:a.building,level:a.level,tiles:a.tiles}:null;},
   // Drop every space built for a city (before it is rebuilt or disposed).
   forget(city){if(!city?.spaceKey)return;for(const [id,record] of [...built])if(id.startsWith(city.spaceKey+':')&&!record.ids.includes(areas.id)){for(const a of record.ids)areas.unregister?.(a);for(const s of record.spaces)s.dispose();built.delete(id);}},
  };
