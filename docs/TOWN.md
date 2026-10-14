@@ -213,6 +213,16 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - both builds;
    - one perf pass with Mistrom's scenarios.
 
+## Auto graphics recovers (2026-10-14)
+
+User report: Auto made the game look like Low or Lowest although High ran at a steady 60 fps.
+- **Cause:** Auto stepped down after two 5-second windows averaging over 28 ms a frame. Editor rebuilds, map loading and streaming bursts on a fast machine look exactly like that. It never stepped back up, and it saved the lowered tier, so every later load started low.
+- **Fixes** (`render-quality.js`):
+  - Editor rebuilds call `quality.settle()`, a warm-up before frame times count again, as arrivals already did.
+  - Auto steps back up one tier after three windows in a row at the display's own rate. A tier it had to leave isn't tried again in the same session, so it can't flicker.
+  - Saved settings carry a version. Auto tiers saved before this start over at High, and a chosen mode is kept.
+- **Tests:** `render-quality.test.js` covers climbing back up, not retrying a tier that failed, and the old saved tier resetting.
+
 ## No land outside the map; free camera speed (2026-10-14)
 
 User request: "All the map should be editable and reachable. There shouldn't be any unusable map."
