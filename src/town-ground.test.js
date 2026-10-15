@@ -98,7 +98,7 @@ test('growing a map keeps the land and what was built where they were',()=>{
  assert.deepEqual([data.buildings[0].x,data.buildings[0].z,data.props[0].x,data.crystal[0],data.resources[0].z],[42,74,62,52,76]);
  assert.deepEqual(data.land.removed,['tree:44,94']);
  assert.equal(townLand(data).biomeAt(16+32+3,16+64+3),'forest','painted cells stay with the land');
- assert.throws(()=>growMap(data,{west:10}),/whole/);
+ assert.throws(()=>growMap(data,{west:10}),/whole/);assert.throws(()=>growMap(data,{west:32}),/regions/,'a map stays whole regions');
  buildMap(data,{scene:new THREE.Group()});
 });
 test('repainting a biome rebuilds only around it, and matches a fresh build',()=>{
@@ -148,11 +148,18 @@ test('placed enemy spawns stream with their kind, behaviour and respawn, even wi
  const spawns=source.extras(all).filter(e=>e.kind==='enemy');
  assert.deepEqual(spawns.map(e=>[e.enemy,e.aggressive,e.respawn,e.x,e.z]),[['bruiser',true,120,dry.x,dry.z]]);
  assert.equal(spawns[0].id,`placed:enemy:${dry.x},${dry.z}`);
- growMap(data,{west:32});assert.deepEqual([data.enemies[0].x,data.enemies[0].z],[dry.x+32,dry.z],'spawns move when the map grows');
+ growMap(data,{west:64,north:64});assert.deepEqual([data.enemies[0].x,data.enemies[0].z],[dry.x+64,dry.z+64],'spawns move when the map grows');
 });
 test('water painted by hand is a still pond tile; clearing it gives the land back',()=>{
  const data=hillTown(),dry=[...mapTiles(data).values()].find(t=>!t.water);
  setMapSurface(data,dry.x,dry.z,'water');assert.equal(mapSurface(data,dry.x,dry.z),'water');
  const wet=mapTiles(data).get(key(dry.x,dry.z));assert.equal(wet.water,true);assert.equal(wet.blocked,true);assert.equal(wet.still,true);assert.equal(wet.h,.5);
  clearMapSurface(data,dry.x,dry.z);const back=mapTiles(data).get(key(dry.x,dry.z));assert.equal(back.water,false);assert.equal(back.h,dry.h);
+});
+test('water raised by hand: one half block makes beach-height dry ground (the shore’s look), lowering it is water again',()=>{
+ const data=createMapData({id:'coast',size:[64,64],land:{seed:7,default:'coast',cells:{},terrain:{'4,4':'sea','4,5':'sea','5,4':'sea','5,5':'sea'}}}),wet=mapTiles(data).get(key(40,40));assert.ok(wet.water,'sea to raise');
+ setMapOffset(data,wet.x,wet.z,.5);const beach=mapTiles(data).get(key(wet.x,wet.z));assert.equal(beach.water,false);assert.equal(beach.h,1,'the banks’ height');assert.equal(beach.shore,true);
+ setMapOffset(data,wet.x,wet.z,1);assert.equal(mapTiles(data).get(key(wet.x,wet.z)).h,1.5);
+ setMapOffset(data,wet.x,wet.z,0);assert.equal(mapTiles(data).get(key(wet.x,wet.z)).water,true,'lowered back: water');
+ setMapSurface(data,wet.x,wet.z,'cobble');assert.equal(mapTiles(data).get(key(wet.x,wet.z)).h,1,'a path across water is still at ground level');
 });

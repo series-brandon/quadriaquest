@@ -213,11 +213,39 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - both builds;
    - one perf pass with Mistrom's scenarios.
 
+## Dock, whole regions and checks (2026-10-15)
+
+User requests: the panel where the catalogue is (no Show / Hide panel), maps in whole regions, clearer grid lines, a way to raise ground beside a full-block step, and the "17421 tiles can't be reached" warning.
+- **The dock** (bottom left): the tool's options and what's selected, and in Decorate the catalogue below them.
+  - Outside Decorate the options always show there.
+  - In Decorate they show only for something selected, paint and stamps.
+  - The status line moved into the bar.
+  - A fifth tool group, **Map**, holds Inspect and the map's settings (open, save, copy, download, grow, round up, free camera, lines) and its checks.
+  - Show / Hide panel is gone.
+- **Whole regions** (`world-map.js`): a world map is whole 128-tile regions each way.
+  - `growMap` refuses a size that isn't (`wholeRegions`); Grow adds 1 or 2 regions a side.
+  - `roundUpToRegions` (*Round up to whole regions* in Map, shown only for a map that isn't whole) pads half the missing tiles west and north (in whole chunks) and the rest east and south.
+  - New land carries on the edge's biome and terrain paint, so a sea painted to the edge goes on being sea.
+  - The map checks warn about a land map that isn't whole regions. A blank map is 128 × 128.
+  - The overworld was padded from 288 × 288 to 384 × 384 (3 × 3 regions): 32 tiles west and north, 64 east and south. Its crystal is now at 176, 176.
+- **Grid lines** (`grid-overlay.js`): flat ribbons, a bright core on a dark edge, so they read on light ground. Region lines (gold) are wider than chunk lines (pink).
+- **Raising beside a step:** in the editor, a click on a tile's side (a cliff's face) means the lower ground that face looks onto, not the top above it (`editorTile`, main.js). Before, clicking "next to" a raised block usually hit its face and raised the block again.
+  - Raise steps by half a block, so the tile in front of a full-block step becomes the half step up to it.
+- **Raising water** (user, 2026-10-15: the beach-height tiles beside the sea and river): water raised by hand alone (no path, pad or prop over it) counts its height from the water's level (`town-ground.js`). One Raise makes dry ground at the banks' height (1, a beach, with the biome's shore look), the next 1.5; lowering it back to the water's level makes it water again. A path, pad or prop over water still stands at ground level. Before, the first Raise on water jumped to 1.5 and one Lower went straight back to water, so a beach-height tile couldn't be made.
+- **Unreachable ground:** land cut off only by water (across the river or the sea) is now one note, "N tiles of land across the water: no bridge or boat reaches them yet", not a warning.
+  - Ground a full-block drop cuts off is still a warning (`reachableAcrossWater`, map-checks.js: crossing water, then out onto a beach).
+  - The overworld's checks: the river's far side (35,299 tiles) and an islet are notes; one warning is left (a one-tile slot).
+- **Checked in the browser:**
+  - the dock in Decorate (catalogue only), in Terrain (the brush options) and in Map;
+  - the overworld at 384 × 384 with its lines;
+  - a full-block tile, then clicks on its two faces raising the tiles in front to half steps (the block stayed put).
+
 ## Opening in the editor, compact catalogue (2026-10-15)
 
 User request: open the editor on the overworld when the playground starts (the game's start an area switch), free camera and a hidden panel by default, and a compact catalogue like the Sims'.
 - **On start:** the playground opens the world editor on the overworld (`mountPlayground`), unless the address has `?game` (the perf harness always adds it). *The clearing (where the game starts)* in the Map list closes the editor and starts the game afresh there.
-- **Defaults:** the free camera is on while the editor is open (back on the slime on Close); the side panel starts hidden.
+- **Defaults:** the free camera is on while the editor is open (back on the slime on Close). (The side panel has since moved into the dock: see *Dock, whole regions and checks* below.)
+- **Checks:** clicking one moves the camera over its place (`lookAt`, main.js: the free camera's focus) and marks it in its severity's colour (red, amber or blue), filled with an outline around it, with the check shown as chosen in the list. Your next click in the world, Esc or another check clears it.
 - **Compact:** the bar sits top left at its own width. The catalogue sits bottom left (up to 640 wide): Function / Room and Search along its top, the groups on the left, and square icons only on the right (the name on hover), two rows tall, scrolling down.
 
 ## Decorating indoors, doors and stairs (2026-10-14)

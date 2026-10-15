@@ -205,6 +205,13 @@ User request: separate terrain from biome, so any combination works.
 - **The overworld:** migrated in place (its sea cells became sea terrain under the coast biome, its river cells river terrain).
 - **Tests:** biome-land.test.js covers any biome on any terrain, plains without ponds, lakeland with many, sea under any biome, and the usual terrain. town-ground.test.js covers the blank slate and Grow's pick. ground-cover-pool.test.js covers the pool growing.
 
+## The land's edge (2026-10-15)
+
+User report: strips of meadow where a sea painted to the overworld's edge met the emptiness.
+- **Cause:** a tile's biome and terrain are looked up through a small warp (so borders wander), and its height blends the cells within 20 tiles. Near the edge both reached cells outside the map. Nothing can be painted there, so they read as the default biome (meadow) and its usual terrain (rolling land): land along the sea's edge.
+- **Fix** (`biome-land.js`): a cell past the land's edge reads as the nearest cell inside it, so the edge keeps its own biome and terrain to the last tile.
+- **Result:** the overworld's checks went from 11 warnings to 3; the stranded strips of open ground are gone. A test paints a sea up to the edge and checks every tile there is water, and that the opposite edge keeps its painted biome.
+
 ## Open questions
 
 None for now. Later biomes, effects on play and region names on entry were each deferred (*User decisions*, above).

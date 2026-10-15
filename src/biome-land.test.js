@@ -102,3 +102,9 @@ test('terrain and biome are painted apart: any biome on any terrain; plains have
  assert.equal(on('forest','sea').tile(40,40).waterKind,'sea','any biome over the sea is sea');
  assert.equal(createBiomeLand({seed:1,bounds:[0,0,64,64],map:{default:'wetland'}}).terrainAt(30,30),'marsh','unpainted: the biome’s usual terrain');
 });
+test('a sea painted to the land’s edge is sea to the last tile: past the edge reads as the edge, not the default',()=>{
+ const size=64,cells={},terrain={};for(let cz=0;cz<size/CELL;cz++)for(let cx=0;cx<size/CELL;cx++){cells[`${cx},${cz}`]='coast';if(cx>=size/CELL-2)terrain[`${cx},${cz}`]='sea';}
+ const land=createBiomeLand({seed:3,bounds:[0,0,size,size],map:{default:'meadow',cells,terrain}});
+ for(let z=0;z<size;z++)for(let x=size-8;x<size;x++)assert.equal(land.tile(x,z).water,true,`${x},${z} is sea`);
+ for(let z=0;z<size;z++)assert.notEqual(land.tile(0,z).biome,'meadow','the west edge keeps its painted biome');
+});

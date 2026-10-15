@@ -17,6 +17,7 @@ import {makeCrystal} from './crystal-model.js';
 import {key} from './world.js';
 import {CHUNK,REGION,BAND,chunkId,regionId,chunkGap} from './world-grid.js';
 import {createTownGround,townLand} from './town-ground.js';
+import {CELL as LAND_CELL} from './biome-land.js';
 
 // Cities as data (docs/CITY.md, Authoring and Streaming; city Phases 5, 6 and 9). A city is a plain
 // object the editor edits and the repo stores, built by the shared builders:
@@ -69,8 +70,12 @@ export function putOnLand(data,land){
 // (unpainted on the land, grass at level 1 otherwise), and growing west or north moves everything built
 // (and, on the land, the map's origin in it, so the land stays where it was under what was built).
 // Shrinking isn't supported; nor is a walled city (its walls follow its size).
-export function growMap(data,{north=0,east=0,south=0,west=0}){
+// A map is whole regions (docs/TOWN.md, Whole regions): its size a multiple of REGION each way, so it grows by
+// adding regions. round: padding a map that isn't whole yet up to whole regions (roundUpToRegions).
+export const wholeRegions=data=>data.size.every(n=>n%REGION===0);
+export function growMap(data,{north=0,east=0,south=0,west=0},{round=false}={}){
  for(const n of [north,east,south,west])if(n<0||n%CHUNK)throw Error(`Grow by whole ${CHUNK}-tile chunks.`);
+ if(!round&&((data.size[0]+west+east)%REGION||(data.size[1]+north+south)%REGION))throw Error(`A map is whole ${REGION}-tile regions: grow it by whole regions.`);
  if(data.walls)throw Error('A walled city can’t grow: its walls follow its size.');
  const [W,D]=data.size,next=createMapData({id:data.id,name:data.name,size:[W+west+east,D+north+south],style:data.style,land:data.land?{...data.land}:null});
  // The ground: each tile's own values, moved (only those that differ from plain ground).
@@ -87,9 +92,17 @@ export function growMap(data,{north=0,east=0,south=0,west=0}){
  for(const e of data.edges){e.a=at(e.a);e.b=at(e.b);}
  for(const f of data.townsfolk||[]){if(f.home)f.home=at(f.home);if(f.patrol)f.patrol=f.patrol.map(at);}
  if(data.land){const [ox,oz]=data.land.origin||[0,0];data.land.origin=[ox-west,oz-north];
-  if(data.land.removed)data.land.removed=data.land.removed.map(id=>id.replace(/(-?\d+),(-?\d+)$/,(m,x,z)=>`${+x+west},${+z+north}`));}
+  if(data.land.removed)data.land.removed=data.land.removed.map(id=>id.replace(/(-?\d+),(-?\d+)$/,(m,x,z)=>`${+x+west},${+z+north}`));
+  // The new land carries on the edge's paint (its biome and terrain), as the land already reads past its edge
+  // (biome-land.js): a sea painted to the edge goes on being sea.
+  const cellsOf=(o,n)=>[Math.floor(o/LAND_CELL),Math.floor((o+n-1)/LAND_CELL)],[ax0,ax1]=cellsOf(ox,W),[az0,az1]=cellsOf(oz,D),[bx0,bx1]=cellsOf(ox-west,W+west+east),[bz0,bz1]=cellsOf(oz-north,D+north+south);
+  for(const layer of [data.land.cells,data.land.terrain].filter(Boolean))for(let cz=bz0;cz<=bz1;cz++)for(let cx=bx0;cx<=bx1;cx++){if(cx>=ax0&&cx<=ax1&&cz>=az0&&cz<=az1)continue;
+   const from=`${Math.min(ax1,Math.max(ax0,cx))},${Math.min(az1,Math.max(az0,cz))}`,to=`${cx},${cz}`;if(layer[from]!==undefined&&layer[to]===undefined)layer[to]=layer[from];}}
  return data;
 }
+// Pads a map out to whole regions: half the missing tiles (in whole chunks) west and north, the rest east and south.
+export function roundUpToRegions(data){const pad=n=>{const need=Math.ceil(n/REGION)*REGION-n,low=Math.floor(need/2/CHUNK)*CHUNK;return [low,need-low];};
+ const [west,east]=pad(data.size[0]),[north,south]=pad(data.size[1]);return west+east+north+south?growMap(data,{north,east,south,west},{round:true}):data;}
 export function takeOffLand(data){
  if(!data.land)return data;
  for(const r of Object.values(data.regions)){r.heights=r.offsets.map(row=>[...row].map(c=>heightChar(Math.max(0,1+charHeight(c)-OFFSET_BIAS))).join(''));delete r.offsets;r.surfaces=r.surfaces.map(row=>row.replaceAll(UNPAINTED,SURFACE_CODES.grass));}

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {key} from './world.js';
 import {surfaceColor} from './map-terrain.js';
 import {hash} from './noise.js';
+import {biomeRule} from './biome-rules.js';
 
 // Towns built on the world's land (docs/TOWN.md, The town on the land). A town with `land` has no ground
 // of its own: every tile starts as the generated biome land (biome-land.js), the same heights, colours
@@ -73,9 +74,12 @@ export function createTownGround(data,land=townLand(data),{offset=()=>0,surface=
   return h;}
  const made=new Set(extraMade.map(c=>key(...c)));
  const isMade=(x,z)=>made.has(key(x,z))||!!surface(x,z)||offset(x,z)!==0||onPad(x,z);
- // The made ground before hand offsets: the land with the pads in it (water counts as ground level, as
- // a made tile over water is dry ground).
- function base(x,z){const t=land.tile(x,z);if(!t)return null;return padded(x,z,t.water?1:t.h);}
+ // Water raised by hand alone (no paint, pad or prop over it): its height counts from the water's level, so
+ // one half-block raise makes dry ground at the banks' height (a beach), and lowering it back is water again.
+ const raisedWater=(t,x,z)=>t.water&&!made.has(key(x,z))&&!surface(x,z)&&!onPad(x,z);
+ // The made ground before hand offsets: the land with the pads in it. Water under a path, pad or prop counts as
+ // ground level (dry ground); water raised by hand alone, as its own level.
+ function base(x,z){const t=land.tile(x,z);if(!t)return null;return raisedWater(t,x,z)?WATER_H:padded(x,z,t.water?1:t.h);}
  function tile(x,z){
   if(!inside(x,z))return null;const t=land.tile(x,z);if(!t)return null;
   const own=surface(x,z),m=isMade(x,z);
@@ -83,7 +87,9 @@ export function createTownGround(data,land=townLand(data),{offset=()=>0,surface=
   // Water painted by hand (the editor's Surface tool): a still pond tile, as the land's own.
   if(own==='water')return {x,z,h:WATER_H,water:true,blocked:true,surface:'water',still:true,waterKind:'pond',biome:t.biome,terrain:t.terrain,made:true};
   const h=Math.max(.5,base(x,z)+offset(x,z));
-  // Unpainted: the biome's ground (its surface and colours); painted: the town's surface.
+  // Unpainted: the biome's ground (its surface and colours; raised water, its shore's, like the beaches);
+  // painted: the town's surface.
+  if(!own&&raisedWater(t,x,z)){const shore=biomeRule(t.biome).ground.shore||biomeRule(t.biome).ground;return {x,z,h,surface:shore.surface,palette:shore.palette,blocked:false,water:false,buildable:true,biome:t.biome,shore:true,made:true};}
   return own?{x,z,h,surface:own,blocked:false,water:false,buildable:true,biome:t.biome,made:true}
    :{x,z,h,surface:t.water?'dirt':t.surface,palette:t.water?null:t.palette,blocked:false,water:false,buildable:true,biome:t.biome,shore:t.shore,rocky:t.rocky,made:m};
  }

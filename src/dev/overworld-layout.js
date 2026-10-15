@@ -1,4 +1,4 @@
-import {createMapData,growMap} from '../world-map.js';
+import {createMapData,growMap,roundUpToRegions} from '../world-map.js';
 
 // The Quadria overworld: the start of the world map, where Mistrom, the starting village, will be built
 // (docs/TOWN.md). Its wild starting point. Dev only: it writes src/maps/overworld.json once
@@ -13,7 +13,8 @@ import {createMapData,growMap} from '../world-map.js';
 //  - the land painted in biomes (docs/BIOMES.md): meadow under the village, woods, pines and hills to the
 //    north and a quarry up the river, the river down the east side into an estuary, coast along the
 //    south, then the sea.
-export const OVERWORLD={size:288,village:96,grow:96,crystal:[144,144],spawn:[144,147]};
+// size: the map once padded to whole regions; origin: where the village's 0, 0 ended up in it.
+export const OVERWORLD={size:384,village:96,grow:96,origin:128,crystal:[144,144],spawn:[144,147]};
 
 export function overworldData(){
  const M=OVERWORLD,data=createMapData({id:'overworld',name:'Quadria overworld',size:[M.village,M.village],style:'timber',land:{seed:3,default:'meadow',cells:{},terrain:{},nature:false,enemies:false,fishing:false}});
@@ -27,6 +28,6 @@ export function overworldData(){
  paint(-12,12,23,13,'coast');paint(-12,14,23,23,'coast');shape(-12,14,23,23,'sea');paint(20,-2,23,11,'coast');
  paint(14,8,17,13,'wetland');paint(10,12,11,13,'wetland');   // the estuary marsh
  shape(12,-12,12,12,'river');shape(12,12,13,13,'river');     // the river down the east side to the sea
- // Grown around the village (the land stays put: its origin moves).
- return growMap(data,{north:M.grow,east:M.grow,south:M.grow,west:M.grow});
+ // Grown around the village by 96 a side (the land stays put: its origin moves), then padded to whole regions.
+ growMap(data,{north:M.grow,east:M.grow,south:M.grow,west:M.grow},{round:true});return roundUpToRegions(data);
 }

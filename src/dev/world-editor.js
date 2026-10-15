@@ -89,7 +89,9 @@ const TOOL_GROUPS=[
  ['decorate','Decorate',[['select','Hand'],['design','Colours'],['eyedropper','Eyedropper'],['erase','Sledgehammer'],['floorpaint','Floor paint'],['wallpaint','Wall paint'],['stamp','Stamp']]],
  ['build','Build',[['room','Room'],['resize','Push/pull walls'],['building','Building'],['footprint','Footprint'],['walls','Walls'],['edge','Edge'],['stairs','Stairs'],['use','Use'],['reroll','Reroll furniture'],['underground','Underground']]],
  ['terrain','Terrain',[['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['smooth','Smooth'],['ramp','Ramp'],['surface','Surface'],['biome','Biome']]],
- ['world','World',[['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['spawn','Arrival'],['inspect','Inspect']]]];
+ ['world','World',[['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['spawn','Arrival']]],
+ // Map: open, save and grow the map, its lines, and its checks (with Inspect).
+ ['map','Map',[['inspect','Inspect']]]];
 const TOOLS=TOOL_GROUPS.flatMap(([,,tools])=>tools),groupOf=id=>TOOL_GROUPS.find(([,,tools])=>tools.some(([t])=>t===id))?.[0]||'decorate';
 const SIDES=['n','e','s','w'],COUNTER={n:'w',w:'s',s:'e',e:'n'};
 // The colour picker's quick swatches: the game's own palette (any colour is allowed; these are only quick picks).
@@ -100,14 +102,14 @@ export function mapCatalogue(){
  list.sort((a,b)=>(b.mapId==='overworld')-(a.mapId==='overworld'));
  // The game's own start (not a map file): choosing it leaves the editor for the clearing, a fresh start.
  list.push({id:'area:clearing',mapId:null,name:'The clearing (where the game starts)',area:'clearing'});
- list.push({id:'prop-gallery',mapId:'prop-gallery',name:'Prop gallery (playground)',make:()=>propGalleryData()},{id:'blank',mapId:'new-map',name:'Blank 64 × 64',make:()=>createMapData({id:'new-map',name:'New map',size:[64,64]})});
+ list.push({id:'prop-gallery',mapId:'prop-gallery',name:'Prop gallery (playground)',make:()=>propGalleryData()},{id:'blank',mapId:'new-map',name:'Blank 128 × 128 (one region)',make:()=>createMapData({id:'new-map',name:'New map',size:[128,128]})});
  return list;
 }
 
 export function createWorldEditor(host){
  const catalogue=mapCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null,stopFloors=null,stopScreen=null;
- const tool=signal('select'),toolGroup=signal('decorate'),sideOpen=signal(false),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
+ const tool=signal('select'),toolGroup=signal('decorate'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
  const options={paintColour:signal('#e8c8a0'),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
@@ -812,7 +814,7 @@ export function createWorldEditor(host){
   if(p.prop&&PROPS[p.prop.kind])showGhost(p.prop.kind,p.prop.rotation,p.prop.x,p.prop.z,!p.refused);
   previewNote.value=p.refused?`Can’t place here: ${p.refused}`:'';}
  function hover(tile){hoverAt=tile?{x:tile.x,z:tile.z}:null;refreshPreview();}
- function cancel(){if(patrolling){patrolling=false;patrolOn.value=false;status.value='Patrol route done.';return;}
+ function cancel(){if(problemMarks.length){clearProblem();return;}if(patrolling){patrolling=false;patrolOn.value=false;status.value='Patrol route done.';return;}
   if(heldDoor){heldDoor.actor.group.visible=true;heldDoor=null;status.value='Put back.';refreshPreview();return;}
   if(pendingFlight){pendingFlight.well&&(pendingFlight.well.group.visible=true);pendingFlight=null;status.value='Put back.';refreshPreview();return;}
   if(placing||moving.peek()){const put=!placing,sel=selection.peek();placing=null;moving.value=false;turning=null;pinned=null;if(unhide()&&sel)showWorld(sel);status.value=put?'Put back.':'Put away.';}else if(draft.peek().size&&tool.peek()==='footprint'){clearDraft();status.value='Footprint cleared.';}else selection.value=null;showSelection();}
@@ -1038,7 +1040,7 @@ export function createWorldEditor(host){
    if(![fl.bottom,fl.top,fl.front].every(own))throw Error('The stairs and the tile in front of them must be on this floor.');f.up={at:[lx,lz],dir};};
   if(floorHere.peek())return changeFloor(apply,`Stairs up from ${ON_LEVEL(level).replace(/^(on|in) /,'')}.`);
   if(!isDungeon(i)&&await change(()=>{apply();return cellsOf('building',data.buildings[i]);},cellsOf('building',data.buildings[i]))){status.value=`Stairs up from the ground floor.`;return true;}return false;}
- async function click(tile,point=null,actor=null){
+ async function click(tile,point=null,actor=null){if(problemMarks.length)clearProblem();
   // A door into a building, or a stairwell: Inspect and Select follow it (docs/CITY.md, Floors).
   // The Hand lifts a door or a floor's stairs; Inspect goes through doors and up and down stairs.
   if(mode.peek()==='edit'&&tool.peek()==='select'&&actor&&!holding()&&!heldDoor&&!pendingFlight){if(actor.kind==='door'&&liftDoor(actor))return true;if(actor.kind==='stairwell'&&liftFlight(actor))return true;}
@@ -1140,11 +1142,13 @@ export function createWorldEditor(host){
  }
  // Grows the map by whole chunks (docs/TOWN.md, Growing the overworld): one undo step, a full rebuild,
  // and you stay on the same spot of ground (it moves with everything else when the map grows west or north).
- async function growBy(){const n=+options.growBy.peek()*CHUNK,side=options.growSide.peek(),sides=side==='all'?{north:n,east:n,south:n,west:n}:{[side]:n};
+ // Grows by whole regions (docs/TOWN.md, Whole regions); round: pads a map that isn't whole regions yet.
+ async function growBy(round=false){const n=+options.growBy.peek()*REGION,side=options.growSide.peek(),sides=round?roundSides(data.size):side==='all'?{north:n,east:n,south:n,west:n}:{[side]:n};
   const here=host.currentMap?.()?.at;snapshot();
-  try{growMap(data,sides);}catch(error){undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return;}
+  try{growMap(data,sides,{round});}catch(error){undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return;}
   if(rebuilding)await rebuilding;built=await host.editMap(data,{keepPlayer:false,at:here&&{x:here.x+(sides.west||0),z:here.z+(sides.north||0)}});
   scheduleChecks(0);showGrid();showSelection();showDraft();showBiomes();revision.value++;status.value=`${data.name} is now ${data.size.join(' × ')}.`;}
+ const roundSides=([W,D])=>{const pad=v=>{const need=Math.ceil(v/REGION)*REGION-v,low=Math.floor(need/2/CHUNK)*CHUNK;return [low,need-low];},[west,east]=pad(W),[north,south]=pad(D);return {north,east,south,west};};
  const json=()=>JSON.stringify(data,null,1);
  async function save(){
   try{const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:json()})});
@@ -1154,17 +1158,28 @@ export function createWorldEditor(host){
  const swatch=(value,id,name,color)=>h('button',{type:'button',class:'q-world-editor__swatch','aria-pressed':()=>String(value.value===id),on:{click:()=>{value.value=id;}}},h('span',{class:'q-world-editor__chip',style:{background:color||'transparent'}}),h('span',null,name));
  const select=(label,value,choices)=>h('label',{class:'q-world-editor__field'},label,h('select',{class:'q-select',on:{change:e=>{value.value=e.target.value;}}},choices.map(([id,name])=>h('option',{value:id,selected:()=>value.value===id},name))));
  const shown=(...tools)=>()=>!tools.includes(tool.value);
+ // A check's place (docs/TOWN.md, Opening in the editor): the camera moves over it and it's marked in its
+ // severity's colour (filled, with an outline around it) until your next click in the world, or Esc.
+ const PROBLEM_COLOURS={error:NO,warning:'#ffb84d',info:BRUSH};const shownProblem=signal(null);let problemMarks=[];
+ function clearProblem(){for(const m of problemMarks)m.dispose();problemMarks=[];shownProblem.value=null;}
+ function showProblem(p){clearProblem();const [x,z]=p.tile,color=PROBLEM_COLOURS[p.severity]||BRUSH,ring=[];for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)ring.push([x+a,z+b]);
+  const moved=host.lookAt?host.lookAt(x,z):[[0,0],[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1]].some(([dx,dz])=>host.teleport(x+dx,z+dz));
+  problemMarks=[createCellFill({cells:[{x,z,color}],heightAt,parent:overlayParent(),opacity:.75}),createCellOutline({cells:ring,tiles:{get:k=>{const [a,b]=k.split(',').map(Number);return at(a,b)||{x:a,z:b,h:heightAt(a,b)};}},parent:overlayParent(),color})];
+  shownProblem.value=p;status.value=moved?label(p):`${label(p)} (couldn’t go there).`;}
  const label=p=>`${p.severity==='error'?'Error':p.severity==='warning'?'Warning':'Note'} · ${p.tile.join(',')} · ${p.text}`;
  const counts=computed(()=>{const list=problems.value;return `${list.filter(p=>p.severity==='error').length} errors · ${list.filter(p=>p.severity==='warning').length} warnings · ${list.filter(p=>p.severity==='info').length} notes`;});
  // Choosing a tool puts down nothing: what you hold goes away unless the new tool is the Hand.
- function setTool(id){if(id!=='select'&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id);}
+ const TOOL_HINTS={select:'Click something to lift it; drag a box to select several. Pick from the catalogue to place something new.',design:'Click something to change its colours.',eyedropper:'Click something to copy it, colours and all.',erase:'Click something to remove it.',inspect:'Click a tile to see what’s there.'};
+ function setTool(id){if(id!=='select'&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id);if(TOOL_HINTS[id])status.value=TOOL_HINTS[id];}
+ // The dock's panel: always outside Decorate; in Decorate only for what's selected, paint and stamps.
+ const panelShown=computed(()=>{revision.value;return toolGroup.value!=='decorate'||['floorpaint','wallpaint','stamp'].includes(tool.value)||['select','design'].includes(tool.value)&&!!selection.value;});
  const smallButton=(label,act,props={})=>h('button',{type:'button',class:'q-button q-button--small',...props,on:{click:fail(act)}},label);
  // The layout (docs/TOWN.md, Sims-style editor): the world fills the window (the player interface hides while
  // editing); a bar along the top (the map, Edit / Play, undo, the tool groups and their tools), a side panel
  // (status, the tool's options, what's selected, the map and its checks) and, in Decorate, the catalogue
  // along the bottom.
  function build(){
-  return h('div',{class:'q-world-editor','data-mode':()=>mode.value,'data-side':()=>sideOpen.value?'open':'closed'},
+  return h('div',{class:'q-world-editor','data-mode':()=>mode.value},
    h('header',{class:'q-world-editor__bar','aria-label':'World editor'},
     h('div',{class:'q-world-editor__bar-row'},
      h('strong',{class:'q-world-editor__name'},()=>{revision.value;return data?`${data.name} · ${data.size.join(' × ')}`:'World editor';}),
@@ -1173,7 +1188,6 @@ export function createWorldEditor(host){
       smallButton('Undo',()=>step(undo,redo),{title:`${MOD}+Z`,disabled:()=>!history.value.undo}),
       smallButton('Redo',()=>step(redo,undo),{title:`${MOD}+Shift+Z`,disabled:()=>!history.value.redo}),
       smallButton('Reset',()=>rebuild({keepPlayer:false})),
-      smallButton(()=>sideOpen.value?'Hide panel':'Show panel',()=>{sideOpen.value=!sideOpen.peek();},{'aria-expanded':()=>String(sideOpen.value)}),
       smallButton('Close',()=>editor.close()))),
     h('div',{class:'q-world-editor__bar-row',hidden:()=>mode.value!=='edit'},
      segmented({label:'Walls',options:[{value:'up',label:'Walls up'},{value:'cut',label:'Cutaway'},{value:'down',label:'Walls down'}],value:options.wallsMode,onChange:v=>{options.wallsMode.value=v;}}),
@@ -1181,16 +1195,15 @@ export function createWorldEditor(host){
      h('span',{class:'q-world-editor__level'},()=>{revision.value;const h0=floorHere.value;return h0?LEVEL_NAME(h0.level,hereOwner()):'The map';})),
     h('div',{class:'q-world-editor__bar-row',hidden:()=>mode.value!=='edit'},
      segmented({label:'Tools',options:TOOL_GROUPS.map(([value,label])=>({value,label})),value:toolGroup,onChange:v=>{setTool(TOOL_GROUPS.find(([g])=>g===v)[2][0][0]);}}),
-     h('div',{class:'q-world-editor__tools'},TOOLS.map(([id,name])=>h('button',{type:'button',class:'q-button q-button--small',hidden:()=>groupOf(id)!==toolGroup.value,'aria-pressed':()=>String(tool.value===id),on:{click:()=>setTool(id)}},name))))),
-   h('aside',{class:'q-world-editor__side','aria-label':'Editor panel',hidden:()=>!sideOpen.value},
-    h('p',{class:'q-page__help',role:'status'},status),
-    h('p',{class:'q-page__help q-world-editor__refused',hidden:()=>!previewNote.value},previewNote),
+     h('div',{class:'q-world-editor__tools'},TOOLS.map(([id,name])=>h('button',{type:'button',class:'q-button q-button--small',hidden:()=>groupOf(id)!==toolGroup.value,'aria-pressed':()=>String(tool.value===id),on:{click:()=>setTool(id)}},name)))),
+    h('div',{class:'q-world-editor__status'},h('p',{class:'q-page__help',role:'status'},status),h('p',{class:'q-page__help q-world-editor__refused',hidden:()=>!previewNote.value},previewNote))),
+   // The dock, bottom left: the tool's options and what's selected (when there's anything to show), and in
+   // Decorate the catalogue below them.
+   h('div',{class:'q-world-editor__dock',hidden:()=>mode.value!=='edit'},
+   h('section',{class:'q-world-editor__panel','aria-label':'Tool options',hidden:()=>!panelShown.value},
     h('div',{class:'q-world-editor__options',hidden:()=>mode.value!=='edit'},
      h('p',{class:'q-page__help',hidden:shown('select')},()=>{revision.value;heldRotation.value;const sel=selection.value,entry=entryOf(sel);
       return entry?`${nameOf(sel.kind,entry)} · ${KIND_LABELS[sel.kind]||sel.kind} at ${anchorOf(sel.kind,entry)?.join(',')}${moving.value?' · held':''}`:'Click something to lift it; drag a box to select several. Pick from the catalogue to place something new.';}),
-     h('p',{class:'q-page__help',hidden:shown('design')},'Click something to change its colours.'),
-     h('p',{class:'q-page__help',hidden:shown('eyedropper')},'Click something to copy it, colours and all.'),
-     h('p',{class:'q-page__help',hidden:shown('erase')},'Click something to remove it.'),
      h('div',{hidden:shown('walls')},select('Make it',options.wallKind,[['window','A window'],['wall','A plain wall'],['door','A door'],['sign','The sign'],['nosign','No sign'],['flowers','Flower box (toggle)']]),h('p',{class:'q-page__help'},'Click beside a wall.')),
      h('div',{hidden:shown('biome')},
       h('div',{hidden:()=>{revision.value;return !!data?.land;}},select('Unpainted land',options.landDefault,BIOME_IDS.map(id=>[id,biomeRule(id).name])),
@@ -1225,17 +1238,18 @@ export function createWorldEditor(host){
      h('div',{hidden:shown('building')},select('Building',options.preset,Object.entries(BUILDING_PRESETS).map(([id,p])=>[id,p.name])),select('Rotation',options.rotation,[['0','0°'],['90','90°'],['180','180°'],['270','270°']])),
      h('div',{hidden:shown('stairs')},select('Up towards',options.dir,Object.entries(SIDE_LABELS)),select('Length',options.length,[1,2,3,4].map(n=>[String(n),`${n} (${n/2} block${n>2?'s':''})`])),select('Width',options.width,[1,2,3,4,5].map(n=>[String(n),String(n)]))),
      h('div',{hidden:shown('edge')},select('Edge',options.edge,[['wall','Wall'],['window','Window'],['fence','Fence'],['railing','Railing'],['low','Counter'],['door','Door'],['none','Remove']]),select('Side',options.side,Object.entries(SIDE_LABELS)))),
-    section({title:'Map'},
+    h('div',{class:'q-world-editor__map',hidden:()=>toolGroup.value!=='map'},h('strong',null,'Map'),
      h('div',{class:'q-world-editor__row'},select('Map',choice,catalogue.map(c=>[c.id,c.name])),smallButton('Open',()=>{const c=catalogue.find(m=>m.id===choice.peek());if(c.area){editor.close();host.reset?.('all');return;}return load(c.make());})),
      h('div',{class:'q-world-editor__row'},smallButton('Save to repo',save),
       smallButton('Copy JSON',async()=>{try{await navigator.clipboard.writeText(json());status.value='Copied the map JSON.';}catch{status.value='Copy failed: use Download.';}}),smallButton('Download',download)),
-     h('div',{class:'q-world-editor__row'},select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 chunk (${CHUNK})`],['2','2 chunks'],['3','3 chunks']]),smallButton('Grow map',growBy)),
+     h('div',{class:'q-world-editor__row'},select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 region (${REGION})`],['2','2 regions']]),smallButton('Grow map',()=>growBy())),
+     h('div',{class:'q-world-editor__row',hidden:()=>{revision.value;return !data||data.size.every(v=>v%REGION===0);}},h('span',null,()=>{revision.value;return data?`${data.size.join(' × ')}: not whole regions.`:'';}),smallButton('Round up to whole regions',()=>growBy(true))),
      host.freeCameraOn?toggleSwitch({label:'Free camera',description:'WASD or middle-drag to pan',on:()=>host.freeCameraOn.value,onChange:v=>host.freeCamera(v)}):null,
      toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}})),
-    section({title:'Checks',value:counts},
+    h('div',{class:'q-world-editor__map',hidden:()=>toolGroup.value!=='map'},h('strong',null,'Checks · ',counts),
      keyedList(h('ol',{class:'q-world-editor__checks'}),problems,p=>`${p.kind}:${p.tile.join(',')}:${p.text}`,p=>h('li',null,h('button',{type:'button',class:'q-world-editor__check','data-severity':p.peek().severity,
-      on:{click:()=>{const [x,z]=p.peek().tile;const ok=[[0,0],[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1]].some(([dx,dz])=>host.teleport(x+dx,z+dz));status.value=ok?label(p.peek()):`Couldn't stand near ${x},${z}.`;}}},label(p.peek())))))),
-   cataloguePanel());
+      'aria-current':()=>String(shownProblem.value===p.value),on:{click:()=>showProblem(p.peek())}},label(p.peek())))))),
+   cataloguePanel()));
  }
  const editor={
   get active(){return !!view;},get data(){return data;},get built(){return built;},get problems(){return problems.peek();},tool,mode,options,brush,
@@ -1259,7 +1273,7 @@ export function createWorldEditor(host){
    if(data&&here?.areaId==='world-editor'){showGrid();showSelection();showDraft();showBiomes();scheduleChecks(0);status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;return editor;}
    if(here?.data){await load(structuredClone(here.data),{at:here.at});return editor;}
    await load(catalogue[0].make());return editor;},
-  close(){if(holding()||heldDoor||pendingFlight)cancel();if(host.freeCameraOn?.peek())host.freeCamera(false);stopScreen?.();stopScreen=null;host.setEditorScreen?.(false);host.setWalls?.('up');placing=null;moving.value=false;turning=null;pinned=null;window.removeEventListener('keyup',onKeyUp,{capture:true});stopFloors?.();stopFloors=null;host.setTileClick(null);host.setTileHover?.(null);spotsFill?.dispose();spotsFill=null;patrolling=false;patrolOn.value=false;stopPreview?.();stopPreview=null;clearPreview();hoverAt=null;stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
+  close(){clearProblem();if(holding()||heldDoor||pendingFlight)cancel();if(host.freeCameraOn?.peek())host.freeCamera(false);stopScreen?.();stopScreen=null;host.setEditorScreen?.(false);host.setWalls?.('up');placing=null;moving.value=false;turning=null;pinned=null;window.removeEventListener('keyup',onKeyUp,{capture:true});stopFloors?.();stopFloors=null;host.setTileClick(null);host.setTileHover?.(null);spotsFill?.dispose();spotsFill=null;patrolling=false;patrolOn.value=false;stopPreview?.();stopPreview=null;clearPreview();hoverAt=null;stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
   get grid(){return grid.peek();},set grid(v){grid.value=!!v;showGrid();},
   click,undo:()=>step(undo,redo),redo:()=>step(redo,undo),
   // Fast editing, for scripted checks: the same actions as the panel and keys.

@@ -216,7 +216,11 @@ let seat=null,pendingSeat=null,wasSeated=false;
 let updateFloorHere=()=>{};
 let tileClick=null,tileDrag=null,painting=false,tileHover=null,hoverTileId=null;
 // The tile under the pointer, for the world editor's previews (playground): told only when it changes.
-function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=data?.tile||data?.actor?.tile||null,id=at?`${at.x},${at.z}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,hit?.point||null);}
+// The world editor's tile under the pointer: a click on the side of a raised tile (a cliff's face) means the
+// ground that face looks onto, not the top above it (docs/TOWN.md, Raising beside a step).
+function editorTile(hit,data=terrainHitData(hit)){let t=data?.tile||data?.actor?.tile||null;const n=hit?.face?.normal;
+ if(t&&data?.tileForFace&&n&&Math.abs(n.y)<.5){const beside=world.get(key(t.x+Math.round(n.x),t.z+Math.round(n.z)));if(beside&&beside.h<t.h)t=beside;}return t;}
+function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=editorTile(hit,data),id=at?`${at.x},${at.z}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,hit?.point||null);}
 let edgeFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
@@ -661,7 +665,7 @@ canvas.addEventListener('pointerdown',e=>{
  if(!areas.canOrbit||travel.busy)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
  // World editor brushes (playground): a left-button drag paints tiles instead of turning the camera.
- if(__PLAYGROUND__&&tileDrag&&e.button===0&&activePointers.size===1){const raw=pick(e),hit=terrainHitData(raw),at=hit?.tile||hit?.actor?.tile;if(at){painting=true;down=null;tileDrag('start',at,hit?.actor||null,raw?.point||null);return;}}
+ if(__PLAYGROUND__&&tileDrag&&e.button===0&&activePointers.size===1){const raw=pick(e),hit=terrainHitData(raw),at=editorTile(raw,hit);if(at){painting=true;down=null;tileDrag('start',at,hit?.actor||null,raw?.point||null);return;}}
  if(activePointers.size===1){down={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,button:e.button};dragged=false;}
  else{dragged=true;pinchDistance=spread();}
 });
@@ -669,7 +673,7 @@ canvas.addEventListener('pointermove',e=>{
  if(!areas.canOrbit||travel.busy)return;
  pointerOnCanvas=true;pointerClient={x:e.clientX,y:e.clientY};hoverDirty=true;
  if(__PLAYGROUND__&&tileHover&&!(down&&dragged&&!painting))hoverTile(e);
- if(__PLAYGROUND__&&painting){const at=terrainHitData(pick(e))?.tile;if(at)tileDrag?.('move',at);return;}
+ if(__PLAYGROUND__&&painting){const at=editorTile(pick(e));if(at)tileDrag?.('move',at);return;}
  if(!activePointers.has(e.pointerId)||!down)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(activePointers.size>=2){
@@ -694,7 +698,7 @@ canvas.addEventListener('pointerup',e=>{
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=terrainHitData(hit);
   const clicked=data?.tile||data?.actor?.tile;
-  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(clicked,hit?.point||null,data?.actor||null);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
+  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(editorTile(hit,data)||clicked,hit?.point||null,data?.actor||null);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
   else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the area.');}
  }
  activePointers.delete(e.pointerId);pinchDistance=null;
@@ -1028,6 +1032,8 @@ if(__PLAYGROUND__){
   get floorTiles(){return spaces.here?.tiles||null;},setTileHover(fn){tileHover=fn;hoverTileId=null;},setEditorScreen(on){editorScreen=!!on;},
   // Free camera (docs/PLAYGROUND.md): on (from where the camera looks now) or off (back to the slime).
   freeCameraOn:freeCamOn,
+  // Moves the view over a tile (the world editor's checks): the free camera's focus (turned on if it's off).
+  lookAt(x,z){if(!freeCam)this.freeCamera(true);const t=world.get(key(x,z));freeCam.focus.set(x-6,t?.h??freeCam.focus.y,z-6);return true;},
   freeCamera(on=!freeCam){
    if(on&&!freeCam)freeCam={focus:cameraFocus.clone()};
    else if(!on&&freeCam){freeCam=null;panKeys.clear();zoom=Math.min(zoom,areas.active?.maxZoom??34);camera.far=baseFar;camera.updateProjectionMatrix();sunAnchor='';}

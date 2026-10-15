@@ -4,7 +4,7 @@ import {propFootprint,PROPS} from './props.js';
 import {stairProblems,DIRS} from './map-terrain.js';
 import {interiorProblems} from './spaces.js';
 import {townsfolkProblems} from './townsfolk.js';
-import {CHUNK,withinChunk} from './world-grid.js';
+import {CHUNK,REGION,withinChunk} from './world-grid.js';
 
 // Map checks (docs/CITY.md, Authoring: live checks; city Phase 6). The editor lists these; tests run
 // them over every city in the repo. Each problem: {kind, severity: 'error'|'warning', tile:[x, z],
@@ -21,6 +21,14 @@ export function reachableFrom(map,start){
  for(let i=0;i<queue.length;i++){const t=queue[i];for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(n&&!seen.has(n)&&walkable(t,n)){seen.add(n);queue.push(n);}}}
  return seen;
 }
+// Reachable if water could be crossed (a bridge or a boat, one day): into water from anywhere, and out of it onto
+// open ground no more than half a block above the water's banks (land beside water is a beach, at ground level).
+export function reachableAcrossWater(map,start){
+ const seen=new Set([start]),queue=[start];
+ for(let i=0;i<queue.length;i++){const t=queue[i];for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(!n||seen.has(n))continue;
+  if(walkable(t,n)||n.water||t.water&&!n.blocked&&n.h<=1.5){seen.add(n);queue.push(n);}}}
+ return seen;
+}
 function footprintTiles(entry,kind){
  if(kind==='building'){const plan=planBuilding(entry.desc,[entry.x,entry.z]);return plan.tiles;}
  const [w,d]=propFootprint(entry.kind,entry.rotation||0),out=[];for(let z=0;z<d;z++)for(let x=0;x<w;x++)out.push([entry.x+x,entry.z+z]);return out;
@@ -30,6 +38,8 @@ export function mapProblems(data,built){
  const map=built.tiles,spawn=built.spawn;
  if(!spawn||spawn.blocked)add('spawn','error',data.spawn,'The arrival tile is missing or blocked.');
  const reach=spawn?reachableFrom(map,spawn):new Set();
+ // A world map (on the land) is whole regions (docs/TOWN.md, Whole regions).
+ if(data.land&&data.size.some(n=>n%REGION))add('regions','warning',[0,0],`The map is ${data.size.join(' × ')}, not whole ${REGION}-tile regions: Round up to whole regions (Map) pads it.`);
  // Footprints: buildings, props and stairs must not overlap; nothing stands on a doorstep.
  const owners=new Map(),claim=(xz,what)=>{const k=xz.join(',');if(owners.has(k))add('overlap','error',xz,`${what} overlaps ${owners.get(k)}.`);else owners.set(k,what);};
  data.buildings.forEach((b,i)=>{try{for(const xz of footprintTiles(b,'building'))claim(xz,`building ${b.desc.name||i}`);}catch(error){add('building','error',[b.x,b.z],error.message);}});
@@ -43,8 +53,10 @@ export function mapProblems(data,built){
  for(const r of built.edges.doorProblems())add('door rule','error',[r.door.a.x,r.door.a.z],r.problems.join('; '));
  // Terrain: stairs need their landing; walkable ground that can't be reached (a terrace with no stairs).
  for(const p of stairProblems(map))add('stairs','error',[p.tile.x,p.tile.z],p.problem);
- const stranded=[...map.values()].filter(t=>!t.blocked&&!t.water&&!t.indoor&&!reach.has(t));
- for(const group of components(stranded,map))add('unreachable','warning',[group[0].x,group[0].z],`${group.length} tile${group.length>1?'s':''} of open ground can't be reached (a full-block drop needs stairs).`);
+ // Land only the water cuts off (across a river or the sea) is a note: it needs a bridge or a boat, not stairs.
+ const open=[...map.values()].filter(t=>!t.blocked&&!t.water&&!t.indoor&&!reach.has(t)),across=open.length&&spawn?reachableAcrossWater(map,spawn):new Set();
+ for(const group of components(open.filter(t=>!across.has(t)),map))add('unreachable','warning',[group[0].x,group[0].z],`${group.length} tile${group.length>1?'s':''} of open ground can't be reached (a full-block drop needs stairs).`);
+ for(const group of components(open.filter(t=>across.has(t)),map))add('across water','info',[group[0].x,group[0].z],`${group.length} tile${group.length>1?'s':''} of land across the water: no bridge or boat reaches ${group.length>1?'them':'it'} yet.`);
  // Streets: no one-tile slots and no passages under two tiles wide (stairs may be one wide).
  for(const t of map.values()){if(t.blocked||t.water||t.indoor||t.stair||!reach.has(t)||doorsteps.has(t))continue;
   // DIRS order: n, e, s, w (opposites: 0–2, 1–3).

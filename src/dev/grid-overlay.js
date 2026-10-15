@@ -1,24 +1,29 @@
 import * as THREE from 'three';
 import {CHUNK,REGION} from '../world-grid.js';
 
-// Playground overlay of the world grid (docs/WORLD.md, Glossary): chunk lines in pink and region lines
-// in gold, drawn along tile edges just above the ground, over everything. Dev only (the world editor).
+// Playground overlay of the world grid (docs/WORLD.md, Glossary): chunk lines in pink and region lines in
+// gold (wider), drawn along tile edges just above the ground, over everything. Each line is a flat ribbon,
+// a bright core on a dark edge, so it reads on light ground (sand, snow, paths) as well as dark. Dev only
+// (the world editor).
 //   createGridOverlay({tiles, parent}) → {dispose()}   tiles: Map of the built map's tiles
-const chunkMaterial=new THREE.LineBasicMaterial({color:'#ff4fa3',transparent:true,opacity:.7,depthTest:false});
-const regionMaterial=new THREE.LineBasicMaterial({color:'#ffd23f',transparent:true,opacity:.95,depthTest:false});
+const ribbon=(color,opacity)=>new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthTest:false,depthWrite:false,side:THREE.DoubleSide});
+const LOOKS={region:[{width:.2,material:ribbon('#2b1f00',.85)},{width:.09,material:ribbon('#ffd23f',1)}],chunk:[{width:.12,material:ribbon('#33081f',.7)},{width:.05,material:ribbon('#ff6fb5',1)}]};
 export function createGridOverlay({tiles,parent}){
  const lines={chunk:[],region:[]},lift=.06;
  for(const t of tiles.values()){
   // A tile on a line draws its west (x) or north (z) edge, at the higher of the two sides.
   for(const [axis,v] of [['x',t.x],['z',t.z]]){if(v%CHUNK!==0)continue;
    const other=tiles.get(axis==='x'?`${t.x-1},${t.z}`:`${t.x},${t.z-1}`),y=Math.max(t.h,other?.h??t.h)+lift;
-   const [a,b]=axis==='x'?[[t.x-6.5,y,t.z-6.5],[t.x-6.5,y,t.z-5.5]]:[[t.x-6.5,y,t.z-6.5],[t.x-5.5,y,t.z-6.5]];
-   lines[v%REGION===0?'region':'chunk'].push(...a,...b);}
+   lines[v%REGION===0?'region':'chunk'].push({axis,x:t.x-6.5,z:t.z-6.5,y});}
  }
  const group=new THREE.Group();group.name='grid-overlay';group.renderOrder=20;
- for(const [kind,points] of Object.entries(lines)){if(!points.length)continue;
-  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
-  const segments=new THREE.LineSegments(geometry,kind==='region'?regionMaterial:chunkMaterial);segments.renderOrder=20;segments.name=`${kind}-lines`;group.add(segments);}
+ for(const [kind,segments] of Object.entries(lines)){if(!segments.length)continue;
+  LOOKS[kind].forEach(({width,material},layer)=>{const h=width/2,positions=new Float32Array(segments.length*12),index=[];
+   // A quad along the tile edge, `width` across it (a little past each end, so the joins close).
+   segments.forEach(({axis,x,z,y},i)=>{const q=axis==='x'?[[x-h,z-h],[x+h,z-h],[x+h,z+1+h],[x-h,z+1+h]]:[[x-h,z-h],[x+1+h,z-h],[x+1+h,z+h],[x-h,z+h]];
+    q.forEach(([a,b],k)=>positions.set([a,y+layer*.002,b],i*12+k*3));const v=i*4;index.push(v,v+1,v+2,v,v+2,v+3);});
+   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setIndex(index);
+   const mesh=new THREE.Mesh(geometry,material);mesh.renderOrder=20+layer+(kind==='region'?2:0);mesh.name=`${kind}-lines`;group.add(mesh);});}
  parent.add(group);
  return {group,dispose(){group.removeFromParent();for(const s of group.children)s.geometry.dispose();}};
 }

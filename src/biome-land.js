@@ -27,9 +27,14 @@ export const WATER_H=.5;
 export function createBiomeLand({seed=1,bounds,map={},rules=BIOME_RULES}){
  const [x0,z0,x1,z1]=bounds,cell=map.cell||CELL,fallback=map.default||'meadow';let cells=map.cells||{},terrainCells=map.terrain||{};
  const rule=id=>biomeRule(rules[id]?id:fallback,rules);
- const painted=(cx,cz)=>cells[`${cx},${cz}`]||fallback;
+ // Past the land's edge there is nothing to paint, so a cell out there reads as the nearest cell inside it:
+ // the warped lookups and the height blend near the edge see the edge's own biome and terrain (a sea painted
+ // to the edge stays sea to the last tile, with no strip of the default meadow along it).
+ const cxMin=Math.floor(x0/cell),cxMax=Math.floor((x1-1)/cell),czMin=Math.floor(z0/cell),czMax=Math.floor((z1-1)/cell);
+ const inMap=(cx,cz)=>`${Math.min(cxMax,Math.max(cxMin,cx))},${Math.min(czMax,Math.max(czMin,cz))}`;
+ const painted=(cx,cz)=>cells[inMap(cx,cz)]||fallback;
  // A cell's terrain: painted, else its biome's usual one.
- const terrainOf=(cx,cz)=>terrainCells[`${cx},${cz}`]||rule(painted(cx,cz)).terrain;
+ const terrainOf=(cx,cz)=>terrainCells[inMap(cx,cz)]||rule(painted(cx,cz)).terrain;
  // The cell a tile shows: its own, looked up through a gentle warp so borders aren't square.
  const warped=(x,z)=>[Math.floor((x+(valueNoise(x,z,13,seed+401)-.5)*2*WARP)/cell),Math.floor((z+(valueNoise(x,z,13,seed+402)-.5)*2*WARP)/cell)];
  const biomeAt=(x,z)=>painted(...warped(x,z)),terrainAt=(x,z)=>terrainRule(terrainOf(...warped(x,z)));

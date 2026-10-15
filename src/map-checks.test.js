@@ -93,3 +93,14 @@ test('interior stairs are two tiles along a wall into a corner, their bottom rea
  const [, landingDown]=spaces.resolve(down.link);assert.equal(landingDown,up.place.front,'going down lands in front of the bottom step');
  const [, landingUp]=spaces.resolve(up.link);assert.equal(Math.abs(landingUp.x-down.place.top.x)+Math.abs(landingUp.z-down.place.top.z),1,'going up lands beside the top');
 });
+test('land cut off only by water is a note (a bridge or boat), not a warning; a land map not in whole regions is a warning',async()=>{
+ const {createMapData,buildMap:build}=await import('./world-map.js'),{mapProblems:problems}=await import('./map-checks.js');
+ const terrain={};for(let cz=0;cz<16;cz++){terrain[`7,${cz}`]='river';terrain[`8,${cz}`]='river';}
+ const data=createMapData({id:'river',size:[128,128],land:{seed:4,default:'meadow',cells:{},terrain,nature:false,enemies:false,fishing:false}});data.spawn=[20,60];
+ const list=problems(data,build(data,{scene:new THREE.Group()}));
+ const across=list.filter(p=>p.kind==='across water');assert.equal(across.length,1,'the far bank');assert.equal(across[0].severity,'info');
+ assert.ok(!list.some(p=>p.kind==='unreachable'&&p.tile[0]>64),'nothing across the river is a warning');
+ assert.ok(!list.some(p=>p.kind==='regions'));
+ const partial=createMapData({id:'part',size:[96,96],land:{seed:4,default:'meadow',cells:{}}});
+ assert.ok(problems(partial,build(partial,{scene:new THREE.Group()})).some(p=>p.kind==='regions'&&p.severity==='warning'));
+});
