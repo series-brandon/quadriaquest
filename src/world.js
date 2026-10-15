@@ -69,8 +69,18 @@ export const ORTHOGONAL=[[1,0],[-1,0],[0,1],[0,-1]],DIAGONAL=[[1,1],[-1,1],[1,-1
 // Which walker groups step diagonally. Bodies are multi-tile creatures (footprint.js). The playground
 // flips these to compare.
 export const DIAGONAL_MOVES={player:true,companion:true,npc:true,townsfolk:true,enemy:true,body:true};
+// What a step costs a route (every walker's; user, 2026-10-15). A step up or down a ledge, with no stairs or
+// ramp on either tile, costs HOP_COST more, so routes take a ramp or a road when it's near. A diagonal costs
+// DIAGONAL_COST more, so routes keep to straight lines (paths, roads) unless cutting a corner saves real
+// distance. (A diagonal is always level, and still takes as long to walk as any step: only the choice of route
+// changes.) Routes still reach the same places.
+export const HOP_COST=1,DIAGONAL_COST=.1;
+export const isHop=(a,b)=>Math.abs(a.h-b.h)>.01&&!a.stair&&!b.stair&&!a.ramp&&!b.ramp;
+export const stepCost=(a,b)=>1+(a.x!==b.x&&a.z!==b.z?DIAGONAL_COST:0)+(isHop(a,b)?HOP_COST:0);
 export const chebyshev=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.z-b.z));
-const level=(a,b)=>Math.abs(a.h-b.h)<.01&&!a.stair&&!b.stair;
+// Stairs and ramps are walked straight up and down: no diagonal steps onto, off or beside them (user, 2026-10-15:
+// routes cut across a ramp's corner, so they didn't read as using it).
+const level=(a,b)=>Math.abs(a.h-b.h)<.01&&!a.stair&&!b.stair&&!a.ramp&&!b.ramp;
 // The corner rule for a diagonal from `from` to `to`: both orthogonal tiles beside it exist, all four tiles
 // are level and off stairs (hops and ramps stay orthogonal), and both L-shaped paths around the corner
 // are steps `corner` allows. So a diagonal never cuts past a solid tile, water, a wall end or a doorway,
@@ -132,6 +142,6 @@ export function findPath(map,start,end,cost=null,{diagonal=DIAGONAL_MOVES.player
  const target=map.get(key(end.x,end.z));if(!target||target.blocked)return null;
  const from=map.get(key(start.x,start.z))||start;if(from===target)return [];
  const options={diagonal,passable};
- const {end:found,previous}=searchRoute(from,(t,add)=>eachStep(map,t,n=>add(n,1+(cost&&n!==target?cost(n):0)),options),{target,limit});
+ const {end:found,previous}=searchRoute(from,(t,add)=>eachStep(map,t,n=>add(n,stepCost(t,n)+(cost&&n!==target?cost(n):0)),options),{target,limit});
  return found?routeTo(previous,found):null;
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mergeVertices} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const gold = new THREE.MeshBasicMaterial({color:'#efbc43',side:THREE.BackSide,toneMapped:false});
 const white = new THREE.MeshBasicMaterial({color:'#ffffff',side:THREE.BackSide,toneMapped:false});
@@ -16,21 +17,26 @@ const hulls=new WeakMap();
 function hull(source,amount){
  let byAmount=hulls.get(source);if(!byAmount)hulls.set(source,byAmount=new Map());
  if(!byAmount.has(amount)){
-  const geometry=source.clone(),positions=geometry.attributes.position,normals=geometry.attributes.normal;
+  // Welded first (flat-shaded faces share their corners), so the shell grows as one piece instead of
+  // cracking open along every edge (user report, 2026-10-15: the Iter Crystal's outline looked broken).
+  const bare=new THREE.BufferGeometry();bare.setAttribute('position',source.attributes.position.clone());if(source.index)bare.setIndex(source.index.clone());
+  const geometry=mergeVertices(bare,1e-4);bare.dispose();geometry.computeVertexNormals();const positions=geometry.attributes.position,normals=geometry.attributes.normal;
   for(let i=0;i<positions.count;i++)positions.setXYZ(i,positions.getX(i)+normals.getX(i)*amount,positions.getY(i)+normals.getY(i)*amount,positions.getZ(i)+normals.getZ(i)*amount);
   geometry.userData.shared=!!source.userData.shared;byAmount.set(amount,geometry);
  }
  return byAmount.get(amount);
 }
-export function highlightResource(group,{height=.95}={}){
+// thickness: the outline's width, as a multiple of the usual (a large model, an Iter Crystal, needs more to read).
+export function highlightResource(group,{height=.95,thickness=1}={}){
   const borders=[],glows=[];
   // Inverted hulls outline the item itself, with a softer outer gold edge.
   const meshes=[];group.traverse(item=>{if(item.isMesh&&!item.userData.portraitIgnore)meshes.push(item);});
   for(const item of meshes){
     if(!item.isMesh)continue;
-    for(const [material,amount]of [[glow,.032],[gold,.014]]){
+    for(const [material,amount]of [[glow,.032*thickness],[gold,.014*thickness]]){
       const geometry=item.geometry.userData.shared?hull(item.geometry,amount):hull(item.geometry.clone(),amount);
-      const outline=new THREE.Mesh(geometry,material);outline.position.copy(item.position);outline.rotation.copy(item.rotation);outline.scale.copy(item.scale);outline.userData.portraitIgnore=true;item.parent.add(outline);outline.visible=false;(material===gold?borders:glows).push(outline);
+      // A child of the part it outlines, so it follows the part's own motion (a crystal floating and turning).
+      const outline=new THREE.Mesh(geometry,material);outline.userData.portraitIgnore=true;outline.castShadow=outline.receiveShadow=false;item.add(outline);outline.visible=false;(material===gold?borders:glows).push(outline);
     }
   }
   const arrow=new THREE.Sprite(new THREE.SpriteMaterial({map:arrowTexture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));

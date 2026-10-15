@@ -207,3 +207,21 @@
   .q-world-editor__catalogue { grid-template-columns: 110px minmax(0, 1fr); }
   .q-world-editor__catalogue-head .q-input { flex: 1 0 120px; }
 }
+/* The bar's action buttons (Save, Undo, Redo, Reset, Close) as wide as their words, so the bar keeps to one row. */
+.q-world-editor__bar > .q-world-editor__actions .q-button--small { min-inline-size: 0; padding-inline: 12px; }
+/* A townsfolk's panel: four cards side by side (Who, Look, Home and work, Routine). */
+.q-world-editor__fields--stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.q-world-editor__fields--stack > .q-world-editor__field { min-inline-size: 0; inline-size: 100%; }
+.q-world-editor__fields--stack .q-input, .q-world-editor__fields--stack .q-select { inline-size: 100%; }
+.q-world-editor__person > .q-world-editor__group { inline-size: 180px; }
+.q-world-editor__person > .q-world-editor__group:last-child { inline-size: auto; }
+.q-world-editor__pair { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: end; }
+.q-world-editor__pair > .q-world-editor__field { min-inline-size: 0; }
+.q-world-editor__person .q-world-editor__routine { grid-template-columns: repeat(3, auto); gap: 4px 14px; }
+.q-world-editor__person .q-world-editor__buttons { display: flex; flex-wrap: nowrap; gap: 6px; }
+.q-world-editor__pair .q-world-editor__colour { inline-size: 44px; block-size: 36px; }
+.q-world-editor__weight { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; }
+.q-world-editor__weight .q-input { inline-size: 44px; min-block-size: 28px; padding-inline: 6px; text-align: center; }
+.q-world-editor__weight:has(.q-input[data-on='false']) span { opacity: .55; }
+.q-world-editor__pair > .q-world-editor__field { display: grid; gap: 4px; }
+.q-world-editor__person .q-world-editor__buttons .q-button { white-space: nowrap; }

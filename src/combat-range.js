@@ -1,4 +1,4 @@
-import {key,edgeBetween,edgePasses,searchRoute,routeTo,eachStep,DIAGONAL_MOVES} from './world.js';
+import {key,edgeBetween,edgePasses,searchRoute,routeTo,eachStep,DIAGONAL_MOVES,stepCost} from './world.js';
 import {sizeOf,nearestCell} from './footprint.js';
 import {gridDistance,meleeDistance,reachesAcross} from './combat-geometry.js';
 // Grid supercover: a shot cannot cut diagonally through a pair of solid corners, and every tile edge
@@ -33,6 +33,6 @@ export function attackRoute(world,start,target,range=1,occupied=()=>false,cost=n
  const options={diagonal};
  // Taken spots are remembered, not ended on; a free one within a few steps more still wins.
  const goal=(t,d)=>{if(!spot(t))return false;if(!occupied(t))return true;taken||={t,d};return false;};
- const {end,previous}=searchRoute(start,(t,add,d)=>{if(taken&&d>taken.d+8)return;eachStep(world,t,n=>add(n,1+(cost?cost(n):0)),options);},{target:{x:target.x,z:target.z},goal,near:range+sizeOf(target)-1,limit:20000});
+ const {end,previous}=searchRoute(start,(t,add,d)=>{if(taken&&d>taken.d+8)return;eachStep(world,t,n=>add(n,stepCost(t,n)+(cost?cost(n):0)),options);},{target:{x:target.x,z:target.z},goal,near:range+sizeOf(target)-1,limit:20000});
  const at=end||taken?.t;return at?{at,route:routeTo(previous,at)}:null;
 }

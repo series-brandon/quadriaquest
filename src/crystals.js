@@ -21,7 +21,7 @@ export function createCrystals({world,pickables,travel,choose,hover=()=>null}){
   const actor={group,tile,tiles,x:Math.min(...tiles.map(t=>t.x)),z:Math.min(...tiles.map(t=>t.z)),size:tiles.length===4?2:1,kind:'crystal',crystal:true,destination,place,label,ready,duration:0};
   group.position.set(centre.x,centre.y,centre.z);parent.add(group);for(const t of tiles)t.blocked=true;tile.crystalFootprint=tiles;crystals.add(actor);
   group.traverse(m=>{if(m.isMesh){m.userData.actor=actor;m.userData.tile=tile;pickables.push(m);}});
-  actor.highlight=highlightResource(group,{height:CRYSTAL_HEIGHT});actor.guide=guide;
+  actor.highlight=highlightResource(group,{height:CRYSTAL_HEIGHT,thickness:2.5});actor.guide=guide;
   actor.available=()=>crystals.has(actor)&&actor.ready&&world.get(`${tile.x},${tile.z}`)===tile;
   actor.interact=()=>actor.available()&&(choose?choose(actor,onArrive):travel.request(destination,{source:actor,onArrive}));
   actor.dispose=()=>remove(actor);return actor;

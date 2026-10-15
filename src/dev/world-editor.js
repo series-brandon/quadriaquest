@@ -140,7 +140,9 @@ export function createWorldEditor(host){
   try{await rebuilding;}finally{rebuilding=null;}
   if(queued){const next=queued;queued=null;await rebuild(next);}
  }
- const snapshot=()=>{undo.push(JSON.stringify(packMap(data)));if(undo.length>60)undo.shift();redo.length=0;history.value={undo:undo.length,redo:0};};
+ // Unsaved changes since the map was opened or last saved (the bar's Save shows a dot).
+ const unsaved=signal(false);
+ const snapshot=()=>{unsaved.value=true;undo.push(JSON.stringify(packMap(data)));if(undo.length>60)undo.shift();redo.length=0;history.value={undo:undo.length,redo:0};};
  // An edit: apply() changes the data and returns the tiles it touched afterwards; `before` are the tiles
  // it touched before. Only their chunks are rebuilt. A refused edit (apply throws) leaves the data as it
  // was, in place, so the map being edited stays the same object.
@@ -556,26 +558,32 @@ export function createWorldEditor(host){
  const loadoutSlot=(slot,ids)=>personSelect({head:'Hat',rightHand:'Right hand',leftHand:'Left hand'}[slot],p=>p.look?.loadout?.[slot]||'',[['','None'],...ids.map(id=>[id,ITEMS[id]?.name||GEAR[id]?.name||id])],
   (p,v)=>{p.look??={};p.look.loadout??={};if(v)p.look.loadout[slot]=v;else delete p.look.loadout[slot];if(!Object.keys(p.look.loadout).length)delete p.look.loadout;});
  const houseChoices=computed(()=>{revision.value;return [{id:'',name:'No building'},...(data?.buildings||[]).map((b,i)=>({id:String(i),name:b.desc.name||`Building ${i+1}`}))];});
+ // A townsfolk's panel (the Hand or the Townsfolk tool): four cards side by side. Who they are (name, the line they
+ // say, colour, pace), their look (hat and what they carry), home and work (their building, the jobs they give,
+ // the way they face at their post, a patrol route), and their routine: how often they do each thing.
+ const stack=(...children)=>h('div',{class:'q-world-editor__fields q-world-editor__fields--stack'},...children);
+ const title=a=>a[0].toUpperCase()+a.slice(1);
  function personPanel(){
-  return h('div',{class:'q-world-editor__opts q-world-editor__opts--inline',hidden:()=>{revision.value;return selection.value?.kind!=='townsfolk';}},
-   group('Townsfolk',fields(
+  const colour=field('Colour',h('input',{type:'color',class:'q-world-editor__colour',value:()=>{revision.value;selection.value;return personOf()?.look?.color||'#9ccf7a';},on:{change:e=>setPerson(p=>{(p.look??={}).color=e.target.value;},'colour').catch(error=>{status.value=error.message;})}}));
+  // The map's buildings change as you build: the choices follow them (a keyed list).
+  const house=field('Lives or works in',keyedList(h('select',{class:'q-select',on:{change:e=>setPerson(p=>{if(e.target.value==='')delete p.house;else p.house=+e.target.value;},'home building').catch(error=>{status.value=error.message;})}}),
+   houseChoices,c=>c.id,c=>h('option',{value:c.peek().id,selected:()=>{revision.value;selection.value;const p=personOf();return !!p&&(p.house===undefined?'':String(p.house))===c.value.id;}},()=>c.value.name)));
+  const weight=a=>h('label',{class:'q-world-editor__weight'},h('span',null,title(a)),h('input',{type:'number',min:0,max:9,class:'q-input','aria-label':`${title(a)}: how often`,
+   value:()=>{revision.value;selection.value;const p=personOf();return p?String(weightOf(p,a)):'0';},'data-on':()=>{revision.value;selection.value;const p=personOf();return String(!!p&&weightOf(p,a)>0);},
+   on:{change:e=>setPerson(p=>{const w=Math.max(0,Math.min(9,Math.round(+e.target.value||0)));p.routine=(p.routine||[]).filter(r=>r.do!==a);if(w)p.routine.push({do:a,weight:w});if(!p.routine.length)p.routine=[{do:'stroll',weight:1}];},`${a} ${e.target.value}`).catch(error=>{status.value=error.message;})}}));
+  return h('div',{class:'q-world-editor__opts q-world-editor__opts--inline q-world-editor__person',hidden:()=>{revision.value;return selection.value?.kind!=='townsfolk';}},
+   group('Who',stack(
     personText('Name',p=>p.name,(p,v)=>{if(!v)throw Error('A townsfolk needs a name.');p.name=v;}),
     personText('Line',p=>p.line,(p,v)=>{if(v)p.line=v;else delete p.line;}),
-    field('Colour',h('input',{type:'color',class:'q-world-editor__colour',value:()=>{revision.value;selection.value;return personOf()?.look?.color||'#9ccf7a';},on:{change:e=>setPerson(p=>{(p.look??={}).color=e.target.value;},'colour').catch(error=>{status.value=error.message;})}})),
-    loadoutSlot('head',HEADS),loadoutSlot('rightHand',HANDS),loadoutSlot('leftHand',HANDS),
-    personSelect('Pace',p=>String(p.pace??1),[['0.8','Unhurried'],['1','Usual'],['1.3','Brisk']],(p,v)=>{p.pace=+v;}),
-    // The map's buildings change as you build: the choices follow them (a keyed list).
-    field('Lives or works in',keyedList(h('select',{class:'q-select',on:{change:e=>setPerson(p=>{if(e.target.value==='')delete p.house;else p.house=+e.target.value;},'home building').catch(error=>{status.value=error.message;})}}),
-     houseChoices,c=>c.id,c=>h('option',{value:c.peek().id,selected:()=>{revision.value;selection.value;const p=personOf();return !!p&&(p.house===undefined?'':String(p.house))===c.value.id;}},()=>c.value.name))),
+    h('div',{class:'q-world-editor__pair'},colour,personSelect('Pace',p=>String(p.pace??1),[['0.8','Unhurried'],['1','Usual'],['1.3','Brisk']],(p,v)=>{p.pace=+v;})))),
+   group('Look',stack(loadoutSlot('head',HEADS),loadoutSlot('rightHand',HANDS),loadoutSlot('leftHand',HANDS))),
+   group('Home and work',stack(house,
     personSelect('Gives jobs',p=>p.giver==='post'?'post':'',[['','Only their shop’s'],['post','Post office deliveries']],(p,v)=>{if(v)p.giver=v;else delete p.giver;}),
-    personSelect('Faces at their post',p=>p.facing||'',[['','Any way'],...Object.entries(SIDE_LABELS)],(p,v)=>{if(v)p.facing=v;else delete p.facing;}))),
-   wideGroup('Routine',
-   h('p',{class:'q-page__help'},'How often they do each (0: never). Spots they use are blue on the map.'),
-   h('div',{class:'q-world-editor__routine'},ACTIVITIES.map(a=>field(a,h('input',{type:'number',min:0,max:9,class:'q-input',value:()=>{revision.value;selection.value;const p=personOf();return p?String(weightOf(p,a)):'0';},
-    on:{change:e=>setPerson(p=>{const w=Math.max(0,Math.min(9,Math.round(+e.target.value||0)));p.routine=(p.routine||[]).filter(r=>r.do!==a);if(w)p.routine.push({do:a,weight:w});if(!p.routine.length)p.routine=[{do:'stroll',weight:1}];},`${a} ${e.target.value}`).catch(error=>{status.value=error.message;})}})))),
-   buttons(
-    h('button',{type:'button',class:'q-button q-button--small','aria-pressed':()=>String(patrolOn.value),on:{click:()=>{patrolling=!patrolling;patrolOn.value=patrolling;status.value=patrolling?'Click tiles to add patrol stops (Esc when done).':'Patrol route done.';}}},()=>patrolOn.value?'Done drawing patrol':'Draw patrol route'),
-    h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>setPerson(p=>{delete p.patrol;p.routine=(p.routine||[]).filter(r=>r.do!=='patrol');if(!p.routine.length)p.routine=[{do:'stroll',weight:1}];},'patrol cleared').catch(error=>{status.value=error.message;})}},'Clear patrol'))));
+    personSelect('Faces at their post',p=>p.facing||'',[['','Any way'],...Object.entries(SIDE_LABELS)],(p,v)=>{if(v)p.facing=v;else delete p.facing;})),
+    buttons(
+     h('button',{type:'button',class:'q-button q-button--small','aria-pressed':()=>String(patrolOn.value),on:{click:()=>{patrolling=!patrolling;patrolOn.value=patrolling;status.value=patrolling?'Click tiles to add patrol stops (Esc when done).':'Patrol route done.';}}},()=>patrolOn.value?'Done':'Draw patrol'),
+     h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>setPerson(p=>{delete p.patrol;p.routine=(p.routine||[]).filter(r=>r.do!=='patrol');if(!p.routine.length)p.routine=[{do:'stroll',weight:1}];},'patrol cleared').catch(error=>{status.value=error.message;})}},'Clear'))),
+   group('Routine',h('p',{class:'q-page__help'},'How often (0: never). Their spots are blue on the map.'),h('div',{class:'q-world-editor__routine'},ACTIVITIES.map(weight))));
  }
  // The Floors panel: a selected building's floors (or the one you're in), with Go, Add and Remove, and the
  // floor's own actions: its use, Generate and Clear furniture, Place stairs up.
@@ -853,12 +861,12 @@ export function createWorldEditor(host){
     return {cells:cells.map(t=>({x:t.x,z:t.z,color:o.paintErase?NO:o.paintColour}))};}
    case 'room':case 'resize':return null;
    case 'prop':return placed('prop',{kind:o.prop,x,z,rotation});
-   case 'townsfolk':return placed('townsfolk',{home:[x,z]});
+   case 'townsfolk':return (data.townsfolk||[]).some(f=>f.home&&f.home[0]===x&&f.home[1]===z)?{cells:[{x,z,color:BRUSH}]}:placed('townsfolk',{home:[x,z]});
    case 'enemy':return placed('enemy',{enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z});
    case 'building':{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};let cells=[];try{cells=planBuilding(desc,[x,z]).tiles;}catch(error){return {cells:[],refused:error.message};}
     const refused=fits(()=>{oneChunk(cells);taken(cells);});return {cells:tint(cells,refused?NO:OK),refused};}
    case 'stairs':{const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
-   case 'crystal':return placed('crystal',{id:'new',x,z},[]);
+   case 'crystal':return onCrystal(x,z)?{cells:[{x,z,color:BRUSH}]}:placed('crystal',{id:'new',x,z},[]);
    case 'spawn':{const t=at(x,z),bad=!t||t.blocked||t.water;return {cells:tint([[x,z]],bad?NO:OK),refused:bad?'You can’t arrive there.':null};}
    case 'nature':{if(!data.land)return null;const choice=o.nature,[group]=choice.split(':');
     return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>{const t=at(a,b),n=natureAt(a,b);
@@ -893,7 +901,7 @@ export function createWorldEditor(host){
   const k=e.key.toLowerCase(),mod=e.ctrlKey||e.metaKey;
   let act=null;
   if(e.key==='Escape')act=cancel;
-  else if(mod&&k==='z')act=e.shiftKey?()=>step(redo,undo):()=>step(undo,redo);else if(mod&&k==='y')act=()=>step(redo,undo);
+  else if(mod&&k==='s')act=save;else if(mod&&k==='z')act=e.shiftKey?()=>step(redo,undo):()=>step(undo,redo);else if(mod&&k==='y')act=()=>step(redo,undo);
   else if(mod&&k==='v')act=pasteClipboard;else if(mod&&k==='c'&&selection.peek())act=copySelection;
   else if(e.key==='PageUp'||e.key==='PageDown'){const dir=e.key==='PageUp'?1:-1;act=()=>goLevel(dir);}
   // Held stairs turn with , and . too.
@@ -1196,25 +1204,31 @@ export function createWorldEditor(host){
    case 'use':case 'reroll':await change(()=>{const b=data.buildings.find(e=>covers(e,x,z,'building'));if(!b)throw Error('Click a building.');
     if(tool.peek()==='use'){b.desc.use=o.use;if(b.desc.sign&&USE_ICONS[o.use])b.desc.sign={...b.desc.sign,icon:USE_ICONS[o.use]};status.value=`${b.desc.name||'Building'}: ${o.use}.`;}
     else{b.desc.furnishSeed=Math.floor(Math.random()*1e6);status.value=`${b.desc.name||'Building'}: refurnished.`;}return cellsOf('building',b);});break;
-   case 'townsfolk':{const n=(data.townsfolk||[]).length+1,person={id:uniqueFolkId('townsfolk'),name:`Townsfolk ${n}`,look:{color:FOLK_COLOURS[n%FOLK_COLOURS.length]},home:[x,z],routine:[{do:'stroll',weight:2},{do:'chat',weight:1},{do:'gaze',weight:1}],pace:1};
+   // Clicking someone already there selects them (their panel opens); anywhere else places a new townsfolk,
+   // selected so their panel opens to set them up.
+   case 'townsfolk':{const there=(data.townsfolk||[]).findIndex(f=>f.home&&f.home[0]===x&&f.home[1]===z);
+    if(there>=0){selection.value={kind:'townsfolk',index:there};showSelection();status.value=`${data.townsfolk[there].name||'Townsfolk'}: change them in the panel, or click open ground to place someone new.`;break;}
+    const n=(data.townsfolk||[]).length+1,person={id:uniqueFolkId('townsfolk'),name:`Townsfolk ${n}`,look:{color:FOLK_COLOURS[n%FOLK_COLOURS.length]},home:[x,z],routine:[{do:'stroll',weight:2},{do:'chat',weight:1},{do:'gaze',weight:1}],pace:1};
     if(await change(()=>{const cells=validate('townsfolk',person,[]);lists().townsfolk.push(person);return cells;})){selection.value={kind:'townsfolk',index:data.townsfolk.length-1};showSelection();status.value=`${person.name} lives at ${x},${z}. Set them up in the Townsfolk panel.`;}break;}
    case 'stamp':{const st=stampOf(chosenStamp.peek());if(!st){status.value='Pick a stamp first.';break;}if(await applyStamp(st,x,z))status.value=`Stamped ${st.name||chosenStamp.peek()} at ${x},${z}.`;break;}
    case 'spawn':await change(()=>{data.spawn=[x,z];return [];});status.value=`Arrival at ${x},${z}.`;break;
    case 'enemy':{const spawn={enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z};
     if(await change(()=>{const cells=validate('enemy',spawn,[]);lists().enemy.push(spawn);return cells;}))status.value=`${nameOf('enemy',spawn)} spawns at ${x},${z}.`;break;}
    // A new Iter Crystal (docs/TOWN.md, Iter Crystals): a unique id and a name to change in its panel (the Hand).
-   case 'crystal':{const entry={id:uniqueCrystalId('crystal'),name:'New crystal',x,z};if(await change(()=>{const cells=validate('crystal',entry,[]);lists().crystal.push(entry);return cells;})){selection.value={kind:'crystal',index:lists().crystal.length-1};showSelection();status.value=`${entry.name} (${entry.id}) at ${x},${z}: name it with the Hand.`;}break;}
+   case 'crystal':{const there=mapCrystals(data).findIndex(c=>crystalCells(c).some(([a,b])=>a===x&&b===z));
+    if(there>=0){selection.value={kind:'crystal',index:there};showSelection();status.value=`${mapCrystals(data)[there].name}: name it in the panel, or click open ground for a new one.`;break;}
+    const entry={id:uniqueCrystalId('crystal'),name:'New crystal',x,z};if(await change(()=>{const cells=validate('crystal',entry,[]);lists().crystal.push(entry);return cells;})){selection.value={kind:'crystal',index:lists().crystal.length-1};showSelection();status.value=`${entry.name} (${entry.id}) at ${x},${z}: name it in the panel.`;}break;}
   }
   return true;
  }
  // at: where to put the player (the tile they stand on, when the editor opens on the map they're in).
- async function load(next,{at=null}={}){data=next;undo.length=0;redo.length=0;history.value={undo:0,redo:0};selection.value=null;placing=null;moving.value=false;draft.value=new Set();draftFor=null;
+ async function load(next,{at=null}={}){data=next;unsaved.value=false;undo.length=0;redo.length=0;history.value={undo:0,redo:0};selection.value=null;placing=null;moving.value=false;draft.value=new Set();draftFor=null;
   const listed=catalogue.find(c=>c.mapId===data.id);if(listed)choice.value=listed.id;
   if(rebuilding)await rebuilding;built=await host.editMap(data,{keepPlayer:false,at});scheduleChecks(0);showGrid();showSelection();showDraft();showBiomes();revision.value++;status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;}
  // Undo and redo: the saved state replaces the data in place (the map being edited stays the same
  // object), and only what differs between the two states rebuilds (whole when the map's size or land
  // settings differ).
- async function step(from,to){if(!from.length)return;to.push(JSON.stringify(packMap(data)));const next=unpackMap(JSON.parse(from.pop())),diff=differences(unpackMap(data),next);
+ async function step(from,to){if(!from.length)return;unsaved.value=true;to.push(JSON.stringify(packMap(data)));const next=unpackMap(JSON.parse(from.pop())),diff=differences(unpackMap(data),next);
   for(const k of Object.keys(data))delete data[k];Object.assign(data,next);history.value={undo:undo.length,redo:redo.length};if(!entryOf(selection.peek()))selection.value=null;
   // Inside a floor: rebuild that building's floors (you stay); the map catches up when you step out.
   const here=floorHere.peek();if(here){host.rebuildFloors(here.building);staleBuildings.add(here.building);revision.value++;refreshPreview();return;}
@@ -1255,7 +1269,7 @@ export function createWorldEditor(host){
  const json=()=>JSON.stringify(packMap(data),null,1);
  async function save(){
   try{const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:json()})});
-   const result=await response.json();status.value=response.ok?`Saved to ${result.path}.`:`Not saved: ${result.error}`;}catch{status.value='Saving needs the playground dev server (npm run dev:debug). Use Copy or Download instead.';}}
+   const result=await response.json();if(response.ok)unsaved.value=false;status.value=response.ok?`Saved to ${result.path}.`:`Not saved: ${result.error}`;}catch{status.value='Saving needs the playground dev server (npm run dev:debug). Use Copy or Download instead.';}}
  function download(){const link=h('a',{href:URL.createObjectURL(new Blob([json()],{type:'application/json'})),download:`${data.id}.json`});link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
  // A colour swatch choice (biomes, terrains): the colour the overlay paints, and the name.
  const swatch=(value,id,name,color)=>h('button',{type:'button',class:'q-world-editor__swatch','aria-pressed':()=>String(value.value===id),on:{click:()=>{value.value=id;}}},h('span',{class:'q-world-editor__chip',style:{background:color||'transparent'}}),h('span',null,name));
@@ -1280,7 +1294,7 @@ export function createWorldEditor(host){
   use:'Click a building to set what it’s used for.',reroll:'Click a building to roll its furniture again.',underground:'Make a dungeon or cave here, then place its entrance.',
   raise:'Click or drag to raise the ground half a block.',lower:'Click or drag to lower the ground half a block.',flatten:'Drag to level the ground to where you start.',smooth:'Drag to ease the ground to its neighbours.',
   ramp:'Drag from the low end to the high end.',ramps:'Click or drag over ledges to turn them into ramps (or back).',surface:'Click or drag to paint the ground.',biome:'Drag to paint biomes or terrain (8 × 8 cells).',nature:'Click or drag to place nature, or clear it.',
-  enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk.',crystal:'Click to set an Iter Crystal (2 × 2); name it with the Hand.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
+  enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk, or click one to change them.',crystal:'Click to set an Iter Crystal (2 × 2), or click one to name it.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
  function setTool(id){if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id);if(TOOL_HINTS[id])status.value=TOOL_HINTS[id];}
  // The dock's panel: always outside Decorate; in Decorate only for what's selected, paint and stamps.
  // The panel: always outside Decorate; in Decorate for paint and stamps, and for what's selected (the Hand and Colours
@@ -1317,6 +1331,8 @@ export function createWorldEditor(host){
     host.drawDistance?h('label',{class:'q-world-editor__draw',title:'Draw distance: how far the world shows around the view'},'Draw',h('select',{class:'q-select','aria-label':'Draw distance',on:{change:e=>host.setDrawDistance(+e.target.value)}},
      DRAW_DISTANCES.map(d=>h('option',{value:String(d.chunks),selected:()=>host.drawDistance.value===d.chunks},d.label)))):null,
     h('div',{class:'q-world-editor__actions'},
+     // Save to the map's file in the repo (as Map → Save to repo); a dot while there are unsaved changes.
+     smallButton(()=>unsaved.value?'Save •':'Save',save,{title:`Save to src/maps (${MOD}+S)`,'aria-label':()=>unsaved.value?'Save (unsaved changes)':'Save'}),
      smallButton('Undo',()=>step(undo,redo),{title:`${MOD}+Z`,disabled:()=>!history.value.undo}),
      smallButton('Redo',()=>step(redo,undo),{title:`${MOD}+Shift+Z`,disabled:()=>!history.value.redo}),
      smallButton('Reset',()=>rebuild({keepPlayer:false})),
@@ -1352,6 +1368,9 @@ export function createWorldEditor(host){
          group('Footprint',fields(select('Paint',options.draftMode,[['add','Add tiles'],['remove','Remove tiles']])),
           h('p',{class:'q-page__help'},()=>{draft.value;revision.value;return `${draft.value.size} tiles${draftFor!==null?` · reshaping ${nameOf('building',data.buildings[draftFor])}`:''}`;}),
           buttons(smallButton('Build it',buildDraft),smallButton('Clear',clearDraft)))),
+        // The Townsfolk tool shows the selected person's panel too (the one the Hand shows).
+        opts(['townsfolk'],personPanel()),
+        opts(['crystal'],crystalPanel()),
         opts(['nature'],group(null,fields(select('Nature',options.nature,NATURE_CHOICES)))),
         opts(['enemy'],group(null,fields(select('Enemy',options.enemyKind,Object.entries(ENEMIES).map(([id,e])=>[id,e.name])),select('Behaviour',options.enemyMood,[['passive','Passive (fights back)'],['aggressive','Aggressive']]),select('Respawns after',options.enemyRespawn,RESPAWNS)))),
         opts(['raise','lower','flatten','smooth','ramp','ramps','nature','surface','footprint'],group(null,fields(select('Brush',brush,[['1','1 tile'],['3','3 × 3'],['5','5 × 5'],['7','7 × 7'],['9','9 × 9']]),

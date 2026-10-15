@@ -1,5 +1,5 @@
 import {Vector3} from 'three';
-import {findPath,key,canStep,canMove,eachStep,searchRoute,routeTo,chebyshev,DIAGONAL_MOVES} from './world.js';
+import {findPath,key,canStep,canMove,eachStep,searchRoute,routeTo,chebyshev,DIAGONAL_MOVES,stepCost} from './world.js';
 import {SLIDE_DURATION,STEP_DURATION,isRamp} from './slime-motion.js';
 import {createPopIn} from './pop-in.js';
 // How a companion follows the player (docs/MOVEMENT-PLAN.md, user decisions 2026-10-15). Tunable from
@@ -20,7 +20,7 @@ const stepOptions=()=>({diagonal:DIAGONAL_MOVES.companion,passable:dryStep});
 // straight through people, the player included. Terrain, water, walls and closed doors still apply.
 // Returns null when no such tile is found within `limit` tiles.
 export function followRoute(world,start,player,{stopOk=()=>true,free=()=>true,limit=FOLLOW.limit}={}){
- const options=stepOptions(),expand=(t,add)=>eachStep(world,t,n=>add(n,1),options);
+ const options=stepOptions(),expand=(t,add)=>eachStep(world,t,n=>add(n,stepCost(t,n)),options);
  for(const ok of [t=>stopOk(t)&&free(t),stopOk]){
   const {end,previous}=searchRoute(start,expand,{target:player,near:1,limit,goal:t=>chebyshev(t,player)===1&&ok(t)});
   if(end)return routeTo(previous,end);

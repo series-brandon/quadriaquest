@@ -1,5 +1,5 @@
 import {gridDistance,meleeDistance,reachesAcross} from './combat-geometry.js';
-import {key,edgeBetween,edgePasses,searchRoute,routeTo,ORTHOGONAL,DIAGONAL,DIAGONAL_MOVES} from './world.js';
+import {key,edgeBetween,edgePasses,searchRoute,routeTo,stepCost,ORTHOGONAL,DIAGONAL,DIAGONAL_MOVES} from './world.js';
 
 // Multi-tile bodies. A body of `size` covers size×size tiles; its anchor is the minimum-x, minimum-z
 // corner (the entity's `tile`). Size 1 is an ordinary one-tile entity.
@@ -69,8 +69,8 @@ export function findFootprintPath(world,start,size,goal,{own=[],allow=()=>true,l
  if(goal(start))return [];
  const options={own,allow,diagonal};
  const expand=(t,add)=>{
-  for(const [dx,dz] of ORTHOGONAL){const n=world.get(key(t.x+dx,t.z+dz));if(n&&bodyMove(world,t,n,size,options))add(n,1+(cost?cost(footprint(world,n,size)):0));}
-  if(diagonal)for(const [dx,dz] of DIAGONAL){const n=world.get(key(t.x+dx,t.z+dz));if(n&&bodyMove(world,t,n,size,options))add(n,1+(cost?cost(footprint(world,n,size)):0));}
+  for(const [dx,dz] of ORTHOGONAL){const n=world.get(key(t.x+dx,t.z+dz));if(n&&bodyMove(world,t,n,size,options))add(n,stepCost(t,n)+(cost?cost(footprint(world,n,size)):0));}
+  if(diagonal)for(const [dx,dz] of DIAGONAL){const n=world.get(key(t.x+dx,t.z+dz));if(n&&bodyMove(world,t,n,size,options))add(n,stepCost(t,n)+(cost?cost(footprint(world,n,size)):0));}
  };
  const {end,previous}=searchRoute(start,expand,{goal,limit});
  return end?routeTo(previous,end):null;

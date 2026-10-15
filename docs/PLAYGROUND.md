@@ -61,8 +61,10 @@ Previews run in place without consuming items or earning XP. Stop to play normal
 - **Prop gallery:** every prop by category, with their live interactions (sit, sleep, cook, smith, open, read), a fence gate, a low stone wall and an iron gate.
 - **Force cutaway:** cuts every building at once (no roofs, one-storey walls).
 - **Ramps** (docs/TOWN.md, *Ramps*): *Terrain* → *Ramp ledges* turns ledges under the brush into ramps (paths only by default) or back; *Play* walks them smoothly. The old *Ramp* drag tool is now *Slope*.
+- **Townsfolk** (docs/TOWN.md, *The Townsfolk and Crystal tools' panels*): the Townsfolk tool places someone and opens their panel; clicking someone there opens theirs.
 - **Iter Crystals** (docs/TOWN.md, *Iter Crystals*): the editor's *World* → *Crystal* places any number; the Hand's panel names them and sets their id and *Known from the start*. In *Play*, walking up to one discovers it for the teleport list. The debug panel's *Maps* has *Discover all crystals* and *Forget crystals*.
 - **Play from where you work:** *Play* puts the slime on the open tile nearest the view and gives the camera back to it, as in the game; *Edit* frees the camera again. *Player here* (*Map* → *View*) moves the slime there without leaving Edit. The debug panel's *Maps* has *Player to camera* for the same outside the editor.
+- **Save** (top row, or Ctrl/⌘+S): saves the map to its file in `src/maps`, as *Map* → *Save to repo*; it shows a dot while there are unsaved changes.
 - **Draw distance:** the world editor's top row has it too (*Draw*), the same setting as Settings.
 - **The world's edge and atmosphere** (docs/TOWN.md, *The mist wall*; BIOMES.md, *Atmosphere*): the *Map* group's *View* has *Atmosphere* (biome fog and light on or off; the haze stays) and *Show the mist wall* (the camera looks at the edge nearest the view). In *Play*, clicking past the edge says the mist is too thick. Gelton's countryside (*Enter Gelton*) has the mist round it too.
 - **Reworked props** (docs/TOWN.md, *Reworked props*): the stall, counters, lamps, crates, barrels, fences, gates and trees show in the catalogue, the model preview and anywhere they're placed.

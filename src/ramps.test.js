@@ -31,3 +31,18 @@ test('walking onto or off a ramp slides; standing on one is at its middle',()=>{
  const on=moveMotion(1,low,ramp);assert.equal(on.stepped,false);assert.ok(Math.abs(on.rise-.25)<1e-9,'a quarter block up to its middle');
  assert.equal(moveMotion(1,low,{x:1,z:0,h:1.5}).stepped,true,'a ledge is still hopped');
 });
+test('every walker prefers a ramp to a hop when it’s about as near, and still hops rather than go far round',async()=>{
+ const {findPath,stepCost,HOP_COST}=await import('./world.js');
+ const ledge=(rampZ)=>{const m=new Map();for(let z=0;z<6;z++)for(let x=0;x<5;x++){const t={x,z,h:x>=2?1.5:1,blocked:false};if(x===2&&z===rampZ)t.ramp={dir:'e'};m.set(key(x,z),t);}return m;};
+ const {DIAGONAL_COST}=await import('./world.js');assert.equal(HOP_COST,1);assert.equal(DIAGONAL_COST,.1);
+ assert.equal(stepCost({x:0,z:0,h:1},{x:1,z:0,h:1.5}),2,'a hop');assert.equal(stepCost({x:0,z:0,h:1},{x:1,z:0,h:1.5,ramp:{dir:'e'}}),1,'a ramp');assert.equal(stepCost({x:0,z:0,h:1},{x:1,z:1,h:1}),1.1,'a diagonal');
+ const near=ledge(2),route=findPath(near,near.get(key(0,1)),near.get(key(4,1)));assert.ok(route.includes(near.get(key(2,2))),'the ramp one row over');
+ const far=ledge(5),hop=findPath(far,far.get(key(0,1)),far.get(key(4,1)));assert.ok(!hop.includes(far.get(key(2,5))),'not four rows round');assert.equal(hop.length,4);
+});
+test('a ramp is walked straight: no diagonal steps onto, off or beside it',async()=>{
+ const {canMove}=await import('./world.js');const m=new Map();
+ for(let z=0;z<3;z++)for(let x=0;x<3;x++)m.set(key(x,z),{x,z,h:1.5,blocked:false});m.get(key(1,1)).ramp={dir:'e'};
+ const at=(x,z)=>m.get(key(x,z));
+ assert.equal(canMove(m,at(0,0),at(1,1)),false,'not onto it');assert.equal(canMove(m,at(1,1),at(2,2)),false,'not off it');
+ assert.equal(canMove(m,at(0,0),at(1,0)),true,'straight is fine');assert.equal(canMove(m,at(0,1),at(1,2)),false,'not past its corner');
+});

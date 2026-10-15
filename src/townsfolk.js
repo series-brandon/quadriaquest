@@ -5,7 +5,7 @@ import {makeSlime} from './slime-model.js';
 import {createSlimeActor} from './slime-presentation.js';
 import {markCharacter,occupancy} from './world-occupancy.js';
 import {seatPosition} from './props.js';
-import {key,canStep,canMove,edgeBetween,eachStep,searchRoute,routeTo,DIAGONAL_MOVES} from './world.js';
+import {key,canStep,canMove,edgeBetween,eachStep,searchRoute,routeTo,DIAGONAL_MOVES,stepCost} from './world.js';
 import {isBuildingCut} from './cutaway.js';
 import {moveMotion} from './slime-motion.js';
 
@@ -41,27 +41,28 @@ export function passable(from,to){if(canStep(from,to))return true;const edge=edg
 const stepOptions=()=>({diagonal:DIAGONAL_MOVES.townsfolk,passable,corner:canStep});
 const backOptions=()=>({diagonal:DIAGONAL_MOVES.townsfolk,passable:(a,b)=>passable(b,a),corner:(a,b)=>canStep(b,a)});
 export const townsfolkStep=(map,from,to)=>canMove(map,from,to,stepOptions());
-// Shared navigation for one map: cached distance fields (BFS over the shared step rule, doors included).
+// Shared navigation for one map: cached distance fields (the shared step rule and step costs, doors included:
+// a hop costs more, world.js stepCost).
 export function createNavigator(map){
  const fields=new Map();
  function field(goal){
   const back=backOptions(),id=key(goal.x,goal.z)+(back.diagonal?'d':'');if(fields.has(id)){const f=fields.get(id);fields.delete(id);fields.set(id,f);return f;}
-  const dist=new Map([[goal,0]]),queue=[goal];
-  for(let i=0;i<queue.length;i++){const t=queue[i],d=dist.get(t);eachStep(map,t,n=>{if(!dist.has(n)){dist.set(n,d+1);queue.push(n);}},back);}
+  // Grown from the goal: the step from n to t, the way a walker goes.
+  const dist=searchRoute(goal,(t,add)=>eachStep(map,t,n=>add(n,stepCost(n,t)),back),{goal:()=>false}).best;
   fields.set(id,dist);if(fields.size>FIELD_CACHE)fields.delete(fields.keys().next().value);return dist;
  }
  return {field,
   // The next step from `from` towards `goal` (null when there or unreachable), preferring free tiles,
   // then the one nearest the goal in a straight line (diagonal first, then straight).
   next(from,goal,occupied=()=>false){const dist=field(goal),here=dist.get(from);if(here===undefined||here===0)return null;
-   const options=[];eachStep(map,from,n=>{if(dist.get(n)===here-1)options.push(n);},stepOptions());
+   const options=[];eachStep(map,from,n=>{const d=dist.get(n);if(d!==undefined&&Math.abs(d+stepCost(from,n)-here)<1e-6)options.push(n);},stepOptions());
    options.sort((a,b)=>Math.hypot(a.x-goal.x,a.z-goal.z)-Math.hypot(b.x-goal.x,b.z-goal.z));
    return options.find(n=>!occupied(n))||options[0]||null;},
   reachable:(from,goal)=>field(goal).has(from),
   // A route from `from` to `goal` by a bounded search (early exit; at most `limit` tiles visited):
   // townsfolk plan this way, so a new goal costs little and they keep to their neighbourhood.
   route(from,goal,limit=ROUTE_LIMIT){if(!goal||from===goal)return from===goal?[]:null;const options=stepOptions();
-   const {end,previous}=searchRoute(from,(t,add)=>eachStep(map,t,n=>add(n,1),options),{target:goal,limit});
+   const {end,previous}=searchRoute(from,(t,add)=>eachStep(map,t,n=>add(n,stepCost(t,n)),options),{target:goal,limit});
    return end?routeTo(previous,end):null;},
   // Tiles within `radius` steps (bounded search), for strolls.
   around(from,radius=STROLL_RADIUS){const seen=new Map([[from,0]]),queue=[from];for(let i=0;i<queue.length;i++){const t=queue[i],d=seen.get(t);if(d>=radius)continue;eachStep(map,t,n=>{if(!seen.has(n)){seen.set(n,d+1);queue.push(n);}},{diagonal:DIAGONAL_MOVES.townsfolk});}return [...seen.keys()];},
