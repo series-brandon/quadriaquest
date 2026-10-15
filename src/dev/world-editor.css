@@ -27,9 +27,12 @@
   background: var(--q-paper);
 }
 .q-world-editor__bar { grid-area: bar; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+/* In Play only a few controls show: a compact row at the top left, clear of the game viewport's own corner
+   buttons and the player sidebar beside it (user report, 2026-10-15: the bar ran into them). */
+.q-world-editor[data-mode='play'] .q-world-editor__bar { justify-self: start; justify-content: flex-start; max-inline-size: calc(100% - 64px); }
 .q-world-editor__edit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 0 1 auto; }
 .q-world-editor__edit[hidden] { display: none; }
-.q-world-editor__bar[hidden], .q-world-editor__panel[hidden], .q-world-editor__catalogue[hidden], .q-world-editor__dock[hidden], .q-world-editor__map[hidden] { display: none; }
+.q-world-editor__bar[hidden], .q-world-editor__content[hidden], .q-world-editor__tool-card[hidden], .q-world-editor__panel[hidden], .q-world-editor__catalogue[hidden], .q-world-editor__dock[hidden], .q-world-editor__map[hidden] { display: none; }
 .q-world-editor__bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .q-world-editor__bar-row[hidden] { display: none; }
 .q-world-editor__name { margin-inline-end: auto; }

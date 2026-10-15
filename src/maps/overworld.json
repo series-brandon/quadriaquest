@@ -11,8 +11,8 @@
   179
  ],
  "crystal": [
-  176,
-  176
+  181,
+  194
  ],
  "regions": {
   "0,0": {
@@ -66,7 +66,47 @@
    },
    "surfaces": {
     "fill": ".",
-    "rows": {}
+    "rows": {
+     "31": "..........................................d.....................................................................................",
+     "32": "..........................................d.....................................................................................",
+     "33": "..........................................d.....................................................................................",
+     "34": "..........................................d.....................................................................................",
+     "35": "..........................................d.....................................................................................",
+     "36": "..........................................d.....................................................................................",
+     "37": "..........................................d.........ggg.........................................................................",
+     "38": "..........................................d........gdddgg.............ddddddddddddddddddddd.....................................",
+     "39": "..........................................d........gddddd.............ddddddddddddddddddddd.....................................",
+     "40": ".................................ddddddddddddddddddddddddddddddddddddddd........................................................",
+     "41": ".................................ddddddddddddddddddddddddddddddddddddddd........................................................",
+     "42": "...................................................dddddd.......................................................................",
+     "43": "...................................................dddddd.......................................................................",
+     "44": "...................................................dddddd.......................................................................",
+     "45": "....................................................ddddg.......................................................................",
+     "46": "....................................................dddd........................................................................",
+     "47": "....................................................ddd.........................................................................",
+     "48": "....................................................ddd.........................................................................",
+     "49": "....................................................ddd.........................................................................",
+     "50": ".....................................................dd.........................................................................",
+     "51": ".....................................................ddg........................................................................",
+     "52": ".....................................................ddg........................................................................",
+     "53": ".....................................................dd.........................................................................",
+     "54": ".....................................................dd.........................................................................",
+     "55": ".....................................................dd.........................................................................",
+     "56": ".....................................................dd.........................................................................",
+     "57": ".....................................................dd.........................................................................",
+     "58": "....................................................ddd.........................................................................",
+     "59": "....................................................ddd.........................................................................",
+     "60": "...................................................ddddd........................................................................",
+     "61": "...................................................ddddd........................................................................",
+     "62": "...................................................dddddd.......................................................................",
+     "63": "..................................................ddddddd.......................................................................",
+     "64": "..................................................ddddddd.......................................................................",
+     "65": "..................................................dddddddd......................................................................",
+     "66": "..................................................dddddddd......................................................................",
+     "67": "..................................................dddddddd......................................................................",
+     "68": "...................................................dddddd.......................................................................",
+     "69": "....................................................dddd........................................................................"
+    }
    }
   },
   "2,1": {
@@ -114,7 +154,7 @@
  "buildings": [
   {
    "x": 164,
-   "z": 162,
+   "z": 152,
    "desc": {
     "name": "Building 1",
     "cells": [
@@ -514,7 +554,8 @@
      "12,2,east": "window",
      "0,2,west": "window"
     },
-    "flowerBoxes": []
+    "flowerBoxes": [],
+    "rotation": 0
    },
    "floors": [
     {
@@ -533,145 +574,145 @@
   "default": "meadow",
   "cells": {
    "legend": [
-    "coast",
-    "wetland"
+    "wetland",
+    "coast"
    ],
    "rows": {
     "0": [
      13,
-     "bbb"
+     "aaa"
     ],
     "1": [
      13,
-     "bbb"
+     "aaa"
     ],
     "2": [
      13,
-     "bbb"
+     "aaa"
     ],
     "3": [
      13,
-     "bbbb"
+     "aaaa"
     ],
     "4": [
      13,
-     "bbbb"
+     "aaaa"
     ],
     "5": [
      13,
-     "bbbb"
+     "aaaa"
     ],
     "6": [
      13,
-     "bbbbb"
+     "aaaaa"
     ],
     "7": [
      13,
-     "bbbbbb"
+     "aaaaaa"
     ],
     "8": [
      13,
-     "bbbbbbbbbbbbbbbbbbb"
+     "aaaaaaaaaaaaaaaaaaa"
     ],
     "9": [
      13,
-     "bbbbbbbbbbbbbbbbbbb"
+     "aaaaaaaaaaaaaaaaaaa"
     ],
     "10": [
      13,
-     "bbbbbbbbbbbbbbbbbbb"
+     "aaaaaaaaaaaaaaaaaaa"
     ],
     "11": [
      13,
-     "bbbbbbbbbbbbbbbbbbb"
+     "aaaaaaaaaaaaaaaaaaa"
     ],
     "12": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaa..aaaaabbbbbbbbbbbbb"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbb..bbbbbaaaaaaaaaaaaa"
     ],
     "13": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaa..aaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbb..bbbbbbbbbbbbbbbbbb"
     ],
     "14": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "15": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "16": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "17": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "18": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "19": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "20": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "21": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "22": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "23": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "24": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "25": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "26": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "27": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "28": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "29": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "30": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "31": [
      -16,
-     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     ],
     "-2": [
      13,
-     "bbb"
+     "aaa"
     ],
     "-1": [
      13,
-     "bbb"
+     "aaa"
     ]
    }
   },
@@ -681,203 +722,203 @@
   ],
   "terrain": {
    "legend": [
-    "river",
-    "sea",
     "hills",
-    "plains"
+    "plains",
+    "river",
+    "sea"
    ],
    "rows": {
     "0": [
      -7,
-     "ccccc...........ddda"
+     "aaaaa...........bbbc"
     ],
     "1": [
      -7,
-     "ccccc...........ddda"
+     "aaaaa...........bbbc"
     ],
     "2": [
      -7,
-     "ccccc...........ddda"
+     "aaaaa...........bbbc"
     ],
     "3": [
      -7,
-     "ccccc..............a"
+     "aaaaa..............c"
     ],
     "4": [
      -8,
-     "cccccc..............a"
+     "aaaaaa..............c"
     ],
     "5": [
      -8,
-     "cccccc..............a....ddd"
+     "aaaaaa..............c....bbb"
     ],
     "6": [
      -8,
-     "cccccc..............a....ddd"
+     "aaaaaa..............c....bbb"
     ],
     "7": [
      -8,
-     "ccccc...............a....ddd"
+     "aaaaa...............c....bbb"
     ],
     "8": [
      -8,
-     "ccccc...............a"
+     "aaaaa...............c"
     ],
     "9": [
      -7,
-     "cccc...............a"
+     "aaaa...............c"
     ],
     "10": [
      -7,
-     "ccc................a"
+     "aaa................c"
     ],
     "11": [
      -7,
-     "ccc................a"
+     "aaa................c"
     ],
     "12": [
      12,
-     "aa"
+     "cc"
     ],
     "13": [
      12,
-     "aa"
+     "cc"
     ],
     "14": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "15": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "16": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "17": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "18": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "19": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "20": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "21": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "22": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "23": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "24": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "25": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "26": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "27": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "28": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "29": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "30": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "31": [
      -16,
-     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+     "dddddddddddddddddddddddddddddddddddddddddddddddd"
     ],
     "-16": [
      12,
-     "a"
+     "c"
     ],
     "-15": [
      12,
-     "a"
+     "c"
     ],
     "-14": [
      12,
-     "a"
+     "c"
     ],
     "-13": [
      12,
-     "a"
+     "c"
     ],
     "-12": [
      12,
-     "a"
+     "c"
     ],
     "-11": [
      12,
-     "a.....cccc"
+     "c.....aaaa"
     ],
     "-10": [
      12,
-     "a...cccccc"
+     "c...aaaaaa"
     ],
     "-9": [
      12,
-     "a...cccccc"
+     "c...aaaaaa"
     ],
     "-8": [
      12,
-     "a...ccccccc"
+     "c...aaaaaaa"
     ],
     "-7": [
      12,
-     "a...ccccccc"
+     "c...aaaaaaa"
     ],
     "-6": [
      12,
-     "a...ccccccc"
+     "c...aaaaaaa"
     ],
     "-5": [
      12,
-     "a...ccc"
+     "c...aaa"
     ],
     "-4": [
      12,
-     "a...ccc"
+     "c...aaa"
     ],
     "-3": [
      -6,
-     "ccc...............a"
+     "aaa...............c"
     ],
     "-2": [
      -6,
-     "ccc...............a"
+     "aaa...............c"
     ],
     "-1": [
      -7,
-     "cccc...............a"
+     "aaaa...............c"
     ]
    }
   },

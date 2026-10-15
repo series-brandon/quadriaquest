@@ -18,7 +18,7 @@ export const PERF_SCENARIOS=[
  {id:'city-crowd',description:'Kit street square with a generated crowd of 60 townsfolk (crowd budget rings)'},
  {id:'capital-square',description:'The capital (160 × 160, city Phase 9): the town square at the default view, chunks streamed, its townsfolk'},
  {id:'overworld-pan',description:'The overworld (384 × 384) in the world editor, the free camera panning back and forth across it at zoom 40: chunks of land, nature, water and the map\'s content streaming in and out'},
- {id:'biome-atmosphere',description:'The Biome test\'s broadleaf forest: walking among its trees in its fog and falling leaves (atmosphere.js)'},
+ {id:'biome-atmosphere',stochastic:true,description:'The Biome test\'s broadleaf forest: walking among its trees in its fog (atmosphere.js); goblins wander in and out of view, redrawing the shadows'},
  {id:'mist-edge',description:'The overworld\'s north edge in the world editor at zoom 40: the mist wall\'s soft layers across the view (mist-wall.js)'},
  {id:'countryside-walk',description:'Gelton\'s countryside (docs/WORLD.md): walking the west road out of the city and back, loading and unloading countryside chunks (woods, rocks, goblins) on the way'}
 ];

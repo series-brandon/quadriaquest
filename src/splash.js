@@ -50,7 +50,8 @@ export function createSplash(renderer,enabled,settings){
   function show(){if(!overlay.hidden)return;overlay.hidden=false;blocked=[...document.body.children].filter(el=>el!==overlay&&!el.classList?.contains('q-modal')&&!(__PLAYGROUND__&&el.id==='quadriaquest-dev-playground')&&!el.inert);for(const el of blocked)el.inert=true;}
   const close=()=>{overlay.hidden=true;for(const el of blocked)el.inert=false;blocked=[];};overlay.querySelector('#splash-play').onclick=close;
   if(enabled)show();
-  return {grassMaterials,randomizeAppearance,restartWater(){gardenWater.restart();},get active(){return !overlay.hidden;},show,close,render(dt){
+  // scene: the game gives it the world's far-off fog too, so materials shared with the world compile one program (main.js).
+  return {scene,grassMaterials,randomizeAppearance,restartWater(){gardenWater.restart();},get active(){return !overlay.hidden;},show,close,render(dt){
     gardenWater.update(dt);age+=dt;sleeper.update(dt,age);
     camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();const distance=camera.aspect<.8?17:14;
     camera.position.set(distance*.4, distance*.5,distance*.85);camera.lookAt(0,1.4,0);camera.updateMatrixWorld();

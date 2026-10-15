@@ -126,7 +126,8 @@ export function createWorldEditor(host){
  const showBiomes=()=>{biomeOverlay?.dispose();biomeOverlay=null;if(!built||!data?.land||tool.peek()!=='biome')return;
   const terrain=options.landLayer.peek()==='terrain';
   biomeOverlay=createBiomeOverlay({cells:(terrain?data.land.terrain:data.land.cells)||{},cell:BIOME_CELL,colors:terrain?TERRAIN_PAINT:BIOME_PAINT,heightAt:(x,z)=>at(x,z)?.h,parent:built.group,origin:data.land.origin||[0,0],bounds:[0,0,data.size[0]-1,data.size[1]-1]});};
- const showGrid=()=>{overlay?.dispose();overlay=grid.peek()&&built?createGridOverlay({tiles:built.tiles,parent:built.group}):null;};
+ // Chunk and region lines: while editing only (Play looks like the game).
+ const showGrid=()=>{overlay?.dispose();overlay=grid.peek()&&built&&mode.peek()==='edit'?createGridOverlay({tiles:built.tiles,parent:built.group}):null;};
  const showSelection=()=>{outline?.dispose();outline=null;showPersonSpots();const sel=selection.peek(),entry=entryOf(sel);if(!built||!entry)return;outline=createCellOutline({cells:cellsOf(sel.kind,entry),tiles:{get:k=>at(...k.split(',').map(Number))},parent:overlayParent(),color:moving.peek()?'#5fe0ff':'#ffe14d'});};
  // Checks run a moment after editing stops (they take seconds on the capital).
  const scheduleChecks=(delay=250)=>{clearTimeout(checkTimer);checkTimer=setTimeout(()=>{if(heldEntries.length){scheduleChecks(500);return;}if(built&&data)problems.value=mapProblems(data,built);},delay);};
@@ -1280,7 +1281,7 @@ export function createWorldEditor(host){
    h('header',{class:'q-world-editor__bar','aria-label':'World editor'},
     segmented({label:'Mode',options:[{value:'edit',label:'Edit'},{value:'play',label:'Play'}],value:mode,onChange:v=>{if(v==='play'&&holding())cancel();mode.value=v;
      // Play is the game: you're put where you were working, and the camera follows you; Edit frees it again.
-     if(v==='play'){const here=host.playerHere?.();host.freeCamera?.(false);status.value=here?'Test walk: clicks move you. Reset rebuilds the edited state.':'Test walk (no open ground near the view: you stay where you were).';}
+     if(v==='play'){const here=host.playerHere?.();host.freeCamera?.(false);if(!here)host.toast?.('No open ground near the view: you’re where you were.');}
      else{host.freeCamera?.(true);status.value='Edit: clicks use the tool.';}}}),
     h('div',{class:'q-world-editor__edit',hidden:()=>mode.value!=='edit'},
      segmented({label:'Walls',options:[{value:'up',label:'Walls up'},{value:'cut',label:'Cutaway'},{value:'down',label:'Walls down'}],value:options.wallsMode,onChange:v=>{options.wallsMode.value=v;}}),
@@ -1301,7 +1302,7 @@ export function createWorldEditor(host){
    h('div',{class:'q-world-editor__dock'},
     h('div',{class:'q-world-editor__tool-card',hidden:()=>mode.value!=='edit'},h('span',{class:'q-world-editor__heading'},()=>TOOL_GROUPS.find(([g])=>g===toolGroup.value)?.[1]||''),
      h('div',{class:'q-world-editor__tools'},TOOLS.map(([id,name])=>h('button',{type:'button',class:'q-button q-button--small',hidden:()=>groupOf(id)!==toolGroup.value,'aria-pressed':()=>String(tool.value===id),on:{click:()=>setTool(id)}},name)))),
-    h('div',{class:'q-world-editor__content','data-catalogue':()=>String(catalogueShown())},
+    h('div',{class:'q-world-editor__content',hidden:()=>mode.value!=='edit','data-catalogue':()=>String(catalogueShown())},
      h('div',{class:'q-world-editor__status'},h('p',{class:'q-page__help',role:'status'},status),h('p',{class:'q-page__help q-world-editor__refused',hidden:()=>!previewNote.value},previewNote)),
      h('div',{class:'q-world-editor__body'},
       cataloguePanel(),
@@ -1373,7 +1374,7 @@ export function createWorldEditor(host){
     // Editing fills the window (the player interface hides); Play shows it again for the test walk.
     // The free camera while editing (the slime stays where it is); it comes back to the slime on Close.
     if(host.freeCameraOn&&!host.freeCameraOn.peek())host.freeCamera(true);
-    stopScreen=effect(()=>{const editing=mode.value==='edit';host.setEditorScreen?.(editing);host.setWalls?.(editing?options.wallsMode.value:'up');});
+    stopScreen=effect(()=>{const editing=mode.value==='edit';host.setEditorScreen?.(editing);host.setWalls?.(editing?options.wallsMode.value:'up');untracked(showGrid);});
     // World clicks and left-drag belong to the editor only in Edit mode; in Play they reach the game.
     stopDrag=effect(()=>{const editing=mode.value==='edit';host.setTileClick(editing?(tile,point,actor)=>click(tile,point,actor):null);host.setTileHover?.(editing?hover:null);if(!editing)clearPreview();host.setTileDrag?.(editing&&DRAG_TOOLS.includes(tool.value)?drag:null);});
     // The biome overlay shows while the Biome tool is chosen.

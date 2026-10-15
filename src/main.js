@@ -165,8 +165,8 @@ let idx=0;const waterEffects=createWaterEffects(scene,renderer),grassFor=new Map
 for(const t of world.values()){
  if(t.water){for(const m of addWaterTile(scene,t,world,waterEffects)){m.userData.tile=t;pickables.push(m);}}else grassFor.set(t,grass[idx++%4]);
 }
-const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);// The floor under the world (click misses land on it): large, and kept under the view (updateAtmosphere), so
-// every map, however big, has it under all its tiles.
+const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);// The floor under the world (click misses land on it): large, and kept under the view in 100-unit steps
+// (updateAtmosphere; moving it every step redrew the shadows each frame), so every map has it under all its tiles.
 const ground=mesh(new THREE.PlaneGeometry(2400,2400),mat('#e5e9df'));ground.rotation.x=-Math.PI/2;ground.position.y=-.045;ground.castShadow=false;
 const trees=[];
 for(const t of world.values())if(t.blocked&&!t.water)trees.push(createResourceEntity({kind:BOULDER_TILES.has(key(t.x,t.z))?'boulder':'tree',tile:t,parent:scene,pickables}));
@@ -765,8 +765,12 @@ function panFreeCamera(dt){
 }
 // The mist wall's drift and thinning, and the atmosphere of the biome under the view (an area with biome land
 // has biomeAt(x, z)).
-function updateAtmosphere(dt){const focus=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,at=viewTile();ground.position.x=Math.round(focus.x);ground.position.z=Math.round(focus.z);const detail=['low','lowest'].includes(quality.tier.peek())?0:1,focusDistance=camera.position.distanceTo(focus),range=(drawRadius()+.5)*CHUNK;updateMistWalls(clock.elapsedTime,focusDistance,detail,focus,range);
- atmosphere.update(dt,{biome:splash.active?null:areas.active?.biomeAt?.(at.x,at.z)??null,range,focusDistance,background:scene.background,on:atmosphereOn.peek(),detail});}
+const splashFog=new THREE.Fog('#dce5dc',1e4,2e4);
+function updateAtmosphere(dt){const focus=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,at=viewTile();ground.position.x=Math.round(focus.x/100)*100;ground.position.z=Math.round(focus.z/100)*100;const detail=['low','lowest'].includes(quality.tier.peek())?0:1,focusDistance=camera.position.distanceTo(focus),range=(drawRadius()+.5)*CHUNK;updateMistWalls(clock.elapsedTime,focusDistance,detail,focus,range);
+ atmosphere.update(dt,{biome:splash.active?null:areas.active?.biomeAt?.(at.x,at.z)??null,range,focusDistance,background:scene.background,on:atmosphereOn.peek(),detail});
+ // The splash has fog whenever the world does (far off, so it shows nothing): materials it shares with the world then
+ // compile one program, not one with fog and one without (perf: splash 15 → 22 programs).
+ if(splash.scene)splash.scene.fog=scene.fog?splashFog:null;}
 function followSun(){const at=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,fx=Math.round(at.x/4)*4,fz=Math.round(at.z/4)*4,anchor=`${fx},${fz}`;if(anchor===sunAnchor)return;sunAnchor=anchor;sun.target.position.set(fx,0,fz);sun.position.set(fx-8,19,fz+5);sun.target.updateMatrixWorld();quality.shadowsChanged();}
 function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);followSun();updateAtmosphere(dt);quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);// Ambience: a breeze on the splash, silence in the opening scene, then the area's own profile.
  gameAudio.update(dt,splash.active?'splash':opening.finished?areas.active?.music||'clearing':'intro',narrator.visible.peek(),!!combat?.inCombat,splash.active?'breeze':opening.inClearing?areas.active?.ambience||'meadow':'none');if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);spaces.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);lootPiles.update(dt,elapsed,hover?.actor);jobs.update();updateJobMarkers(dt);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
