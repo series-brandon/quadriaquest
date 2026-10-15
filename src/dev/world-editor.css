@@ -1,31 +1,53 @@
-/* Playground world editor (dev/world-editor.js): a docked panel over the left of the game view; a
-   bottom sheet on phones so the world stays clickable. */
+/* Playground world editor (dev/world-editor.js; docs/TOWN.md, Sims-style editor): over a full-window world, a
+   bar along the top, a side panel on the left and, in Decorate, the catalogue along the bottom. The layer
+   itself lets clicks through to the world; only its panels take them. Phones: the panel lies over the world
+   below the bar (Hide panel tucks it away) and the catalogue spans the bottom. */
 .q-world-editor {
   position: fixed;
-  inset-block-start: 12px;
-  inset-inline-start: 12px;
+  /* The game's viewport: the whole window while editing, beside the player sidebar in Play. */
+  inset: 0 auto 0 0;
+  inline-size: var(--game-viewport-width, 100vw);
   z-index: 40;
   display: grid;
-  gap: 10px;
-  inline-size: min(340px, calc(100vw - 24px));
-  max-block-size: calc(100dvh - 24px);
-  padding: 12px;
-  overflow: auto;
+  grid-template-columns: min(340px, 40vw) 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas: 'bar bar' 'side .' 'side catalogue';
+  gap: 8px;
+  padding: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
+  color: var(--q-ink);
+  font-size: 13px;
+  pointer-events: none;
+}
+.q-world-editor > * { pointer-events: auto; }
+.q-world-editor[data-side='closed'] .q-world-editor__catalogue { grid-column: 1 / -1; }
+.q-world-editor__bar, .q-world-editor__side, .q-world-editor__catalogue {
+  min-inline-size: 0;
+  padding: 10px;
   border: 1px solid var(--q-modal-border);
   border-radius: var(--q-modal-radius);
   background: var(--q-paper);
-  color: var(--q-ink);
-  font-size: 13px;
 }
+.q-world-editor__bar { grid-area: bar; display: grid; gap: 8px; }
+.q-world-editor__bar[hidden], .q-world-editor__side[hidden], .q-world-editor__catalogue[hidden] { display: none; }
+.q-world-editor__bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.q-world-editor__bar-row[hidden] { display: none; }
+.q-world-editor__name { margin-inline-end: auto; }
+.q-world-editor__actions { display: flex; flex-wrap: wrap; gap: 4px; }
+/* The bar's and catalogue's switches keep their whole labels. */
+.q-world-editor__bar .q-segmented, .q-world-editor__catalogue-head .q-segmented { flex: none; }
+.q-world-editor__bar .q-segmented__option, .q-world-editor__catalogue-head .q-segmented__option { flex: 0 0 auto; padding-inline: 10px; }
+.q-world-editor__side { grid-area: side; align-self: start; display: grid; align-content: start; gap: 10px; max-block-size: 100%; overflow: auto; }
 .q-world-editor__head, .q-world-editor__row { display: flex; flex-wrap: wrap; align-items: end; gap: 6px; justify-content: space-between; }
+.q-world-editor__row[hidden] { display: none; }
 .q-world-editor__row .q-world-editor__field { flex: 1 1 140px; }
 .q-world-editor__field { display: grid; gap: 4px; font-weight: 600; }
-.q-world-editor__field .q-select { inline-size: 100%; }
+.q-world-editor__field .q-select, .q-world-editor__field .q-input { inline-size: 100%; }
 .q-world-editor__tools { display: flex; flex-wrap: wrap; gap: 4px; }
-.q-world-editor__tools[hidden], .q-world-editor__options[hidden], .q-world-editor__options > [hidden] { display: none; }
+.q-world-editor__tools > [hidden], .q-world-editor__options[hidden], .q-world-editor__options > [hidden], .q-world-editor__options > p[hidden] { display: none; }
 .q-world-editor__options { display: grid; gap: 6px; }
 .q-world-editor__options > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; }
-.q-world-editor__title { margin: 0; font-size: 13px; }
+/* Panels (colours, look, floors, townsfolk…) and the selection run the panel's full width, one column. */
+.q-world-editor__options > .q-world-editor__look, .q-world-editor__options > .q-world-editor__selection { grid-template-columns: minmax(0, 1fr); }
 .q-world-editor__checks { display: grid; gap: 4px; max-block-size: 30dvh; margin: 0; padding: 0; overflow: auto; list-style: none; }
 .q-world-editor__check {
   inline-size: 100%;
@@ -35,32 +57,42 @@
   border-radius: var(--q-control-radius);
   background: var(--q-card);
   color: var(--q-ink);
-  font: inherit;
+  font-family: inherit;
+  font-size: inherit;
   text-align: start;
   cursor: pointer;
 }
 .q-world-editor__check[data-severity='error'] { border-color: var(--q-tone-danger); }
 .q-world-editor__check[data-severity='warning'] { border-color: var(--q-tone-warning); }
-@media (max-width: 700px) {
-  .q-world-editor { inset: auto 0 0; inline-size: 100%; max-block-size: 45dvh; border-radius: var(--q-modal-radius) var(--q-modal-radius) 0 0; padding-block-end: calc(12px + env(safe-area-inset-bottom)); }
-}
 .q-world-editor__selection { display: grid; gap: 6px; }
 .q-world-editor__selection[hidden], .q-world-editor__selection > [hidden] { display: none; }
-.q-world-editor__look { display: grid; gap: 6px; padding-block-start: 6px; border-block-start: 1px solid var(--q-modal-border); }
-.q-world-editor__look[hidden] { display: none; }
+.q-world-editor__look { display: grid; gap: 6px; padding-block-start: 6px; border-block-start: 1px solid var(--q-modal-border); grid-column: 1 / -1; }
+.q-world-editor__look[hidden], .q-world-editor__look [hidden] { display: none; }
 .q-world-editor__colour { inline-size: 100%; block-size: 32px; padding: 0; border: 1px solid var(--q-modal-border); border-radius: 6px; background: none; }
 
-/* The prop palette: a search box over the prop groups, thumbnails in a grid. */
-.q-world-editor__palette { display: grid; gap: 6px; }
-.q-world-editor__options > div.q-world-editor__palette { grid-template-columns: 1fr; }
-.q-world-editor__shelf { display: grid; gap: 8px; max-block-size: 45dvh; overflow: auto; padding-inline-end: 2px; }
-.q-world-editor__palette .q-input { inline-size: 100%; }
-.q-world-editor__group { display: grid; gap: 4px; }
-.q-world-editor__group[hidden], .q-world-editor__prop[hidden] { display: none; }
-.q-world-editor__props { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); grid-auto-rows: max-content; gap: 4px; }
-.q-world-editor__prop { display: grid; grid-template-rows: 48px auto; justify-items: center; block-size: auto; gap: 2px; min-block-size: 44px; padding: 4px; border: 1px solid var(--q-modal-border); border-radius: 6px; background: transparent; color: inherit; font: inherit; font-size: 11px; line-height: 1.2; text-align: center; cursor: pointer; }
+/* Colours: one row per piece (its name, a picker, Reset), quick swatches for the chosen piece, presets. */
+.q-world-editor__colours, .q-world-editor__pieces, .q-world-editor__save { display: grid; gap: 6px; }
+.q-world-editor__piece { display: grid; grid-template-columns: 1fr 64px auto; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 6px; }
+.q-world-editor__piece[data-active='true'] { background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); }
+.q-world-editor__piece-name { min-block-size: var(--q-touch); padding: 0 4px; border: 0; background: none; color: inherit; font-family: inherit; font-size: inherit; font-weight: 600; text-align: start; cursor: pointer; }
+.q-world-editor__dots { display: flex; flex-wrap: wrap; gap: 4px; }
+.q-world-editor__dot { inline-size: 28px; block-size: 28px; padding: 0; border: 1px solid var(--q-modal-border); border-radius: 6px; cursor: pointer; }
+
+/* The catalogue: browse by function or room, a search box, group chips, and a strip of thumbnails that scrolls
+   sideways. */
+.q-world-editor__catalogue { grid-area: catalogue; display: grid; gap: 6px; align-self: end; overflow: hidden; }
+.q-world-editor__catalogue-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.q-world-editor__catalogue-head .q-input { flex: 1 1 160px; }
+.q-world-editor__chips { display: flex; gap: 4px; overflow-x: auto; }
+.q-world-editor__chips > * { flex: none; }
+.q-world-editor__chips[hidden] { display: none; }
+.q-world-editor__chip-button { min-block-size: 32px; padding: 2px 10px; border: 1px solid var(--q-modal-border); border-radius: 999px; background: transparent; color: inherit; font-family: inherit; font-size: 12px; cursor: pointer; }
+.q-world-editor__chip-button[aria-pressed='true'] { border-color: var(--q-control-pressed); background: var(--q-control-selected); }
+.q-world-editor__strip { display: grid; grid-auto-flow: column; grid-auto-columns: 84px; gap: 4px; overflow-x: auto; overflow-y: hidden; padding-block-end: 4px; }
+.q-world-editor__prop { display: grid; grid-template-rows: 56px auto; justify-items: center; gap: 2px; min-block-size: var(--q-touch); padding: 4px; border: 1px solid var(--q-modal-border); border-radius: 6px; background: transparent; color: inherit; font-family: inherit; font-size: 11px; line-height: 1.2; text-align: center; cursor: pointer; }
+.q-world-editor__prop[hidden] { display: none; }
 .q-world-editor__prop[aria-pressed='true'] { border-color: var(--q-control-pressed); box-shadow: inset 0 0 0 1px var(--q-control-pressed); background: var(--q-control-selected); }
-.q-world-editor__thumb { inline-size: 48px; block-size: 48px; object-fit: contain; }
+.q-world-editor__thumb { inline-size: 56px; block-size: 56px; object-fit: contain; }
 
 /* A refused placement's reason, under the status line. */
 .q-world-editor__refused { color: var(--q-tone-danger); font-weight: 600; }
@@ -69,7 +101,7 @@
 /* Biome and terrain swatches: the overlay's colour and the name. */
 .q-world-editor__swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 4px; }
 .q-world-editor__swatches[hidden] { display: none; }
-.q-world-editor__swatch { display: flex; align-items: center; gap: 6px; min-block-size: 36px; padding: 4px 6px; border: 1px solid var(--q-modal-border); border-radius: 6px; background: transparent; color: inherit; font: inherit; font-size: 12px; text-align: start; cursor: pointer; }
+.q-world-editor__swatch { display: flex; align-items: center; gap: 6px; min-block-size: 36px; padding: 4px 6px; border: 1px solid var(--q-modal-border); border-radius: 6px; background: transparent; color: inherit; font-family: inherit; font-size: 12px; text-align: start; cursor: pointer; }
 .q-world-editor__swatch[aria-pressed='true'] { border-color: var(--q-control-pressed); box-shadow: inset 0 0 0 1px var(--q-control-pressed); background: var(--q-control-selected); }
 .q-world-editor__chip { flex: none; inline-size: 18px; block-size: 18px; border-radius: 4px; border: 1px solid var(--q-modal-border); }
 
@@ -77,7 +109,17 @@
 .q-world-editor__routine { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 4px; }
 .q-world-editor__routine .q-world-editor__field { font-weight: 500; font-size: 12px; }
 .q-world-editor__routine .q-input { inline-size: 100%; }
-
-/* Panels (look, floors, spawn, townsfolk) span the options' full width. */
-.q-world-editor__look { grid-column: 1 / -1; }
 .q-world-editor__floors { display: grid; gap: 4px; }
+
+@media (max-width: 700px) {
+  .q-world-editor { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: 'bar' 'side' 'catalogue'; }
+  .q-world-editor__side { align-self: start; max-block-size: 40dvh; }
+  /* One line each, scrolling sideways, so the world stays in view. */
+  .q-world-editor__bar { gap: 6px; padding: 6px; }
+  .q-world-editor__bar-row, .q-world-editor__actions, .q-world-editor__tools, .q-world-editor__catalogue-head { flex-wrap: nowrap; overflow-x: auto; }
+  .q-world-editor__bar-row > *, .q-world-editor__actions > *, .q-world-editor__tools > *, .q-world-editor__catalogue-head > * { flex: none; }
+  .q-world-editor__name { display: none; }
+  .q-world-editor__catalogue { padding: 6px; }
+  .q-world-editor__catalogue-head .q-input { flex: 1 0 120px; }
+  .q-world-editor[data-side='closed'] .q-world-editor__catalogue { grid-column: auto; }
+}

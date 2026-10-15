@@ -224,7 +224,9 @@ const playerResources=createPlayerResources();
 const health=createPlayerHealth(),healthVisible=signal(false);
 // The player UI (vitals, sidebar or tab bar) shows once play starts, or earlier when the first-quest
 // line reveals the menus ahead of the camera lessons.
-const playerUiShown=()=>opening.playable||!menus.host.hidden;
+// The world editor's full-screen mode (playground) hides the player interface: the world fills the window.
+let editorScreen=false;
+const playerUiShown=()=>(opening.playable||!menus.host.hidden)&&!(__PLAYGROUND__&&editorScreen);
 document.body.append(mount(()=>resourceMeter({id:'player-health',kind:'health',label:'Health',resource:health,hidden:()=>!healthVisible.value})).node);
 // Player health plate just above the slime (floating XP starts above it): shown in combat, whenever
 // health is below full, and while a control effect is active.
@@ -712,8 +714,9 @@ function updateHover(){
  const t=hover?.tile,tree=hover?.tree,actor=hover?.actor,placementStatus=campfires.hoverPlacement(t),valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&!!routeToTree(actor):tree?(['boulder','copper'].includes(tree.kind)?inventory.pickaxes>0:inventory.axes>0)&&!!routeToTree(tree):hover?.resource?!!routeToTree(hover.resource):!!t&&findPath(world,segment?segment.to:tile,t)!==null;
  feedback.hover(t,valid);
  renderer.domElement.style.cursor=t?(valid?'pointer':'not-allowed'):'default';
- $('tooltip').style.display=t?'block':'none';
- if(t){$('tooltip').textContent=placementStatus?placementStatus.label:actor?(actor.opened?(actor.enemy?'Recovering…':'Empty chest'):!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(valid?(tree.kind==='copper'?'Mine copper':['boulder','copper'].includes(tree.kind)?'Mine Boulder':'Chop tree'):!inventory[['boulder','copper'].includes(tree.kind)?'pickaxes':'axes']?'Missing the required tool!':'No safe route'):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+ITEMS[hover.resource.kind].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
+ // Editing (playground world editor): the editor previews what a click does, so the game's hint stays away.
+ const hint=t&&!(__PLAYGROUND__&&editorScreen);$('tooltip').style.display=hint?'block':'none';
+ if(hint){$('tooltip').textContent=placementStatus?placementStatus.label:actor?(actor.opened?(actor.enemy?'Recovering…':'Empty chest'):!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(valid?(tree.kind==='copper'?'Mine copper':['boulder','copper'].includes(tree.kind)?'Mine Boulder':'Chop tree'):!inventory[['boulder','copper'].includes(tree.kind)?'pickaxes':'axes']?'Missing the required tool!':'No safe route'):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+ITEMS[hover.resource.kind].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
 }
 function changeZoom(delta){if(!areas.canOrbit||travel.busy)return;if(!opening.playable){introZoom=THREE.MathUtils.clamp(introZoom*Math.exp(delta/22),3,10);return;}const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,__PLAYGROUND__&&freeCam?FREE_MAX_ZOOM:areas.active?.maxZoom??34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});
 function resize(){const {left,width,height}=measureGameViewport();document.documentElement.style.setProperty('--game-viewport-width',`${width}px`);document.documentElement.style.setProperty('--game-viewport-center',`${left+width/2}px`);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);}addEventListener('resize',resize);new ResizeObserver(resize).observe($('game'));resize();
@@ -1022,7 +1025,7 @@ if(__PLAYGROUND__){
    return spaces.enter({kind:'exit',area:builtMap.areaId,tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...builtMap.data.spawn]});},
   rebuildFloors(building){const builtMap=editorArea?.built;if(!builtMap)return false;spaces.rebuild(builtMap,building?.dungeon!==undefined?null:building,{at:[tile.x,tile.z],dungeon:building?.dungeon??null});updateFloorHere();return true;},
   get floorGroup(){return spaces.here?.group||null;},
-  get floorTiles(){return spaces.here?.tiles||null;},setTileHover(fn){tileHover=fn;hoverTileId=null;},
+  get floorTiles(){return spaces.here?.tiles||null;},setTileHover(fn){tileHover=fn;hoverTileId=null;},setEditorScreen(on){editorScreen=!!on;},
   // Free camera (docs/PLAYGROUND.md): on (from where the camera looks now) or off (back to the slime).
   freeCameraOn:freeCamOn,
   freeCamera(on=!freeCam){

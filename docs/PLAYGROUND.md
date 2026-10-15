@@ -44,7 +44,11 @@ Previews run in place without consuming items or earning XP. Stop to play normal
 
 ## Maps
 
-- **Open world editor:** opens on the map you're on. That's the map you were editing, left as it was, or the city you're standing in (you stay where you are), and otherwise the Quadria overworld. Its City list opens any other map: the repo's maps (overworld first), the prop gallery, or a blank map. *Play* is a test walk, where clicks move you as in the game. The editor's tools are described in docs/CITY.md (*Authoring*) and docs/TOWN.md.
+- **Open world editor:** opens on the map you're on. That's the map you were editing, left as it was, or the city you're standing in (you stay where you are), and otherwise the Quadria overworld. Its *Map* section opens any other map: the repo's maps (overworld first), the prop gallery, or a blank map. While editing, the world fills the window (Sims-style: tools along the top, a side panel, and the catalogue along the bottom in Decorate). *Play* is a test walk with the player interface back, where clicks move you as in the game. The editor's tools are described in docs/CITY.md (*Authoring*) and docs/TOWN.md.
+- **World editor decorating** (docs/TOWN.md, *Sims-style editor* and *Colours*):
+  - Decorate: pick from the catalogue (by function or room, with search) to hold a new thing; the Hand lifts and puts down; `,` and `.` turn; Shift-click places more; Esc puts it back.
+  - Colours: any colour for each piece, quick swatches, and presets for an item or a scheme for anything (`src/palettes/`).
+  - Eyedropper copies, colours and all; Sledgehammer removes.
 - **World editor drags and stamps** (docs/TOWN.md, *Box select, copy and stamps* and *Lines and brushes*):
   - Select: drag a box to select a group. Ctrl/⌘+C and Ctrl/⌘+V copy and paste.
   - Stamp: save a selection and place it again (`src/stamps/`).

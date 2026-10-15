@@ -85,7 +85,7 @@ export function buildSpace({pickables=[],plan=null,size=null,origin=[0,0],floor=
  }else if(placements.length)stairs.push(createStairwell({place:live(placements[0]),direction:'up',link:links.exit(null),parent:group,pickables,services,tileAt:t}));
  // Furniture never goes on stairs or in front of them.
  const keepClear=new Set(stairs.flatMap(w=>[w.place.front].filter(Boolean)));
- for(const f of spec.furniture||[])if((f.floor??0)===floor){const [fw,fd]=propFootprint(f.kind,f.rotation||0),cells=[];for(let a=0;a<fw;a++)for(let c=0;c<fd;c++)cells.push(t(x0+f.at[0]+a,z0+f.at[1]+c));if(cells.some(c=>!c||c.blocked||keepClear.has(c)))continue;try{createProp(f.kind,{origin:[x0+f.at[0],z0+f.at[1]],rotation:f.rotation||0,tileAt:t,parent:group,pickables});}catch{}}
+ for(const f of spec.furniture||[])if((f.floor??0)===floor){const [fw,fd]=propFootprint(f.kind,f.rotation||0),cells=[];for(let a=0;a<fw;a++)for(let c=0;c<fd;c++)cells.push(t(x0+f.at[0]+a,z0+f.at[1]+c));if(cells.some(c=>!c||c.blocked||keepClear.has(c)))continue;try{createProp(f.kind,{origin:[x0+f.at[0],z0+f.at[1]],rotation:f.rotation||0,tileAt:t,parent:group,pickables,colors:f.colors||null});}catch{}}
  // Furnishing (furnish.js) around the stairs, their fronts and any hand-placed furniture; static pieces
  // merge into one mesh.
  const furniture=[];
@@ -150,7 +150,7 @@ export function buildFloorSpace({pickables=[],plan,entry,level,style='timber',ba
  if(spec.up&&(levels.has(level+1)||level+1===0&&inPlace)){const place=live(flightOf(spec.up));if(ok(place))stairs.push(createStairwell({place,direction:'up',link:toLevel(level+1,'up'),parent:group,pickables,services,tileAt:t}));}
  const below=levels.get(level-1);if(below?.up&&(levels.has(level-1)||level-1===0)){const place=live(flightOf(below.up));if(ok(place))stairs.push(createStairwell({place,direction:'down',link:toLevel(level-1,'down'),parent:group,pickables,services,tileAt:t}));}
  const furniture=[];
- for(const f of spec.furniture||[]){try{furniture.push(createProp(f.kind,{origin:world(f.at),rotation:f.rotation||0,tileAt:t,parent:group,pickables}));}catch{}}
+ for(const f of spec.furniture||[]){try{furniture.push(createProp(f.kind,{origin:world(f.at),rotation:f.rotation||0,tileAt:t,parent:group,pickables,colors:f.colors||null}));}catch{}}
  mergeStatic(group,furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});
  createTerrainBatch({tiles:inner,map:tiles,factory:tile=>floorTile(tile,tiles),parent:group,pickables});
  edges.bake();

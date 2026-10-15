@@ -213,6 +213,72 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - both builds;
    - one perf pass with Mistrom's scenarios.
 
+## Sims-style editor (2026-10-14)
+
+User request: make the world editor work like the Sims 4 build/buy editor, for a collaborator who loves the Sims and leans towards decorating. Freeform Sims walls and roofs are out: building stays on the tile grid with the kit.
+- **Layout** (`src/dev/world-editor.js`, `world-editor.css`):
+  - While editing, the world fills the window and the player interface hides (`setEditorScreen`, main.js). Play shows it again for the test walk.
+  - A bar along the top: the map, Edit / Play, Undo, Redo, Reset, Hide panel and Close; then the tool groups and that group's tools.
+  - A side panel: the status line, the tool's options, what's selected (colours, look, spawn, townsfolk, floors) and two sections, *Map* (open, save, copy, download, grow, free camera, chunk lines) and *Checks*.
+  - In Decorate, the catalogue along the bottom.
+  - Phones: the panel starts hidden (*Show panel*), the bar's rows and the catalogue scroll sideways, and the world stays in view.
+  - The game's hover hint ("Move here") hides while editing.
+- **Tool groups:**
+  - **Decorate:** Hand, Colours, Eyedropper, Sledgehammer (Erase), Stamp;
+  - **Build:** Building, Footprint, Walls, Edge, Stairs, Use, Reroll furniture, Underground;
+  - **Terrain:** Raise, Lower, Flatten, Smooth, Ramp, Surface, Biome;
+  - **World:** Nature, Enemy, Townsfolk, Crystal, Arrival, Inspect.
+  - The old Prop tool and its palette are gone: the catalogue replaces them.
+- **Catalogue** (`src/dev/prop-catalogue.js`): every prop by function (seating, beds, tables and counters, storage, lighting…) or by room (bedroom, kitchen and dining, tavern, shop, workshop, garden and farm, harbour…), with search.
+  - A prop may be in several groups; a test checks every prop has a room and a function.
+  - A click puts a new one in your hand. Inside a floor it's furniture on that floor.
+  - Once you've picked an item, its saved colour presets show beside *Own colours*.
+- **The Hand** (Decorate's main tool, `select`):
+  - Click something to lift it: it follows the pointer, as a green or red ghost, and keeps the spot you took hold of under the pointer. Click again to put it down.
+  - Put it down where it was and nothing changes; anywhere else is one undo step.
+  - Click inside a box-selected group to lift the whole group.
+  - Turning: `,` and `.` turn what you hold one way or the other (R clockwise). Or press where it goes and drag the way its front should face, then let go.
+  - Something new (from the catalogue, the eyedropper, a duplicate or a paste) stays in your hand when a spot is refused, with the reason under the status line.
+  - Shift-click places one and keeps another in your hand. Esc puts a lifted thing back, or puts away what you hold; Delete also puts away something new.
+  - Dragging from empty ground still draws a selection box.
+- **Colours** selects without lifting; the selection panels show what you can change.
+- **Eyedropper:** click anything (a prop, building, stairs, townsfolk, enemy spawn, or a tree or flower that grew there) for a copy in your hand, colours and all.
+- **Sledgehammer:** the Erase tool.
+- **Kept:** box select, Ctrl/⌘+C and V, Ctrl/⌘+D, M, nudges, undo and redo, and every other tool works as before.
+- **Checked in the browser** (overworld, and floor 2 of a new townhouse):
+  - placed a bench from the catalogue and saw its ghost follow the pointer;
+  - lifted it, turned it by dragging, and put it down;
+  - a refused spot kept the item in hand;
+  - Shift-placed two eyedropped chairs;
+  - put a bed on an upper floor from the catalogue;
+  - Play brought back the player interface beside the editor;
+  - the phone layout.
+
+## Colours (2026-10-14)
+
+User request: a colour picker for every piece of every item, any colour, with saved presets of combinations (the collaborator misses the Sims 2 and 3 colour picker).
+- **Pieces** (`props.js`): each distinct colour in a prop's model is a piece.
+  - `propPieces(kind)` lists them, largest first, with names from the shared palette (wood, dark wood, iron, linen…) or a colour word ("pale blue"). Names are unique within a prop.
+  - A placed prop or piece of furniture stores `colors: {original: new}` ('#rrggbb'). `cleanColors` keeps only real changes.
+  - `propModel(kind, colors)` and `createProp(…, {colors})` draw them. Every prop of a kind with the same colours shares one geometry.
+  - Maps, floors and dungeons pass a prop's colours through (`world-map.js`, `spaces.js`). Stamps, copies and the eyedropper carry them.
+- **The panel** (Colours or the Hand, with a prop or furniture selected):
+  - one row per piece: its name, a colour picker (any colour; no limits) and Reset;
+  - quick colours for the chosen piece: the game's palette, then your last 12 colours;
+  - Reset all colours.
+  - Dragging a picker recolours live (the prop's chunk or floor rebuilds), and the whole drag is one undo step.
+- **Presets** (`src/palettes/<id>.json`, saved through the playground dev server like stamps; Vite ignores the folder while it runs, so saving doesn't reload the page):
+  - **for this item:** its colours, for props of the same kind;
+  - **for any item (a scheme):** colours by piece name ("dark wood", "cloth"…), for any prop with pieces of those names.
+  - Apply one to the selected prop, or a scheme to every prop in a box-selected group. Props without those pieces are left as they are.
+- **Checked in the browser:**
+  - recoloured a bench's wood (any colour) and a chair's dark wood (a quick swatch);
+  - undid and redid a recolour;
+  - saved an item preset and a scheme, and applied the scheme to a box of three chairs and a bench (the bench has no dark wood, so it stayed as it was);
+  - the chair's preset showed in the catalogue;
+  - recoloured a bed on an upper floor.
+- **Not yet:** painting walls and floors per room. Buildings keep their wall, trim, base, door and roof colours in the Look panel, now with the same layout.
+
 ## Box select, copy and stamps (2026-10-14)
 
 User request: editor next steps, section 2 (box select and group moves; copy, paste and stamps).
@@ -427,7 +493,7 @@ User request: grow the overworld, so the river, coast and sea (and the woods and
 ## Prop palette and village props (2026-10-14)
 
 User request: the prop palette next, then the props the village needs.
-- **Palette** (world editor, Prop tool):
+- **Palette** (world editor, Prop tool; since replaced by the catalogue, *Sims-style editor* below):
   - a search box over the prop groups;
   - each prop is a button with a thumbnail and its name, and the footprint shows on hover;
   - thumbnails are drawn from each prop's real model, from the game's angle, a few per frame the first time the tool opens (`src/dev/prop-thumbnails.js`, dev only; one offscreen renderer, freed when done).

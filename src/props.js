@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {cachedMergedMesh} from './merged-model.js';
 import {makeTree} from './world-models.js';
 import {key} from './world.js';
-import {SEAT,lowerTo} from './prop-parts.js';
+import {SEAT,lowerTo,COL} from './prop-parts.js';
 import {FURNITURE} from './prop-sets/furniture.js';
 import {TRADE} from './prop-sets/trade.js';
 import {STREET} from './prop-sets/street.js';
@@ -94,13 +94,36 @@ export function blockedOffsets(kind,rotation=0){const def=PROPS[kind],[w,d]=def.
 // lit props (a separate material, for day and night later), and moving parts (lids, doors, drawers).
 const glowMaterial=new THREE.MeshBasicMaterial({color:'#fff1c4'});glowMaterial.userData.shared=true;
 const glowGeometry=new THREE.SphereGeometry(1,8,6);glowGeometry.userData.shared=true;
-export function propModel(kind){
+// Colours by hand (docs/TOWN.md, Colours): every distinct colour in a prop's model is a piece that can be
+// recoloured, any colour at all. A placed prop's `colors` maps a piece (its original colour, '#rrggbb') to its
+// new colour. A recoloured prop shares one geometry with every prop of its kind and the same colours.
+const hexColor=new THREE.Color();
+export const colorKey=c=>'#'+hexColor.set(c).getHexString();
+// The pieces' names: the shared palette's (prop-parts.js COL) and props.js's own, else a colour word.
+const NAMED={...Object.fromEntries(Object.entries(COL).map(([name,c])=>[colorKey(c),name])),[colorKey(WOOD)]:'wood',[colorKey(DARK)]:'dark wood',[colorKey(STONE)]:'stone',[colorKey(PALE)]:'pale stone',[colorKey(IRON)]:'iron',[colorKey(WATER)]:'water',[colorKey(LEAF)]:'leaves',[colorKey(CLOTH)]:'cloth',[colorKey(CANVAS)]:'canvas'};
+const HUES=[[15,'red'],[40,'orange'],[65,'yellow'],[160,'green'],[200,'teal'],[255,'blue'],[290,'purple'],[340,'pink'],[361,'red']];
+function colorWord(c){const hsl=hexColor.set(c).getHSL({});if(hsl.s<.12)return hsl.l>.8?'white':hsl.l<.25?'black':'grey';
+ const hue=HUES.find(([h])=>hsl.h*360<h)[1];return hsl.l>.72?`pale ${hue}`:hsl.l<.3?`dark ${hue}`:hue;}
+const piecesCache=new Map();
+// A prop's pieces: [{id: its original colour, name, parts: how many parts use it}], largest first.
+export function propPieces(kind){
+ if(piecesCache.has(kind))return piecesCache.get(kind);const def=PROPS[kind];if(!def)return [];
+ const counts=new Map(),parts=[...def.parts(),...(def.spin?def.spin.parts():[]),...(def.moving||[]).flatMap(m=>m.parts())];
+ for(const p of parts){const id=colorKey(p.color);counts.set(id,(counts.get(id)||0)+1);p.geometry.dispose();}
+ const named=new Map(),out=[...counts].sort((a,b)=>b[1]-a[1]).map(([id,n])=>{let name=NAMED[id]||colorWord(id);const seen=named.get(name)||0;named.set(name,seen+1);if(seen)name=`${name} ${seen+1}`;return {id,name:name[0].toUpperCase()+name.slice(1),parts:n};});
+ piecesCache.set(kind,out);return out;}
+// Colours as stored: only real changes, keys and values as '#rrggbb' (null when nothing is changed).
+export function cleanColors(kind,colors){if(!colors)return null;const ids=new Set(propPieces(kind).map(p=>p.id)),out={};
+ for(const [k,v] of Object.entries(colors)){const id=colorKey(k),c=colorKey(v);if(ids.has(id)&&c!==id)out[id]=c;}return Object.keys(out).length?out:null;}
+const recolored=(parts,colors)=>colors?()=>parts().map(p=>{const c=colors[colorKey(p.color)];return c?{...p,color:c}:p;}):parts;
+export function propModel(kind,colors=null){
  const def=PROPS[kind],group=new THREE.Group();group.name='prop-'+kind;
- group.add(cachedMergedMesh('prop:'+kind,def.parts));
+ colors=cleanColors(kind,colors);const look=colors?'|'+Object.entries(colors).sort().map(e=>e.join('>')).join(','):'';
+ group.add(cachedMergedMesh('prop:'+kind+look,recolored(def.parts,colors)));
  if(def.tree){const tree=makeTree();tree.scale.setScalar(.8);group.add(tree);}
  for(const [x,y,z,r] of def.glow||[]){const glow=new THREE.Mesh(glowGeometry,glowMaterial);glow.scale.setScalar(r);glow.position.set(x,y,z);glow.name='prop-glow';group.add(glow);}
- if(def.spin){const pivot=new THREE.Group();pivot.name='prop-spin';pivot.position.set(...def.spin.pivot);pivot.add(cachedMergedMesh(`prop:${kind}:spin`,def.spin.parts));group.add(pivot);group.userData.spin=pivot;}
- group.userData.moving=(def.moving||[]).map((m,i)=>{const pivot=new THREE.Group();pivot.name='prop-moving';pivot.position.set(...m.pivot);pivot.add(cachedMergedMesh(`prop:${kind}:moving${i}`,m.parts));group.add(pivot);return {pivot,spec:m,rest:pivot.position.clone()};});
+ if(def.spin){const pivot=new THREE.Group();pivot.name='prop-spin';pivot.position.set(...def.spin.pivot);pivot.add(cachedMergedMesh(`prop:${kind}:spin${look}`,recolored(def.spin.parts,colors)));group.add(pivot);group.userData.spin=pivot;}
+ group.userData.moving=(def.moving||[]).map((m,i)=>{const pivot=new THREE.Group();pivot.name='prop-moving';pivot.position.set(...m.pivot);pivot.add(cachedMergedMesh(`prop:${kind}:moving${i}${look}`,recolored(m.parts,colors)));group.add(pivot);return {pivot,spec:m,rest:pivot.position.clone()};});
  return group;
 }
 // Open (0 shut … 1 open): lids and doors turn by `open`, drawers slide by `offset`.
@@ -120,9 +143,10 @@ export function resetLoot(){takenLoot.clear();}
 // Places a prop: marks its tiles, adds the model, and returns its spots as live tiles.
 // tileAt(x, z) → tile. Throws if a footprint tile is missing (the editor checks before placing).
 // loot: items a chest gives once ({id, items}); without it, opening says there is nothing inside.
+// colors: its pieces recoloured ({original: new}; propPieces).
 // shop: the shop a trading prop opens (shops.js; a counter's comes from its building, a stall's is the
 // market unless the map says otherwise).
-export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id=null,loot=null,shop=null}){
+export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id=null,loot=null,shop=null,colors=null}){
  const def=PROPS[kind];if(!def)throw Error('Unknown prop: '+kind);
  const [ox,oz]=origin,[w,d]=propFootprint(kind,rotation),tiles=[];
  for(let z=0;z<d;z++)for(let x=0;x<w;x++){const t=tileAt(ox+x,oz+z);if(!t)throw Error(`${def.name}: no tile at ${ox+x},${oz+z}`);tiles.push(t);}
@@ -135,7 +159,7 @@ export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id
  const base=Math.max(...tiles.map(t=>t.h)),blocked=blockedOffsets(kind,rotation).map(([x,z])=>tileAt(ox+x,oz+z)).filter(Boolean);
  for(const t of blocked){t.blocked=true;if(def.sight===false)t.blocksSight=true;if(def.reachOver)t.reachOver=true;}
  for(const t of tiles)t.prop=id??kind;
- const group=propModel(kind);group.rotation.y=-((Math.round(rotation/90)%4)+4)%4*Math.PI/2;
+ const group=propModel(kind,colors);group.rotation.y=-((Math.round(rotation/90)%4)+4)%4*Math.PI/2;
  group.position.set(ox+(w-1)/2-6,base,oz+(d-1)/2-6);parent.add(group);
  const spots=(def.spots||[]).map(s=>{const [x,z]=rotateOffset(s.at,def.footprint,rotation),tile=tileAt(ox+x,oz+z),facing=rotateSide(s.facing,rotation);
   const seat=s.seat===true?{back:SEAT_BACK,height:SEAT,motion:'Sit'}:s.seat||null;
