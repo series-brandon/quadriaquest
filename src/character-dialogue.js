@@ -35,13 +35,18 @@ export function createCharacterDialogue({player}){
  const camera=new THREE.PerspectiveCamera(36,1,.1,20);camera.position.set(0,.60,1.65);camera.lookAt(0,.47,0);
  let revision=0,installs=0;const expressions={};
  let pairs=[],model,source,speaker=null,queue=null,age=0,next=null,pendingChoices=null,choiceAge=null;
+ // The portrait copies the hierarchy as it is now; a node remembers its source's child count, so a model
+ // added later (gear, a tool made the first time it is used) rebuilds the copy instead of going missing.
+ function build(){
+  if(model)scene.remove(model);pairs=[];
+  function clone(a){const b=a.isMesh?new THREE.Mesh(a.geometry,a.material):a.isLine?new THREE.Line(a.geometry,a.material):new THREE.Group();pairs.push([a,b,a.children.length]);for(const child of a.children)if(!child.userData.portraitIgnore)b.add(clone(child));return b;}
+  model=source?clone(source):new THREE.Group();model.position.set(0,0,0);model.rotation.set(0,0,0);model.scale.setScalar(1);model.visible=true;scene.add(model);
+ }
  function install(current){
   expressions[current.side]=current.expression;
   const entrance=speaker!==current.side||source!==current.model||mode.peek()==='choices';
   mode.value='line';choosing.value=false;pendingChoices=current.choices||null;choiceAge=null;
-  if(model)scene.remove(model);source=current.model;pairs=[];
-  function clone(a){const b=a.isMesh?new THREE.Mesh(a.geometry,a.material):a.isLine?new THREE.Line(a.geometry,a.material):new THREE.Group();pairs.push([a,b]);for(const child of a.children)if(!child.userData.portraitIgnore)b.add(clone(child));return b;}
-  model=source?clone(source):new THREE.Group();model.position.set(0,0,0);model.rotation.set(0,0,0);model.scale.setScalar(1);model.visible=true;scene.add(model);
+  source=current.model;build();
   speaker=current.side;exiting.value=false;entering.value=entrance;age=0;
   line.value={name:current.name,text:current.text,side:current.side,hasModel:!!source};
   // A response is always a spoken player line. Areas supply only its text,
@@ -76,6 +81,7 @@ export function createCharacterDialogue({player}){
     queueMicrotask(()=>choiceList?.firstElementChild?.focus?.());}}
    if(queue&&age>=.22){const current=queue;queue=null;install(current);}
    if(!model)return;
+   if(pairs.some(([a,,children])=>a.children.length!==children))build();
    for(const [a,b] of pairs)if(b!==model){b.position.copy(a.position);b.quaternion.copy(a.quaternion);b.scale.copy(a.scale);b.visible=a.visible;}
    // The mirrored slime already breathes with its (calm, in conversation) idle; the portrait adds no motion of its own.
    model.rotation.y=speaker==='left'?.52:-.52;model.scale.setScalar(1);model.position.y=-.035;render.render(scene,camera);

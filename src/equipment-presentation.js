@@ -26,7 +26,7 @@ export function createEquipmentPresentation({hands,visual,equipment}){
    if(id==='bows')bows[side]=createBowPresentation(m,hands,1-i);}
   return models[side][id];
  };
- return {bend(amount){bendAmount=amount;},update({motion,working=false,celebrating=false}={}){
+ const presentation={bend(amount){bendAmount=amount;},update({motion,working=false,celebrating=false}={}){
   const carry=combatEquipmentVisible(motion?.kind)&&!working,slots=equipment.slots;
   const bow=motion?.kind==='Archery'?attackAnimation(motion.profile,motion.time):null;
   for(const side of SIDES){
@@ -42,4 +42,8 @@ export function createEquipmentPresentation({hands,visual,equipment}){
    }
   }
  }};
+ // Dressed from the start: the current gear is built and shown before the first frame, so anything that
+ // copies the model straight away (a dialogue portrait opened on arrival) sees it geared.
+ presentation.update();
+ return presentation;
 }

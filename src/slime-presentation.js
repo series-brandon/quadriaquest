@@ -127,6 +127,10 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
   if(carried)carried.visible=!motion&&!celebration&&handWork===null&&!socialHands&&!slots?.right;
   return {expression:faceOverride||expression,acting:!!motion,actionPose,exactArchery};
  }
+ // A fixed loadout (NPCs, previews) is dressed before the first update, so a dialogue portrait opened on
+ // arrival copies it geared (see equipment-presentation.js). A getter (the player's) can name systems
+ // made later; it resolves on the first update.
+ if(typeof equipment!=='function'){gearFor();if(carried)carried.visible=!equipment?.slots?.right;}
  return {visual,update,bend,get fishing(){return fishingNow();},clearFishing(){fishing?.clear();}};
 }
 

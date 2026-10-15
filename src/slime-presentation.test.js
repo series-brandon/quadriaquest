@@ -5,6 +5,7 @@ import {createSlimePresentation,createSlimeActor,loadoutEquipment} from './slime
 import {mentorModel,MENTORS} from './training-models.js';
 import {fisher} from './fisher-model.js';
 import {SOCIAL_DURATIONS} from './slime-social.js';
+import {GEAR} from './equipment.js';
 
 const ACTIONS=['Combat','Archery','Casting','Block','Point','Stomp','Gathering','Crafting','Chopping','Mining','Repairing','Smithing','Smelting','Fishing','Fishing cast','Fishing catch','Eating','Cooking','Petting','Celebration','Hammer injury'];
 const handState=rig=>rig.hands.map(h=>[...h.position.toArray(),h.rotation.x,h.rotation.y,h.rotation.z].map(v=>+v.toFixed(5)||0));
@@ -95,4 +96,15 @@ test('held tools rest like a blade; a held rod rests on the shoulder; the staff 
  for(const id of ['axes','pickaxes','hammers'])assert.equal(equipmentIdleHands({rightHand:id})[0][3],sword,id);
  assert.equal(equipmentIdleHands({rightHand:'staffs'})[0][3],0,'staff upright');
  assert.deepEqual(heldTool('rods').rotation.toArray().slice(0,3),carriedTool('rods').rotation.toArray().slice(0,3),'rod on the shoulder');
+});
+
+test('a slime actor is dressed in its loadout before its first update',()=>{
+ // Arrival opens a mentor's first line (and its portrait copies the model) before the area's first update.
+ for(const [kind,def] of Object.entries(MENTORS)){
+  const rig=mentorModel(kind);createSlimeActor(rig,{loadout:def.loadout});
+  const expected=Object.entries(def.loadout).map(([slot,id])=>GEAR[id].slot==='hand'?`equipment-${slot==='rightHand'?'right':'left'}-${id}`:'equipment-'+id).sort();
+  assert.deepEqual(shown(rig,'equipment-'),expected,kind);
+ }
+ const reedRig=fisher();createSlimeActor(reedRig,{carry:'rods'});
+ assert.deepEqual(shown(reedRig,'slime-carry-'),['slime-carry-rods']);
 });
