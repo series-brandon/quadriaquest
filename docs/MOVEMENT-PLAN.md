@@ -1,6 +1,6 @@
 # Movement plan: diagonal steps and companion following
 
-Status: **plan only (2026-10-15)**, nothing implemented. Open questions were decided by the user on 2026-10-15 (see Decisions at the end). Two pieces of work:
+Status: **implemented (2026-10-15)**; see *As implemented* below. Open questions were decided by the user on 2026-10-15 (see Decisions at the end). Two pieces of work:
 
 1. Let walkers step diagonally.
 2. Give the companion its own follow behaviour: a bit slower than the player, ignores other characters when it plans a route, starts walking once you're a tile or two away, stops next to you, and teleports to you if you get too far ahead.
@@ -187,3 +187,15 @@ DESIGN.md (movement, companion), COMBAT.md (reach, range metric, leash), CITY.md
 6. **Start distance:** the companion starts following once the player is 2 tiles away.
 7. **Teleport look:** a simple pop-in.
 8. **Player routing:** the player's routes ignore the companion.
+
+---
+
+## As implemented (2026-10-15)
+
+- `world.js`: `canStep` (orthogonal only), `diagonalOk`, `canMove`, `eachStep`, `DIAGONAL_MOVES` (per walker group, all on), `searchRoute` (A* toward a target or Dijkstra over a goal predicate; Chebyshev heuristic with a straight-line tiebreak; deterministic heap) and `routeTo`; `findPath` is a wrapper. Every walker's search uses them: `footprint.js` (`bodyMove`, `findFootprintPath`), `wander.js`, `combat-range.js` (`attackRoute` is now one search instead of a route per in-range tile), `townsfolk.js` (fields, `next`, `route`, `around`; a diagonal never opens a door), `world-actors.js` (walking home), `companion-follow.js`.
+- Step timing: the player and townsfolk use `moveMotion` (same duration in any direction); creatures and pushed NPCs scale their slide speed by the step length.
+- `combat-geometry.js`: `COMBAT_GEOMETRY` (`meleeReach`, `metric`), `gridDistance`/`tileDistance`, `meleeDistance`, `reachesAcross`. `footprint.js` gained `meleeGap`/`rangeGap`; `withinAttackRange`, `reachesBody`, enemy pursuit, ranged punish range and the leash use them.
+- Companion: `companion-follow.js` (`FOLLOW`, `followRoute`, `landingSpot`, the follower state machine), `pop-in.js` (shared pop), `companions.js` (`follow`, `teleport`, `sendAway`, `route`), `main.js` (`walkBonus`, the follow context, player route cost ignores the companion via `occupancy.cost(tile, mover, ignore)`).
+- Playground: *World & water → Movement* (diagonal toggles, melee reach, range metric, corner yard, route overlay; `src/dev/movement-fixtures.js`) and the Companions controls (teleport, send away, follow state, tuning).
+- Tests: `movement.test.js` (corner rule per blocker, the reachability invariant on the clearing, Willowbank, Cinderhold, capital and overworld maps, straight deterministic routes, per-group toggles, body diagonals, combat geometry, attack approach) and a rewritten `companion-follow.test.js`.
+- Not done: the body diagonal is on for the golem (it could be turned off if it reads badly); the corner yard has no solid tile, water or ledge of its own (use the clearing's).

@@ -54,11 +54,12 @@ export function createOccupancy() {
     remove,
     owners: tile => [...(byTile.get(tile) || [])],
     occupied: (tile, except = null) => { const set = byTile.get(tile); if (!set) return false; for (const o of set) if (o !== except) return true; return false; },
-    // Extra route cost of stepping onto `tile` for `mover` (0 when nobody else stands there).
-    cost(tile, mover = null) {
+    // Extra route cost of stepping onto `tile` for `mover` (0 when nobody else stands there). `ignore`:
+    // one more owner not to count (the player's own companion, for the player's routes).
+    cost(tile, mover = null, ignore = null) {
       const set = byTile.get(tile); if (!set) return 0;
       let cost = 0;
-      for (const o of set) if (o !== mover) cost = Math.max(cost, o.kind === 'player' ? PLAYER_COST : OCCUPIED_COST);
+      for (const o of set) if (o !== mover && o !== ignore) cost = Math.max(cost, o.kind === 'player' ? PLAYER_COST : OCCUPIED_COST);
       return cost;
     },
     cellsOf: owner => byOwner.get(owner) || [],

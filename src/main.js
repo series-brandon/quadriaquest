@@ -106,7 +106,7 @@ window.addEventListener('quadriaquest-level',()=>gameAudio.cue('level'));
 // finished part, objective or quest has its own cue. A level-up at the same moment wins.
 effect(()=>{const n=objectiveNotice.value;if(n)untracked(()=>gameAudio.cue(n.kind,n.part&&n.kind==='progress'?n.part.current/n.part.total:n.total?n.current/n.total:0));});
 import * as THREE from 'three';
-import {makeWorld,findPath,key,SPAWN,canStep} from './world.js';
+import {makeWorld,findPath,key,SPAWN,canMove as stepAllowed,DIAGONAL_MOVES} from './world.js';
 import {chunkId} from './world-grid.js';
 import {createFeedback} from './feedback.js';
 import {createContactShadow} from './contact-shadow.js';
@@ -221,7 +221,7 @@ let tileClick=null,tileDrag=null,painting=false,tileHover=null,hoverTileId=null;
 function editorTile(hit,data=terrainHitData(hit)){let t=data?.tile||data?.actor?.tile||null;const n=hit?.face?.normal;
  if(t&&data?.tileForFace&&n&&Math.abs(n.y)<.5){const beside=world.get(key(t.x+Math.round(n.x),t.z+Math.round(n.z)));if(beside&&beside.h<t.h)t=beside;}return t;}
 function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=editorTile(hit,data),id=at?`${at.x},${at.z}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,hit?.point||null);}
-let edgeFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
+let edgeFixtures,movementFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
 const playerResources=createPlayerResources();
@@ -299,7 +299,9 @@ companions=createCompanionSystem({scene,world,player,pickables,feedback,inventor
  toPosition:t=>new THREE.Vector3(t.x-6,t.h,t.z-6),tileAtPosition:p=>world.get(key(Math.round(p.x+6),Math.round(p.z+6))),
  tile:()=>tile,approaching:()=>actorTarget,occupied:t=>t===tile||t===segment?.to||!!combat?.occupies(t)||npcAt(t),reserved:t=>!!t&&(segment?.to===t||path.includes(t)||campfires?.placementTile===t),
  busy:()=>combat?.working,moving:()=>!!segment||path.length>0,playerSleepTime:()=>idleClock.sleepTime,blocked:()=>areas.busy||travel.busy,
- stop:()=>stopAll({keepMenu:true}),face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);}
+ stop:()=>stopAll({keepMenu:true}),face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},
+ // Following (companion-follow.js): the player's next tile and facing, walking bonuses, and sprinting.
+ nextTile:()=>segment?.to||path[0]||null,facing:()=>facing,pace:()=>1+walkBonus(),sprinting:()=>playerResources.sprint&&(!!segment||path.length>0)
 });
 const combatFeedback=createCombatFeedback();
 // Equipment changes are allowed mid-fight (docs/COMBAT.md, Equipment changes): changing what a hand holds
@@ -595,7 +597,11 @@ function characterAt(t){return !!t&&occupancy.occupied(t,playerOccupant);}
 // A walk-through NPC (mentor, Reed, townsfolk) stands here.
 function npcAt(t){return !!t&&occupancy.owners(t).some(o=>o!==playerOccupant&&o!==companionOccupant&&!o.enemy);}
 // The player's routes go around people unless the detour is long (occupied tiles cost extra).
-const playerRouteCost=t=>occupancy.cost(t,playerOccupant);
+// Walking speed bonuses (Celerity +0.2% per point, Rush) on top of base walking speed.
+function walkBonus(){return character.attribute('celerity')*.002+auras.movementBonus;}
+// Your own companion doesn't bend your routes (it trails right behind you); NPCs and creatures still
+// treat it as someone standing there.
+const playerRouteCost=t=>occupancy.cost(t,playerOccupant,companionOccupant);
 // Props in every map (props.js): a bench seats you on a free seat; the others answer with a line until
 // the systems behind them exist (jobs board: economy; drinking: no effect yet).
 configureProps({act(verb,prop){
@@ -774,6 +780,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  updateWorldActors(dt,t=>t===tile||t===segment?.to);resolveStanding();updateDoors(dt,elapsed);updateProps(dt);
  if(__PLAYGROUND__)walkThroughFixtures?.update(dt,elapsed);
  if(__PLAYGROUND__)edgeFixtures?.update(dt);
+ if(__PLAYGROUND__)movementFixtures?.update(dt);
  if(__PLAYGROUND__)carpentryFixture?.highlight.update(false,elapsed,hover?.actor===carpentryFixture&&!carpentryFixture.opened&&!carpentry.matches(carpentryFixture));
  afterStep.flush();
  equipment.refresh();
@@ -804,7 +811,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  if(asleep){const social=socialMotion('Sleeping',idleClock.sleepTime);pose=social.pose;expression=social.expression;socialHands=withGrip(social.hands,equipmentIdleHands({rightHand:equipment.slots.right,leftHand:equipment.slots.left}),social.grip);}
  // Characters are walk-through: the player never waits for the companion (or anyone) to move aside.
  // A route can close behind a plan (a door locked, a wall placed): re-route before stepping across it.
- if(!segment&&path.length&&!canStep(tile,path[0])){const end=path.at(-1);path=findPath(world,tile,end,playerRouteCost)||[];if(!path.length){target=null;actorTarget=null;feedback.clearDestination();toast('The way is shut.');}}
+ if(!segment&&path.length&&!stepAllowed(world,tile,path[0],{diagonal:DIAGONAL_MOVES.player})){const end=path.at(-1);path=findPath(world,tile,end,playerRouteCost)||[];if(!path.length){target=null;actorTarget=null;feedback.clearDestination();toast('The way is shut.');}}
  // Stun/immobilize let the current step finish but start no new one.
  if(!segment&&path.length&&playerControl.can('move')){
   const to=path.shift();segment={from:player.position.clone(),to,age:0,height:to.h-player.position.y};
@@ -815,7 +822,8 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  player.rotation.y+=turn*(1-Math.exp(-dt*16));
  if(segment){
   // Celerity (+0.2% per point) and Rush add to sprint against base walking speed.
-  segment.age+=playerResources.advance(dt,true,character.attribute('celerity')*.002+auras.movementBonus)*(1-playerControl.slowFraction);
+  // A diagonal step takes as long as any other (docs/MOVEMENT-PLAN.md).
+  segment.age+=playerResources.advance(dt,true,walkBonus())*(1-playerControl.slowFraction);
   // The shared move (slime-motion.js): a slide, a smooth ramp on stairs, or a hop up or down a ledge.
   const move=moveMotion(segment.age,tile,segment.to),stepped=move.stepped,duration=move.duration;
   expression=stepped?(segment.age<.32?'preparing':'struggle'):'focused';
@@ -865,6 +873,8 @@ if(__PLAYGROUND__){
  combatFixtures=playground.createCombatFixtures({combat,world,scene,pickables,tile:()=>tile,stop:stopAll,approach:selectActor,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  walkThroughFixtures=playground.createWalkThroughFixtures({scene,world,pickables,combat,tile:()=>tile,stop:stopAll,moveTo:t=>moveTo(t),characterAt,occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  edgeFixtures=playground.createEdgeFixtures({scene,world,pickables,tile:()=>tile,stop:stopAll,moveTo:t=>moveTo(t),occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
+ movementFixtures=playground.createMovementFixtures({scene,world,pickables,tile:()=>tile,stop:stopAll,occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');},
+  routes:()=>[{kind:'player',tiles:[tile,...(segment?[segment.to]:[]),...path]},{kind:'companion',tiles:companions.route},...combat.routes().map(tiles=>({kind:'enemy',tiles}))]});
  carpentryFixture=playground.addCarpentryFixture({world:clearingTiles,currentWorld:world,scene:clearingGroup,pickables,clearingObjects});
  playground.addFishingFixture({world:clearingTiles,scene:clearingGroup,fishingSpots,clearingObjects});
  // Streaming test (playground only): a generated 512 × 512 world streamed in chunks (world-grid.js) through the
@@ -1152,6 +1162,8 @@ if(__PLAYGROUND__){
   walkThroughAction:action=>walkThroughFixtures.run(action),
   edgeAction:action=>edgeFixtures.run(action),
   set edgeOverlay(value){edgeFixtures.setOverlay(value);},
+  movementAction:action=>movementFixtures.run(action),
+  set routeOverlay(value){movementFixtures.setOverlay(value);},
   set occupancyOverlay(value){walkThroughFixtures.setOverlay(value);},
   async loadCheckpoint(checkpoint){
    splash.close();stopAll();companions.cancel();craftingTutorial.reset();opening.enterFreePlay();this.reset('all');
@@ -1185,7 +1197,7 @@ if(__PLAYGROUND__){
    if(['mining-intro','pickaxe','mining-craft'].includes(step))inventory.pickaxes=0;
    await craftingTutorial.debugCheckpoint(step);
   },
-  resetCurrentArea(){stopAll();travel.cancel();trainingFixtures.clear();combatFixtures.clear();walkThroughFixtures.clear();edgeFixtures.clear();if(areas.active.reset)areas.active.reset();else this.reset('all');},
+  resetCurrentArea(){stopAll();travel.cancel();trainingFixtures.clear();combatFixtures.clear();walkThroughFixtures.clear();edgeFixtures.clear();movementFixtures.clear();if(areas.active.reset)areas.active.reset();else this.reset('all');},
   openInterface(name){
    splash.close();travel.cancel();stopAll();modals.closeAll('replaced');areas.notify('clearUI');craftingTutorial.reset();opening.enterFreePlay();$('game-menus').hidden=false;$('game-menus').inert=false;
    if(name==='cooking'){cookingMenu.open();return;}

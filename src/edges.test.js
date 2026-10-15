@@ -6,7 +6,7 @@ import {lineOfSight,withinAttackRange} from './combat-range.js';
 import {interactionRoute} from './interaction-route.js';
 import {canStand,bodyStep,reachesBody} from './footprint.js';
 import {wanderRoute} from './wander.js';
-import {companionRoute} from './companion-follow.js';
+import {followRoute,createCompanionFollower} from './companion-follow.js';
 import {occupancy} from './world-occupancy.js';
 import {createEdgeFeatures,updateDoors,configureDoors} from './doors.js';
 
@@ -60,7 +60,10 @@ test('large bodies cannot straddle a wall, cross one as they move, or strike thr
 test('wanderers and the companion respect walls',()=>{
  const m=grid();for(let z=0;z<5;z++)setEdge(at(m,1,z),at(m,2,z),{kind:'wall'});
  for(const r of [0,.4,.8,.999])assert.ok(wanderRoute(m,at(m,0,2),{minX:0,maxX:4,minZ:0,maxZ:4},()=>false,()=>r).every(t=>t.x<=1),'stays on its side');
- const route=companionRoute(m,at(m,4,2),at(m,0,2));assert.ok(route.length&&route.every(t=>t.x>=2),'no way across: it comes as close as its side allows');assert.equal(route.at(-1).x,2);
+ assert.equal(followRoute(m,at(m,4,2),at(m,0,2)),null,'no way across the wall');
+ // So it pops in on the player's side, never across the wall from them.
+ const f=createCompanionFollower(new Group());f.reset(at(m,4,2));f.update(.016,m,at(m,0,2));
+ assert.equal(f.state,'teleported');assert.equal(f.lastTeleport,'no route');assert.ok(f.tile.x<=1);
 });
 test('a door opens and closes only when used, is approached from either side, and a locked one never opens',async()=>{
  const {doorApproach}=await import('./doors.js');

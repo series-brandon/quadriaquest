@@ -1,8 +1,9 @@
 import {gameViewport} from './game-viewport.js';
 import {Vector3} from 'three';
-import {findPath,key,canStep} from './world.js';
+import {findPath,key,canStep,canMove as stepAllowed} from './world.js';
+import {tileDistance} from './combat-geometry.js';
 import {withinAttackRange,lineOfSight} from './combat-range.js';
-import {sizeOf,footprint,footprintGap,canStand,findFootprintPath,bodyCenter,nearestCell,bodyStep,reachesBody} from './footprint.js';
+import {sizeOf,footprint,canStand,findFootprintPath,bodyCenter,nearestCell,bodyStep,reachesBody,meleeGap,rangeGap} from './footprint.js';
 import {resolveAttack,resolvePortions,rollDamage,actionXp,backfireBaseDamage,displayedLoss,xpModifiers} from './combat-formulas.js';
 import {playerAttackProfile,playerDefense,strongStrikeProfile,armorAwards,offHandFollowUp,pairStrikes,FOLLOW_UP_DELAY} from './combat-profile.js';
 import {ABILITIES,SPELLS} from './combat-styles.js';
@@ -135,6 +136,8 @@ export function createCombatSystem(api){
  // avoid *stopping* where someone else stands. Solid practice targets still block their cells.
  function release(a){if(a.occupying){if(blocksMovement(a))for(const c of a.cells||[a.tile])c.blocked=false;else occupancy.remove(a);a.occupying=false;}}
  const reserved=t=>t===api.tile()||api.reserved(t);
+ // A creature's step on dry ground (wanderers keep out of water, corners included).
+ const dryStep=(from,to)=>canStep(from,to)&&!to.water;
  const enemyAt=(t,self)=>{for(const b of enemies)if(b!==self&&b.occupying&&(b.cells||[b.tile]).includes(t))return true;return false;};
  // Somewhere `self` should not stop: the player, the player's route, the companion or another enemy.
  const taken=(t,self)=>reserved(t)||enemyAt(t,self);
@@ -166,8 +169,9 @@ export function createCombatSystem(api){
  }
  const settled=a=>a.group.position.distanceTo(bodyPosition(a))<.001;
  // Beside the player and able to reach across the shared edge (no wall, window or fence between).
- const adjacent=a=>settled(a)&&footprintGap(a.tile,sizeOf(a),api.tile())===1&&reachesBody(api.world,a.tile,sizeOf(a),api.tile());
- function move(a,t){release(a);a.cells=cellsOf(a,t);a.tile=t;a.x=t.x;a.z=t.z;if(blocksMovement(a))for(const c of a.cells)c.blocked=true;else occupancy.place(a,a.cells);a.occupying=true;a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=t;});}
+ const adjacent=a=>settled(a)&&meleeGap(a.tile,sizeOf(a),api.tile())===1&&reachesBody(api.world,a.tile,sizeOf(a),api.tile());
+ // Steps take the same time in any direction (docs/MOVEMENT-PLAN.md): a diagonal moves √2 faster.
+ function move(a,t){a.stepLength=Math.min(Math.SQRT2,Math.hypot(t.x-a.tile.x,t.z-a.tile.z))||1;release(a);a.cells=cellsOf(a,t);a.tile=t;a.x=t.x;a.z=t.z;if(blocksMovement(a))for(const c of a.cells)c.blocked=true;else occupancy.place(a,a.cells);a.occupying=true;a.group.traverse(m=>{if(m.userData.actor===a)m.userData.tile=t;});}
  function resetEnemy(a){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);
   for(let i=enemyShots.length-1;i>=0;i--)if(enemyShots[i].enemy===a)enemyShots.splice(i,1);
@@ -234,7 +238,7 @@ export function createCombatSystem(api){
  const inReachOf=a=>reachesBody(api.world,a.tile,sizeOf(a),api.tile());
  function canThrow(a){
   const p=api.tile(),r=a.rules.rangedAttack,size=sizeOf(a),from=size>1?nearestCell(a.tile,size,p):a.tile;
-  return !!r&&inTerritory(a,p)&&footprintGap(a.tile,size,p)<=r.range&&lineOfSight(api.world,from,p)&&!api.safe?.(p);
+  return !!r&&inTerritory(a,p)&&rangeGap(a.tile,size,p)<=r.range&&lineOfSight(api.world,from,p)&&!api.safe?.(p);
  }
  // Solid tiles (walls, rock) are left out: nobody can stand there, so they are never marked.
  function lockTiles(area){const p=api.tile(),tiles=[];for(let dz=-area;dz<=area;dz++)for(let dx=-area;dx<=area;dx++){const t=api.world.get(key(p.x+dx,p.z+dz));if(t&&(!t.blocked||t===p))tiles.push(t);}return tiles;}
@@ -315,16 +319,16 @@ export function createCombatSystem(api){
   if(!settled(a))return;
   if(a.tile===a.home){if(bodyTaken(a,a.home))return;a.returning=false;a.hp=a.rules.health;a.patrolClock=wanderDelay(random);return;}
   // Waits one step short while someone stands at home, so it never settles on them.
-  const next=bodyRoute(a,t=>t===a.home)?.[0];if(next&&(next!==a.home||!bodyTaken(a,a.home)))move(a,next);
+  const route=bodyRoute(a,t=>t===a.home);a.plannedRoute=route||[];const next=route?.[0];if(next&&(next!==a.home||!bodyTaken(a,a.home)))move(a,next);
  }
  function pursue(a){
   const p=api.tile();
-  if((a.territory?!inTerritory(a,p):Math.abs(p.x-a.home.x)+Math.abs(p.z-a.home.z)>(a.leash??6))||api.safe?.(p)||api.blocked()){returnHome(a);return;}
+  if((a.territory?!inTerritory(a,p):tileDistance(p,a.home)>(a.leash??6))||api.safe?.(p)||api.blocked()){returnHome(a);return;}
   if(!settled(a)||adjacent(a))return;
   // Step toward the nearest spot beside the player that the body fits, inside its territory, preferring
   // a free one; it may pass other characters but never the player it is after or a safe tile.
-  const size=sizeOf(a),route=bodyRoute(a,t=>footprintGap(t,size,p)===1&&reachesBody(api.world,t,size,p),(t,cells)=>!cells.some(c=>c===p||api.safe?.(c))&&bodyInTerritory(a,t));
-  if(!route){returnHome(a);return;}if(route[0])move(a,route[0]);
+  const size=sizeOf(a),route=bodyRoute(a,t=>meleeGap(t,size,p)===1&&reachesBody(api.world,t,size,p),(t,cells)=>!cells.some(c=>c===p||api.safe?.(c))&&bodyInTerritory(a,t));
+  a.plannedRoute=route||[];if(!route){returnHome(a);return;}if(route[0])move(a,route[0]);
  }
  function update(dt,time,camera){
    sinceRelease+=dt;
@@ -369,13 +373,13 @@ export function createCombatSystem(api){
    else if(settled(a)&&cellsOf(a).includes(api.tile())&&!api.playerMoving?.())pushAside(a);
    else if(settled(a)&&!inPatrol(a,a.tile))homeward(a);
    else if(settled(a)){if(!a.patrolRoute.length){a.patrolClock-=dt;if(a.patrolClock<=0){a.patrolClock=wanderDelay(random);if(shouldWander(random))a.patrolRoute=sizeOf(a)>1?wanderStep(a):wanderRoute(api.world,a.tile,a.patrol,t=>taken(t,a),random,t=>cellCost(t,a));}}
-    const next=a.patrolRoute[0];if(next){if(sizeOf(a)>1?!canStand(api.world,next,sizeOf(a),a.cells)||!bodyStep(api.world,a.tile,next,sizeOf(a))||bodyTaken(a,next)||!bodyInTerritory(a,next):!canStep(a.tile,next)||next.water||!inTerritory(a,next)||a.patrolRoute.length===1&&taken(next,a))a.patrolRoute=[];else{a.patrolRoute.shift();move(a,next);}}
+    const next=a.patrolRoute[0];if(next){if(sizeOf(a)>1?!canStand(api.world,next,sizeOf(a),a.cells)||!bodyStep(api.world,a.tile,next,sizeOf(a))||bodyTaken(a,next)||!bodyInTerritory(a,next):!stepAllowed(api.world,a.tile,next,{passable:dryStep})||next.water||!inTerritory(a,next)||a.patrolRoute.length===1&&taken(next,a))a.patrolRoute=[];else{a.patrolRoute.shift();move(a,next);}}
    }
    const destination=bodyPosition(a),distance=a.group.position.distanceTo(destination),moving=distance>.001;
    if(moving)a.group.rotation.y=Math.atan2(destination.x-a.group.position.x,destination.z-a.group.position.z);
    else if(a.aggro)a.group.rotation.y=Math.atan2(api.player.position.x-a.group.position.x,api.player.position.z-a.group.position.z);
    // Every path mode reserves one destination and physically finishes it before taking another.
-   if(distance)a.group.position.lerp(destination,Math.min(1,dt*(a.aggro||a.returning?2:1.6)*(a.rules.moveSpeed??1)*(1-a.control.slowFraction)/distance));
+   if(distance)a.group.position.lerp(destination,Math.min(1,dt*(a.aggro||a.returning?2:1.6)*(a.rules.moveSpeed??1)*(a.stepLength??1)*(1-a.control.slowFraction)/distance));
    a.sinceStrike=(a.sinceStrike??Infinity)+dt;
    // A ready enemy's first attack waits only for its windup (the cooldown counts from its last strike).
    if(a.aggro&&!defeated&&!api.blocked()&&a.control.can('attack'))enemyAttackUpdate(a,dt,!moving);
@@ -447,6 +451,9 @@ export function createCombatSystem(api){
   resetWhere(predicate=()=>true){if(fight&&predicate(fight.enemy))fight=null;if(chase&&predicate(chase.enemy))chase=null;defense=null;for(const a of enemies)if(predicate(a))resetEnemy(a);},
   reset(){clear();for(const a of enemies)resetEnemy(a);},
   matches:a=>fight?.enemy===a,get working(){return !!fight||!!chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened);},get busy(){return defeated>0;},
+  // The tiles each current creature plans to walk (pursuit, the way home or a wander), for the
+  // playground's route overlay.
+  routes(){return [...enemies].filter(a=>current(a)&&!a.opened).map(a=>{const plan=a.aggro||a.returning?a.plannedRoute||[]:a.patrolRoute||[];const rest=plan[0]===a.tile?plan.slice(1):plan;return [a.tile,...rest];}).filter(r=>r.length>1);},
   nearestEnemy(){const p=api.tile();return [...enemies].filter(a=>current(a)&&!a.opened).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0]||null;},
   // The enemy currently fighting or pursuing the player (single-enemy assistance scope).
   get engagedEnemy(){return fight?.enemy||chase?.enemy||[...enemies].find(a=>current(a)&&a.aggro&&!a.opened&&!a.returning)||null;},

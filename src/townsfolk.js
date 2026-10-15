@@ -5,7 +5,7 @@ import {makeSlime} from './slime-model.js';
 import {createSlimeActor} from './slime-presentation.js';
 import {markCharacter,occupancy} from './world-occupancy.js';
 import {seatPosition} from './props.js';
-import {key,canStep,edgeBetween} from './world.js';
+import {key,canStep,canMove,edgeBetween,eachStep,searchRoute,routeTo,DIAGONAL_MOVES} from './world.js';
 import {isBuildingCut} from './cutaway.js';
 import {moveMotion} from './slime-motion.js';
 
@@ -29,35 +29,42 @@ const SPOT_ACTIVITIES=['sit','sleep','cook','work','browse','vend','gaze','drink
 const POST_FACING={n:Math.PI,e:Math.PI/2,s:0,w:-Math.PI/2};
 const WALK=.72,ROUTE_LIMIT=3500,NEAR=16,FAR=34,FIELD_CACHE=48,STROLL_RADIUS=10;
 const LINES=['Lovely day for it.','Have you seen the fountain?','Mind the stairs.','The market’s busy today.','I’m just on my way home.','Hello there!','They say the castle has a hundred rooms.','Fresh bread soon, I hope.'];
+// Orthogonal neighbours: where a chat partner stands and where to step aside (walking uses eachStep).
 const NEIGHBOURS=[[1,0],[-1,0],[0,1],[0,-1]];
 // Faces while two townsfolk chat (they walk about happy).
 const CHAT_FACES=['happy','pleased','shocked','sad','frown','happy','pleased'];
 
 // Townsfolk walk through unlocked doors: a closed one is opened on the way (and shut behind them).
 export function passable(from,to){if(canStep(from,to))return true;const edge=edgeBetween(from,to);return !!edge&&edge.kind==='door'&&!edge.locked&&!!to&&!to.blocked&&Math.abs(to.h-from.h)<=.5;}
+// Townsfolk steps, diagonals included (DIAGONAL_MOVES.townsfolk): a diagonal never opens a door, so its
+// corners use the plain step rule. `back` steps run the other way (distance fields grow from the goal).
+const stepOptions=()=>({diagonal:DIAGONAL_MOVES.townsfolk,passable,corner:canStep});
+const backOptions=()=>({diagonal:DIAGONAL_MOVES.townsfolk,passable:(a,b)=>passable(b,a),corner:(a,b)=>canStep(b,a)});
+export const townsfolkStep=(map,from,to)=>canMove(map,from,to,stepOptions());
 // Shared navigation for one map: cached distance fields (BFS over the shared step rule, doors included).
 export function createNavigator(map){
  const fields=new Map();
  function field(goal){
-  const id=key(goal.x,goal.z);if(fields.has(id)){const f=fields.get(id);fields.delete(id);fields.set(id,f);return f;}
+  const back=backOptions(),id=key(goal.x,goal.z)+(back.diagonal?'d':'');if(fields.has(id)){const f=fields.get(id);fields.delete(id);fields.set(id,f);return f;}
   const dist=new Map([[goal,0]]),queue=[goal];
-  for(let i=0;i<queue.length;i++){const t=queue[i],d=dist.get(t);for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(n&&!dist.has(n)&&passable(n,t)){dist.set(n,d+1);queue.push(n);}}}
+  for(let i=0;i<queue.length;i++){const t=queue[i],d=dist.get(t);eachStep(map,t,n=>{if(!dist.has(n)){dist.set(n,d+1);queue.push(n);}},back);}
   fields.set(id,dist);if(fields.size>FIELD_CACHE)fields.delete(fields.keys().next().value);return dist;
  }
  return {field,
-  // The next step from `from` towards `goal` (null when there or unreachable), preferring free tiles.
+  // The next step from `from` towards `goal` (null when there or unreachable), preferring free tiles,
+  // then the one nearest the goal in a straight line (diagonal first, then straight).
   next(from,goal,occupied=()=>false){const dist=field(goal),here=dist.get(from);if(here===undefined||here===0)return null;
-   const options=NEIGHBOURS.map(([dx,dz])=>map.get(key(from.x+dx,from.z+dz))).filter(n=>n&&dist.get(n)===here-1&&passable(from,n));
+   const options=[];eachStep(map,from,n=>{if(dist.get(n)===here-1)options.push(n);},stepOptions());
+   options.sort((a,b)=>Math.hypot(a.x-goal.x,a.z-goal.z)-Math.hypot(b.x-goal.x,b.z-goal.z));
    return options.find(n=>!occupied(n))||options[0]||null;},
   reachable:(from,goal)=>field(goal).has(from),
   // A route from `from` to `goal` by a bounded search (early exit; at most `limit` tiles visited):
   // townsfolk plan this way, so a new goal costs little and they keep to their neighbourhood.
-  route(from,goal,limit=ROUTE_LIMIT){if(!goal||from===goal)return from===goal?[]:null;const prev=new Map([[from,null]]),queue=[from];
-   for(let i=0;i<queue.length&&queue.length<limit;i++){const t=queue[i];for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(!n||prev.has(n)||!passable(t,n))continue;prev.set(n,t);
-    if(n===goal){const path=[];for(let c=n;c!==from;c=prev.get(c))path.unshift(c);return path;}queue.push(n);}}
-   return null;},
+  route(from,goal,limit=ROUTE_LIMIT){if(!goal||from===goal)return from===goal?[]:null;const options=stepOptions();
+   const {end,previous}=searchRoute(from,(t,add)=>eachStep(map,t,n=>add(n,1),options),{target:goal,limit});
+   return end?routeTo(previous,end):null;},
   // Tiles within `radius` steps (bounded search), for strolls.
-  around(from,radius=STROLL_RADIUS){const seen=new Map([[from,0]]),queue=[from];for(let i=0;i<queue.length;i++){const t=queue[i],d=seen.get(t);if(d>=radius)continue;for(const [dx,dz] of NEIGHBOURS){const n=map.get(key(t.x+dx,t.z+dz));if(n&&!seen.has(n)&&canStep(t,n)){seen.set(n,d+1);queue.push(n);}}}return [...seen.keys()];},
+  around(from,radius=STROLL_RADIUS){const seen=new Map([[from,0]]),queue=[from];for(let i=0;i<queue.length;i++){const t=queue[i],d=seen.get(t);if(d>=radius)continue;eachStep(map,t,n=>{if(!seen.has(n)){seen.set(n,d+1);queue.push(n);}},{diagonal:DIAGONAL_MOVES.townsfolk});}return [...seen.keys()];},
   get cached(){return fields.size;},clear(){fields.clear();},
  };
 }
@@ -173,7 +180,7 @@ export function createCrowd({builtMap,parent,pickables=[],seed=1,services={}}){
       // Don't end on someone else's tile: stop a tile short, or give up a taken spot.
       // Follow the planned route; re-plan if it no longer holds (a door locked, someone moved a prop).
       let next=p.path?.[0]||null;
-      if(next&&!passable(p.tile,next)){p.path=nav.route(p.tile,p.goal);next=p.path?.[0]||null;}
+      if(next&&!townsfolkStep(map,p.tile,next)){p.path=nav.route(p.tile,p.goal);next=p.path?.[0]||null;}
       if(next&&next===p.goal&&taken(next,p)){if(p.spot){p.state='idle';p.timer=1+random()*2;next=null;}else{arrive(p);next=null;}}
       if(p.state==='walking'&&!next){if(p.tile===p.goal)arrive(p);else{p.state='idle';p.timer=1;}}
       else if(next){

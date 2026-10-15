@@ -5,11 +5,15 @@ export {createTrainingFixtures} from './training-fixtures.js';
 export {createCombatFixtures} from './combat-fixtures.js';
 export {createWalkThroughFixtures} from './walkthrough-fixtures.js';
 export {createEdgeFixtures} from './edge-fixtures.js';
+export {createMovementFixtures} from './movement-fixtures.js';
 export {createPerfProbe} from './perf-probe.js';
 export {createPerfScenarios} from './perf-scenarios.js';
 import {createCarpentryBridge} from '../carpentry-bridge.js';
 import {Group} from 'three';
 import {organizePlayground} from './playground-layout.js';
+import {DIAGONAL_MOVES} from '../world.js';
+import {COMBAT_GEOMETRY,METRICS} from '../combat-geometry.js';
+import {FOLLOW,FOLLOW_DEFAULTS} from '../companion-follow.js';
 import {enemySheetDetails} from './combat-fixtures.js';
 import {playerActionMotion} from '../player-action-motion.js';
 import {createModelViewer} from './model-viewer.js';
@@ -86,9 +90,10 @@ export function mountPlayground(api){
       </fieldset>
     <fieldset><legend>Maps</legend><div><button data-dev="world-editor">Open world editor</button><button data-dev="prop-gallery">Prop gallery</button><button data-dev="force-cutaway">Force cutaway</button><button data-dev="free-camera">Free camera</button></div></fieldset>
     <fieldset><legend>Walls &amp; doors</legend><label>Action<select id="dev-edges"><option value="spawn">Build walls &amp; doors yard nearby</option><option value="inside">Walk into the room</option><option value="toggle">Open / close the door</option><option value="lock">Lock / unlock the door</option><option value="remove">Remove yard</option></select></label><button data-dev="edges">Run</button><div><button data-dev="building-map">Enter building test map</button><button data-dev="building-doors-open">Open all its doors</button><button data-dev="building-doors-close">Close all its doors</button></div><label class="dev-toggle"><input type="checkbox" id="dev-edge-overlay"> Show tile edges</label></fieldset>
+    <fieldset><legend>Movement</legend><div>Diagonal steps ${[['player','Player'],['companion','Companion'],['npc','NPCs'],['townsfolk','Townsfolk'],['enemy','Creatures'],['body','Large bodies']].map(([id,label])=>`<label class="dev-toggle"><input type="checkbox" data-diagonal="${id}" checked> ${label}</label>`).join('')}</div><label>Melee reach<select id="dev-melee-reach"><option value="cardinal">Cardinal</option><option value="8way">8-way</option></select></label><label>Range metric<select id="dev-range-metric">${METRICS.map(m=>`<option>${m}</option>`).join('')}</select></label><label>Action<select id="dev-movement"><option value="yard">Build corner yard nearby</option><option value="remove">Remove corner yard</option></select></label><button data-dev="movement">Run</button><label class="dev-toggle"><input type="checkbox" id="dev-route-overlay"> Show routes</label></fieldset>
     <fieldset><legend>Walk-through characters</legend><label>Action<select id="dev-walkthrough"><option value="crowd">Spawn townsfolk crowd ahead</option><option value="walk-crowd">Walk past the crowd</option><option value="stand-walk">Stop on a townsfolk (steps aside)</option><option value="stand-never">Stop on the townsfolk that stays put</option><option value="golem">Spawn passive Cinder Golem ahead</option><option value="walk-golem">Walk past the golem</option><option value="remove">Remove fixtures</option></select></label><button data-dev="walkthrough">Run</button><label class="dev-toggle"><input type="checkbox" id="dev-occupancy-overlay"> Show solid and occupied tiles</label></fieldset>
     <fieldset><legend>NPC slimes</legend><label>Slime<select id="dev-npc">${[['sarge','Sergeant Bristle'],['smith','Borin Copperbelly'],['ranger','Fletch'],['mage','Wisp'],['ki','Ember'],['reed','Reed']].map(([id,name])=>`<option value="${id}">${name}</option>`).join('')}</select></label><label>Motion<select id="dev-npc-motion">${SLIME_ACTOR_MOTIONS.map(m=>`<option>${m}</option>`).join('')}</select></label><button data-dev="npc-play">Play</button><button data-dev="npc-stop">Stop</button></fieldset>
-    <fieldset><legend>Companions</legend><label>Action<select id="dev-companion-action"><option value="spawn">Add follower here</option><option value="pet">Pet follower</option><option value="name">Rename follower</option><option value="rest">Rest here</option><option value="follow">Follow player</option><option value="hat">Put on / remove Companion Top Hat</option><option value="stop">Stop animation</option><option value="reset">Reset companion</option></select></label><button data-companion="action" aria-label="Run companion action">Run</button><label>Animation<select id="dev-companion-animation">${['Idle','Walk','Sit','Scratch','Petting','Sleeping','Jump up','Jump down'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-companion="preview" aria-label="Loop companion animation">Loop</button></fieldset>
+    <fieldset><legend>Companions</legend><label>Action<select id="dev-companion-action"><option value="spawn">Add follower here</option><option value="pet">Pet follower</option><option value="name">Rename follower</option><option value="rest">Rest here</option><option value="follow">Follow player</option><option value="hat">Put on / remove Companion Top Hat</option><option value="teleport">Teleport to me</option><option value="away-2">Send 2 tiles away</option><option value="away-5">Send 5 tiles away</option><option value="away-9">Send 9 tiles away</option><option value="follow-state">Show follow state</option><option value="stop">Stop animation</option><option value="reset">Reset companion</option></select></label><button data-companion="action" aria-label="Run companion action">Run</button><label>Animation<select id="dev-companion-animation">${['Idle','Walk','Sit','Scratch','Petting','Sleeping','Jump up','Jump down'].map(s=>`<option>${s}</option>`).join('')}</select></label><button data-companion="preview" aria-label="Loop companion animation">Loop</button><div>${[['pace','Pace',.3,1.5,.05],['sprint','Sprint ×',1,3,.1],['start','Start at',1,6,1],['teleport','Teleport past',3,20,1]].map(([id,label,min,max,step])=>`<label>${label} <input type="number" data-follow="${id}" min="${min}" max="${max}" step="${step}" value="${FOLLOW_DEFAULTS[id]}"></label>`).join('')}<button data-companion="follow-defaults">Default follow tuning</button></div></fieldset>
     <fieldset><legend>Terrain colors</legend>
       <label>Grass color <input id="dev-grass-color" type="color" value="${api.grassPalette.defaultColor}"></label>
       <button data-dev="grass-reset">Reset grass color</button>
@@ -173,7 +178,12 @@ export function mountPlayground(api){
   panel.addEventListener('click',async e=>{
     let b=e.target.closest('button');if(!b)return;if(b.dataset.command){const command=commands.get(b.dataset.command);b={dataset:command.actions[command.select.value]};}
     try{
-      if(b.dataset.companion){stop();const c=api.companions;if(b.dataset.companion==='preview'){c.preview($('companion-animation').value);status('Companion preview: '+$('companion-animation').value);}else{const action=$('companion-action').value;if(action==='reset')c.reset();else if(action==='stop')c.cancel();else{if(!c.state.owned){c.acquire();c.update(0,0,null);}if(action==='pet')c.pet();if(action==='name')c.name();if(action==='rest')c.setFollowing(false);if(action==='follow')c.setFollowing(true);if(action==='hat'){if(!c.owns('companionHats'))api.inventory.companionHats=1;c.wear('companionHats');}}status('Companion: '+action);}}
+      if(b.dataset.companion){stop();const c=api.companions;
+       if(b.dataset.companion==='preview'){c.preview($('companion-animation').value);status('Companion preview: '+$('companion-animation').value);}
+       else if(b.dataset.companion==='follow-defaults'){Object.assign(FOLLOW,FOLLOW_DEFAULTS);for(const input of panel.querySelectorAll('[data-follow]'))input.value=FOLLOW[input.dataset.follow];status('Follow tuning: defaults.');}
+       else{const action=$('companion-action').value;if(action==='reset')c.reset();else if(action==='stop')c.cancel();else{if(!c.state.owned){c.acquire();c.update(0,0,null);}if(action==='pet')c.pet();if(action==='name')c.name();if(action==='rest')c.setFollowing(false);if(action==='follow')c.setFollowing(true);if(action==='hat'){if(!c.owns('companionHats'))api.inventory.companionHats=1;c.wear('companionHats');}
+         if(action==='teleport')c.teleport();if(action.startsWith('away-'))c.sendAway(+action.slice(5));}
+        const f=c.follow;status(action==='follow-state'||action==='teleport'||action.startsWith('away-')?`Companion: ${f.state}, ${f.speed.toFixed(2)}× walking${f.lastTeleport?`, last teleport: ${f.lastTeleport}`:''}.`:'Companion: '+action);}}
 
       if(b.dataset.objective)api.objectives[b.dataset.objective]();
       if(b.dataset.prompt){
@@ -208,6 +218,7 @@ export function mountPlayground(api){
         if(action==='combat'){status(api.combatAction($('combat').value));}
         if(action==='walkthrough'){status(api.walkThroughAction($('walkthrough').value));}
         if(action==='edges'){status(api.edgeAction($('edges').value));}
+        if(action==='movement'){status(api.movementAction($('movement').value));}
         if(action==='world-editor'){stop();await openWorldEditor();status(`World editor: ${worldEditor.data.name}.`);}
         if(action==='prop-gallery'){stop();status(await api.enterMap('prop-gallery')?'The prop gallery: every prop by category (hover for names; sit, sleep, cook, smith, open and read them), with a fence gate, a low stone wall and an iron gate at the top.':'Could not open the prop gallery.');}
         if(action==='free-camera'){status(api.freeCamera()?'Free camera: WASD or middle-drag to pan (Shift: faster), scroll to zoom far out.':'Camera back on the slime.');}
@@ -339,6 +350,11 @@ export function mountPlayground(api){
   $('stream-bounds').addEventListener('change',()=>{api.streamBounds=$('stream-bounds').checked;});
   $('occupancy-overlay').addEventListener('change',()=>{api.occupancyOverlay=$('occupancy-overlay').checked;});
   $('edge-overlay').addEventListener('change',()=>{api.edgeOverlay=$('edge-overlay').checked;});
+  $('route-overlay').addEventListener('change',()=>{api.routeOverlay=$('route-overlay').checked;});
+  for(const input of panel.querySelectorAll('[data-diagonal]'))input.addEventListener('change',()=>{DIAGONAL_MOVES[input.dataset.diagonal]=input.checked;status(`Diagonal steps (${input.dataset.diagonal}): ${input.checked?'on':'off'}.`);});
+  $('melee-reach').addEventListener('change',()=>{COMBAT_GEOMETRY.meleeReach=$('melee-reach').value;status(`Melee reach: ${COMBAT_GEOMETRY.meleeReach}.`);});
+  $('range-metric').addEventListener('change',()=>{COMBAT_GEOMETRY.metric=$('range-metric').value;status(`Range metric: ${COMBAT_GEOMETRY.metric}.`);});
+  for(const input of panel.querySelectorAll('[data-follow]'))input.addEventListener('input',()=>{const value=Number(input.value);if(Number.isFinite(value)&&value>0)FOLLOW[input.dataset.follow]=value;});
   $('water-shimmers').addEventListener('change',()=>api.waterSettings.shimmers=$('water-shimmers').checked);
   $('water-shoreline').addEventListener('change',()=>api.waterSettings.fixedShoreline=$('water-shoreline').checked);
   $('grass-color').addEventListener('input',()=>api.grassPalette.set($('grass-color').value));

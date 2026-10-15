@@ -49,9 +49,11 @@ export function edgePasses(edge,what){
  if(edge.kind==='door')return !!edge.open&&!edge.locked;
  return !!EDGE_RULES[edge.kind]?.[what];
 }
-// The one step rule every walker shares: the next tile exists, is not solid, is at most half a block
-// up or down, and no wall, window, fence or locked door stands on the edge between.
-export const canStep=(from,to)=>!!to&&!to.blocked&&Math.abs(to.h-from.h)<=.5&&edgePasses(edgeBetween(from,to),'move');
+// The one step rule every walker shares, between orthogonal neighbours: the next tile exists, is not
+// solid, is at most half a block up or down, and no wall, window, fence or locked door stands on the
+// edge between. Anything that isn't an orthogonal neighbour is refused here (edgeBetween only knows
+// those edges); diagonal steps go through canMove.
+export const canStep=(from,to)=>!!from&&!!to&&Math.abs(to.x-from.x)+Math.abs(to.z-from.z)===1&&!to.blocked&&Math.abs(to.h-from.h)<=.5&&edgePasses(edgeBetween(from,to),'move');
 export function makeWorld(){
  const map=new Map();rows.forEach((row,z)=>[...row].forEach((v,x)=>{if(v!==' ')map.set(key(x,z),{x,z,h:Number(v)/2,blocked:false,water:false});}));
  for(const [x,z] of [[2,3],[3,3],[2,4],[3,4],[4,4],[3,5]]){const t=map.get(key(x,z));t.water=true;t.blocked=true;}
@@ -60,37 +62,76 @@ export function makeWorld(){
  map.get(key(10,6)).h=2.5;map.get(key(10,7)).h=2.5;
  return map;
 }
-// cost(tile): extra cost of stepping onto a tile (occupied tiles, world-occupancy.js). With it the
-// route is the cheapest one (each step costs 1 plus the tile's extra); without it, the shortest.
-export function findPath(map,start,end,cost=null){
- const target=map.get(key(end.x,end.z));if(!target||target.blocked)return null;
- if(cost)return cheapestPath(map,start,target,cost);
- const startKey=key(start.x,start.z),endKey=key(end.x,end.z),queue=[startKey],previous=new Map([[startKey,null]]);
- for(let i=0;i<queue.length;i++){
-  const k=queue[i];if(k===endKey){const route=[];let cursor=k;while(cursor!==startKey){route.unshift(map.get(cursor));cursor=previous.get(cursor);}return route;}
-  const t=map.get(k);
-  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nk=key(t.x+dx,t.z+dz),n=map.get(nk);if(!canStep(t,n)||previous.has(nk))continue;previous.set(nk,k);queue.push(nk);}
- }
- return null;
+// Movement (docs/MOVEMENT-PLAN.md). Walkers step to the four orthogonal neighbours and, where their
+// group allows it, to the four diagonals. A diagonal takes as long as any other step (RuneScape-style),
+// so every step costs 1 and route length is Chebyshev distance.
+export const ORTHOGONAL=[[1,0],[-1,0],[0,1],[0,-1]],DIAGONAL=[[1,1],[-1,1],[1,-1],[-1,-1]];
+// Which walker groups step diagonally. Bodies are multi-tile creatures (footprint.js). The playground
+// flips these to compare.
+export const DIAGONAL_MOVES={player:true,companion:true,npc:true,townsfolk:true,enemy:true,body:true};
+export const chebyshev=(a,b)=>Math.max(Math.abs(a.x-b.x),Math.abs(a.z-b.z));
+const level=(a,b)=>Math.abs(a.h-b.h)<.01&&!a.stair&&!b.stair;
+// The corner rule for a diagonal from `from` to `to`: both orthogonal tiles beside it exist, all four tiles
+// are level and off stairs (hops and ramps stay orthogonal), and both L-shaped paths around the corner
+// are steps `corner` allows. So a diagonal never cuts past a solid tile, water, a wall end or a doorway,
+// and anything reachable is still reachable without diagonals.
+export function diagonalOk(map,from,to,corner=canStep){
+ const b=map.get(key(to.x,from.z)),c=map.get(key(from.x,to.z));
+ return !!b&&!!c&&level(from,to)&&level(from,b)&&level(from,c)&&corner(from,b)&&corner(b,to)&&corner(from,c)&&corner(c,to);
+}
+// Whether a walker may take this one step: orthogonal by `passable`, diagonal by the corner rule.
+export function canMove(map,from,to,{diagonal=true,passable=canStep,corner=passable}={}){
+ if(!from||!to)return false;const dx=Math.abs(to.x-from.x),dz=Math.abs(to.z-from.z);
+ if(dx+dz===1)return passable(from,to);
+ return diagonal&&dx===1&&dz===1&&diagonalOk(map,from,to,corner);
+}
+// Calls visit(n) for each tile a walker may step to from t: orthogonal neighbours first, then diagonals.
+export function eachStep(map,t,visit,{diagonal=false,passable=canStep,corner=passable}={}){
+ for(const [dx,dz] of ORTHOGONAL){const n=map.get(key(t.x+dx,t.z+dz));if(n&&passable(t,n))visit(n);}
+ if(diagonal)for(const [dx,dz] of DIAGONAL){const n=map.get(key(t.x+dx,t.z+dz));if(n&&diagonalOk(map,t,n,corner))visit(n);}
 }
 
-// A tiny binary heap of [priority, item] for the cheapest-route searches.
+// A tiny binary heap of [priority, item]; equal priorities pop in push order, so searches are
+// deterministic (a future server must agree with the client).
 export function createHeap(){
- const items=[];
+ const items=[];let order=0;
+ const less=(a,b)=>a[0]<b[0]||a[0]===b[0]&&a[2]<b[2];
  return {get size(){return items.length;},
-  push(priority,item){items.push([priority,item]);let i=items.length-1;while(i>0){const p=(i-1)>>1;if(items[p][0]<=items[i][0])break;[items[p],items[i]]=[items[i],items[p]];i=p;}},
-  pop(){const top=items[0],last=items.pop();if(items.length){items[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<items.length&&items[l][0]<items[m][0])m=l;if(r<items.length&&items[r][0]<items[m][0])m=r;if(m===i)break;[items[m],items[i]]=[items[i],items[m]];i=m;}}return top;}};
+  push(priority,item){items.push([priority,item,order++]);let i=items.length-1;while(i>0){const p=(i-1)>>1;if(!less(items[i],items[p]))break;[items[p],items[i]]=[items[i],items[p]];i=p;}},
+  pop(){const top=items[0],last=items.pop();if(items.length){items[0]=last;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<items.length&&less(items[l],items[m]))m=l;if(r<items.length&&less(items[r],items[m]))m=r;if(m===i)break;[items[m],items[i]]=[items[i],items[m]];i=m;}}return top;}};
 }
-// Cheapest route under the same step rules as findPath; ties prefer fewer steps.
-function cheapestPath(map,start,target,cost){
- const startKey=key(start.x,start.z),best=new Map([[startKey,0]]),previous=new Map([[startKey,null]]),heap=createHeap();heap.push(0,start);
- while(heap.size){
-  const [d,t]=heap.pop(),k=key(t.x,t.z);if(d>best.get(k))continue;
-  if(t===target){const route=[];let cursor=k;while(cursor!==startKey){route.unshift(map.get(cursor));cursor=previous.get(cursor);}return route;}
-  for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
-   const nk=key(t.x+dx,t.z+dz),n=map.get(nk);if(!canStep(t,n))continue;
-   const next=d+1+(n===target?0:cost(n));if(next<(best.get(nk)??Infinity)){best.set(nk,next);previous.set(nk,k);heap.push(next,n);}
-  }
+// The one route search every walker uses (A* toward `target`, Dijkstra without one).
+//   expand(t, add, cost): calls add(n, stepCost) for each step from t (reached at `cost`).
+//   target: a tile to head for (Chebyshev heuristic; the nearer tile in a straight line breaks ties, so
+//           routes run diagonally first, then straight, instead of zigzagging).
+//   goal(t, cost): the search ends on the first tile it holds for (the start excluded); default: t === target.
+//   near: the heuristic's slack for a goal around the target (1 for "beside it").
+//   limit: at most this many tiles expanded.
+// Returns {end, cost, previous, best}; end is null when no goal was found.
+export function searchRoute(start,expand,{target=null,goal=null,near=0,limit=Infinity}={}){
+ const best=new Map([[start,0]]),previous=new Map([[start,null]]),done=new Set(),heap=createHeap();
+ const h=target?t=>Math.max(0,chebyshev(t,target)-near)+.001*Math.hypot(t.x-target.x,t.z-target.z):()=>0;
+ const isGoal=goal||(t=>t===target);
+ heap.push(h(start),start);
+ let expanded=0;
+ while(heap.size&&expanded<limit){
+  const [,t]=heap.pop();if(done.has(t))continue;done.add(t);
+  const d=best.get(t);
+  if(t!==start&&isGoal(t,d))return {end:t,cost:d,previous,best};
+  expanded++;
+  expand(t,(n,step)=>{const nd=d+step;if(nd<(best.get(n)??Infinity)){best.set(n,nd);previous.set(n,t);heap.push(nd+h(n),n);}},d);
  }
- return null;
+ return {end:null,cost:Infinity,previous,best};
+}
+// The tiles from just after the start to `end`, following `previous`.
+export function routeTo(previous,end){const route=[];for(let t=end;previous.get(t)!==null&&t!==undefined;t=previous.get(t))route.unshift(t);return route;}
+// The player's route (and anyone's shortest route between two tiles). cost(tile): extra cost of
+// stepping onto a tile (occupied tiles, world-occupancy.js); the target's own cost doesn't count.
+// diagonal: whether diagonal steps are allowed (the player's setting by default).
+export function findPath(map,start,end,cost=null,{diagonal=DIAGONAL_MOVES.player,passable=canStep,limit=Infinity}={}){
+ const target=map.get(key(end.x,end.z));if(!target||target.blocked)return null;
+ const from=map.get(key(start.x,start.z))||start;if(from===target)return [];
+ const options={diagonal,passable};
+ const {end:found,previous}=searchRoute(from,(t,add)=>eachStep(map,t,n=>add(n,1+(cost&&n!==target?cost(n):0)),options),{target,limit});
+ return found?routeTo(previous,found):null;
 }

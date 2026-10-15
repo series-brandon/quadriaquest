@@ -82,9 +82,22 @@ Living characters (every slime, creatures of any size, the companion) never bloc
 
 Every slime (player, mentors, Reed) renders through the shared slime presentation. Make an NPC play any shared motion in the world with its own gear (Fletch keeps his bow). Mentors bring you to them; Reed needs Willowbank. Stop returns it to idle.
 
+## Movement
+
+Walkers step diagonally where a corner is clear (docs/MOVEMENT-PLAN.md): both tiles beside the diagonal must be open and level, with nothing on the four edges around the corner, so nobody cuts past a rock, water, a wall end or a doorway. A diagonal step takes as long as a straight one. Hops and stairs stay straight.
+
+- **Diagonal steps** switches diagonals on or off per walker group (player, companion, NPCs, townsfolk, creatures, large bodies like the golem). Each flips the real setting, so you can compare routes with and without.
+- **Melee reach** and **Range metric** tune combat geometry on the real combat code: melee reaches the four cardinal tiles (default) or all eight; attack range, aggro and leash count Manhattan tiles (default), Chebyshev or Euclidean. Spawn Combat practice enemies to try them. Both are session-only.
+- **Corner yard** builds free-standing edge pieces near you on an open, level 7×4 patch: a two-tile wall, a fence and a window with free ends, a counter, and a doorway (an open door between walls). Walk past their ends and through the doorway: routes go diagonal only round clear corners and pass the doorway straight on. The clearing and Willowbank are too cramped; use the building test map, Gelton or the overworld.
+- **Show routes** draws the routes about to be walked: the player (blue), the companion (orange) and creatures pursuing, returning home or wandering (red).
+
+Solid corners, water corners and ledges are in the clearing (trees, the pond, the raised meadow).
+
 ## Companions
 
 Shared follower controls work in every area. Doze off / Wake up tests sleep with the player.
+
+The companion follows a little slower than you walk (Pace, a share of your walking speed with Celerity and Rush) and twice that while you sprint, so it is never faster than you. It stays put while it is beside you (any of the 8 tiles), starts once you are **Start at** tiles away, and walks straight through people, you included, re-planning at every tile toward where you are now. It never stops on you or your next tile. Further than **Teleport past** tiles, round a long detour, with no way to you (a locked door, a ledge), on a new map, or when you move at once, it pops in beside you, behind you when it can. Teleport to me runs that pop now; Send 2, 5 or 9 tiles away places it behind you to watch it catch up (or teleport). Show follow state reports its state, speed and last teleport reason. The tuning inputs are session-only; Default follow tuning restores them. Your own routes ignore your companion; NPCs and creatures still step around it.
 
 ## Terrain colors
 

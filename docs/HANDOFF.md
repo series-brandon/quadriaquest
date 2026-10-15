@@ -30,6 +30,12 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Diagonal movement and companion following — 2026-10-15 (user: "let's implement it")
+- Plan, decisions and what was built: [MOVEMENT-PLAN.md](MOVEMENT-PLAN.md). Every walker steps diagonally round clear corners (RuneScape timing: a diagonal takes as long as a straight step); one route search in `world.js` serves everyone; reachability is unchanged on every shipped map (tested).
+- Combat geometry is a shared, provisional setting (`combat-geometry.js`): cardinal melee reach and Manhattan range/aggro/leash by default; the user expects to tune them.
+- Companion: 0.85× walking pace (2× while sprinting), starts at 2 tiles, ignores characters, pops in beside the player when far, round a long detour, without a route or on a new map.
+- Browser-verified in the playground: player diagonals and orthogonal hops in the clearing, companion catch-up, sprint pace and teleport there, the corner yard and route overlay in the building test map, creatures attacking from cardinal tiles, Gelton's crowd and the companion arriving there.
+
 ### Playground cleanup; world editor opens where you are; Play clicks — 2026-10-14 (user request)
 
 - **Buttons removed** from Maps: the graybox and kit streets (and their jumps), Enter Gelton, the crowd buttons, roofs, cutaway, open/close all doors, and zoom. The API calls only they used are gone too. Prop gallery, Force cutaway and Open world editor remain.

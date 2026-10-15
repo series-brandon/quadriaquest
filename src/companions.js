@@ -1,5 +1,6 @@
 import {companion,animateCompanion,setCompanionOutfit} from './companion-model.js';
 import {createCompanionFollower} from './companion-follow.js';
+import {key} from './world.js';
 import {createCompanionBehavior,PETTING_DURATION} from './companion-behavior.js';
 import {signal} from './reactive.js';
 
@@ -27,6 +28,8 @@ export function createCompanionSystem(api){
  function refreshOutfit(){let lost=false;for(const [slot,id] of Object.entries(state.outfit))if(id&&!owns(id)){state.outfit[slot]=null;lost=true;}if(lost){dress();notify();}}
  // Puts an owned item on, or takes it off if it is already worn.
  function wear(id){const def=COMPANION_GEAR[id];if(!def||!state.owned||!owns(id))return false;state.outfit[def.slot]=state.outfit[def.slot]===id?null:id;dress();notify();return true;}
+ // What the follower needs from the player: their route and facing, and how fast they are going.
+ const followContext=()=>({reserved:api.reserved,occupied:api.occupied,next:api.nextTile?.()||null,facing:api.facing?.()??0,pace:api.pace?.()??1,sprinting:!!api.sprinting?.()});
  function cancel(){if(actionAge!==null){behavior.reset();api.feedback.clearDestination();}actionAge=null;preview=null;}
  function acquire({name=state.name,at=null}={}){state.owned=true;state.following=true;state.name=name;api.scene.attach(model);model.visible=true;follower.reset(at);behavior.reset();locate();notify();}
  function pet(){if(!state.owned||api.blocked?.()||api.busy?.())return false;api.stop();actionAge=0;behavior.pet();locate();api.face(actor.x,actor.z);model.rotation.y=Math.atan2(api.player.position.x-model.position.x,api.player.position.z-model.position.z);api.feedback.destination(api.tile());api.feedback.interacting('Petting');return true;}
@@ -41,7 +44,7 @@ export function createCompanionSystem(api){
   let moving=false;
   const world=api.world,changed=!actor.tile||world.get(`${actor.x},${actor.z}`)!==actor.tile;
   // A player stopping on its tile pushes it aside, following or not (world-occupancy.js).
-   if((state.following||changed||api.reserved(actor.tile)||api.tile?.()===actor.tile&&!api.moving?.())&&(api.approaching()!==actor||follower.moving)&&!behavior.petting)moving=follower.update(dt,world,api.tile(),api.reserved,api.occupied);
+   if((state.following||changed||api.reserved(actor.tile)||api.tile?.()===actor.tile&&!api.moving?.())&&(api.approaching()!==actor||follower.moving)&&!behavior.petting)moving=follower.update(dt,world,api.tile(),followContext());
   const mood=behavior.update(dt,moving,api.playerSleepTime());
   animateCompanion(model,time,{...mood,moving,gait:follower.gait,jump:follower.jump,camera});locate();
   if(actionAge===null)return null;
@@ -63,8 +66,21 @@ export function createCompanionSystem(api){
   matches(target){return actionAge!==null&&target===actor;},get working(){return actionAge!==null;},
   scripted(time,options){if(!state.owned)animateCompanion(model,time,options);},
   name(options){menu?.editName(options);},
-  preview:typeof __PLAYGROUND__!=='undefined'&&__PLAYGROUND__?function(motion,expression='Default'){cancel();if(!state.owned){acquire();follower.update(0,api.world,api.tile(),api.reserved,api.occupied);}preview={motion,expression,age:0};}:undefined,
+  preview:typeof __PLAYGROUND__!=='undefined'&&__PLAYGROUND__?function(motion,expression='Default'){cancel();if(!state.owned){acquire();follower.update(0,api.world,api.tile(),followContext());}preview={motion,expression,age:0};}:undefined,
   get previewing(){return !!preview;},
+  // The tiles it is about to walk (the playground's route overlay).
+  get route(){return state.owned&&model.visible?follower.route:[];},
+  // Following, for the playground and checks: state (resting, following, teleported), the last teleport's
+  // reason and the speed as a share of base walking.
+  get follow(){return {state:follower.state,lastTeleport:follower.lastTeleport,speed:follower.speed,tile:follower.tile&&[follower.tile.x,follower.tile.z]};},
+  // Pops in beside the player now (the real catch-up teleport).
+  teleport(){if(!state.owned)return false;cancel();return follower.teleport(api.world,api.tile(),followContext(),'manual');},
+  // Puts it `n` tiles behind the player (or the nearest dry, open tile to that spot), to watch it catch up.
+  sendAway(n){if(!state.owned)return false;cancel();const p=api.tile(),f=api.facing?.()??0,world=api.world;
+   const want={x:Math.round(p.x-Math.sin(f)*n),z:Math.round(p.z-Math.cos(f)*n)};
+   const near=[];for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){const t=world.get(key(want.x+dx,want.z+dz));if(t&&!t.blocked&&!t.water&&t!==p)near.push(t);}
+   const spot=near.sort((a,b)=>Math.hypot(a.x-want.x,a.z-want.z)-Math.hypot(b.x-want.x,b.z-want.z))[0];
+   if(!spot)return false;follower.reset(spot);model.position.copy(api.toPosition(spot));behavior.reset();locate();return [spot.x,spot.z];},
   dispose(){cancel();menu?.dispose();for(const mesh of meshes){const i=api.pickables.indexOf(mesh);if(i>=0)api.pickables.splice(i,1);}model.removeFromParent();listeners.clear();}
  };
  return system;
