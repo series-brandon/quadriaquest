@@ -213,6 +213,78 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - both builds;
    - one perf pass with Mistrom's scenarios.
 
+## Draw distance in the top row (2026-10-15)
+
+- **Draw** (Near, Medium, Far, Very far) sits in the top row, before Undo, in Edit and Play: how far the land streams around the view.
+  - It's the game's own setting (`quality.drawDistance`, passed to the editor as `drawDistance` / `setDrawDistance`), so Settings shows the same value and it's saved the same way.
+  - The full name is its tooltip and its label for screen readers.
+  - At 1280 px the top row still fits on one line.
+
+## Catalogue descriptions (2026-10-15)
+
+User request: as in the Sims, hovering a Deco item pops up its name and a description.
+- **The card:** hovering (or focusing) a catalogue icon shows a small card above it: the name, a line or two about it, and its facts (size, Solid / Low / Walk over it, what you do with it, Goes on water / Land or water, and its first two functions).
+  - It's the icon's description for screen readers (`aria-describedby`).
+  - It hides when the pointer leaves.
+- **Descriptions** (`DESCRIPTIONS`, `src/dev/prop-catalogue.js`): one for every prop, written for the catalogue. A test fails if a new prop has none (`undescribed()`).
+
+## Deco's presets, and a smooth ghost (2026-10-15)
+
+- **Deco's presets:** always beside the catalogue (in place of a placed prop's colours).
+  - With nothing picked it says "No item selected".
+  - With an item picked: its looks as square pictures with their names, Default (its own colours) first and chosen whenever you pick a new item, then every preset saved for it. A click holds it in that look.
+  - Pictures are drawn from the real model in those colours (`propThumbnail(kind, colors)`, prop-thumbnails.js).
+  - The preset chips row above the catalogue is gone.
+- **The held ghost lagged** (user: a full second behind, jumping only when the mouse stopped). Cause: while editing, the game's own hover still ran on every frame the pointer moved, finding a route to the tile under it; over the river's far side that searched the whole reachable overworld (about 50 ms a time). While editing, the game's hover is now off (the editor shows its own previews); Play brings it back.
+
+## Each Decorate tool keeps its panel (2026-10-15)
+
+User report: a selected building looked bad in the Hand's panel and took over Deco and Colours; quick colours were pushed down by props with many pieces.
+- **Deco** always shows the catalogue; beside it, its presets (*Deco's presets* above).
+- **Colours** shows only colours: a prop's pieces (with quick colours and presets), or a building's wall, trim, base, door and roof.
+- **The Hand** shows everything about what's selected. For a building, at 1440 px wide, on one row: Look (a two-column grid) · Colours (a compact row each) · Floors and This floor (one column, buttons two to a row) · its name and position over its actions (two columns). Townsfolk and spawns show their own groups there too.
+- **Quick colours** are a column of their own, so a prop with many pieces (a noticeboard has five) doesn't push them down; the heading names the piece they apply to.
+
+## Panel sizes (2026-10-15)
+
+- **One height:** the tools card and the content card share a height, the taller one's (the content still scrolls past 42% of the window).
+- **Content as wide as it needs:** a panel like Walls shrinks to a slim card (at least 280 px); Deco's catalogue always takes the whole width.
+- **Tools card:** 272 px, so every label fits (Sledgehammer).
+- **The Hand's panel:** Colours (pieces, quick colours, Reset all) · Presets (the list, a name, Save for, Save colours) · the selection's name and position over its actions.
+- **New building** (Footprint): its four dropdowns in a 2 × 2 grid.
+
+## Deco and the Hand (2026-10-15)
+
+User request: selecting with the Hand was cramped beside the catalogue; give the catalogue its own tool.
+- **Deco** (Decorate's first tool, the editor's default): the catalogue. Pick something to hold it, click to put it down; it stays Deco, so you can keep placing. A placed prop's colours show in a column beside the catalogue.
+- **The Hand** has no catalogue: whatever it lifts or selects gets the whole panel (colours, look, floors, townsfolk, spawn, the actions).
+- Both hold, turn (`,` `.`), drag-turn and put down the same way; clicking something with either lifts it (`HAND_TOOLS`).
+
+## The bottom panels (2026-10-15)
+
+User request: use the whole width, and polish every panel (Stamp, Build, Terrain, World, Map).
+- **Two cards along the bottom:** the group's tools in their own card in the bottom-left corner (236 px, two columns), and the content card beside it out to the right edge: the status line, then the tool's options. The content scrolls past 42% of the window's height.
+- **Options in groups:** every tool's options are groups side by side in one wrapping row, each a small heading over a row of fields, buttons, toggles or a list (`group`, `wideGroup`, `fields`, `buttons`, `opts` in world-editor.js).
+  - Fields size to their longest choice (at least 140 px), so no value is cut off.
+  - Wide groups (swatches, lists, checks) take the room left.
+  - Biome: Paint (layer and swatches) · Brush (brush, unpainted land, New seed, Remove land) · The land grows (the three switches). Footprint: New building · Footprint · Brush on one row. Underground: New · Dungeons and caves. Stamp: Stamps · Save the selection. Map: Map (the list, Open, Save, Copy, Download) · Size (Grow, Round up) · View (switches) · Checks.
+- **What's selected** shows as groups too: Look and Colours for a building, Floors and This floor, Spawn, Townsfolk and Routine, and the actions (Move, Rotate, Reshape…) in a grid.
+- **Decorate:** the catalogue fills the content card (many icons a row). A selected prop's colours sit in a column on its right; a selected building, townsfolk or spawn takes the whole card until you deselect it (Esc).
+- **The level** shows in the top row only inside a floor or dungeon (it used to say "The map" on the map).
+
+## One row on top, one panel below (2026-10-15)
+
+User request: use the desktop's space better.
+- **The top row:** Edit / Play, the walls (up, cutaway, down), ▲ ▼ and where you are, the tool groups, and Undo, Redo, Reset, Close, on one row across the top (it wraps on narrow windows; phones scroll it sideways).
+- **The bottom panel:** one card, centred, as wide as its content needs and up to the whole width.
+  - The group's tools are in a grid on its left.
+  - Beside them: the status line, then the tool's content.
+  - In Decorate, Hand, Colours, Eyedropper and Sledgehammer show the catalogue, with what's selected in a column to its right (the panel then spans the width). Floor paint, Wall paint and Stamp show their options in the catalogue's place.
+  - The options scroll past 40% of the window's height. Parts are set apart by space, not divider lines.
+  - Phones stack it: the tools scroll sideways, then the status, the content and what's selected.
+- **Hints:** every tool has one, shown in the status line as you switch to it, so the line never keeps what the last tool said.
+- **Map** is no longer said twice: the panel's heading is gone, and the list keeps its "Map" label.
+
 ## Dock, whole regions and checks (2026-10-15)
 
 User requests: the panel where the catalogue is (no Show / Hide panel), maps in whole regions, clearer grid lines, a way to raise ground beside a full-block step, and the "17421 tiles can't be reached" warning.

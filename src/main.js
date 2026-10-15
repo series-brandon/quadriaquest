@@ -711,6 +711,9 @@ canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;hoverCleared=t
 // Re-pick immediately after pointer movement; otherwise refresh at 10 Hz for moving actors and camera follow.
 function updateHover(){
  if(!pointerOnCanvas||!canMove()){if(!hoverCleared){hoverCleared=true;hoverDirty=true;hover=null;campfires.hoverPlacement(null);feedback.hover(null);$('tooltip').style.display='none';}return;}
+ // Editing (playground world editor): the editor shows its own previews, so the game's hover (a route to the tile
+ // under the pointer, found every frame the pointer moves) stays off: on a big map it starved the frames.
+ if(__PLAYGROUND__&&editorScreen){if(!hoverCleared){hoverCleared=true;hoverDirty=true;hover=null;feedback.hover(null);$('tooltip').style.display='none';renderer.domElement.style.cursor='default';}return;}
  // The free camera panning (keys or a drag): no hover picking until it stops (playground).
  if(__PLAYGROUND__&&freeCam&&(panKeys.has('w')||panKeys.has('a')||panKeys.has('s')||panKeys.has('d')||down))return;
  const now=performance.now();if(!hoverDirty&&!hoverCleared&&now-hoverAt<100)return;hoverDirty=false;hoverCleared=false;hoverAt=now;
@@ -1032,6 +1035,8 @@ if(__PLAYGROUND__){
   get floorTiles(){return spaces.here?.tiles||null;},setTileHover(fn){tileHover=fn;hoverTileId=null;},setEditorScreen(on){editorScreen=!!on;},
   // Free camera (docs/PLAYGROUND.md): on (from where the camera looks now) or off (back to the slime).
   freeCameraOn:freeCamOn,
+  // The draw distance (render-quality.js), the same setting as the game's Settings: the world editor's top bar.
+  drawDistance:quality.drawDistance,setDrawDistance:chunks=>quality.setDrawDistance(chunks),
   // Moves the view over a tile (the world editor's checks): the free camera's focus (turned on if it's off).
   lookAt(x,z){if(!freeCam)this.freeCamera(true);const t=world.get(key(x,z));freeCam.focus.set(x-6,t?.h??freeCam.focus.y,z-6);return true;},
   freeCamera(on=!freeCam){

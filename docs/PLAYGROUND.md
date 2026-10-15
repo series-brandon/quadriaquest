@@ -47,7 +47,7 @@ Previews run in place without consuming items or earning XP. Stop to play normal
 - **On start:** the playground opens in the world editor on the Quadria overworld, with the free camera on. A tool's options and what's selected show bottom left (in Decorate, above the catalogue); the map's settings and checks are under the *Map* tool group. Its *Map* list's *The clearing (where the game starts)* leaves the editor for the game's start (a fresh session). Add `?game` to the address to start in the game instead (the perf harness always does).
 - **Open world editor:** opens on the map you're on. That's the map you were editing, left as it was, or the city you're standing in (you stay where you are), and otherwise the Quadria overworld. Its *Map* group opens any other map: the repo's maps (overworld first), the prop gallery, or a blank map. While editing, the world fills the window (Sims-style: tools along the top, a side panel, and the catalogue along the bottom in Decorate). *Play* is a test walk with the player interface back, where clicks move you as in the game. The editor's tools are described in docs/CITY.md (*Authoring*) and docs/TOWN.md.
 - **World editor decorating** (docs/TOWN.md, *Sims-style editor* and *Colours*):
-  - Decorate: pick from the catalogue (by function or room, with search) to hold a new thing; the Hand lifts and puts down; `,` and `.` turn; Shift-click places more; Esc puts it back.
+  - Decorate: Deco is the catalogue (by function or room, with search): pick a thing to hold it; the Hand lifts and puts down, with all of a selection's options; `,` and `.` turn; Shift-click places more; Esc puts it back.
   - Colours: any colour for each piece, quick swatches, and presets for an item or a scheme for anything (`src/palettes/`).
   - Eyedropper copies, colours and all; Sledgehammer removes.
   - Indoors (docs/TOWN.md, *Decorating indoors, doors and stairs* and *Wall and floor paint*): Walls up / Cutaway / Walls down and ▲ ▼ (Page Up / Down) in the bar; Floor paint and Wall paint; the Hand picks up doors and stairs; the catalogue furnishes ground floors in place.
@@ -59,6 +59,7 @@ Previews run in place without consuming items or earning XP. Stop to play normal
   - Smooth, brush sizes up to 9 × 9, a straight-line brush shape, and water in Surface.
 - **Prop gallery:** every prop by category, with their live interactions (sit, sleep, cook, smith, open, read), a fence gate, a low stone wall and an iron gate.
 - **Force cutaway:** cuts every building at once (no roofs, one-storey walls).
+- **Draw distance:** the world editor's top row has it too (*Draw*), the same setting as Settings.
 - **Free camera** (also a switch in the world editor):
   - the camera leaves the slime;
   - pan with WASD (Shift: faster) or a middle-button drag, which grabs the ground; right-drag and the arrow keys still orbit;

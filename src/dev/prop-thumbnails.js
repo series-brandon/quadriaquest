@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {signal} from '../reactive.js';
-import {propModel} from '../props.js';
+import {propModel,cleanColors} from '../props.js';
 
 // Prop thumbnails for the world editor's palette (dev only; docs/TOWN.md, Prop palette). Each prop's real
 // model (props.js propModel) is drawn once from the game's own isometric angle into a small image. A
@@ -14,8 +14,8 @@ function setup(){
  scene=new THREE.Scene();scene.add(new THREE.HemisphereLight('#ffffff','#8a8f7a',1.6));const sun=new THREE.DirectionalLight('#fff4e0',1.8);sun.position.set(4,8,6);scene.add(sun);
  camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);
 }
-function draw(kind){
- const model=propModel(kind);scene.add(model);
+function draw({kind,colors}){
+ const model=propModel(kind,colors);scene.add(model);
  // Fit the model's bounding sphere, seen from the south-east and above, as in the game.
  const box=new THREE.Box3().setFromObject(model),sphere=box.getBoundingSphere(new THREE.Sphere()),r=Math.max(.4,sphere.radius)*1.05;
  camera.left=-r;camera.right=r;camera.top=r;camera.bottom=-r;camera.updateProjectionMatrix();
@@ -26,11 +26,13 @@ function draw(kind){
 }
 function pump(){
  scheduled=false;if(!renderer)setup();
- for(let i=0;i<PER_FRAME&&queue.length;i++){const kind=queue.shift();try{cache.get(kind).value=draw(kind);}catch{cache.get(kind).value='';}}
+ for(let i=0;i<PER_FRAME&&queue.length;i++){const job=queue.shift();try{cache.get(job.key).value=draw(job);}catch{cache.get(job.key).value='';}}
  if(queue.length){scheduled=true;requestAnimationFrame(pump);}else{renderer.dispose();renderer.forceContextLoss();renderer=null;scene=null;camera=null;}
 }
-// The thumbnail of a prop kind: a signal of its image URL ('' until drawn).
-export function propThumbnail(kind){
- if(!cache.has(kind)){cache.set(kind,signal(''));queue.push(kind);if(!scheduled){scheduled=true;requestAnimationFrame(pump);}}
- return cache.get(kind);
+// The thumbnail of a prop kind, in its own colours or recoloured (a colour preset; props.js colours): a signal of
+// its image URL ('' until drawn).
+export function propThumbnail(kind,colors=null){
+ colors=cleanColors(kind,colors);const key=kind+(colors?'|'+Object.entries(colors).sort().map(e=>e.join('>')).join(','):'');
+ if(!cache.has(key)){cache.set(key,signal(''));queue.push({key,kind,colors});if(!scheduled){scheduled=true;requestAnimationFrame(pump);}}
+ return cache.get(key);
 }

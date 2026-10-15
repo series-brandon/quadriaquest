@@ -1,7 +1,7 @@
-/* Playground world editor (dev/world-editor.js; docs/TOWN.md, Sims-style editor): over a full-window world, a
-   compact bar top left (with the status line) and a dock bottom left: the tool's options and what's selected
-   when there's anything to show, and in Decorate the catalogue below them. The layer itself lets clicks
-   through to the world; only its panels take them. */
+/* Playground world editor (dev/world-editor.js; docs/TOWN.md, Sims-style editor): over a full-window world, one
+   row along the top (Edit / Play, walls, levels, tool groups, Undo …) and one panel along the bottom, centred
+   and as wide as it needs: the group's tools, the status line, the tool's options and what's selected, and in
+   Decorate the catalogue. The layer itself lets clicks through to the world; only its panels take them. */
 .q-world-editor {
   position: fixed;
   /* The game's viewport: the whole window while editing, beside the player sidebar in Play. */
@@ -19,41 +19,82 @@
   pointer-events: none;
 }
 .q-world-editor > * { pointer-events: auto; }
-.q-world-editor__bar, .q-world-editor__panel, .q-world-editor__catalogue {
+.q-world-editor__bar {
   min-inline-size: 0;
   padding: 10px;
   border: 1px solid var(--q-modal-border);
   border-radius: var(--q-modal-radius);
   background: var(--q-paper);
 }
-.q-world-editor__bar { grid-area: bar; justify-self: start; display: grid; gap: 8px; inline-size: max-content; max-inline-size: 100%; }
+.q-world-editor__bar { grid-area: bar; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.q-world-editor__edit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 0 1 auto; }
+.q-world-editor__edit[hidden] { display: none; }
 .q-world-editor__bar[hidden], .q-world-editor__panel[hidden], .q-world-editor__catalogue[hidden], .q-world-editor__dock[hidden], .q-world-editor__map[hidden] { display: none; }
 .q-world-editor__bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .q-world-editor__bar-row[hidden] { display: none; }
 .q-world-editor__name { margin-inline-end: auto; }
-.q-world-editor__level { font-weight: 600; }
+.q-world-editor__level { font-weight: 600; white-space: nowrap; }
+/* Draw distance in the top row: its label beside a compact dropdown. */
+.q-world-editor__draw { display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
+.q-world-editor__draw .q-select { inline-size: auto; }
+/* Up and down a level: two small square buttons and where you are. */
+.q-world-editor__levels { align-items: center; flex-wrap: nowrap; }
+.q-world-editor__levels .q-button { min-inline-size: var(--q-touch); inline-size: var(--q-touch); padding-inline: 0; }
 .q-world-editor__actions { display: flex; flex-wrap: wrap; gap: 4px; }
-.q-world-editor__status { display: grid; gap: 2px; max-inline-size: 640px; }
+.q-world-editor__status { display: grid; gap: 2px; }
 .q-world-editor__status p { margin: 0; }
 /* The bar's and catalogue's switches keep their whole labels. */
 .q-world-editor__bar .q-segmented, .q-world-editor__catalogue-head .q-segmented { flex: none; }
 .q-world-editor__bar .q-segmented__option, .q-world-editor__catalogue-head .q-segmented__option { flex: 0 0 auto; padding-inline: 10px; }
-/* The dock: bottom left, the panel above the catalogue; the panel scrolls when it's taller than the room left. */
-.q-world-editor__dock { grid-area: dock; justify-self: start; align-self: end; display: flex; flex-direction: column; gap: 8px; inline-size: min(640px, 100%); max-block-size: 100%; min-block-size: 0; pointer-events: none; }
+/* The bottom (desktop): the tools card in the bottom-left corner (a fixed width) and the content card beside it,
+   out to the right edge: the status line, then the tool's options in groups side by side (or the catalogue, with
+   what's selected in a column on its right). The content scrolls past 42% of the window's height. */
+.q-world-editor__dock { grid-area: dock; align-self: end; display: grid; grid-template-columns: 272px minmax(0, 1fr); align-items: stretch; gap: 8px; min-block-size: 0; max-block-size: 100%; pointer-events: none; }
 .q-world-editor__dock > * { pointer-events: auto; }
-.q-world-editor__panel { display: grid; align-content: start; gap: 10px; inline-size: min(420px, 100%); min-block-size: 0; overflow: auto; }
+.q-world-editor__tool-card, .q-world-editor__content { min-inline-size: 0; padding: 10px; border: 1px solid var(--q-modal-border); border-radius: var(--q-modal-radius); background: var(--q-paper); }
+.q-world-editor__tool-card { display: grid; align-content: start; gap: 6px; }
+.q-world-editor__tool-card[hidden] { display: none; }
+.q-world-editor__tool-card .q-world-editor__tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.q-world-editor__tool-card .q-button { min-inline-size: 0; }
+.q-world-editor__content { grid-column: 2; justify-self: start; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; inline-size: fit-content; min-inline-size: 280px; max-inline-size: 100%; max-block-size: 42dvh; }
+/* The two cards share a height (the taller one's); the content is only as wide as it needs, except the catalogue,
+   which takes the whole width. */
+.q-world-editor__content[data-catalogue='true'] { justify-self: stretch; inline-size: auto; }
+.q-world-editor__body { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; min-block-size: 0; }
+.q-world-editor__content[data-catalogue='true'] .q-world-editor__body:has(> .q-world-editor__panel:not([hidden])) { grid-template-columns: minmax(0, 1fr) 340px; }
+.q-world-editor__panel { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; gap: 12px 20px; min-block-size: 0; overflow: auto; }
 .q-world-editor__map { display: grid; gap: 6px; }
+/* A tool's options: groups side by side, each a heading over a row of fields, buttons, toggles or a list. A wide
+   group takes the room left (swatches, lists, checks). */
+/* Every shown group flows in one row (wrapping): the tool's own, the brush, what's selected. */
+.q-world-editor__options, .q-world-editor__opts { display: contents; }
+.q-world-editor__opts[hidden], .q-world-editor__options[hidden], .q-world-editor__group[hidden], .q-world-editor__fields > [hidden] { display: none; }
+.q-world-editor__group { display: grid; align-content: start; gap: 8px; flex: 0 1 auto; min-inline-size: 0; }
+.q-world-editor__group--wide { flex: 1 1 360px; }
+.q-world-editor__heading { color: var(--q-ink-muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.q-world-editor__fields { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; }
+/* Fields size to their longest choice (at least 140 px), so values aren't cut off. */
+.q-world-editor__fields > .q-world-editor__field { inline-size: auto; min-inline-size: 140px; }
+.q-world-editor__fields > .q-world-editor__field .q-select { inline-size: auto; min-inline-size: 100%; }
+.q-world-editor__fields--wide > .q-world-editor__field { inline-size: 320px; }
+.q-world-editor__fields--grid { display: grid; grid-template-columns: repeat(2, minmax(140px, auto)); }
+.q-world-editor__buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.q-world-editor__toggles { display: grid; gap: 6px; inline-size: 300px; }
+.q-world-editor__list { display: grid; gap: 4px; }
+.q-world-editor__list-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 6px; border-radius: 6px; background: var(--q-card); }
+.q-world-editor__actions-grid { display: grid; grid-template-columns: repeat(2, minmax(92px, auto)); gap: 4px; }
+.q-world-editor__actions-grid .q-button { min-inline-size: 0; }
+/* Floors: one column (the list, then this floor), its buttons two to a row. */
+.q-world-editor__floors-group { inline-size: 260px; }
+.q-world-editor__floors-group .q-world-editor__buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.q-world-editor__floors-group .q-button { min-inline-size: 0; }
 .q-world-editor__head, .q-world-editor__row { display: flex; flex-wrap: wrap; align-items: end; gap: 6px; justify-content: space-between; }
 .q-world-editor__row[hidden] { display: none; }
 .q-world-editor__row .q-world-editor__field { flex: 1 1 140px; }
 .q-world-editor__field { display: grid; gap: 4px; font-weight: 600; }
 .q-world-editor__field .q-select, .q-world-editor__field .q-input { inline-size: 100%; }
 .q-world-editor__tools { display: flex; flex-wrap: wrap; gap: 4px; }
-.q-world-editor__tools > [hidden], .q-world-editor__options[hidden], .q-world-editor__options > [hidden], .q-world-editor__options > p[hidden] { display: none; }
-.q-world-editor__options { display: grid; gap: 6px; }
-.q-world-editor__options > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; }
-/* Panels (colours, look, floors, townsfolk…) and the selection run the panel's full width, one column. */
-.q-world-editor__options > .q-world-editor__look, .q-world-editor__options > .q-world-editor__selection { grid-template-columns: minmax(0, 1fr); }
+.q-world-editor__tools > [hidden], .q-world-editor__options[hidden], .q-world-editor__level[hidden] { display: none; }
 .q-world-editor__checks { display: grid; gap: 4px; max-block-size: 30dvh; margin: 0; padding: 0; overflow: auto; list-style: none; }
 .q-world-editor__check {
   inline-size: 100%;
@@ -73,12 +114,21 @@
 .q-world-editor__check[aria-current='true'] { background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); }
 .q-world-editor__selection { display: grid; gap: 6px; }
 .q-world-editor__selection[hidden], .q-world-editor__selection > [hidden] { display: none; }
-.q-world-editor__look { display: grid; gap: 6px; padding-block-start: 6px; border-block-start: 1px solid var(--q-modal-border); grid-column: 1 / -1; }
+.q-world-editor__look { display: grid; gap: 6px; grid-column: 1 / -1; flex: 0 1 380px; min-inline-size: 0; }
 .q-world-editor__look[hidden], .q-world-editor__look [hidden] { display: none; }
 .q-world-editor__colour { inline-size: 100%; block-size: 32px; padding: 0; border: 1px solid var(--q-modal-border); border-radius: 6px; background: none; }
 
 /* Colours: one row per piece (its name, a picker, Reset), quick swatches for the chosen piece, presets. */
 .q-world-editor__colours, .q-world-editor__pieces, .q-world-editor__save { display: grid; gap: 6px; }
+/* A selection's colours and presets: columns of a readable width. */
+.q-world-editor__colours { inline-size: 300px; max-inline-size: 100%; }
+/* Quick colours in their own column, so a prop with many pieces (a sign has five) doesn't push them down. */
+.q-world-editor__quick { inline-size: 248px; max-inline-size: 100%; }
+/* A building's colours: a compact row each (the name, a small picker). */
+.q-world-editor__colour-rows { display: grid; gap: 4px; inline-size: 200px; }
+.q-world-editor__colour-rows > .q-world-editor__field { display: grid; grid-template-columns: minmax(0, 1fr) 72px; align-items: center; font-weight: 500; }
+.q-world-editor__colour-rows .q-world-editor__colour { block-size: 28px; }
+.q-world-editor__presets { inline-size: 300px; max-inline-size: 100%; }
 .q-world-editor__piece { display: grid; grid-template-columns: 1fr 64px auto; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 6px; }
 .q-world-editor__piece[data-active='true'] { background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); }
 .q-world-editor__piece-name { min-block-size: var(--q-touch); padding: 0 4px; border: 0; background: none; color: inherit; font-family: inherit; font-size: inherit; font-weight: 600; text-align: start; cursor: pointer; }
@@ -88,12 +138,10 @@
 /* The catalogue (compact, bottom left, as in the Sims): how to browse and search along the top, the groups on
    the left, and square icons on the right, two rows tall, scrolling down. The groups take the icons' height. */
 .q-world-editor__catalogue {
-  flex: none;
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);
   grid-template-areas: 'head head' 'groups main';
   gap: 6px 8px;
-  inline-size: 100%;
 }
 .q-world-editor__catalogue-head { grid-area: head; display: flex; align-items: center; gap: 8px; }
 .q-world-editor__catalogue-head .q-input { flex: 1 1 120px; min-inline-size: 0; }
@@ -110,6 +158,19 @@
 .q-world-editor__prop[hidden] { display: none; }
 .q-world-editor__prop[aria-pressed='true'] { border-color: var(--q-control-pressed); box-shadow: inset 0 0 0 1px var(--q-control-pressed); background: var(--q-control-selected); }
 .q-world-editor__thumb { inline-size: 56px; block-size: 56px; object-fit: contain; }
+/* The catalogue's hover card: above the icon you point at, its name, what it is, and a line of facts. */
+.q-world-editor__catalogue { position: relative; }
+.q-world-editor__tip { position: absolute; z-index: 2; display: grid; gap: 4px; inline-size: 260px; padding: 10px 12px; border: 1px solid var(--q-modal-border); border-radius: var(--q-control-radius); background: var(--q-paper); color: var(--q-ink); transform: translateX(-50%); pointer-events: none; }
+.q-world-editor__tip[hidden] { display: none; }
+.q-world-editor__tip p { margin: 0; }
+.q-world-editor__tip-name { font-size: 14px; }
+.q-world-editor__tip-text { line-height: 1.35; }
+.q-world-editor__tip-facts { color: var(--q-ink-muted); font-size: 12px; }
+/* Deco's presets: the picked item's looks as square pictures with their names (Default first). */
+.q-world-editor__deco-presets { inline-size: 100%; }
+.q-world-editor__preset-grid { display: grid; grid-template-columns: repeat(auto-fill, 72px); gap: 6px; }
+.q-world-editor__preset { grid-template-rows: 56px auto; inline-size: 72px; block-size: auto; padding: 4px 2px; gap: 2px; }
+.q-world-editor__preset-name { max-inline-size: 100%; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 
 /* A refused placement's reason, under the status line. */
 .q-world-editor__refused { color: var(--q-tone-danger); font-weight: 600; }
@@ -129,12 +190,17 @@
 .q-world-editor__floors { display: grid; gap: 4px; }
 
 @media (max-width: 700px) {
-  .q-world-editor__panel { inline-size: 100%; }
-  /* One line each, scrolling sideways, so the world stays in view. */
-  .q-world-editor__bar { inline-size: auto; gap: 6px; padding: 6px; }
-  .q-world-editor__bar-row, .q-world-editor__actions, .q-world-editor__tools, .q-world-editor__catalogue-head { flex-wrap: nowrap; overflow-x: auto; }
-  .q-world-editor__bar-row > *, .q-world-editor__actions > *, .q-world-editor__tools > *, .q-world-editor__catalogue-head > * { flex: none; }
-  .q-world-editor__name { display: none; }
-  .q-world-editor__catalogue { padding: 6px; grid-template-columns: 110px minmax(0, 1fr); }
+  /* Phones: one column; the tools scroll sideways above the content; the bar scrolls sideways. */
+  .q-world-editor__dock { grid-template-columns: minmax(0, 1fr); }
+  .q-world-editor__content { grid-column: 1; justify-self: stretch; inline-size: auto; min-inline-size: 0; max-block-size: 45dvh; padding: 6px; }
+  .q-world-editor__tool-card { padding: 6px; }
+  .q-world-editor__tool-card .q-world-editor__tools { display: flex; flex-wrap: nowrap; overflow-x: auto; }
+  .q-world-editor__tool-card .q-world-editor__tools > * { flex: none; }
+  .q-world-editor__content[data-catalogue='true'] .q-world-editor__body:has(> .q-world-editor__panel:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
+  .q-world-editor__fields > .q-world-editor__field, .q-world-editor__toggles { inline-size: 100%; }
+  .q-world-editor__bar { gap: 6px; padding: 6px; }
+  .q-world-editor__bar, .q-world-editor__edit, .q-world-editor__actions, .q-world-editor__catalogue-head { flex-wrap: nowrap; overflow-x: auto; }
+  .q-world-editor__bar > *, .q-world-editor__edit > *, .q-world-editor__actions > *, .q-world-editor__catalogue-head > * { flex: none; }
+  .q-world-editor__catalogue { grid-template-columns: 110px minmax(0, 1fr); }
   .q-world-editor__catalogue-head .q-input { flex: 1 0 120px; }
 }
