@@ -81,3 +81,9 @@ test('a building within two tiles of the player is cut, so walking up to its doo
  assert.deepEqual(at(3,5+NEAR_CUT-.5),[3],'close in front of it');assert.deepEqual(at(3,5+NEAR_CUT+1.5),[],'farther away');
  assert.deepEqual(cutBuildings({player:{x:3,y:4,z:6},camera:{x:13,y:17,z:16},boxes:[[3,house]]}),[],'not from a terrace above it');
 });
+test('below a storey\u2019s cut (walls down), a cut door is lowered to the walls\u2019 height',async()=>{
+ const {lowScale,CUT_HEIGHT}=await import('./cutaway.js');
+ assert.equal(lowScale(1.5,CUT_HEIGHT,true),1,'the usual cut leaves doors whole');
+ assert.ok(Math.abs(lowScale(1.5,.35,true)-.35/1.5)<1e-9,'walls down');
+ assert.equal(lowScale(1.5,.35,false),1,'not when its building isn\u2019t cut');
+});

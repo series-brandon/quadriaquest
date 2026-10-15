@@ -66,8 +66,11 @@ export function sectionMaterial(){
 const sources=new Set();
 // A part with userData.showWhenCut (a solid building's cap) is the other way round: shown only while
 // its building is cut. restore(): how a part looks when nothing is cut.
-export const restoreCutPart=object=>{object.visible=!object.userData.hiddenByMap&&!object.userData.showWhenCut;};
-export function registerCutSource(source){sources.add(source);return ()=>{sources.delete(source);for(const p of source.parts())restoreCutPart(p.object);};}
+// A part marked `low` (a door) isn't hidden: below a storey's cut (the editor's "walls down") it's lowered
+// to the walls' height, from its userData.groundTop.
+export const restoreCutPart=(object,low=false)=>{if(low){object.scale.y=1;return;}object.visible=!object.userData.hiddenByMap&&!object.userData.showWhenCut;};
+export const lowScale=(groundTop,cutHeight,isCut)=>isCut&&cutHeight<CUT_HEIGHT-.01&&groundTop>cutHeight?cutHeight/groundTop:1;
+export function registerCutSource(source){sources.add(source);return ()=>{sources.delete(source);for(const p of source.parts())restoreCutPart(p.object,p.low);};}
 const shown=object=>{for(let o=object;o;o=o.parent)if(!o.visible)return false;return true;};
 
 // Does the segment from p to q pass through the box? (slab test)
@@ -104,7 +107,7 @@ export function updateCutaway({player,camera,building=-1,on=true,force=false}){
  const active=[...sources].filter(s=>shown(s.root)),all=on&&force;
  const cut=all?[...new Set(active.flatMap(s=>[...s.boxes()].map(([id])=>id)))]:on?cutBuildings({player,camera,building:building??-1,boxes:active.flatMap(s=>[...s.boxes()]),links:active.flatMap(s=>s.links?.()||[])}):[];
  uniforms.uCutIds.value.fill(-1);if(!all)cut.forEach((id,i)=>{uniforms.uCutIds.value[i]=id;});uniforms.uCutCount.value=all?0:cut.length;uniforms.uCutAll.value=all?1:0;
- for(const s of active)for(const {object,owners} of s.parts()){const isCut=ownersCut(owners,cut);object.visible=!object.userData.hiddenByMap&&(object.userData.showWhenCut?isCut:!isCut);}
+ for(const s of active)for(const {object,owners,low} of s.parts()){const isCut=ownersCut(owners,cut);if(low){object.scale.y=lowScale(object.userData.groundTop??CUT_HEIGHT,uniforms.uCutHeight.value,isCut);continue;}object.visible=!object.userData.hiddenByMap&&(object.userData.showWhenCut?isCut:!isCut);}
  lastCut=cut;lastOn=on;lastForce=all;
 }
 export const cutawayState=()=>({on:lastOn,force:lastForce,cut:[...lastCut]});

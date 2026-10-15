@@ -3,7 +3,7 @@ import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {applyCutaway,registerCutSource,sectionMaterial,restoreCutPart} from './cutaway.js';
 import {setEdge,edgeBetween} from './world.js';
 import {occupancy} from './world-occupancy.js';
-import {edgePiece,doorModel,animateDoor,edgePlacement,cornerPost,hasPosts,setDoorHinge,STYLES,stylePalette} from './edge-models.js';
+import {edgePiece,doorModel,animateDoor,edgePlacement,cornerPost,hasPosts,setDoorHinge,STYLES,stylePalette,STOREY} from './edge-models.js';
 
 // Doors are shared entities that sit on a tile edge (docs/CITY.md, Walls and doors on tile edges).
 // RuneScape-style: a closed door blocks walking, sight and reach like a wall, so routes never pass
@@ -28,6 +28,8 @@ export function createDoor({a,b,parent,pickables=[],locked=false,open=false,link
  const low=a.h<b.h?a:b,high=low===a?b:a,lower=Math.sign((low.x-high.x)*acrossZ.x+(low.z-high.z)*acrossZ.z)||1;
  const model=doorModel({height:place.height,storeys,sill:Math.abs(a.h-b.h),lower,style,upperWindows}),{group,leaf}=model;
  group.position.set(place.x,place.y,place.z);group.rotation.y=place.rotation;parent.add(group);
+ // Its ground storey's top (the cutaway lowers the door to a low cut, the editor's "walls down").
+ group.userData.groundTop=Math.abs(a.h-b.h)+STOREY;
  // The piece's local axes in tiles: +x along the wall, +z across it. `inward` is the side of `a`.
  const along={x:Math.round(Math.cos(place.rotation)),z:-Math.round(Math.sin(place.rotation))},across={x:Math.round(Math.sin(place.rotation)),z:Math.round(Math.cos(place.rotation))};
  const inward=Math.sign((a.x-b.x)*across.x+(a.z-b.z)*across.z)||1;
@@ -139,7 +141,7 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
  // links: buildings joined by a shared wall ([a, b] pairs, kept with the boxes), so the cutaway cuts a
  // whole terrace together.
  const unregister=!cutaway?()=>{}:registerCutSource({root,boxes:()=>buildingBoxes().entries(),links:()=>{buildingBoxes();return links;},
-  parts:()=>[...[...placed.values()].filter(p=>p.door).map(p=>({object:p.door.model.upper,owners:p.owners})),...cutParts]});
+  parts:()=>[...[...placed.values()].filter(p=>p.door).flatMap(p=>[{object:p.door.model.upper,owners:p.owners},{object:p.door.model.group,owners:p.owners,low:true}]),...cutParts]});
  // Baking merges every static piece and post (not doors) into one vertex-coloured mesh, and glass into
  // one see-through mesh: a street of hundreds of wall pieces draws in a few calls. Each vertex keeps its
  // building(s) and base height (`cutOwner`) for the cutaway (cutaway.js). Any later add or remove
@@ -197,7 +199,7 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
   addCutPart(object,owner,{box}={}){cutParts.push({object,owners:[owner].flat(),box});boxesDirty=true;return object;},
   removeCutPart(object){const i=cutParts.findIndex(p=>p.object===object);if(i>=0){cutParts.splice(i,1);restoreCutPart(object);boxesDirty=true;}},
   get buildingBoxes(){return new Map(buildingBoxes());},
-  cutParts(){return [...[...placed.values()].filter(p=>p.door).map(p=>({object:p.door.model.upper,owners:p.owners})),...cutParts];},
+  cutParts(){return [...[...placed.values()].filter(p=>p.door).flatMap(p=>[{object:p.door.model.upper,owners:p.owners},{object:p.door.model.group,owners:p.owners,low:true}]),...cutParts];},
   get doors(){return [...placed.values()].filter(p=>p.door).map(p=>p.door);},
   get count(){return placed.size;},
   get postCount(){return posts.size;},

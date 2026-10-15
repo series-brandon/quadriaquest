@@ -51,7 +51,7 @@ Previews run in place without consuming items or earning XP. Stop to play normal
   - Colours: any colour for each piece, quick swatches, and presets for an item or a scheme for anything (`src/palettes/`).
   - Eyedropper copies, colours and all; Sledgehammer removes.
   - Indoors (docs/TOWN.md, *Decorating indoors, doors and stairs* and *Wall and floor paint*): Walls up / Cutaway / Walls down and ▲ ▼ (Page Up / Down) in the bar; Floor paint and Wall paint; the Hand picks up doors and stairs; the catalogue furnishes ground floors in place.
-  - Build: Room (drag a rectangle) and Push/pull walls.
+  - Build: Room (drag a rectangle) and Push/pull walls (outside walls, and the walls of rooms you drew). The Hand also moves a room's door to another of its walls.
 - **World editor drags and stamps** (docs/TOWN.md, *Box select, copy and stamps* and *Lines and brushes*):
   - Select: drag a box to select a group. Ctrl/⌘+C and Ctrl/⌘+V copy and paste.
   - Stamp: save a selection and place it again (`src/stamps/`).

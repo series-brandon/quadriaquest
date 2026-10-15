@@ -354,8 +354,11 @@ export function createWorldEditor(host){
  // bottom step), turned with , and . (Inspect still goes through doors and up and down stairs.)
  let heldDoor=null;const LONG={n:'north',e:'east',s:'south',w:'west'};
  function liftDoor(actor){const i=built.buildings.findIndex(b=>b?.doors?.includes(actor));
-  if(i<0){const k=[[actor.a.x,actor.a.z],[actor.b.x,actor.b.z]].map(String).sort().join('|'),index=floorHere.peek()?-1:data.edges.findIndex(e=>e.kind==='door'&&[e.a,e.b].map(String).sort().join('|')===k);
-   if(index<0){status.value='An inside door: draw the room again (Room) or change it with Edge.';return true;}lift({kind:'edge',index},actor.a);return true;}
+  if(i<0){const p=[actor.a.x,actor.a.z],q=[actor.b.x,actor.b.z],r=roomsAt(...p)||roomsAt(...q),own=r?roomEdge(r,p,q):-1;
+   if(own>=0&&r.list[own].kind==='door'){heldDoor={room:r,index:own,actor};actor.group.visible=false;if(r.level===null){selection.value={kind:'building',index:r.owner};moving.value=false;showSelection();}
+    status.value='Holding a room’s door: click one of the room’s walls to put it there. Esc puts it back.';refreshPreview();return true;}
+   const k=[p,q].map(String).sort().join('|'),index=floorHere.peek()?-1:data.edges.findIndex(e=>e.kind==='door'&&[e.a,e.b].map(String).sort().join('|')===k);
+   if(index<0){status.value='That door can’t be moved: change it with Edge.';return true;}lift({kind:'edge',index},actor.a);return true;}
   const b=data.buildings[i];heldDoor={building:i,from:{cell:[actor.a.x-b.x,actor.a.z-b.z],side:LONG[sideToward(actor.a,actor.b)]},actor};actor.group.visible=false;
   selection.value={kind:'building',index:i};moving.value=false;showSelection();status.value=`Holding a door of ${nameOf('building',b)}: click one of its walls to put it there. Esc puts it back.`;refreshPreview();return true;}
  // The building's description with the held door moved to a wall (throws when the door rule says no).
@@ -365,6 +368,24 @@ export function createWorldEditor(host){
   try{planBuilding(d,[b.x,b.z]);}catch(error){throw Error(error.message.replace(/^[^:]*: /,''));}return d;}
  async function dropDoor(tile,point){const i=heldDoor.building,b=data.buildings[i],hit=wallAt(tile,point,i);if(!hit){status.value=`Click one of ${nameOf('building',b)}’s walls.`;return;}
   if(await change(()=>{b.desc=doorMoved(i,hit);return cellsOf('building',b);},cellsOf('building',b))){heldDoor=null;status.value=`${nameOf('building',b)}: the door is on its ${hit.e.side} wall.`;}}
+ // Rooms you drew (docs/TOWN.md, Rooms and walls): their walls and doors are `edges` on an in-place building
+ // (its ground floor on the map) or on the floor you're on, local to the building's north-west tile.
+ // roomsAt: those of the building or floor a tile is in, or null.
+ function roomsAt(x,z){const here=floorHere.peek();
+  if(here){if(!at(x,z)?.indoor)return null;const owner=hereOwner();return {owner,level:here.level,plan:planOf(owner),inside:c=>!!at(...c)?.indoor,get list(){return floorsOf(owner).find(f=>f.level===here.level)?.edges||[];},edit:()=>floorAt(owner,here.level).edges??=[]};}
+  const i=inPlaceAt(x,z);if(i===null)return null;const b=data.buildings[i];
+  return {owner:i,level:null,plan:planOf(i),inside:c=>at(...c)?.building===i,get list(){return b.edges||[];},edit:()=>b.edges??=[]};}
+ const pairKey=(p,q)=>[p,q].map(String).sort().join('|');
+ // The index of the room edge between two tiles (world), or -1.
+ function roomEdge(r,p,q){const loc=c=>[c[0]-r.plan.x0,c[1]-r.plan.z0],k=pairKey(loc(p),loc(q));return r.list.findIndex(e=>pairKey(e.a,e.b)===k);}
+ // A held room door goes on the room wall of the tile you click that the click leans towards.
+ function roomWallAt(tile,point){const r=heldDoor.room,off=point?[point.x-(tile.x-6),point.z-(tile.z-6)]:[0,0];let best=null;
+  for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){const q=[tile.x+d[0],tile.z+d[1]],index=roomEdge(r,[tile.x,tile.z],q);if(index<0||index!==heldDoor.index&&r.list[index].kind!=='wall')continue;
+   const score=off[0]*d[0]+off[1]*d[1];if(!best||score>best.score)best={index,cells:[[tile.x,tile.z],q],score};}
+  return best;}
+ async function dropRoomDoor(tile,point){const hit=roomWallAt(tile,point),{room:r,index}=heldDoor;if(!hit){status.value='Click one of the room’s walls.';return;}
+  if(hit.index===index){cancel();return;}const from=r.list[index],cells=[[from.a[0]+r.plan.x0,from.a[1]+r.plan.z0],[from.b[0]+r.plan.x0,from.b[1]+r.plan.z0],...hit.cells];
+  if(await change(()=>{const list=r.edit();list[index].kind='wall';list[hit.index].kind='door';return cells;})){heldDoor=null;status.value='Moved the room’s door.';refreshPreview();}}
  function liftFlight(well){const l=well.link;if(l?.kind!=='floor')return false;const owner=l.dungeon!==undefined?{dungeon:l.dungeon}:l.building,level=l.via==='up'?l.level-1:l.level,f=floorsOf(owner).find(e=>e.level===level);if(!f?.up)return false;
   pendingFlight={building:owner,level,well};options.dir.value=f.up.dir;well.group.visible=false;status.value='Holding the stairs: click where their bottom step goes; , and . turn them. Esc puts them back.';refreshPreview();return true;}
  async function nudge(dx,dz){const {sel,entry}=selected(),[x,z]=anchorOf(sel.kind,entry);await moveSelection(x+dx,z+dz);}
@@ -797,6 +818,7 @@ export function createWorldEditor(host){
   if(boxing)return null;
   if(HAND_TOOLS.includes(tool.peek())){const at=[x+grab[0],z+grab[1]];
    // A held door: the wall it would go on.
+   if(heldDoor?.room){const hit=roomWallAt({x,z},null);return hit?{cells:tint(hit.cells,OK)}:{cells:[],refused:'Point at one of the room’s walls.'};}
    if(heldDoor){const hit=wallAt({x,z},null,heldDoor.building);if(!hit)return {cells:[],refused:'Point at one of its walls.'};const refused=fits(()=>doorMoved(heldDoor.building,hit));return {cells:tint([hit.e.a,hit.e.b],refused?NO:OK),refused};}
    // What you hold, where it would go and how it would face (furniture on its own floor; a new prop inside an
    // in-place building is that building's furniture).
@@ -936,7 +958,7 @@ export function createWorldEditor(host){
  let roomBox=null,roomFill=null;
  const rectOf=(a,b)=>{const [x0,x1]=[a.x,b.x].sort((p,q)=>p-q),[z0,z1]=[a.z,b.z].sort((p,q)=>p-q),cells=[];for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)cells.push([x,z]);return {x0,x1,z0,z1,cells};};
  // What pushing or pulling would do: {i, next (the new footprint's tiles), added, removed}, or throws.
- function resizePlan({from,to}){const s=at(from.x,from.z),i=s?.building;if(i===undefined||inPlaceAt(s.x,s.z)===null)throw Error('Start on a tile along a building’s outside wall.');
+ function resizePlan({from,to}){const inner=roomWallPlan({from,to});if(inner!==undefined)return inner;const s=at(from.x,from.z),i=s?.building;if(i===undefined||inPlaceAt(s.x,s.z)===null)throw Error(floorHere.peek()?'Start beside a room’s wall.':'Start on a tile along a building’s outside wall, or beside a room’s wall.');
   const dx=to.x-from.x,dz=to.z-from.z;if(!dx&&!dz)return null;const along=Math.abs(dx)>=Math.abs(dz),n=along?Math.abs(dx):Math.abs(dz),dir=along?[Math.sign(dx),0]:[0,Math.sign(dz)];
   const cells=new Set(cellsOf('building',data.buildings[i]).map(c=>c.join(','))),has=(x,z)=>cells.has(`${x},${z}`),out=!has(s.x+dir[0],s.z+dir[1]),side=out?dir:[-dir[0],-dir[1]];
   if(!out&&has(s.x+side[0],s.z+side[1]))throw Error('Start on a tile along an outside wall.');
@@ -945,15 +967,41 @@ export function createWorldEditor(host){
   const next=new Set(cells),added=[],removed=[];
   for(const [x,z] of wall)for(let k=out?1:0;out?k<=n:k<n;k++){const c=out?[x+side[0]*k,z+side[1]*k]:[x-side[0]*k,z-side[1]*k],id=c.join(',');if(out&&!next.has(id)){next.add(id);added.push(c);}if(!out&&next.has(id)){next.delete(id);removed.push(c);}}
   return {i,next,added,removed};}
+ // A room's wall (one you drew): drag from a tile beside it, and the straight run of room wall there (its doors
+ // too) moves the way you drag. Room walls meeting its ends on one side only (that room's own) stretch or
+ // shrink with it. undefined when the drag doesn't start beside a room wall; null when it hasn't moved yet.
+ function roomWallPlan({from,to}){const r=roomsAt(from.x,from.z);if(!r)return undefined;const dx=to.x-from.x,dz=to.z-from.z,along=Math.abs(dx)>=Math.abs(dz),n=along?Math.abs(dx):Math.abs(dz);
+  const step=(c,d,k=1)=>[c[0]+d[0]*k,c[1]+d[1]*k],has=(p,q)=>roomEdge(r,p,q)>=0,s=[from.x,from.z];
+  // Which wall: the one beside the start tile across the drag's line (or, before it moves, either axis).
+  const dirs=n?[along?[Math.sign(dx),0]:[0,Math.sign(dz)]]:[[1,0],[0,1]];let dir=null,c=null;
+  for(const d of dirs){if(has(s,step(s,d))){dir=d;c=s;break;}if(has(step(s,d,-1),s)){dir=d;c=step(s,d,-1);break;}}
+  if(!c)return undefined;if(!n)return null;
+  // The run: tiles c along the wall with the wall between c and c+dir.
+  const perp=[Math.abs(dir[1]),Math.abs(dir[0])],run=[c];for(const k of [1,-1]){let p=step(c,perp,k);while(has(p,step(p,dir))){run.push(p);p=step(p,perp,k);}}
+  run.sort((p,q)=>p[0]-q[0]||p[1]-q[1]);
+  const moves=[],add=[],remove=[],swept=[],blocked=m=>{throw Error(m);};
+  for(const p of run){const a=step(p,dir,n),b=step(p,dir,n+1);if(!r.inside(a)||!r.inside(b))blocked('That runs into the building’s outside wall.');
+   for(let j=1;j<n;j++)if(has(step(p,dir,j),step(p,dir,j+1)))blocked('It would cross another wall.');
+   moves.push({index:roomEdge(r,p,step(p,dir)),a,b});for(let j=1;j<=n;j++)swept.push(step(p,dir,j));}
+  // The ends: a wall meeting a corner on one side only (its room's) stretches (moving away) or shrinks.
+  for(const [q,o] of [[run[0],[-perp[0],-perp[1]]],[run[run.length-1],perp]]){const aSide=has(q,step(q,o)),bSide=has(step(q,dir),step(step(q,dir),o));if(aSide===bSide)continue;
+   for(let j=1;j<=n;j++){const t=step(q,dir,j),u=step(t,o);if(aSide){if(!has(t,u)){if(!r.inside(u))blocked('That runs into the building’s outside wall.');add.push([t,u]);}}else if(has(t,u))remove.push([t,u]);}}
+  return {room:r,moves,add,remove,swept,dir,n};}
+ async function moveRoomWall(p){const r=p.room,loc=c=>[c[0]-r.plan.x0,c[1]-r.plan.z0],cells=[...p.swept,...p.moves.flatMap(m=>[m.a,m.b]),...p.add.flat(),...p.remove.flat()];
+  const run=new Set(p.moves.map(m=>m.index));
+  if(!await change(()=>{const list=r.edit(),moved=p.moves.map(m=>({...list[m.index],a:loc(m.a),b:loc(m.b)}));
+   const gone=new Set([...run,...p.remove.map(([t,u])=>roomEdge(r,t,u)),...moved.map(e=>list.findIndex((f,k)=>!run.has(k)&&pairKey(f.a,f.b)===pairKey(e.a,e.b)))].filter(k=>k>=0));
+   const kept=list.filter((e,k)=>!gone.has(k));kept.push(...moved,...p.add.map(([t,u])=>({a:loc(t),b:loc(u),kind:'wall'})));list.splice(0,list.length,...kept);return cells;}))return;
+  status.value=`Moved the room’s wall ${p.n} tile${p.n>1?'s':''}.`;}
  function drawRoom(){roomFill?.dispose();roomFill=null;if(!roomBox)return;let cells=[];
-  if(roomBox.tool==='room')cells=tint(rectOf(roomBox.from,roomBox.to).cells,BRUSH);else{try{const p=resizePlan(roomBox);if(p)cells=[...tint(p.added,OK),...tint(p.removed,NO)];previewNote.value='';}catch(error){previewNote.value=error.message;}}
+  if(roomBox.tool==='room')cells=tint(rectOf(roomBox.from,roomBox.to).cells,BRUSH);else{try{const p=resizePlan(roomBox);if(p?.room)cells=[...tint(p.swept,OK),...tint(p.add.flat(),OK)];else if(p)cells=[...tint(p.added,OK),...tint(p.removed,NO)];previewNote.value='';}catch(error){previewNote.value=error.message;}}
   roomFill=createCellFill({cells,heightAt,parent:overlayParent(),opacity:.45});}
  async function roomDrag(phase,tile){
   if(phase==='start'){roomBox={from:tile,to:tile,tool:tool.peek()};clearPreview();drawRoom();return;}
   if(phase==='move'&&roomBox){if(tile&&(tile.x!==roomBox.to.x||tile.z!==roomBox.to.z)){roomBox.to=tile;drawRoom();}return;}
   if(phase!=='end'||!roomBox)return;const box=roomBox;roomBox=null;drawRoom();
   try{if(box.tool==='room')await makeRoom(box.from,box.to);else await pushWall(box);}catch(error){status.value=error.message;}}
- async function pushWall(box){const p=resizePlan(box);if(!p)return;if(!p.added.length&&!p.removed.length)throw Error('Nothing to move there.');
+ async function pushWall(box){const p=resizePlan(box);if(!p)return;if(p.room)return moveRoomWall(p);if(!p.added.length&&!p.removed.length)throw Error('Nothing to move there.');
   draft.value=new Set(p.next);draftFor=p.i;try{await buildDraft();}finally{if(draftFor===p.i)clearDraft();}
   status.value=`${nameOf('building',data.buildings[p.i])}: ${p.added.length?`pushed out by ${p.added.length} tile${p.added.length>1?'s':''}`:`pulled in by ${p.removed.length} tile${p.removed.length>1?'s':''}`}.`;}
  async function makeRoom(a,b){const r=rectOf(a,b),tiles=r.cells.map(([x,z])=>at(x,z));if(r.cells.length<4)throw Error('Drag out a room (at least 2 × 2).');if(tiles.some(t=>!t))throw Error('The room runs off the map.');const here=floorHere.peek();
@@ -1086,7 +1134,7 @@ export function createWorldEditor(host){
    // The Hand: put down what you hold, or lift what you click (a box-selected group lifts as one when you
    // click inside it). Colours selects without lifting.
    case 'select':case 'deco':case 'design':{
-    if(heldDoor){await dropDoor(tile,point);break;}
+    if(heldDoor){await (heldDoor.room?dropRoomDoor:dropDoor)(tile,point);break;}
     if(HAND_TOOLS.includes(tool.peek())&&holding()){await drop(tile);break;}
     const group=selection.peek()?.kind==='group'&&cellsOf('group',selection.peek()).some(([a,b])=>a===x&&b===z)?selection.peek():null;
     let hit=group||pickAt(x,z);moving.value=false;
@@ -1200,7 +1248,7 @@ export function createWorldEditor(host){
  // Every tool's hint, shown in the status line as you switch to it (never what the last tool said).
  const TOOL_HINTS={deco:'Pick from the catalogue, then click where it goes (, and . turn it). Click something to lift it.',select:'Click something to lift it and see all its options; drag a box to select several.',design:'Click something to change its colours.',eyedropper:'Click something to copy it, colours and all.',erase:'Click something to remove it.',
   floorpaint:'Click inside a room to paint its floor.',wallpaint:'Click inside a room to paint its walls (one wall: click beside it).',stamp:'Pick a stamp, then click where its north-west corner goes.',
-  room:'Drag a rectangle: on open ground a new building, inside one a room with a door.',resize:'Drag from a tile along a building’s outside wall: out to push it, in to pull it.',building:'Click where the building’s north-west corner goes.',
+  room:'Drag a rectangle: on open ground a new building, inside one a room with a door.',resize:'Drag from beside a wall (outside or a room’s) the way it should move.',building:'Click where the building’s north-west corner goes.',
   footprint:'Drag to paint a footprint, then Build it.',walls:'Click beside a building’s wall to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the stairs’ bottom step goes.',
   use:'Click a building to set what it’s used for.',reroll:'Click a building to roll its furniture again.',underground:'Make a dungeon or cave here, then place its entrance.',
   raise:'Click or drag to raise the ground half a block.',lower:'Click or drag to lower the ground half a block.',flatten:'Drag to level the ground to where you start.',smooth:'Drag to ease the ground to its neighbours.',

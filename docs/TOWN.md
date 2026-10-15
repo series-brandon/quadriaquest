@@ -327,7 +327,7 @@ User request: hide what's lifted, wall and floor paint, Sims-like doors and stai
   - the builders skip it (buildings, props, stairs, a building's or floor's furniture, the map's edges, placed nature, fishing, enemies, townsfolk and the crystal);
   - only its ghost shows until you put it down or back.
   - Its data stays in the map, so indices and undo hold. The map checks wait while something is held.
-- **Walls** (the bar): *Walls up* (as in the game), *Cutaway* (every building cut to one storey; the default while editing) or *Walls down* (every wall just above the floor).
+- **Walls** (the bar): *Walls up* (as in the game), *Cutaway* (every building cut to one storey; the default while editing) or *Walls down* (every wall just above the floor, with a cut building's doors lowered to match; `lowScale` in `cutaway.js`).
   - This is a cut-height uniform in the cutaway shader (`setCutHeight`, `cutaway.js`) and `setWalls` in main.js.
   - Play shows the game's own cutaway again.
   - Inside walls now belong to their building, so they cut with it.
@@ -346,8 +346,17 @@ User request: hide what's lifted, wall and floor paint, Sims-like doors and stai
   - Inside a building (its ground floor on the map, or the floor you're on), the rectangle's sides that aren't already the building's walls become walls, with a door in the middle of the longest side (at least 3 long).
   - A ground floor's rooms are the building's own (`edges` on the building entry, local to its north-west tile), so they move with it.
 - **Push/pull walls** (Build): drag from a tile along a building's outside wall, outwards to push that wall out or inwards to pull it in, with a green or red preview of the tiles gained or lost.
+  - A room's wall (one you drew, on the map or a floor): drag from a tile beside it, and the straight run of that wall, doors and all, moves the way you drag. A room wall meeting one of its ends on one side only (its room's) stretches or shrinks with it. It can't cross another wall or run into the outside wall.
   - The building is reshaped as Reshape does.
   - Its rooms, paint and floors stay where they were when its north-west corner moves. Reshaping no longer drops a building's floors either.
+
+## Room doors, inside walls and Walls down (2026-10-15)
+
+User request: fix the three gaps left from the Sims-style steps.
+- **Room doors by hand:** the Hand lifts a door on a room you drew (an in-place building's rooms, or a floor's). Click one of that room's walls (the side the click leans towards) to put it there; the wall it left becomes plain wall. Esc puts it back. A hand-placed door elsewhere on the map is still lifted as an edge.
+- **Push/pull room walls:** under *Push/pull walls* above.
+- **Doors in Walls down:** a cut building's doors were full height above the low walls. They're now lowered to the walls' height while the cut is below a storey, and back to full height in Cutaway and Walls up. The model catalogue's cutaway toggle leaves them alone.
+- **Checked in the browser** (overworld, a new 7 × 6 house and its cellar): a room's door lifted and put on another wall; that wall pushed out 2 (the room's south wall stretched), pulled back 1 (it shrank), and refused against the outside wall; the same on the cellar with real clicks; doors at 0.23 of their height in Walls down and whole again in Walls up and Cutaway.
 
 ## Wall and floor paint (2026-10-14)
 
