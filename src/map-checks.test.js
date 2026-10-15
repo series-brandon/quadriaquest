@@ -1,30 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {createCityData,fillCity,buildCity} from './city-map.js';
-import {cityProblems} from './city-checks.js';
+import {createMapData,fillMap,buildMap} from './world-map.js';
+import {mapProblems} from './map-checks.js';
 import {kitStreetData} from './dev/kit-street.js';
 import {CHUNK} from './world-grid.js';
 
 const kinds=problems=>[...new Set(problems.map(p=>p.kind))].sort();
-const check=data=>cityProblems(data,buildCity(data,{scene:new THREE.Group()}));
+const check=data=>mapProblems(data,buildMap(data,{scene:new THREE.Group()}));
 test('a clean little city has no errors',()=>{
- const data=createCityData({size:[20,16]});data.spawn=[10,12];
+ const data=createMapData({size:[20,16]});data.spawn=[10,12];
  data.buildings.push({x:4,z:4,desc:{name:'cottage',footprint:[3,3],doors:[{edge:'south',at:1}]}});
  assert.deepEqual(check(data).filter(p=>p.severity==='error'),[]);
 });
 test('a building must fit inside one chunk: crossing a chunk or region line is an error',()=>{
- const C=CHUNK,data=createCityData({size:[C*2,20]});data.spawn=[2,18];
+ const C=CHUNK,data=createMapData({size:[C*2,20]});data.spawn=[2,18];
  data.buildings.push({x:C-2,z:4,desc:{name:'straddler',footprint:[4,3],doors:[{edge:'south',at:1}]}});
  const crossing=check(data).filter(p=>p.kind==='chunks');
  assert.equal(crossing.length,1);assert.equal(crossing[0].severity,'error');assert.match(crossing[0].text,/straddler crosses a chunk line/);
  data.buildings[0].x=C;assert.deepEqual(check(data).filter(p=>p.kind==='chunks'),[],'moved wholly into the next chunk');
 });
 test('checks find overlaps, a blocked doorstep, a terrace without stairs and stairs without a landing',()=>{
- const data=createCityData({size:[24,20]});data.spawn=[2,18];
+ const data=createMapData({size:[24,20]});data.spawn=[2,18];
  data.buildings.push({x:4,z:4,desc:{name:'cottage',footprint:[3,3],doors:[{edge:'south',at:1}]}});
  data.props.push({kind:'barrel',x:5,z:7},{kind:'crates',x:4,z:4});
- fillCity(data,{x0:14,z0:2,x1:20,z1:8},{h:2});
+ fillMap(data,{x0:14,z0:2,x1:20,z1:8},{h:2});
  data.stairs.push({x:10,z:15,dir:'e',length:2,width:1});
  const problems=check(data);
  for(const kind of ['overlap','door','unreachable','stairs'])assert.ok(kinds(problems).includes(kind),kind);
@@ -42,10 +42,10 @@ test('the kit street has no errors (warnings are its known narrow gaps)',()=>{
 test('separate interiors: the door leads in, the stairwell up and down, the door back out; the crypt too',async()=>{
  const {createSpaces}=await import('./spaces.js');const {createAreaRuntime}=await import('./area-runtime.js');
  const world=new Map(),scene=new THREE.Group(),areas=createAreaRuntime({world});
- const city=buildCity(kitStreetData(),{scene});city.areaId='kit';areas.register({id:'kit',group:city.group,tiles:city.tiles});areas.activate('kit');
+ const builtMap=buildMap(kitStreetData(),{scene});builtMap.areaId='kit';areas.register({id:'kit',group:builtMap.group,tiles:builtMap.tiles});areas.activate('kit');
  const spaces=createSpaces({areas,scene}),run=()=>{for(let i=0;i<10;i++)spaces.update(.1);};
- const guild=city.buildings.find(b=>b.plan.desc.name==='guild house');
- assert.ok(guild.plan.tiles.every(([x,z])=>city.tiles.get(`${x},${z}`).blocked),'solid outside');
+ const guild=builtMap.buildings.find(b=>b.plan.desc.name==='guild house');
+ assert.ok(guild.plan.tiles.every(([x,z])=>builtMap.tiles.get(`${x},${z}`).blocked),'solid outside');
  const door=guild.doors[0];assert.ok(door.link&&!door.locked);
  assert.ok(spaces.enter(door.link));run();assert.match(areas.id,/:f0$/);
  const ground=areas.active,inside=world.get(`${door.a.x},${door.a.z}`);assert.ok(inside&&!inside.blocked,'you arrive inside the door');
@@ -54,19 +54,19 @@ test('separate interiors: the door leads in, the stairwell up and down, the door
  assert.equal(well.direction,'up');well.interact();run();assert.match(areas.id,/:f1$/);
  const down=[...world.values()].map(t=>t).find(t=>t.blocked&&t.indoor);assert.ok(down);
  // Back down and out through the door to the doorstep.
- assert.ok(spaces.enter({kind:'floor',city,building:city.buildings.indexOf(guild),floor:0}));run();
+ assert.ok(spaces.enter({kind:'floor',builtMap,building:builtMap.buildings.indexOf(guild),floor:0}));run();
  const exit=areas.active.tiles&&[...world.values()].length;assert.ok(exit);
- const interiorDoor=spaces.resolve({kind:'interior',city,building:city.buildings.indexOf(guild),door:0});assert.ok(interiorDoor[1]);
+ const interiorDoor=spaces.resolve({kind:'interior',builtMap,building:builtMap.buildings.indexOf(guild),door:0});assert.ok(interiorDoor[1]);
  const [, doorstep]=spaces.resolve({kind:'exit',area:'kit',tile:[door.b.x,door.b.z]});assert.equal(doorstep,door.b);
  assert.ok(spaces.enter({kind:'exit',area:'kit',tile:[door.b.x,door.b.z]}));run();assert.equal(areas.id,'kit');
  // The crypt, from its entrance in the garden.
- const entrance=city.props.find(p=>p.kind==='dungeonEntrance');assert.ok(spaces.enter(entrance.link));run();assert.match(areas.id,/:d:crypt$/);
+ const entrance=builtMap.props.find(p=>p.kind==='dungeonEntrance');assert.ok(spaces.enter(entrance.link));run();assert.match(areas.id,/:d:crypt$/);
  assert.equal(areas.active.maxZoom,18);
- spaces.forget(city);assert.equal(areas.list().some(a=>a.id.includes(':d:')),true,'the active space is kept');
+ spaces.forget(builtMap);assert.equal(areas.list().some(a=>a.id.includes(':d:')),true,'the active space is kept');
 });
 test('interior checks: floors, stairwell and dungeon exits',async()=>{
  const {interiorProblems}=await import('./spaces.js');
- const data=createCityData({size:[20,20]});
+ const data=createMapData({size:[20,20]});
  data.buildings.push({x:2,z:2,desc:{name:'hall',footprint:[4,4],storeys:1,doors:[{edge:'south',at:1}],interior:'separate'},interior:{floors:2}});
  data.interiors.cave={kind:'dungeon',size:[3,3],exit:[5,5]};
  const kinds=interiorProblems(data).map(p=>p.text).join(' | ');
@@ -80,9 +80,9 @@ test('interior stairs are two tiles along a wall into a corner, their bottom rea
  assert.ok([0,plan.w-1].includes(p.top[0])&&[0,plan.d-1].includes(p.top[1]),'the top is a corner');
  assert.equal(p.front[0]-p.bottom[0],p.bottom[0]-p.top[0]);assert.equal(p.front[1]-p.bottom[1],p.bottom[1]-p.top[1]);
  const world=new Map(),scene=new THREE.Group(),areas=createAreaRuntime({world});
- const city=buildCity(kitStreetData(),{scene});city.areaId='kit';areas.register({id:'kit',group:city.group,tiles:city.tiles});areas.activate('kit');
+ const builtMap=buildMap(kitStreetData(),{scene});builtMap.areaId='kit';areas.register({id:'kit',group:builtMap.group,tiles:builtMap.tiles});areas.activate('kit');
  const spaces=createSpaces({areas,scene}),run=()=>{for(let i=0;i<10;i++)spaces.update(.1);};
- const guild=city.buildings.find(b=>b.plan.desc.name==='guild house');spaces.enter(guild.doors[0].link);run();
+ const guild=builtMap.buildings.find(b=>b.plan.desc.name==='guild house');spaces.enter(guild.doors[0].link);run();
  const ground=areas.active,inside=world.get(`${guild.doors[0].a.x},${guild.doors[0].a.z}`);
  const up=ground.group.children.flatMap(c=>[c,...c.children]).map(o=>o.children?.[0]?.userData?.actor).find(a=>a?.kind==='stairwell');
  assert.ok(findPath(world,inside,up.place.front),'from the door to the foot of the stairs');

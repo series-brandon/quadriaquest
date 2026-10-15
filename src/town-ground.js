@@ -1,8 +1,8 @@
-import {createBiomeLand} from './biome-land.js';
+import {createBiomeLand,WATER_H} from './biome-land.js';
 import {normalizeBuilding} from './building-kit.js';
 import * as THREE from 'three';
 import {key} from './world.js';
-import {surfaceColor} from './city-terrain.js';
+import {surfaceColor} from './map-terrain.js';
 import {hash} from './noise.js';
 
 // Towns built on the world's land (docs/TOWN.md, The town on the land). A town with `land` has no ground
@@ -22,7 +22,7 @@ import {hash} from './noise.js';
 export const PAD_APRON=1;
 // data.land.origin [ox, oz]: where the map's 0, 0 lies in the land (world tiles); cells are painted in
 // the land's own cells. A map that grows west or north moves its origin, so the land stays put under
-// what was built (growMap, city-map.js).
+// what was built (growMap, world-map.js).
 // The land covers the map exactly (user, 2026-10-14: no unusable land; everything you see can be edited
 // and reached). The map's edge is the world's edge.
 export function townLand(data){
@@ -79,6 +79,8 @@ export function createTownGround(data,land=townLand(data),{offset=()=>0,surface=
   if(!inside(x,z))return null;const t=land.tile(x,z);if(!t)return null;
   const own=surface(x,z),m=isMade(x,z);
   if(t.water&&!m)return {...t};
+  // Water painted by hand (the editor's Surface tool): a still pond tile, as the land's own.
+  if(own==='water')return {x,z,h:WATER_H,water:true,blocked:true,surface:'water',still:true,waterKind:'pond',biome:t.biome,terrain:t.terrain,made:true};
   const h=Math.max(.5,base(x,z)+offset(x,z));
   // Unpainted: the biome's ground (its surface and colours); painted: the town's surface.
   return own?{x,z,h,surface:own,blocked:false,water:false,buildable:true,biome:t.biome,made:true}

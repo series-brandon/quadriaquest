@@ -42,19 +42,24 @@ Tutorial skipped · changes are session-only
 
 Previews run in place without consuming items or earning XP. Stop to play normally.
 
-## City streets
+## Maps
 
-- **Open city editor:** opens on the map you're on. That's the map you were editing, left as it was, or the city you're standing in (you stay where you are), and otherwise the Quadria overworld. Its City list opens any other map: the repo's maps (overworld first), the prop gallery, or a blank map. *Play* is a test walk, where clicks move you as in the game. The editor's tools are described in docs/CITY.md (*Authoring*) and docs/TOWN.md.
+- **Open world editor:** opens on the map you're on. That's the map you were editing, left as it was, or the city you're standing in (you stay where you are), and otherwise the Quadria overworld. Its City list opens any other map: the repo's maps (overworld first), the prop gallery, or a blank map. *Play* is a test walk, where clicks move you as in the game. The editor's tools are described in docs/CITY.md (*Authoring*) and docs/TOWN.md.
+- **World editor drags and stamps** (docs/TOWN.md, *Box select, copy and stamps* and *Lines and brushes*):
+  - Select: drag a box to select a group. Ctrl/⌘+C and Ctrl/⌘+V copy and paste.
+  - Stamp: save a selection and place it again (`src/stamps/`).
+  - Edge: drag to lay a fence line. Ramp: drag a slope.
+  - Smooth, brush sizes up to 9 × 9, a straight-line brush shape, and water in Surface.
 - **Prop gallery:** every prop by category, with their live interactions (sit, sleep, cook, smith, open, read), a fence gate, a low stone wall and an iron gate.
 - **Force cutaway:** cuts every building at once (no roofs, one-storey walls).
-- **Free camera** (also a switch in the city editor):
+- **Free camera** (also a switch in the world editor):
   - the camera leaves the slime;
   - pan with WASD (Shift: faster) or a middle-button drag, which grabs the ground; right-drag and the arrow keys still orbit;
   - zoom out to 140;
   - the land, towns and the sun's shadows follow the camera, so you can fly anywhere and edit there;
   - turning it off brings the camera back to the slime.
 
-  When something is selected in the editor, its D (duplicate) and S (reshape) keys win over panning.
+  The editor's shortcuts never take WASD or the arrow keys.
 - **Removed (2026-10-14):** the graybox and kit street buttons, Enter Gelton, the crowd, roof, cutaway, door and zoom buttons. The kit street lives on only as a test street for tests and the `city-walk` and `city-crowd` perf scenarios (`src/dev/kit-street.js`). Gelton is still reached by the Countryside and city-greens jumps.
 
 ## Walls & doors

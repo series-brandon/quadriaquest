@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Group} from 'three';
 import {findPath,key} from '../world.js';
-import {buildCity} from '../city-map.js';
+import {buildMap} from '../world-map.js';
 import {kitStreetData,GRAYBOX,BUILDINGS} from './kit-street.js';
 
 test('the square is ringed by multi-storey buildings opening onto it, with gaps only for the avenue and streets',()=>{
@@ -12,7 +12,7 @@ test('the square is ringed by multi-storey buildings opening onto it, with gaps 
   assert.ok(ox>=plaza.x0&&ox<=plaza.x1&&oz>=plaza.z0&&oz<=plaza.z1,`${b.name}: opens onto the square`);}
 });
 test('kit street: every house opens through its door, shells stay sealed, the terraced row shares its walls',()=>{
- const built=buildCity(kitStreetData(),{scene:new Group(),pickables:[]}),t=(x,z)=>built.tiles.get(key(x,z)),route=(x,z)=>findPath(built.tiles,built.spawn,t(x,z));
+ const built=buildMap(kitStreetData(),{scene:new Group(),pickables:[]}),t=(x,z)=>built.tiles.get(key(x,z)),route=(x,z)=>findPath(built.tiles,built.spawn,t(x,z));
  assert.equal(built.roofs.length,built.buildings.length,'one roof per building');assert.equal(built.buildings.length,BUILDINGS.length+2,'the layout plus the annex cottage and guild house');
  for(const b of BUILDINGS){
   const inside=t(b.x0+1,b.z0+1);assert.equal(route(inside.x,inside.z),null,`${b.name}: sealed`);

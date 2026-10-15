@@ -1,10 +1,10 @@
-import {createCityData,fillCity} from '../city-map.js';
+import {createMapData,fillMap} from '../world-map.js';
 import {CHUNK} from '../world-grid.js';
 import {seeded} from '../building-kit.js';
 import {USE_ICONS} from '../furnish.js';
 
 // Gelton, the capital: its first layout (city Phase 9; docs/CITY.md, Streaming and the world). Dev only: it writes
-// src/maps/capital.json (scripts/generate-capital.mjs), which the city editor then refines by hand. The
+// src/maps/capital.json (scripts/generate-capital.mjs), which the world editor then refines by hand. The
 // layout follows the city design:
 //  - 160 × 160 tiles (5 × 5 chunks, in 2 × 2 regions), flat streets with the castle on a terrace two blocks up,
 //    reached by a 5-wide grand stair at the head of the main avenue;
@@ -34,11 +34,11 @@ const WALL_THICKNESS=3;
 const styleAt=(x,z)=>z>116?'stone':x<72?'timber':'brick';
 
 export function capitalData(){
- const C=CAPITAL,data=createCityData({id:'capital',name:'Gelton',size:[C.size,C.size],base:1,surface:'grass',style:'timber'}),random=seeded(91);
+ const C=CAPITAL,data=createMapData({id:'capital',name:'Gelton',size:[C.size,C.size],base:1,surface:'grass',style:'timber'}),random=seeded(91);
  data.spawn=[...C.spawn];data.crystal=[...C.crystal];
- for(const s of STREETS)fillCity(data,s,{surface:'cobble'});
- fillCity(data,C.square,{surface:'plaza'});fillCity(data,C.market,{surface:'plaza'});fillCity(data,C.park,{surface:'grass'});
- fillCity(data,C.terrace,{h:3,surface:'flagstone'});fillCity(data,C.courtyard,{surface:'stone'});
+ for(const s of STREETS)fillMap(data,s,{surface:'cobble'});
+ fillMap(data,C.square,{surface:'plaza'});fillMap(data,C.market,{surface:'plaza'});fillMap(data,C.park,{surface:'grass'});
+ fillMap(data,C.terrace,{h:3,surface:'flagstone'});fillMap(data,C.courtyard,{surface:'stone'});
  data.stairs.push({...C.stair});
  // The castle: the keep (a separate interior), four towers, and a curtain wall with a gate.
  const {keep,courtyard:Y}=C,ring=[];
@@ -122,7 +122,7 @@ export function capitalData(){
  // Green spaces as mini biomes (city-greens.js): each patch of grass gets a theme.
  data.greens={seed:7};
  // Two guards posted at every entrance, outside against the wall either side of the gateway, looking out
- // along the road (they stand on the countryside's land; buildCity's `outside`).
+ // along the road (they stand on the countryside's land; buildMap's `outside`).
  const N=C.size-1;
  for(const g of CAPITAL_GATES){const facing={west:'w',east:'e',south:'s',north:'n'}[g.side];
   const spots=g.side==='west'?[[-1,g.from-1],[-1,g.to+1]]:g.side==='east'?[[N+1,g.from-1],[N+1,g.to+1]]:g.side==='south'?[[g.from-1,N+1],[g.to+1,N+1]]:[[g.from-1,-1],[g.to+1,-1]];

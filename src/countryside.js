@@ -10,7 +10,7 @@ const FLOWERS=['flowerWhite','flowerYellow','flowerPink','flowerPurple','flowerB
 // The layout, in world tiles (the city keeps its own coordinates, 0…size-1):
 //  - a ring RING tiles deep on every side, ending in a strip of sea at the edge of the world;
 //  - flat meadow just outside the wall, rising into rolling and then rocky hills farther out;
-//  - three roads leaving the city's gateways (city data `gates`), gently winding, kept flat;
+//  - three roads leaving the city's gateways (map data `gates`), gently winding, kept flat;
 //  - a river running north to south through the east, crossed by the east road on a bridge;
 //  - a lake to the north-west and a pond to the south-west, for fishing;
 //  - woods in patches, copper outcrops and boulders on the hilltops, sticks and rocks to pick up;
@@ -19,8 +19,8 @@ const FLOWERS=['flowerWhite','flowerYellow','flowerPink','flowerPurple','flowerB
 //    lakeside rest, a wagon past the bridge and a signpost at the end of the south road.
 export const RING=64,SEA=5;
 const ROAD_HALF=1;
-export function createCountryside({city,seed=11}){
- const size=city.size[0],gates=city.gates||[],x0=-RING,x1=size+RING;
+export function createCountryside({mapData,seed=11}){
+ const size=mapData.size[0],gates=mapData.gates||[],x0=-RING,x1=size+RING;
  // Chebyshev distance outside the city square (0 inside).
  const outside=(x,z)=>Math.max(0,-x,x-(size-1),-z,z-(size-1));
  // Roads: a winding centre line from each gateway out to near the sea.
@@ -67,7 +67,7 @@ export function createCountryside({city,seed=11}){
  // A signpost outside each gateway.
  for(const g of gates){LANDMARKS.push({id:`gate-sign:${g.side}`,props:[{kind:"signpost",...(g.side==="west"?{x:-3,z:g.from-2}:g.side==="east"?{x:size+2,z:g.to+2}:g.side==="south"?{x:g.from-2,z:size+2}:{x:g.to+2,z:-3})}]});}
  // The city wall's corner towers stand half outside the city: their tiles out here are solid.
- const wallMid=city.walls?(city.walls.thickness-1)/2:null;
+ const wallMid=mapData.walls?(mapData.walls.thickness-1)/2:null;
  const underTower=(x,z)=>wallMid!==null&&[[wallMid,wallMid],[size-1-wallMid,wallMid],[wallMid,size-1-wallMid],[size-1-wallMid,size-1-wallMid]].some(([cx,cz])=>Math.hypot(x-cx,z-cz)<TOWER_RADIUS+.45);
  const reserved=new Set();
  for(const l of LANDMARKS)for(const p of l.props)for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=3;dx++)reserved.add(`${p.x+dx},${p.z+dz}`);

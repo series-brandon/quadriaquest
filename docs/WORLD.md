@@ -24,7 +24,7 @@ The world is one grid, defined in `src/world-grid.js` (no DOM or three.js, so th
 |---|---|---|
 | **Tile** | 1 × 1 | Movement, occupancy, interaction. |
 | **Chunk** | 32 × 32 tiles (`CHUNK`) | Activity: client streaming and rendering, server interest (a client subscribes to the chunks near its player and gets their changes), and waking the simulation near players. |
-| **Region** | 128 × 128 tiles, 4 × 4 chunks (`REGION`) | Ownership and storage: map data files, persistence documents, and which server process owns which part of the world. City terrain is stored per region (`city-map.js`). |
+| **Region** | 128 × 128 tiles, 4 × 4 chunks (`REGION`) | Ownership and storage: map data files, persistence documents, and which server process owns which part of the world. City terrain is stored per region (`world-map.js`). |
 | **World** | 2,048 × 2,048 tiles (`WORLD`) | The whole grid. Ids and positions are world coordinates. |
 
 Ids are `"cx,cz"` for chunks and `"rx,rz"` for regions (`chunkId`, `regionId`). Words that are not grid sizes:
@@ -36,9 +36,9 @@ Ids are `"cx,cz"` for chunks and `"rx,rz"` for regions (`chunkId`, `regionId`). 
 
 ## Design constraints
 
-These keep rendering, streaming, storage and a future server simple. The city checks enforce the first; the rest are rules for new code.
+These keep rendering, streaming, storage and a future server simple. The map checks enforce the first; the rest are rules for new code.
 
-1. **A building fits inside one chunk.** It may not cross a chunk line (and so not a region line either), so it streams, draws, cuts away and is stored whole with its chunk. The largest building is 32 × 32. The city checks report a crossing as an error, and the city editor refuses to place one (its *Chunk and region lines* switch shows the lines). A layout that needs something bigger splits it into separate buildings.
+1. **A building fits inside one chunk.** It may not cross a chunk line (and so not a region line either), so it streams, draws, cuts away and is stored whole with its chunk. The largest building is 32 × 32. The map checks report a crossing as an error, and the world editor refuses to place one (its *Chunk and region lines* switch shows the lines). A layout that needs something bigger splits it into separate buildings.
 2. **Areas line up with the grid.** An area's origin is a region corner and its extent ends on chunk lines, so its chunks and regions are the world's. Gelton's city starts at 0; its countryside runs two chunks beyond it (−64 to 223).
 
 ## How it fits together
@@ -85,7 +85,7 @@ The user asked for walls like the castle keep's: very tall, with large towers at
   - Open by default; click to close or open, with the shared door sounds.
   - Each passage edge carries a door feature sharing the gate's state, so routes, the player and townsfolk treat it as a door.
 - **Cutaway:** each piece (a run per chunk, a tower, a gatehouse) is its own cut owner (ids from 1000, a cut source per city). The piece beside you or between you and the camera cuts down like a building and the rest stands. Its cut face is stone-coloured, because a 3-tile wall shows a broad face.
-- **The seam:** the city's edge tiles were drawn as if nothing lay beyond them (a rounded lip and a side). `buildCity({outside})` now gives the city's terrain the countryside's tiles, so the edge joins without a seam.
+- **The seam:** the city's edge tiles were drawn as if nothing lay beyond them (a rounded lip and a side). `buildMap({outside})` now gives the city's terrain the countryside's tiles, so the edge joins without a seam.
 
 ## Guards and houses by the wall (user request, 2026-10-11)
 
@@ -93,7 +93,7 @@ The user asked for walls like the castle keep's: very tall, with large towers at
   - One guard per 40 tiles of walkway (`walls.walkways`, the stretches between towers and gatehouses), 15 in Gelton, each with its own beat.
   - They walk tile by tile with the shared step motion, and pause at the ends to look out over the wall.
   - They hide where the wall is cut down (`walls.cutAt`), and leave the scene graph when more than 40 tiles away.
-- **Gate guards:** two townsfolk at every entrance, outside the city against the wall either side of the gateway, facing out along the road (user, 2026-10-11). Their tiles are countryside land; `buildCity({outside})` adds the tiles its townsfolk stand on to the city's map, and the townsfolk checks skip homes outside the city when that land isn't there. They use a new townsfolk activity, `post`: stand at your home tile facing `entry.facing`. You can talk to them like other townsfolk.
+- **Gate guards:** two townsfolk at every entrance, outside the city against the wall either side of the gateway, facing out along the road (user, 2026-10-11). Their tiles are countryside land; `buildMap({outside})` adds the tiles its townsfolk stand on to the city's map, and the townsfolk checks skip homes outside the city when that land isn't there. They use a new townsfolk activity, `post`: stand at your home tile facing `entry.facing`. You can talk to them like other townsfolk.
 - **Houses by the wall:** rows of houses backing onto the wall face their block's yard instead (reached by the alleys), so no door opens a tile from the wall (`capital-layout.js`).
 - **Playground:** Countryside jumps to the west and south gates (inside).
 
@@ -167,4 +167,4 @@ The user asked for walls like the castle keep's: very tall, with large towers at
 - **Roads don't connect** to each other or around the city.
 - **More landmarks and places:** farms, a mine entrance, villages, more enemy kinds and camps.
 - **Grow the world** beyond the ring.
-- **Edit layers** for the generated land (move a landmark, paint a road) in the city editor.
+- **Edit layers** for the generated land (move a landmark, paint a road) in the world editor.

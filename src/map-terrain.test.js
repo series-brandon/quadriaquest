@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {layStairs,railingEdges,retainingDrop,stairProblems,makeCityTile,surfaceColor} from './city-terrain.js';
+import {layStairs,railingEdges,retainingDrop,stairProblems,makeMapTile,surfaceColor} from './map-terrain.js';
 import {createProp,PROPS,PROP_KINDS,rotateOffset,rotateSide,propModel,seatPosition,SEAT_BACK} from './props.js';
-import {createCityData,setCityHeight,cityHeight,citySurface,setCitySurface,cityTiles,fillCity,buildCity} from './city-map.js';
+import {createMapData,setMapHeight,mapHeight,mapSurface,setMapSurface,mapTiles,fillMap,buildMap} from './world-map.js';
 import {REGION} from './world-grid.js';
 import {findPath,key,canStep,edgeBetween} from './world.js';
 import {kitStreetData,KIT_ANNEX} from './dev/kit-street.js';
@@ -28,7 +28,7 @@ test('stairs ending against a drop are reported',()=>{
 });
 test('city terrain tiles build for every surface, retaining walls and stairs',()=>{
  const map=flat(3,3);map.get(key(1,1)).h=2;map.get(key(1,1)).surface='cobble';map.get(key(0,1)).stair={dir:'e'};map.get(key(0,1)).h=1.5;
- for(const t of map.values()){const g=makeCityTile(t,map);let meshes=0;g.traverse(o=>{if(o.isMesh)meshes++;});assert.ok(meshes>0);assert.match(surfaceColor(t),/^#/);}
+ for(const t of map.values()){const g=makeMapTile(t,map);let meshes=0;g.traverse(o=>{if(o.isMesh)meshes++;});assert.ok(meshes>0);assert.match(surfaceColor(t),/^#/);}
 });
 test('props: footprints rotate with their spots, block their tiles, and interactive ones are pickable',()=>{
  assert.deepEqual(rotateOffset([0,1],[2,1],90),[-1,0]);assert.equal(rotateSide('s',90),'w');assert.deepEqual(rotateOffset([1,0],[2,1],180),[0,0]);
@@ -41,14 +41,14 @@ test('props: footprints rotate with their spots, block their tiles, and interact
  const hedge=createProp('hedge',{origin:[0,7],tileAt:t,parent:scene});assert.ok(t(0,7).blocksSight);hedge.dispose();assert.ok(!t(0,7).blocked&&!t(0,7).blocksSight);
  for(const kind of PROP_KINDS){const g=propModel(kind);g.updateMatrixWorld(true);let n=0;g.traverse(o=>{if(o.isMesh)n++;});assert.ok(n>0,kind);assert.ok(PROPS[kind].footprint.length===2);}
 });
-test('city data stores terrain per tile by region and builds live tiles',()=>{
- const R=REGION,data=createCityData({size:[R+6,10]});assert.equal(Object.keys(data.regions).length,2);assert.equal(data.regions['0,0'].heights.length,REGION);
- setCityHeight(data,R+1,3,2.5);setCitySurface(data,R+1,3,'cobble');assert.equal(cityHeight(data,R+1,3),2.5);assert.equal(citySurface(data,R+1,3),'cobble');assert.equal(cityHeight(data,R,3),1);
- fillCity(data,{x0:0,z0:0,x1:2,z1:2},{h:2,surface:'plaza'});const tiles=cityTiles(data);assert.equal(tiles.get(key(1,1)).h,2);assert.equal(tiles.get(key(1,1)).surface,'plaza');
+test('map data stores terrain per tile by region and builds live tiles',()=>{
+ const R=REGION,data=createMapData({size:[R+6,10]});assert.equal(Object.keys(data.regions).length,2);assert.equal(data.regions['0,0'].heights.length,REGION);
+ setMapHeight(data,R+1,3,2.5);setMapSurface(data,R+1,3,'cobble');assert.equal(mapHeight(data,R+1,3),2.5);assert.equal(mapSurface(data,R+1,3),'cobble');assert.equal(mapHeight(data,R,3),1);
+ fillMap(data,{x0:0,z0:0,x1:2,z1:2},{h:2,surface:'plaza'});const tiles=mapTiles(data);assert.equal(tiles.get(key(1,1)).h,2);assert.equal(tiles.get(key(1,1)).surface,'plaza');
  assert.equal(JSON.parse(JSON.stringify(data)).regions['1,0'].surfaces[3][1],'c','plain JSON');
 });
 test('kit street annex: every terrace is reached only by its stairs, and its props and cottage are in place',()=>{
- const built=buildCity(kitStreetData(),{scene:new THREE.Group()}),t=(x,z)=>built.tiles.get(key(x,z)),from=built.spawn,route=(x,z)=>findPath(built.tiles,from,t(x,z));
+ const built=buildMap(kitStreetData(),{scene:new THREE.Group()}),t=(x,z)=>built.tiles.get(key(x,z)),from=built.spawn,route=(x,z)=>findPath(built.tiles,from,t(x,z));
  const {terraceA,terraceB,terraceC}=KIT_ANNEX;
  for(const d of built.doors)if(d.gate)d.setOpen(true);// the iron gate at the top of the narrow stair
  assert.ok(route(terraceA.x0+2,terraceA.z0+2),'terrace A');assert.ok(route(terraceB.x0+2,terraceB.z0+2),'terrace B');assert.ok(route(terraceC.x0+1,terraceC.z0+1),'terrace C, via the landing');
@@ -60,12 +60,12 @@ test('kit street annex: every terrace is reached only by its stairs, and its pro
  const cottage=built.buildings.find(b=>b.plan.desc.name==='terrace cottage');cottage.doors[0].setOpen(true);assert.ok(route(85,24),'into the terrace cottage');
  assert.equal(built.doors.filter(d=>!d.locked).length>0,true);
 });
-test('a built city’s roofs toggle both ways (live getters)',()=>{
- const built=buildCity(kitStreetData(),{scene:new THREE.Group()});
+test('a built map’s roofs toggle both ways (live getters)',()=>{
+ const built=buildMap(kitStreetData(),{scene:new THREE.Group()});
  built.setRoofs(false);assert.equal(built.roofsShown,false);built.setRoofs(true);assert.equal(built.roofsShown,true);
 });
 test('always-visible decoration is merged per chunk; clickable props and sign icons stay their own objects',()=>{
- const scene=new THREE.Group(),built=buildCity(kitStreetData(),{scene});
+ const scene=new THREE.Group(),built=buildMap(kitStreetData(),{scene});
  const merged=[];scene.traverse(o=>{if(o.name==='chunk-statics')merged.push(o);});assert.ok(merged.length>0);
  const lamp=built.props.find(p=>p.kind==='lampPost'),bench=built.props.find(p=>p.kind==='bench');
  let lampMeshes=0;lamp.group.traverse(o=>{if(o.isMesh)lampMeshes++;});assert.equal(lampMeshes,0,'the lamp is drawn by its chunk');

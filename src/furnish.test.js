@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {USES,USE_NAMES,furnishRoom,furnishingUse} from './furnish.js';
 import {PROPS,createProp,blockedOffsets,seatPosition,takeLoot,resetLoot,lootTaken,PROP_KINDS,PROP_CATEGORIES} from './props.js';
-import {buildCity} from './city-map.js';
+import {buildMap} from './world-map.js';
 import {propGalleryData} from './dev/prop-gallery.js';
 
 // A rectangular room with a south door in the middle.
@@ -58,11 +58,11 @@ test('chest loot is given once, by id, and resets',()=>{
  resetLoot();assert.deepEqual(takeLoot(chest),{logs:2});resetLoot();
 });
 test('the prop gallery builds with every prop that stands on land',()=>{
- const data=propGalleryData(),city=buildCity(data,{scene:new THREE.Group()}),onLand=PROP_KINDS.filter(k=>PROPS[k].water!=='only');
+ const data=propGalleryData(),builtMap=buildMap(data,{scene:new THREE.Group()}),onLand=PROP_KINDS.filter(k=>PROPS[k].water!=='only');
  const placed=new Set(data.props.map(p=>p.kind));
  for(const kinds of Object.values(PROP_CATEGORIES))for(const k of kinds)assert.equal(placed.has(k),PROPS[k].water!=='only',k);
  assert.equal(placed.size,onLand.length);
- assert.ok(city.props.length>=onLand.length,'every one built');
+ assert.ok(builtMap.props.length>=onLand.length,'every one built');
 });
 test('sitting and sleeping put you on the piece, not beside it, whichever way it turns',()=>{
  for(const kind of Object.keys(PROPS).filter(k=>PROPS[k].spots?.some(s=>s.seat)))for(const rotation of [0,90,180,270]){

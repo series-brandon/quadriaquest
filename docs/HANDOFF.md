@@ -30,37 +30,37 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
-### Playground cleanup; city editor opens where you are; Play clicks — 2026-10-14 (user request)
+### Playground cleanup; world editor opens where you are; Play clicks — 2026-10-14 (user request)
 
-- **Buttons removed** from City streets: the graybox and kit streets (and their jumps), Enter Gelton, the crowd buttons, roofs, cutaway, open/close all doors, and zoom. The API calls only they used are gone too. Prop gallery, Force cutaway and Open city editor remain.
-- **Graybox street deleted** (`src/dev/graybox-street.js` and its test). Its layout moved into `src/dev/kit-street.js`. The kit street remains only as a test street: about a dozen tests and the `city-walk` and `city-crowd` perf scenarios use it (`enterCityMap('kit-street')`). It's no longer in the panel or the editor's City list.
-- **City editor opens on the map you're on:** the one being edited (as left), else the city you stand in (you stay put), else the overworld.
+- **Buttons removed** from Maps: the graybox and kit streets (and their jumps), Enter Gelton, the crowd buttons, roofs, cutaway, open/close all doors, and zoom. The API calls only they used are gone too. Prop gallery, Force cutaway and Open world editor remain.
+- **Graybox street deleted** (`src/dev/graybox-street.js` and its test). Its layout moved into `src/dev/kit-street.js`. The kit street remains only as a test street: about a dozen tests and the `city-walk` and `city-crowd` perf scenarios use it (`enterMap('kit-street')`). It's no longer in the panel or the editor's City list.
+- **World editor opens on the map you're on:** the one being edited (as left), else the city you stand in (you stay put), else the overworld.
 - **Play-mode clicks fixed:** the editor took every world click, even in Play. It now takes clicks and drags only in Edit mode.
 
 ### Towns stand on the land — 2026-10-14 (user report: towns felt disconnected from the world)
 
 - A town with `land` takes its ground from the biome land under it: buildings level pads, and height edits are offsets on the land. Unpainted tiles are the biome's ground, and trees, cover and goblins grow on whatever is left free.
-- Code: `src/town-ground.js`, plus `cityGround`, `putOnLand` and `takeOffLand` in city-map.js. The streamer gained `reload` for editor rebuilds, and the editor gained a Flatten tool and a *Land's own* surface.
+- Code: `src/town-ground.js`, plus `mapGround`, `putOnLand` and `takeOffLand` in world-map.js. The streamer gained `reload` for editor rebuilds, and the editor gained a Flatten tool and a *Land's own* surface.
 - Design and status: TOWN.md, *The town on the land*. Mistrom has been regenerated on the land. Gelton is untouched.
 
 ### World grid: shared names, 32 × 32 chunks, buildings inside one chunk — 2026-10-12 (user decision)
 
-- **One vocabulary for client and server** (`src/world-grid.js`; WORLD.md, *Glossary* and *Design constraints*): tile, chunk (32 × 32), region (128 × 128, 4 × 4 chunks), world (2,048 × 2,048). `chunk-streamer.js`, `city-map.js`, `city-checks.js`, `city-walls.js`, `ground-cover.js` and `main.js` read the sizes from it (three copies of the chunk size are gone). `city-greens.js` calls its biome pieces **patches** (they were also called regions).
-- **Streaming:** radius 1 (3 × 3 chunks; the same 32-tile view ahead as before), and hysteresis is now a band in tiles (`BAND` = 8: a shown chunk stays until the player is more than radius × 32 + 8 tiles from it), in both `createChunkStreamer({band})` and `buildCity({streamBand})`. A whole extra ring of 32-tile chunks doubled the visible area (perf: `countryside-walk` visible meshes +67%). The streamer builds a chunk in steps (terrain, then resources, dressing and extras in batches of 16) within its 4 ms budget, so a bigger chunk doesn't have to finish in one frame; `prime` still builds at once. Warm node timings: a 32-tile countryside chunk is about 3 ms (worst 5–8) of terrain plus resources, against 0.7 ms for 16 tiles.
-- **Rule: a building may not cross a chunk or region line.** The city checks report it as an error; the city editor refuses to place one and shows the grid (*Chunk and region lines* switch, `dev/grid-overlay.js`). The graybox and kit street keep is two wings meeting on x = 32.
+- **One vocabulary for client and server** (`src/world-grid.js`; WORLD.md, *Glossary* and *Design constraints*): tile, chunk (32 × 32), region (128 × 128, 4 × 4 chunks), world (2,048 × 2,048). `chunk-streamer.js`, `world-map.js`, `map-checks.js`, `city-walls.js`, `ground-cover.js` and `main.js` read the sizes from it (three copies of the chunk size are gone). `city-greens.js` calls its biome pieces **patches** (they were also called regions).
+- **Streaming:** radius 1 (3 × 3 chunks; the same 32-tile view ahead as before), and hysteresis is now a band in tiles (`BAND` = 8: a shown chunk stays until the player is more than radius × 32 + 8 tiles from it), in both `createChunkStreamer({band})` and `buildMap({streamBand})`. A whole extra ring of 32-tile chunks doubled the visible area (perf: `countryside-walk` visible meshes +67%). The streamer builds a chunk in steps (terrain, then resources, dressing and extras in batches of 16) within its 4 ms budget, so a bigger chunk doesn't have to finish in one frame; `prime` still builds at once. Warm node timings: a 32-tile countryside chunk is about 3 ms (worst 5–8) of terrain plus resources, against 0.7 ms for 16 tiles.
+- **Rule: a building may not cross a chunk or region line.** The map checks report it as an error; the world editor refuses to place one and shows the grid (*Chunk and region lines* switch, `dev/grid-overlay.js`). The graybox and kit street keep is two wings meeting on x = 32.
 - **The capital is 160 × 160**, re-centred so the avenue, square and keep sit on x = 80 (the middle of a chunk); outer blocks and streets grew outward. Regenerated from `dev/capital-layout.js` (which now stops a building row at each chunk line). Gates are at z 86–88 (west, east) and x 79–81 (south). Playground jump spots and the `countryside-walk` perf scenario follow the gates.
 - **Perf (2026-10-12):** see the PERFORMANCE.md ledger. `countryside-walk` and `capital-square` were rebaselined (objects +31–32% from the bigger city; `countryside-walk` 4.3 → about 5.5 ms/frame). `travel` and `cinderhold-combat` failed too and are untouched by this work; not rebaselined.
 
 ### City streaming: walls over void, half-drawn buildings, floating park items — 2026-10-12 (user report)
 
-- **City and countryside now stream by one rule:** radius 2 (radius 1 and a tile band since the 32-tile chunks above) with one ring of hysteresis (`buildCity({streamRadius, streamKeep})`, the chunk streamer's rule). The city used radius 3 while the land used 2, so city wall pieces stood over unloaded land.
+- **City and countryside now stream by one rule:** radius 2 (radius 1 and a tile band since the 32-tile chunks above) with one ring of hysteresis (`buildMap({streamRadius, streamKeep})`, the chunk streamer's rule). The city used radius 3 while the land used 2, so city wall pieces stood over unloaded land.
 - **Buildings live in their home chunk:** a building's walls (the `edges` facade remembers each edge's chunk; building edges go to the home chunk) and floor tiles are in its home chunk, like its roof, decor and furniture. A building across a chunk line now shows or hides whole instead of being cut in half. Linking all of a straddling building's chunks was tried first: 44 buildings straddle lines, and the links pulled in 57 of 64 chunks.
 - **Things outside chunk groups follow the shown chunks:** the park's map resources now go in their chunk (`chunkRootOf`); townsfolk and wall sentries hide where `city.isShown(x, z)` is false (tiles outside the city count as shown, for the gate guards). Verified with a scene sweep: no trees, rocks, sticks, townsfolk or sentries drawn in hidden chunks.
 - Tests: 581 pass. Perf: capital square about 6.2 ms, countryside walk about 4.6 ms (PASS; fewer visible meshes).
 
 ### City ground cover in hidden chunks — 2026-10-12 (user report)
 
-- The city greens' instanced cover was added all at once, so flowers drew where the city's chunks were hidden. Now `chunkedCover` (ground-cover.js) adds each chunk's share only while it's shown; `buildCity`'s `stream` calls `city.onStream(chunks)`. Verified in the browser: 0 instances in hidden chunks (1,656 of 4,692 drawn with 20 of 64 chunks shown). Other objects outside chunk groups (sentries, townsfolk) already hide by distance. Tests: 581 pass.
+- The city greens' instanced cover was added all at once, so flowers drew where the city's chunks were hidden. Now `chunkedCover` (ground-cover.js) adds each chunk's share only while it's shown; `buildMap`'s `stream` calls `city.onStream(chunks)`. Verified in the browser: 0 instances in hidden chunks (1,656 of 4,692 drawn with 20 of 64 chunks shown). Other objects outside chunk groups (sentries, townsfolk) already hide by distance. Tests: 581 pass.
 
 ### City mini biomes, conversational jobs, the post office — 2026-10-12 (user request)
 
@@ -76,13 +76,13 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ### Wall sentries, gate guards, houses turned from the wall — 2026-10-11 (user request)
 
-- `wall-sentries.js` (guards pacing `walls.walkways`, hidden where cut, detached when far); `city-walls.js` gained `walkways` and `cutAt`. Townsfolk gained the `post` activity (`entry.facing`). `capital-layout.js`: two gate guards per entrance, outside the wall (user correction; `buildCity({outside})` gives them their land tiles); south rows by the wall face their yard. Regenerated `capital.json`. The city checks have no door, furniture or townsfolk issues.
+- `wall-sentries.js` (guards pacing `walls.walkways`, hidden where cut, detached when far); `city-walls.js` gained `walkways` and `cutAt`. Townsfolk gained the `post` activity (`entry.facing`). `capital-layout.js`: two gate guards per entrance, outside the wall (user correction; `buildMap({outside})` gives them their land tiles); south rows by the wall face their yard. Regenerated `capital.json`. The map checks have no door, furniture or townsfolk issues.
 - Verified in the browser: all six gate guards on post; a sentry on the north walkway seen from inside; the turned house doors. Tests: 574 pass. Perf: capital square 6.1 ms (PASS).
 
 ### Castle walls, double gates, animated water, road bridge, no seam — 2026-10-11 (user review)
 
-- `city-walls.js`: a curtain wall 3 thick and 6 high, round corner towers, gatehouses with double doors (one entity; door features on the passage edges), merged pieces as cut owners with a stone cut face. City data `walls`. `capital-layout.js` uses it instead of thin edge walls; gate signposts moved to the countryside (`countryside.js`, which makes the tiles under towers solid). `main.js` animates the gates in Gelton's update.
-- Seam: `buildCity({outside})` lets edge tiles see the countryside.
+- `city-walls.js`: a curtain wall 3 thick and 6 high, round corner towers, gatehouses with double doors (one entity; door features on the passage edges), merged pieces as cut owners with a stone cut face. Map data `walls`. `capital-layout.js` uses it instead of thin edge walls; gate signposts moved to the countryside (`countryside.js`, which makes the tiles under towers solid). `main.js` animates the gates in Gelton's update.
+- Seam: `buildMap({outside})` lets edge tiles see the countryside.
 - Water: `createStreamedWater` (GPU waves, the ponds' look) through the streamer's new `dress` hook. Bridge: `makeBridge(length, {width})` with stringers and piers, placed as a countryside extra.
 - Verified in the browser: the wall and the corner tower from outside, the south gatehouse with a leaf open, closing the gate (leaves swing shut, routes blocked), cut wall faces, the water and bridge. One bug fixed on the way: gates didn't animate until Gelton's update called `walls.update`.
 - Tests: 572 pass (new `city-walls.test.js`). Perf: the capital square is 5.4 ms; `countryside-walk` rebaselined (+14 geometries from the water and bridge).
@@ -110,7 +110,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 ### Gelton, the waking city, with gold and shops — 2026-10-11 (user: "let's make the capital real!")
 
 - User decisions: the capital is **Gelton**; waking from the tutorial lands there (the placeholder world is removed); this phase is gold, item values and shops (ECONOMY.md steps 1, 2 and the shop part of 5); drops and jobs later.
-- New: `economy.js` (wallet, sell rate, prices), `shops.js` (definitions, stock and restock, buy/sell rules), `shop-menu.js` + `ui/dialogs/shop-dialog.js` (shared shop screen), values and categories in `items.js`, gold on the Inventory page, Bought/Sold receipts. Gelton is a production area in `main.js` (`geltonReady`), with a real Iter Crystal via `buildCity({crystal})`; `waking.js` gained `prepare`.
+- New: `economy.js` (wallet, sell rate, prices), `shops.js` (definitions, stock and restock, buy/sell rules), `shop-menu.js` + `ui/dialogs/shop-dialog.js` (shared shop screen), values and categories in `items.js`, gold on the Inventory page, Bought/Sold receipts. Gelton is a production area in `main.js` (`geltonReady`), with a real Iter Crystal via `buildMap({crystal})`; `waking.js` gained `prepare`.
 - Shops open from counters (Trade at counter), market stalls, and keepers/vendors who are minding them. Playground: Economy fieldset (gold, open shop, place a counter anywhere, reset stock, price list); *Enter Gelton*.
 - Fixed on the way: duplicate "Anvil" names in the model catalogue broke the viewer's keyed list (the Cinderhold one is now "Anvil (Cinderhold station)", with a uniqueness test).
 - Known: `npm run smoke` fails only on its normal-build Quests check, which looks for tutorial copy ("Here are your quests") removed in commit 6795d07; unrelated to this work.
@@ -136,7 +136,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ### Low-risk city optimizations — 2026-10-11 (user request)
 
-- `src/static-merge.js` `mergeStatic(root, objects)`: static, untextured, non-pickable meshes merged into one vertex-coloured mesh per material kind per chunk; `buildCity` merges building decor and non-interactive props per chunk (`chunk-statics`). Clickable props, doors, sign icons, roofs and caps stay separate. City data and the editor are unchanged.
+- `src/static-merge.js` `mergeStatic(root, objects)`: static, untextured, non-pickable meshes merged into one vertex-coloured mesh per material kind per chunk; `buildMap` merges building decor and non-interactive props per chunk (`chunk-statics`). Clickable props, doors, sign icons, roofs and caps stay separate. Map data and the editor are unchanged.
 - `slime-model.js`: one shared hand geometry (`userData.shared`; the model viewer and world actors no longer dispose shared geometry or materials).
 - `slime-presentation.js` `update({lean})` / `createSlimeActor().update({lean})`: skip the body bend; far-ring townsfolk use it.
 - Perf (docs/PERFORMANCE.md): all 12 PASS; modest gains (capital draws 1,141 → 1,089, upload 17 → 11 KB/frame). Tests: 539 pass.
@@ -161,20 +161,20 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 - `world-occupancy.js`: arrival order per tile, `top(tile,{player})`, `covered(owner,tile,{player})`. Used by townsfolk (standing), `updateWorldActors` movers and combat (one-tile creatures, not hidden under the player).
 - `slime-motion.js` `moveMotion`/`isRamp`/`SLIDE_DURATION`: the one move rule for the player (main.js segment) and townsfolk; stairs are smooth ramps. `createSlimeActor().update({pose})`.
 - `townsfolk.js`: stop to talk (`talking`, `talkTo`), walk facing, happy walk face, chat faces, stop short of taken tiles, slower walk (`WALK` time scale).
-- `city-terrain.js` `stairRailParts` + hidden railing edges (`createEdgeFeatures().add(…,{hidden:true})`); `buildCity` merges stair rails per chunk.
+- `map-terrain.js` `stairRailParts` + hidden railing edges (`createEdgeFeatures().add(…,{hidden:true})`); `buildMap` merges stair rails per chunk.
 - `spaces.js`: `stairsPlacements` (two-tile stairs into a corner, free front tile), two-tile `stairwellModel`, `createStairwell({place})`, arrivals by direction (`link.via`), furniture kept clear; interior checks updated.
 - DESIGN.md: the no-ramps rule now excludes city and building stairs.
 - Tests: 534 pass. Browser-verified: rails slope to the ground and meet the terrace railing; walking up the stairs rises 1 → 2 with no hop; a townsfolk talked to mid-walk finished its step, stood 4 s, then walked on facing its way; with 60 townsfolk, tiles shared by two standing townsfolk occurred and only one was drawn each time; the guild house stairs run along a wall into the corner with the bottom step in the room, and going up lands beside the opening. No perf re-run (follow-up polish within the city batch).
 
 ### City Phases 5–9 first draft — 2026-10-11 (user: "do all these phases in one fell swoop")
 
-- **Phase 5:** `city-terrain.js` (surfaces, kerbs, retaining walls, stairs, railings, stair checks), `props.js` (starter prop set with spots and interactions, rotation), shared `Sit` motion and bench sitting for the player (main.js `seat`), `city-map.js` (city data in 64 × 64 regions, `buildCity`), kit street as data with the east annex (`dev/kit-street.js`). Railings stand on the higher tile (`createEdgeFeatures`).
-- **Phase 6:** `city-checks.js` and the dev-only `dev/city-editor.js` (+ css), with world clicks routed to it in Edit mode (`setTileClick`), `editCity` in main.js, the `/__city-save` dev endpoint (vite.config.js, playground mode only), isolation markers.
+- **Phase 5:** `map-terrain.js` (surfaces, kerbs, retaining walls, stairs, railings, stair checks), `props.js` (starter prop set with spots and interactions, rotation), shared `Sit` motion and bench sitting for the player (main.js `seat`), `world-map.js` (map data in 64 × 64 regions, `buildMap`), kit street as data with the east annex (`dev/kit-street.js`). Railings stand on the higher tile (`createEdgeFeatures`).
+- **Phase 6:** `map-checks.js` and the dev-only `dev/world-editor.js` (+ css), with world clicks routed to it in Edit mode (`setTileClick`), `editMap` in main.js, the `/__map-save` dev endpoint (vite.config.js, playground mode only), isolation markers.
 - **Phase 7:** `spaces.js` (separate interiors, stairwells, dungeon entrances, quick fades, zoom cap, camera restore, interior checks), linked doors (`door.link`, doors.js), `dungeonEntrance` prop, `areas.unregister`, partial area cameras (`applyCamera` sets only given fields).
 - **Phase 8:** `townsfolk.js` (crowd, routines from places, navigator with cached distance fields, crowd budget rings, townsfolk checks, generated crowds), kit street townsfolk, perf scenarios `city-walk`, `city-crowd`, `capital-square`.
-- **Phase 9:** `buildCity` per 16 × 16 chunk with render streaming; `dev/capital-layout.js` + `scripts/generate-capital.mjs` → `src/maps/capital.json`; *Enter the capital*; `tests: capital.test.js`.
+- **Phase 9:** `buildMap` per 16 × 16 chunk with render streaming; `dev/capital-layout.js` + `scripts/generate-capital.mjs` → `src/maps/capital.json`; *Enter the capital*; `tests: capital.test.js`.
 - **Bugs found on the way:** a slime's presentation owns its rig's height (wrap townsfolk in a body group); `Object.assign` froze the city's `roofsShown`/`shownChunks` getters (roof toggle couldn't turn back on); `shade()` darkened colours in linear space, so dark roofs went black (now sRGB); spaces need the game's pickables; the playground dev server misses edits made by shell tools (restart it).
-- Playground API additions (playground only): `walkTo`, `useProp`, `useActorAt`, `teleport`, `seated`, `crowd(n)`, `crowdStats`, `enterCapital`, `capitalStats`, `scene`, `renderer`, `editCity`; `window.quadriaquest.api` and `window.quadriaquest.cityEditor`.
+- Playground API additions (playground only): `walkTo`, `useProp`, `useActorAt`, `teleport`, `seated`, `crowd(n)`, `crowdStats`, `enterCapital`, `capitalStats`, `scene`, `renderer`, `editMap`; `window.quadriaquest.api` and `window.quadriaquest.worldEditor`.
 - Tests: 532 pass. Browser-verified (GPU) for each phase: stairs climbed to every terrace, sitting, editor edits/undo/save, in and out of the guild house by door and stairwell, the crypt, townsfolk routines, the capital square and castle.
 - Open questions for the user are listed in docs/CITY.md (*Open questions for the user*, items 2–10).
 
@@ -182,7 +182,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 - **Floors between storeys:** multi-storey buildings have a floor slab at every storey line (kit: part of the roof geometry; graybox: `storeyFloors`), so upper windows look into a storey instead of down to the ground floor. They hide with the roof when cut.
 - **Flicker on cut tops fixed:** walls are stacked boxes, and through a cut you saw two faces meeting at the same depth. Walls are front-faced again, and a second mesh (`edge-features-section`, sharing the baked geometry) draws their back faces with `sectionMaterial()`: unlit dark, a constant depth offset towards the camera, only for cut buildings. A cut wall now shows one steady dark face. (The earlier "dark section via gl_FrontFacing" never reached the browser: the dev server had missed edits made with `sed`. Restart the preview after shell edits.)
-- **Force cutaway:** `updateCutaway({force})` / uniform `uCutAll` cuts every building; playground *City streets → Force cutaway*; `getState().cutaway.force`.
+- **Force cutaway:** `updateCutaway({force})` / uniform `uCutAll` cuts every building; playground *Maps → Force cutaway*; `getState().cutaway.force`.
 - **Signs:** back to a pole square to the wall with the board hanging under it, icon on both faces. The sign takes the side of the door farther from the building's corner, and skips a side tucked into a corner with a neighbour (`anchors.signOptions`, checked against the map in `createBuilding`).
 - Tests: 511 pass. Browser-verified on a fresh server: steady cut tops while orbiting, both square shops' signs moved out of their shared corner, force cutaway cuts all 33 kit buildings.
 
@@ -193,7 +193,7 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 - `edge-models.js`: styles are palettes (`STYLES`: timber, stone, brick, graybox; stone/brick/graybox have seamless posts). Pieces take `storeys` and draw per storey (floor bands, windows on every storey for `window`, `upperWindows` for walls). Doors have an `upper` group (storeys above the ground one) that hides when cut and isn't pickable.
 - `doors.js` `createEdgeFeatures`: per-add `style`/`upperWindows`, `info(a,b)`, `addCutPart`/`removeCutPart`, `cutParts()`, `buildingBoxes`, `cutaway:false` for previews.
 - `src/building-kit.js` (new): `planBuilding` (description → tiles, edges, doors with doorsteps, anchors: keeper spot, sign, awning; seed variation), `createBuilding` (marks tiles, places edges through the map's edge features, merges shared walls into one wall owned by both, adds roof + decor, `dispose()`), `roofGeometry` (gable, hip, flat with parapet, tower cone; chimney), `BUILDING_PRESETS` (cottage, shop, townhouse, hall, flat-roofed house, tower), `normalizeBuilding` (rotation 0/90/180/270; door `at` counts clockwise so it survives rotation). Signs paint the game's icons (`icons.js`) light on a dark tilted board, so they read from above.
-- Playground: *City streets* (was *Graybox street*): Enter kit street (the graybox layout built by the kit: timber square and west street, brick east street, stone castle quarter, purple guild hall roof, shops with awnings and signs on the square), roofs, cutaway, open/close all doors, zooms. Model viewer → *Building*: preset, style, roof, rotation and seed dropdowns; motions doors closed/open and cut.
+- Playground: *Maps* (was *Graybox street*): Enter kit street (the graybox layout built by the kit: timber square and west street, brick east street, stone castle quarter, purple guild hall roof, shops with awnings and signs on the square), roofs, cutaway, open/close all doors, zooms. Model viewer → *Building*: preset, style, roof, rotation and seed dropdowns; motions doors closed/open and cut.
 - Tests: 509 pass (`building-kit.test.js`; `cutaway.test.js` rewritten; kit street routes/doors/shared walls in `graybox-street.test.js`).
 - Browser-verified (GPU): kit street at zoom 12/22; a three-storey building between camera and player is cut to one storey with a clean section; inside a shop its roof hides and walls cut; signs and awnings readable; graybox street still cuts; viewer builds every preset.
 - Known look issue: a wall shared with a cut building is cut too, so its uncut neighbour's roof sits over a one-storey shared wall (visible on the terraced square ring). Acceptable for now; could cut neighbours together if it bothers.

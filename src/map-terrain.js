@@ -3,7 +3,7 @@ import {tileTopGeometry} from './tile-top.js';
 import {key} from './world.js';
 
 // City ground (docs/CITY.md, Streets, elevation and stairs; city Phase 5). Shared by every map with
-// streets, the city editor and the capital:
+// streets, the world editor and the capital:
 //  - Surfaces: each tile may carry `surface` (grass, dirt, cobble, flagstone, plaza, stone). Paved
 //    surfaces meeting grass or dirt at the same height get a kerb strip on the paved side.
 //  - Retaining walls: a tile standing a full block or more above its neighbour shows a stone wall on
@@ -11,7 +11,7 @@ import {key} from './world.js';
 //    extra: canStep already refuses steps of more than half a block.
 //  - Stairs: a tile with `stair` ({dir: 'n'|'e'|'s'|'w', the way up}) is drawn as two treads, so a run
 //    reads as stairs, not ledges. Runs are laid out by layStairs (one tile per half block).
-// Everything here is terrain: makeCityTile is a terrain factory for createTerrainBatch, so a whole city
+// Everything here is terrain: makeMapTile is a terrain factory for createTerrainBatch, so a whole city
 // bakes into a few vertex-coloured meshes.
 export const SURFACES={
  grass:['#8fb071','#88aa6b'],dirt:['#b39b78','#ab9372'],cobble:['#a9a39a','#a29c92'],flagstone:['#c3b9a6','#bbb19e'],
@@ -36,7 +36,7 @@ function add(group,geometry,color,x,y,z){const mesh=new THREE.Mesh(geometry,mate
 // Is the edge from `tile` towards (dx, dz) a retaining wall (a drop of a full block or more)?
 export function retainingDrop(tile,neighbour){return !!neighbour&&!neighbour.water&&tile.h-neighbour.h>=1-1e-6;}
 // A terrain factory (tile, map) → group, for createTerrainBatch. style: the district (wall stones).
-export function makeCityTile(tile,map,{style='stone'}={}){
+export function makeMapTile(tile,map,{style='stone'}={}){
  const group=new THREE.Group(),near=(dx,dz)=>map.get(key(tile.x+dx,tile.z+dz)),top=surfaceColor(tile),R=.065;
  const stones=WALL_STONES[tile.district||style]||WALL_STONES.stone;
  if(tile.stair){
@@ -90,7 +90,7 @@ export function railingEdges(tiles,map){
  }
  return out;
 }
-// Map checks (the city editor lists them): a drop of a full block with no stairs anywhere along the
+// Map checks (the world editor lists them): a drop of a full block with no stairs anywhere along the
 // terrace edge can't be climbed. A stair run must end on a tile at its top height (its landing).
 export function stairProblems(map){
  const problems=[];

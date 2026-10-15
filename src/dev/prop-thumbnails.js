@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {signal} from '../reactive.js';
 import {propModel} from '../props.js';
 
-// Prop thumbnails for the city editor's palette (dev only; docs/TOWN.md, Prop palette). Each prop's real
+// Prop thumbnails for the world editor's palette (dev only; docs/TOWN.md, Prop palette). Each prop's real
 // model (props.js propModel) is drawn once from the game's own isometric angle into a small image. A
 // thumbnail is a signal: empty until drawn, then a data URL. Drawing happens a few at a time across
 // frames, the first time the palette asks, with one offscreen renderer that is freed when the queue

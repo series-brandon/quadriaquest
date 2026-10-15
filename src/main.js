@@ -141,7 +141,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) rotat
 // panned with WASD (Shift: faster) or a middle-button drag, zoomed much farther out. The land, towns and
 // the sun's shadows follow the camera instead of the slime while it's on.
 let freeCam=null;const panKeys=new Set(),freeCamOn=signal(false);
-// The floor of an editor building you stand in (playground: the city editor's floors), or null.
+// The floor of an editor building you stand in (playground: the world editor's floors), or null.
 const floorHere=signal(null);
 if(__PLAYGROUND__){
  addEventListener('keydown',e=>{if(!freeCam||e.altKey||e.ctrlKey||e.metaKey)return;const k=e.key.toLowerCase();if(!['w','a','s','d','shift'].includes(k))return;
@@ -211,11 +211,11 @@ const playerOccupant={kind:'player'},companionOccupant={kind:'companion'};
 let forceCutaway=false;
 // Sitting on a bench (props.js): the seat you sit on, the one you're walking to.
 let seat=null,pendingSeat=null,wasSeated=false;
-// Playground: the city editor takes world clicks while it is in Edit mode.
-// Set by the playground's city editor host (it knows the city being edited).
+// Playground: the world editor takes world clicks while it is in Edit mode.
+// Set by the playground's world editor host (it knows the map being edited).
 let updateFloorHere=()=>{};
 let tileClick=null,tileDrag=null,painting=false,tileHover=null,hoverTileId=null;
-// The tile under the pointer, for the city editor's previews (playground): told only when it changes.
+// The tile under the pointer, for the world editor's previews (playground): told only when it changes.
 function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=data?.tile||data?.actor?.tile||null,id=at?`${at.x},${at.z}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,hit?.point||null);}
 let edgeFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
@@ -278,7 +278,7 @@ const settingsUI=createSettingsMenu({audio:gameAudio,quality,modals});
 // and town, and the camera's far plane to match.
 const drawRadius=()=>quality.drawDistance.peek(),streamedWorlds=new Set();
 let baseFar=120;
-effect(()=>{const r=quality.drawDistance.value;baseFar=camera.far=120+(r-1)*72;camera.updateProjectionMatrix();for(const w of streamedWorlds){if(w.streamer)w.streamer.radius=r;if(w.city?.streamRadius!=null)w.city.streamRadius=r;}});
+effect(()=>{const r=quality.drawDistance.value;baseFar=camera.far=120+(r-1)*72;camera.updateProjectionMatrix();for(const w of streamedWorlds){if(w.streamer)w.streamer.radius=r;if(w.builtMap?.streamRadius!=null)w.builtMap.streamRadius=r;}});
 // Once Cinderhold is complete, the crystals offer "???": ending the tutorial (waking.js).
 destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,
  extras:()=>cinder?.tutorialComplete&&!waking?.isWoken?[{id:'awaken',name:'???',description:'Somewhere beyond the dream',
@@ -434,7 +434,7 @@ function dropLoot(enemy){const items=rollDrops(enemy.rules?.drops,dropRandom);if
 const jobs=createJobs({inventory,wallet,
  grantXp(skill,amount){const s=playerSkills()[skill];if(!s)return null;const r=grantSkillXp(s,amount);showSkillReward(r,player.position);return r;},
  value:id=>ITEMS[id]?.value||1,
- addresses:giver=>(giver.city?.crowd?.folk||[]).filter(p=>p.house&&p.id&&!p.giver).map(p=>({id:p.id,name:p.name,where:p.house.building.shop?`the ${SHOPS[p.house.building.shop]?.name}`:p.house.building.plan.desc.name}))});
+ addresses:giver=>(giver.builtMap?.crowd?.folk||[]).filter(p=>p.house&&p.id&&!p.giver).map(p=>({id:p.id,name:p.name,where:p.house.building.shop?`the ${SHOPS[p.house.building.shop]?.name}`:p.house.building.plan.desc.name}))});
 const jobReceipt=result=>{itemFeed.show(result.changes,{trade:'handedIn'});gameAudio.play('complete');toast(`Job done: ${result.job.title}.`);};
 function openJobBoard(){modals.open({id:'job-board',title:'Job board',size:'sheet',flush:true,build:()=>jobBoard({jobs,onHandIn:jobReceipt})});}
 // Talking to townsfolk (townsfolk-talk.js): a conversation in the dialogue box, with whatever they have
@@ -451,13 +451,13 @@ function updateJobMarkers(dt,force=false){markerClock-=dt;if(markerClock>0&&!for
  const crowd=crowdsByArea.get(areas.id);if(!crowd)return;
  const owed=new Set(jobs.active.filter(j=>j.kind==='deliver'&&!j.delivered?inventory.package>0:j.ready).map(j=>j.handIn));
  for(const p of crowd.folk){if(!p.id)continue;p.setMarker(owed.has(p.id)?'due':null);}}
-// Townsfolk for a city map (townsfolk.js): their crowd runs in the area's update. Keepers and stall
+// Townsfolk for a map (townsfolk.js): their crowd runs in the area's update. Keepers and stall
 // vendors open their shop.
 const crowdServices={say(person,line){toast(`${person.name}: “${line}”`);},talk:talkTo,trade(person,shop){shopMenu.open(shop,{greeting:`${person.name}: “${shops.shops[shop].greeting}”`});},
  player:()=>({tile,hidden:false}),playerTile:()=>segment?null:tile,near:t=>Math.abs(t.x-tile.x)+Math.abs(t.z-tile.z)<=8};
 // Each city area's crowd, by area id (job markers, deliveries); every townsfolk knows its city.
 const crowdsByArea=new Map();
-function attachCrowd(built){built.crowd?.dispose();built.crowd=createCrowd({city:built,parent:built.group,pickables,services:crowdServices});for(const p of built.crowd.folk)p.city=built;if(built.areaId)crowdsByArea.set(built.areaId,built.crowd);return built.crowd;}
+function attachCrowd(built){built.crowd?.dispose();built.crowd=createCrowd({builtMap:built,parent:built.group,pickables,services:crowdServices});for(const p of built.crowd.folk)p.builtMap=built;if(built.areaId)crowdsByArea.set(built.areaId,built.crowd);return built.crowd;}
 // Gelton, the capital (docs/CITY.md), inside its countryside (docs/WORLD.md): where players wake after
 // the tutorial. One continuous area: the city (src/maps/capital.json, built per chunk (world-grid.js) and shown
 // around the player) and the generated countryside around it (countryside.js), streamed in chunks with
@@ -499,10 +499,10 @@ function landDress(source,coverPool){
 }
 function geltonReady(){
  return geltonLoading??=(async()=>{
-  const [{buildCity},{default:data},{createCountryside},{createChunkStreamer},{surfaceColor}]=await Promise.all([import('./city-map.js'),import('./maps/capital.json'),import('./countryside.js'),import('./chunk-streamer.js'),import('./city-terrain.js')]);
-  const cityData=structuredClone(data),source=createCountryside({city:cityData});
+  const [{buildMap},{default:data},{createCountryside},{createChunkStreamer},{surfaceColor}]=await Promise.all([import('./world-map.js'),import('./maps/capital.json'),import('./countryside.js'),import('./chunk-streamer.js'),import('./map-terrain.js')]);
+  const mapData=structuredClone(data),source=createCountryside({mapData:mapData});
   // The city streams by the countryside's rule (radius 1, a band of hysteresis), so they always match.
-  const built=buildCity(cityData,{scene,pickables,streamRadius:drawRadius(),outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
+  const built=buildMap(mapData,{scene,pickables,streamRadius:drawRadius(),outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
   built.areaId='gelton';attachCrowd(built);
   // Guards pacing the wall-top walkways (wall-sentries.js), hidden where the wall is cut down.
   built.sentries=built.walls?createWallSentries({walkways:built.walls.walkways,parent:built.group,hiddenAt:built.walls.cutAt,shownAt:built.isShown}):null;
@@ -524,7 +524,7 @@ function geltonReady(){
   const maps=[built.tiles];
   const topColor=t=>{if(t.water)return WATER_TOP;const hex=surfaceColor(t);if(!surfaceTop.has(hex))surfaceTop.set(hex,new THREE.Color(hex));return surfaceTop.get(hex);};
   const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place:placeLandExtra,dress:landDress(source,coverPool),radius:drawRadius()});
-  countryside={source,streamer,maps};built.countryside=countryside;streamedWorlds.add({streamer,city:built});
+  countryside={source,streamer,maps};built.countryside=countryside;streamedWorlds.add({streamer,builtMap:built});
   areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
    arrival:()=>built.crystal?.tile||built.spawn,
    enter(){if(!maps.includes(world))maps.push(world);streamer.prime(tile.x,tile.z,1);},
@@ -658,8 +658,8 @@ function spread(){const [a,b]=[...activePointers.values()];return Math.hypot(a.x
 canvas.addEventListener('pointerdown',e=>{
  if(!areas.canOrbit||travel.busy)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
- // City editor brushes (playground): a left-button drag paints tiles instead of turning the camera.
- if(__PLAYGROUND__&&tileDrag&&e.button===0&&activePointers.size===1){const at=terrainHitData(pick(e))?.tile;if(at){painting=true;down=null;tileDrag('start',at);return;}}
+ // World editor brushes (playground): a left-button drag paints tiles instead of turning the camera.
+ if(__PLAYGROUND__&&tileDrag&&e.button===0&&activePointers.size===1){const hit=terrainHitData(pick(e)),at=hit?.tile||hit?.actor?.tile;if(at){painting=true;down=null;tileDrag('start',at,hit?.actor||null);return;}}
  if(activePointers.size===1){down={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,button:e.button};dragged=false;}
  else{dragged=true;pinchDistance=spread();}
 });
@@ -919,59 +919,59 @@ if(__PLAYGROUND__){
    reset(){for(const d of built.doors){d.setLocked(false);d.setOpen(false);}}});
   return buildingTest=built;
  }
- // Playground city maps (city data built by the shared builder): the prop gallery (city Phase 10) and the
+ // Playground maps (map data built by the shared builder): the prop gallery (city Phase 10) and the
  // kit street (the building kit's test street: terraces, stairs, interiors, a crypt, townsfolk).
- const cityMaps={};
- async function cityMapReady(id){
-  if(cityMaps[id])return cityMaps[id];
-  const [{buildCity},data]=await Promise.all([import('./city-map.js'),id==='kit-street'?import('./dev/kit-street.js').then(m=>m.kitStreetData()):import('./dev/prop-gallery.js').then(m=>m.propGalleryData())]);
-  const built=buildCity(data,{scene,pickables});built.areaId=id;
+ const loadedMaps={};
+ async function mapReady(id){
+  if(loadedMaps[id])return loadedMaps[id];
+  const [{buildMap},data]=await Promise.all([import('./world-map.js'),id==='kit-street'?import('./dev/kit-street.js').then(m=>m.kitStreetData()):import('./dev/prop-gallery.js').then(m=>m.propGalleryData())]);
+  const built=buildMap(data,{scene,pickables});built.areaId=id;
   if(id==='kit-street')attachCrowd(built);
   areas.register({id,name:{'kit-street':'Kit street','prop-gallery':'Prop gallery'}[id],description:'Playground: '+(id==='kit-street'?'the building kit':'every prop'),listed:()=>false,group:built.group,tiles:built.tiles,update:(dt,time,view)=>{built.crowd?.update(dt,time,{camera:view});},
    camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>built.spawn,
    reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
-  return cityMaps[id]=built;
+  return loadedMaps[id]=built;
  }
- // City editor (playground only; city Phase 6): one area whose contents the editor rebuilds from data.
+ // World editor (playground only; city Phase 6): one area whose contents the editor rebuilds from data.
  let editorArea=null;
- updateFloorHere=()=>{const h=spaces.here;floorHere.value=h&&h.city===editorArea?.built?{building:h.building,level:h.level}:null;};
- // dirty: the chunk ids an edit touched. When the city being edited is this same data, only those
- // chunks are rebuilt (city-map.js rebuild); otherwise, or when rebuild declines, everything is.
+ updateFloorHere=()=>{const h=spaces.here;floorHere.value=h&&h.builtMap===editorArea?.built?(h.dungeon!==undefined?{dungeon:h.dungeon,level:h.level}:{building:h.building,level:h.level}):null;};
+ // dirty: the chunk ids an edit touched. When the map being edited is this same data, only those
+ // chunks are rebuilt (world-map.js rebuild); otherwise, or when rebuild declines, everything is.
  // at: {x, z} to land on instead (the editor opening on the map you stand in).
- async function editCity(data,{keepPlayer=true,dirty=null,at=null}={}){
-  const {buildCity}=await import('./city-map.js');
+ async function editMap(data,{keepPlayer=true,dirty=null,at=null}={}){
+  const {buildMap}=await import('./world-map.js');
   const current=editorArea?.built;
-  if(dirty&&current&&current.data===data&&areas.id==='city-editor'){spaces.forget(current);
-   // Only the city's own tiles are refreshed in the area's map; the streamed land's stay, except the
+  if(dirty&&current&&current.data===data&&areas.id==='world-editor'){spaces.forget(current);
+   // Only the map's own tiles are refreshed in the area's map; the streamed land's stay, except the
    // chunks under the edit, which reload around it (their trees and cover follow the town's ground).
    const streamer=editorArea.land?.streamer,wrap=streamer?(only,run)=>streamer.reload(only,run):null;
    // A rebuild refills the same tile objects, so the area's map needs nothing new.
    // The land is kept in step with the data by partial rebuilds (a repainted biome forgets its area first).
    // An editor rebuild is a loading stall, not the device's speed: Auto quality warms up again.
    if(current.rebuild(dirty,{wrap})){quality.settle();attachCrowd(current);if(editorArea.land)editorArea.land.landKey=JSON.stringify([data.land,data.size]);return current;}}
-  if(!editorArea){const group=new THREE.Group();group.name='city-editor';scene.add(group);editorArea={group,tiles:new Map(),built:null,land:null};
-   streamedWorlds.add({get streamer(){return editorArea.land?.streamer;},get city(){return editorArea.land?editorArea.built:null;}});
-   areas.register({id:'city-editor',name:'City editor',description:'Playground: city editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,
+  if(!editorArea){const group=new THREE.Group();group.name='world-editor';scene.add(group);editorArea={group,tiles:new Map(),built:null,land:null};
+   streamedWorlds.add({get streamer(){return editorArea.land?.streamer;},get builtMap(){return editorArea.land?editorArea.built:null;}});
+   areas.register({id:'world-editor',name:'World editor',description:'Playground: world editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,
     // The land around the map joins the live world map while you're here (as any streamed countryside).
     enter(){const m=editorArea.land?.maps;if(m&&!m.includes(world))m.push(world);},leave(){const m=editorArea.land?.maps,i=m?m.indexOf(world):-1;if(i>=0)m.splice(i,1);},
     update:(dt,time,view)=>{editorArea.built?.crowd?.update(dt,time,{camera:view});if(editorArea.land){const at=viewTile();editorArea.built?.stream(at);editorArea.land.streamer.update(dt,at);streamWater?.update(dt);}},
     reset(){for(const d of editorArea.built?.doors||[])if(!d.locked)d.setOpen(false,{quiet:true});}});}
-  const here=at||(keepPlayer&&areas.id==='city-editor'?{x:tile.x,z:tile.z}:null);
+  const here=at||(keepPlayer&&areas.id==='world-editor'?{x:tile.x,z:tile.z}:null);
   if(editorArea.built){spaces.forget(editorArea.built);editorArea.built.crowd?.dispose();editorArea.built.dispose();}
   await editorLand(data);
   // On the land, the town's chunks show by the land's rule (radius 1), so ground and buildings stream together.
-  const built=buildCity(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?drawRadius():null});built.areaId='city-editor';editorArea.built=built;attachCrowd(built);cityMaps['city-editor']=built;
+  const built=buildMap(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?drawRadius():null});built.areaId='world-editor';editorArea.built=built;attachCrowd(built);loadedMaps['world-editor']=built;
   editorArea.tiles.clear();for(const [k,t] of built.tiles)editorArea.tiles.set(k,t);
   let landing=here&&(built.tiles.get(key(here.x,here.z))||built.ground?.tile(here.x,here.z));if(!landing||landing.blocked||landing.water)landing=built.spawn;
-  const first=areas.id!=='city-editor';stopAll();splash.close();opening.enterFreePlay();if(first)craftingTutorial.reset();
+  const first=areas.id!=='world-editor';stopAll();splash.close();opening.enterFreePlay();if(first)craftingTutorial.reset();
   // The land around the landing loads first, so a landing out on it has ground.
-  editorArea.land?.streamer.prime(landing.x,landing.z);built.stream(landing);areas.activate('city-editor',{landing,arrival:false});
+  editorArea.land?.streamer.prime(landing.x,landing.z);built.stream(landing);areas.activate('world-editor',{landing,arrival:false});
   companions.resetRoute(landing);$('scene-fade').hidden=true;$('game-menus').hidden=false;quality.settle();
   return built;
  }
  // The biome land a map in the editor stands on (data.land: {seed, default, cells, origin}; docs/BIOMES.md,
  // docs/TOWN.md): generated by biome-land.js under and around the map, and streamed with the shared land
- // gameplay (town-ground.js townSource: the town's chunks are regular chunks; the city adds what is built on them).
+ // gameplay (town-ground.js townSource: the town's chunks are regular chunks; the map adds what is built on them).
  // Made again with each full build.
  async function editorLand(data){
   const old=editorArea.land;if(old){old.streamer.reset();old.streamer.group.removeFromParent();editorArea.land=null;}
@@ -981,7 +981,7 @@ if(__PLAYGROUND__){
   const landKey=JSON.stringify([data.land,data.size]),land=old?.landKey===landKey?old.land:townLand(data),source=townSource(land,()=>editorArea.built?.ground,()=>editorArea.built?.tiles,()=>editorArea.built?.data);
   if(land===old?.land)land.useCells(data.land.cells,data.land.terrain);
   editorArea.landCover??=createGroundCoverPool({parent:editorArea.group});
-  const maps=[editorArea.tiles];if(areas.id==='city-editor')maps.push(world);
+  const maps=[editorArea.tiles];if(areas.id==='world-editor')maps.push(world);
   const streamer=createChunkStreamer({source,maps,parent:editorArea.group,pickables,resources:resourceActions,topColor:source.topColor,place:placeLandExtra,dress:landDress(source,editorArea.landCover),radius:drawRadius()});
   return editorArea.land={land,landKey,source,streamer,maps};
  }
@@ -990,13 +990,13 @@ if(__PLAYGROUND__){
  const TEST_RECIPIENT={id:'test-recipient',name:'Test recipient',house:{building:{shop:null,plan:{desc:{name:'the playground'}}}}};
  // A stand-in giver: the post office, or a keeper of a shop (by kind: smith → smithy and so on).
  const TEST_SHOPS={smith:'smithy',baker:'bakery',fishmonger:'fishmonger'};
- const testGiver=kind=>({id:`test-${kind}`,name:`Test ${kind} giver`,giver:kind==='post'?'post':null,house:TEST_SHOPS[kind]?{building:{shop:TEST_SHOPS[kind]}}:null,city:{crowd:{folk:[TEST_RECIPIENT,...(crowdsByArea.get(areas.id)?.folk||[])]}}});
- const currentCityMap=()=>areas.id==='building-test'?buildingTest:areas.id==='gelton'?gelton:cityMaps[areas.id]||null;
+ const testGiver=kind=>({id:`test-${kind}`,name:`Test ${kind} giver`,giver:kind==='post'?'post':null,house:TEST_SHOPS[kind]?{building:{shop:TEST_SHOPS[kind]}}:null,builtMap:{crowd:{folk:[TEST_RECIPIENT,...(crowdsByArea.get(areas.id)?.folk||[])]}}});
+ const currentBuiltMap=()=>areas.id==='building-test'?buildingTest:areas.id==='gelton'?gelton:loadedMaps[areas.id]||null;
  playgroundApi={
   companions,
-  // Playground city maps: 'prop-gallery' or 'kit-street' (the perf scenarios' street).
-  async enterCityMap(id){
-   const {spawn}=await cityMapReady(id);stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
+  // Playground maps: 'prop-gallery' or 'kit-street' (the perf scenarios' street).
+  async enterMap(id){
+   const {spawn}=await mapReady(id);stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
    areas.activate(id,{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
   },
   // Walks to a tile (scripted checks), and uses the nearest prop of a kind (props.js) as a click would.
@@ -1005,17 +1005,23 @@ if(__PLAYGROUND__){
   get seated(){return !!seat;},
   // Uses whatever actor (door, stairwell, prop…) is nearest a tile position, as a click on it would.
   useActorAt(x,z){const actor=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a&&a.x!==undefined))].filter(a=>{let o=null;for(const m of pickables)if(m.userData.actor===a){o=m;break;}return o&&isVisible(o);}).sort((a,b)=>Math.hypot(a.x-x,a.z-z)-Math.hypot(b.x-x,b.z-z))[0];if(!actor||Math.hypot(actor.x-x,actor.z-z)>1.5)return false;selectActor(actor);return actor.label||actor.kind||true;},
-  editCity,setTileClick(fn){tileClick=fn;},
+  editMap,setTileClick(fn){tileClick=fn;},
   // Floors (spaces.js; docs/CITY.md, Floors): where you are, going to a floor or back out, following a door
   // or stairwell, and rebuilding a building's floors after an edit (you stay where you are).
   floorHere,
   enterLink(link){return !!link&&spaces.enter(link);},
-  enterFloor(building,level){const city=editorArea?.built;if(!city)return false;const entry=city.data.buildings[building];
-   if(level===0&&entry?.desc.interior!=='separate'){const t=city.buildings[building]?.anchors.doors[0]?.doorstep;return spaces.enter({kind:'exit',area:'city-editor',tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...city.data.spawn]});}
-   return spaces.enter({kind:'floor',city,building,level,via:null});},
-  leaveFloor(){const here=spaces.here;if(!here)return false;const city=here.city,entry=city.data.buildings[here.building],t=city.buildings[here.building]?.anchors.doors[0]?.doorstep;
-   return spaces.enter({kind:'exit',area:city.areaId,tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...city.data.spawn]});},
-  rebuildFloors(building){const city=editorArea?.built;if(!city)return false;spaces.rebuild(city,building,{at:[tile.x,tile.z]});updateFloorHere();return true;},
+  // owner: a building index, or {dungeon: id} (dungeons and caves by hand).
+  enterFloor(building,level){const builtMap=editorArea?.built;if(!builtMap)return false;
+   if(building?.dungeon!==undefined)return spaces.enter(level===-1?{kind:'dungeon',builtMap,id:building.dungeon}:{kind:'floor',builtMap,dungeon:building.dungeon,level,via:null});
+   const entry=builtMap.data.buildings[building];
+   if(level===0&&entry?.desc.interior!=='separate'){const t=builtMap.buildings[building]?.anchors.doors[0]?.doorstep;return spaces.enter({kind:'exit',area:'world-editor',tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...builtMap.data.spawn]});}
+   return spaces.enter({kind:'floor',builtMap,building,level,via:null});},
+  leaveFloor(){const here=spaces.here;if(!here)return false;const builtMap=here.builtMap;
+   if(here.dungeon!==undefined){const p=builtMap.props.find(q=>q.kind==='dungeonEntrance'&&builtMap.data.props.some(d=>d.link===here.dungeon&&d.x===q.tile.x&&d.z===q.tile.z)),t=p?.spots[0]?.tile||builtMap.spawn;return spaces.enter({kind:'exit',area:builtMap.areaId,tile:[t.x,t.z]});}
+   const t=builtMap.buildings[here.building]?.anchors.doors[0]?.doorstep;
+   return spaces.enter({kind:'exit',area:builtMap.areaId,tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...builtMap.data.spawn]});},
+  rebuildFloors(building){const builtMap=editorArea?.built;if(!builtMap)return false;spaces.rebuild(builtMap,building?.dungeon!==undefined?null:building,{at:[tile.x,tile.z],dungeon:building?.dungeon??null});updateFloorHere();return true;},
+  get floorGroup(){return spaces.here?.group||null;},
   get floorTiles(){return spaces.here?.tiles||null;},setTileHover(fn){tileHover=fn;hoverTileId=null;},
   // Free camera (docs/PLAYGROUND.md): on (from where the camera looks now) or off (back to the slime).
   freeCameraOn:freeCamOn,
@@ -1023,11 +1029,11 @@ if(__PLAYGROUND__){
    if(on&&!freeCam)freeCam={focus:cameraFocus.clone()};
    else if(!on&&freeCam){freeCam=null;panKeys.clear();zoom=Math.min(zoom,areas.active?.maxZoom??34);camera.far=baseFar;camera.updateProjectionMatrix();sunAnchor='';}
    freeCamOn.value=!!freeCam;return !!freeCam;},
-  // The city map you stand in, for the editor to open on: its data, area and your tile (null elsewhere).
-  currentCity(){const map=areas.id==='city-editor'?editorArea?.built:currentCityMap();return map?.data?{data:map.data,areaId:areas.id,at:{x:tile.x,z:tile.z}}:null;},setTileDrag(fn){tileDrag=fn;if(!fn)painting=false;},toast:text=>toast(text),
+  // The map you stand in, for the editor to open on: its data, area and your tile (null elsewhere).
+  currentMap(){const map=areas.id==='world-editor'?editorArea?.built:currentBuiltMap();return map?.data?{data:map.data,areaId:areas.id,at:{x:tile.x,z:tile.z}}:null;},setTileDrag(fn){tileDrag=fn;if(!fn)painting=false;},toast:text=>toast(text),
   // Townsfolk (city Phase 8): replace the current city's crowd with n generated townsfolk (0 = the city's own).
-  async crowd(n){const map=currentCityMap();if(!map?.crowd)return null;const {generateTownsfolk}=await import('./townsfolk.js');map.data.ownTownsfolk??=map.data.townsfolk;map.data.townsfolk=n?generateTownsfolk(map,n):map.data.ownTownsfolk;attachCrowd(map);return map.crowd.folk.length;},
-  get crowdStats(){const map=currentCityMap();return map?.crowd?{count:map.crowd.folk.length,...map.crowd.stats,fields:map.crowd.navigator.cached,activities:Object.fromEntries(map.crowd.folk.reduce((m,p)=>m.set(p.activity||'idle',(m.get(p.activity||'idle')||0)+1),new Map())),folk:map.crowd.folk.map(p=>({name:p.name,tile:[p.tile.x,p.tile.z],activity:p.activity||'idle',state:p.state,ring:p.ring,visible:p.group.visible,parentVisible:!!p.group.parent?.visible,y:+p.group.position.y.toFixed(2)}))}:null;},
+  async crowd(n){const map=currentBuiltMap();if(!map?.crowd)return null;const {generateTownsfolk}=await import('./townsfolk.js');map.data.ownTownsfolk??=map.data.townsfolk;map.data.townsfolk=n?generateTownsfolk(map,n):map.data.ownTownsfolk;attachCrowd(map);return map.crowd.folk.length;},
+  get crowdStats(){const map=currentBuiltMap();return map?.crowd?{count:map.crowd.folk.length,...map.crowd.stats,fields:map.crowd.navigator.cached,activities:Object.fromEntries(map.crowd.folk.reduce((m,p)=>m.set(p.activity||'idle',(m.get(p.activity||'idle')||0)+1),new Map())),folk:map.crowd.folk.map(p=>({name:p.name,tile:[p.tile.x,p.tile.z],activity:p.activity||'idle',state:p.state,ring:p.ring,visible:p.group.visible,parentVisible:!!p.group.parent?.visible,y:+p.group.position.y.toFixed(2)}))}:null;},
   // The capital (city Phase 9; playground for now): src/maps/capital.json, built per chunk and streamed
   // around the player, with its townsfolk.
   async enterCapital(){

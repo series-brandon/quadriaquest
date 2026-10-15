@@ -2,20 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
-import {buildCity} from './city-map.js';
-import {cityProblems} from './city-checks.js';
+import {buildMap} from './world-map.js';
+import {mapProblems} from './map-checks.js';
 import {findPath,key} from './world.js';
 import {CAPITAL,capitalData} from './dev/capital-layout.js';
 import {CHUNK,REGION,BAND,chunkId,chunkOf} from './world-grid.js';
 
 const data=JSON.parse(readFileSync(new URL('./maps/capital.json',import.meta.url),'utf8'));
-test('the capital: 160 × 160 (5 × 5 chunks) in 2 × 2 regions, with no errors in the city checks',()=>{
+test('the capital: 160 × 160 (5 × 5 chunks) in 2 × 2 regions, with no errors in the map checks',()=>{
  assert.deepEqual(data.size,[160,160]);assert.equal(Object.keys(data.regions).length,(Math.ceil(160/REGION))**2);
- const built=buildCity(data,{scene:new THREE.Group()});
- assert.deepEqual(cityProblems(data,built).filter(p=>p.severity==='error').map(p=>`${p.tile} ${p.text}`),[]);
+ const built=buildMap(data,{scene:new THREE.Group()});
+ assert.deepEqual(mapProblems(data,built).filter(p=>p.severity==='error').map(p=>`${p.tile} ${p.text}`),[]);
 });
 test('you wake at the Iter Crystal in the town square, and the castle, market and sewers are all reachable',()=>{
- const built=buildCity(data,{scene:new THREE.Group()}),t=(x,z)=>built.tiles.get(key(x,z)),{square,crystal}=CAPITAL;
+ const built=buildMap(data,{scene:new THREE.Group()}),t=(x,z)=>built.tiles.get(key(x,z)),{square,crystal}=CAPITAL;
  const s=built.spawn;assert.ok(s.x>=square.x0&&s.x<=square.x1&&s.z>=square.z0&&s.z<=square.z1,'spawn in the square');
  assert.ok(Math.abs(s.x-crystal[0])+Math.abs(s.z-crystal[1])<=2,'beside the crystal');assert.ok(t(...crystal).blocked);
  const keep=built.buildings.find(b=>b.plan.desc.name==='castle keep');
@@ -26,7 +26,7 @@ test('you wake at the Iter Crystal in the town square, and the castle, market an
  assert.ok(data.townsfolk.length>=30);
 });
 test('the capital streams: chunks around the player show, buildings show whole, and shown chunks linger a band',()=>{
- const built=buildCity(structuredClone(data),{scene:new THREE.Group(),streamRadius:1});
+ const built=buildMap(structuredClone(data),{scene:new THREE.Group(),streamRadius:1});
  assert.equal(built.chunks.size,25);built.stream(built.spawn);
  const [cx,cz]=chunkOf(built.spawn.x,built.spawn.z),dist=c=>Math.max(Math.abs(c.cx-cx),Math.abs(c.cz-cz));
  assert.equal(CAPITAL.axis%CHUNK,CHUNK/2,'the axis runs down the middle of a chunk');assert.deepEqual([cx,cz],[2,2],'you wake in the middle chunk');

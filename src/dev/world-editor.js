@@ -3,15 +3,15 @@ import {h,mount} from '../ui/dom.js';
 import {keyedList} from '../ui/list.js';
 import {segmented,toggleSwitch} from '../ui/controls.js';
 import {signal,computed,effect,untracked} from '../reactive.js';
-import {createCityData,growMap,cityHeight,setCityHeight,setCitySurface,clearCitySurface,cityOffset,setCityOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells} from '../city-map.js';
-import {cityProblems} from '../city-checks.js';
+import {createMapData,growMap,mapHeight,mapSurface,setMapHeight,setMapSurface,clearMapSurface,mapOffset,setMapOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells} from '../world-map.js';
+import {mapProblems} from '../map-checks.js';
 import {planBuilding,BUILDING_PRESETS,ROOF_TYPES,ROOF_COLORS,AWNINGS,toShaped,shiftShaped,shapeRuns,connectedCells} from '../building-kit.js';
 import {STYLE_NAMES,stylePalette} from '../edge-models.js';
 import {PROPS,PROP_CATEGORIES,propFootprint,propModel} from '../props.js';
 import {propThumbnail} from './prop-thumbnails.js';
 import {USE_NAMES,USE_ICONS,furnishRoom,furnishingUse,upstairsUse} from '../furnish.js';
 import {flightOf,floorLevels} from '../spaces.js';
-import {DIRS} from '../city-terrain.js';
+import {DIRS} from '../map-terrain.js';
 import {CHUNK,REGION,withinChunk,chunksAround} from '../world-grid.js';
 import {createGridOverlay,createCellOutline,createBiomeOverlay,createCellFill} from './grid-overlay.js';
 import {BIOME_IDS,biomeRule} from '../biome-rules.js';
@@ -26,20 +26,20 @@ import {TREE_SPECIES} from '../tree-models.js';
 import {COVER_KINDS} from '../ground-cover.js';
 import {CELL as BIOME_CELL,FORGET_MARGIN} from '../biome-land.js';
 import {propGalleryData} from './prop-gallery.js';
-import './city-editor.css';
+import './world-editor.css';
 
-// The playground city editor (docs/CITY.md, Authoring; city Phase 6). Dev only. It edits a city's data
-// and rebuilds it in place with the production builders (city-map.js), so what you edit is exactly
+// The playground world editor (docs/CITY.md, Authoring; city Phase 6). Dev only. It edits a map's data
+// and rebuilds it in place with the production builders (world-map.js), so what you edit is exactly
 // what the game builds:
 //  - tools: inspect, select, raise/lower/flatten height (half blocks), paint surface, place a building (kit
 //    preset, rotation), place a prop, lay stairs, draw an edge by hand, erase, set the arrival tile;
 //  - fast editing (docs/TOWN.md, Authoring tools): select a building, prop, stair or townsfolk and move,
 //    rotate, duplicate or delete it (buttons, or keys that never take a movement key: M, R, Ctrl/⌘+D,
 //    Delete, Esc; Ctrl/⌘+Z and Ctrl/⌘+Shift+Z undo and redo; nudge and reshape are buttons); raise,
-//    lower and surface paint as you drag; each edit rebuilds only the chunks it touched (city-map.js
+//    lower and surface paint as you drag; each edit rebuilds only the chunks it touched (world-map.js
 //    rebuild), and the checks run a moment after editing stops;
 //  - Edit / Play: Play is a test walk in place (clicks move you as in the game); Reset rebuilds;
-//  - live checks (city-checks.js), each a button that takes you to the problem; chunk and region lines
+//  - live checks (map-checks.js), each a button that takes you to the problem; chunk and region lines
 //    shown on the ground (a building must fit inside one chunk; placing one across a line is refused);
 //  - hand-shaped buildings (docs/TOWN.md): paint any connected footprint with the Footprint tool, or
 //    Reshape a selected building, then Build it (walls follow the outline, the roof joins over it);
@@ -53,9 +53,11 @@ import './city-editor.css';
 //    the land): its ground becomes the land's, heights become offsets on it and buildings level pads;
 //    paint biomes by dragging (one per 8 × 8 cell); the map rebuilds when a stroke ends;
 //  - undo / redo, save to the repo (dev server endpoint), copy and download the JSON.
-// host (main.js playground API): editCity(data, {keepPlayer, dirty}) → built city, setTileClick(fn|null),
+// host (main.js playground API): editMap(data, {keepPlayer, dirty}) → built map, setTileClick(fn|null),
 // setTileDrag(fn('start'|'move'|'end', tile)|null), teleport(x, z), toast(text).
 const repoCities=import.meta.glob('../maps/*.json',{eager:true,import:'default'});
+// Stamps saved to the repo (src/stamps/; docs/TOWN.md, Box select, copy and stamps).
+const repoStamps=import.meta.glob('../stamps/*.json',{eager:true,import:'default'});
 const SIDE_LABELS={n:'North',e:'East',s:'South',w:'West'};
 // The shortcut modifier as the platform shows it.
 const MOD=/Mac|iPhone|iPad/.test(globalThis.navigator?.platform||'')?'⌘':'Ctrl';
@@ -63,7 +65,9 @@ const MOD=/Mac|iPhone|iPad/.test(globalThis.navigator?.platform||'')?'⌘':'Ctrl
 const BIOME_PAINT={meadow:'#b8e06a',forest:'#2f8f3f',pines:'#1d5d4b',hills:'#a8875a',coast:'#f0d78c',wetland:'#5f8f7a'};
 // Each terrain's colour in the terrain layer's overlay; 'usual' (unpainted: the biome's own) isn't drawn.
 const TERRAIN_PAINT={plains:'#e8e39a',rolling:'#9cc46a',lakeland:'#5fc0d8',uplands:'#c49a6c',hills:'#8a6a48',highlands:'#4f4038',marsh:'#4f8a76',river:'#3fa0e8',sea:'#2f62c8'};
-const PAINT_TOOLS=['raise','lower','flatten','surface','footprint','biome','nature'],CLOCKWISE={n:'e',e:'s',s:'w',w:'n'},KIND_LABELS={building:'building',prop:'prop',stairs:'stairs',townsfolk:'townsfolk',resource:'resource',cover:'ground cover',crystal:'crystal',enemy:'enemy spawn'};
+const PAINT_TOOLS=['raise','lower','flatten','smooth','surface','footprint','biome','nature'],
+ // Tools that take a left-drag: the brushes, Select (a box), Edge (a fence line) and Ramp (a slope).
+ DRAG_TOOLS=[...PAINT_TOOLS,'select','edge','ramp'],CLOCKWISE={n:'e',e:'s',s:'w',w:'n'},KIND_LABELS={building:'building',prop:'prop',stairs:'stairs',townsfolk:'townsfolk',resource:'resource',cover:'ground cover',crystal:'crystal',enemy:'enemy spawn'};
 // Enemy spawns (docs/TOWN.md, Enemy spawns): respawn choices in seconds.
 // Townsfolk (docs/TOWN.md, Townsfolk tool): what they can wear and hold, and the routine's activities.
 const HEADS=Object.keys(GEAR).filter(id=>GEAR[id].slot==='head'),HANDS=Object.keys(GEAR).filter(id=>GEAR[id].slot==='hand');
@@ -72,20 +76,20 @@ const RESPAWNS=[['30','30 seconds'],['45','45 seconds'],['120','2 minutes'],['30
 // The Nature brush (docs/TOWN.md, Nature by hand): trees by species, resources, ground cover, or clear.
 const NATURE_CHOICES=[['grow','Grow (biome)'],['clear','Clear nature'],['fishing','Fishing spot (on water)'],...Object.entries(TREE_SPECIES).map(([id,t])=>[`tree:${id}`,`${t.name||id} tree`]),
  ...['copper','boulder','sticks','stones','flint'].map(k=>[`resource:${k}`,k[0].toUpperCase()+k.slice(1)]),...COVER_KINDS.filter(k=>k!=='lilyPad').map(k=>[`cover:${k}`,`Cover: ${k}`])];
-const TOOLS=[['inspect','Inspect'],['select','Select'],['footprint','Footprint'],['walls','Walls'],['biome','Biome'],['use','Use'],['reroll','Reroll furniture'],['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['surface','Surface'],['building','Building'],['prop','Prop'],['stairs','Stairs'],['edge','Edge'],['erase','Erase'],['spawn','Arrival']];
-export function cityCatalogue(){
+const TOOLS=[['inspect','Inspect'],['select','Select'],['footprint','Footprint'],['walls','Walls'],['biome','Biome'],['use','Use'],['reroll','Reroll furniture'],['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['smooth','Smooth'],['ramp','Ramp'],['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['underground','Underground'],['stamp','Stamp'],['crystal','Crystal'],['surface','Surface'],['building','Building'],['prop','Prop'],['stairs','Stairs'],['edge','Edge'],['erase','Erase'],['spawn','Arrival']];
+export function mapCatalogue(){
  // The repo's maps first (the overworld), then the playground's.
  const list=Object.entries(repoCities).map(([path,data])=>({id:'repo:'+path,mapId:data.id,name:`${data.name} (src/maps/${path.split('/').pop()})`,make:()=>structuredClone(data)}));
  list.sort((a,b)=>(b.mapId==='overworld')-(a.mapId==='overworld'));
- list.push({id:'prop-gallery',mapId:'prop-gallery',name:'Prop gallery (playground)',make:()=>propGalleryData()},{id:'blank',mapId:'new-city',name:'Blank 64 × 64',make:()=>createCityData({id:'new-city',name:'New city',size:[64,64]})});
+ list.push({id:'prop-gallery',mapId:'prop-gallery',name:'Prop gallery (playground)',make:()=>propGalleryData()},{id:'blank',mapId:'new-map',name:'Blank 64 × 64',make:()=>createMapData({id:'new-map',name:'New map',size:[64,64]})});
  return list;
 }
 
-export function createCityEditor(host){
- const catalogue=cityCatalogue(),choice=signal(catalogue[0].id);
+export function createWorldEditor(host){
+ const catalogue=mapCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null,stopFloors=null;
  const tool=signal('inspect'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
  // The footprint being painted: tiles ('x,z'), and the building it reshapes (its index) or null for a new one.
@@ -93,29 +97,33 @@ export function createCityEditor(host){
  // What is selected ({kind, index} into data.buildings/props/stairs/townsfolk) and whether the next
  // click moves it; a duplicate waits for its click as `placing`.
  const selection=signal(null),moving=signal(false);let placing=null;
+ // Overlays draw where you are: a floor's space, or the map.
+ const overlayParent=()=>floorHere.peek()&&host.floorGroup||built?.group;
  const showDraft=()=>{draftOutline?.dispose();draftOutline=null;const cells=[...draft.peek()].map(id=>id.split(',').map(Number));if(built&&cells.length)draftOutline=createCellOutline({cells,tiles:built.tiles,parent:built.group,color:'#5fe0ff'});};
  const showBiomes=()=>{biomeOverlay?.dispose();biomeOverlay=null;if(!built||!data?.land||tool.peek()!=='biome')return;
   const terrain=options.landLayer.peek()==='terrain';
   biomeOverlay=createBiomeOverlay({cells:(terrain?data.land.terrain:data.land.cells)||{},cell:BIOME_CELL,colors:terrain?TERRAIN_PAINT:BIOME_PAINT,heightAt:(x,z)=>at(x,z)?.h,parent:built.group,origin:data.land.origin||[0,0],bounds:[0,0,data.size[0]-1,data.size[1]-1]});};
  const showGrid=()=>{overlay?.dispose();overlay=grid.peek()&&built?createGridOverlay({tiles:built.tiles,parent:built.group}):null;};
- const showSelection=()=>{outline?.dispose();outline=null;showPersonSpots();const sel=selection.peek(),entry=entryOf(sel);if(!built||!entry)return;outline=createCellOutline({cells:cellsOf(sel.kind,entry),tiles:built.tiles,parent:built.group,color:moving.peek()?'#5fe0ff':'#ffe14d'});};
+ const showSelection=()=>{outline?.dispose();outline=null;showPersonSpots();const sel=selection.peek(),entry=entryOf(sel);if(!built||!entry)return;outline=createCellOutline({cells:cellsOf(sel.kind,entry),tiles:{get:k=>at(...k.split(',').map(Number))},parent:overlayParent(),color:moving.peek()?'#5fe0ff':'#ffe14d'});};
  // Checks run a moment after editing stops (they take seconds on the capital).
- const scheduleChecks=(delay=250)=>{clearTimeout(checkTimer);checkTimer=setTimeout(()=>{if(built&&data)problems.value=cityProblems(data,built);},delay);};
+ const scheduleChecks=(delay=250)=>{clearTimeout(checkTimer);checkTimer=setTimeout(()=>{if(built&&data)problems.value=mapProblems(data,built);},delay);};
  // Rebuilds run one at a time; edits that arrive meanwhile merge into the next one.
  let rebuilding=null,queued=null;
  async function rebuild({keepPlayer=true,dirty=null}={}){
   if(rebuilding){queued=queued?{keepPlayer,dirty:queued.dirty&&dirty?[...new Set([...queued.dirty,...dirty])]:null}:{keepPlayer,dirty};return rebuilding;}
-  rebuilding=(async()=>{built=await host.editCity(data,{keepPlayer,dirty});scheduleChecks(dirty?250:0);showGrid();showSelection();showDraft();showBiomes();refreshPreview();revision.value++;})();
+  rebuilding=(async()=>{built=await host.editMap(data,{keepPlayer,dirty});scheduleChecks(dirty?250:0);showGrid();showSelection();showDraft();showBiomes();refreshPreview();revision.value++;})();
   try{await rebuilding;}finally{rebuilding=null;}
   if(queued){const next=queued;queued=null;await rebuild(next);}
  }
  const snapshot=()=>{undo.push(JSON.stringify(data));if(undo.length>60)undo.shift();redo.length=0;history.value={undo:undo.length,redo:0};};
  // An edit: apply() changes the data and returns the tiles it touched afterwards; `before` are the tiles
  // it touched before. Only their chunks are rebuilt. A refused edit (apply throws) leaves the data as it
- // was, in place, so the city being edited stays the same object.
+ // was, in place, so the map being edited stays the same object.
  async function change(apply,before=[]){
   const saved=JSON.stringify(data);snapshot();let after;
   try{after=apply()||[];}catch(error){const restored=JSON.parse(saved);for(const k of Object.keys(data))delete data[k];Object.assign(data,restored);undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return false;}
+  // Inside a floor every edit rebuilds that floor's building (or dungeon), and you stay where you are.
+  const owner=hereOwner();if(owner!==null){if(!isDungeon(owner))staleBuildings.add(owner);host.rebuildFloors(owner);revision.value++;showSelection();refreshPreview();return true;}
   await rebuild({dirty:chunksAround([...before,...after])});return true;}
  // Inside a building's floor (docs/CITY.md, Floors) the tiles are that floor's; otherwise the map's.
  const floorHere=host.floorHere||signal(null);
@@ -133,8 +141,10 @@ export function createCityEditor(host){
    if(!water&&t.water)throw Error(`${a},${b} is water.`);
    if(!mine.has(`${a},${b}`)&&(t.indoor||t.stair||t.prop||t.blocked&&!t.water))throw Error(`${a},${b} is taken.`);}};
  // Selection: what's at a tile, the tiles a thing covers, and the edits on it.
- const lists=()=>({building:data.buildings,prop:data.props,stairs:data.stairs,townsfolk:data.townsfolk||(data.townsfolk=[]),resource:data.resources||(data.resources=[]),cover:data.cover||(data.cover=[]),fishing:data.fishing||(data.fishing=[]),enemy:data.enemies||(data.enemies=[])});
- function entryOf(sel){if(!sel||!data)return null;if(sel.kind==='crystal')return data.crystal||null;return lists()[sel.kind]?.[sel.index]??null;}
+ const lists=()=>({building:data.buildings,prop:data.props,stairs:data.stairs,townsfolk:data.townsfolk||(data.townsfolk=[]),resource:data.resources||(data.resources=[]),cover:data.cover||(data.cover=[]),fishing:data.fishing||(data.fishing=[]),enemy:data.enemies||(data.enemies=[]),
+  // Inside a floor: its furniture.
+  furniture:floorHere.peek()?floorAt(hereOwner(),floorHere.peek().level).furniture??=[]:[],edge:data.edges});
+ function entryOf(sel){if(!sel||!data)return null;if(sel.kind==='crystal')return data.crystal||null;if(sel.kind==='group')return sel.items.length?sel:null;return lists()[sel.kind]?.[sel.index]??null;}
  // Nature on the land (town-ground.js): what grows on a tile, generated or placed, as the streamer sees it.
  const nature=()=>built?.ground?townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data):null;
  const natureAt=(x,z)=>nature()?.natureAt(at(x,z))||{resource:null,cover:null};
@@ -145,16 +155,20 @@ export function createCityEditor(host){
   if(!e.placed){removeGrown(e.id);lists()[which].push({kind:e.kind,...e.species?{species:e.species}:{},x,z});}
   return {kind:which,index:lists()[which].findIndex(r=>r.x===x&&r.z===z)};}
  const stairSteps=s=>stairCells(s).slice((s.width||1),-(s.width||1));
- function cellsOf(kind,entry){if(!entry)return [];if(kind==='crystal')return [entry];if(kind==='resource'||kind==='cover')return [[entry.x,entry.z]];if(kind==='enemy'){const n=enemySize(entry.enemy),out=[];for(let b=0;b<n;b++)for(let a=0;a<n;a++)out.push([entry.x+a,entry.z+b]);return out;}if(kind==='building')return planBuilding(entry.desc,[entry.x,entry.z]).tiles;if(kind==='prop')return propCells(entry);if(kind==='stairs')return stairSteps(entry);return entry.home?[entry.home]:[];}
+ function cellsOf(kind,entry){if(!entry)return [];if(kind==='crystal')return [entry];if(kind==='group')return entry.items.flatMap(r=>cellsOf(r.kind,entryOf(r)));if(kind==='edge')return [entry.a,entry.b];if(kind==='resource'||kind==='cover')return [[entry.x,entry.z]];if(kind==='furniture'){const p=planOf(hereOwner()),[w,d]=propFootprint(entry.kind,entry.rotation||0),out=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)out.push([p.x0+entry.at[0]+a,p.z0+entry.at[1]+b]);return out;}
+  if(kind==='enemy'){const n=enemySize(entry.enemy),out=[];for(let b=0;b<n;b++)for(let a=0;a<n;a++)out.push([entry.x+a,entry.z+b]);return out;}if(kind==='building')return planBuilding(entry.desc,[entry.x,entry.z]).tiles;if(kind==='prop')return propCells(entry);if(kind==='stairs')return stairSteps(entry);return entry.home?[entry.home]:[];}
  function pickAt(x,z){const hit=(kind,list,test)=>{const index=list.findIndex(test);return index>=0?{kind,index}:null;},on=cells=>cells.some(([a,b])=>a===x&&b===z),l=lists();
+  if(floorHere.peek())return hit('furniture',l.furniture,f=>on(cellsOf('furniture',f)));
   return hit('townsfolk',l.townsfolk,f=>f.home&&f.home[0]===x&&f.home[1]===z)||(data.crystal&&data.crystal[0]===x&&data.crystal[1]===z?{kind:'crystal',index:0}:null)||hit('building',l.building,b=>on(cellsOf('building',b)))||hit('prop',l.prop,p=>on(propCells(p)))||hit('stairs',l.stairs,s=>on(stairSteps(s)))||hit('enemy',l.enemy,e=>on(cellsOf('enemy',e)))||hit('resource',l.resource,r=>r.x===x&&r.z===z)||hit('cover',l.cover,c=>c.x===x&&c.z===z);}
- const nameOf=(kind,entry)=>kind==='enemy'?`${ENEMIES[entry.enemy]?.name||entry.enemy}${entry.aggressive?' (aggressive)':''}`:kind==='crystal'?'the Iter Crystal':kind==='resource'?natureName(entry):kind==='cover'?`${entry.kind} (cover)`:kind==='building'?entry.desc.name||'Building':kind==='prop'?PROPS[entry.kind]?.name||entry.kind:kind==='stairs'?`Stairs up ${SIDE_LABELS[entry.dir].toLowerCase()}`:entry.name||entry.id||'Townsfolk';
- const anchorOf=(kind,entry)=>kind==='townsfolk'?entry.home:kind==='crystal'?entry:[entry.x,entry.z];
- const setAnchor=(kind,entry,[x,z])=>{if(kind==='townsfolk')entry.home=[x,z];else if(kind==='crystal')data.crystal=[x,z];else{entry.x=x;entry.z=z;}};
+ const nameOf=(kind,entry)=>kind==='group'?`${entry.items.length} things`:kind==='edge'?`a ${entry.kind}`:kind==='furniture'?PROPS[entry.kind]?.name||entry.kind:kind==='enemy'?`${ENEMIES[entry.enemy]?.name||entry.enemy}${entry.aggressive?' (aggressive)':''}`:kind==='crystal'?'the Iter Crystal':kind==='resource'?natureName(entry):kind==='cover'?`${entry.kind} (cover)`:kind==='building'?entry.desc.name||'Building':kind==='prop'?PROPS[entry.kind]?.name||entry.kind:kind==='stairs'?`Stairs up ${SIDE_LABELS[entry.dir].toLowerCase()}`:entry.name||entry.id||'Townsfolk';
+ const anchorOf=(kind,entry)=>kind==='group'?(c=>[Math.min(...c.map(p=>p[0])),Math.min(...c.map(p=>p[1]))])(cellsOf('group',entry)):kind==='edge'?entry.a:kind==='townsfolk'?entry.home:kind==='crystal'?entry:kind==='furniture'?(p=>[p.x0+entry.at[0],p.z0+entry.at[1]])(planOf(hereOwner())):[entry.x,entry.z];
+ const setAnchor=(kind,entry,[x,z])=>{if(kind==='edge'){const [ax,az]=entry.a;entry.b=[entry.b[0]+x-ax,entry.b[1]+z-az];entry.a=[x,z];return;}if(kind==='furniture'){const p=planOf(hereOwner());entry.at=[x-p.x0,z-p.z0];return;}if(kind==='townsfolk')entry.home=[x,z];else if(kind==='crystal')data.crystal=[x,z];else{entry.x=x;entry.z=z;}};
  // Checks an entry where it now stands (own: the tiles it covered before, which it may reuse).
  // dry: only check (previews); otherwise placing nature also takes away what grew on its tile.
  function validate(kind,entry,own,{dry=false}={}){const cells=cellsOf(kind,entry);
   if(kind==='building'){oneChunk(cells);taken(cells,own);}else if(kind==='prop')taken(cells,own,entry.kind);
+  // Furniture on a floor: on open floor tiles (its own old ones may be reused).
+  else if(kind==='furniture'){const mine=new Set(own.map(c=>c.join(',')));for(const [a,b] of cells){const t=at(a,b);if(!t||!t.indoor)throw Error(`${a},${b} isn’t on this floor.`);if(t.blocked&&!mine.has(`${a},${b}`))throw Error(`${a},${b} is taken.`);}}
   else if(kind==='crystal'){if(at(...cells[0])?.water)throw Error('The crystal needs dry ground.');taken(cells,own);}
   // An enemy spawn: dry, open ground for its whole body, not on another spawn.
   else if(kind==='enemy'){const mine=new Set(own.map(c=>c.join(',')));for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);if(t.water)throw Error(`${a},${b} is water.`);
@@ -167,19 +181,96 @@ export function createCityEditor(host){
   else if(kind==='townsfolk'){for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);if(t.water||t.blocked)throw Error(`${a},${b} isn’t somewhere to stand.`);}}
   else for(const [a,b] of cells)if(!at(a,b))throw Error(`${a},${b} is off the map.`);
   return cells;}
+ // Groups (docs/TOWN.md, Box select, copy and stamps): everything placed inside a box, moved, nudged,
+ // duplicated, deleted or copied together. Stamps are groups saved with the ground painted under them.
+ const GROUP_KINDS=['building','prop','stairs','edge','resource','cover','fishing','enemy','townsfolk'];
+ function pickBox(x0,z0,x1,z1){const inBox=([x,z])=>x>=x0&&x<=x1&&z>=z0&&z<=z1,items=[],l=lists();
+  if(floorHere.peek()){(l.furniture||[]).forEach((e,index)=>{if(cellsOf('furniture',e).every(inBox))items.push({kind:'furniture',index});});return items;}
+  for(const kind of GROUP_KINDS)(l[kind]||[]).forEach((e,index)=>{const cells=cellsOf(kind,e);if(cells.length&&cells.every(inBox))items.push({kind,index});});
+  return items;}
+ // An entry moved by (dx, dz): every coordinate it holds.
+ function shiftEntry(kind,e,dx,dz){if(kind==='townsfolk'){if(e.home)e.home=[e.home[0]+dx,e.home[1]+dz];if(e.patrol)e.patrol=e.patrol.map(([x,z])=>[x+dx,z+dz]);return e;}
+  if(kind==='edge'){e.a=[e.a[0]+dx,e.a[1]+dz];e.b=[e.b[0]+dx,e.b[1]+dz];return e;}if(kind==='furniture'){e.at=[e.at[0]+dx,e.at[1]+dz];return e;}e.x+=dx;e.z+=dz;return e;}
+ // A group as a stamp: its things relative to its north-west corner, and (on the map) the ground painted in
+ // its box. A townsfolk's building, when it's in the stamp too, is kept as its place in the stamp.
+ function makeStamp(group,{ground=true}={}){const cells=cellsOf('group',group),x0=Math.min(...cells.map(c=>c[0])),z0=Math.min(...cells.map(c=>c[1])),x1=Math.max(...cells.map(c=>c[0])),z1=Math.max(...cells.map(c=>c[1]));
+  const items={},buildingAt=new Map();for(const r of group.items){const e=structuredClone(entryOf(r));if(r.kind==='building')buildingAt.set(r.index,(items.building||[]).length);(items[r.kind]??=[]).push(shiftEntry(r.kind,e,-x0,-z0));}
+  for(const f of items.townsfolk||[]){if(f.house!==undefined&&buildingAt.has(f.house))f.stampHouse=buildingAt.get(f.house);delete f.house;}
+  const stamp={size:[x1-x0+1,z1-z0+1],items};
+  if(ground&&!floorHere.peek()){const surfaces={},heights={};for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){const k=`${x-x0},${z-z0}`,sf=mapSurface(data,x,z);if(sf)surfaces[k]=sf;
+    const h=data.land?mapOffset(data,x,z):mapHeight(data,x,z);if(h!==null&&h!==(data.land?0:1))heights[k]=h;}
+   if(Object.keys(surfaces).length)stamp.surfaces=surfaces;if(Object.keys(heights).length)stamp.heights=heights;stamp.onLand=!!data.land;}
+  return stamp;}
+ // Places a stamp with its north-west corner at (x, z): its ground, then its things (each checked as if
+ // placed by hand), as one undo step. Returns the new group.
+ async function applyStamp(stamp,x,z){let added=null;
+  const ok=await change(()=>{const baseBuildings=data.buildings.length,refs=[];
+   for(const [k,v] of Object.entries(stamp.surfaces||{})){const [dx,dz]=k.split(',').map(Number);if(v==='water'&&!data.land)continue;setMapSurface(data,x+dx,z+dz,v);}
+   for(const [k,v] of Object.entries(stamp.heights||{})){const [dx,dz]=k.split(',').map(Number);if(data.land&&stamp.onLand)setMapOffset(data,x+dx,z+dz,v);else if(!data.land&&!stamp.onLand)setMapHeight(data,x+dx,z+dz,v);}
+   const order=floorHere.peek()?['furniture']:['building','prop','stairs','edge','resource','cover','fishing','enemy','townsfolk'];
+   for(const kind of order)for(const src of stamp.items[kind]||[]){const e=shiftEntry(kind,structuredClone(src),x,z);
+    if(kind==='townsfolk'){e.id=uniqueFolkId(e.id||e.name||'townsfolk');if(e.stampHouse!==undefined)e.house=baseBuildings+e.stampHouse;delete e.stampHouse;}
+    validate(kind,e,[]);lists()[kind].push(e);refs.push({kind,index:lists()[kind].length-1});}
+   added={kind:'group',items:refs};const [w,d]=stamp.size;const cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);return cells;});
+  if(ok&&added?.items.length){selection.value=added.items.length===1?added.items[0]:added;showSelection();}return ok;}
+ let clipboard=null;
+ // A stamp's footprint where it would go, green or red by the same checks as placing.
+ function stampPreview(stamp,x,z){if(!stamp)return null;const cells=[],errors=[];
+  for(const [kind,list] of Object.entries(stamp.items))for(const src of list){const e=shiftEntry(kind,structuredClone(src),x,z);let c=[];try{c=cellsOf(kind,e);validate(kind,e,[],{dry:true});}catch(error){errors.push(error.message);}cells.push(...c);}
+  const [w,d]=stamp.size;for(let b=0;b<d;b++)for(let a=0;a<w;a++)if(!cells.some(([p,q])=>p===x+a&&q===z+b))cells.push([x+a,z+b]);
+  return {cells:tint(cells,errors.length?NO:OK),refused:errors[0]||null};}
+ // Stamps: the repo's (src/stamps/), and those saved this session.
+ const savedStamps=signal(Object.entries(repoStamps).map(([path,stamp])=>({id:path.split('/').pop().replace(/\.json$/,''),stamp})));
+ const chosenStamp=signal('');const stampName=signal('');
+ const stampOf=id=>savedStamps.peek().find(s=>s.id===id)?.stamp||null;
+ async function saveStamp(){const {sel,entry}=selected(),stamp={name:stampName.peek().trim()||'Stamp',...makeStamp(sel.kind==='group'?entry:{kind:'group',items:[sel]})};
+  const id=stamp.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'stamp';
+  savedStamps.value=[...savedStamps.peek().filter(s=>s.id!==id),{id,stamp}];chosenStamp.value=id;
+  try{const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({kind:'stamp',id,json:JSON.stringify(stamp,null,1)})});const result=await response.json();
+   status.value=response.ok?`Saved the stamp ${stamp.name} to ${result.path}.`:`Kept for this session (not saved: ${result.error}).`;}catch{status.value=`Kept the stamp ${stamp.name} for this session (saving needs the playground dev server).`;}}
+ function stampsPanel(){
+  return h('div',{hidden:shown('stamp')},
+   keyedList(h('div',{class:'q-world-editor__swatches'}),savedStamps,st=>st.id,st=>h('button',{type:'button',class:'q-world-editor__swatch','aria-pressed':()=>String(chosenStamp.value===st.value.id),on:{click:()=>{chosenStamp.value=st.peek().id;refreshPreview();}}},
+    h('span',null,()=>`${st.value.stamp.name||st.value.id} · ${st.value.stamp.size.join(' × ')}`))),
+   h('p',{class:'q-page__help'},()=>savedStamps.value.length?'Pick a stamp, then click the map (its north-west corner).':'No stamps yet: select a group (drag a box with Select), then save it here.'),
+   h('label',{class:'q-world-editor__field'},'Name',h('input',{type:'text',class:'q-input',placeholder:'Stamp',value:()=>stampName.value,on:{input:e=>{stampName.value=e.target.value;}}})),
+   h('div',{class:'q-world-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>saveStamp().catch(error=>{status.value=error.message;})}},'Save selection as stamp')));
+ }
+ // Box select (Select, drag): everything inside the box becomes the selection.
+ let boxing=null,boxFill=null;
+ function drawBox(){boxFill?.dispose();boxFill=null;if(!boxing)return;const [x0,x1]=[boxing.from.x,boxing.to.x].sort((a,b)=>a-b),[z0,z1]=[boxing.from.z,boxing.to.z].sort((a,b)=>a-b),cells=[];
+  for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)cells.push({x,z,color:'#ffe14d'});boxFill=createCellFill({cells,heightAt,parent:overlayParent(),opacity:.25});}
+ async function boxSelect(phase,tile,actor){
+  if(phase==='start'){boxing={from:tile,to:tile,actor};clearPreview();return;}
+  if(phase==='move'&&boxing){if(tile&&(tile.x!==boxing.to.x||tile.z!==boxing.to.z)){boxing.to=tile;drawBox();}return;}
+  if(phase==='end'&&boxing){const b=boxing;boxing=null;drawBox();
+   if(b.from.x===b.to.x&&b.from.z===b.to.z){await click(b.from,null,b.actor);return;}
+   const [x0,x1]=[b.from.x,b.to.x].sort((p,q)=>p-q),[z0,z1]=[b.from.z,b.to.z].sort((p,q)=>p-q),items=pickBox(x0,z0,x1,z1);
+   selection.value=items.length===1?items[0]:items.length?{kind:'group',items}:null;moving.value=false;showSelection();
+   status.value=items.length?`Selected ${items.length===1?nameOf(items[0].kind,entryOf(items[0])):`${items.length} things`}: M or the nudge buttons move, ${MOD}+D duplicates, ${MOD}+C copies, Delete deletes.`:'Nothing placed in that box.';}}
+ function copySelection(){const {sel,entry}=selected();clipboard=makeStamp(sel.kind==='group'?entry:{kind:'group',items:[sel]});status.value=`Copied ${nameOf(sel.kind,entry)}. ${MOD}+V, then click where it goes.`;}
+ function pasteClipboard(){if(!clipboard)throw Error('Copy something first.');placing={kind:'stamp',entry:clipboard};moving.value=false;status.value='Click where it goes (its north-west corner). Esc to cancel.';refreshPreview();}
  function selected(){const sel=selection.peek(),entry=entryOf(sel);if(!entry)throw Error('Select something first.');return {sel,entry};}
  async function moveSelection(x,z){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);moving.value=false;
+  if(sel.kind==='group'){const [ax,az]=anchorOf('group',entry),dx=x-ax,dz=z-az;
+   if(await change(()=>{for(const r of entry.items)shiftEntry(r.kind,entryOf(r),dx,dz);for(const r of entry.items)validate(r.kind,entryOf(r),own);return cellsOf('group',entry);},own))status.value=`Moved ${nameOf('group',entry)} by ${dx},${dz}.`;showSelection();return;}
   if(await change(()=>{setAnchor(sel.kind,entry,[x,z]);return validate(sel.kind,entry,own);},own))status.value=`Moved ${nameOf(sel.kind,entry)} to ${x},${z}.`;showSelection();}
  const startMove=()=>{selected();moving.value=true;status.value='Click where it goes.';showSelection();};
  async function nudge(dx,dz){const {sel,entry}=selected(),[x,z]=anchorOf(sel.kind,entry);await moveSelection(x+dx,z+dz);}
- async function rotateSelection(){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover','enemy'].includes(sel.kind))throw Error('Nothing to rotate.');
-  if(await change(()=>{if(sel.kind==='building')entry.desc.rotation=((entry.desc.rotation||0)+90)%360;else if(sel.kind==='prop')entry.rotation=((entry.rotation||0)+90)%360;else entry.dir=CLOCKWISE[entry.dir];return validate(sel.kind,entry,own);},own))status.value=`Rotated ${nameOf(sel.kind,entry)}.`;}
- function duplicateSelection(){const {sel,entry}=selected();if(sel.kind==='crystal')throw Error('A map has one crystal.');const copy=structuredClone(entry);
+ async function rotateSelection(){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='group')throw Error('Rotate things one at a time.');if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover','enemy'].includes(sel.kind))throw Error('Nothing to rotate.');
+  if(await change(()=>{if(sel.kind==='building')entry.desc.rotation=((entry.desc.rotation||0)+90)%360;else if(sel.kind==='prop'||sel.kind==='furniture')entry.rotation=((entry.rotation||0)+90)%360;else entry.dir=CLOCKWISE[entry.dir];return validate(sel.kind,entry,own);},own))status.value=`Rotated ${nameOf(sel.kind,entry)}.`;}
+ function duplicateSelection(){const {sel,entry}=selected();if(sel.kind==='crystal')throw Error('A map has one crystal.');
+  if(sel.kind==='group'){placing={kind:'stamp',entry:makeStamp(entry,{ground:false})};moving.value=false;status.value=`Click where the copy of ${nameOf('group',entry)} goes (its north-west corner). Esc to cancel.`;refreshPreview();return;}const copy=structuredClone(entry);
   if(sel.kind==='building')copy.desc.name=`${entry.desc.name||'Building'} copy`;if(sel.kind==='townsfolk'&&copy.id)copy.id=`${copy.id}-copy`;
   placing={kind:sel.kind,entry:copy};moving.value=false;status.value=`Click where the copy of ${nameOf(sel.kind,entry)} goes (Esc to cancel).`;}
  async function placeCopy(x,z){const {kind,entry}=placing;placing=null;
+  if(kind==='stamp'){if(await applyStamp(entry,x,z))status.value=`Placed at ${x},${z}.`;return;}
   if(await change(()=>{setAnchor(kind,entry,[x,z]);const cells=validate(kind,entry,[]);lists()[kind].push(entry);return cells;})){selection.value={kind,index:lists()[kind].length-1};status.value=`Placed a copy at ${x},${z}.`;showSelection();}}
  async function deleteSelection(){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry),name=nameOf(sel.kind,entry);
+  // A group: each kind from the end of its list (so indices hold); townsfolk move off removed buildings first.
+  if(sel.kind==='group'){if(await change(()=>{const byKind={};for(const r of entry.items)(byKind[r.kind]??=[]).push(r.index);
+    const gone=new Set(byKind.building||[]);const living=(data.townsfolk||[]).find((f,i)=>gone.has(f.house)&&!(byKind.townsfolk||[]).includes(i));if(living)throw Error(`${living.name||'Someone'} lives in one of these; move them first.`);
+    for(const [kind,list] of Object.entries(byKind))for(const i of list.sort((a,b)=>b-a)){lists()[kind].splice(i,1);if(kind==='building')for(const f of data.townsfolk||[])if(f.house>i)f.house--;}return [];},own)){selection.value=null;status.value=`Deleted ${name}.`;showSelection();}return;}
   if(await change(()=>{if(sel.kind==='building'){const living=(data.townsfolk||[]).find(f=>f.house===sel.index);if(living)throw Error(`${living.name||'Someone'} lives in ${name}; move them first.`);
    for(const f of data.townsfolk||[])if(f.house>sel.index)f.house--;}if(sel.kind==='crystal')data.crystal=null;else lists()[sel.kind].splice(sel.index,1);return [];},own)){selection.value=null;status.value=`Deleted ${name}.`;showSelection();}}
  // Footprints: paint tiles into the draft, then build it as a new building or as the reshaped one.
@@ -265,21 +356,21 @@ export function createCityEditor(host){
  async function setLook(apply,label){const b=lookOf();if(!b)throw Error('Select a building.');const own=cellsOf('building',b);
   if(await change(()=>{apply(b.desc);return validate('building',b,own);},own))status.value=`${nameOf('building',b)}: ${label}.`;}
  const colourOf=(b,role)=>b.desc.colors?.[role]||(role==='roof'?b.desc.roofColor||ROOF_COLORS[b.desc.style]||ROOF_COLORS.timber:stylePalette(b.desc.style)[role]);
- const lookControl=(label,value,choices,apply)=>h('label',{class:'q-city-editor__field'},label,h('select',{class:'q-select',on:{change:e=>apply(e.target.value).catch(error=>{status.value=error.message;})}},
+ const lookControl=(label,value,choices,apply)=>h('label',{class:'q-world-editor__field'},label,h('select',{class:'q-select',on:{change:e=>apply(e.target.value).catch(error=>{status.value=error.message;})}},
   choices.map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const b=lookOf();return !!b&&value(b)===id;}},name))));
- const colourControl=role=>h('label',{class:'q-city-editor__field'},role[0].toUpperCase()+role.slice(1),h('input',{type:'color',class:'q-city-editor__colour',
+ const colourControl=role=>h('label',{class:'q-world-editor__field'},role[0].toUpperCase()+role.slice(1),h('input',{type:'color',class:'q-world-editor__colour',
   value:()=>{revision.value;selection.value;const b=lookOf();return b?new THREE.Color(colourOf(b,role)).getHexString().replace(/^/,'#'):'#000000';},
   on:{change:e=>setLook(d=>{(d.colors||={})[role]=e.target.value;},`${role} colour`).catch(error=>{status.value=error.message;})}}));
  // A selected enemy spawn's settings, changed in place (one undo step each).
  const spawnOf=()=>{const sel=selection.peek();return sel?.kind==='enemy'?data.enemies[sel.index]:null;};
  async function setSpawn(apply,label){const e=spawnOf();if(!e)throw Error('Select an enemy spawn.');const own=cellsOf('enemy',e);
   if(await change(()=>{apply(e);return [...own,...validate('enemy',e,own)];},own))status.value=`${nameOf('enemy',e)}: ${label}.`;}
- const spawnControl=(label,value,choices,apply)=>h('label',{class:'q-city-editor__field'},label,h('select',{class:'q-select',on:{change:e=>setSpawn(s=>apply(s,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
+ const spawnControl=(label,value,choices,apply)=>h('label',{class:'q-world-editor__field'},label,h('select',{class:'q-select',on:{change:e=>setSpawn(s=>apply(s,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
   choices.map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const s=spawnOf();return !!s&&value(s)===id;}},name))));
  function spawnPanel(){
-  return h('div',{class:'q-city-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='enemy';}},
+  return h('div',{class:'q-world-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='enemy';}},
    h('strong',null,'Spawn'),
-   h('div',{class:'q-city-editor__options'},h('div',null,
+   h('div',{class:'q-world-editor__options'},h('div',null,
     spawnControl('Enemy',s=>s.enemy,Object.entries(ENEMIES).map(([id,e])=>[id,e.name]),(s,v)=>{s.enemy=v;}),
     spawnControl('Behaviour',s=>s.aggressive?'aggressive':'passive',[['passive','Passive'],['aggressive','Aggressive']],(s,v)=>{s.aggressive=v==='aggressive';}),
     spawnControl('Respawns after',s=>String(s.respawn??45),RESPAWNS,(s,v)=>{s.respawn=+v;}))));
@@ -298,8 +389,8 @@ export function createCityEditor(host){
   const b=p.house!==undefined?data.buildings[p.house]:null;if(b)for(const [x,z] of cellsOf('building',b))add(x,z,'#e8d6a8');
   const kinds=new Set((p.routine||[]).filter(r=>(r.weight??1)>0).map(r=>r.do)),[hx,hz]=p.home||b&&[b.x,b.z]||[0,0];
   for(const prop of [...built.props,...(built.furniture||[])])for(const s of prop.spots||[])if(kinds.has(s.kind)&&s.tile&&Math.abs(s.tile.x-hx)+Math.abs(s.tile.z-hz)<=48)add(s.tile.x,s.tile.z,'#5fc8ff');
-  spotsFill=createCellFill({cells,heightAt,parent:built.group,opacity:.55});}
- const field=(label,input)=>h('label',{class:'q-city-editor__field'},label,input);
+  spotsFill=createCellFill({cells,heightAt,parent:overlayParent(),opacity:.55});}
+ const field=(label,input)=>h('label',{class:'q-world-editor__field'},label,input);
  const personSelect=(label,value,choices,apply)=>field(label,h('select',{class:'q-select',on:{change:e=>setPerson(p=>apply(p,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
   choices.map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const p=personOf();return !!p&&value(p)===id;}},name))));
  const personText=(label,value,apply)=>field(label,h('input',{type:'text',class:'q-input',value:()=>{revision.value;selection.value;const p=personOf();return p?value(p)??'':'';},
@@ -308,12 +399,12 @@ export function createCityEditor(host){
   (p,v)=>{p.look??={};p.look.loadout??={};if(v)p.look.loadout[slot]=v;else delete p.look.loadout[slot];if(!Object.keys(p.look.loadout).length)delete p.look.loadout;});
  const houseChoices=computed(()=>{revision.value;return [{id:'',name:'No building'},...(data?.buildings||[]).map((b,i)=>({id:String(i),name:b.desc.name||`Building ${i+1}`}))];});
  function personPanel(){
-  return h('div',{class:'q-city-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='townsfolk';}},
+  return h('div',{class:'q-world-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='townsfolk';}},
    h('strong',null,'Townsfolk'),
-   h('div',{class:'q-city-editor__options'},h('div',null,
+   h('div',{class:'q-world-editor__options'},h('div',null,
     personText('Name',p=>p.name,(p,v)=>{if(!v)throw Error('A townsfolk needs a name.');p.name=v;}),
     personText('Line',p=>p.line,(p,v)=>{if(v)p.line=v;else delete p.line;}),
-    field('Colour',h('input',{type:'color',class:'q-city-editor__colour',value:()=>{revision.value;selection.value;return personOf()?.look?.color||'#9ccf7a';},on:{change:e=>setPerson(p=>{(p.look??={}).color=e.target.value;},'colour').catch(error=>{status.value=error.message;})}})),
+    field('Colour',h('input',{type:'color',class:'q-world-editor__colour',value:()=>{revision.value;selection.value;return personOf()?.look?.color||'#9ccf7a';},on:{change:e=>setPerson(p=>{(p.look??={}).color=e.target.value;},'colour').catch(error=>{status.value=error.message;})}})),
     loadoutSlot('head',HEADS),loadoutSlot('rightHand',HANDS),loadoutSlot('leftHand',HANDS),
     personSelect('Pace',p=>String(p.pace??1),[['0.8','Unhurried'],['1','Usual'],['1.3','Brisk']],(p,v)=>{p.pace=+v;}),
     // The map's buildings change as you build: the choices follow them (a keyed list).
@@ -323,29 +414,31 @@ export function createCityEditor(host){
     personSelect('Faces at their post',p=>p.facing||'',[['','Any way'],...Object.entries(SIDE_LABELS)],(p,v)=>{if(v)p.facing=v;else delete p.facing;}))),
    h('strong',null,'Routine'),
    h('p',{class:'q-page__help'},'How often they do each (0: never). Spots they use are blue on the map.'),
-   h('div',{class:'q-city-editor__routine'},ACTIVITIES.map(a=>field(a,h('input',{type:'number',min:0,max:9,class:'q-input',value:()=>{revision.value;selection.value;const p=personOf();return p?String(weightOf(p,a)):'0';},
+   h('div',{class:'q-world-editor__routine'},ACTIVITIES.map(a=>field(a,h('input',{type:'number',min:0,max:9,class:'q-input',value:()=>{revision.value;selection.value;const p=personOf();return p?String(weightOf(p,a)):'0';},
     on:{change:e=>setPerson(p=>{const w=Math.max(0,Math.min(9,Math.round(+e.target.value||0)));p.routine=(p.routine||[]).filter(r=>r.do!==a);if(w)p.routine.push({do:a,weight:w});if(!p.routine.length)p.routine=[{do:'stroll',weight:1}];},`${a} ${e.target.value}`).catch(error=>{status.value=error.message;})}})))),
-   h('div',{class:'q-city-editor__row'},
+   h('div',{class:'q-world-editor__row'},
     h('button',{type:'button',class:'q-button q-button--small','aria-pressed':()=>String(patrolOn.value),on:{click:()=>{patrolling=!patrolling;patrolOn.value=patrolling;status.value=patrolling?'Click tiles to add patrol stops (Esc when done).':'Patrol route done.';}}},()=>patrolOn.value?'Done drawing patrol':'Draw patrol route'),
     h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>setPerson(p=>{delete p.patrol;p.routine=(p.routine||[]).filter(r=>r.do!=='patrol');if(!p.routine.length)p.routine=[{do:'stroll',weight:1}];},'patrol cleared').catch(error=>{status.value=error.message;})}},'Clear patrol')));
  }
  // The Floors panel: a selected building's floors (or the one you're in), with Go, Add and Remove, and the
  // floor's own actions: its use, Generate and Clear furniture, Place stairs up.
- const floorRows=computed(()=>{revision.value;floorHere.value;const i=ownerHere();if(i===null||!data?.buildings[i])return [];const b=data.buildings[i];
-  const levels=[...new Set([0,...floorsOf(i).map(f=>f.level)])].sort((a,c)=>a-c);return levels.map(level=>({id:`${i}:${level}`,building:i,level,here:floorHere.value?.level===level||!floorHere.value&&level===0,
-   label:`${LEVEL_NAME(level)}${level===0&&b.desc.interior!=='separate'?' (the map)':''}`,furniture:(floorsOf(i).find(f=>f.level===level)?.furniture||[]).length}));});
+ const floorRows=computed(()=>{revision.value;floorHere.value;const i=ownerHere();if(i===null||!ownerEntry(i))return [];const b=ownerEntry(i),cave=isDungeon(i);
+  const levels=[...new Set([...(cave?[]:[0]),...floorsOf(i).map(f=>f.level)])].sort((a,c)=>c-a);return levels.map(level=>({id:`${cave?i.dungeon:i}:${level}`,building:i,level,here:floorHere.value?.level===level||!floorHere.value&&level===0,
+   label:`${LEVEL_NAME(level,i)}${!cave&&level===0&&b.desc.interior!=='separate'?' (the map)':''}`,furniture:(floorsOf(i).find(f=>f.level===level)?.furniture||[]).length}));});
  const floorAction=(label,act)=>h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>Promise.resolve().then(act).catch(error=>{status.value=error.message;})}},label);
  const currentLevel=()=>floorHere.peek()?.level??0;
- async function addFloor(where){const i=ownerHere();if(i===null)throw Error('Select a building.');const b=data.buildings[i],levels=floorsOf(i).map(f=>f.level);
+ async function addFloor(where){const i=ownerHere();if(i===null)throw Error('Select a building.');const b=ownerEntry(i),levels=floorsOf(i).map(f=>f.level);
   const level=where==='above'?Math.max(0,...levels)+1:Math.min(0,...levels)-1;
-  if(where==='above'&&level>(b.desc.storeys||1)-1)throw Error(`${b.desc.name||'This building'} has ${b.desc.storeys||1} storey${(b.desc.storeys||1)>1?'s':''}: raise its storeys first.`);
-  const label=`${LEVEL_NAME(level)} added. Place its stairs, then Go.`;
-  if(floorHere.peek())await changeFloor(()=>{floorAt(i,level);},label);else if(await change(()=>{floorAt(i,level);return cellsOf('building',b);},cellsOf('building',b)))status.value=label;}
- async function removeFloor(level){const i=ownerHere(),b=data.buildings[i];if(level===0)throw Error('The ground floor stays.');const levels=floorsOf(i).map(f=>f.level);
+  if(where==='above'&&!isDungeon(i)&&level>(b.desc.storeys||1)-1)throw Error(`${b.desc.name||'This building'} has ${b.desc.storeys||1} storey${(b.desc.storeys||1)>1?'s':''}: raise its storeys first.`);
+  // A dungeon's new level starts as the level above it (it has no building to follow).
+  const make=()=>{const f=floorAt(i,level);if(isDungeon(i)&&!f.cells)f.cells=(floorsOf(i).find(e=>e.level===level+1)?.cells||[]).map(c=>[...c]);};
+  const label=`${LEVEL_NAME(level,i)} added. Place its stairs, then Go.`;
+  if(floorHere.peek()||isDungeon(i))await changeFloor(make,label);else if(await change(()=>{make();return cellsOf('building',b);},cellsOf('building',b)))status.value=label;}
+ async function removeFloor(level){const i=ownerHere(),b=ownerEntry(i);if(level===0||isDungeon(i)&&level===-1)throw Error(isDungeon(i)?'The top level stays.':'The ground floor stays.');const levels=floorsOf(i).map(f=>f.level);
   if(level!==Math.max(...levels)&&level!==Math.min(...levels))throw Error('Remove the top floor or the bottom cellar first.');
   if(floorHere.peek()?.level===level)throw Error('Step off this floor first (Go to another, or Back outside).');
   const apply=()=>{b.floors=floorsOf(i).filter(f=>f.level!==level);const below=b.floors.find(f=>f.level===level-1);if(below&&level>0)delete below.up;};
-  if(floorHere.peek())await changeFloor(apply,`${LEVEL_NAME(level)} removed.`);else if(await change(()=>{apply();return cellsOf('building',b);},cellsOf('building',b)))status.value=`${LEVEL_NAME(level)} removed.`;}
+  if(floorHere.peek()||isDungeon(i))await changeFloor(apply,`${LEVEL_NAME(level,i)} removed.`);else if(await change(()=>{apply();return cellsOf('building',b);},cellsOf('building',b)))status.value=`${LEVEL_NAME(level)} removed.`;}
  async function generateFurniture(){const i=ownerHere();if(i===null)throw Error('Select a building.');const level=currentLevel(),f=floorAt(i,level);
   const apply=()=>{f.roll=(f.roll??0)+1;f.furniture=furnishFloor(i,level);};
   if(floorHere.peek())await changeFloor(apply,()=>`Furnished ${ON_LEVEL(level).replace(/^(on|in) /,'')} (${f.use||'its usual use'}): ${f.furniture.length} pieces. Generate again for another roll.`);
@@ -353,24 +446,52 @@ export function createCityEditor(host){
  async function clearFurniture(){const i=ownerHere();if(i===null)throw Error('Select a building.');const level=currentLevel(),f=floorAt(i,level);
   if(floorHere.peek())await changeFloor(()=>{f.furniture=[];},'Furniture cleared.');else if(await change(()=>{f.furniture=[];return cellsOf('building',data.buildings[i]);},cellsOf('building',data.buildings[i])))status.value='Ground floor furniture cleared.';}
  function floorsPanel(){
-  return h('div',{class:'q-city-editor__look',hidden:()=>{revision.value;return !floorHere.value&&selection.value?.kind!=='building';}},
+  return h('div',{class:'q-world-editor__look',hidden:()=>{revision.value;return !floorHere.value&&selection.value?.kind!=='building';}},
    h('strong',null,()=>{const here=floorHere.value;return here?`Floors · in ${LEVEL_NAME(here.level).toLowerCase()}`:'Floors';}),
-   keyedList(h('div',{class:'q-city-editor__floors'}),floorRows,r=>r.id,r=>h('div',{class:'q-city-editor__row'},
+   keyedList(h('div',{class:'q-world-editor__floors'}),floorRows,r=>r.id,r=>h('div',{class:'q-world-editor__row'},
     h('span',null,()=>`${r.value.label}${r.value.furniture?` · ${r.value.furniture} pieces`:''}`),
     h('button',{type:'button',class:'q-button q-button--small',disabled:()=>r.value.here,on:{click:()=>{status.value=host.enterFloor?.(r.peek().building,r.peek().level)?`To the ${LEVEL_NAME(r.peek().level).toLowerCase()}.`:'No way there yet: place the stairs to it.';}}},'Go'),
     h('button',{type:'button',class:'q-button q-button--small',hidden:()=>r.value.level===0,on:{click:()=>removeFloor(r.peek().level).catch(error=>{status.value=error.message;})}},'Remove'))),
-   h('div',{class:'q-city-editor__row'},floorAction('Add floor above',()=>addFloor('above')),floorAction('Add cellar',()=>addFloor('below'))),
-   h('div',{class:'q-city-editor__row'},floorAction('Place stairs up',()=>{const i=ownerHere();if(i===null)throw Error('Select a building.');pendingFlight={building:i,level:currentLevel()};status.value='Click the bottom step of the stairs (they rise the way the Stairs tool’s “Up towards” says).';}),
+   h('div',{class:'q-world-editor__row'},h('span',{hidden:()=>{floorHere.value;return isDungeon(ownerHere());}},floorAction('Add floor above',()=>addFloor('above'))),floorAction(()=>{floorHere.value;return isDungeon(ownerHere())?'Add level below':'Add cellar';},()=>addFloor('below'))),
+   h('div',{class:'q-world-editor__row'},floorAction('Place stairs up',()=>{const i=ownerHere();if(i===null)throw Error('Select a building.');pendingFlight={building:i,level:currentLevel()};status.value='Click the bottom step of the stairs (they rise the way the Stairs tool’s “Up towards” says).';}),
     floorAction('Generate furniture',generateFurniture),floorAction('Clear furniture',clearFurniture)),
-   h('label',{class:'q-city-editor__field'},'This floor is a',h('select',{class:'q-select',on:{change:e=>{const i=ownerHere(),level=currentLevel();if(i===null)return;const apply=()=>{const f=floorAt(i,level);if(e.target.value)f.use=e.target.value;else delete f.use;};
+   h('label',{class:'q-world-editor__field'},'This floor is a',h('select',{class:'q-select',on:{change:e=>{const i=ownerHere(),level=currentLevel();if(i===null)return;const apply=()=>{const f=floorAt(i,level);if(e.target.value)f.use=e.target.value;else delete f.use;};
      (floorHere.peek()?changeFloor(apply,'Use set.'):change(()=>{apply();return [];})).catch(error=>{status.value=error.message;});}}},
     [['','Its usual use'],...USE_NAMES.map(u=>[u,u])].map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;floorHere.value;selection.value;const i=ownerHere();return i!==null&&(floorsOf(i).find(f=>f.level===currentLevel())?.use||'')===id;}},name)))),
-   h('div',{class:'q-city-editor__row',hidden:()=>!floorHere.value},floorAction('Back outside',()=>{status.value=host.leaveFloor?.()?'Back outside.':'';})));
+   h('div',{class:'q-world-editor__row',hidden:()=>!floorHere.value},floorAction('Back outside',()=>{status.value=host.leaveFloor?.()?'Back outside.':'';})));
+ }
+ // How a building is inside (docs/CITY.md, Floors): open in place (its ground floor is the map), a separate
+ // space (its ground floor is a floor of its own, entered by its doors; it starts empty, like any floor), or
+ // decorative (no way in).
+ async function setInterior(v){const b=lookOf();if(!b)throw Error('Select a building.');const own=cellsOf('building',b);
+  if(await change(()=>{b.desc.interior=v;if(v==='separate'){b.floors??=[];if(!b.floors.some(f=>f.level===0))b.floors.push({level:0});}return validate('building',b,own);},own))
+   status.value=v==='separate'?`${nameOf('building',b)} is a separate space: click its door (Inspect) or Go to its ground floor.`:v==='none'?`${nameOf('building',b)} is decorative: its doors stay shut.`:`${nameOf('building',b)} opens in place.`;}
+ // Dungeons and caves by hand (docs/CITY.md, Dungeons and caves): the Underground tool makes one, places its
+ // entrance on the map, and Go takes you in; inside, the floor tools and the Floors panel edit it.
+ const caveName=signal('Old cave'),caveSize=signal('16x12');let pendingEntrance=null;
+ const caves=computed(()=>{revision.value;return Object.entries(data?.interiors||{}).filter(([,d])=>d.kind==='dungeon'&&Array.isArray(d.floors)).map(([id,d])=>({id,name:d.name||id,levels:d.floors.length,entrances:(data.props||[]).filter(p=>p.kind==='dungeonEntrance'&&p.link===id).length}));});
+ async function newCave(){const [w,d]=caveSize.peek().split('x').map(Number),name=caveName.peek().trim()||'Cave',ids=new Set(Object.keys(data.interiors||{}));let id=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'cave',n=1;const root=id;while(ids.has(id))id=`${root}-${++n}`;
+  const cells=[];for(let z=0;z<d;z++)for(let x=0;x<w;x++)cells.push([x,z]);
+  if(await change(()=>{(data.interiors??={})[id]={kind:'dungeon',name,floors:[{level:-1,cells,up:{at:[1,2],dir:'n'}}]};return [];})){pendingEntrance=id;status.value=`${name} made (${w} × ${d}). Click the map where its entrance goes.`;}}
+ async function placeEntrance(tile){const id=pendingEntrance;pendingEntrance=null;const cells=[];const [w,dd]=propFootprint('dungeonEntrance',0);for(let b=0;b<dd;b++)for(let a=0;a<w;a++)cells.push([tile.x+a,tile.z+b]);
+  if(await change(()=>{taken(cells,[],'dungeonEntrance');data.props.push({kind:'dungeonEntrance',x:tile.x,z:tile.z,rotation:0,link:id});return cells;}))status.value=`The entrance to ${data.interiors[id].name} is at ${tile.x},${tile.z}. Inspect-click it to go in.`;}
+ async function deleteCave(id){if(floorHere.peek()?.dungeon===id)throw Error('Step out of it first.');if(await change(()=>{delete data.interiors[id];data.props=data.props.filter(p=>!(p.kind==='dungeonEntrance'&&p.link===id));return [];}))status.value='Removed.';}
+ function cavesPanel(){
+  return h('div',{hidden:shown('underground')},
+   keyedList(h('div',{class:'q-world-editor__floors'}),caves,c=>c.id,c=>h('div',{class:'q-world-editor__row'},
+    h('span',null,()=>`${c.value.name} · ${c.value.levels} level${c.value.levels>1?'s':''}${c.value.entrances?'':' · no entrance'}`),
+    h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>{status.value=host.enterFloor?.({dungeon:c.peek().id},-1)?`Into ${c.peek().name}.`:'Can’t go in yet.';}}},'Go'),
+    h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>{pendingEntrance=c.peek().id;status.value='Click the map where its entrance goes.';}}},'Place entrance'),
+    h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>deleteCave(c.peek().id).catch(error=>{status.value=error.message;})}},'Delete'))),
+   h('label',{class:'q-world-editor__field'},'Name',h('input',{type:'text',class:'q-input',value:()=>caveName.value,on:{input:e=>{caveName.value=e.target.value;}}})),
+   select('Size',caveSize,[['8x8','8 × 8'],['16x12','16 × 12'],['24x16','24 × 16'],['32x24','32 × 24']]),
+   h('div',{class:'q-world-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>newCave().catch(error=>{status.value=error.message;})}},'New dungeon or cave')));
  }
  function lookPanel(){
-  return h('div',{class:'q-city-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='building';}},
+  return h('div',{class:'q-world-editor__look',hidden:()=>{revision.value;return selection.value?.kind!=='building';}},
    h('strong',null,'Look'),
-   h('div',{class:'q-city-editor__options'},h('div',null,
+   h('div',{class:'q-world-editor__options'},h('div',null,
+    lookControl('Inside',b=>b.desc.interior||'inPlace',[['inPlace','Open in place'],['separate','A separate space'],['none','Decorative (no way in)']],v=>setInterior(v)),
     lookControl('Walls',b=>b.desc.style||'timber',STYLE_NAMES.filter(n=>n!=='dungeon').map(n=>[n,n]),v=>setLook(d=>{d.style=v;},`${v} walls`)),
     lookControl('Storeys',b=>String(b.desc.storeys||1),[['1','1'],['2','2'],['3','3']],v=>setLook(d=>{d.storeys=+v;},`${v} storeys`)),
     lookControl('Roof',b=>b.desc.roof||'gable',ROOF_TYPES.map(r=>[r,r]),v=>setLook(d=>{d.roof=v;},`${v} roof`)),
@@ -378,7 +499,7 @@ export function createCityEditor(host){
     lookControl('Awning',b=>!b.desc.awning?'none':Array.isArray(b.desc.awningColors)?String(AWNINGS.findIndex(a=>a[0]===b.desc.awningColors[0])):'seed',[['none','No awning'],['seed','Awning (seeded)'],...AWNING_NAMES.map((n,i)=>[String(i),`${n} awning`])],
      v=>setLook(d=>{if(v==='none')d.awning=null;else{d.awning='striped';if(v==='seed')delete d.awningColors;else d.awningColors=[...AWNINGS[+v]];}},'awning'))),
     h('div',null,...['wall','trim','base','door','roof'].map(colourControl))),
-   h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>setLook(d=>{delete d.colors;delete d.roofColor;},'colours reset').catch(error=>{status.value=error.message;})}},'Reset colours')));
+   h('div',{class:'q-world-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>setLook(d=>{delete d.colors;delete d.roofColor;},'colours reset').catch(error=>{status.value=error.message;})}},'Reset colours')));
  }
  // The prop palette (docs/TOWN.md, Prop palette): a search box over the prop groups, each prop a button
  // with its thumbnail (drawn from its real model the first time the Prop tool opens) and name.
@@ -386,12 +507,12 @@ export function createCityEditor(host){
  const matches=kind=>{const q=propSearch.value.trim().toLowerCase();return !q||`${PROPS[kind].name} ${kind}`.toLowerCase().includes(q);};
  function propPalette(){
   const item=kind=>{const [w,d]=PROPS[kind].footprint;
-   return h('button',{type:'button',class:'q-city-editor__prop',title:`${PROPS[kind].name} (${w} × ${d})`,'aria-pressed':()=>String(options.prop.value===kind),hidden:()=>!matches(kind),on:{click:()=>{options.prop.value=kind;}}},
-    h('img',{class:'q-city-editor__thumb',alt:'',width:48,height:48,src:()=>tool.value==='prop'?propThumbnail(kind).value||undefined:undefined}),h('span',null,PROPS[kind].name));};
-  return h('div',{class:'q-city-editor__palette'},
+   return h('button',{type:'button',class:'q-world-editor__prop',title:`${PROPS[kind].name} (${w} × ${d})`,'aria-pressed':()=>String(options.prop.value===kind),hidden:()=>!matches(kind),on:{click:()=>{options.prop.value=kind;}}},
+    h('img',{class:'q-world-editor__thumb',alt:'',width:48,height:48,src:()=>tool.value==='prop'?propThumbnail(kind).value||undefined:undefined}),h('span',null,PROPS[kind].name));};
+  return h('div',{class:'q-world-editor__palette'},
    h('input',{type:'search',class:'q-input',placeholder:'Search props',value:()=>propSearch.value,on:{input:e=>{propSearch.value=e.target.value;}}}),
    h('p',{class:'q-page__help'},()=>`${PROPS[options.prop.value]?.name||''} selected.`),
-   h('div',{class:'q-city-editor__shelf'},...Object.entries(PROP_CATEGORIES).map(([group,kinds])=>h('section',{class:'q-city-editor__group',hidden:()=>!kinds.some(matches)},h('strong',null,group),h('div',{class:'q-city-editor__props'},kinds.map(item))))));
+   h('div',{class:'q-world-editor__shelf'},...Object.entries(PROP_CATEGORIES).map(([group,kinds])=>h('section',{class:'q-world-editor__group',hidden:()=>!kinds.some(matches)},h('strong',null,group),h('div',{class:'q-world-editor__props'},kinds.map(item))))));
  }
  // Previews (docs/TOWN.md, Preview ghosts): under the pointer, what a click or a stroke would change,
  // green where it fits and red where it doesn't, with a see-through model for props and the reason a
@@ -406,19 +527,21 @@ export function createCityEditor(host){
   if(!ghost||ghost.kind!==kind){ghost?.group.removeFromParent();const group=propModel(kind);group.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=false;m.renderOrder=23;}});ghost={kind,group};}
   ghost.group.traverse(m=>{if(m.isMesh)m.material=ok?ghostMaterials.ok:ghostMaterials.no;});
   const [w,d]=propFootprint(kind,rotation),steps=((Math.round(rotation/90)%4)+4)%4;let base=0;for(let b=0;b<d;b++)for(let a=0;a<w;a++)base=Math.max(base,heightAt(x+a,z+b));
-  ghost.group.rotation.y=-steps*Math.PI/2;ghost.group.position.set(x+(w-1)/2-6,base,z+(d-1)/2-6);built.group.add(ghost.group);}
+  ghost.group.rotation.y=-steps*Math.PI/2;ghost.group.position.set(x+(w-1)/2-6,base,z+(d-1)/2-6);overlayParent().add(ghost.group);}
  const fits=check=>{try{check();return null;}catch(error){return error.message;}};
  const tint=(cells,color)=>cells.map(([x,z])=>({x,z,color}));
  // What the current tool would do at a tile: {cells:[{x, z, color}], prop:{kind, rotation, x, z}, refused}.
  function previewAt(x,z){const o=Object.fromEntries(Object.entries(options).map(([k,v])=>[k,v.peek()])),rotation=+o.rotation,inMap=(a,b)=>a>=0&&b>=0&&a<data.size[0]&&b<data.size[1];
   const placed=(kind,entry,own=[])=>{let cells=[];try{cells=cellsOf(kind,entry);}catch{return {cells:[],refused:'That doesn’t fit here.'};}const refused=fits(()=>validate(kind,entry,own,{dry:true}));
-   return {cells:tint(cells,refused?NO:OK),refused,prop:kind==='prop'?{kind:entry.kind,rotation:entry.rotation||0,x:entry.x,z:entry.z}:null};};
+   const [ax,az]=kind==='furniture'?anchorOf('furniture',entry):[entry.x,entry.z];return {cells:tint(cells,refused?NO:OK),refused,prop:kind==='prop'||kind==='furniture'?{kind:entry.kind,rotation:entry.rotation||0,x:ax,z:az}:null};};
   // On a floor: furniture fits on open floor tiles; the shape, walls and stairs show the tile.
-  if(floorHere.peek()){if(pendingFlight){const fl=flightOf({at:[0,0],dir:o.dir}),cells=[fl.bottom,fl.top,fl.front].map(([a,b])=>[x+a,z+b]),bad=cells.some(([a,b])=>!at(a,b)?.indoor);return {cells:tint(cells,bad?NO:OK),refused:bad?'The stairs and the tile in front must be on the floor.':null};}
+  if(floorHere.peek()&&tool.peek()!=='select'){if(pendingFlight){const fl=flightOf({at:[0,0],dir:o.dir}),cells=[fl.bottom,fl.top,fl.front].map(([a,b])=>[x+a,z+b]),bad=cells.some(([a,b])=>!at(a,b)?.indoor);return {cells:tint(cells,bad?NO:OK),refused:bad?'The stairs and the tile in front must be on the floor.':null};}
    if(tool.peek()==='prop'){const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);const bad=cells.some(([a,b])=>{const t=at(a,b);return !t||!t.indoor||t.blocked;});
     return {cells:tint(cells,bad?NO:OK),refused:bad?'No room for it here.':null,prop:{kind:o.prop,rotation,x,z}};}
    return ['footprint','surface','edge','erase'].includes(tool.peek())?{cells:tint([[x,z]],tool.peek()==='erase'?NO:BRUSH)}:null;}
   if(pendingFlight){const fl=flightOf({at:[0,0],dir:o.dir}),cells=[fl.bottom,fl.top,fl.front].map(([a,b])=>[x+a,z+b]),own=data.buildings[pendingFlight.building],inB=new Set(cellsOf('building',own).map(c=>c.join(','))),bad=cells.some(c=>!inB.has(c.join(',')));return {cells:tint(cells,bad?NO:OK),refused:bad?'The stairs and the tile in front must be inside the building.':null};}
+  if(placing?.kind==='stamp'||tool.peek()==='stamp'&&chosenStamp.peek())return stampPreview(placing?.kind==='stamp'?placing.entry:stampOf(chosenStamp.peek()),x,z);
+  if(boxing)return null;
   if(tool.peek()==='select'){
    if(placing)return placed(placing.kind,{...structuredClone(placing.entry),...anchorPatch(placing.kind,[x,z])});
    const sel=selection.peek(),entry=entryOf(sel);if(moving.peek()&&entry){const own=cellsOf(sel.kind,entry);return placed(sel.kind,sel.kind==='crystal'?[x,z]:{...structuredClone(entry),...anchorPatch(sel.kind,[x,z])},own);}
@@ -436,7 +559,7 @@ export function createCityEditor(host){
     return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>{const t=at(a,b),n=natureAt(a,b);
      const ok=choice==='fishing'?!!t?.water:choice==='grow'?!!t&&!t.water:choice==='clear'?!!(n.resource||n.cover):group==='cover'?!!t&&!t.water&&t.building===undefined:resourceFits(t)&&!(data.crystal&&data.crystal[0]===a&&data.crystal[1]===b);
      return {x:a,z:b,color:ok?(choice==='clear'?NO:OK):'#8a8a8a'};})};}
-   case 'raise':case 'lower':case 'flatten':case 'surface':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:BRUSH}))};
+   case 'raise':case 'lower':case 'flatten':case 'smooth':case 'ramp':case 'surface':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:BRUSH}))};
    case 'footprint':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:o.draftMode==='add'?OK:NO}))};
    case 'biome':{if(!data.land)return null;const r=o.biomeBrush==='3'?1:o.biomeBrush==='5'?2:0,[cx,cz]=cellOf(x,z),[ox,oz]=data.land.origin||[0,0],cells=[];
     for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)for(let b=0;b<BIOME_CELL;b++)for(let a=0;a<BIOME_CELL;a++)cells.push({x:(cx+dx)*BIOME_CELL+a-ox,z:(cz+dz)*BIOME_CELL+b-oz,color:(o.landLayer==='terrain'?TERRAIN_PAINT[o.terrain]:BIOME_PAINT[o.biome])||BRUSH});return {cells};}
@@ -449,7 +572,7 @@ export function createCityEditor(host){
  const anchorPatch=(kind,[x,z])=>kind==='townsfolk'?{home:[x,z]}:kind==='crystal'?{0:x,1:z}:{x,z};
  function refreshPreview(){clearPreview();if(!built||!view||mode.peek()!=='edit'||!hoverAt)return;
   let p=null;try{p=previewAt(hoverAt.x,hoverAt.z);}catch{p=null;}if(!p)return;
-  if(p.cells?.length)fill=createCellFill({cells:p.cells,heightAt,parent:built.group});
+  if(p.cells?.length)fill=createCellFill({cells:p.cells,heightAt,parent:overlayParent()});
   if(p.prop&&PROPS[p.prop.kind])showGhost(p.prop.kind,p.prop.rotation,p.prop.x,p.prop.z,!p.refused);
   previewNote.value=p.refused?`Can’t place here: ${p.refused}`:'';}
  function hover(tile){hoverAt=tile?{x:tile.x,z:tile.z}:null;refreshPreview();}
@@ -462,6 +585,7 @@ export function createCityEditor(host){
   let act=null;
   if(e.key==='Escape')act=cancel;
   else if(mod&&k==='z')act=e.shiftKey?()=>step(redo,undo):()=>step(undo,redo);else if(mod&&k==='y')act=()=>step(redo,undo);
+  else if(mod&&k==='v')act=pasteClipboard;else if(mod&&k==='c'&&selection.peek())act=copySelection;
   else if(selection.peek()){if(mod&&k==='d')act=duplicateSelection;else if(mod||e.altKey)act=null;else if(k==='r')act=rotateSelection;else if(k==='m')act=startMove;else if(e.key==='Delete'||e.key==='Backspace')act=deleteSelection;}
   if(!act)return;e.preventDefault();e.stopImmediatePropagation();Promise.resolve().then(act).catch(error=>{status.value=error.message;});}
  // Brushes paint as you drag: each tile once per stroke, the stroke one undo step, and the chunks it
@@ -517,39 +641,76 @@ export function createCityEditor(host){
   if(o==='flatten')stroke.level??=at(x,z)?.h??1;
   for(const [a,b] of brushTiles(x,z)){const id=`${a},${b}`;if(stroke.seen.has(id)||a<0||b<0||a>=data.size[0]||b>=data.size[1])continue;stroke.seen.add(id);
    if(o==='nature'){if(putNature(a,b,options.nature.peek()))stroke.pending.push([a,b]);continue;}
-   if(o==='surface'){if(surface==='land')clearCitySurface(data,a,b);else setCitySurface(data,a,b,surface);}
-   else if(o==='flatten'){const base=onLand?built.ground.base(a,b):0;if(onLand)setCityOffset(data,a,b,stroke.level-base);else setCityHeight(data,a,b,stroke.level);}
-   else{const step=o==='raise'?.5:-.5;if(onLand)setCityOffset(data,a,b,cityOffset(data,a,b)+step);else setCityHeight(data,a,b,cityHeight(data,a,b)+step);}
+   if(o==='surface'){if(surface==='water'&&!onLand)continue;if(surface==='land')clearMapSurface(data,a,b);else setMapSurface(data,a,b,surface);}
+   else if(o==='flatten'){const base=onLand?built.ground.base(a,b):0;if(onLand)setMapOffset(data,a,b,stroke.level-base);else setMapHeight(data,a,b,stroke.level);}
+   // Smooth: each tile eases to the average of the tiles around it (to the half block).
+   else if(o==='smooth'){const near=[];for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const t=at(a+dx,b+dz);if(t&&!t.water)near.push(t.h);}if(!near.length)continue;
+    const target=Math.round(near.reduce((p,q)=>p+q,0)/near.length*2)/2;setHeight(a,b,target);}
+   else{const step=o==='raise'?.5:-.5;if(onLand)setMapOffset(data,a,b,mapOffset(data,a,b)+step);else setMapHeight(data,a,b,mapHeight(data,a,b)+step);}
    stroke.pending.push([a,b]);}}
+ // A tile's height set outright (an offset on the land, or the height itself on a flat map).
+ function setHeight(x,z,h){if(data.land)setMapOffset(data,x,z,h-built.ground.base(x,z));else setMapHeight(data,x,z,h);}
+ // The tiles of a straight line from a to b (both ends included).
+ function lineTiles(a,b){const n=Math.max(Math.abs(b.x-a.x),Math.abs(b.z-a.z)),out=[];for(let i=0;i<=n;i++)out.push({x:Math.round(a.x+(b.x-a.x)*(n?i/n:0)),z:Math.round(a.z+(b.z-a.z)*(n?i/n:0)),t:n?i/n:0});return out;}
+ // Drags (docs/TOWN.md, Lines and brushes): Select draws a box; Edge lays a fence (or wall, railing…) along
+ // a straight row; Ramp slopes the ground from where the drag starts to where it ends; a brush in Line
+ // shape paints a straight line; any other brush paints as you drag.
+ let line=null,lineFill=null;
+ function drawLine(){lineFill?.dispose();lineFill=null;if(!line)return;const seen=new Set(),cells=[];for(const p of lineTiles(line.from,line.to))for(const [a,b] of tool.peek()==='edge'?[[p.x,p.z]]:brushTiles(p.x,p.z)){const k=`${a},${b}`;if(seen.has(k))continue;seen.add(k);cells.push({x:a,z:b,color:BRUSH});}
+  lineFill=createCellFill({cells,heightAt,parent:overlayParent(),opacity:.4});}
+ async function drag(phase,tile,actor){
+  if(tool.peek()==='select')return boxSelect(phase,tile,actor);
+  const lineTool=tool.peek()==='edge'||tool.peek()==='ramp'||options.brushShape.peek()==='line'&&['raise','lower','flatten','smooth','nature','surface'].includes(tool.peek());
+  if(!lineTool)return paint(phase,tile);
+  if(phase==='start'){line={from:tile,to:tile};clearPreview();drawLine();return;}
+  if(phase==='move'&&line){if(tile&&(tile.x!==line.to.x||tile.z!==line.to.z)){line.to=tile;drawLine();}return;}
+  if(phase!=='end'||!line)return;const l=line;line=null;drawLine();
+  if(tool.peek()==='edge'){if(l.from.x===l.to.x&&l.from.z===l.to.z)return click(l.from);
+   // A fence line keeps to the row or column the drag mostly follows.
+   const along=Math.abs(l.to.x-l.from.x)>=Math.abs(l.to.z-l.from.z),end=along?{x:l.to.x,z:l.from.z}:{x:l.from.x,z:l.to.z},[dx,dz]=DIRS[options.side.peek()],kind=options.edge.peek(),tiles=lineTiles(l.from,end);
+   const here=floorHere.peek(),owner=hereOwner(),plan=here?planOf(owner):null,list=here?(floorAt(owner,here.level).edges??=[]):data.edges,loc=([x,z])=>plan?[x-plan.x0,z-plan.z0]:[x,z];
+   const pairs=tiles.map(p=>[loc([p.x,p.z]),loc([p.x+dx,p.z+dz])]),same=(e,[a,b])=>[e.a,e.b].map(String).sort().join('|')===[a,b].map(String).sort().join('|');
+   if(await change(()=>{for(const pr of pairs){for(let i=list.length-1;i>=0;i--)if(same(list[i],pr))list.splice(i,1);if(kind!=='none')list.push({a:pr[0],b:pr[1],kind});}return tiles.flatMap(p=>[[p.x,p.z],[p.x+dx,p.z+dz]]);}))
+    status.value=kind==='none'?`Removed ${tiles.length} edges.`:`A ${kind} line, ${tiles.length} tiles long.`;return;}
+  if(tool.peek()==='ramp'){const ha=at(l.from.x,l.from.z)?.h,hb=at(l.to.x,l.to.z)?.h;if(ha===undefined||hb===undefined)return;const tiles=lineTiles(l.from,l.to),cells=[];
+   if(await change(()=>{for(const p of tiles){const target=Math.round((ha+(hb-ha)*p.t)*2)/2;for(const [a,b] of brushTiles(p.x,p.z)){if(!at(a,b))continue;setHeight(a,b,target);cells.push([a,b]);}}return cells;})){
+    const steep=Math.abs(hb-ha)/Math.max(1,tiles.length-1)>.5;status.value=`A ramp from ${ha} to ${hb} over ${tiles.length} tiles${steep?': too steep to walk (more than half a block a tile); drag it longer.':'.'}`;}return;}
+  // A brush in Line shape: one stroke along the line.
+  paint('start',l.from);for(const p of lineTiles(l.from,l.to).slice(1))paintAt(p);await paint('end',l.to);}
  function flushStroke(s=stroke){if(!s?.pending.length)return rebuilding||Promise.resolve();const cells=s.pending;s.pending=[];return rebuild({dirty:chunksAround(cells)});}
- function brushTiles(x,z){const r=brush.peek()==='3'?1:0,out=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)out.push([x+dx,z+dz]);return out;}
+ function brushTiles(x,z){const r=(Number(brush.peek())-1)/2|0,out=[];for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)out.push([x+dx,z+dz]);return out;}
  // A world click in Edit mode applies the tool; in Play mode the game handles it.
  // Floors by hand (docs/CITY.md, Floors; spaces.js): a building's floors by level (−1 a cellar, 0 the
  // ground, 1… above), each its own data: shape, material, inside walls, furniture and the flight up.
  // Edits inside a floor rebuild only that building's floors, and you stay where you are.
- const LEVEL_NAME=l=>l<0?'Cellar':l===0?'Ground floor':`Floor ${l+1}`,ON_LEVEL=l=>l<0?'in the cellar':l===0?'on the ground floor':`on floor ${l+1}`;
- const floorsOf=i=>data.buildings[i].floors??=[];
- const floorAt=(i,level)=>{const list=floorsOf(i);let f=list.find(e=>e.level===level);if(!f){f={level};list.push(f);}return f;};
- const planOf=i=>planBuilding(data.buildings[i].desc,[data.buildings[i].x,data.buildings[i].z]);
- const localOf=(i,x,z)=>{const p=planOf(i);return [x-p.x0,z-p.z0];};
+ // An owner is a building's index or {dungeon: id} (dungeons and caves by hand: levels −1, −2…, no building).
+ const isDungeon=o=>o?.dungeon!==undefined,ownerEntry=o=>isDungeon(o)?data.interiors?.[o.dungeon]:data.buildings[o];
+ const LEVEL_NAME=(l,o=ownerHere())=>isDungeon(o)?`Level ${-l}`:l<0?'Cellar':l===0?'Ground floor':`Floor ${l+1}`;
+ const ON_LEVEL=(l,o=ownerHere())=>isDungeon(o)?`on level ${-l}`:l<0?'in the cellar':l===0?'on the ground floor':`on floor ${l+1}`;
+ const floorsOf=o=>ownerEntry(o).floors??=[];
+ const floorAt=(o,level)=>{const list=floorsOf(o);let f=list.find(e=>e.level===level);if(!f){f={level};list.push(f);}return f;};
+ // A dungeon has no building: its plan is its top level's shape at the origin.
+ const planOf=o=>isDungeon(o)?{x0:0,z0:0,tiles:(floorsOf(o).find(f=>f.level===-1)?.cells||[]).map(c=>[...c]),edges:[],doors:[],anchors:{}}:planBuilding(data.buildings[o].desc,[data.buildings[o].x,data.buildings[o].z]);
+ const localOf=(o,x,z)=>{const p=planOf(o);return [x-p.x0,z-p.z0];};
+ const hereOwner=()=>{const h=floorHere.peek();return !h?null:h.dungeon!==undefined?{dungeon:h.dungeon}:h.building;};
  let pendingFlight=null;
  // Buildings whose floors changed while you were inside one: their map chunks rebuild when you step out.
  const staleBuildings=new Set();
- async function changeFloor(apply,label){const here=floorHere.peek();snapshot();if(here)staleBuildings.add(here.building);
+ async function changeFloor(apply,label){const owner=hereOwner();snapshot();if(owner!==null&&!isDungeon(owner))staleBuildings.add(owner);
   try{apply();}catch(error){undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return false;}
-  if(here)host.rebuildFloors(here.building);revision.value++;refreshPreview();if(label)status.value=typeof label==='function'?label():label;return true;}
+  if(owner!==null)host.rebuildFloors(owner);revision.value++;refreshPreview();if(label)status.value=typeof label==='function'?label():label;return true;}
  // A floor's tiles (world) for furnishing: its shape, minus its stairs and their fronts.
- function furnishFloor(i,level){const b=data.buildings[i],plan=planOf(i),f=floorAt(i,level),levels=new Map(floorLevels(b).map(e=>[e.level,e]));
+ function furnishFloor(i,level){const b=ownerEntry(i),plan=planOf(i),f=floorAt(i,level),levels=new Map(floorLevels(b).map(e=>[e.level,e]));
   const world=([dx,dz])=>[plan.x0+dx,plan.z0+dz],shape=(f.cells?.length?f.cells.map(world):plan.tiles);
   const flights=[f.up,levels.get(level-1)?.up].filter(Boolean).map(flightOf),keep=flights.flatMap(fl=>[fl.bottom,fl.top,fl.front]).map(world);
   const doors=level===0?plan.doors.map(d=>({inside:d.inside,out:d.out})):flights.map(fl=>({inside:world(fl.front),out:[0,0]}));
-  const use=f.use||(level===0?furnishingUse(b.desc):level<0?'warehouse':upstairsUse(furnishingUse(b.desc)||'home'))||'home';
-  const layout=furnishRoom({tiles:shape,doors,keeper:level===0?plan.anchors.keeper:null,keep},use,(b.desc.seed??1)*31+level+(f.roll??0)*97);
+  const use=f.use||(isDungeon(i)?'crypt':level===0?furnishingUse(b.desc):level<0?'warehouse':upstairsUse(furnishingUse(b.desc)||'home'))||'home';
+  const layout=furnishRoom({tiles:shape,doors,keeper:level===0&&!isDungeon(i)?plan.anchors.keeper:null,keep},use,((b.desc?.seed)??7)*31+level+(f.roll??0)*97);
   return layout.map(p=>({kind:p.kind,at:[p.x-plan.x0,p.z-plan.z0],rotation:p.rotation||0}));}
- const ownerHere=()=>floorHere.peek()?.building??(selection.peek()?.kind==='building'?selection.peek().index:null);
+ const ownerHere=()=>hereOwner()??(selection.peek()?.kind==='building'?selection.peek().index:null);
  // Clicks on a floor: furniture (Prop), Erase, inside walls and doors (Edge), the floor's shape (Footprint), its
  // material (Surface), and the flight up (Place stairs up).
- async function floorClick(tile){const here=floorHere.peek(),i=here.building,f=floorAt(i,here.level),[lx,lz]=localOf(i,tile.x,tile.z),o=Object.fromEntries(Object.entries(options).map(([k,v])=>[k,v.peek()]));
+ async function floorClick(tile){const here=floorHere.peek(),i=hereOwner(),f=floorAt(i,here.level),[lx,lz]=localOf(i,tile.x,tile.z),o=Object.fromEntries(Object.entries(options).map(([k,v])=>[k,v.peek()]));
   switch(tool.peek()){
    case 'inspect':status.value=`${LEVEL_NAME(here.level)} · ${lx},${lz} · ${tile.surface}${tile.blocked?' · solid':''}`;return;
    case 'prop':{const [w,d]=propFootprint(o.prop,+o.rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push(at(tile.x+a,tile.z+b));
@@ -561,7 +722,7 @@ export function createCityEditor(host){
     throw Error('Nothing to erase here.');}
    case 'edge':{const [dx,dz]=DIRS[o.side],b=[lx+dx,lz+dz],same=e=>[e.a,e.b].map(String).sort().join('|')===[[lx,lz],b].map(String).sort().join('|');
     await changeFloor(()=>{f.edges=(f.edges||[]).filter(e=>!same(e));if(o.edge!=='none')f.edges.push({a:[lx,lz],b,kind:o.edge});},o.edge==='none'?'Wall removed.':`${o.edge} placed.`);return;}
-   case 'surface':await changeFloor(()=>{f.surface=o.surface==='land'?undefined:o.surface;},`Floor: ${o.surface}.`);return;
+   case 'surface':if(o.surface==='water')throw Error('Water is for the land, not floors.');await changeFloor(()=>{f.surface=o.surface==='land'?undefined:o.surface;},`Floor: ${o.surface}.`);return;
    // A floor's shape may be any size (paint onto the solid ring around it to grow it); one bigger than the
    // floor below is a warning in the checks, and underground floors aren't limited.
    case 'footprint':{const plan=planOf(i),foot=plan.tiles.map(([x,z])=>[x-plan.x0,z-plan.z0]),cells=new Set((f.cells?.length?f.cells:foot).map(c=>c.join(','))),k=`${lx},${lz}`;
@@ -576,12 +737,13 @@ export function createCityEditor(host){
    const own=floorHere.peek()?c=>!!at(plan.x0+c[0],plan.z0+c[1])?.indoor:inside;
    if(![fl.bottom,fl.top,fl.front].every(own))throw Error('The stairs and the tile in front of them must be on this floor.');f.up={at:[lx,lz],dir};};
   if(floorHere.peek())await changeFloor(apply,`Stairs up from ${ON_LEVEL(level).replace(/^(on|in) /,'')}.`);
-  else if(await change(()=>{apply();return cellsOf('building',data.buildings[i]);},cellsOf('building',data.buildings[i])))status.value=`Stairs up from the ground floor.`;}
+  else if(!isDungeon(i)&&await change(()=>{apply();return cellsOf('building',data.buildings[i]);},cellsOf('building',data.buildings[i])))status.value=`Stairs up from the ground floor.`;}
  async function click(tile,point=null,actor=null){
   // A door into a building, or a stairwell: Inspect and Select follow it (docs/CITY.md, Floors).
   if(mode.peek()==='edit'&&actor?.link&&['inspect','select'].includes(tool.peek())){status.value=host.enterLink?.(actor.link)?`Through the ${actor.kind==='stairwell'?'stairs':'door'}.`:'Can’t go that way.';return true;}
+  if(mode.peek()==='edit'&&pendingEntrance&&!floorHere.peek()){await placeEntrance(tile).catch(error=>{status.value=error.message;});return true;}
   if(mode.peek()==='edit'&&pendingFlight){await placeFlight(tile).catch(error=>{status.value=error.message;});return true;}
-  if(mode.peek()==='edit'&&floorHere.peek()){await floorClick(tile).catch(error=>{status.value=error.message;});return true;}
+  if(mode.peek()==='edit'&&floorHere.peek()&&(tool.peek()!=='select')){await floorClick(tile).catch(error=>{status.value=error.message;});return true;}
   if(mode.peek()!=='edit')return false;
   // Drawing a patrol route: each click adds a stop (docs/TOWN.md, Townsfolk tool).
   if(patrolling&&personOf()){const p=personOf(),{x:px,z:pz}=tile;await setPerson(e=>{(e.patrol??=[]).push([px,pz]);if(!e.routine.some(r=>r.do==='patrol'))e.routine.push({do:'patrol',weight:3});},`patrol stop ${p.patrol?.length+1||1} at ${px},${pz}`);return true;}
@@ -616,6 +778,7 @@ export function createCityEditor(host){
     else{b.desc.furnishSeed=Math.floor(Math.random()*1e6);status.value=`${b.desc.name||'Building'}: refurnished.`;}return cellsOf('building',b);});break;
    case 'townsfolk':{const n=(data.townsfolk||[]).length+1,person={id:uniqueFolkId('townsfolk'),name:`Townsfolk ${n}`,look:{color:FOLK_COLOURS[n%FOLK_COLOURS.length]},home:[x,z],routine:[{do:'stroll',weight:2},{do:'chat',weight:1},{do:'gaze',weight:1}],pace:1};
     if(await change(()=>{const cells=validate('townsfolk',person,[]);lists().townsfolk.push(person);return cells;})){selection.value={kind:'townsfolk',index:data.townsfolk.length-1};showSelection();status.value=`${person.name} lives at ${x},${z}. Set them up in the Townsfolk panel.`;}break;}
+   case 'stamp':{const st=stampOf(chosenStamp.peek());if(!st){status.value='Pick a stamp first.';break;}if(await applyStamp(st,x,z))status.value=`Stamped ${st.name||chosenStamp.peek()} at ${x},${z}.`;break;}
    case 'spawn':await change(()=>{data.spawn=[x,z];return [];});status.value=`Arrival at ${x},${z}.`;break;
    case 'enemy':{const spawn={enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z};
     if(await change(()=>{const cells=validate('enemy',spawn,[]);lists().enemy.push(spawn);return cells;}))status.value=`${nameOf('enemy',spawn)} spawns at ${x},${z}.`;break;}
@@ -626,8 +789,8 @@ export function createCityEditor(host){
  // at: where to put the player (the tile they stand on, when the editor opens on the map they're in).
  async function load(next,{at=null}={}){data=next;undo.length=0;redo.length=0;history.value={undo:0,redo:0};selection.value=null;placing=null;moving.value=false;draft.value=new Set();draftFor=null;
   const listed=catalogue.find(c=>c.mapId===data.id);if(listed)choice.value=listed.id;
-  if(rebuilding)await rebuilding;built=await host.editCity(data,{keepPlayer:false,at});scheduleChecks(0);showGrid();showSelection();showDraft();showBiomes();revision.value++;status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;}
- // Undo and redo: the saved state replaces the data in place (the city being edited stays the same
+  if(rebuilding)await rebuilding;built=await host.editMap(data,{keepPlayer:false,at});scheduleChecks(0);showGrid();showSelection();showDraft();showBiomes();revision.value++;status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;}
+ // Undo and redo: the saved state replaces the data in place (the map being edited stays the same
  // object), and only what differs between the two states rebuilds (whole when the map's size or land
  // settings differ).
  async function step(from,to){if(!from.length)return;to.push(JSON.stringify(data));const next=JSON.parse(from.pop()),diff=differences(data,next);
@@ -661,59 +824,62 @@ export function createCityEditor(host){
  // Grows the map by whole chunks (docs/TOWN.md, Growing the overworld): one undo step, a full rebuild,
  // and you stay on the same spot of ground (it moves with everything else when the map grows west or north).
  async function growBy(){const n=+options.growBy.peek()*CHUNK,side=options.growSide.peek(),sides=side==='all'?{north:n,east:n,south:n,west:n}:{[side]:n};
-  const here=host.currentCity?.()?.at;snapshot();
+  const here=host.currentMap?.()?.at;snapshot();
   try{growMap(data,sides);}catch(error){undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return;}
-  if(rebuilding)await rebuilding;built=await host.editCity(data,{keepPlayer:false,at:here&&{x:here.x+(sides.west||0),z:here.z+(sides.north||0)}});
+  if(rebuilding)await rebuilding;built=await host.editMap(data,{keepPlayer:false,at:here&&{x:here.x+(sides.west||0),z:here.z+(sides.north||0)}});
   scheduleChecks(0);showGrid();showSelection();showDraft();showBiomes();revision.value++;status.value=`${data.name} is now ${data.size.join(' × ')}.`;}
  const json=()=>JSON.stringify(data,null,1);
  async function save(){
-  try{const response=await fetch('/__city-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:json()})});
+  try{const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:json()})});
    const result=await response.json();status.value=response.ok?`Saved to ${result.path}.`:`Not saved: ${result.error}`;}catch{status.value='Saving needs the playground dev server (npm run dev:debug). Use Copy or Download instead.';}}
  function download(){const link=h('a',{href:URL.createObjectURL(new Blob([json()],{type:'application/json'})),download:`${data.id}.json`});link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
  // A colour swatch choice (biomes, terrains): the colour the overlay paints, and the name.
- const swatch=(value,id,name,color)=>h('button',{type:'button',class:'q-city-editor__swatch','aria-pressed':()=>String(value.value===id),on:{click:()=>{value.value=id;}}},h('span',{class:'q-city-editor__chip',style:color?`background:${color}`:'background:transparent'}),h('span',null,name));
- const select=(label,value,choices)=>h('label',{class:'q-city-editor__field'},label,h('select',{class:'q-select',on:{change:e=>{value.value=e.target.value;}}},choices.map(([id,name])=>h('option',{value:id,selected:()=>value.value===id},name))));
+ const swatch=(value,id,name,color)=>h('button',{type:'button',class:'q-world-editor__swatch','aria-pressed':()=>String(value.value===id),on:{click:()=>{value.value=id;}}},h('span',{class:'q-world-editor__chip',style:color?`background:${color}`:'background:transparent'}),h('span',null,name));
+ const select=(label,value,choices)=>h('label',{class:'q-world-editor__field'},label,h('select',{class:'q-select',on:{change:e=>{value.value=e.target.value;}}},choices.map(([id,name])=>h('option',{value:id,selected:()=>value.value===id},name))));
  const shown=(...tools)=>()=>!tools.includes(tool.value);
  const label=p=>`${p.severity==='error'?'Error':p.severity==='warning'?'Warning':'Note'} · ${p.tile.join(',')} · ${p.text}`;
  const counts=computed(()=>{const list=problems.value;return `${list.filter(p=>p.severity==='error').length} errors · ${list.filter(p=>p.severity==='warning').length} warnings · ${list.filter(p=>p.severity==='info').length} notes`;});
  function build(){
-  return h('aside',{class:'q-city-editor','aria-label':'City editor'},
-   h('header',{class:'q-city-editor__head'},h('strong',null,()=>{revision.value;return data?`${data.name} · ${data.size.join(' × ')}`:'City editor';}),h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>editor.close()}},'Close')),
-   h('div',{class:'q-city-editor__row'},select('City',choice,catalogue.map(c=>[c.id,c.name])),h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>load(catalogue.find(c=>c.id===choice.peek()).make())}},'Open')),
+  return h('aside',{class:'q-world-editor','aria-label':'World editor'},
+   h('header',{class:'q-world-editor__head'},h('strong',null,()=>{revision.value;return data?`${data.name} · ${data.size.join(' × ')}`:'World editor';}),h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>editor.close()}},'Close')),
+   h('div',{class:'q-world-editor__row'},select('Map',choice,catalogue.map(c=>[c.id,c.name])),h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>load(catalogue.find(c=>c.id===choice.peek()).make())}},'Open')),
    segmented({label:'Mode',options:[{value:'edit',label:'Edit'},{value:'play',label:'Play (test walk)'}],value:mode,onChange:v=>{mode.value=v;status.value=v==='play'?'Test walk: clicks move you. Reset rebuilds the edited state.':'Edit: clicks use the tool.';}}),
-   h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>rebuild({keepPlayer:false})}},'Reset'),
+   h('div',{class:'q-world-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>rebuild({keepPlayer:false})}},'Reset'),
     h('button',{type:'button',class:'q-button q-button--small',title:`${MOD}+Z`,disabled:()=>!history.value.undo,on:{click:()=>step(undo,redo)}},'Undo'),
     h('button',{type:'button',class:'q-button q-button--small',title:`${MOD}+Shift+Z`,disabled:()=>!history.value.redo,on:{click:()=>step(redo,undo)}},'Redo')),
-   h('div',{class:'q-city-editor__tools',hidden:()=>mode.value!=='edit'},TOOLS.map(([id,name])=>h('button',{type:'button',class:'q-button q-button--small','aria-pressed':()=>tool.value===id,on:{click:()=>{tool.value=id;}}},name))),
-   h('div',{class:'q-city-editor__options',hidden:()=>mode.value!=='edit'},
+   h('div',{class:'q-world-editor__tools',hidden:()=>mode.value!=='edit'},TOOLS.map(([id,name])=>h('button',{type:'button',class:'q-button q-button--small','aria-pressed':()=>tool.value===id,on:{click:()=>{tool.value=id;}}},name))),
+   h('div',{class:'q-world-editor__options',hidden:()=>mode.value!=='edit'},
     h('div',{hidden:shown('walls')},select('Make it',options.wallKind,[['window','A window'],['wall','A plain wall'],['door','A door'],['sign','The sign'],['nosign','No sign'],['flowers','Flower box (toggle)']]),h('p',{class:'q-page__help'},'Click beside a wall.')),
     h('div',{hidden:shown('biome')},
      h('div',{hidden:()=>{revision.value;return !!data?.land;}},select('Unpainted land',options.landDefault,BIOME_IDS.map(id=>[id,biomeRule(id).name])),
       h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>addLand()}},'Add land')),
      h('div',{hidden:()=>{revision.value;return !data?.land;}},
       segmented({label:'Layer',value:()=>options.landLayer.value,onChange:v=>{options.landLayer.value=v;showBiomes();},options:[{value:'biome',label:'Biome'},{value:'terrain',label:'Terrain'}]}),
-      h('div',{class:'q-city-editor__swatches',hidden:()=>options.landLayer.value!=='biome'},BIOME_IDS.map(id=>swatch(options.biome,id,biomeRule(id).name,BIOME_PAINT[id]))),
-      h('div',{class:'q-city-editor__swatches',hidden:()=>options.landLayer.value!=='terrain'},[['usual','Biome’s usual',null],...TERRAIN_IDS.map(id=>[id,terrainRule(id).name,TERRAIN_PAINT[id]])].map(([id,name,color])=>swatch(options.terrain,id,name,color))),
+      h('div',{class:'q-world-editor__swatches',hidden:()=>options.landLayer.value!=='biome'},BIOME_IDS.map(id=>swatch(options.biome,id,biomeRule(id).name,BIOME_PAINT[id]))),
+      h('div',{class:'q-world-editor__swatches',hidden:()=>options.landLayer.value!=='terrain'},[['usual','Biome’s usual',null],...TERRAIN_IDS.map(id=>[id,terrainRule(id).name,TERRAIN_PAINT[id]])].map(([id,name,color])=>swatch(options.terrain,id,name,color))),
       select('Brush',options.biomeBrush,[['1','1 cell (8 × 8)'],['3','3 × 3 cells'],['5','5 × 5 cells']]),
       toggleSwitch({label:'Generated fishing',description:'Fishing spots the water gets on its own',on:()=>{revision.value;return data?.land?.fishing!==false;},onChange:v=>setLand(()=>{data.land.fishing=v;status.value=v?'Generated fishing spots on.':'Generated fishing spots off: only placed ones.';})}),
       toggleSwitch({label:'Generated enemies',description:'Goblins and others the biomes spawn',on:()=>{revision.value;return data?.land?.enemies!==false;},onChange:v=>setLand(()=>{data.land.enemies=v;status.value=v?'Generated enemies on.':'Generated enemies off.';})}),
       toggleSwitch({label:'Generated nature',description:'Trees, resources and ground cover the biomes grow',on:()=>{revision.value;return data?.land?.nature!==false;},onChange:v=>setLand(()=>{data.land.nature=v;status.value=v?'Generated nature on.':'Generated nature off: only what you place.';})}),
-      h('label',{class:'q-city-editor__field'},'Unpainted land',h('select',{class:'q-select',on:{change:e=>landDefault(e.target.value)}},BIOME_IDS.map(id=>h('option',{value:id,selected:()=>{revision.value;return data?.land?.default===id;}},biomeRule(id).name)))),
-      h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>reseedLand()}},'New seed'),h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>removeLand()}},'Remove land')))),
+      h('label',{class:'q-world-editor__field'},'Unpainted land',h('select',{class:'q-select',on:{change:e=>landDefault(e.target.value)}},BIOME_IDS.map(id=>h('option',{value:id,selected:()=>{revision.value;return data?.land?.default===id;}},biomeRule(id).name)))),
+      h('div',{class:'q-world-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>reseedLand()}},'New seed'),h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>removeLand()}},'Remove land')))),
     h('div',{hidden:shown('footprint')},select('Paint',options.draftMode,[['add','Add tiles'],['remove','Remove tiles']]),select('Storeys',options.storeys,[['1','1'],['2','2'],['3','3']]),select('Roof',options.roof,ROOF_TYPES.filter(r=>r!=='cone').map(r=>[r,r])),select('Walls',options.style,STYLE_NAMES.map(n=>[n,n])),select('Use',options.use,[...USE_NAMES,'none'].map(u=>[u,u])),
      h('p',{class:'q-page__help'},()=>{draft.value;revision.value;return `${draft.value.size} tiles${draftFor!==null?` · reshaping ${nameOf('building',data.buildings[draftFor])}`:''}`;}),
-     h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>buildDraft().catch(error=>{status.value=error.message;})}},'Build it'),h('button',{type:'button',class:'q-button q-button--small',on:{click:clearDraft}},'Clear'))),
+     h('div',{class:'q-world-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>buildDraft().catch(error=>{status.value=error.message;})}},'Build it'),h('button',{type:'button',class:'q-button q-button--small',on:{click:clearDraft}},'Clear'))),
     h('div',{hidden:shown('nature')},select('Nature',options.nature,NATURE_CHOICES)),
+    cavesPanel(),floorsPanel(),stampsPanel(),
     h('div',{hidden:shown('enemy')},select('Enemy',options.enemyKind,Object.entries(ENEMIES).map(([id,e])=>[id,e.name])),select('Behaviour',options.enemyMood,[['passive','Passive (fights back)'],['aggressive','Aggressive']]),select('Respawns after',options.enemyRespawn,RESPAWNS)),
-    h('div',{hidden:shown('raise','lower','flatten','nature','surface','footprint')},select('Brush',brush,[['1','1 tile'],['3','3 × 3']]),h('p',{class:'q-page__help'},'Drag to paint.')),
-    h('div',{class:'q-city-editor__selection',hidden:()=>tool.value!=='select'},
+    h('div',{hidden:shown('raise','lower','flatten','smooth','ramp','nature','surface','footprint')},select('Brush',brush,[['1','1 tile'],['3','3 × 3'],['5','5 × 5'],['7','7 × 7'],['9','9 × 9']]),
+     h('div',{hidden:shown('raise','lower','flatten','smooth','nature','surface')},select('Shape',options.brushShape,[['brush','Paint as you drag'],['line','A straight line']])),
+     h('p',{class:'q-page__help'},()=>tool.value==='ramp'?'Drag from the low end to the high end.':options.brushShape.value==='line'?'Drag from one end to the other.':'Drag to paint.')),
+    h('div',{class:'q-world-editor__selection',hidden:()=>tool.value!=='select'},
      h('p',{class:'q-page__help'},()=>{revision.value;const sel=selection.value,entry=entryOf(sel);return entry?`${nameOf(sel.kind,entry)} · ${KIND_LABELS[sel.kind]} at ${anchorOf(sel.kind,entry)?.join(',')}${moving.value?' · click where it goes':''}`:'Click something to select it.';}),
-     floorsPanel(),lookPanel(),spawnPanel(),personPanel(),
-     h('div',{class:'q-city-editor__row',hidden:()=>!selection.value},
+     lookPanel(),spawnPanel(),personPanel(),
+     h('div',{class:'q-world-editor__row',hidden:()=>!selection.value},
       ...[['Move','M',startMove],['Rotate','R',rotateSelection],['Reshape',null,reshapeSelection],['Duplicate',`${MOD}+D`,duplicateSelection],['Delete','Del',deleteSelection],['Deselect','Esc',cancel],
        ['← Nudge',null,()=>nudge(-1,0)],['Nudge →',null,()=>nudge(1,0)],['↑ Nudge',null,()=>nudge(0,-1)],['Nudge ↓',null,()=>nudge(0,1)]]
        .map(([name,keyName,act])=>h('button',{type:'button',class:'q-button q-button--small','aria-keyshortcuts':keyName?.replace('⌘','Meta').replace('Del','Delete')||undefined,on:{click:()=>Promise.resolve().then(act).catch(error=>{status.value=error.message;})}},keyName?`${name} (${keyName})`:name)))),
-    h('div',{hidden:shown('surface')},select('Surface',options.surface,[['land',"Land's own"],...SURFACE_NAMES.map(s=>[s,s])])),
+    h('div',{hidden:shown('surface')},select('Surface',options.surface,[['land',"Land's own"],...SURFACE_NAMES.map(s=>[s,s]),['water','water (land maps)']])),
     h('div',{hidden:shown('use')},select('Use',options.use,[...USE_NAMES,'none'].map(u=>[u,u]))),
     h('div',{hidden:shown('building')},select('Building',options.preset,Object.entries(BUILDING_PRESETS).map(([id,p])=>[id,p.name]))),
     h('div',{hidden:shown('prop')},propPalette()),
@@ -721,25 +887,25 @@ export function createCityEditor(host){
     h('div',{hidden:shown('stairs')},select('Up towards',options.dir,Object.entries(SIDE_LABELS)),select('Length',options.length,[1,2,3,4].map(n=>[String(n),`${n} (${n/2} block${n>2?'s':''})`])),select('Width',options.width,[1,2,3,4,5].map(n=>[String(n),String(n)]))),
     h('div',{hidden:shown('edge')},select('Edge',options.edge,[['wall','Wall'],['window','Window'],['fence','Fence'],['railing','Railing'],['low','Counter'],['door','Door'],['none','Remove']]),select('Side',options.side,Object.entries(SIDE_LABELS)))),
    h('p',{class:'q-page__help',role:'status'},status),
-   h('p',{class:'q-page__help q-city-editor__refused',hidden:()=>!previewNote.value},previewNote),
-   h('div',{class:'q-city-editor__row'},select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 chunk (${CHUNK})`],['2','2 chunks'],['3','3 chunks']]),
+   h('p',{class:'q-page__help q-world-editor__refused',hidden:()=>!previewNote.value},previewNote),
+   h('div',{class:'q-world-editor__row'},select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 chunk (${CHUNK})`],['2','2 chunks'],['3','3 chunks']]),
     h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>growBy()}},'Grow map')),
-   h('div',{class:'q-city-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:save}},'Save to repo'),
-    h('button',{type:'button',class:'q-button q-button--small',on:{click:async()=>{try{await navigator.clipboard.writeText(json());status.value='Copied the city JSON.';}catch{status.value='Copy failed: use Download.';}}}},'Copy JSON'),
+   h('div',{class:'q-world-editor__row'},h('button',{type:'button',class:'q-button q-button--small',on:{click:save}},'Save to repo'),
+    h('button',{type:'button',class:'q-button q-button--small',on:{click:async()=>{try{await navigator.clipboard.writeText(json());status.value='Copied the map JSON.';}catch{status.value='Copy failed: use Download.';}}}},'Copy JSON'),
     h('button',{type:'button',class:'q-button q-button--small',on:{click:download}},'Download')),
    host.freeCameraOn?toggleSwitch({label:'Free camera',description:'WASD or middle-drag to pan',on:()=>host.freeCameraOn.value,onChange:v=>host.freeCamera(v)}):null,
    toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}}),
-   h('h3',{class:'q-city-editor__title'},'Checks · ',counts),
-   keyedList(h('ol',{class:'q-city-editor__checks'}),problems,p=>`${p.kind}:${p.tile.join(',')}:${p.text}`,p=>h('li',null,h('button',{type:'button',class:'q-city-editor__check','data-severity':p.peek().severity,
+   h('h3',{class:'q-world-editor__title'},'Checks · ',counts),
+   keyedList(h('ol',{class:'q-world-editor__checks'}),problems,p=>`${p.kind}:${p.tile.join(',')}:${p.text}`,p=>h('li',null,h('button',{type:'button',class:'q-world-editor__check','data-severity':p.peek().severity,
     on:{click:()=>{const [x,z]=p.peek().tile;const ok=[[0,0],[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1]].some(([dx,dz])=>host.teleport(x+dx,z+dz));status.value=ok?label(p.peek()):`Couldn't stand near ${x},${z}.`;}}},label(p.peek())))));
  }
  const editor={
   get active(){return !!view;},get data(){return data;},get built(){return built;},get problems(){return problems.peek();},tool,mode,options,brush,
-  // Opens on the map you're on: the one being edited (as you left it), else the city map you stand in
+  // Opens on the map you're on: the one being edited (as you left it), else the map you stand in
   // (you stay where you are), else the overworld. `next` opens that data instead.
   async open(next=null){if(!view){view=mount(build);document.body.append(view.node);window.addEventListener('keydown',onKey,{capture:true});
     // World clicks and left-drag belong to the editor only in Edit mode; in Play they reach the game.
-    stopDrag=effect(()=>{const editing=mode.value==='edit';host.setTileClick(editing?(tile,point,actor)=>click(tile,point,actor):null);host.setTileHover?.(editing?hover:null);if(!editing)clearPreview();host.setTileDrag?.(editing&&PAINT_TOOLS.includes(tool.value)?paint:null);});
+    stopDrag=effect(()=>{const editing=mode.value==='edit';host.setTileClick(editing?(tile,point,actor)=>click(tile,point,actor):null);host.setTileHover?.(editing?hover:null);if(!editing)clearPreview();host.setTileDrag?.(editing&&DRAG_TOOLS.includes(tool.value)?drag:null);});
     // The biome overlay shows while the Biome tool is chosen.
     stopBiomes=effect(()=>{tool.value;showBiomes();});
     // Previews follow the tool and its options, the selection and moving.
@@ -747,17 +913,17 @@ export function createCityEditor(host){
     stopFloors=effect(()=>{if(floorHere.value||!staleBuildings.size)return;const cells=[...staleBuildings].flatMap(i=>data.buildings[i]?cellsOf('building',data.buildings[i]):[]);staleBuildings.clear();untracked(()=>rebuild({dirty:chunksAround(cells)}));});
     stopPreview=effect(()=>{tool.value;brush.value;selection.value;moving.value;for(const s of Object.values(options))s.value;untracked(refreshPreview);});}
    if(next){await load(next);return editor;}
-   const here=host.currentCity?.();
-   if(data&&here?.areaId==='city-editor'){showGrid();showSelection();showDraft();showBiomes();scheduleChecks(0);status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;return editor;}
+   const here=host.currentMap?.();
+   if(data&&here?.areaId==='world-editor'){showGrid();showSelection();showDraft();showBiomes();scheduleChecks(0);status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;return editor;}
    if(here?.data){await load(structuredClone(here.data),{at:here.at});return editor;}
    await load(catalogue[0].make());return editor;},
   close(){stopFloors?.();stopFloors=null;host.setTileClick(null);host.setTileHover?.(null);spotsFill?.dispose();spotsFill=null;patrolling=false;patrolOn.value=false;stopPreview?.();stopPreview=null;clearPreview();hoverAt=null;stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
   get grid(){return grid.peek();},set grid(v){grid.value=!!v;showGrid();},
   click,undo:()=>step(undo,redo),redo:()=>step(redo,undo),
   // Fast editing, for scripted checks: the same actions as the panel and keys.
-  selection,moving,select(kind,index){selection.value={kind,index};showSelection();},moveSelection,nudge,rotateSelection,duplicateSelection,placeCopy,deleteSelection,paint,
+  selection,moving,select(kind,index){selection.value={kind,index};showSelection();},moveSelection,nudge,rotateSelection,duplicateSelection,placeCopy,deleteSelection,paint,drag,copySelection,pasteClipboard,
   growMap:growBy,draft,reshapeSelection,buildDraft,clearDraft,setWall,wallAt,setLook,addLand,removeLand,landDefault,reseedLand,
-  get checksPending(){return !!checkTimer;},runChecks(){clearTimeout(checkTimer);if(built)problems.value=cityProblems(data,built);return problems.peek();},
+  get checksPending(){return !!checkTimer;},runChecks(){clearTimeout(checkTimer);if(built)problems.value=mapProblems(data,built);return problems.peek();},
  };
  return editor;
 }

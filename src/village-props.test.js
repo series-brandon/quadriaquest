@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {PROPS,PROP_CATEGORIES,createProp,updateProps,propModel} from './props.js';
-import {createCityData,buildCity} from './city-map.js';
+import {createMapData,buildMap} from './world-map.js';
 import {key,findPath} from './world.js';
 
 // Village and coast props (prop-sets/village.js; docs/TOWN.md, Prop palette) and the shared options they
@@ -31,10 +31,10 @@ test('a waterwheel turns each frame',()=>{
  wheel.dispose();
 });
 test('a jetty in a town on the land keeps its pond, and you can walk onto it',()=>{
- const data=createCityData({id:'wet',size:[64,64],land:{seed:4,default:'wetland',cells:{}}}),probe=buildCity(structuredClone(data),{scene:new THREE.Group()});
+ const data=createMapData({id:'wet',size:[64,64],land:{seed:4,default:'wetland',cells:{}}}),probe=buildMap(structuredClone(data),{scene:new THREE.Group()});
  const tiles=[...probe.tiles.values()],wet=tiles.find(t=>t.water&&[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>{const n=probe.tiles.get(key(t.x+dx,t.z+dz));return n&&!n.water;})&&t.x>2&&t.z>2&&t.x<60&&t.z<60);
  data.props.push({kind:'jetty',x:wet.x,z:wet.z});
- const city=buildCity(data,{scene:new THREE.Group()}),deck=city.tiles.get(key(wet.x,wet.z));
+ const city=buildMap(data,{scene:new THREE.Group()}),deck=city.tiles.get(key(wet.x,wet.z));
  assert.equal(deck.overWater,true,'still water below');assert.equal(deck.water,false);
  const shore=tiles.find(t=>!t.water&&Math.abs(t.x-wet.x)+Math.abs(t.z-wet.z)===1);assert.ok(findPath(city.tiles,city.tiles.get(key(shore.x,shore.z)),deck));
 });

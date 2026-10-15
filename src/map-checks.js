@@ -1,14 +1,14 @@
 import {key,edgeBetween,edgePasses} from './world.js';
 import {planBuilding} from './building-kit.js';
 import {propFootprint,PROPS} from './props.js';
-import {stairProblems,DIRS} from './city-terrain.js';
+import {stairProblems,DIRS} from './map-terrain.js';
 import {interiorProblems} from './spaces.js';
 import {townsfolkProblems} from './townsfolk.js';
 import {CHUNK,withinChunk} from './world-grid.js';
 
-// City checks (docs/CITY.md, Authoring: live checks; city Phase 6). The editor lists these; tests run
+// Map checks (docs/CITY.md, Authoring: live checks; city Phase 6). The editor lists these; tests run
 // them over every city in the repo. Each problem: {kind, severity: 'error'|'warning', tile:[x, z],
-// text}. Inputs: the city data and its built city (city-map.js buildCity), so checks see exactly what
+// text}. Inputs: the map data and its built map (world-map.js buildMap), so checks see exactly what
 // the game sees.
 const NEIGHBOURS=Object.values(DIRS);
 // Walking with every unlocked door counted as open (a closed door is only a click away).
@@ -25,7 +25,7 @@ function footprintTiles(entry,kind){
  if(kind==='building'){const plan=planBuilding(entry.desc,[entry.x,entry.z]);return plan.tiles;}
  const [w,d]=propFootprint(entry.kind,entry.rotation||0),out=[];for(let z=0;z<d;z++)for(let x=0;x<w;x++)out.push([entry.x+x,entry.z+z]);return out;
 }
-export function cityProblems(data,built){
+export function mapProblems(data,built){
  const problems=[],add=(kind,severity,tile,text)=>problems.push({kind,severity,tile,text});
  const map=built.tiles,spawn=built.spawn;
  if(!spawn||spawn.blocked)add('spawn','error',data.spawn,'The arrival tile is missing or blocked.');

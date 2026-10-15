@@ -19,11 +19,11 @@ function cellOf(x,z,seed){
   if(!best||d<best.d)best={id:`${cx},${cz}`,x:Math.round(px),z:Math.round(pz),d};}
  return best;
 }
-export function cityGreens(city,{seed=1}={}){
- const map=city.tiles,isGreen=t=>t&&(t.surface||'grass')==='grass'&&!t.blocked&&!t.indoor&&!t.stair&&!t.cityWall&&t.building===undefined;
- const doorsteps=new Set();for(const b of city.buildings||[])for(const d of b.anchors?.doors||[])for(const t of [d.doorstep,d.inside])if(t)doorsteps.add(t);
+export function cityGreens(builtMap,{seed=1}={}){
+ const map=builtMap.tiles,isGreen=t=>t&&(t.surface||'grass')==='grass'&&!t.blocked&&!t.indoor&&!t.stair&&!t.cityWall&&t.building===undefined;
+ const doorsteps=new Set();for(const b of builtMap.buildings||[])for(const d of b.anchors?.doors||[])for(const t of [d.doorstep,d.inside])if(t)doorsteps.add(t);
  // Townsfolk homes stay clear too (they stand there).
- for(const f of city.data?.townsfolk||[])if(f.home){const t=map.get(key(...f.home));if(t)doorsteps.add(t);}
+ for(const f of builtMap.data?.townsfolk||[])if(f.home){const t=map.get(key(...f.home));if(t)doorsteps.add(t);}
  const seen=new Set(),patches=[];
  for(const start of map.values()){
   if(seen.has(start)||!isGreen(start))continue;

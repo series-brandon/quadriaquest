@@ -213,6 +213,50 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - both builds;
    - one perf pass with Mistrom's scenarios.
 
+## Box select, copy and stamps (2026-10-14)
+
+User request: editor next steps, section 2 (box select and group moves; copy, paste and stamps).
+- **Box select:** with Select, drag a box. Everything placed inside it is selected as a group:
+  - buildings, props, stairs, edges, resources, ground cover, fishing spots, enemy spawns and townsfolk;
+  - on a floor, its furniture.
+  - A click without dragging still selects one thing.
+- **A group** moves (M or the nudge buttons), duplicates (Ctrl/⌘+D), deletes (Delete), and shows its tiles. It can't rotate.
+  - Deleting keeps townsfolk homes pointing at the right buildings.
+  - Each of these is one undo step.
+- **Copy and paste:** Ctrl/⌘+C copies the selection (one thing or a group). Ctrl/⌘+V then a click places it with its north-west corner there, with a green or red preview.
+- **Stamps:** a saved group that can be placed again (Stamp tool).
+  - *Save selection as stamp* (with a name) writes `src/stamps/<id>.json` through the playground dev server, and keeps it for the session.
+  - A saved stamp doesn't reload the page: Vite ignores `src/stamps` while it runs, and the next start lists it.
+  - A stamp holds its items relative to its corner (`{name, size, items: {building: […], prop: […], …}}`). It doesn't hold the ground.
+  - Pick one in the Stamp tool, then click to place it, with a preview.
+- **Checked in the browser** (overworld):
+  - boxed a 7-tile fence, copied, pasted and nudged it, deleted it, and undid that;
+  - saved it as a stamp with no page reload, then stamped it elsewhere.
+
+## Lines and brushes (2026-10-14)
+
+User request: editor next steps, section 2 (path and fence lines; bigger brushes, smooth, ramp, water by hand).
+- **Brush sizes:** 1, 3, 5, 7 and 9 tiles square, for raise, lower, flatten, smooth, ramp, nature, surface and footprint.
+- **Shape** (raise, lower, flatten, smooth, nature and surface):
+  - *Paint as you drag* (as before);
+  - *A straight line*: drag from one end to the other, with a blue preview of the line at the brush's width; it's one undo step on release.
+- **Edge lines:** with Edge, drag to lay the chosen edge (fence, wall, railing, counter, door, window, or Remove) along a straight row or column, on the chosen side of each tile.
+  - The line follows whichever axis the drag mostly follows.
+  - A click still sets one edge. Inside a floor, the line goes on the floor's own edges.
+- **Smooth:** each tile eases to the average height of the tiles around it, to the half block.
+- **Ramp:** drag from one end to the other. The ground slopes evenly from the start tile's height to the end tile's, to the half block, at the brush's width.
+  - The status warns when it's too steep to walk (more than half a block a tile).
+- **Water by hand:** the Surface tool's *water* paints still pond water (`w` in the surfaces; land maps only, not on floors).
+  - *Land's own* clears it back to the ground.
+  - It's a tile like the land's ponds: it blocks walking and is drawn as water.
+- **Checked in the browser** (overworld):
+  - a ramp from 1 to 3.5 over nine tiles;
+  - a 7-tile fence line from a diagonal drag;
+  - smooth with a 5 × 5 brush;
+  - a 3-wide line of water;
+  - a 3-wide line raised by half a block.
+  - Unit test: painted water is a still pond tile, and clearing it gives the land back.
+
 ## Townsfolk tool (2026-10-14)
 
 User request: build the townsfolk tool (authoring tools, item 4). It replaces editing `townsfolk` JSON by hand.
@@ -229,7 +273,7 @@ User request: build the townsfolk tool (authoring tools, item 4). It replaces ed
 - **Patrol:** *Draw patrol route*, then click tiles to add stops (adding `patrol` to the routine) and Esc or *Done* to finish. *Clear patrol* removes the route.
 - **Their places on the map:** while a townsfolk is selected, their home is drawn gold, their building sand, patrol stops pink, and the props and furniture spots their routine uses (within 48 tiles) blue.
 - **Moving:** select a townsfolk to move them (M) or delete them. Duplicate gives a new id.
-- **Checks:** the city checks report a townsfolk who can't do anything in their routine, or whose building isn't one they can live in.
+- **Checks:** the map checks report a townsfolk who can't do anything in their routine, or whose building isn't one they can live in.
 - **Checked in the browser:**
   - placed a person beside a shop and a bench;
   - set their name, line, hat, home building, a sit weight and a two-stop patrol;
@@ -244,7 +288,7 @@ User request: an enemy spawn placement tool (generated enemies are off; spawns a
   - `respawn` is in seconds.
   - The golem's 2 × 2 body has its spawn tile as the north-west corner.
 - **In play:** spawns come in through the land's streamer (town-ground.js `townSource` extras) like any other enemy, with their own respawn time (main.js `placeLandExtra`). A defeated enemy stays away for that time, even while its chunk is unloaded.
-- **City editor:**
+- **World editor:**
   - The **Enemy** tool sets the enemy, its behaviour (passive, which fights back, or aggressive) and its respawn time (30 s to 15 min). Its preview turns red, with the reason, on water, blocked tiles or another spawn.
   - **Select** picks a spawn. Move (M), Delete and Duplicate (Ctrl/⌘+D) work, and a **Spawn** panel changes its enemy, behaviour and respawn in place.
   - **Erase** removes one.
@@ -283,7 +327,7 @@ User request: "All the map should be editable and reachable. There shouldn't be 
 ## Shortcuts and preview ghosts (2026-10-14)
 
 User request: more intuitive shortcuts that never rebind movement keys, and preview ghosts.
-- **Shortcuts** (city editor, Edit mode):
+- **Shortcuts** (world editor, Edit mode):
 
   | Key | Action |
   |---|---|
@@ -346,13 +390,13 @@ User report: editor performance was "atrocious". Measured on the 288 × 288 over
   - Every streamed land and town streams that far, and the camera's far plane follows.
   - Far took the overworld from 326 to 1,093 draw calls.
 - **Free camera** (playground; docs/PLAYGROUND.md): the camera pans on its own and zooms out to 140, with streaming and shadows following it, so you can edit anywhere without walking.
-- **Naming:** `growMap` (not `growCity`). Maps aren't cities; the remaining `city` names (`city-map.js`, `buildCity`, the city editor) are older and can be renamed separately.
+- **Naming:** `growMap` (not `growMap`). Maps aren't cities; the remaining `city` names (`world-map.js`, `buildMap`, the world editor) are older and can be renamed separately.
 
 ## Growing the overworld (2026-10-14)
 
 User request: grow the overworld, so the river, coast and sea (and the woods and hills) are part of the map you edit.
 - **The overworld:** 288 × 288 tiles (9 × 9 chunks). Mistrom's 96 × 96 sits in the middle, with the crystal at 144, 144. The woods and hills to the north and west, the river to the east, and the coast and sea to the south are all its own tiles now. `src/dev/overworld-layout.js` builds the wild start, then grows it by three chunks on every side.
-- **`growMap(data, {north, east, south, west})`** (city-map.js):
+- **`growMap(data, {north, east, south, west})`** (world-map.js):
   - grows a map by whole chunks on any side;
   - growing west or north moves everything built: ground paint and offsets, buildings, props, stairs, edges, resources, cover, the crystal, the arrival spot, townsfolk homes and patrols, and removed nature;
   - on the land it moves the map's `land.origin` (where its 0, 0 lies in the land), so the land stays exactly where it was under what was built. Biome cells stay in the land's own cells.
@@ -383,7 +427,7 @@ User request: grow the overworld, so the river, coast and sea (and the woods and
 ## Prop palette and village props (2026-10-14)
 
 User request: the prop palette next, then the props the village needs.
-- **Palette** (city editor, Prop tool):
+- **Palette** (world editor, Prop tool):
   - a search box over the prop groups;
   - each prop is a button with a thumbnail and its name, and the footprint shows on hover;
   - thumbnails are drawn from each prop's real model, from the game's angle, a few per frame the first time the tool opens (`src/dev/prop-thumbnails.js`, dev only; one offscreen renderer, freed when done).
@@ -435,7 +479,7 @@ User request: move the Iter Crystal, and add, move or delete resources and the s
   - `land.removed: ['tree:x,z', 'cover:x,z', …]`: generated things taken away.
 - **Placement rules:** one resource and one piece of cover per tile. Placing replaces whatever grew or was placed there.
 - **One path:** `townSource` (town-ground.js) merges these with what the land grows. They stream, chop, gather and respawn through the same resource entities and cover pool as anything generated. Placed resource ids are `placed:kind:x,z`.
-- **City editor:**
+- **World editor:**
   - **Nature** brush: drag to place an oak, birch, pine, willow, cherry or maple tree, copper, a boulder, sticks, stones, flint, or any cover kind. *Clear nature* takes away whatever is there. The 1 or 3 × 3 brush applies.
   - **Select** on a generated tree, resource or flower takes it into the map's own list, so it can be moved (M, arrows) or deleted like anything placed.
   - **Erase** clears nature on a tile with nothing else on it.
@@ -460,13 +504,13 @@ User request: clear out every building, prop, decoration and path, and start fro
   - the painted biomes around it;
   - the Iter Crystal at 48, 48 and the arrival spot at 48, 51.
 - **Nothing built:** no buildings, props, paths, townsfolk, village trees or height edits. The ground is all the land's own.
-- From here Mistrom is built in the city editor (*Save to repo*). Rerunning the generator would wipe that work.
+- From here Mistrom is built in the world editor (*Save to repo*). Rerunning the generator would wipe that work.
 - The first layout below is kept as a record; it's no longer in the data.
 
 ## As implemented: the first layout (2026-10-14, since cleared)
 
 User request: generate Mistrom now, so the tools are built against it.
-- **Files** (since renamed; see *The overworld map*): `src/dev/mistrom-layout.js` wrote `src/maps/mistrom.json` once (`node scripts/generate-mistrom.mjs`). From then on Mistrom is refined in the city editor (*City → Mistrom*, *Save to repo*), and regenerating overwrites hand edits, as with the capital.
+- **Files** (since renamed; see *The overworld map*): `src/dev/mistrom-layout.js` wrote `src/maps/mistrom.json` once (`node scripts/generate-mistrom.mjs`). From then on Mistrom is refined in the world editor (*City → Mistrom*, *Save to repo*), and regenerating overwrites hand edits, as with the capital.
 - **The layout:** 96 × 96 at the origin.
   - **The green:** 16 × 16 in the middle chunk, with a ring path, the Iter Crystal at 48, 48, a well, the noticeboard, benches, flower beds and lamps.
   - **Buildings:** the inn to the north; the general store east; the smithy (stone) west, with its yard across the high road; the mill north-east by the river; a red barn and fields north-west; the long (L-shaped) house, cottages, a townhouse and the shrine to the south; the fisher's cottage and the fish stall on the planks by the river mouth.
@@ -513,7 +557,7 @@ User report: the village felt cut out of the world ("spawned as a huge flat area
 - **Data:**
   - A town on the land (`data.land`) stores `offsets` in its regions instead of `heights`.
   - Its surfaces use `.` for "the land's own ground".
-  - `putOnLand` and `takeOffLand` (city-map.js) convert a map either way. Terraces keep their height above the ground, and grass becomes the land's ground.
+  - `putOnLand` and `takeOffLand` (world-map.js) convert a map either way. Terraces keep their height above the ground, and grass becomes the land's ground.
 - **Water:** stays where nothing is made on it. A road painted across a pond is dry ground.
 - **Rebuilds:** moving a building re-levels its pad. `rebuild` compares the fresh ground with what was built and also rebuilds any chunk whose ground moved. The land's streamer reloads those chunks around the rebuild (`reload`), so trees and cover follow the edit.
 - **Editor:**

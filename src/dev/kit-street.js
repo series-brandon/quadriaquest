@@ -1,7 +1,7 @@
-import {createCityData,fillCity} from '../city-map.js';
+import {createMapData,fillMap} from '../world-map.js';
 import {USE_ICONS} from '../furnish.js';
 
-// Kit street as city data (dev only; city Phases 4–7): a test street for the building kit and the city
+// Kit street as map data (dev only; city Phases 4–7): a test street for the building kit and the city
 // systems, used by tests and the perf scenarios (city-walk, city-crowd); not in the playground panel.
 // To do (docs/HANDOFF.md, Open follow-ups): remove it or clean it up into a proper test bed.
 // A 13 × 13 town square ringed by two- and three-storey buildings, a 5-wide avenue north to the castle,
@@ -93,22 +93,22 @@ export const KIT_ANNEX={
  cottage:{x:84,z:23,desc:{name:'terrace cottage',footprint:[3,3],storeys:1,roof:'gable',style:'stone',doors:[{edge:'south',at:1}],chimney:true,seed:41}},
 };
 export function kitStreetData(){
- const data=createCityData({id:'kit-street',name:'Kit street',size:[91,61],base:1,surface:'grass',style:'timber'});
+ const data=createMapData({id:'kit-street',name:'Kit street',size:[91,61],base:1,surface:'grass',style:'timber'});
  data.spawn=[...GRAYBOX.spawn];data.crystal=[...GRAYBOX.crystal];
- fillCity(data,GRAYBOX.plaza,{surface:'plaza'});
- for(const s of STREETS)fillCity(data,s,{surface:'cobble'});
+ fillMap(data,GRAYBOX.plaza,{surface:'plaza'});
+ for(const s of STREETS)fillMap(data,s,{surface:'cobble'});
  BUILDINGS.forEach((b,i)=>data.buildings.push({x:b.x0,z:b.z0,desc:kitDescription(b,i)}));
  // The square: the fountain, a bench facing it, and four lamps clear of every doorstep.
  data.props.push({kind:'fountain',x:GRAYBOX.fountain.x0,z:GRAYBOX.fountain.z0},{kind:'bench',x:29,z:27},...[[26,27],[34,27],[26,35],[34,35]].map(([x,z])=>({kind:'lampPost',x,z})));
  // The annex.
  const A=KIT_ANNEX;
- fillCity(data,{x0:59,z0:28,x1:65,z1:33},{surface:'cobble'});
- fillCity(data,A.plaza,{surface:'plaza'});
- fillCity(data,A.terraceA,{h:2,surface:'flagstone'});
- fillCity(data,A.terraceB,{h:3,surface:'stone'});
- fillCity(data,A.terraceC,{h:3,surface:'flagstone'});
- fillCity(data,A.landing,{h:2,surface:'stone'});
- fillCity(data,{x0:69,z0:39,x1:69,z1:50},{surface:'dirt'});fillCity(data,{x0:69,z0:46,x1:89,z1:46},{surface:'dirt'});
+ fillMap(data,{x0:59,z0:28,x1:65,z1:33},{surface:'cobble'});
+ fillMap(data,A.plaza,{surface:'plaza'});
+ fillMap(data,A.terraceA,{h:2,surface:'flagstone'});
+ fillMap(data,A.terraceB,{h:3,surface:'stone'});
+ fillMap(data,A.terraceC,{h:3,surface:'flagstone'});
+ fillMap(data,A.landing,{h:2,surface:'stone'});
+ fillMap(data,{x0:69,z0:39,x1:69,z1:50},{surface:'dirt'});fillMap(data,{x0:69,z0:46,x1:89,z1:46},{surface:'dirt'});
  data.stairs.push(...A.stairs.map(s=>({...s})));
  data.buildings.push({x:A.cottage.x,z:A.cottage.z,desc:{...A.cottage.desc}});
  data.buildings.push({x:A.guildHouse.x,z:A.guildHouse.z,desc:{...A.guildHouse.desc},interior:structuredClone(A.guildHouse.interior)});

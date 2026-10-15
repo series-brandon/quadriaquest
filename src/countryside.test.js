@@ -3,28 +3,28 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {readFileSync} from 'node:fs';
 import {createCountryside,RING,SEA} from './countryside.js';
-import {buildCity} from './city-map.js';
-import {reachableFrom} from './city-checks.js';
+import {buildMap} from './world-map.js';
+import {reachableFrom} from './map-checks.js';
 import {key} from './world.js';
 
 const data=JSON.parse(readFileSync(new URL('./maps/capital.json',import.meta.url)));
 // The whole world: the city's tiles and every countryside tile, as one map.
 function world(){
- const city=buildCity(structuredClone(data),{scene:new THREE.Group()}),map=new Map(city.tiles),land=createCountryside({city:data});
+ const builtMap=buildMap(structuredClone(data),{scene:new THREE.Group()}),map=new Map(builtMap.tiles),land=createCountryside({mapData:data});
  for(let z=land.bounds.z0;z<land.bounds.z1;z++)for(let x=land.bounds.x0;x<land.bounds.x1;x++){const t=land.tile(x,z);if(t)map.set(key(x,z),t);}
- return {city,map,land};
+ return {builtMap,map,land};
 }
-const {city,map,land}=world();
+const {builtMap,map,land}=world();
 
 test('the countryside is the same every time, and absent inside the city',()=>{
- const again=createCountryside({city:data});
+ const again=createCountryside({mapData:data});
  for(const [x,z] of [[-30,10],[150,70],[64,170],[-60,-60],[180,-20]])assert.deepEqual(again.tile(x,z),land.tile(x,z));
  assert.equal(land.tile(10,10),null);assert.equal(land.tile(-RING-1,0),null,'beyond the edge');
  assert.ok(land.tile(-RING,0).water,'a strip of sea at the edge');
- assert.deepEqual(createCountryside({city:data,seed:5}).tile(-40,40)?.h===land.tile(-40,40)?.h&&createCountryside({city:data,seed:5}).tile(30,-40)?.h===land.tile(30,-40)?.h&&createCountryside({city:data,seed:5}).tile(150,-50)?.h===land.tile(150,-50)?.h,false,'another seed, other land');
+ assert.deepEqual(createCountryside({mapData:data,seed:5}).tile(-40,40)?.h===land.tile(-40,40)?.h&&createCountryside({mapData:data,seed:5}).tile(30,-40)?.h===land.tile(30,-40)?.h&&createCountryside({mapData:data,seed:5}).tile(150,-50)?.h===land.tile(150,-50)?.h,false,'another seed, other land');
 });
 test('you walk from the square out of each gateway and down its road to the end, over the bridge',()=>{
- const reach=reachableFrom(map,city.spawn);
+ const reach=reachableFrom(map,builtMap.spawn);
  for(const r of land.roads){
   const end=r.side==='west'?map.get(key(-r.length,Math.round(r.center(r.length)))):r.side==='east'?map.get(key(data.size[0]-1+r.length,Math.round(r.center(data.size[0]-1+r.length)))):map.get(key(Math.round(r.center(data.size[0]-1+r.length)),data.size[0]-1+r.length));
   assert.ok(end&&reach.has(end),`${r.side} road end reachable`);
@@ -41,7 +41,7 @@ test('resources, fishing spots, goblins and landmarks follow the rules',()=>{
  assert.ok(res.every(e=>land.roadDistance(e.x,e.z)>2&&!map.get(key(e.x,e.z)).water),'nothing on roads or water');
  assert.equal(new Set(res.map(e=>e.id)).size,res.length,'stable unique ids');
  const fish=extras.filter(e=>e.kind==='fishing');assert.ok(fish.length>=10,`fishing spots: ${fish.length}`);
- const reach=reachableFrom(map,city.spawn);
+ const reach=reachableFrom(map,builtMap.spawn);
  for(const f of fish)assert.ok([[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>{const n=map.get(key(f.x+dx,f.z+dz));return n&&!n.water&&n.h-.5<=.5&&reach.has(n);}),`fished from a reachable shore: ${f.id}`);
  const goblins=extras.filter(e=>e.kind==='enemy');assert.ok(goblins.length>=8&&goblins.length<=80,`goblins: ${goblins.length}`);
  assert.ok(goblins.every(g=>land.roadDistance(g.x,g.z)>10&&land.outside(g.x,g.z)>22),'away from roads and the wall');
@@ -64,7 +64,7 @@ test('green spaces vary: tree species by place, ponds, and ground cover',async()
  for(const k of kinds)assert.ok(COVER_KINDS.includes(k),k);
  for(const k of ['grass','fern','mushrooms','reeds','lilyPad','pebbles','flowerPink','flowerBlue'])assert.ok(kinds.has(k),`cover has ${k}`);
  assert.ok(cover.every(c=>land.roadDistance(Math.round(c.x),Math.round(c.z))>1||map.get(key(Math.round(c.x),Math.round(c.z)))?.water),'nothing on roads');
- assert.deepEqual(createCountryside({city:data}).cover(tiles.slice(0,500)),land.cover(tiles.slice(0,500)),'the same every time');
+ assert.deepEqual(createCountryside({mapData:data}).cover(tiles.slice(0,500)),land.cover(tiles.slice(0,500)),'the same every time');
 });
 test('ground cover is instanced: chunks take and free slots, one mesh per kind',async()=>{
  const {createGroundCoverPool}=await import('./ground-cover.js');

@@ -5,7 +5,7 @@ Draft, 2026-10-10. Nothing here is implemented. It is the design for review befo
 **Decisions already made by the user (2026-10-10):**
 - **Hybrid interiors.** Small and medium buildings open in place: the roof lifts and the walls are cut to one storey. Large or multi-storey interiors (castle, inn upstairs, guild halls) are separate spaces entered through a door. **Revised 2026-10-13:** ground floors open in place, inns included. Upper floors, cellars and dungeons are separate spaces as the norm. A separate space for a *ground* floor is rare, kept for exceedingly large, detailed or instanced locations (TOWN.md).
 - **No stacked walkable layers yet.** Outdoors keeps one floor height per tile. Elevation comes from terraces and stairs. Upper floors are separate interior spaces. Castle walkways over a gate, bridges over streets and walkable balconies are out of scope for the first city.
-- **Cities are built in a playground city editor**, not by typing tile strings.
+- **Cities are built in a playground world editor**, not by typing tile strings.
 - **Design doc first**, then build in the phases below.
 
 **Answers to the first review (user, 2026-10-10):**
@@ -16,7 +16,7 @@ Draft, 2026-10-10. Nothing here is implemented. It is the design for review befo
 - **Not every building or floor has to be enterable.**
 - **An economy is vital for the prototype.** Pacifists earn money through a task/job system and by selling what they craft and forage. Shops in the city are real shops. The economy gets its own design doc; the city provides the buildings, counters and shopkeepers it uses.
 
-The city follows the same rules as everything else (AGENTS.md). Buildings, doors, props and townsfolk are portable shared entities. A city map supplies placement, configuration and story context only. Every new piece is reachable, repeatable and resettable in the playground in the same change.
+The city follows the same rules as everything else (AGENTS.md). Buildings, doors, props and townsfolk are portable shared entities. A map supplies placement, configuration and story context only. Every new piece is reachable, repeatable and resettable in the playground in the same change.
 
 ## What has to feel right
 
@@ -92,7 +92,7 @@ Exact numbers get tuned in the graybox (Phase 2) at real zoom levels on desktop 
 - **A closed door blocks walking, sight and reach like a wall.** No route passes through one; it has to be opened first. An open door is like no edge at all.
 - **Clicking a door** walks you up to it on whichever side is nearer and opens it (with a creak), or closes it if open (with a thud). Doors stay as they were left; nothing opens or closes them automatically.
 - **Doors open inwards** (user decision, 2026-10-11): into the building or room they belong to (the first tile given when the door is placed). An open door turns a quarter and lies along that tile's side edge at its hinge corner, where it is a wall: nobody walks or sees through the door itself.
-- **The door rule** (user decision, 2026-10-11): along a door's wall line there is at least one wall or window on each side of it before any perpendicular wall, so nothing meets the door's corners and an open door always has a free edge to lie on. `doorProblems` checks a door; `createEdgeFeatures().doorProblems()` checks a map (the building test map refuses to build if any door breaks it; the city editor will list them).
+- **The door rule** (user decision, 2026-10-11): along a door's wall line there is at least one wall or window on each side of it before any perpendicular wall, so nothing meets the door's corners and an open door always has a free edge to lie on. `doorProblems` checks a door; `createEdgeFeatures().doorProblems()` checks a map (the building test map refuses to build if any door breaks it; the world editor will list them).
 - A **locked** door won't open: clicking it rattles it and says "It's locked." Story or keys can unlock it. No door is locked just to hide an empty room.
 - A walker whose planned route closes (a door shut or locked on the way) re-routes or stops ("The way is shut.").
 - A door may later link to an **interior space** (Phase 7): its doorstep and the interior's arrival tile become part of its data, and the editor checks them.
@@ -150,13 +150,13 @@ The first version (front walls to stubs, a dithered see-through cylinder) was mo
 - Walls are cut per pixel from their baked `cutOwner` (building a, building b, base height): a wall between two buildings is cut only when both are, and so is a corner post where they meet. **A terrace is cut together** (user, 2026-10-13): cutting a building also cuts every building joined to it by shared walls (`links()` from the edge features, followed in `cutBuildings`), so a cut house never stands beside a roofed neighbour with its shared wall either open (you could see in) or left as a full-height slab. Alleys keep terraces short: at most 3 buildings in the capital. Doors, roofs and decorations hide in JS.
 - Maps declare buildings with `tile.building` and `owner` on their edges; roofs and other hiding parts are added with `edges.addCutPart(object, building)`. Each map's edge features report building boxes and hiding parts; only shown maps take part, so maps may reuse ids. The building kit does all of this itself.
 - Clicks pass through: walls and roofs are never pickable. The lowest render tier's simpler materials keep the cutaway.
-- Playground: *City streets → Toggle cutaway*, and *Force cutaway* (every building cut, like the building test map); `getState().cutaway` = `{on, force, cut}`.
+- Playground: *Maps → Toggle cutaway*, and *Force cutaway* (every building cut, like the building test map); `getState().cutaway` = `{on, force, cut}`.
 - Not done: smoothing the hide (it's instant), and camera behaviour inside separate interiors (Phase 7).
 
 ### As implemented (Phase 7, 2026-10-11)
 
 - `src/spaces.js`. A building with `interior: 'separate'` is solid outside; its doors carry a link. Its interior is one space per floor (`buildSpace`), in the same tile coordinates as its footprint, with the outside's doors and windows, a stairwell entity on the same tile on every floor (up from all but the top, down from all but the ground; default: the corner farthest from the door), and furniture from the prop set. Interior floors sit on thin slabs over a dark background.
-- `createSpaces` moves between spaces with a quick fade (0.25 s out, 0.25 s in), not a full area switch: the city stays as it was. It builds a building's spaces on first entry, registers them as areas, caps zoom inside (14; dungeons 18), restores your camera when you come back out, and drops a rebuilt city's spaces (`forget`). The door back out lands you on the doorstep.
+- `createSpaces` moves between spaces with a quick fade (0.25 s out, 0.25 s in), not a full area switch: the city stays as it was. It builds a building's spaces on first entry, registers them as areas, caps zoom inside (14; dungeons 18), restores your camera when you come back out, and drops a rebuilt map's spaces (`forget`). The door back out lands you on the doorstep.
 - Dungeon entrances are props (`dungeonEntrance`) linking to a dungeon space in `data.interiors` (size, exit, furniture).
 - Checks (`interiorProblems`): interior floors versus storeys outside, a stairwell inside the footprint and off the door tiles, a door; a dungeon at least 4 × 4 with its exit inside and an entrance in the city.
 - Playground: the kit street's guild house (two floors) and the garden's crypt. `areas.unregister` was added for rebuilt interiors.
@@ -196,7 +196,7 @@ User decisions:
 - more floors above the ground than the outside's storeys is an error;
 - a floor with no stairs to it is a warning.
 
-**City editor:**
+**World editor:**
 - **Floors panel**, for the selected building or the floor you're in:
   - the floors with Go and Remove (top or bottom first);
   - Add floor above (up to the storeys outside) and Add cellar;
@@ -227,6 +227,37 @@ User decisions:
 - placed a bed, generated furniture (and rolled again), undid while staying inside;
 - went back outside;
 - a missing-stairs warning for the empty cellar.
+
+### Floors, round two: selecting inside, interior types, dungeons and caves (2026-10-14)
+
+- **Selecting inside floors:**
+  - Select picks a piece of furniture on the floor you're in. Move (M), nudge, Rotate (R), Duplicate (Ctrl/⌘+D) and Delete work on it, with its outline and ghost drawn in the floor.
+  - Every edit inside a floor (the editor's `change`) rebuilds that building's (or dungeon's) floors and keeps you where you are. Overlays draw in the space you're in.
+- **Inside**, in the Look panel:
+  - *Open in place*: the ground floor is the map.
+  - *A separate space*: the ground floor is a floor of its own, entered by the doors. It starts empty, with a level-0 entry.
+  - *Decorative*: no way in.
+- **Dungeons and caves by hand:** `data.interiors[id] = {kind: 'dungeon', name, floors: [{level: -1, cells, up, furniture, edges, use}, {level: -2, …}]}`. They're built like a building's floors with no building:
+  - each level is its own shape (any size: underground isn't limited), with dungeon stone walls and floor;
+  - stairs join the levels, and the top level's stairs up lead out to the entrance;
+  - the entrance is a `dungeonEntrance` prop with `link: id`;
+  - legacy dungeons (`size`, `exit`) still build as before.
+- **Underground tool:**
+  - *New dungeon or cave* (a name and a size, 8 × 8 to 32 × 24), then click the map for its entrance.
+  - Its list has Go, Place entrance and Delete.
+  - Inside, the Floors panel offers *Add level below* (a new level starts as the level above), Place stairs up, Generate (a crypt's furnishing by default) and Clear furniture.
+  - The floor tools (Prop, Edge, Footprint to grow or carve its shape, Surface, Erase, Select) all work.
+- **Checks:**
+  - a dungeon with no stairs up out of it is an error;
+  - a lower level with no stairs up is a warning;
+  - a dungeon with no entrance is a warning.
+- **Tests:** `floors.test.js` covers a two-level cave: in from its entrance, down, up and out; each level its own size; no check problems.
+- **Checked in the browser:**
+  - made a cottage a separate space and Inspect-clicked its door to go in;
+  - placed, selected, nudged, rotated, duplicated and deleted a chair there;
+  - made a cave and placed its entrance, then went in with Go;
+  - added a level, generated furniture and grew the cave by painting;
+  - no console errors.
 
 ### Interior size rules (user decision, 2026-10-10)
 
@@ -263,7 +294,7 @@ Buildings are **made from a short description, not modelled by hand**:
 
 ### Land around a map (2026-10-14)
 
-A map can carry biome land around it (`land` in its data; BIOMES.md, *Placing biomes*), painted in the city editor with the **Biome** tool. The editor streams it around the map with the shared countryside gameplay (fishing spots, enemies, resources, water and ground cover), so a town and its countryside are edited together and saved in one file. The town stands on that land: its ground is the land's, buildings level pads, and height edits are offsets (TOWN.md, *The town on the land*).
+A map can carry biome land around it (`land` in its data; BIOMES.md, *Placing biomes*), painted in the world editor with the **Biome** tool. The editor streams it around the map with the shared countryside gameplay (fishing spots, enemies, resources, water and ground cover), so a town and its countryside are edited together and saved in one file. The town stands on that land: its ground is the land's, buildings level pads, and height edits are offsets (TOWN.md, *The town on the land*).
 
 ### Hand-shaped buildings (2026-10-14)
 
@@ -313,7 +344,7 @@ A building can have any connected footprint, painted tile by tile (TOWN.md, *Aut
 - Presets (`BUILDING_PRESETS`): cottage (small), shop (medium, awning and sign), townhouse (two storeys), hall (large), flat-roofed house, tower.
 - Signs hang from a pole square to the wall beside the door, the board under the pole and square to the wall, with the game's icon (`icons.js`) painted light on both faces (user preference, 2026-10-11). The sign takes the side of the door farther from the building's corner, and never a side tucked into a corner with a neighbour. Awnings are striped in a seeded colour.
 - Multi-storey buildings get a floor at every storey line inside, so upper windows look into a storey.
-- Playground: *City streets → Enter kit street*, the graybox layout built by the kit (districts by style, shops on the square). Model viewer → *Building* with preset, style, roof, rotation and seed, and doors closed / open / cut.
+- Playground: *Maps → Enter kit street*, the graybox layout built by the kit (districts by style, shops on the square). Model viewer → *Building* with preset, style, roof, rotation and seed, and doors closed / open / cut.
 - Not done: double doors and a castle gate, chunk-level merging of building shells, lanterns at anchors, wear.
 
 ## Streets, elevation and stairs
@@ -336,11 +367,11 @@ Props are instanced or merged per chunk. Spots are data that townsfolk and the p
 
 ### As implemented (Phase 5, 2026-10-11)
 
-- `src/city-terrain.js`: surfaces (grass, dirt, cobble, flagstone, plaza, stone, floor, planks) with kerbs where paving meets grass or dirt; retaining walls drawn automatically on any side a full block or more above its neighbour (stone courses and a coping band); stairs (`layStairs`: one tile per half block, two treads per tile, side railings); `railingEdges` (stair sides and terrace edges, never across a stair head); `stairProblems` (no landing, or starting above the ground). `makeCityTile` is a terrain factory, so a city bakes into a few meshes.
+- `src/map-terrain.js`: surfaces (grass, dirt, cobble, flagstone, plaza, stone, floor, planks) with kerbs where paving meets grass or dirt; retaining walls drawn automatically on any side a full block or more above its neighbour (stone courses and a coping band); stairs (`layStairs`: one tile per half block, two treads per tile, side railings); `railingEdges` (stair sides and terrace edges, never across a stair head); `stairProblems` (no landing, or starting above the ground). `makeMapTile` is a terrain factory, so a city bakes into a few meshes.
 - `src/props.js`: the starter set, each with a footprint, a policy (solid, low, walk-over; tall props block sight), spots and an optional interaction: bench (sit), fountain (gaze, drink), statue, noticeboard (read), flower bed, planter, tree in a grate, hedge, market stall (browse, vend), crates, barrel, sacks, lamp post (lit), signpost, well (drink), banner, cart, and (Phase 7) the dungeon entrance. Rotation turns footprints and spots. One merged mesh per kind.
 - Sitting: a shared `Sit` motion (`slime-social.js`, held like Sleeping, `SEAT_HEIGHT`); clicking a bench walks you to a free seat and sits you, and townsfolk sit the same way. Other prop interactions answer with a line until their systems exist (jobs board: economy).
-- `src/city-map.js`: cities as data (`createCityData`, 64 × 64 regions of per-tile heights and surfaces, stairs, buildings, props, edges, townsfolk, interiors) and `buildCity`, the one builder used by the kit street, the editor and the capital.
-- Playground: the kit street is now city data (`src/dev/kit-street.js`) with an east annex: terraces one and two blocks up, a 3-wide stair, a 1-wide stair and a stair with a landing, retaining walls with railings, the prop set and a terrace cottage. *City streets → Kit street: go to the terraces / the garden*. Model viewer: every prop, *Stairs and terrace*, the `Sit` motion.
+- `src/world-map.js`: cities as data (`createMapData`, 64 × 64 regions of per-tile heights and surfaces, stairs, buildings, props, edges, townsfolk, interiors) and `buildMap`, the one builder used by the kit street, the editor and the capital.
+- Playground: the kit street is now map data (`src/dev/kit-street.js`) with an east annex: terraces one and two blocks up, a 3-wide stair, a 1-wide stair and a stair with a landing, retaining walls with railings, the prop set and a terrace cottage. *Maps → Kit street: go to the terraces / the garden*. Model viewer: every prop, *Stairs and terrace*, the `Sit` motion.
 
 ## Props, furniture and furnishing (Phase 10, design draft 2026-10-11)
 
@@ -382,7 +413,7 @@ Light sources (lanterns, torches, braziers, candles, fireplaces, forges, ovens) 
 
 - A building description gains `use`: `home`, `inn`, `tavern`, `bakery`, `smithy`, `general store`, `grocer`, `fishmonger`, `armourer`, `weaponsmith`, `apothecary`, `tailor`, `carpenter`, `guild hall`, `keep`, `warehouse`, `barracks`. The sign icon follows from the use. In-place and separate interiors are both furnished, floor by floor (trade on the ground floor, bedrooms above).
 - **One shared furnisher** (`furnish.js`) lays out a room from its use's rule, seeded so it is stable: **wall pieces** first along the walls, facing in, never across a door or its inside tile, never in front of a stair; then the **trade fixture** (a shop counter with the keeper spot behind it, a forge and anvil, an oven, a bar); then **centre pieces** (a table with chairs, a rug); then clutter. Counts scale with the room.
-- **Checks** (city checks): every spot and the keeper spot can be reached from the door; the door's inside tile and stair fronts stay clear; nothing blocks a window from inside except low pieces.
+- **Checks** (map checks): every spot and the keeper spot can be reached from the door; the door's inside tile and stair fronts stay clear; nothing blocks a window from inside except low pieces.
 - **Editor:** a building's use, a reroll of its furnishing seed, or *no furniture*. Hand-placed props inside are kept, and the furnisher works around them.
 - **Townsfolk** use what is there: residents sleep in their beds and sit at their tables, keepers stand behind counters, smiths work the anvil, bakers the oven.
 
@@ -409,7 +440,7 @@ Furniture is drawn only while its building is cut away (it is a cut part shown w
 - **Edges**: a wooden `fenceGate` and an `ironGate` (`edge-models.js`) are doors in fence, railing and low-wall lines; a gate checks only its swing side for the door rule (`doors.js`). New `dungeon` wall style and floor surface.
 - **Furnishing** (`furnish.js`): `USES` rules for 18 uses; `furnishingUse(desc)` (explicit `use`, `none`, a signed shop as `store`, else `home`); `furnishRoom(room, use, seed)` keeps the doorway and the tile in from it clear, puts a shop counter 3 (or 2) tiles in with the keeper behind (`layout.keeper`), reserves each piece's use tiles so later pieces can't block a bedside or stove front, and keeps every free tile reachable from the door. In-place buildings get a furniture group shown only while cut (static pieces merged per building; its matrices are frozen). Separate interiors furnish every floor (`upstairsUse`); dungeons use `crypt` with a loot chest.
 - **Townsfolk**: spots come from props and furniture; residents prefer their own house and sleep and cook there; seats use their own motion and height.
-- **Checks and editor**: city checks warn when a building's bed, stove, workbench or counter can't be reached from its door, or its keeper can't get behind the counter (none on the kit street or the capital). The editor has **Use** (sets `desc.use`; a shop's sign follows `USE_ICONS`) and **Reroll furniture** (`desc.furnishSeed`).
+- **Checks and editor**: map checks warn when a building's bed, stove, workbench or counter can't be reached from its door, or its keeper can't get behind the counter (none on the kit street or the capital). The editor has **Use** (sets `desc.use`; a shop's sign follows `USE_ICONS`) and **Reroll furniture** (`desc.furnishSeed`).
 - **Playground**: *Prop gallery* (every prop by category, plus the fence gate, low stone wall and iron gate; the gallery chest holds 2 copper ore). Every prop is in the model viewer; props with moving parts have Closed/Open motions.
 - **Verified in the browser**: sleeping in a gallery bed (settles on it, eyes close), the chest (lid opens, +2 copper ore, then nothing), the stove (cooking menu), the forge (smelting with that ore), and furnished kit street interiors under force cutaway.
 - **Open**: owned beds (refuse sleeping in someone else's) and storage come later (see the decisions above). City chests have no loot by design.
@@ -418,7 +449,7 @@ Furniture is drawn only while its building is cut away (it is a cut part shown w
 
 User decisions (2026-10-11): the capital is called **Gelton**; ending the tutorial wakes you there instead of a placeholder meadow; this phase adds gold, values and shops (docs/ECONOMY.md), with jobs and drops later.
 
-- **A production area** (`main.js` `geltonReady`): built on first need from `src/maps/capital.json` (lazy chunks in the normal build), per chunk and streamed, with its townsfolk. Its Iter Crystal is the game's travel crystal (`buildCity({crystal})` hook; `crystals.add`), so arrival, travel, the destination menu and defeat respawn use it. The area is listed once you're awake. `world-start.js` (the placeholder) is gone.
+- **A production area** (`main.js` `geltonReady`): built on first need from `src/maps/capital.json` (lazy chunks in the normal build), per chunk and streamed, with its townsfolk. Its Iter Crystal is the game's travel crystal (`buildMap({crystal})` hook; `crystals.add`), so arrival, travel, the destination menu and defeat respawn use it. The area is listed once you're awake. `world-start.js` (the placeholder) is gone.
 - **Waking** (`waking.js`): `destination: 'gelton'` and `prepare`, which starts the build with the farewell; the screen holds faded out until it is ready (the build runs during the farewell lines, so in practice there is no wait).
 - **Shops in the city:** each enterable shop building has a shop id from its use; counters inside open it; stalls open the market; keepers and vendors greet you and open theirs. See ECONOMY.md *As implemented*.
 - **Name:** `capital-layout.js` names the map Gelton (regenerated `capital.json`); the area id is `gelton`, the map id stays `capital` (loot ids use it).
@@ -470,16 +501,16 @@ The perf harness gets `city-walk` and `city-crowd` scenarios in `src/dev/perf-sc
 
 ### As implemented (Phase 8, 2026-10-11)
 
-- `src/townsfolk.js`: `createCrowd({city})` runs a city's townsfolk (`data.townsfolk`: look, home, weighted routine, patrol, pace, an optional line). Activities: sit, browse, vend, gaze, drink, read (prop spots), chat (two townsfolk meet and wave), stroll (a bounded search within 10 tiles), enter (walk to a doorstep and vanish for a while; townsfolk don't walk into in-place buildings yet), patrol. Clicking one turns them to you, waves and says a line.
+- `src/townsfolk.js`: `createCrowd({builtMap})` runs a map's townsfolk (`data.townsfolk`: look, home, weighted routine, patrol, pace, an optional line). Activities: sit, browse, vend, gaze, drink, read (prop spots), chat (two townsfolk meet and wave), stroll (a bounded search within 10 tiles), enter (walk to a doorstep and vanish for a while; townsfolk don't walk into in-place buildings yet), patrol. Clicking one turns them to you, waves and says a line.
 - Movement: walk-through characters that mark their tile occupied, step aside when the player stops on them, and never idle on doorsteps, stairs or prop spots. A shared navigator caches distance fields to destinations (48 at most) and follows them downhill; strolls use a bounded search.
 - Crowd budget rings: near (16 tiles) and on screen, full presentation; far (to 34) a quarter rate with a fixed face; off screen or farther, movement only. `crowdStats` reports the rings.
 - Each townsfolk's body group is moved by the crowd; the shared presentation animates the rig inside it (it owns the rig's height).
 - Checks: a home that exists and reaches the square; a routine with something usable. Perf scenarios `city-walk`, `city-crowd` (60) and `capital-square` (`src/dev/perf-scenarios.js`).
 - Playground: the kit street has 14 townsfolk (vendors, sitters, shoppers, chatters, two guards); *Crowd: 60 townsfolk* swaps in a generated crowd.
 
-## Authoring: the playground city editor
+## Authoring: the playground world editor
 
-A dev-only editor (compile-time isolated like the rest of the playground) that edits a real city map using the production builders:
+A dev-only editor (compile-time isolated like the rest of the playground) that edits a real map using the production builders:
 
 - **Tools:** paint height (half-block steps) and surface. Place, move, rotate and duplicate buildings from descriptions, and edit a description in a side panel. Place stairs, props and townsfolk. Draw edge features by hand where the kit doesn't produce them. Undo/redo.
 - **Live checks** listed in a panel, each clickable to jump to the problem:
@@ -495,33 +526,33 @@ A dev-only editor (compile-time isolated like the rest of the playground) that e
 
 ### As implemented (Phase 6, 2026-10-11)
 
-- `src/dev/city-editor.js` (dev only): a docked panel (a bottom sheet on phones) over the live map. Tools: inspect, raise and lower (half blocks, 1 or 3 × 3 brush), surface, building (kit presets, rotation), prop (kind, rotation), stairs (direction, length, width), edge (wall, window, fence, railing, counter, door, remove), erase, arrival. Placing over something taken, or a building across a chunk line, is refused. A *Chunk and region lines* switch (on by default) draws the grid on the ground (`dev/grid-overlay.js`). Every edit rebuilds the map with `buildCity` (about 0.3 s for the kit street, 1 s for the capital) and keeps you where you stand.
+- `src/dev/world-editor.js` (dev only): a docked panel (a bottom sheet on phones) over the live map. Tools: inspect, raise and lower (half blocks, 1 or 3 × 3 brush), surface, building (kit presets, rotation), prop (kind, rotation), stairs (direction, length, width), edge (wall, window, fence, railing, counter, door, remove), erase, arrival. Placing over something taken, or a building across a chunk line, is refused. A *Chunk and region lines* switch (on by default) draws the grid on the ground (`dev/grid-overlay.js`). Every edit rebuilds the map with `buildMap` (about 0.3 s for the kit street, 1 s for the capital) and keeps you where you stand.
 - **Fast editing** (2026-10-13; TOWN.md, *Authoring tools*):
   - **Select** a building, prop, stair or townsfolk (by their home tile) and move, rotate, duplicate or delete it. It's outlined in yellow (cyan while moving). Use the panel's buttons (nudge one tile and reshape are buttons only) or the keys: M move, R rotate, Ctrl/⌘+D duplicate, Delete, Esc to cancel; Ctrl/⌘+Z undo, Ctrl/⌘+Shift+Z (or Ctrl/⌘+Y) redo. No shortcut takes a movement key: WASD and the arrows always belong to the camera (2026-10-14, user request). Hand-drawn edges are still added and removed with the Edge and Erase tools.
   - **Raise, Lower and Surface paint as you drag.** Each tile changes once per stroke, a stroke is one undo step, and right-drag or the arrow keys still turn the camera.
-  - **Only the chunks an edit touches are rebuilt** (`city.rebuild(dirty)` in `city-map.js`). It covers each touched tile's chunk, one tile out. Props, stairs and buildings that share a wall across a chunk line pull in their other chunks.
+  - **Only the chunks an edit touches are rebuilt** (`city.rebuild(dirty)` in `world-map.js`). It covers each touched tile's chunk, one tile out. Props, stairs and buildings that share a wall across a chunk line pull in their other chunks.
   - **A full rebuild still happens when needed:** when buildings are added or removed (their indices shift), after undo and redo, and in a walled city when an edit touches a wall chunk.
   - **Checks run 250 ms after editing stops.**
   - **Measured:**
     - **In Node, one chunk:** about 40–60 ms on a 96 × 96 map (a full rebuild is about 350 ms), and about 100 ms on the capital (about 2 s full).
     - **In the browser, on the kit street, host work included:** an edit takes about 90–190 ms, against about 280 ms for a full rebuild.
-  - **Tests** (`city-rebuild.test.js`): after a terrain paint, a moved building, a moved prop and new stairs, a partial rebuild matches a fresh build tile for tile (edges, doors, props, buildings, roofs, furniture), and it leaves no stray clickable meshes or scene objects. In the browser, the checks after a run of partial edits matched a full rebuild's exactly.
+  - **Tests** (`map-rebuild.test.js`): after a terrain paint, a moved building, a moved prop and new stairs, a partial rebuild matches a fresh build tile for tile (edges, doors, props, buildings, roofs, furniture), and it leaves no stray clickable meshes or scene objects. In the browser, the checks after a run of partial edits matched a full rebuild's exactly.
 - Edit / Play (a test walk in place), Reset, Undo / Redo (60 steps), open the kit street, a blank 64 × 64 city or any city in `src/maps/`.
-- Live checks (`src/city-checks.js`), each a button that takes you there: arrival tile; overlapping buildings, props and stairs; doorsteps blocked or unreachable from the arrival point; the door rule; stairs without a landing; open ground that can't be reached (a terrace without stairs); one-tile dead ends and passages under two tiles; prop spots that can't be used; interiors and dungeons (Phase 7); townsfolk (Phase 8); buildings across chunk or region lines (an error since 2026-10-12).
-- Saving: *Save to repo* posts to a playground-only dev server endpoint (`vite.config.js`, `/__city-save`) that writes `src/maps/<id>.json`; *Copy JSON* and *Download* work anywhere. Normal builds include none of it (`check:debug-isolation` checks the markers).
+- Live checks (`src/map-checks.js`), each a button that takes you there: arrival tile; overlapping buildings, props and stairs; doorsteps blocked or unreachable from the arrival point; the door rule; stairs without a landing; open ground that can't be reached (a terrace without stairs); one-tile dead ends and passages under two tiles; prop spots that can't be used; interiors and dungeons (Phase 7); townsfolk (Phase 8); buildings across chunk or region lines (an error since 2026-10-12).
+- Saving: *Save to repo* posts to a playground-only dev server endpoint (`vite.config.js`, `/__map-save`) that writes `src/maps/<id>.json`; *Copy JSON* and *Download* work anywhere. Normal builds include none of it (`check:debug-isolation` checks the markers).
 
 ## Streaming and the world
 
 - The capital is the kingdom's capital and very large, far bigger than any tutorial area. A first graybox target was 128 × 128 tiles; it is now 160 × 160 (5 × 5 chunks, 2 × 2 regions) so its axis runs down the middle of a chunk (2026-10-12), to grow once streaming and crowds are measured. It builds on the chunk streamer.
-- **The town square holds the Iter Crystal where the player wakes**, so the square is the city's focal point: the castle is visible from it, the main avenues start there, and the first shops, a noticeboard for jobs and the first townsfolk are in sight from the crystal. Buildings, props and townsfolk belong to the chunk of their anchor. A building lies inside one chunk (WORLD.md, *Design constraints*, 2026-10-12), so its walls, floor, roof and furniture show and hide with that chunk. (Before that rule, a building across a line was drawn by its home chunk; `buildCity` still does this, so data that predates the rule draws whole, but the checks report it.)
+- **The town square holds the Iter Crystal where the player wakes**, so the square is the city's focal point: the castle is visible from it, the main avenues start there, and the first shops, a noticeboard for jobs and the first townsfolk are in sight from the crystal. Buildings, props and townsfolk belong to the chunk of their anchor. A building lies inside one chunk (WORLD.md, *Design constraints*, 2026-10-12), so its walls, floor, roof and furniture show and hide with that chunk. (Before that rule, a building across a line was drawn by its home chunk; `buildMap` still does this, so data that predates the rule draws whole, but the checks report it.)
 - Door state, unlocks, and townsfolk routines and positions live outside chunk render state by stable id, so leaving and returning doesn't reset them. The streaming shared-infrastructure rules in DESIGN.md apply as written.
 - Interior spaces load on demand when the player is near their door, and unload on a budget.
 
 ### As implemented (Phase 9, 2026-10-11; first draft)
 
-- `src/maps/capital.json`: the capital as city data, 160 × 160 (5 × 5 chunks, 2 × 2 regions; re-centred 2026-10-12 so the avenue, square and keep sit on x = 80, the middle of a chunk), generated once by `scripts/generate-capital.mjs` from `src/dev/capital-layout.js` and edited from there in the city editor (regenerating overwrites edits). You arrive beside the Iter Crystal in the town square, ringed by tall shops, with the fountain, the jobs noticeboard, benches and lamps; a 5-wide avenue leads north up a 5-wide grand stair to the castle terrace two blocks up (a curtain wall with a gate, four cone towers, the keep with a two-floor separate interior); a market square of stalls to the west; timber, brick and stone districts; shops with signs on the main street; an inn and a guild hall with interiors; a park with the sewer entrance; 35 townsfolk including guards on patrol. The city checks report no errors.
-- Built per chunk (`buildCity`, 32 × 32 since 2026-10-12): terrain, baked walls, buildings and props go in their chunk's group, so the renderer culls by chunk, and `stream(tile)` shows only the chunks within 1 of the player (3 × 3), keeping a shown chunk until the player is 8 tiles past that (the streamer's `BAND`). An edge belongs to the chunk of its lower tile, so neighbours in different chunks still share one wall. All tiles and models are built on entry (about 1.1 s at 128 × 128).
-- Playground only for now: *City streets → Enter the capital*.
+- `src/maps/capital.json`: the capital as map data, 160 × 160 (5 × 5 chunks, 2 × 2 regions; re-centred 2026-10-12 so the avenue, square and keep sit on x = 80, the middle of a chunk), generated once by `scripts/generate-capital.mjs` from `src/dev/capital-layout.js` and edited from there in the world editor (regenerating overwrites edits). You arrive beside the Iter Crystal in the town square, ringed by tall shops, with the fountain, the jobs noticeboard, benches and lamps; a 5-wide avenue leads north up a 5-wide grand stair to the castle terrace two blocks up (a curtain wall with a gate, four cone towers, the keep with a two-floor separate interior); a market square of stalls to the west; timber, brick and stone districts; shops with signs on the main street; an inn and a guild hall with interiors; a park with the sewer entrance; 35 townsfolk including guards on patrol. The map checks report no errors.
+- Built per chunk (`buildMap`, 32 × 32 since 2026-10-12): terrain, baked walls, buildings and props go in their chunk's group, so the renderer culls by chunk, and `stream(tile)` shows only the chunks within 1 of the player (3 × 3), keeping a shown chunk until the player is 8 tiles past that (the streamer's `BAND`). An edge belongs to the chunk of its lower tile, so neighbours in different chunks still share one wall. All tiles and models are built on entry (about 1.1 s at 128 × 128).
+- Playground only for now: *Maps → Enter the capital*.
 
 ## Planned later: day and night
 
@@ -548,7 +579,7 @@ Each phase ends playable in the playground and keeps existing maps unchanged. Ph
 3. **Cutaway and occlusion.** Roof hide, walls cut to one storey for the building you're in or that hides you, click-through (implemented 2026-10-11, simplified with Phase 4; see *As implemented (Phase 3)*). The graybox city is flat for now (user, 2026-10-11): terraces and stairs come back later.
 4. **Building kit.** The description-based builder, three sizes, styles, roofs, signs, and catalogue entries (implemented 2026-10-11, see *As implemented (Phase 4)*).
 5. **Surfaces, retaining walls, stairs and props.** The starter prop set with spots (first draft 2026-10-11, see *As implemented (Phase 5)*).
-6. **City editor and checks**, including saving to the repo (first draft 2026-10-11, see *As implemented (Phase 6)*).
+6. **World editor and checks**, including saving to the repo (first draft 2026-10-11, see *As implemented (Phase 6)*).
 7. **Separate interiors, stairwells and dungeon entrances**, with the interior size checks (first draft 2026-10-11, see *As implemented (Phase 7)*).
 8. **Townsfolk routines and crowd budget**, with the navigation graph, perf scenarios and ring-based detail (first draft 2026-10-11, see *As implemented (Phase 8)*).
 9. **The capital itself**, on the streamer, with the castle and the waking crystal in the town square (first draft 2026-10-11, see *As implemented (Phase 9)*).

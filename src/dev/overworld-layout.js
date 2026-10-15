@@ -1,8 +1,8 @@
-import {createCityData,growMap} from '../city-map.js';
+import {createMapData,growMap} from '../world-map.js';
 
 // The Quadria overworld: the start of the world map, where Mistrom, the starting village, will be built
 // (docs/TOWN.md). Its wild starting point. Dev only: it writes src/maps/overworld.json once
-// (scripts/generate-overworld.mjs), and from then on the city editor is where it is built by hand;
+// (scripts/generate-overworld.mjs), and from then on the world editor is where it is built by hand;
 // regenerating overwrites those edits.
 //  - 288 × 288 tiles (9 × 9 chunks; docs/TOWN.md, Growing the overworld), on the land (The town on the
 //    land): the village's 96 × 96 in the middle, grown by three chunks on every side so the woods, hills,
@@ -16,7 +16,7 @@ import {createCityData,growMap} from '../city-map.js';
 export const OVERWORLD={size:288,village:96,grow:96,crystal:[144,144],spawn:[144,147]};
 
 export function overworldData(){
- const M=OVERWORLD,data=createCityData({id:'overworld',name:'Quadria overworld',size:[M.village,M.village],style:'timber',land:{seed:3,default:'meadow',cells:{},terrain:{},nature:false,enemies:false,fishing:false}});
+ const M=OVERWORLD,data=createMapData({id:'overworld',name:'Quadria overworld',size:[M.village,M.village],style:'timber',land:{seed:3,default:'meadow',cells:{},terrain:{},nature:false,enemies:false,fishing:false}});
  data.crystal=M.crystal.map(v=>v-M.grow);data.spawn=M.spawn.map(v=>v-M.grow);
  // The land around the village (docs/BIOMES.md): one biome per 8 × 8 cell; unpainted cells are meadow.
  // Biomes (what grows and lives) and terrain (the land's shape and water) are painted apart.

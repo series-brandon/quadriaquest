@@ -25,7 +25,7 @@ Draft, 2026-10-14, for review. A **biome** is a set of rules for generating a ki
   - goblins appear away from roads;
   - fixed resource odds.
 - **`biomes.js`** has five *mini biomes* for green spaces in a city (blossom, willow, autumn, birch, meadow). Each is just tree species and flowers.
-- **Terrain colour** comes from the surface (`SURFACES` in `city-terrain.js`): one fixed pair of greens for grass.
+- **Terrain colour** comes from the surface (`SURFACES` in `map-terrain.js`): one fixed pair of greens for grass.
 - **Music and ambience** are per area (`areas.register({music, ambience})`).
 
 The biome system generalises these. The countryside's rules become data, and Gelton's land keeps working as it is until it's moved over.
@@ -143,7 +143,7 @@ The area's music plays by default. When you stand in a biome with its own music 
   - no console errors.
 - **Step 2, the Biome brush (2026-10-14):**
   - **Data:** a map can have land around it, `land: {seed, ring, default, cells:{'cx,cz': biome}}`, saved with the map's JSON.
-  - **In the editor,** the city editor generates that land under and around the map and streams it with the shared land gameplay. Since 2026-10-14 the town stands on the land rather than in a hole cut out of it (TOWN.md, *The town on the land*).
+  - **In the editor,** the world editor generates that land under and around the map and streams it with the shared land gameplay. Since 2026-10-14 the town stands on the land rather than in a hole cut out of it (TOWN.md, *The town on the land*).
   - **The Biome tool:**
     - *Add land* (32, 64 or 96 tiles around the map, with a biome for unpainted land);
     - paint a biome by dragging, one cell (8 × 8 tiles) or 3 × 3 or 5 × 5 cells at a time (painting the default biome erases);
@@ -189,7 +189,7 @@ User request: separate terrain from biome, so any combination works.
 - **River and sea** are terrain now, no longer biomes. A sea cell's biome (coast, say) sets its fishing and ambience.
 - **Fewer ponds:** a meadow's ponds dropped from a 0.18 chance per 24-tile cell (its old built-in terrain) to 0.05 (rolling). Plains have none; lakeland has many.
 - **Generator:** heights blend between cells' terrains; water, ponds and pools follow the terrain; rock shows at the terrain's `rockAt` in the biome's rock colours. Tiles carry `biome` and `terrain`, and *What's here?* names both.
-- **City editor, Biome tool:**
+- **World editor, Biome tool:**
   - a **Layer** switch (Biome or Terrain);
   - colour swatches instead of dropdowns (*Biome's usual* erases terrain paint);
   - a stronger overlay: tints at 50% and dark borders wherever the paint changes, drawn over everything.

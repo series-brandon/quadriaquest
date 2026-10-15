@@ -22,7 +22,8 @@ export const CELL=8;
 // How far a repainted cell can change the land around it (tiles): blending, wandering borders, ponds
 // whose biome decides them, and shores easing up from water.
 export const FORGET_MARGIN=48;
-const BLEND=20,WARP=5,POND_CELL=24,WATER_H=.5;
+const BLEND=20,WARP=5,POND_CELL=24;
+export const WATER_H=.5;
 export function createBiomeLand({seed=1,bounds,map={},rules=BIOME_RULES}){
  const [x0,z0,x1,z1]=bounds,cell=map.cell||CELL,fallback=map.default||'meadow';let cells=map.cells||{},terrainCells=map.terrain||{};
  const rule=id=>biomeRule(rules[id]?id:fallback,rules);

@@ -39,21 +39,25 @@ function gamePublicAssets(){
   };
 }
 
-// City editor saving (playground dev server only, docs/CITY.md Authoring): POST /__city-save
-// {id, json} writes src/maps/<id>.json. Builds never include it (configureServer runs only in dev).
-function citySave(){
-  return {name:'city-save',configureServer(server){server.middlewares.use('/__city-save',(req,res)=>{
+// World editor saving (playground dev server only, docs/CITY.md Authoring): POST /__map-save
+// {id, json, kind} writes src/maps/<id>.json (or, kind 'stamp', src/stamps/<id>.json). Builds never include it (configureServer runs only in dev).
+function mapSave(){
+  return {name:'city-save',configureServer(server){server.middlewares.use('/__map-save',(req,res)=>{
     const reply=(code,body)=>{res.statusCode=code;res.setHeader('content-type','application/json');res.end(JSON.stringify(body));};
     if(req.method!=='POST')return reply(405,{error:'POST only'});
     let body='';req.on('data',chunk=>{body+=chunk;if(body.length>8e6)req.destroy();});
-    req.on('end',()=>{try{const {id,json}=JSON.parse(body);if(!/^[a-z0-9][a-z0-9-]{0,40}$/.test(id))return reply(400,{error:'bad city id'});JSON.parse(json);
-      const dir=fileURLToPath(new URL('./src/maps/',import.meta.url));mkdirSync(dir,{recursive:true});writeFileSync(dir+id+'.json',json+'\n');reply(200,{path:`src/maps/${id}.json`});}
+    req.on('end',()=>{try{const {id,json,kind}=JSON.parse(body);if(!/^[a-z0-9][a-z0-9-]{0,40}$/.test(id))return reply(400,{error:'bad id'});JSON.parse(json);
+      // kind 'stamp': the editor's stamps (src/stamps/<id>.json); otherwise a map.
+      const folder=kind==='stamp'?'stamps':'maps',dir=fileURLToPath(new URL(`./src/${folder}/`,import.meta.url));mkdirSync(dir,{recursive:true});writeFileSync(dir+id+'.json',json+'\n');reply(200,{path:`src/${folder}/${id}.json`});}
     catch(error){reply(400,{error:error.message});}});
   });}};
 }
 export default defineConfig(({mode})=>({
-  plugins:[devLogDirectories(),gamePublicAssets(),...(mode==='playground'?[citySave()]:[])],
+  plugins:[devLogDirectories(),gamePublicAssets(),...(mode==='playground'?[mapSave()]:[])],
   base:'./',
   define:{__PLAYGROUND__:JSON.stringify(mode==='playground')},
+  // A stamp saved from the editor must not reload the page (and lose the map being edited); the
+  // editor keeps it for the session, and the next server start picks it up.
+  server:{watch:{ignored:['**/src/stamps/**']}},
   build:{outDir:mode==='playground'?'dist-playground':'dist',copyPublicDir:false}
 }));

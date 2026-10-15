@@ -10,7 +10,7 @@ export function organizePlayground(panel){
  section('Companions',['Companions']);
  section('Character & abilities',['Character & combat profile']);
  section('Combat',['Combat practice','Training systems','Assistance, dual wield, armor, control & backfire']);
- section('World & water',['City streets','Walls & doors','Walk-through characters','Travel practice','Terrain colors','Water animation','Resource picking','Fishing practice','Carpentry practice']);
+ section('World & water',['Maps','Walls & doors','Walk-through characters','Travel practice','Terrain colors','Water animation','Resource picking','Fishing practice','Carpentry practice']);
  const ui=section('Interface & audio',['UI & audio polish','Music & sound lab']);
  const feedback=section('Visual feedback',['Visual feedback only']);
  section('Performance',['Performance']);

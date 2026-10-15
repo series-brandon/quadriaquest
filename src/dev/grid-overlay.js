@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import {CHUNK,REGION} from '../world-grid.js';
 
 // Playground overlay of the world grid (docs/WORLD.md, Glossary): chunk lines in pink and region lines
-// in gold, drawn along tile edges just above the ground, over everything. Dev only (the city editor).
-//   createGridOverlay({tiles, parent}) → {dispose()}   tiles: Map of the built city's tiles
+// in gold, drawn along tile edges just above the ground, over everything. Dev only (the world editor).
+//   createGridOverlay({tiles, parent}) → {dispose()}   tiles: Map of the built map's tiles
 const chunkMaterial=new THREE.LineBasicMaterial({color:'#ff4fa3',transparent:true,opacity:.7,depthTest:false});
 const regionMaterial=new THREE.LineBasicMaterial({color:'#ffd23f',transparent:true,opacity:.95,depthTest:false});
 export function createGridOverlay({tiles,parent}){
@@ -64,7 +64,7 @@ export function createBiomeOverlay({cells,cell=8,colors,heightAt,parent,origin=[
 }
 
 // A see-through fill over tiles, each in its own colour ({x, z, color}), just above the ground and over
-// everything: the city editor's placement and brush previews (green where it fits, red where it doesn't).
+// everything: the world editor's placement and brush previews (green where it fits, red where it doesn't).
 //   createCellFill({cells, heightAt(x, z), parent, opacity}) → {dispose()}
 const fillGeometry=new THREE.PlaneGeometry(.94,.94).rotateX(-Math.PI/2);
 export function createCellFill({cells,heightAt,parent,opacity=.42}){
