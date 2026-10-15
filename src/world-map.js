@@ -59,6 +59,12 @@ export function clearMapSurface(data,x,z){if(inside(data,x,z))setChar(regionOf(d
 const setChar=(rows,x,z,c)=>{const row=rows[z%REGION];rows[z%REGION]=row.slice(0,x%REGION)+c+row.slice(x%REGION+1);};
 export function setMapHeight(data,x,z,h){if(inside(data,x,z))setChar(regionOf(data,x,z).heights,x,z,heightChar(Math.max(0,Math.min(19,h))));}
 export function setMapSurface(data,x,z,surface){if(inside(data,x,z)&&SURFACE_CODES[surface])setChar(regionOf(data,x,z).surfaces,x,z,SURFACE_CODES[surface]);}
+// Ramps (docs/TOWN.md, Ramps): a tile whose top slopes half a block down to a lower neighbour instead of a ledge
+// you hop. Stored per tile in its region's `ramps` layer (made the first time one's set): the way up ('n', 'e',
+// 's' or 'w'), '.' for none.
+export const RAMP_DIRS={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]};
+export function mapRamp(data,x,z){if(!inside(data,x,z))return null;const rows=regionOf(data,x,z).ramps;if(!rows)return null;const c=rows[z%REGION][x%REGION];return c==='.'?null:c;}
+export function setMapRamp(data,x,z,dir){if(!inside(data,x,z))return;const r=regionOf(data,x,z);if(!r.ramps){if(!dir)return;r.ramps=Array.from({length:REGION},()=>'.'.repeat(REGION));}setChar(r.ramps,x,z,dir||'.');}
 export function fillMap(data,{x0,z0,x1,z1},{h,surface}){for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){if(h!==undefined)setMapHeight(data,x,z,h);if(surface)setMapSurface(data,x,z,surface);}}
 export {SURFACE_NAMES};
 // Puts a city on the land (`land`: {seed, default, cells, origin}) or takes it off. On: its heights become
@@ -86,7 +92,8 @@ export function growMap(data,{north=0,east=0,south=0,west=0},{round=false}={}){
  for(let z=0;z<D;z++)for(let x=0;x<W;x++){const r=regionOf(data,x,z),s=r.surfaces[z%REGION][x%REGION];
   if(s!==(data.land?UNPAINTED:SURFACE_CODES.grass))setChar(regionOf(next,x+west,z+north).surfaces,x+west,z+north,s);
   if(data.land){const c=r.offsets[z%REGION][x%REGION];if(c!==plainOffset)setChar(regionOf(next,x+west,z+north).offsets,x+west,z+north,c);}
-  else{const c=r.heights[z%REGION][x%REGION];if(c!==plainHeight)setChar(regionOf(next,x+west,z+north).heights,x+west,z+north,c);}}
+  else{const c=r.heights[z%REGION][x%REGION];if(c!==plainHeight)setChar(regionOf(next,x+west,z+north).heights,x+west,z+north,c);}
+  const ramp=mapRamp(data,x,z);if(ramp)setMapRamp(next,x+west,z+north,ramp);}
  data.regions=next.regions;data.size=next.size;
  // Everything placed, moved with it.
  const at=p=>p&&[p[0]+west,p[1]+north],xz=o=>{o.x+=west;o.z+=north;};
@@ -130,7 +137,7 @@ export function mapGround(data,land=townLand(data)){
 // chunkIds: only the tiles of these chunks (a partial rebuild), with `around` (the built tiles) to look
 // up a stair's foot outside them.
 export function mapTiles(data,ground=data.land?mapGround(data):null,chunkIds=null,around=null){
- const map=new Map(),[W,D]=data.size,add=(x,z)=>map.set(key(x,z),ground?ground.tile(x,z):{x,z,h:mapHeight(data,x,z),surface:mapSurface(data,x,z),blocked:false,water:false,buildable:true});
+ const map=new Map(),[W,D]=data.size,add=(x,z)=>{const t=ground?ground.tile(x,z):{x,z,h:mapHeight(data,x,z),surface:mapSurface(data,x,z),blocked:false,water:false,buildable:true},ramp=t&&!t.water&&mapRamp(data,x,z);if(ramp)t.ramp={dir:ramp};map.set(key(x,z),t);};
  if(!chunkIds){for(let z=0;z<D;z++)for(let x=0;x<W;x++)add(x,z);}
  else for(const id of chunkIds){const [cx,cz]=id.split(',').map(Number);for(let z=Math.max(0,cz*CHUNK);z<Math.min(D,(cz+1)*CHUNK);z++)for(let x=Math.max(0,cx*CHUNK);x<Math.min(W,(cx+1)*CHUNK);x++)add(x,z);}
  for(const s of notHeld(data.stairs)){if(chunkIds&&!stairCells(s).some(([x,z])=>map.has(key(x,z))))continue;
@@ -348,7 +355,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
    if(ground){const before=ground.pads,padKey=p=>p&&`${p.level}|${p.cells.join(';')}`;ground=mapGround(data,onLand);
     for(let i=0;i<Math.max(before.length,ground.pads.length);i++){if(padKey(before[i])===padKey(ground.pads[i]))continue;
      for(const p of [before[i],ground.pads[i]].filter(Boolean))for(let cz=Math.floor((p.z0-PAD_REACH)/CHUNK);cz<=Math.floor((p.z1+PAD_REACH)/CHUNK);cz++)for(let cx=Math.floor((p.x0-PAD_REACH)/CHUNK);cx<=Math.floor((p.x1+PAD_REACH)/CHUNK);cx++)if(chunks.has(`${cx},${cz}`))check.add(`${cx},${cz}`);}}
-   const shape=tile=>tile&&`${tile.h}|${tile.surface}|${!!tile.water}|${tile.stair?.dir||''}|${tile.palette?.[0]||''}`;
+   const shape=tile=>tile&&`${tile.h}|${tile.surface}|${!!tile.water}|${tile.stair?.dir||''}|${tile.ramp?.dir||''}|${tile.palette?.[0]||''}`;
    const fresh=mapTiles(data,ground,[...new Set([...only,...check])],map);
    for(const tile of tilesOf([...check].filter(id=>!only.has(id)))){if(shape(fresh.get(key(tile.x,tile.z)))!==shape(groundOf.get(tile)))only.add(chunkOf(tile.x,tile.z));}
    // Chunks pulled in by what spans them get their fresh ground too.
@@ -360,7 +367,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
    // Fresh terrain for their tiles, the same objects refilled (edges on their borders that other chunks
    // own are kept: they live in those chunks' edge features).
    for(const tile of tilesOf(only)){const next=fresh.get(key(tile.x,tile.z));if(!next)continue;
-    for(const k of [...GROUND_KEYS,'stair','indoor','building','prop','blocksSight','reachOver','cityWall','crystalFootprint'])delete tile[k];
+    for(const k of [...GROUND_KEYS,'stair','ramp','indoor','building','prop','blocksSight','reachOver','cityWall','crystalFootprint'])delete tile[k];
     Object.assign(tile,next,{x:tile.x,z:tile.z});groundOf.set(tile,{...next});}
    populate(only);};
    if(wrap)wrap(only,run);else run();

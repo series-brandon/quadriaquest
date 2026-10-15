@@ -29,3 +29,10 @@ test('the minimap colours open land by its biome, keeping water, indoors and blo
  const meadow=minimapTileColor({biome:'meadow'}),coast=minimapTileColor({biome:'coast'}),forest=minimapTileColor({biome:'forest'});
  assert.ok(new Set([meadow,coast,forest]).size===3,'each biome its own');assert.notEqual(minimapTileColor({biome:'hills',rocky:true}),minimapTileColor({biome:'hills'}));
 });
+test('paths laid by hand show on the minimap; natural ground keeps its biome colour',async()=>{
+ const {minimapTileColor}=await import('./player-interface-policy.js');
+ const meadow=minimapTileColor({biome:'meadow'});
+ assert.notEqual(minimapTileColor({biome:'meadow',surface:'dirt',made:true}),meadow,'a dirt path');
+ assert.equal(minimapTileColor({biome:'meadow',surface:'dirt',shore:true}),minimapTileColor({biome:'meadow',shore:true}),'a natural shore is ground');
+ assert.notEqual(minimapTileColor({surface:'cobble'}),minimapTileColor({}),'a city road');
+});

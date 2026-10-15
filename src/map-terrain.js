@@ -48,6 +48,13 @@ export function makeMapTile(tile,map,{style='stone'}={}){
   add(group,half(.06),top,dx*.25,h-.03,dz*.25);
   return group;
  }
+ // A ramp (docs/TOWN.md, Ramps): a block up to its foot, and a wedge sloping half a block up to its uphill edge.
+ if(tile.ramp){const [ux,uz]=DIRS[tile.ramp.dir],foot=tile.h-.5;add(group,box(1,foot,1),DIRT_SIDE,0,foot/2,0);
+  const y=(cx,cz)=>foot+(cx*ux+cz*uz+.5)*.5,c=[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]],top4=c.map(([x,z])=>[x,y(x,z),z]),bottom4=c.map(([x,z])=>[x,foot,z]),pos=[];
+  const quad=(a,b,c2,d)=>pos.push(...a,...b,...c2,...a,...c2,...d);
+  quad(top4[0],top4[3],top4[2],top4[1]);for(let i=0;i<4;i++){const j=(i+1)%4;quad(bottom4[j],bottom4[i],top4[i],top4[j]);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();
+  group.add(new THREE.Mesh(g,material(top)));return group;}
  group.add(new THREE.Mesh(tileTopGeometry(tile,map),material(top)));
  // The block under the top: dirt sides, or stone where it stands a block or more above a neighbour.
  const drops=Object.entries(DIRS).filter(([,d])=>retainingDrop(tile,near(...d)));

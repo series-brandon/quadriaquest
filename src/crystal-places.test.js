@@ -47,3 +47,11 @@ test('travel goes to a crystal, and from one crystal to another in the same area
  assert.equal(f.areas.id,'world');const landing=f.travel.landingFor('far');assert.ok(landing&&Math.abs(landing.x-12.5)<=1.5&&Math.abs(landing.z-12.5)<=1.5,'beside it');
  assert.ok(f.travel.request('tutorial',{source:{place:'far',available:()=>true}}),'area destinations still work');
 });
+test('using a crystal walks you to the nearest tile beside its footprint, not round to its far side',async()=>{
+ const {interactionRoute}=await import('./interaction-route.js');
+ const m=grid(8,8),at=(x,z)=>m.get(key(x,z)),foot=crystalFootprint(at(3,3),at);for(const t of foot)t.blocked=true;
+ const crystal={x:3,z:3,tile:at(3,3),tiles:foot,size:2};
+ // (Diagonal steps count as one, so two tiles can be as near.)
+ const east=interactionRoute(m,at(6,4),crystal);assert.equal(east.at.x,5,'the east side, beside it');assert.equal(east.route.length,1);
+ const south=interactionRoute(m,at(4,7),crystal);assert.equal(south.at.z,5,'the south side');assert.equal(south.route.length,2);
+});

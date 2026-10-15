@@ -125,7 +125,7 @@ import {createJobs} from './jobs.js';
 import {jobBoard} from './ui/dialogs/job-board.js';
 import {createTownsfolkTalk} from './townsfolk-talk.js';
 import {SHOPS} from './shops.js';
-import {idlePose,moveMotion} from './slime-motion.js';
+import {idlePose,moveMotion,standHeight} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 // Antialiasing is fixed at creation, so it follows the saved quality tier (render-quality.js).
 const renderer=new THREE.WebGLRenderer({antialias:QUALITY_TIERS[initialTier()].antialias});renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
@@ -307,7 +307,7 @@ const crystals=createCrystals({world,pickables,travel,choose:(a,after)=>{discove
 function discoverCrystal(actor){if(actor?.place&&crystalPlaces.discover(actor.place))messages.show(`Iter Crystal discovered: ${crystalPlaces.get(actor.place)?.name||actor.place}`);}
 function discoverNearbyCrystals(){for(const c of crystals.current())if(c.place&&Math.abs(tile.x-c.x-.5)<=4.5&&Math.abs(tile.z-c.z-.5)<=4.5)discoverCrystal(c);}
 const afterStep=createAfterStep({moving:()=>!!segment,prepare(label){cancelWork({keepCombat:label==='Eating',keepFood:label==='Eating'});path=[];target=null;gatherTime=0;menus.action();feedback.destination(segment.to);}});
-function stopAll(options){cancelWork(options);path=[];segment=null;target=null;gatherTime=0;player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();if(options?.keepMenu)menus.action();else menus.closeMenus();cookingMenu?.close();furnaceMenu?.close();anvilMenu?.close();}
+function stopAll(options){cancelWork(options);path=[];segment=null;target=null;gatherTime=0;player.position.set(tile.x-6,standHeight(tile),tile.z-6);feedback.clearDestination();if(options?.keepMenu)menus.action();else menus.closeMenus();cookingMenu?.close();furnaceMenu?.close();anvilMenu?.close();}
 companions=createCompanionSystem({scene,world,player,pickables,feedback,inventory,
  toPosition:t=>new THREE.Vector3(t.x-6,t.h,t.z-6),tileAtPosition:p=>world.get(key(Math.round(p.x+6),Math.round(p.z+6))),
  tile:()=>tile,approaching:()=>actorTarget,occupied:t=>t===tile||t===segment?.to||!!combat?.occupies(t)||npcAt(t),reserved:t=>!!t&&(segment?.to===t||path.includes(t)||campfires?.placementTile===t),
@@ -332,13 +332,13 @@ combat=createCombatSystem({playerMoving:()=>!!segment||path.length>0,telegraph:(
  inReach:a=>!segment&&!path.length&&withinAttackRange(world,tile,a,attackRange()),
  tile:()=>tile,reserved:t=>t===segment?.to||path.includes(t)||campfires?.placementTile===t||companions.occupies(t)||npcAt(t),
  approaching:()=>actorTarget,hover:()=>hover?.actor,face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},
- safe:p=>p.safe||pickables.some(m=>{const a=m.userData.actor;return a&&a.crystal&&world.get(key(a.x,a.z))===a.tile&&Math.abs(p.x-a.x)+Math.abs(p.z-a.z)<3;}),
+ safe:p=>p.safe||pickables.some(m=>{const a=m.userData.actor;return a&&a.crystal&&world.get(key(a.tile.x,a.tile.z))===a.tile&&Math.abs(p.x-a.x-.5)+Math.abs(p.z-a.z-.5)<4;}),
  hit:(p,damage,outcome)=>combatFeedback.show(p,damage,outcome),sound:name=>gameAudio.play(name),soundStart:(name,arg)=>gameAudio.start(name,arg),clearFeedback:()=>combatFeedback.clear(),
  reward:r=>{const [first,...rest]=r.tracks.filter(t=>t.xp>0);if(first)showSkillReward(first,player.position);for(const t of rest)if(t.leveledUp)showSkillReward(t,player.position,{float:false});if(r.core.leveledUp)showSkillReward({skillName:'Core',level:r.core.level,leveledUp:true,detail:`+${r.core.points} attribute points`},player.position,{float:false});},// Victory: a happy face, the victory sound, the enemy's drops, and areas hear about it (one handler:
  // an object literal keeps only the last `won`).
  won:(a,profile)=>{happyUntil=elapsed+1.6;gameAudio.play('victory');dropLoot(a);areas.broadcast('combatWon',a,profile);},complete:()=>feedback.complete(),interacting:()=>feedback.interacting('Fighting'),
  fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},
- respawn(){const crystals=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a&&a.crystal&&world.get(key(a.x,a.z))===a.tile))];
+ respawn(){const crystals=[...new Set(pickables.map(m=>m.userData.actor).filter(a=>a&&a.crystal&&world.get(key(a.tile.x,a.tile.z))===a.tile))];
   const free=t=>t&&!t.blocked&&!t.water&&!companions.occupies(t);
   const landing=crystals.map(a=>portalSpawn(world,a.tile)).find(free)||[...world.values()].filter(free).sort((a,b)=>Math.hypot(a.x-tile.x,a.z-tile.z)-Math.hypot(b.x-tile.x,b.z-tile.z))[0];
   if(!landing)return false;tile=landing;player.position.set(tile.x-6,tile.h,tile.z-6);return true;},
@@ -860,7 +860,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
     THREE.MathUtils.lerp(segment.from.z,segment.to.z-6,move.distance)
   );
   pose=move.pose;
-  if(segment.age>=duration){tile=segment.to;player.position.set(tile.x-6,tile.h,tile.z-6);segment=null;if(!path.length)opening.arrived(tile);}
+  if(segment.age>=duration){tile=segment.to;player.position.set(tile.x-6,standHeight(tile),tile.z-6);segment=null;if(!path.length)opening.arrived(tile);}
  }else if(!path.length){
   if(chopTarget){const node=chopTarget;chopTarget=null;resourceActions.start(node);}
   if(actorTarget){

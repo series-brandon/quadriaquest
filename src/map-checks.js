@@ -6,6 +6,7 @@ import {interiorProblems} from './spaces.js';
 import {townsfolkProblems} from './townsfolk.js';
 import {CHUNK,REGION,withinChunk} from './world-grid.js';
 import {mapCrystals,crystalCells} from './map-file.js';
+import {RAMP_UP} from './chunk-terrain.js';
 
 // Map checks (docs/CITY.md, Authoring: live checks; city Phase 6). The editor lists these; tests run
 // them over every city in the repo. Each problem: {kind, severity: 'error'|'warning', tile:[x, z],
@@ -64,6 +65,10 @@ export function mapProblems(data,built){
  for(const r of built.edges.doorProblems())add('door rule','error',[r.door.a.x,r.door.a.z],r.problems.join('; '));
  // Terrain: stairs need their landing; walkable ground that can't be reached (a terrace with no stairs).
  for(const p of stairProblems(map))add('stairs','error',[p.tile.x,p.tile.z],p.problem);
+ // Ramps (docs/TOWN.md, Ramps): each slopes down half a block to the tiles below its uphill edge; one whose ground
+ // has since changed under it no longer meets them.
+ for(const t of map.values()){if(!t.ramp)continue;const [ux,uz]=RAMP_UP[t.ramp.dir],below=map.get(key(t.x-ux,t.z-uz));
+  if(below&&!below.water&&Math.abs(below.h-(t.h-.5))>.01&&!below.ramp)add('ramp','warning',[t.x,t.z],'A ramp with no ledge half a block below it: it doesn\u2019t meet the ground.');}
  // Land only the water cuts off (across a river or the sea) is a note: it needs a bridge or a boat, not stairs.
  const open=[...map.values()].filter(t=>!t.blocked&&!t.water&&!t.indoor&&!reach.has(t)),across=open.length&&spawn?reachableAcrossWater(map,spawn):new Set();
  // A lazy map's groups that run into chunks not made yet may well be reached through them: no verdict yet.

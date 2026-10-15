@@ -55,9 +55,12 @@ export function stepMotion(seconds, height) {
 // half-block ledge is a hop. Returns the pose, how far along (distance 0..1), the height above the
 // starting tile (rise) and the move's duration.
 export const SLIDE_DURATION=1/2.4;
-export const isRamp=(from,to)=>!!(from?.stair||to?.stair);
+// Stairs and ramps (docs/TOWN.md, Ramps) are walked smoothly, not hopped.
+export const isRamp=(from,to)=>!!(from?.stair||to?.stair||from?.ramp||to?.ramp);
+// Where a body stands on a tile: its height, or on a ramp the middle of its slope (a quarter block lower).
+export const standHeight=t=>t.h-(t.ramp?.25:0);
 export function moveMotion(age,from,to){
-  const height=to.h-from.h,stepped=Math.abs(height)>.01&&!isRamp(from,to);
+  const height=standHeight(to)-standHeight(from),stepped=Math.abs(height)>.01&&!isRamp(from,to);
   if(stepped){const m=stepMotion(age,height);return {pose:m,distance:m.distance,rise:m.lift,duration:STEP_DURATION,stepped};}
   const m=slideMotion(age/SLIDE_DURATION);return {pose:m,distance:m.distance,rise:height*m.distance,duration:SLIDE_DURATION,stepped};
 }

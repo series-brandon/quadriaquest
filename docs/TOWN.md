@@ -360,10 +360,25 @@ User request: hide what's lifted, wall and floor paint, Sims-like doors and stai
   - The building is reshaped as Reshape does.
   - Its rooms, paint and floors stay where they were when its north-west corner moves. Reshaping no longer drops a building's floors either.
 
+## Ramps (2026-10-15)
+
+User request: ramps for paths and roads, leaving the half-block ledges you hop to the wild, and a way to turn ledges into ramps.
+- **A ramp** is a tile whose top slopes half a block down to a lower neighbour instead of a ledge. It's stored per tile in its region's `ramps` layer (`world-map.js` `mapRamp`/`setMapRamp`; 'n', 'e', 's' or 'w', the way up), packed like the rest, carried along when the map grows, and set on the map's tiles (`tile.ramp = {dir}`).
+- **Drawn:** on the land (`chunk-terrain.js`) a sloped top and trapezoid sides wherever a neighbour stands lower than its edge; neighbours meet it at its height along the shared edge (`rampEdge`), so no gaps open. On a city map (`map-terrain.js`) a block up to its foot and a sloped wedge.
+- **Walked:** stepping onto, off or across a ramp slides smoothly, like stairs (`slime-motion.js` `isRamp`); you stand at its slope's middle, a quarter block below its top (`standHeight`). Routes are as before: a ramp is a half-block step, as the ledge was.
+- **Editor:** *Terrain* → *Ramp ledges* (a brush, or a straight line): each tile under it that stands half a block above a neighbour slopes down to it (towards a path tile first); *Ramps to ledges* takes them off. *Only on paths* (on by default) converts only paths and paving (dirt, cobble, flagstone, plaza, stone, planks), so the wild keeps its ledges. The old *Ramp* drag tool, which builds half-block steps between two heights, is now *Slope*.
+- **Map checks:** a ramp whose tile below its foot is no longer half a block lower (the ground changed under it) is a warning.
+- **Tests:** `ramps.test.js` (stored, packed, grown and on the tiles; the mesh's slope and side; sliding and standing).
+
+## Paths on the minimap (2026-10-15)
+
+User request: hand-made dirt paths should show on the minimap. Paths and paving painted by hand (or a city's own roads) show in their own colour (`minimapTileColor`); natural ground (a dirt shore) keeps its biome's.
+
 ## Iter Crystals (2026-10-15)
 
 User request: a 2 × 2 Iter Crystal that feels important; any number of them in the world, each with a unique id and the name the teleport list shows; and no teleporting to one until you've discovered it (the tutorial's and Quadria's first crystal excepted).
 - **The model** (`crystal-model.js`, shared by every crystal, the tutorial's too): a stepped stone dais on 2 × 2 tiles with a glowing rune ring and four shard-capped posts; above it the great crystal floats and turns with three shards circling it. About 4.4 units tall (it was 2), so it reads as a landmark across the map. The runes breathe.
+- **Using one:** you walk to the nearest open tile beside its footprint (user report, 2026-10-15: it used to walk round to its far side), and face its middle.
 - **Footprint:** a crystal stands on the 2 × 2 tiles from its tile south-east (`crystalFootprint`): four open, dry, level tiles, all blocked. Where that square doesn't fit (a tutorial crystal by an edge), another square holding its tile does; with none, its one tile. Arrivals step off beside the footprint, south side first (`portal-spawn.js`).
 - **Map data** (`map-file.js` `mapCrystals`): `crystals: [{id, name, x, z, known}]`. An older map's single `crystal: [x, z]` becomes the first, named after the map and known; the repo's maps are converted (the overworld's is *quadria*, "Quadria"; Gelton's *gelton*, "Gelton").
 - **Destinations** (`crystal-places.js`): each map crystal is a destination of its own, by id, shown by name. It's listed once you've **discovered** it (walked within four tiles of it, or used it: "Iter Crystal discovered: …"), or from the start when it's **known**. An area with crystals lists them instead of itself; the tutorial areas stay destinations by area as before. Travel goes to a crystal's area and lands beside it, and can go from one crystal to another in the same world (the ground round the far one loads first). Discovery lasts the session: the game has no saves yet.

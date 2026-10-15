@@ -60,6 +60,7 @@ Previews run in place without consuming items or earning XP. Stop to play normal
   - Smooth, brush sizes up to 9 × 9, a straight-line brush shape, and water in Surface.
 - **Prop gallery:** every prop by category, with their live interactions (sit, sleep, cook, smith, open, read), a fence gate, a low stone wall and an iron gate.
 - **Force cutaway:** cuts every building at once (no roofs, one-storey walls).
+- **Ramps** (docs/TOWN.md, *Ramps*): *Terrain* → *Ramp ledges* turns ledges under the brush into ramps (paths only by default) or back; *Play* walks them smoothly. The old *Ramp* drag tool is now *Slope*.
 - **Iter Crystals** (docs/TOWN.md, *Iter Crystals*): the editor's *World* → *Crystal* places any number; the Hand's panel names them and sets their id and *Known from the start*. In *Play*, walking up to one discovers it for the teleport list. The debug panel's *Maps* has *Discover all crystals* and *Forget crystals*.
 - **Play from where you work:** *Play* puts the slime on the open tile nearest the view and gives the camera back to it, as in the game; *Edit* frees the camera again. *Player here* (*Map* → *View*) moves the slime there without leaving Edit. The debug panel's *Maps* has *Player to camera* for the same outside the editor.
 - **Draw distance:** the world editor's top row has it too (*Draw*), the same setting as Settings.

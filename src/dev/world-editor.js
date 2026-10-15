@@ -3,7 +3,7 @@ import {h,mount} from '../ui/dom.js';
 import {keyedList} from '../ui/list.js';
 import {segmented,toggleSwitch,section} from '../ui/controls.js';
 import {signal,computed,effect,untracked} from '../reactive.js';
-import {createMapData,growMap,mapHeight,mapSurface,setMapHeight,setMapSurface,clearMapSurface,mapOffset,setMapOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells,packMap,unpackMap} from '../world-map.js';
+import {createMapData,growMap,mapHeight,mapSurface,setMapHeight,setMapSurface,clearMapSurface,mapOffset,setMapOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells,packMap,unpackMap,mapRamp,setMapRamp,RAMP_DIRS} from '../world-map.js';
 import {mapCrystals,crystalCells} from '../map-file.js';
 import {mapProblems} from '../map-checks.js';
 import {planBuilding,BUILDING_PRESETS,ROOF_TYPES,ROOF_COLORS,AWNINGS,toShaped,shiftShaped,shapeRuns,connectedCells} from '../building-kit.js';
@@ -74,7 +74,7 @@ const MOD=/Mac|iPhone|iPad/.test(globalThis.navigator?.platform||'')?'⌘':'Ctrl
 const BIOME_PAINT={meadow:'#b8e06a',forest:'#2f8f3f',pines:'#1d5d4b',hills:'#a8875a',coast:'#f0d78c',wetland:'#5f8f7a'};
 // Each terrain's colour in the terrain layer's overlay; 'usual' (unpainted: the biome's own) isn't drawn.
 const TERRAIN_PAINT={plains:'#e8e39a',rolling:'#9cc46a',lakeland:'#5fc0d8',uplands:'#c49a6c',hills:'#8a6a48',highlands:'#4f4038',marsh:'#4f8a76',river:'#3fa0e8',sea:'#2f62c8'};
-const PAINT_TOOLS=['raise','lower','flatten','smooth','surface','footprint','biome','nature'],
+const PAINT_TOOLS=['raise','lower','flatten','smooth','ramps','surface','footprint','biome','nature'],
  // Tools that take a left-drag: the brushes, Select (a box), Edge (a fence line) and Ramp (a slope).
  DRAG_TOOLS=[...PAINT_TOOLS,'select','deco','edge','ramp','room','resize'],CLOCKWISE={n:'e',e:'s',s:'w',w:'n'},KIND_LABELS={building:'building',prop:'prop',stairs:'stairs',townsfolk:'townsfolk',resource:'resource',cover:'ground cover',crystal:'crystal',enemy:'enemy spawn'};
 // Enemy spawns (docs/TOWN.md, Enemy spawns): respawn choices in seconds.
@@ -91,7 +91,7 @@ const NATURE_CHOICES=[['grow','Grow (biome)'],['clear','Clear nature'],['fishing
 const TOOL_GROUPS=[
  ['decorate','Decorate',[['deco','Deco'],['select','Hand'],['design','Colours'],['eyedropper','Eyedropper'],['erase','Sledgehammer'],['floorpaint','Floor paint'],['wallpaint','Wall paint'],['stamp','Stamp']]],
  ['build','Build',[['room','Room'],['resize','Push/pull walls'],['building','Building'],['footprint','Footprint'],['walls','Walls'],['edge','Edge'],['stairs','Stairs'],['use','Use'],['reroll','Reroll furniture'],['underground','Underground']]],
- ['terrain','Terrain',[['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['smooth','Smooth'],['ramp','Ramp'],['surface','Surface'],['biome','Biome']]],
+ ['terrain','Terrain',[['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['smooth','Smooth'],['ramp','Slope'],['ramps','Ramp ledges'],['surface','Surface'],['biome','Biome']]],
  ['world','World',[['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['spawn','Arrival']]],
  // Map: open, save and grow the map, its lines, and its checks (with Inspect).
  ['map','Map',[['inspect','Inspect']]]];
@@ -113,7 +113,7 @@ export function createWorldEditor(host){
  const catalogue=mapCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null,stopFloors=null,stopScreen=null;
  const tool=signal('deco'),toolGroup=signal('decorate'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={paintColour:signal('#e8c8a0'),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
  // The footprint being painted: tiles ('x,z'), and the building it reshapes (its index) or null for a new one.
@@ -864,7 +864,7 @@ export function createWorldEditor(host){
     return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>{const t=at(a,b),n=natureAt(a,b);
      const ok=choice==='fishing'?!!t?.water:choice==='grow'?!!t&&!t.water:choice==='clear'?!!(n.resource||n.cover):group==='cover'?!!t&&!t.water&&t.building===undefined:resourceFits(t)&&!onCrystal(a,b);
      return {x:a,z:b,color:ok?(choice==='clear'?NO:OK):'#8a8a8a'};})};}
-   case 'raise':case 'lower':case 'flatten':case 'smooth':case 'ramp':case 'surface':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:BRUSH}))};
+   case 'raise':case 'lower':case 'flatten':case 'smooth':case 'ramp':case 'ramps':case 'surface':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:BRUSH}))};
    case 'footprint':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:o.draftMode==='add'?OK:NO}))};
    case 'biome':{if(!data.land)return null;const r=o.biomeBrush==='3'?1:o.biomeBrush==='5'?2:0,[cx,cz]=cellOf(x,z),[ox,oz]=data.land.origin||[0,0],cells=[];
     for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++)for(let b=0;b<BIOME_CELL;b++)for(let a=0;a<BIOME_CELL;a++)cells.push({x:(cx+dx)*BIOME_CELL+a-ox,z:(cz+dz)*BIOME_CELL+b-oz,color:(o.landLayer==='terrain'?TERRAIN_PAINT[o.terrain]:BIOME_PAINT[o.biome])||BRUSH});return {cells};}
@@ -957,12 +957,20 @@ export function createWorldEditor(host){
   for(const [a,b] of brushTiles(x,z)){const id=`${a},${b}`;if(stroke.seen.has(id)||a<0||b<0||a>=data.size[0]||b>=data.size[1])continue;stroke.seen.add(id);
    if(o==='nature'){if(putNature(a,b,options.nature.peek()))stroke.pending.push([a,b]);continue;}
    if(o==='surface'){if(surface==='water'&&!onLand)continue;if(surface==='land')clearMapSurface(data,a,b);else setMapSurface(data,a,b,surface);}
+   // Ramp ledges (docs/TOWN.md, Ramps): a tile half a block above a neighbour slopes down to it instead (on
+   // paths only, unless that's turned off), or goes back to a ledge.
+   else if(o==='ramps'){const t=at(a,b);if(!t||t.water||t.stair)continue;if(options.rampMode.peek()==='remove'){if(!mapRamp(data,a,b))continue;setMapRamp(data,a,b,null);}
+    else{if(options.rampPaths.peek()&&!PATH_SURFACES.has(t.surface))continue;const dir=rampDirFor(t);if(!dir)continue;setMapRamp(data,a,b,dir);}}
    else if(o==='flatten'){const base=onLand?built.ground.base(a,b):0;if(onLand)setMapOffset(data,a,b,stroke.level-base);else setMapHeight(data,a,b,stroke.level);}
    // Smooth: each tile eases to the average of the tiles around it (to the half block).
    else if(o==='smooth'){const near=[];for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){const t=at(a+dx,b+dz);if(t&&!t.water)near.push(t.h);}if(!near.length)continue;
     const target=Math.round(near.reduce((p,q)=>p+q,0)/near.length*2)/2;setHeight(a,b,target);}
    else{const step=o==='raise'?.5:-.5;if(onLand)setMapOffset(data,a,b,mapOffset(data,a,b)+step);else setMapHeight(data,a,b,mapHeight(data,a,b)+step);}
    stroke.pending.push([a,b]);}}
+ // Which way a ramp on this tile goes up: away from a neighbour half a block below it (a path one first).
+ const PATH_SURFACES=new Set(['dirt','cobble','flagstone','plaza','stone','planks']),OPPOSITE={n:'s',s:'n',e:'w',w:'e'};
+ function rampDirFor(t){const down=Object.entries(RAMP_DIRS).filter(([,[dx,dz]])=>{const n=at(t.x+dx,t.z+dz);return n&&!n.water&&!n.stair&&Math.abs(n.h-(t.h-.5))<.01;});
+  if(!down.length)return null;const pick=down.find(([,[dx,dz]])=>PATH_SURFACES.has(at(t.x+dx,t.z+dz)?.surface))||down[0];return OPPOSITE[pick[0]];}
  // A tile's height set outright (an offset on the land, or the height itself on a flat map).
  function setHeight(x,z,h){if(data.land)setMapOffset(data,x,z,h-built.ground.base(x,z));else setMapHeight(data,x,z,h);}
  // The tiles of a straight line from a to b (both ends included).
@@ -1045,7 +1053,7 @@ export function createWorldEditor(host){
  async function drag(phase,tile,actor,point){
   if(HAND_TOOLS.includes(tool.peek()))return boxSelect(phase,tile,actor,point);
   if(tool.peek()==='room'||tool.peek()==='resize')return roomDrag(phase,tile);
-  const lineTool=tool.peek()==='edge'||tool.peek()==='ramp'||options.brushShape.peek()==='line'&&['raise','lower','flatten','smooth','nature','surface'].includes(tool.peek());
+  const lineTool=tool.peek()==='edge'||tool.peek()==='ramp'||options.brushShape.peek()==='line'&&['raise','lower','flatten','smooth','ramps','nature','surface'].includes(tool.peek());
   if(!lineTool)return paint(phase,tile);
   if(phase==='start'){line={from:tile,to:tile};clearPreview();drawLine();return;}
   if(phase==='move'&&line){if(tile&&(tile.x!==line.to.x||tile.z!==line.to.z)){line.to=tile;drawLine();}return;}
@@ -1173,7 +1181,7 @@ export function createWorldEditor(host){
     if(!entry){status.value='Nothing to copy here.';break;}
     hold(kind,entry);status.value=`Copied ${nameOf(kind,entry)}: click where it goes (Shift-click places more; Esc to stop).`;break;}
    // Brushes: a click is a one-tile stroke (dragging paints; see paint()).
-   case 'raise':case 'lower':case 'flatten':case 'nature':case 'surface':case 'footprint':case 'biome':await paint('start',tile);await paint('end',tile);break;
+   case 'raise':case 'lower':case 'flatten':case 'nature':case 'ramps':case 'surface':case 'footprint':case 'biome':await paint('start',tile);await paint('end',tile);break;
    case 'building':if(await change(()=>{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};delete desc.name;desc.name=`${BUILDING_PRESETS[o.preset].name} ${data.buildings.length+1}`;const cells=planBuilding(desc,[x,z]).tiles;oneChunk(cells);taken(cells);data.buildings.push({x,z,desc});return cells;}))status.value=`Placed ${BUILDING_PRESETS[o.preset].name} at ${x},${z}.`;break;
    case 'prop':if(await change(()=>{const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);taken(cells,[],o.prop);data.props.push({kind:o.prop,x,z,rotation});return cells;}))status.value=`Placed ${PROPS[o.prop].name} at ${x},${z}.`;break;
    case 'stairs':await change(()=>{const s={x,z,dir:o.dir,length:+o.length,width:+o.width};data.stairs.push(s);return stairCells(s);});status.value=`Stairs from ${x},${z}, going up ${SIDE_LABELS[o.dir].toLowerCase()}.`;break;
@@ -1220,7 +1228,7 @@ export function createWorldEditor(host){
   const cells=[],chunks=[],forget=[];
   // Ground, row by row and then tile by tile where a row differs.
   for(const [id,r] of Object.entries(b.regions)){const o=a.regions[id],[rx,rz]=id.split(',').map(Number);if(!o)return null;
-   for(const layer of ['heights','offsets','surfaces'])(r[layer]||[]).forEach((row,z)=>{const old=o[layer]?.[z];if(row===old)return;for(let x=0;x<row.length;x++)if(row[x]!==old?.[x])cells.push([rx*REGION+x,rz*REGION+z]);});}
+   for(const layer of ['heights','offsets','surfaces','ramps'])(r[layer]||[]).forEach((row,z)=>{const old=o[layer]?.[z];if(row===old)return;for(let x=0;x<row.length;x++)if(row[x]!==old?.[x])cells.push([rx*REGION+x,rz*REGION+z]);});}
   // Placed things, entry by entry: the tiles of both versions of any that differ.
   const placed={buildings:e=>{try{return planBuilding(e.desc,[e.x,e.z]).tiles;}catch{return [[e.x,e.z]];}},props:propCells,stairs:stairCells,resources:e=>[[e.x,e.z]],cover:e=>[[e.x,e.z]],fishing:e=>[[e.x,e.z]],enemies:e=>cellsOf('enemy',e),
    edges:e=>[e.a,e.b],townsfolk:e=>[e.home,...e.patrol||[]].filter(Boolean),crystals:crystalCells};
@@ -1271,7 +1279,7 @@ export function createWorldEditor(host){
   footprint:'Drag to paint a footprint, then Build it.',walls:'Click beside a building’s wall to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the stairs’ bottom step goes.',
   use:'Click a building to set what it’s used for.',reroll:'Click a building to roll its furniture again.',underground:'Make a dungeon or cave here, then place its entrance.',
   raise:'Click or drag to raise the ground half a block.',lower:'Click or drag to lower the ground half a block.',flatten:'Drag to level the ground to where you start.',smooth:'Drag to ease the ground to its neighbours.',
-  ramp:'Drag from the low end to the high end.',surface:'Click or drag to paint the ground.',biome:'Drag to paint biomes or terrain (8 × 8 cells).',nature:'Click or drag to place nature, or clear it.',
+  ramp:'Drag from the low end to the high end.',ramps:'Click or drag over ledges to turn them into ramps (or back).',surface:'Click or drag to paint the ground.',biome:'Drag to paint biomes or terrain (8 × 8 cells).',nature:'Click or drag to place nature, or clear it.',
   enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk.',crystal:'Click to set an Iter Crystal (2 × 2); name it with the Hand.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
  function setTool(id){if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id);if(TOOL_HINTS[id])status.value=TOOL_HINTS[id];}
  // The dock's panel: always outside Decorate; in Decorate only for what's selected, paint and stamps.
@@ -1346,8 +1354,10 @@ export function createWorldEditor(host){
           buttons(smallButton('Build it',buildDraft),smallButton('Clear',clearDraft)))),
         opts(['nature'],group(null,fields(select('Nature',options.nature,NATURE_CHOICES)))),
         opts(['enemy'],group(null,fields(select('Enemy',options.enemyKind,Object.entries(ENEMIES).map(([id,e])=>[id,e.name])),select('Behaviour',options.enemyMood,[['passive','Passive (fights back)'],['aggressive','Aggressive']]),select('Respawns after',options.enemyRespawn,RESPAWNS)))),
-        opts(['raise','lower','flatten','smooth','ramp','nature','surface','footprint'],group(null,fields(select('Brush',brush,[['1','1 tile'],['3','3 × 3'],['5','5 × 5'],['7','7 × 7'],['9','9 × 9']]),
-         h('label',{class:'q-world-editor__field',hidden:shown('raise','lower','flatten','smooth','nature','surface')},'Shape',h('select',{class:'q-select',on:{change:e=>{options.brushShape.value=e.target.value;}}},[['brush','Paint as you drag'],['line','A straight line']].map(([id,name])=>h('option',{value:id,selected:()=>options.brushShape.value===id},name))))))),
+        opts(['raise','lower','flatten','smooth','ramp','ramps','nature','surface','footprint'],group(null,fields(select('Brush',brush,[['1','1 tile'],['3','3 × 3'],['5','5 × 5'],['7','7 × 7'],['9','9 × 9']]),
+         h('label',{class:'q-world-editor__field',hidden:shown('raise','lower','flatten','smooth','ramps','nature','surface')},'Shape',h('select',{class:'q-select',on:{change:e=>{options.brushShape.value=e.target.value;}}},[['brush','Paint as you drag'],['line','A straight line']].map(([id,name])=>h('option',{value:id,selected:()=>options.brushShape.value===id},name))))))),
+        opts(['ramps'],group(null,fields(select('Ramps',options.rampMode,[['add','Ledges to ramps'],['remove','Ramps to ledges']])),
+         h('div',{class:'q-world-editor__toggles'},toggleSwitch({label:'Only on paths',description:'Paths and paving; the wild keeps its ledges',on:()=>options.rampPaths.value,onChange:v=>{options.rampPaths.value=v;}})))),
         opts(['surface'],group(null,fields(select('Surface',options.surface,[['land',"Land's own"],...SURFACE_NAMES.map(s=>[s,s]),['water','water (land maps)']])))),
         opts(['use'],group(null,fields(select('Use',options.use,[...USE_NAMES,'none'].map(u=>[u,u]))))),
         opts(['building'],group(null,fields(select('Building',options.preset,Object.entries(BUILDING_PRESETS).map(([id,p])=>[id,p.name])),select('Rotation',options.rotation,[['0','0°'],['90','90°'],['180','180°'],['270','270°']])))),
