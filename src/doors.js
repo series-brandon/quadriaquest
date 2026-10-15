@@ -173,14 +173,18 @@ export function createEdgeFeatures({parent,pickables=[],tileAt=()=>null,style,cu
  function unbake(){if(!baked)return;for(const mesh of baked.meshes){mesh.removeFromParent();mesh.geometry.dispose();}for(const m of baked.hidden)m.visible=true;for(const {group,parent} of baked.groups){parent?.add(group);group.visible=true;}baked=null;}
  return {root,
   // options: storeys, owner (a building id, or two for a shared wall), style, upperWindows (a wall with
-  // windows on its upper storeys), and door options (locked, open, link).
+  // windows on its upper storeys), paint ({a, b}: wall paint on the face towards each tile), and door
+  // options (locked, open, link).
   add(a,b,kind,options={}){
    remove(a,b);
    const k=id(a,b),withPosts=hasPosts(kind),storeys=options.storeys||1,owner=[options.owner??[]].flat(),owners=[owner[0]??-1,owner[1]??-1],pieceStyle=options.style??style;
    unbake();boxesDirty=true;
    if(kind==='door'){const door=createDoor({a,b,parent:root,pickables,...options,style:pieceStyle});door.neighbour=tileAt;placed.set(k,{door,a,b,id:k,posts:withPosts,storeys,owners,style:pieceStyle});if(withPosts)usePosts(k,a,b,true,storeys);return door;}
    // hidden: the edge's rules without a model (stair sides, drawn by their own sloped rail).
-   const place=edgePlacement(a,b,storeys),group=options.hidden?new Group():edgePiece(kind,{height:place.height,storeys,style:pieceStyle,upperWindows:options.upperWindows}),feature={kind};
+   // paint {a, b}: the colour of the face towards each tile; the piece's own front is local +z.
+   const place=edgePlacement(a,b,storeys),facesA=Math.sign((a.x-b.x)*Math.sin(place.rotation)+(a.z-b.z)*Math.cos(place.rotation))>0;
+   const paint=options.paint&&(options.paint.a||options.paint.b)?{front:facesA?options.paint.a:options.paint.b,back:facesA?options.paint.b:options.paint.a}:null;
+   const group=options.hidden?new Group():edgePiece(kind,{height:place.height,storeys,style:pieceStyle,upperWindows:options.upperWindows,paint}),feature={kind};
    // Fences, railings and counters stand on the higher tile (a railing along the top of a retaining wall).
    group.position.set(place.x,['fence','railing','low'].includes(kind)?Math.max(a.h,b.h):place.y,place.z);group.rotation.y=place.rotation;root.add(group);
    setEdge(a,b,feature);placed.set(k,{group,feature,a,b,id:k,posts:withPosts,storeys,owners,style:pieceStyle});if(withPosts)usePosts(k,a,b,true,storeys);return group;

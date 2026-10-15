@@ -5,6 +5,8 @@ import {planBuilding} from './building-kit.js';
 import {createProp,propFootprint} from './props.js';
 import {furnishRoom,furnishingUse,upstairsUse} from './furnish.js';
 import {mergeStatic} from './static-merge.js';
+import {notHeld} from './held.js';
+import {wallPaint,floorPalette} from './paint.js';
 import {surfaceColor,DIRS} from './map-terrain.js';
 import {tileTopGeometry} from './tile-top.js';
 import {mergedMesh} from './merged-model.js';
@@ -134,7 +136,7 @@ export function buildFloorSpace({pickables=[],plan,entry,level,style='timber',ba
  const surface=spec.surface||(level<0?underground.surface:level>0?'planks':'floor'),wallStyle=level<0?underground.wall:style;
  // The floor's own shape (any size: user, 2026-10-14), with a ring of solid tiles around it.
  for(const [dx,dz] of [...shape].map(k=>k.split(',').map(Number)))for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const [x,z]=world([dx+a,dz+b]),k=key(x,z);if(tiles.has(k))continue;const inside=shape.has(`${dx+a},${dz+b}`);
-  const t={x,z,h:base,surface,blocked:!inside,water:false,indoor:inside,building:inside?0:undefined,space:true};tiles.set(k,t);if(inside)inner.push(t);}
+  const t={x,z,h:base,surface,blocked:!inside,water:false,indoor:inside,building:inside?0:undefined,space:true};if(inside){const painted=floorPalette(spec.paint,plan,t);if(painted)t.palette=painted;}tiles.set(k,t);if(inside)inner.push(t);}
  const t=(x,z)=>tiles.get(key(x,z)),tl=([dx,dz])=>t(...world([dx,dz]));
  const edges=createEdgeFeatures({parent:group,pickables,tileAt:t,style:wallStyle}),doors=[];
  // The outside walls: where a floor's edge lies on the building's, it keeps the outside's windows (and, a
@@ -142,15 +144,15 @@ export function buildFloorSpace({pickables=[],plan,entry,level,style='timber',ba
  const outside=new Map(plan.edges.map(e=>[[e.a.join(','),e.b.join(',')].join('|'),e]));
  for(const n of inner)for(const [dx,dz] of Object.values(DIRS)){const m=t(n.x+dx,n.z+dz);if(!m||m.indoor)continue;const e=outside.get(`${n.x},${n.z}|${m.x},${m.z}`);
   if(e?.kind==='door'&&level===0&&!inPlace){const door=edges.add(n,m,'door',{owner:0,style,locked:!!e.door?.locked});door.link=links.exit(e);doors.push(door);}
-  else edges.add(n,m,level>=0&&e?.kind==='window'?'window':'wall',{owner:0,style:wallStyle});}
- for(const e of spec.edges||[]){const a=tl(e.a),b=tl(e.b);if(a&&b&&!edges.info(a,b))edges.add(a,b,e.kind,{style:wallStyle});}
+  else edges.add(n,m,level>=0&&e?.kind==='window'?'window':'wall',{owner:0,style:wallStyle,paint:wallPaint(spec.paint,plan,n,m)});}
+ for(const e of spec.edges||[]){const a=tl(e.a),b=tl(e.b);if(a&&b&&!edges.info(a,b))edges.add(a,b,e.kind,{owner:0,style:wallStyle,paint:wallPaint(spec.paint,plan,a,b)});}
  // Stairwells: this floor's flight up, and the opening down where the floor below's flight arrives.
  const stairs=[],live=f=>({bottom:tl(f.bottom),top:tl(f.top),front:tl(f.front)}),ok=p=>p.bottom?.indoor&&p.top?.indoor;
  const toLevel=(l,via)=>l===0&&inPlace?links.ground(via,flightOf(via==='up'?levels.get(-1).up:levels.get(0).up)):links.floor(l,via);
  if(spec.up&&(levels.has(level+1)||level+1===0&&inPlace)){const place=live(flightOf(spec.up));if(ok(place))stairs.push(createStairwell({place,direction:'up',link:toLevel(level+1,'up'),parent:group,pickables,services,tileAt:t}));}
  const below=levels.get(level-1);if(below?.up&&(levels.has(level-1)||level-1===0)){const place=live(flightOf(below.up));if(ok(place))stairs.push(createStairwell({place,direction:'down',link:toLevel(level-1,'down'),parent:group,pickables,services,tileAt:t}));}
  const furniture=[];
- for(const f of spec.furniture||[]){try{furniture.push(createProp(f.kind,{origin:world(f.at),rotation:f.rotation||0,tileAt:t,parent:group,pickables,colors:f.colors||null}));}catch{}}
+ for(const f of notHeld(spec.furniture)){try{furniture.push(createProp(f.kind,{origin:world(f.at),rotation:f.rotation||0,tileAt:t,parent:group,pickables,colors:f.colors||null}));}catch{}}
  mergeStatic(group,furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});
  createTerrainBatch({tiles:inner,map:tiles,factory:tile=>floorTile(tile,tiles),parent:group,pickables});
  edges.bake();

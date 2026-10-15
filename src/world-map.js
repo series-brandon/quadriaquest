@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import {createTerrainBatch} from './terrain-batch.js';
 import {createEdgeFeatures} from './doors.js';
-import {createBuilding} from './building-kit.js';
+import {createBuilding,planBuilding} from './building-kit.js';
 import {createProp,propFootprint,PROPS} from './props.js';
 import {makeMapTile,layStairs,railingEdges,stairRailParts,SURFACE_NAMES} from './map-terrain.js';
 import {mergedMesh} from './merged-model.js';
 import {mergeStatic} from './static-merge.js';
+import {isHeld,notHeld} from './held.js';
+import {wallPaint,floorPalette} from './paint.js';
 import {shopForBuilding} from './shops.js';
 import {buildCityWalls,wallPlan} from './city-walls.js';
 import {doorSound,enterLink} from './doors.js';
@@ -104,7 +106,7 @@ export function stairCells(s){const [dx,dz]={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]}[
 // data.land when not given. Props, stairs and the crystal count as made (nothing grows there).
 export function mapGround(data,land=townLand(data)){
  // Props that may stand on water (a jetty, a boat) leave the water as it is under them.
- const extraMade=[...data.props.filter(p=>!PROPS[p.kind]?.water).flatMap(propCells),...data.stairs.flatMap(stairCells),...data.crystal?[data.crystal]:[]];
+ const extraMade=[...notHeld(data.props).filter(p=>!PROPS[p.kind]?.water).flatMap(propCells),...notHeld(data.stairs).flatMap(stairCells),...data.crystal&&!isHeld(data.crystal)?[data.crystal]:[]];
  return createTownGround(data,land,{offset:(x,z)=>mapOffset(data,x,z)||0,surface:(x,z)=>mapSurface(data,x,z),extraMade});
 }
 // The live tiles of a city (no models): terrain, then stairs (which set their own heights). A town on
@@ -115,7 +117,7 @@ export function mapTiles(data,ground=data.land?mapGround(data):null,chunkIds=nul
  const map=new Map(),[W,D]=data.size,add=(x,z)=>map.set(key(x,z),ground?ground.tile(x,z):{x,z,h:mapHeight(data,x,z),surface:mapSurface(data,x,z),blocked:false,water:false,buildable:true});
  if(!chunkIds){for(let z=0;z<D;z++)for(let x=0;x<W;x++)add(x,z);}
  else for(const id of chunkIds){const [cx,cz]=id.split(',').map(Number);for(let z=Math.max(0,cz*CHUNK);z<Math.min(D,(cz+1)*CHUNK);z++)for(let x=Math.max(0,cx*CHUNK);x<Math.min(W,(cx+1)*CHUNK);x++)add(x,z);}
- for(const s of data.stairs){if(chunkIds&&!stairCells(s).some(([x,z])=>map.has(key(x,z))))continue;
+ for(const s of notHeld(data.stairs)){if(chunkIds&&!stairCells(s).some(([x,z])=>map.has(key(x,z))))continue;
   const [dx,dz]={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]}[s.dir],behind=map.get(key(s.x-dx,s.z-dz))??around?.get(key(s.x-dx,s.z-dz));
   layStairs(map,{...s,base:s.base??behind?.h??1});}
  return map;
@@ -182,15 +184,28 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
  function populate(only=null){
   const want=c=>!only||only.has(c.id);
   data.buildings.forEach((b,i)=>{
-   const home=chunk(b.x,b.z);if(!want(home))return;
-   const local={...edges,add:(a,c,kind,options)=>addIn(home,a,c,kind,options),addCutPart:(o,owner,opt)=>home.edges.addCutPart(o,owner,opt),removeCutPart:o=>home.edges.removeCutPart(o)};
+   const home=chunk(b.x,b.z);if(!want(home))return;if(isHeld(b)){buildings[i]=null;return;}
+   // Wall paint (paint.js): the ground floor's, on its walls' inside faces.
+   let plan=null;try{plan=planBuilding(b.desc,[b.x,b.z]);}catch{}
+   const local={...edges,add:(a,c,kind,options)=>addIn(home,a,c,kind,{...options,paint:wallPaint(b.paint,plan,a,c)}),addCutPart:(o,owner,opt)=>home.edges.addCutPart(o,owner,opt),removeCutPart:o=>home.edges.removeCutPart(o)};
    const built=createBuilding(b.desc,{origin:[b.x,b.z],id:i,edges:local,tileAt:t,parent:home.root});built.data=b;buildings[i]=built;home.items.buildings.push(i);
    if(b.desc.interior==='separate')built.doors.forEach((door,j)=>{door.link={kind:'interior',builtMap,building:i,door:j};});
-   for(const p of built.plan.tiles){const tile=t(...p);if(tile&&!['planks','stone'].includes(tile.surface))tile.surface='floor';}home.items.doors.push(...built.doors);});
+   // Its floor: the floor surface (not the land's colours), or its paint.
+   for(const p of built.plan.tiles){const tile=t(...p);if(!tile)continue;if(!['planks','stone'].includes(tile.surface))tile.surface='floor';const painted=floorPalette(b.paint,built.plan,tile);if(painted)tile.palette=painted;else if(tile.surface==='floor')delete tile.palette;}home.items.doors.push(...built.doors);});
+  // A hand-placed wall inside a building (a room's wall) takes that building's paint on each face.
+  const edgePaint=(a,b)=>{const of=p=>{const i=p.building;return i!==undefined&&buildings[i]?{paint:data.buildings[i].paint,plan:buildings[i].plan}:null;},pa=of(a),pb=of(b);
+   const fa=pa&&wallPaint(pa.paint,pa.plan,a,b)?.a,fb=pb&&wallPaint(pb.paint,pb.plan,a,b)?.b;return fa||fb?{a:fa||null,b:fb||null}:null;};
   // Hand-placed edges never replace a building's own walls (a curtain wall flush with a tower).
-  for(const e of data.edges){const a=t(...e.a),b=t(...e.b);if(!a||!b)continue;const home=edgeChunk(a,b);if(!want(home))continue;
-   if(!(edges.info(a,b)?.owners.length)){const f=edges.add(a,b,e.kind,e.options||{});if(e.kind==='door')home.items.doors.push(f);}}
+  for(const e of notHeld(data.edges)){const a=t(...e.a),b=t(...e.b);if(!a||!b)continue;const home=edgeChunk(a,b);if(!want(home))continue;
+   // A wall inside a building belongs to it, so it's cut with it (cutaway.js).
+   const owner=[...new Set([a.building,b.building].filter(i=>i!==undefined&&buildings[i]))];
+   if(!(edges.info(a,b)?.owners.length)){const f=edges.add(a,b,e.kind,{...e.options,...owner.length?{owner}:{},paint:edgePaint(a,b)});if(e.kind==='door')home.items.doors.push(f);}}
   if(!only&&data.walls)walls=buildCityWalls({plan:wallPlan({size:data.size[0],gates:data.gates||[],thickness:data.walls.thickness}),tileAt:t,chunkRoot:(x,z)=>chunk(x,z).root,root:group,pickables,sound:doorSound});
+  // An in-place building's rooms (its own inside walls and doors, `edges`, local to its north-west tile, so
+  // they move with it): its own, cut with it, painted with its paint.
+  data.buildings.forEach((b,i)=>{const built=buildings[i];if(!built||!b.edges?.length||!want(chunk(b.x,b.z)))return;const {x0,z0}=built.plan;
+   for(const e of b.edges){const a=t(x0+e.a[0],z0+e.a[1]),c=t(x0+e.b[0],z0+e.b[1]);if(!a||!c||edges.info(a,c)?.owners.length)continue;
+    const f=addIn(chunk(b.x,b.z),a,c,e.kind,{owner:i,paint:wallPaint(b.paint,built.plan,a,c)});if(e.kind==='door')chunk(b.x,b.z).items.doors.push(f);}});
   // Railings along stair sides and terrace edges (map-terrain.js), unless an edge is already there.
   // A partial rebuild looks one tile past its chunks, for railings on their borders.
   const scope=only?[...tilesOf(only),...borderOf(only)]:tiles;
@@ -199,12 +214,12 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
    edges.add(high,low,'railing',{hidden:!!stair});if(stair){if(!stairSides.has(home))stairSides.set(home,[]);stairSides.get(home).push([high,low]);}}
   // Stair sides: sloped handrails, one merged mesh per chunk.
   for(const [c,list] of stairSides){const rails=mergedMesh(stairRailParts(list));rails.name='stair-rails';c.root.add(rails);}
-  for(const p of data.props){const home=chunk(p.x,p.z);if(!want(home))continue;
+  for(const p of notHeld(data.props)){const home=chunk(p.x,p.z);if(!want(home))continue;
    try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:home.root,pickables,id:p.id??null,loot:p.loot?{id:`${data.id}:${p.x},${p.z}`,items:p.loot}:null,shop:p.shop??null,colors:p.colors||null});if(p.link)prop.link={kind:'dungeon',builtMap,id:p.link};home.items.props.push(prop);}catch(error){console.warn(error.message);}}
   // Furniture (furnish.js): each in-place building furnished by its use, around hand-placed props, in a
   // group of its own that shows only while the building is cut (the roof hides it otherwise). Static
   // pieces merge into one mesh per building; interactive ones stay pickable.
-  data.buildings.forEach((b,i)=>{const home=chunk(b.x,b.z);if(!want(home))return;const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];built.shop=use?shopForBuilding(b.desc,use):null;
+  data.buildings.forEach((b,i)=>{const home=chunk(b.x,b.z);if(!want(home)||!buildings[i])return;const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];built.shop=use?shopForBuilding(b.desc,use):null;
    // Floors by hand (spaces.js; docs/CITY.md, Floors): an in-place building's ground floor shows its own
    // placed furniture and the stairwells to the floors above and below; nothing is furnished for it.
    const levels=built.plan.desc.interior==='inPlace'?floorLevels(b):null;
@@ -212,7 +227,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
     const group=new THREE.Group();group.name='furniture';group.userData.showWhenCut=true;group.visible=false;home.root.add(group);
     const well=(up,direction,level)=>{const place=live(flightOf(up));if(place.bottom?.building===i&&place.top?.building===i)built.stairwells.push(createStairwell({place,direction,link:{kind:'floor',builtMap,building:i,level,via:direction},parent:group,pickables,services:{enter:enterLink},tileAt:t}));};
     built.stairwells=[];if(byLevel.get(0)?.up&&byLevel.has(1))well(byLevel.get(0).up,'up',1);if(byLevel.get(-1)?.up)well(byLevel.get(-1).up,'down',-1);
-    for(const f of byLevel.get(0)?.furniture||[]){try{const prop=createProp(f.kind,{origin:[plan.x0+f.at[0],plan.z0+f.at[1]],rotation:f.rotation||0,tileAt:t,parent:group,pickables,shop:built.shop,colors:f.colors||null});prop.building=i;built.furniture.push(prop);home.items.furniture.push(prop);}catch{}}
+    for(const f of notHeld(byLevel.get(0)?.furniture)){try{const prop=createProp(f.kind,{origin:[plan.x0+f.at[0],plan.z0+f.at[1]],rotation:f.rotation||0,tileAt:t,parent:group,pickables,shop:built.shop,colors:f.colors||null});prop.building=i;built.furniture.push(prop);home.items.furniture.push(prop);}catch{}}
     mergeStatic(group,built.furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});home.edges.addCutPart(group,i);return;}
    if(!use||b.desc.interior!=='inPlace')return;
    const keep=built.plan.tiles.filter(([x,z])=>t(x,z)?.blocked);
@@ -227,7 +242,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
    group.updateWorldMatrix(true,true);group.matrixWorldAutoUpdate=false;for(const p of built.furniture)p.frozen=true;
   });
   // The Iter Crystal: a model, or (with `crystal`) the game's travel crystal (crystals.js).
-  if(data.crystal){const tile=t(...data.crystal);if(tile&&want(chunk(tile.x,tile.z))){const parent=chunk(tile.x,tile.z).root;crystalChunk=chunkOf(tile.x,tile.z);
+  if(data.crystal&&!isHeld(data.crystal)){const tile=t(...data.crystal);if(tile&&want(chunk(tile.x,tile.z))){const parent=chunk(tile.x,tile.z).root;crystalChunk=chunkOf(tile.x,tile.z);
    if(placeCrystal)crystal=placeCrystal(tile,parent);else{crystal=makeCrystal();crystal.position.set(tile.x-6,tile.h,tile.z-6);parent.add(crystal);tile.blocked=true;}}}
   // Always-visible decoration merged per chunk (static-merge.js): building decor (awnings, sign boards,
   // flower boxes) and props nobody clicks. Clickable props, doors, sign icons, roofs and caps stay apart.

@@ -213,6 +213,60 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - both builds;
    - one perf pass with Mistrom's scenarios.
 
+## Decorating indoors, doors and stairs (2026-10-14)
+
+User request: hide what's lifted, wall and floor paint, Sims-like doors and stairs, and steps 4 and 5 (decorating indoors, the room tool).
+- **What's lifted leaves the world** (`src/held.js`). The Hand marks it as held:
+  - the builders skip it (buildings, props, stairs, a building's or floor's furniture, the map's edges, placed nature, fishing, enemies, townsfolk and the crystal);
+  - only its ghost shows until you put it down or back.
+  - Its data stays in the map, so indices and undo hold. The map checks wait while something is held.
+- **Walls** (the bar): *Walls up* (as in the game), *Cutaway* (every building cut to one storey; the default while editing) or *Walls down* (every wall just above the floor).
+  - This is a cut-height uniform in the cutaway shader (`setCutHeight`, `cutaway.js`) and `setWalls` in main.js.
+  - Play shows the game's own cutaway again.
+  - Inside walls now belong to their building, so they cut with it.
+- **Levels:** Page Up / Page Down or the bar's ▲ ▼ go up and down in the building you're in, the selected one, or the one under the pointer. The bar shows where you are.
+- **Doors and stairs, as in the Sims:**
+  - The Hand picks up a building's door; it goes down on another of that building's walls (where you click). The door rule still applies, and a refused door stays in your hand.
+  - The Hand picks up a floor's stairs: they go down where you click (their bottom step), `,` and `.` turn them, and Esc puts them back.
+  - Map stairs (outdoor flights) turn with `,` and `.` too.
+  - Inspect still goes through doors and up and down stairs.
+- **Decorating a ground floor in place:** the catalogue works inside an in-place building on the map. What you put down there is that building's ground-floor furniture.
+  - The first time, the game's own furnishing becomes placed (as it stands, one undo step), so nothing jumps.
+  - Furniture on the map can then be lifted, recoloured, eyedropped and removed like any other.
+  - The same works on every floor.
+- **Room** (Build): drag a rectangle.
+  - On open ground it's a new building on that footprint, as *Build it* makes one.
+  - Inside a building (its ground floor on the map, or the floor you're on), the rectangle's sides that aren't already the building's walls become walls, with a door in the middle of the longest side (at least 3 long).
+  - A ground floor's rooms are the building's own (`edges` on the building entry, local to its north-west tile), so they move with it.
+- **Push/pull walls** (Build): drag from a tile along a building's outside wall, outwards to push that wall out or inwards to pull it in, with a green or red preview of the tiles gained or lost.
+  - The building is reshaped as Reshape does.
+  - Its rooms, paint and floors stay where they were when its north-west corner moves. Reshaping no longer drops a building's floors either.
+
+## Wall and floor paint (2026-10-14)
+
+- **Floor paint and Wall paint** (Decorate): any colour (a picker, the game's palette, your recent colours), on the whole room or one tile or wall; *Remove paint* takes it off.
+  - A room is the tiles reached without crossing a wall, window or door, inside one building (its ground floor on the map, or the floor you're on).
+  - One wall: the wall of that tile you click towards.
+  - Doors aren't painted.
+- **Data** (`src/paint.js`): `paint: {floor: {'dx,dz': colour}, walls: {'dx,dz,side': colour}}`, local to the building's north-west tile; a wall face is keyed by the tile in front of it and the side the wall is on.
+  - An in-place building's ground floor keeps it on the building entry. Upper floors, cellars, a separate ground floor and dungeon levels keep it on their floor.
+- **Drawing:**
+  - A painted floor tile takes a two-tone checker of its colour; unpainted building floors show the floor surface, not the land's colours (they used to show grass on land maps).
+  - A painted wall face is a thin coloured skin on that face of the ground storey (around a window's glass, between the base and the band above; `edge-models.js`), baked with the walls, so it cuts with them.
+- **Checked in the browser:**
+  - a 7 × 6 house from the Room tool, then a 4 × 3 room inside it with its door;
+  - room floors blue and tan, room walls yellow and blue, one wall red;
+  - Walls down and Cutaway;
+  - a chair from the catalogue as ground-floor furniture (the game's own kept);
+  - lifting it (gone from the world while held) and putting it down;
+  - moving the door to the north wall;
+  - pushing the east wall out and pulling the south and west walls in (rooms and paint kept);
+  - moving the house with the Hand, its room going with it;
+  - a second floor, its stairs placed, picked up, turned, refused, and put down;
+  - Page Up and Down;
+  - a lifted building gone while held and back on Esc.
+  - Tests: `paint.test.js` (keys, ground floor and upper floor paint, a building's own rooms moving with it).
+
 ## Sims-style editor (2026-10-14)
 
 User request: make the world editor work like the Sims 4 build/buy editor, for a collaborator who loves the Sims and leans towards decorating. Freeform Sims walls and roofs are out: building stays on the tile grid with the kit.
@@ -277,7 +331,7 @@ User request: a colour picker for every piece of every item, any colour, with sa
   - saved an item preset and a scheme, and applied the scheme to a box of three chairs and a bench (the bench has no dark wood, so it stayed as it was);
   - the chair's preset showed in the catalogue;
   - recoloured a bed on an upper floor.
-- **Not yet:** painting walls and floors per room. Buildings keep their wall, trim, base, door and roof colours in the Look panel, now with the same layout.
+- **Since:** wall and floor paint per room (*Wall and floor paint* below).
 
 ## Box select, copy and stamps (2026-10-14)
 

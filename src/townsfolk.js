@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {makeJobMarker} from './job-marker.js';
+import {notHeld} from './held.js';
 import {makeSlime} from './slime-model.js';
 import {createSlimeActor} from './slime-presentation.js';
 import {markCharacter,occupancy} from './world-occupancy.js';
@@ -80,7 +81,7 @@ export function createCrowd({builtMap,parent,pickables=[],seed=1,services={}}){
  const houseOf=entry=>{const b=entry.house!==undefined?builtMap.buildings[entry.house]:null;if(!b)return null;
   const inside=b.plan.tiles.map(([x,z])=>map.get(key(x,z))).filter(t=>t&&!t.blocked&&!doorways.has(t));
   return {building:b,inside,keeper:b.anchors.keeper&&!b.anchors.keeper.blocked?b.anchors.keeper:null,doorstep:b.anchors.doors[0]?.doorstep||null,door:b.anchors.doors[0]?.inside||null};};
- for(const entry of builtMap.data.townsfolk||[]){
+ for(const entry of notHeld(builtMap.data.townsfolk)){
   const house=houseOf(entry),home=entry.home?map.get(key(...entry.home)):house?.inside[0];if(!home)continue;
   // The crowd moves a body; the shared presentation animates the rig inside it (it owns the rig's height).
   const rig=makeSlime(entry.look?.color||'#9ccf7a');markCharacter(rig.group);

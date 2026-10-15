@@ -1,4 +1,5 @@
 import {createBiomeLand,WATER_H} from './biome-land.js';
+import {notHeld} from './held.js';
 import {normalizeBuilding} from './building-kit.js';
 import * as THREE from 'three';
 import {key} from './world.js';
@@ -118,7 +119,7 @@ export function townSource(land,ground,townTiles,townData=()=>null){
  // The hand edits, by tile, for the tiles asked about.
  const grows=()=>townData()?.land?.nature!==false;
  const hand=list=>{const data=townData(),removed=new Set(data?.land?.removed||[]),at=new Set(list.map(t=>key(t.x,t.z)));
-  const pick=entries=>new Map((entries||[]).filter(e=>at.has(key(e.x,e.z))).map(e=>[key(e.x,e.z),e]));
+  const pick=entries=>new Map(notHeld(entries).filter(e=>at.has(key(e.x,e.z))).map(e=>[key(e.x,e.z),e]));
   return {removed,resources:pick(data?.resources),cover:pick(data?.cover)};};
   const source={...land,
   tile(x,z){if(!inside(x,z))return ground().tile(x,z);return townTiles()?.get(key(x,z))||null;},
@@ -129,8 +130,8 @@ export function townSource(land,ground,townTiles,townData=()=>null){
    return [...grown,...placed];},
   extras(list){const data=townData(),{removed}=hand(list),on=new Set(list.map(t=>key(t.x,t.z)));
    const grown=land.extras(keep(list)).filter(e=>!removed.has(e.id)&&(e.kind==='enemy'?data?.land?.enemies!==false:e.kind==='fishing'?data?.land?.fishing!==false:true));
-   const placed=(data?.fishing||[]).filter(f=>on.has(key(f.x,f.z))).map(f=>({id:`placed:fishing:${f.x},${f.z}`,kind:'fishing',x:f.x,z:f.z,fish:f.fish||'rawFish'}));
-   const spawns=(data?.enemies||[]).filter(e=>on.has(key(e.x,e.z))).map(e=>({id:`placed:enemy:${e.x},${e.z}`,kind:'enemy',enemy:e.enemy,aggressive:!!e.aggressive,respawn:e.respawn??null,x:e.x,z:e.z}));
+   const placed=notHeld(data?.fishing).filter(f=>on.has(key(f.x,f.z))).map(f=>({id:`placed:fishing:${f.x},${f.z}`,kind:'fishing',x:f.x,z:f.z,fish:f.fish||'rawFish'}));
+   const spawns=notHeld(data?.enemies).filter(e=>on.has(key(e.x,e.z))).map(e=>({id:`placed:enemy:${e.x},${e.z}`,kind:'enemy',enemy:e.enemy,aggressive:!!e.aggressive,respawn:e.respawn??null,x:e.x,z:e.z}));
    const taken=new Set(placed.map(f=>key(f.x,f.z)));return [...grown.filter(e=>!(e.kind==='fishing'&&taken.has(key(e.x,e.z)))),...placed,...spawns];},
   cover(list){const {removed,cover}=hand(list),byKey=new Map(list.map(t=>[key(t.x,t.z),t]));
    const grown=!grows()?[]:land.cover(keep(list)).filter(c=>{const k=key(Math.round(c.x),Math.round(c.z));return !removed.has(`cover:${k}`)&&!cover.has(k);});
@@ -140,7 +141,7 @@ export function townSource(land,ground,townTiles,townData=()=>null){
   // What grows on one tile, generated or placed (the editor's Select and Erase): {resource, cover}, each
   // {kind, species?, placed, id}.
   natureAt(t){if(!t)return {resource:null,cover:null,fishing:null};const e=source.entities([t])[0]||null,c=source.cover([t])[0]||null,f=source.extras([t]).find(x=>x.kind==='fishing')||null,data=townData(),k=key(t.x,t.z);
-   const placedCover=(data?.cover||[]).find(p=>key(p.x,p.z)===k);
+   const placedCover=notHeld(data?.cover).find(p=>key(p.x,p.z)===k);
    return {resource:e&&{kind:e.kind,species:e.species,placed:e.id.startsWith('placed:'),id:e.id},cover:c&&{kind:c.kind,placed:!!placedCover,id:coverId(t.x,t.z)},
     fishing:f&&{kind:'fishing',placed:f.id.startsWith('placed:'),id:f.id}};},
  };

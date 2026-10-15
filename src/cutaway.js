@@ -12,10 +12,12 @@ import * as THREE from 'three';
 // them is pickable.
 export const CUT_HEIGHT=1.5;
 export const MAX_CUT=16;
-export const uniforms={uCutIds:{value:new Float32Array(MAX_CUT).fill(-1)},uCutCount:{value:0},uCutAll:{value:0}};
+export const uniforms={uCutIds:{value:new Float32Array(MAX_CUT).fill(-1)},uCutCount:{value:0},uCutAll:{value:0},uCutHeight:{value:CUT_HEIGHT}};
+// Where cut walls stop: one storey, or (the world editor's "walls down") just above the floor.
+export function setCutHeight(height=CUT_HEIGHT){uniforms.uCutHeight.value=height;}
 
 const VERTEX_HEAD='attribute vec3 cutOwner;\nvarying vec3 vCutOwner;\nvarying float vCutY;\n';
-const FRAGMENT_HEAD=`uniform float uCutIds[${MAX_CUT}];uniform int uCutCount;uniform int uCutAll;varying vec3 vCutOwner;varying float vCutY;
+const FRAGMENT_HEAD=`uniform float uCutIds[${MAX_CUT}];uniform int uCutCount;uniform int uCutAll;uniform float uCutHeight;varying vec3 vCutOwner;varying float vCutY;
 bool idCut(float id){
  for(int i=0;i<${MAX_CUT};i++){if(i>=uCutCount)break;if(abs(id-uCutIds[i])<.5)return true;}
  return false;
@@ -26,7 +28,7 @@ bool ownerCut(){
  if(uCutAll==1)return true;
  return (!a||idCut(vCutOwner.x))&&(!b||idCut(vCutOwner.y));
 }
-bool cutAway(){return vCutY>vCutOwner.z+${(CUT_HEIGHT-.01).toFixed(2)}&&ownerCut();}
+bool cutAway(){return vCutY>vCutOwner.z+uCutHeight-.01&&ownerCut();}
 `;
 // The same test in JS (the tests use it; keep in step with the shader). A part or wall with two building
 // owners counts as cut only when both are. The cut sits just below the

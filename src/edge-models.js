@@ -65,13 +65,24 @@ function storeyBand(g,style,y0,y1,{ground,top,window}){
  for(const x of [-.475,.475])piece(g,.05,lintel-glass0,WALL_THICKNESS,m('wall'),x,(glass0+lintel)/2);
  if(flat)band(lintel,hi,'wall');else{band(lintel,lintel+.07,'trim',WALL_THICKNESS+proud);band(lintel+.07,hi,'wall');}
 }
+// Paint (docs/TOWN.md, Wall and floor paint): a coloured skin on one face of a wall's ground storey, between
+// its base and the band above (around a window's glass). front: the face towards local +z, back: −z.
+const paintMaterials=new Map();
+function paintMaterial(color){if(!paintMaterials.has(color))paintMaterials.set(color,mat(color));return paintMaterials.get(color);}
+const SKIN=.006;
+function paintFaces(g,{front,back},{ground,top,window,y0,y1,flat}){
+ const lo=y0+(ground&&!flat?BASE:0),hi=y1-(top&&!flat?CAP:0),spans=window?[[lo,y0+.55],[Math.min(hi-.12,y0+1.2)+(flat?0:.07),hi]]:[[lo,hi]];
+ for(const [side,color] of [[1,front],[-1,back]])if(color)for(const [a,b] of spans)if(b>a+.01)piece(g,1,b-a,SKIN,paintMaterial(color),0,(a+b)/2,side*(WALL_THICKNESS/2+SKIN/2+.002));
+}
 // height: the piece's full height (storeys above the higher of the two tiles, from the lower one).
 // upperWindows: a wall with windows on its upper storeys (the ground storey stays solid).
-export function edgePiece(kind,{height=STOREY,storeys=Math.max(1,Math.floor(height/STOREY+.01)),style,upperWindows=false}={}){
+// paint: {front, back} colours for the ground storey's two faces (null: unpainted).
+export function edgePiece(kind,{height=STOREY,storeys=Math.max(1,Math.floor(height/STOREY+.01)),style,upperWindows=false,paint=null}={}){
  const g=new THREE.Group();g.name='edge-'+kind;
  if(kind==='wall'||kind==='window'){
   const rows=storeyRows(height,storeys);
   for(let i=0;i<storeys;i++)storeyBand(g,style,rows[i],rows[i+1],{ground:i===0,top:i===storeys-1,window:kind==='window'||upperWindows&&i>0});
+  if(paint)paintFaces(g,paint,{ground:true,top:storeys===1,window:kind==='window',y0:rows[0],y1:rows[1],flat:!!stylePalette(style).flat});
  }else if(kind==='fence'||kind==='railing'){
   const h=kind==='fence'?.6:.7;
   for(const x of [-.46,.46])piece(g,.08,h,.08,shared.fence,x,h/2);

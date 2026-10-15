@@ -32,6 +32,7 @@
 .q-world-editor__bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .q-world-editor__bar-row[hidden] { display: none; }
 .q-world-editor__name { margin-inline-end: auto; }
+.q-world-editor__level { font-weight: 600; }
 .q-world-editor__actions { display: flex; flex-wrap: wrap; gap: 4px; }
 /* The bar's and catalogue's switches keep their whole labels. */
 .q-world-editor__bar .q-segmented, .q-world-editor__catalogue-head .q-segmented { flex: none; }

@@ -45,7 +45,7 @@ import './combat.css';
 import {blocksMovement,occupancy} from './world-occupancy.js';
 import {pushWorldActor,updateWorldActors} from './world-actors.js';
 import {configureDoors,updateDoors,doorApproach} from './doors.js';
-import {updateCutaway,cutawayState} from './cutaway.js';
+import {updateCutaway,cutawayState,setCutHeight,CUT_HEIGHT} from './cutaway.js';
 import {configureProps,createProp,seatPosition,takeLoot,updateProps} from './props.js';
 import {createSpaces} from './spaces.js';
 import {createCrowd} from './townsfolk.js';
@@ -661,7 +661,7 @@ canvas.addEventListener('pointerdown',e=>{
  if(!areas.canOrbit||travel.busy)return;
  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);
  // World editor brushes (playground): a left-button drag paints tiles instead of turning the camera.
- if(__PLAYGROUND__&&tileDrag&&e.button===0&&activePointers.size===1){const hit=terrainHitData(pick(e)),at=hit?.tile||hit?.actor?.tile;if(at){painting=true;down=null;tileDrag('start',at,hit?.actor||null);return;}}
+ if(__PLAYGROUND__&&tileDrag&&e.button===0&&activePointers.size===1){const raw=pick(e),hit=terrainHitData(raw),at=hit?.tile||hit?.actor?.tile;if(at){painting=true;down=null;tileDrag('start',at,hit?.actor||null,raw?.point||null);return;}}
  if(activePointers.size===1){down={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,button:e.button};dragged=false;}
  else{dragged=true;pinchDistance=spread();}
 });
@@ -1101,6 +1101,9 @@ if(__PLAYGROUND__){
   teleport(x,z){const t=world.get(key(x,z));if(!t||t.blocked||t.water)return false;stopAll();segment=null;path=[];tile=t;player.position.set(t.x-6,t.h,t.z-6);companions.resetRoute(t);return true;},
   // Force cutaway: every building cut (no roofs, walls one storey), like the building test map.
   toggleForceCutaway(){forceCutaway=!forceCutaway;return forceCutaway;},
+  // The world editor's walls (docs/TOWN.md, Decorating indoors): 'up' (as in the game), 'cut' (every building
+  // cut to one storey) or 'down' (every wall just above the floor).
+  setWalls(mode){forceCutaway=mode!=='up';setCutHeight(mode==='down'?.35:CUT_HEIGHT);},
   async enterBuildingTest(){
    const {spawn}=await buildingTestReady();stopAll();splash.close();opening.enterFreePlay();craftingTutorial.reset();
    areas.activate('building-test',{landing:spawn,arrival:false});companions.resetRoute(spawn);$('scene-fade').hidden=true;$('game-menus').hidden=false;return true;
