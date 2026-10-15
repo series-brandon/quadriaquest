@@ -360,6 +360,31 @@ User request: hide what's lifted, wall and floor paint, Sims-like doors and stai
   - The building is reshaped as Reshape does.
   - Its rooms, paint and floors stay where they were when its north-west corner moves. Reshaping no longer drops a building's floors either.
 
+## Ghosts, aiming at walls, floor patterns, sizing and names (2026-10-15)
+
+User request: see a ghost of anything being moved or placed (buildings too); aim at walls for wall things; patterns for floor paint; Sims-style sizing with + and −; renaming buildings.
+- **Preview ghosts** (`world-editor.js` `ghostSpec`/`showGhosts`) are see-through, green or red, for everything the editor places or the Hand holds:
+  - props and furniture (sized as they will be);
+  - **buildings**: their real model, built off to the side on flat ground of their own (`createBuilding` at origin 0, 0, as the model catalogue does) and rebuilt only when the building's look or turn changes;
+  - Iter Crystals, trees, and a blob for townsfolk and enemy spawns;
+  - each item of a group or stamp.
+  
+  Edges and stairs show only their tiles. A look is built once and kept (a building's is let go when many have been made).
+- **Aiming at walls** (`aimedWall`): the editor follows the pointer's ray (main.js passes it with the hover and the click, a quarter tile at a time) down to the ground, edge by edge. The first wall it meets, as tall as walls stand (low with Walls down), is the one you aim at, and the face you see is the one that counts.
+  - **Wall decorations** (props with `mount: 'wall'`), held in the Hand or Deco or placed with the Prop tool, snap against the aimed face. They turn to put their back to it and stand on the tile in front. The Hand also picks a wall decoration by aiming at it, and the Sledgehammer removes one the same way.
+  - **Walls** lights up the face you aim at and changes that wall (a held door goes on the aimed wall of its building too).
+  - **Wall paint** lights up what it would paint in the paint's colour: the aimed face, or every wall of the room seen past it. Without a wall aimed, it falls back to the room you point into.
+- **Floor patterns** (`paint.js` `floorPaint`/`floorTileColor`): Floor paint has a Pattern and an Intensity.
+  - Plain is the colour itself. Checkered alternates it with a tweak of it. Stripes north–south and Stripes east–west use the two in stripes. Random scatters five slight variations of it, the same every time.
+  - Intensity runs from 0 (no difference) to 100 (high contrast).
+  - A painted tile is stored as `'colour pattern intensity'`. A bare colour, the old form and still what the default writes, is Checkered at 15.
+  - The pattern is laid out by the tile's place in its building, so it moves with the building. The preview shows the pattern's colours.
+- **Sizing props** (`props.js` `propScale`, `placePropModel`): `+` and `−` (or Bigger and Smaller in the selection's card) make a prop or furniture 5% bigger or smaller, held or selected, from 50% to 125%. The tiles it stands on never change, so it can't spread onto more of them.
+  - A size is `scale` on the entry (none at 100%).
+  - Things are sized from their middle, except wall decorations, which keep their back on the wall at the height they hang.
+  - Seats and other spots keep their places and heights.
+- **Building names**: a selected building's Look card starts with its Name (one undo step). Names show wherever buildings are listed, such as a townsfolk's building.
+
 ## The Townsfolk and Crystal tools' panels (2026-10-15)
 
 User request: placing a townsfolk should open their options, and clicking one should open their panel rather than place another; the panel needed design love.

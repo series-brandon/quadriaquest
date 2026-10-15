@@ -93,6 +93,9 @@ export function rotateOffset([dx,dz],[w,d],rotation=0){
  return [x,z];
 }
 export const rotateSide=(side,rotation=0)=>SIDES[(SIDES.indexOf(side)+(((Math.round(rotation/90)%4)+4)%4))%4];
+// A prop's size (docs/TOWN.md, Sizing props): from half size to a little bigger, so it never needs more tiles.
+export const PROP_SCALE=[.5,1.25];
+export const propScale=v=>Math.max(PROP_SCALE[0],Math.min(PROP_SCALE[1],+v||1));
 export function propFootprint(kind,rotation=0){const [w,d]=PROPS[kind].footprint;return ((Math.round(rotation/90)%2)+2)%2?[d,w]:[w,d];}
 // Which footprint tiles block: all (solid, low), none (walk over, wall-mounted), or a walk-under
 // structure's posts (`block`, offsets before rotation).
@@ -149,13 +152,22 @@ const takenLoot=new Set();
 export const lootTaken=id=>takenLoot.has(id);
 export function resetLoot(){takenLoot.clear();}
 
+// Where a prop's model stands (createProp, the editor's ghosts): over its footprint's middle at `base`, turned and
+// sized; sized from its middle, except that a wall decoration keeps its back on the wall at the height it hangs.
+export function placePropModel(group,kind,[ox,oz],rotation=0,base=0,scale=1){const [w,d]=propFootprint(kind,rotation),s=propScale(scale);
+ group.rotation.y=-((Math.round(rotation/90)%4)+4)%4*Math.PI/2;group.scale.setScalar(s);group.position.set(ox+(w-1)/2-6,base,oz+(d-1)/2-6);
+ if(s!==1&&PROPS[kind].mount==='wall')group.position.add(wallPivot(kind).clone().multiplyScalar(1-s).applyEuler(group.rotation));}
+const pivots=new Map();
+// A wall decoration's back, in the middle of its height (model space).
+function wallPivot(kind){if(!pivots.has(kind)){const box=new THREE.Box3().setFromObject(propModel(kind));pivots.set(kind,new THREE.Vector3(0,(box.min.y+box.max.y)/2,box.min.z));}return pivots.get(kind);}
 // Places a prop: marks its tiles, adds the model, and returns its spots as live tiles.
 // tileAt(x, z) → tile. Throws if a footprint tile is missing (the editor checks before placing).
 // loot: items a chest gives once ({id, items}); without it, opening says there is nothing inside.
 // colors: its pieces recoloured ({original: new}; propPieces).
+// scale: its size (propScale: a little smaller or bigger; its footprint stays the same).
 // shop: the shop a trading prop opens (shops.js; a counter's comes from its building, a stall's is the
 // market unless the map says otherwise).
-export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id=null,loot=null,shop=null,colors=null}){
+export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id=null,loot=null,shop=null,colors=null,scale=1}){
  const def=PROPS[kind];if(!def)throw Error('Unknown prop: '+kind);
  const [ox,oz]=origin,[w,d]=propFootprint(kind,rotation),tiles=[];
  for(let z=0;z<d;z++)for(let x=0;x<w;x++){const t=tileAt(ox+x,oz+z);if(!t)throw Error(`${def.name}: no tile at ${ox+x},${oz+z}`);tiles.push(t);}
@@ -168,8 +180,7 @@ export function createProp(kind,{origin,rotation=0,tileAt,parent,pickables=[],id
  const base=Math.max(...tiles.map(t=>t.h)),blocked=blockedOffsets(kind,rotation).map(([x,z])=>tileAt(ox+x,oz+z)).filter(Boolean);
  for(const t of blocked){t.blocked=true;if(def.sight===false)t.blocksSight=true;if(def.reachOver)t.reachOver=true;}
  for(const t of tiles)t.prop=id??kind;
- const group=propModel(kind,colors);group.rotation.y=-((Math.round(rotation/90)%4)+4)%4*Math.PI/2;
- group.position.set(ox+(w-1)/2-6,base,oz+(d-1)/2-6);parent.add(group);
+ const group=propModel(kind,colors);placePropModel(group,kind,origin,rotation,base,scale);parent.add(group);
  const spots=(def.spots||[]).map(s=>{const [x,z]=rotateOffset(s.at,def.footprint,rotation),tile=tileAt(ox+x,oz+z),facing=rotateSide(s.facing,rotation);
   const seat=s.seat===true?{back:SEAT_BACK,height:SEAT,motion:'Sit'}:s.seat||null;
   return {kind:s.kind,tile,facing,angle:ANGLE[facing],seat,prop:null};}).filter(s=>s.tile);

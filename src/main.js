@@ -228,7 +228,8 @@ let tileClick=null,tileDrag=null,painting=false,tileHover=null,hoverTileId=null;
 // ground that face looks onto, not the top above it (docs/TOWN.md, Raising beside a step).
 function editorTile(hit,data=terrainHitData(hit)){let t=data?.tile||data?.actor?.tile||null;const n=hit?.face?.normal;
  if(t&&data?.tileForFace&&n&&Math.abs(n.y)<.5){const beside=world.get(key(t.x+Math.round(n.x),t.z+Math.round(n.z)));if(beside&&beside.h<t.h)t=beside;}return t;}
-function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=editorTile(hit,data),id=at?`${at.x},${at.z}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,hit?.point||null);}
+// Told again as the pointer moves within a tile (a quarter tile at a time), with its ray, so the editor can aim at walls.
+function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=editorTile(hit,data),p=hit?.point,id=at?`${at.x},${at.z},${p?[p.x,p.z].map(v=>Math.round(v*4)).join(','):''}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,p||null,raycaster.ray.clone());}
 let edgeFixtures,movementFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
@@ -721,7 +722,7 @@ canvas.addEventListener('pointerup',e=>{
  if(canMove()&&activePointers.size===1&&down?.button===0&&!dragged){
   const hit=pick(e),data=terrainHitData(hit);
   const clicked=data?.tile||data?.actor?.tile;
-  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(editorTile(hit,data)||clicked,hit?.point||null,data?.actor||null);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
+  if(__PLAYGROUND__&&tileClick&&clicked){tileClick(editorTile(hit,data)||clicked,hit?.point||null,data?.actor||null,raycaster.ray.clone());}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
   else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);
    // Past the world's edge: the mist wall (mist-wall.js).
    const flat=raycaster.ray.intersectPlane(groundPlane,new THREE.Vector3());toast(flat&&mistAt(Math.round(flat.x+6),Math.round(flat.z+6))?'The mist is too thick to go on.':'Choose a tile inside the area.');}

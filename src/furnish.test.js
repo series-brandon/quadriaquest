@@ -70,3 +70,11 @@ test('sitting and sleeping put you on the piece, not beside it, whichever way it
   for(const spot of prop.spots.filter(s=>s.seat)){const p=seatPosition(spot),onto=at(Math.round(p.x+6),Math.round(p.z+6));
    assert.ok(prop.tiles.includes(onto),`${kind} at ${rotation}: seated on the piece`);}}
 });
+test('sizing props: a little smaller or bigger on the same tiles, a wall decoration still on its wall',()=>{
+ const {at}=tilesOf(8,8),parent=new THREE.Group(),big=createProp('chest',{origin:[2,2],tileAt:at,parent,scale:9});
+ assert.equal(big.group.scale.x,1.25,'clamped to 125%');assert.deepEqual(big.tiles.map(t=>[t.x,t.z]),[[2,2]],'the same tiles');
+ assert.equal(createProp('barrel',{origin:[4,4],tileAt:at,parent,scale:.1}).group.scale.x,.5,'and to 50%');
+ const back=p=>{p.group.updateMatrixWorld(true);return new THREE.Box3().setFromObject(p.group);};
+ const full=back(createProp('painting',{origin:[1,5],tileAt:at,parent})),small=back(createProp('painting',{origin:[1,5],tileAt:at,parent,scale:.6}));
+ assert.ok(Math.abs(full.min.z-small.min.z)<.01,'its back stays on the wall');assert.ok(Math.abs((full.min.y+full.max.y)-(small.min.y+small.max.y))<.02,'at the height it hangs');
+});

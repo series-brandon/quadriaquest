@@ -248,7 +248,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
   // Stair sides: sloped handrails, one merged mesh per chunk.
   for(const [c,list] of stairSides){const rails=mergedMesh(stairRailParts(list));rails.name='stair-rails';c.root.add(rails);}
   for(const p of notHeld(data.props)){if(!want(chunkOf(p.x,p.z)))continue;const home=chunk(p.x,p.z);
-   try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:home.root,pickables,id:p.id??null,loot:p.loot?{id:`${data.id}:${p.x},${p.z}`,items:p.loot}:null,shop:p.shop??null,colors:p.colors||null});if(p.link)prop.link={kind:'dungeon',builtMap,id:p.link};home.items.props.push(prop);}catch(error){console.warn(error.message);}}
+   try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:home.root,pickables,id:p.id??null,loot:p.loot?{id:`${data.id}:${p.x},${p.z}`,items:p.loot}:null,shop:p.shop??null,colors:p.colors||null,scale:p.scale});if(p.link)prop.link={kind:'dungeon',builtMap,id:p.link};home.items.props.push(prop);}catch(error){console.warn(error.message);}}
   // Furniture (furnish.js): each in-place building furnished by its use, around hand-placed props, in a
   // group of its own that shows only while the building is cut (the roof hides it otherwise). Static
   // pieces merge into one mesh per building; interactive ones stay pickable.
@@ -260,7 +260,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
     const group=new THREE.Group();group.name='furniture';group.userData.showWhenCut=true;group.visible=false;home.root.add(group);
     const well=(up,direction,level)=>{const place=live(flightOf(up));if(place.bottom?.building===i&&place.top?.building===i)built.stairwells.push(createStairwell({place,direction,link:{kind:'floor',builtMap,building:i,level,via:direction},parent:group,pickables,services:{enter:enterLink},tileAt:t}));};
     built.stairwells=[];if(byLevel.get(0)?.up&&byLevel.has(1))well(byLevel.get(0).up,'up',1);if(byLevel.get(-1)?.up)well(byLevel.get(-1).up,'down',-1);
-    for(const f of notHeld(byLevel.get(0)?.furniture)){try{const prop=createProp(f.kind,{origin:[plan.x0+f.at[0],plan.z0+f.at[1]],rotation:f.rotation||0,tileAt:t,parent:group,pickables,shop:built.shop,colors:f.colors||null});prop.building=i;built.furniture.push(prop);home.items.furniture.push(prop);}catch{}}
+    for(const f of notHeld(byLevel.get(0)?.furniture)){try{const prop=createProp(f.kind,{origin:[plan.x0+f.at[0],plan.z0+f.at[1]],rotation:f.rotation||0,tileAt:t,parent:group,pickables,shop:built.shop,colors:f.colors||null,scale:f.scale});prop.building=i;built.furniture.push(prop);home.items.furniture.push(prop);}catch{}}
     mergeStatic(group,built.furniture.filter(p=>!p.def.interaction).map(p=>p.group),{name:'furniture-merged'});home.edges.addCutPart(group,i);return;}
    if(!use||b.desc.interior!=='inPlace')return;
    const keep=built.plan.tiles.filter(([x,z])=>t(x,z)?.blocked);

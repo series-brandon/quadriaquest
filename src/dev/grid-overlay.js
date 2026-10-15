@@ -79,3 +79,19 @@ export function createCellFill({cells,heightAt,parent,opacity=.42}){
  mesh.renderOrder=22;mesh.name='cell-fill';mesh.frustumCulled=false;parent.add(mesh);
  return {mesh,dispose(){mesh.removeFromParent();material.dispose();mesh.dispose();}};
 }
+// Wall faces lit up (the world editor's wall tools: Walls, wall paint): a panel just off each face, in its colour,
+// with a bright frame. faces: [{t, n, color}] (the face of the edge between tiles t and n that looks onto t);
+// height: how tall the walls stand.
+export function createFaceFill({faces,height=1.5,parent,opacity=.85}){
+ const pos=[],col=[],lines=[],c=new THREE.Color(),off=.09;
+ for(const {t,n,color} of faces){const nx=t.x-n.x,nz=t.z-n.z,mx=(t.x+n.x)/2-6+nx*off,mz=(t.z+n.z)/2-6+nz*off,ax=-nz*.5,az=nx*.5,y0=Math.min(t.h,n.h)+.02,y1=Math.max(t.h,n.h)+height-.02;
+  const q=[[mx-ax,y0,mz-az],[mx+ax,y0,mz+az],[mx+ax,y1,mz+az],[mx-ax,y1,mz-az]];c.set(color);
+  for(const i of [0,1,2,0,2,3]){pos.push(...q[i]);col.push(c.r,c.g,c.b);}for(const [a,b] of [[0,1],[1,2],[2,3],[3,0]])lines.push(...q[a],...q[b]);}
+ const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+ const material=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity,side:THREE.DoubleSide,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
+ const mesh=new THREE.Mesh(geometry,material);mesh.renderOrder=22;mesh.name='face-fill';mesh.frustumCulled=false;
+ const frameGeometry=new THREE.BufferGeometry();frameGeometry.setAttribute('position',new THREE.Float32BufferAttribute(lines,3));
+ const frameMaterial=new THREE.LineBasicMaterial({color:'#ffffff',transparent:true,opacity:.95,depthTest:false});const frame=new THREE.LineSegments(frameGeometry,frameMaterial);frame.renderOrder=23;frame.frustumCulled=false;
+ parent.add(mesh,frame);
+ return {mesh,dispose(){mesh.removeFromParent();frame.removeFromParent();geometry.dispose();material.dispose();frameGeometry.dispose();frameMaterial.dispose();}};
+}

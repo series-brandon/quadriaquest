@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import {h,mount} from '../ui/dom.js';
 import {keyedList} from '../ui/list.js';
-import {segmented,toggleSwitch,section} from '../ui/controls.js';
+import {segmented,toggleSwitch,section,slider} from '../ui/controls.js';
 import {signal,computed,effect,untracked} from '../reactive.js';
 import {createMapData,growMap,mapHeight,mapSurface,setMapHeight,setMapSurface,clearMapSurface,mapOffset,setMapOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells,packMap,unpackMap,mapRamp,setMapRamp,RAMP_DIRS} from '../world-map.js';
 import {mapCrystals,crystalCells} from '../map-file.js';
 import {mapProblems} from '../map-checks.js';
-import {planBuilding,BUILDING_PRESETS,ROOF_TYPES,ROOF_COLORS,AWNINGS,toShaped,shiftShaped,shapeRuns,connectedCells} from '../building-kit.js';
-import {STYLE_NAMES,stylePalette} from '../edge-models.js';
-import {PROPS,PROP_KINDS,propFootprint,propModel,propPieces,cleanColors,colorKey} from '../props.js';
+import {createBuilding,planBuilding,BUILDING_PRESETS,ROOF_TYPES,ROOF_COLORS,AWNINGS,toShaped,shiftShaped,shapeRuns,connectedCells} from '../building-kit.js';
+import {STYLE_NAMES,stylePalette,STOREY} from '../edge-models.js';
+import {PROPS,PROP_KINDS,propFootprint,propModel,placePropModel,propScale,rotateSide,propPieces,cleanColors,colorKey} from '../props.js';
 import {COL} from '../prop-parts.js';
 import {DRAW_DISTANCES} from '../render-quality.js';
 import {BY_ROOM,BY_FUNCTION,DESCRIPTIONS} from './prop-catalogue.js';
@@ -17,7 +17,7 @@ import {USE_NAMES,USE_ICONS,furnishRoom,furnishingUse,upstairsUse} from '../furn
 import {flightOf,floorLevels} from '../spaces.js';
 import {DIRS} from '../map-terrain.js';
 import {CHUNK,REGION,withinChunk,chunksAround} from '../world-grid.js';
-import {createGridOverlay,createCellOutline,createBiomeOverlay,createCellFill} from './grid-overlay.js';
+import {createGridOverlay,createCellOutline,createBiomeOverlay,createCellFill,createFaceFill} from './grid-overlay.js';
 import {BIOME_IDS,biomeRule} from '../biome-rules.js';
 import {TERRAIN_IDS,terrainRule} from '../terrain-rules.js';
 import {ENEMIES} from '../combat-rules.js';
@@ -26,13 +26,15 @@ import {ITEMS} from '../items.js';
 import {ACTIVITIES} from '../townsfolk.js';
 import {enemySize} from '../enemy-entity.js';
 import {townSource,resourceFits,coverId,placedId} from '../town-ground.js';
-import {TREE_SPECIES} from '../tree-models.js';
+import {TREE_SPECIES,makeTreeModel} from '../tree-models.js';
+import {makeCrystal,crystalCentre} from '../crystal-model.js';
+import {createEdgeFeatures} from '../doors.js';
 import {COVER_KINDS} from '../ground-cover.js';
 import {CELL as BIOME_CELL,FORGET_MARGIN} from '../biome-land.js';
 import {propGalleryData} from './prop-gallery.js';
 import {setHeld} from '../held.js';
 import {edgeBetween} from '../world.js';
-import {sideToward,paintKey} from '../paint.js';
+import {sideToward,paintKey,floorPaint,floorTileColor,FLOOR_INTENSITY} from '../paint.js';
 import './world-editor.css';
 
 // The playground world editor (docs/CITY.md, Authoring; city Phase 6). Dev only. It edits a map's data
@@ -113,7 +115,7 @@ export function createWorldEditor(host){
  const catalogue=mapCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null,stopFloors=null,stopScreen=null;
  const tool=signal('deco'),toolGroup=signal('decorate'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),floorPattern:signal('checker'),floorIntensity:signal(String(FLOOR_INTENSITY)),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
  // The footprint being painted: tiles ('x,z'), and the building it reshapes (its index) or null for a new one.
@@ -201,7 +203,11 @@ export function createWorldEditor(host){
  const stairSteps=s=>stairCells(s).slice((s.width||1),-(s.width||1));
  function cellsOf(kind,entry){if(!entry)return [];if(kind==='crystal')return crystalCells(entry);if(kind==='group')return entry.items.flatMap(r=>cellsOf(r.kind,entryOf(r)));if(kind==='edge')return [entry.a,entry.b];if(kind==='resource'||kind==='cover')return [[entry.x,entry.z]];if(kind==='furniture'){const p=planOf(homeOf(entry)?.owner??hereOwner()),[w,d]=propFootprint(entry.kind,entry.rotation||0),out=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)out.push([p.x0+entry.at[0]+a,p.z0+entry.at[1]+b]);return out;}
   if(kind==='enemy'){const n=enemySize(entry.enemy),out=[];for(let b=0;b<n;b++)for(let a=0;a<n;a++)out.push([entry.x+a,entry.z+b]);return out;}if(kind==='building')return planBuilding(entry.desc,[entry.x,entry.z]).tiles;if(kind==='prop')return propCells(entry);if(kind==='stairs')return stairSteps(entry);return entry.home?[entry.home]:[];}
- function pickAt(x,z){const hit=(kind,list,test)=>{const index=list.findIndex(test);return index>=0?{kind,index}:null;},on=cells=>cells.some(([a,b])=>a===x&&b===z),l=lists();
+ // What's at a tile; a wall decoration on the wall face you aim at comes first (its tile is the one in front of it).
+ function pickAt(x,z){const aim=hoverRay&&aimedWall(hoverRay,wallEdge);if(aim){const hit=pickTile(aim.t.x,aim.t.z),e=hit&&hit.kind!=='furnished'&&entryOf(hit);
+  if(e&&(hit.kind==='prop'||hit.kind==='furniture')&&PROPS[e.kind]?.mount==='wall'&&rotateSide('n',e.rotation||0)===aim.side)return hit;}
+  return pickTile(x,z);}
+ function pickTile(x,z){const hit=(kind,list,test)=>{const index=list.findIndex(test);return index>=0?{kind,index}:null;},on=cells=>cells.some(([a,b])=>a===x&&b===z),l=lists();
   if(floorHere.peek())return hit('furniture',l.furniture,f=>on(cellsOf('furniture',f)));
   const inside=inPlaceAt(x,z);if(inside!==null){const list=floorsOf(inside).find(f=>f.level===0)?.furniture||[],index=list.findIndex(f=>on(cellsOf('furniture',f)));
    if(index>=0)return {kind:'furniture',index,owner:inside,level:0};
@@ -267,9 +273,9 @@ export function createWorldEditor(host){
  let clipboard=null;
  // A stamp's footprint where it would go, green or red by the same checks as placing.
  function stampPreview(stamp,x,z){if(!stamp)return null;const cells=[],errors=[];
-  for(const [kind,list] of Object.entries(stamp.items))for(const src of list){const e=shiftEntry(kind,structuredClone(src),x,z);let c=[];try{c=cellsOf(kind,e);validate(kind,e,[],{dry:true});}catch(error){errors.push(error.message);}cells.push(...c);}
+  const list=[];for(const [kind,items] of Object.entries(stamp.items))for(const src of items){const e=shiftEntry(kind,structuredClone(src),x,z);let c=[];try{c=cellsOf(kind,e);validate(kind,e,[],{dry:true});}catch(error){errors.push(error.message);}cells.push(...c);list.push(ghostOf(kind,e));}
   const [w,d]=stamp.size;for(let b=0;b<d;b++)for(let a=0;a<w;a++)if(!cells.some(([p,q])=>p===x+a&&q===z+b))cells.push([x+a,z+b]);
-  return {cells:tint(cells,errors.length?NO:OK),refused:errors[0]||null};}
+  return {cells:tint(cells,errors.length?NO:OK),refused:errors[0]||null,ghosts:list};}
  // Stamps: the repo's (src/stamps/), and those saved this session.
  const savedStamps=signal(Object.entries(repoStamps).map(([path,stamp])=>({id:path.split('/').pop().replace(/\.json$/,''),stamp})));
  const chosenStamp=signal('');const stampName=signal('');
@@ -339,7 +345,7 @@ export function createWorldEditor(host){
   const r=((SIDES.indexOf(side)-2+4)%4)*90;if(r!==heldRotation.peek()){heldRotation.value=r;refreshPreview();}}
  // Puts down what you hold at a tile: something new is placed (Shift keeps another in your hand); a lifted
  // thing moves (and turns), one undo step, or just goes back down if it stays where it was.
- async function drop(tile){const at=[tile.x+grab[0],tile.z+grab[1]];
+ async function drop(tile){const at=wallAim?wallAim.at:[tile.x+grab[0],tile.z+grab[1]];
   if(placing?.kind==='prop'&&inPlaceAt(...at)!==null)return dropIndoors(at);
   if(placing){const {kind,entry}=placing,again=shiftHeld&&kind!=='stamp'?structuredClone(entry):null;if(turnable(kind))withRotation(kind,entry,heldRotation.peek());
    // Refused (the reason is in the status line): it stays in your hand.
@@ -351,7 +357,7 @@ export function createWorldEditor(host){
  // Something new put down inside an in-place building is furniture of its ground floor (the game's own
  // furnishing becomes placed first, so it stays as it was).
  async function dropIndoors(at){const i=inPlaceAt(...at),held=placing;if(!await adoptFurniture(i))return;placing=held;const plan=planOf(i),src=placing.entry;
-  const e={kind:src.kind,at:[at[0]-plan.x0,at[1]-plan.z0],rotation:heldRotation.peek(),...src.colors?{colors:{...src.colors}}:{}};homes.set(e,{owner:i,level:0});
+  const e={kind:src.kind,at:[at[0]-plan.x0,at[1]-plan.z0],rotation:heldRotation.peek(),...src.colors?{colors:{...src.colors}}:{},...src.scale?{scale:src.scale}:{}};homes.set(e,{owner:i,level:0});
   if(!await change(()=>{const cells=validate('furniture',e,[]);furnitureList(i,0).push(e);return cells;}))return;homes.delete(e);
   selection.value={kind:'furniture',owner:i,level:0,index:furnitureList(i,0).length-1};showSelection();status.value=`${PROPS[e.kind].name} in ${nameOf('building',data.buildings[i])}.`;
   if(!shiftHeld)placing=null;refreshPreview();}
@@ -399,6 +405,15 @@ export function createWorldEditor(host){
  async function rotateSelection(dir=1){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='group')throw Error('Rotate things one at a time.');if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover','enemy','edge','fishing'].includes(sel.kind))throw Error('Nothing to rotate.');
   const turn=v=>(((v||0)+90*dir)%360+360)%360;
   if(await change(()=>{if(sel.kind==='building')entry.desc.rotation=turn(entry.desc.rotation);else if(sel.kind==='prop'||sel.kind==='furniture')entry.rotation=turn(entry.rotation);else entry.dir=(dir>0?CLOCKWISE:COUNTER)[entry.dir];return validate(sel.kind,entry,own);},own))status.value=`Rotated ${nameOf(sel.kind,entry)}.`;}
+ // Sizing (docs/TOWN.md, Sizing props): + and − make a prop or furniture 5% bigger or smaller, held or selected,
+ // within propScale's range (its tiles never change).
+ const SIZE_STEP=.05;
+ async function resize(dir){const next=v=>Math.round(propScale((v||1)+dir*SIZE_STEP)*100)/100,said=v=>`${Math.round(v*100)}%`;
+  if(placing&&(placing.kind==='prop'||placing.kind==='furniture')){const e=placing.entry,v=next(e.scale);if(v===1)delete e.scale;else e.scale=v;status.value=`${PROPS[e.kind].name}: ${said(v)}.`;refreshPreview();return;}
+  if(placing)throw Error('Only props and furniture change size.');
+  const {sel,entry}=selected();if(sel.kind!=='prop'&&sel.kind!=='furniture')throw Error('Only props and furniture change size.');
+  const v=next(entry.scale);if(v===(entry.scale||1))throw Error(`${nameOf(sel.kind,entry)} is as ${dir>0?'big':'small'} as it goes (${said(v)}).`);
+  const own=cellsOf(sel.kind,entry);if(await change(()=>{if(v===1)delete entry.scale;else entry.scale=v;return own;},own)){status.value=`${nameOf(sel.kind,entry)}: ${said(v)}.`;refreshPreview();}}
  function duplicateSelection(){const {sel,entry}=selected();
   if(sel.kind==='group'){hold('stamp',makeStamp(entry,{ground:false}));status.value=`Click where the copy of ${nameOf('group',entry)} goes (its north-west corner). Esc to cancel.`;refreshPreview();return;}const copy=structuredClone(entry);
   if(sel.kind==='building')copy.desc.name=`${entry.desc.name||'Building'} copy`;if(sel.kind==='townsfolk'&&copy.id)copy.id=`${copy.id}-copy`;
@@ -471,12 +486,15 @@ export function createWorldEditor(host){
  // tile inside or just outside a building; `point` (where the ray met the ground) picks between that
  // tile's walls: the one it was clicked towards.
  function wallAt(tile,point,only=null){
-  const off=point?[point.x-(tile.x-6),point.z-(tile.z-6)]:[0,0],options=[];
+  const aim=aimedWall(hoverRay,(t,n)=>!!planEdge(t,n,only));if(aim){const hit=planEdge(aim.t,aim.n,only);return {...hit,face:{t:aim.t,n:aim.n}};}
+  if(!tile)return null;const off=point?[point.x-(tile.x-6),point.z-(tile.z-6)]:[0,0],options=[];
   built.buildings.forEach((b,i)=>{if(!b||only!==null&&i!==only)return;for(const e of b.plan.edges){
    if(e.a[0]===tile.x&&e.a[1]===tile.z)options.push({i,e,score:off[0]*e.out[0]+off[1]*e.out[1]});
    else if(e.b[0]===tile.x&&e.b[1]===tile.z)options.push({i,e,score:-(off[0]*e.out[0]+off[1]*e.out[1])});}});
   return options.sort((a,b)=>b.score-a.score)[0]||null;
  }
+ // The building wall between two tiles: {i, e} (a plan edge), or null.
+ function planEdge(t,n,only=null){let found=null;built.buildings.forEach((b,i)=>{if(found||!b||only!==null&&i!==only)return;const e=b.plan.edges.find(e=>e.a[0]===t.x&&e.a[1]===t.z&&e.b[0]===n.x&&e.b[1]===n.z||e.b[0]===t.x&&e.b[1]===t.z&&e.a[0]===n.x&&e.a[1]===n.z);if(e)found={i,e};});return found;}
  async function setWall(tile,point){
   const hit=wallAt(tile,point);if(!hit)throw Error('Click beside or inside a building wall.');
   const kind=options.wallKind.peek(),b=data.buildings[hit.i],name=nameOf('building',b),side=hit.e.side;
@@ -659,6 +677,7 @@ export function createWorldEditor(host){
   const building=()=>{revision.value;return selection.value?.kind==='building';};
   return h('div',{class:'q-world-editor__opts',hidden:()=>!building()},
    h('div',{class:'q-world-editor__group',hidden:()=>tool.value!=='select'},heading('Look'),h('div',{class:'q-world-editor__fields q-world-editor__fields--grid'},
+    field('Name',h('input',{type:'text',class:'q-input',value:()=>{revision.value;selection.value;return lookOf()?.desc.name||'';},on:{change:e=>{const name=e.target.value.trim();if(!name){status.value='A building needs a name.';revision.value++;return;}setLook(d=>{d.name=name;},'renamed').catch(error=>{status.value=error.message;});}}})),
     lookControl('Inside',b=>b.desc.interior||'inPlace',[['inPlace','Open in place'],['separate','A separate space'],['none','Decorative (no way in)']],v=>setInterior(v)),
     lookControl('Walls',b=>b.desc.style||'timber',STYLE_NAMES.filter(n=>n!=='dungeon').map(n=>[n,n]),v=>setLook(d=>{d.style=v;},`${v} walls`)),
     lookControl('Storeys',b=>String(b.desc.storeys||1),[['1','1'],['2','2'],['3','3']],v=>setLook(d=>{d.storeys=+v;},`${v} storeys`)),
@@ -746,12 +765,32 @@ export function createWorldEditor(host){
  // The wall a click is nearest to, among a tile's (the click's point picks).
  function nearestFace(target,tile,point){const faces=wallFaces(target,tile);if(!faces.length)return null;if(!point)return faces[0];const off=[point.x-(tile.x-6),point.z-(tile.z-6)];
   return faces.sort((p,q)=>((q.n.x-q.t.x)*off[0]+(q.n.z-q.t.z)*off[1])-((p.n.x-p.t.x)*off[0]+(p.n.z-p.t.z)*off[1]))[0];}
- async function paintRoom(tile,point,which){const target=paintTarget(tile);if(!target)throw Error('Paint goes inside a building: click a floor tile.');
-  const room=options.paintScope.peek()==='room',colour=options.paintErase.peek()?null:colorKey(options.paintColour.peek());
-  const keys=which==='floor'?(room?target.tiles:[tile]).map(t=>paintKey(target.plan,t)):(room?target.tiles.flatMap(t=>wallFaces(target,t)):[nearestFace(target,tile,point)].filter(Boolean)).map(f=>f.key);
+ // Aiming at walls (docs/TOWN.md, Aiming at walls): the wall face the pointer's ray meets first on its way down to
+ // the ground, tile edge by tile edge, as {t (the tile the face looks onto), n (the tile behind it), side (t → n)}.
+ // isWall(t, n): which edges count. Walls are as tall as they stand (low with Walls down).
+ const WALL_KINDS=new Set(['wall','window']),wallEdge=(t,n)=>WALL_KINDS.has(edgeBetween(t,n)?.kind);
+ const wallHeight=()=>options.wallsMode.peek()==='down'?.35:STOREY;
+ function aimedWall(ray,isWall){if(!ray||ray.direction.y>-.01)return null;const o=ray.origin,d=ray.direction,ground=hoverPoint?.y??heightAt(hoverAt?.x??0,hoverAt?.z??0),H=wallHeight();
+  let s=Math.max(0,(ground+H+1-o.y)/d.y);const end=(ground-1-o.y)/d.y;let ix=Math.round(o.x+d.x*s+6),iz=Math.round(o.z+d.z*s+6);const sx=Math.sign(d.x),sz=Math.sign(d.z);
+  for(let i=0;i<256;i++){const tx=sx?(ix+sx*.5-6-o.x)/d.x:Infinity,tz=sz?(iz+sz*.5-6-o.z)/d.z:Infinity;s=Math.min(tx,tz);if(s>end)return null;
+   const [nx,nz]=tx<tz?[ix+sx,iz]:[ix,iz+sz],t=at(ix,iz),n=at(nx,nz),y=o.y+d.y*s;
+   if(t&&n&&isWall(t,n)&&y>=Math.min(t.h,n.h)-.05&&y<=Math.max(t.h,n.h)+H)return {t,n,side:sideToward(t,n)};ix=nx;iz=nz;}
+  return null;}
+ // The faces wall paint would cover: the room seen past the face you aim at (or the room you point into), all its
+ // walls or just that face; {target, faces}.
+ const paintable=t=>floorHere.peek()?!!t.indoor:inPlaceAt(t.x,t.z)!==null;
+ function paintFaces(tile,point){const room=options.paintScope.peek()==='room',hit=aimedWall(hoverRay,(t,n)=>wallEdge(t,n)&&paintable(t)),target=paintTarget(hit?hit.t:tile);if(!target)return null;
+  const faces=room?target.tiles.flatMap(t=>wallFaces(target,t)):hit?wallFaces(target,hit.t).filter(f=>f.n.x===hit.n.x&&f.n.z===hit.n.z):[nearestFace(target,tile,point)].filter(Boolean);
+  return {target,faces};}
+ // A floor tile's colour in the chosen paint and pattern.
+ const floorValue=()=>floorPaint(colorKey(options.paintColour.peek()),options.floorPattern.peek(),+options.floorIntensity.peek());
+ async function paintRoom(tile,point,which){let target=paintTarget(tile);if(!target&&which==='walls')target=paintFaces(tile,point)?.target;if(!target)throw Error('Paint goes inside a building: click a floor tile.');
+  const room=options.paintScope.peek()==='room',colour=options.paintErase.peek()?null:colorKey(options.paintColour.peek()),value=which==='floor'&&colour?floorValue():colour,pf=which==='walls'?paintFaces(tile,point):null;
+  if(pf)target=pf.target;
+  const keys=which==='floor'?(room?target.tiles:[tile]).map(t=>paintKey(target.plan,t)):pf.faces.map(f=>f.key);
   if(!keys.length)throw Error(room?'This room has no walls to paint.':'Click beside a wall.');
   const layer=which==='floor'?'floor':'walls',cells=target.tiles.map(t=>[t.x,t.z]);
-  if(await change(()=>{const rec=target.record(),list=rec[layer]??={};for(const k of keys){if(colour)list[k]=colour;else delete list[k];}if(!Object.keys(list).length)delete rec[layer];return cells;},cells)){
+  if(await change(()=>{const rec=target.record(),list=rec[layer]??={};for(const k of keys){if(colour)list[k]=value;else delete list[k];}if(!Object.keys(list).length)delete rec[layer];return cells;},cells)){
    if(colour)remember(colour);status.value=`${colour?'Painted':'Took the paint off'} ${room?'the room’s':'the'} ${which==='floor'?`floor (${keys.length} tile${keys.length>1?'s':''})`:`walls (${keys.length} face${keys.length>1?'s':''})`}.`;}}
  function paintPanel(){
   const recent=computed(()=>recentColours.value.map(c=>({c})));
@@ -759,6 +798,8 @@ export function createWorldEditor(host){
    group('Paint',fields(h('label',{class:'q-world-editor__field'},'Colour',h('input',{type:'color',class:'q-world-editor__colour',value:()=>options.paintColour.value,on:{input:e=>{options.paintColour.value=e.target.value;options.paintErase.value=false;}}})),
     select('Paint',options.paintScope,[['room','The whole room'],['one','One tile or wall']])),
     h('div',{class:'q-world-editor__toggles'},toggleSwitch({label:'Remove paint',description:'Clicks take paint off',on:options.paintErase,onChange:v=>{options.paintErase.value=v;}}))),
+   h('div',{class:'q-world-editor__group',hidden:()=>tool.value!=='floorpaint'},heading('Pattern'),fields(select('Pattern',options.floorPattern,[['plain','Plain'],['checker','Checkered'],['stripes-ns','Stripes north–south'],['stripes-ew','Stripes east–west'],['random','Random']]),
+    slider({label:'Intensity',value:()=>+options.floorIntensity.value,min:0,max:100,step:1,format:v=>String(v),onInput:v=>{options.floorIntensity.value=String(v);}}))),
    wideGroup('Quick colours',h('div',{class:'q-world-editor__dots'},GAME_SWATCHES.map(c=>dot(c,()=>{options.paintColour.value=c;options.paintErase.value=false;}))),
     keyedList(h('div',{class:'q-world-editor__dots'}),recent,r=>r.c,r=>dot(r.peek().c,()=>{options.paintColour.value=r.peek().c;options.paintErase.value=false;}))));
  }
@@ -814,34 +855,57 @@ export function createWorldEditor(host){
     h('img',{class:'q-world-editor__thumb',alt:'',width:56,height:56,src:()=>propThumbnail(p.value.kind,p.value.colors).value||undefined}),h('span',{class:'q-world-editor__preset-name'},()=>p.value.name))));
  }
  // Previews (docs/TOWN.md, Preview ghosts): under the pointer, what a click or a stroke would change,
- // green where it fits and red where it doesn't, with a see-through model for props and the reason a
- // spot is refused. They use the same checks as placing, without changing anything.
+ // green where it fits and red where it doesn't, with see-through models of what would stand there and the
+ // reason a spot is refused. They use the same checks as placing, without changing anything.
  const OK='#45d483',NO='#ff5a5a',BRUSH='#5fc8ff';
- let hoverAt=null,fill=null,ghost=null;const previewNote=signal('');
+ let hoverAt=null,hoverPoint=null,hoverRay=null,lastPreview=null,fill=null,faceFill=null;const previewNote=signal('');
  const ghostMaterials={ok:new THREE.MeshBasicMaterial({color:OK,transparent:true,opacity:.5,depthWrite:false}),no:new THREE.MeshBasicMaterial({color:NO,transparent:true,opacity:.5,depthWrite:false})};
  const heightAt=(x,z)=>at(x,z)?.h??built?.ground?.tile(x,z)?.h??1;
- function clearPreview(){fill?.dispose();fill=null;ghost?.group.removeFromParent();previewNote.value='';}
- // A prop's model, see-through, where it would stand (as createProp places it).
- function showGhost(kind,rotation,x,z,ok){
-  if(!ghost||ghost.kind!==kind){ghost?.group.removeFromParent();const group=propModel(kind);group.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=false;m.renderOrder=23;}});ghost={kind,group};}
-  ghost.group.traverse(m=>{if(m.isMesh)m.material=ok?ghostMaterials.ok:ghostMaterials.no;});
-  const [w,d]=propFootprint(kind,rotation),steps=((Math.round(rotation/90)%4)+4)%4;let base=0;for(let b=0;b<d;b++)for(let a=0;a<w;a++)base=Math.max(base,heightAt(x+a,z+b));
-  ghost.group.rotation.y=-steps*Math.PI/2;ghost.group.position.set(x+(w-1)/2-6,base,z+(d-1)/2-6);overlayParent().add(ghost.group);}
+ const ghosts=new Map();let shownGhosts=new Set();
+ function clearPreview(){fill?.dispose();fill=null;faceFill?.dispose();faceFill=null;for(const id of shownGhosts)ghosts.get(id)?.group.removeFromParent();shownGhosts=new Set();previewNote.value='';}
+ // A stand-in body for someone placed (townsfolk, an enemy spawn): a squat blob, as big as they are.
+ const blobGeometry=new THREE.SphereGeometry(.42,16,10);
+ // A building's model built off to the side, on flat ground of its own, at origin [0, 0] (planBuilding is the
+ // same plan wherever it stands): the real walls, roof and doors, without touching the map.
+ function buildingGhost(desc){const group=new THREE.Group(),tiles=new Map(),tileAt=(x,z)=>{const k=`${x},${z}`;if(!tiles.has(k))tiles.set(k,{x,z,h:0});return tiles.get(k);};
+  const edges=createEdgeFeatures({parent:group,tileAt,cutaway:false}),b=createBuilding(desc,{origin:[0,0],id:-2,edges,tileAt,parent:group});edges.bake();
+  return {group,dispose(){b.dispose();edges.dispose();}};}
+ // What a ghost looks like and where it stands: {key (its look), make() → {group, dispose?}, place(group)}.
+ function ghostSpec(kind,e){
+  if(kind==='prop'&&PROPS[e.kind])return {key:`prop:${e.kind}`,make:()=>({group:propModel(e.kind)}),place(g){const r=e.rotation||0,[w,d]=propFootprint(e.kind,r);let base=0;for(let b=0;b<d;b++)for(let a=0;a<w;a++)base=Math.max(base,heightAt(e.x+a,e.z+b));
+   placePropModel(g,e.kind,[e.x,e.z],r,base,e.scale);}};
+  if(kind==='building'){const desc={...e.desc};delete desc.name;const cells=planBuilding(e.desc,[e.x,e.z]).tiles;
+   return {key:`building:${JSON.stringify(desc)}`,make:()=>buildingGhost(desc),place(g){g.position.set(e.x,Math.max(...cells.map(([a,b])=>heightAt(a,b))),e.z);}};}
+  if(kind==='crystal')return {key:'crystal',make:()=>({group:makeCrystal()}),place(g){const c=crystalCentre(crystalCells(e).map(([x,z])=>({x,z,h:heightAt(x,z)})));g.position.set(c.x,c.y,c.z);}};
+  if(kind==='resource'&&e.kind==='tree')return {key:`tree:${e.species||'oak'}`,make:()=>({group:makeTreeModel(e.species||'oak')}),place(g){g.position.set(e.x-6,heightAt(e.x,e.z),e.z-6);}};
+  if(kind==='townsfolk'||kind==='enemy'){const n=kind==='enemy'?enemySize(e.enemy):1,[x,z]=kind==='townsfolk'?e.home||[]:[e.x,e.z];if(x===undefined)return null;
+   return {key:`blob:${n}`,make:()=>{const group=new THREE.Group(),m=new THREE.Mesh(blobGeometry);m.scale.set(n,n*.8,n);m.position.y=.34*n;group.add(m);return {group};},place(g){g.position.set(x+(n-1)/2-6,heightAt(x,z),z+(n-1)/2-6);}};}
+  return null;}
+ // Shows a ghost for each {kind, entry} (green, or red when refused); a look is built once and kept.
+ function showGhosts(list,ok){const count=new Map(),shown=new Set();
+  for(const {kind,entry} of list){let spec=null;try{spec=ghostSpec(kind,entry);}catch{spec=null;}if(!spec)continue;const n=count.get(spec.key)||0;count.set(spec.key,n+1);const id=`${spec.key}#${n}`;
+   let g=ghosts.get(id);if(!g){try{g=spec.make();}catch{continue;}g.meshes=[];g.group.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=false;o.renderOrder=23;g.meshes.push({o,was:o.material});}else if(o.isSprite||o.isPoints||o.isLine)o.visible=false;});ghosts.set(id,g);}
+   for(const {o} of g.meshes)o.material=ok?ghostMaterials.ok:ghostMaterials.no;spec.place(g.group);overlayParent().add(g.group);shown.add(id);}
+  for(const id of shownGhosts)if(!shown.has(id))ghosts.get(id)?.group.removeFromParent();shownGhosts=shown;
+  // Looks not in use go when there are many (a building's is a whole model).
+  if(ghosts.size>24)for(const [id,g] of ghosts)if(!shown.has(id)){for(const {o,was} of g.meshes)o.material=was;g.dispose?.();ghosts.delete(id);}}
  const fits=check=>{try{check();return null;}catch(error){return error.message;}};
  const tint=(cells,color)=>cells.map(([x,z])=>({x,z,color}));
+ // An entry as a ghost: furniture as the prop it is, where it stands on the map.
+ const ghostOf=(kind,e)=>{if(kind!=='furniture')return {kind,entry:e};const [x,z]=anchorOf('furniture',e);return {kind:'prop',entry:{kind:e.kind,rotation:e.rotation||0,scale:e.scale,x,z}};};
  // What the current tool would do at a tile: {cells:[{x, z, color}], prop:{kind, rotation, x, z}, refused}.
  function previewAt(x,z){const o=Object.fromEntries(Object.entries(options).map(([k,v])=>[k,v.peek()])),rotation=+o.rotation,inMap=(a,b)=>a>=0&&b>=0&&a<data.size[0]&&b<data.size[1];
   const placed=(kind,entry,own=[])=>{let cells=[];try{cells=cellsOf(kind,entry);}catch{return {cells:[],refused:'That doesn’t fit here.'};}const refused=fits(()=>validate(kind,entry,own,{dry:true}));
-   const [ax,az]=kind==='furniture'?anchorOf('furniture',entry):[entry.x,entry.z];return {cells:tint(cells,refused?NO:OK),refused,prop:kind==='prop'||kind==='furniture'?{kind:entry.kind,rotation:entry.rotation||0,x:ax,z:az}:null};};
+   return {cells:tint(cells,refused?NO:OK),refused,ghosts:[ghostOf(kind,entry)]};};
   // On a floor: furniture fits on open floor tiles; the shape, walls and stairs show the tile.
   if(floorHere.peek()&&!HAND_TOOLS.includes(tool.peek())){if(pendingFlight){const fl=flightOf({at:[0,0],dir:o.dir}),cells=[fl.bottom,fl.top,fl.front].map(([a,b])=>[x+a,z+b]),bad=cells.some(([a,b])=>!at(a,b)?.indoor);return {cells:tint(cells,bad?NO:OK),refused:bad?'The stairs and the tile in front must be on the floor.':null};}
-   if(tool.peek()==='prop'){const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);const bad=cells.some(([a,b])=>{const t=at(a,b);return !t||!t.indoor||t.blocked;});
-    return {cells:tint(cells,bad?NO:OK),refused:bad?'No room for it here.':null,prop:{kind:o.prop,rotation,x,z}};}
+   if(tool.peek()==='prop'){[x,z]=wallAim?.at||[x,z];const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);const bad=cells.some(([a,b])=>{const t=at(a,b);return !t||!t.indoor||t.blocked;});
+    return {cells:tint(cells,bad?NO:OK),refused:bad?'No room for it here.':null,ghosts:[{kind:'prop',entry:{kind:o.prop,rotation,x,z}}]};}
    return ['footprint','surface','edge','erase'].includes(tool.peek())?{cells:tint([[x,z]],tool.peek()==='erase'?NO:BRUSH)}:null;}
   if(pendingFlight){const fl=flightOf({at:[0,0],dir:o.dir}),cells=[fl.bottom,fl.top,fl.front].map(([a,b])=>[x+a,z+b]),own=data.buildings[pendingFlight.building],inB=new Set(cellsOf('building',own).map(c=>c.join(','))),bad=cells.some(c=>!inB.has(c.join(',')));return {cells:tint(cells,bad?NO:OK),refused:bad?'The stairs and the tile in front must be inside the building.':null};}
   if(placing?.kind==='stamp'||tool.peek()==='stamp'&&chosenStamp.peek())return stampPreview(placing?.kind==='stamp'?placing.entry:stampOf(chosenStamp.peek()),x,z);
   if(boxing)return null;
-  if(HAND_TOOLS.includes(tool.peek())){const at=[x+grab[0],z+grab[1]];
+  if(HAND_TOOLS.includes(tool.peek())){const at=wallAim?wallAim.at:[x+grab[0],z+grab[1]];
    // A held door: the wall it would go on.
    if(heldDoor?.room){const hit=roomWallAt({x,z},null);return hit?{cells:tint(hit.cells,OK)}:{cells:[],refused:'Point at one of the room’s walls.'};}
    if(heldDoor){const hit=wallAt({x,z},null,heldDoor.building);if(!hit)return {cells:[],refused:'Point at one of its walls.'};const refused=fits(()=>doorMoved(heldDoor.building,hit));return {cells:tint([hit.e.a,hit.e.b],refused?NO:OK),refused};}
@@ -851,20 +915,25 @@ export function createWorldEditor(host){
    if(placing?.kind==='prop'&&inPlaceAt(...at)!==null){const i=inPlaceAt(...at);return placed('furniture',heldAt('furniture',{kind:placing.entry.kind,at:[0,0],rotation:0},{owner:i,level:0}));}
    if(placing)return placed(placing.kind,heldAt(placing.kind,placing.entry));
    const sel=selection.peek(),entry=entryOf(sel);if(!moving.peek()||!entry)return null;const own=cellsOf(sel.kind,entry);
-   if(sel.kind==='group'){const [ax,az]=anchorOf('group',entry),cells=[],errors=[];
-    for(const r of entry.items){const e=shiftEntry(r.kind,structuredClone(entryOf(r)),at[0]-ax,at[1]-az);try{cells.push(...cellsOf(r.kind,e));validate(r.kind,e,own,{dry:true});}catch(error){errors.push(error.message);}}
-    return {cells:tint(cells,errors.length?NO:OK),refused:errors[0]||null};}
+   if(sel.kind==='group'){const [ax,az]=anchorOf('group',entry),cells=[],errors=[],list=[];
+    for(const r of entry.items){const src=entryOf(r),e=shiftEntry(r.kind,structuredClone(src),at[0]-ax,at[1]-az);if(r.kind==='furniture')homes.set(e,homeOf(src));try{cells.push(...cellsOf(r.kind,e));validate(r.kind,e,own,{dry:true});}catch(error){errors.push(error.message);}list.push(ghostOf(r.kind,e));}
+    return {cells:tint(cells,errors.length?NO:OK),refused:errors[0]||null,ghosts:list};}
    return placed(sel.kind,heldAt(sel.kind,entry,sel.kind==='furniture'?homeOf(entry):null),own);}
   switch(tool.peek()){
    // Paint: the room (or the tile) it would cover, in the paint's colour.
-   case 'floorpaint':case 'wallpaint':{const room=paintTarget(at(x,z));if(!room)return {cells:[],refused:'Point inside a building.'};const cells=o.paintScope==='room'?room.tiles:[at(x,z)];
-    return {cells:cells.map(t=>({x:t.x,z:t.z,color:o.paintErase?NO:o.paintColour}))};}
+   // Paint: the floor it would cover in its colours and pattern; the wall faces it would cover, in its colour.
+   case 'floorpaint':{const room=paintTarget(at(x,z));if(!room)return {cells:[],refused:'Point inside a building.'};const cells=o.paintScope==='room'?room.tiles:[at(x,z)],value=floorValue();
+    return {opacity:o.paintErase?.42:.9,cells:cells.map(t=>({x:t.x,z:t.z,color:o.paintErase?NO:floorTileColor(value,t.x-room.plan.x0,t.z-room.plan.z0)}))};}
+   case 'wallpaint':{const pf=paintFaces(at(x,z),hoverPoint);if(!pf?.faces.length)return {cells:[],refused:'Point at a wall inside a building.'};return {cells:[],faces:pf.faces.map(f=>({t:f.t,n:f.n,color:o.paintErase?NO:o.paintColour}))};}
+   // Walls: the wall you aim at.
+   case 'walls':{const hit=wallAt(at(x,z),hoverPoint);if(!hit)return {cells:[],refused:'Point at a building’s wall.'};const [a,b]=hit.face?[hit.face.t,hit.face.n]:[at(...hit.e.a),at(...hit.e.b)];
+    return {cells:[],faces:a&&b?[{t:a,n:b,color:BRUSH},...hit.face?[]:[{t:b,n:a,color:BRUSH}]]:[]};}
    case 'room':case 'resize':return null;
-   case 'prop':return placed('prop',{kind:o.prop,x,z,rotation});
+   case 'prop':{const [px,pz]=wallAim?.at||[x,z];return placed('prop',{kind:o.prop,x:px,z:pz,rotation});}
    case 'townsfolk':return (data.townsfolk||[]).some(f=>f.home&&f.home[0]===x&&f.home[1]===z)?{cells:[{x,z,color:BRUSH}]}:placed('townsfolk',{home:[x,z]});
    case 'enemy':return placed('enemy',{enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z});
    case 'building':{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};let cells=[];try{cells=planBuilding(desc,[x,z]).tiles;}catch(error){return {cells:[],refused:error.message};}
-    const refused=fits(()=>{oneChunk(cells);taken(cells);});return {cells:tint(cells,refused?NO:OK),refused};}
+    const refused=fits(()=>{oneChunk(cells);taken(cells);});return {cells:tint(cells,refused?NO:OK),refused,ghosts:[{kind:'building',entry:{x,z,desc}}]};}
    case 'stairs':{const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
    case 'crystal':return onCrystal(x,z)?{cells:[{x,z,color:BRUSH}]}:placed('crystal',{id:'new',x,z},[]);
    case 'spawn':{const t=at(x,z),bad=!t||t.blocked||t.water;return {cells:tint([[x,z]],bad?NO:OK),refused:bad?'You can’t arrive there.':null};}
@@ -884,11 +953,24 @@ export function createWorldEditor(host){
  // An entry's anchor moved to a tile, as a patch (townsfolk are anchored by their home).
  const anchorPatch=(kind,[x,z])=>kind==='townsfolk'?{home:[x,z]}:{x,z};
  function refreshPreview(){clearPreview();const where=pinned||hoverAt;if(!built||!view||mode.peek()!=='edit'||!where)return;
-  let p=null;try{p=previewAt(where.x,where.z);}catch{p=null;}if(!p)return;
-  if(p.cells?.length)fill=createCellFill({cells:p.cells,heightAt,parent:overlayParent()});
-  if(p.prop&&PROPS[p.prop.kind])showGhost(p.prop.kind,p.prop.rotation,p.prop.x,p.prop.z,!p.refused);
+  let p=null;try{p=previewAt(where.x,where.z);}catch{p=null;}lastPreview=p;if(!p)return;
+  if(p.cells?.length)fill=createCellFill({cells:p.cells,heightAt,parent:overlayParent(),...p.opacity?{opacity:p.opacity}:{}});
+  if(p.faces?.length)faceFill=createFaceFill({faces:p.faces,height:wallHeight(),parent:overlayParent()});
+  showGhosts(p.ghosts||[],!p.refused);
   previewNote.value=p.refused?`Can’t place here: ${p.refused}`:'';}
- function hover(tile){hoverAt=tile?{x:tile.x,z:tile.z}:null;refreshPreview();}
+ // The pointer moved (a tile, or within one: point and ray aim at walls). A wall decoration held (or the Prop tool's)
+ // snaps against the wall face aimed at, turned with its back to it: wallAim {at, rotation}.
+ let wallAim=null;
+ function wallPropKind(){const sel=selection.peek(),kind=placing?(placing.kind==='prop'||placing.kind==='furniture'?placing.entry.kind:null):moving.peek()&&(sel?.kind==='prop'||sel?.kind==='furniture')?entryOf(sel)?.kind:HAND_TOOLS.includes(tool.peek())?null:tool.peek()==='prop'?options.prop.peek():null;
+  return kind&&PROPS[kind]?.mount==='wall'?kind:null;}
+ function aimWallProp(){const kind=wallPropKind();if(!kind)return null;const hit=aimedWall(hoverRay,wallEdge);if(!hit)return null;
+  const rotation=SIDES.indexOf(hit.side)*90,[w,d]=propFootprint(kind,rotation),{x,z}=hit.t,mid=v=>Math.floor((v-1)/2);
+  return {at:{n:[x-mid(w),z],s:[x-mid(w),z-(d-1)],e:[x-(w-1),z-mid(d)],w:[x,z-mid(d)]}[hit.side],rotation};}
+ const aimsAtWalls=()=>['walls','wallpaint'].includes(tool.peek())||!!heldDoor||!!wallPropKind();
+ function hover(tile,point=null,ray=null){const moved=!tile||!hoverAt||tile.x!==hoverAt.x||tile.z!==hoverAt.z;hoverAt=tile?{x:tile.x,z:tile.z}:null;hoverPoint=point;hoverRay=ray;
+  if(!moved&&!aimsAtWalls())return;wallAim=tile?aimWallProp():null;
+  if(wallAim){if(holding()){if(heldRotation.peek()!==wallAim.rotation){heldRotation.value=wallAim.rotation;return;}}else if(+options.rotation.peek()!==wallAim.rotation){options.rotation.value=String(wallAim.rotation);return;}}
+  refreshPreview();}
  function cancel(){if(problemMarks.length){clearProblem();return;}if(patrolling){patrolling=false;patrolOn.value=false;status.value='Patrol route done.';return;}
   if(heldDoor){heldDoor.actor.group.visible=true;heldDoor=null;status.value='Put back.';refreshPreview();return;}
   if(pendingFlight){pendingFlight.well&&(pendingFlight.well.group.visible=true);pendingFlight=null;status.value='Put back.';refreshPreview();return;}
@@ -909,6 +991,8 @@ export function createWorldEditor(host){
   // , and . turn what you hold (or the selection) one way and the other; R turns it clockwise.
   else if(!mod&&(e.key===','||e.key==='.'||k==='r')&&(holding()||selection.peek())){const dir=e.key===','?-1:1;act=()=>turnHeld(dir)||rotateSelection(dir);}
   else if(!mod&&(e.key==='Delete'||e.key==='Backspace')&&placing)act=cancel;
+  // + and − size a prop held or selected.
+  else if(!mod&&['=','+','-','_'].includes(e.key)&&(holding()||selection.peek())){const dir=e.key==='-'||e.key==='_'?-1:1;act=()=>resize(dir);}
   else if(selection.peek()){if(mod&&k==='d')act=duplicateSelection;else if(mod||e.altKey)act=null;else if(k==='r')act=rotateSelection;else if(k==='m')act=startMove;else if(e.key==='Delete'||e.key==='Backspace')act=deleteSelection;}
   if(!act)return;e.preventDefault();e.stopImmediatePropagation();Promise.resolve().then(act).catch(error=>{status.value=error.message;});}
  // Brushes paint as you drag: each tile once per stroke, the stroke one undo step, and the chunks it
@@ -1114,9 +1198,9 @@ export function createWorldEditor(host){
  async function floorClick(tile){const here=floorHere.peek(),i=hereOwner(),f=floorAt(i,here.level),[lx,lz]=localOf(i,tile.x,tile.z),o=Object.fromEntries(Object.entries(options).map(([k,v])=>[k,v.peek()]));
   switch(tool.peek()){
    case 'inspect':status.value=`${LEVEL_NAME(here.level)} · ${lx},${lz} · ${tile.surface}${tile.blocked?' · solid':''}`;return;
-   case 'prop':{const [w,d]=propFootprint(o.prop,+o.rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push(at(tile.x+a,tile.z+b));
-    if(cells.some(c=>!c||!c.indoor||c.blocked))throw Error('No room for it here.');
-    await changeFloor(()=>{(f.furniture??=[]).push({kind:o.prop,at:[lx,lz],rotation:+o.rotation});},`${PROPS[o.prop].name} ${ON_LEVEL(here.level)}.`);return;}
+   case 'prop':{const [px,pz]=wallAim?.at||[tile.x,tile.z],[w,d]=propFootprint(o.prop,+o.rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push(at(px+a,pz+b));
+    if(cells.some(c=>!c||!c.indoor||c.blocked))throw Error('No room for it here.');const [ax,az]=localOf(i,px,pz);
+    await changeFloor(()=>{(f.furniture??=[]).push({kind:o.prop,at:[ax,az],rotation:+o.rotation});},`${PROPS[o.prop].name} ${ON_LEVEL(here.level)}.`);return;}
    case 'erase':{const list=f.furniture||[],hit=list.findIndex(p=>{const [w,d]=propFootprint(p.kind,p.rotation||0);return lx>=p.at[0]&&lx<p.at[0]+w&&lz>=p.at[1]&&lz<p.at[1]+d;});
     if(hit>=0){await changeFloor(()=>{list.splice(hit,1);},'Removed.');return;}
     const edge=(f.edges||[]).findIndex(e=>e.a[0]===lx&&e.a[1]===lz||e.b[0]===lx&&e.b[1]===lz);if(edge>=0){await changeFloor(()=>{f.edges.splice(edge,1);},'Removed the wall.');return;}
@@ -1191,7 +1275,7 @@ export function createWorldEditor(host){
    // Brushes: a click is a one-tile stroke (dragging paints; see paint()).
    case 'raise':case 'lower':case 'flatten':case 'nature':case 'ramps':case 'surface':case 'footprint':case 'biome':await paint('start',tile);await paint('end',tile);break;
    case 'building':if(await change(()=>{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};delete desc.name;desc.name=`${BUILDING_PRESETS[o.preset].name} ${data.buildings.length+1}`;const cells=planBuilding(desc,[x,z]).tiles;oneChunk(cells);taken(cells);data.buildings.push({x,z,desc});return cells;}))status.value=`Placed ${BUILDING_PRESETS[o.preset].name} at ${x},${z}.`;break;
-   case 'prop':if(await change(()=>{const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);taken(cells,[],o.prop);data.props.push({kind:o.prop,x,z,rotation});return cells;}))status.value=`Placed ${PROPS[o.prop].name} at ${x},${z}.`;break;
+   case 'prop':{const [px,pz]=wallAim?.at||[x,z];if(await change(()=>{const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([px+a,pz+b]);taken(cells,[],o.prop);data.props.push({kind:o.prop,x:px,z:pz,rotation});return cells;}))status.value=`Placed ${PROPS[o.prop].name} at ${px},${pz}.`;break;}
    case 'stairs':await change(()=>{const s={x,z,dir:o.dir,length:+o.length,width:+o.width};data.stairs.push(s);return stairCells(s);});status.value=`Stairs from ${x},${z}, going up ${SIDE_LABELS[o.dir].toLowerCase()}.`;break;
    case 'edge':await change(()=>{const [dx,dz]=DIRS[o.side],b=[x+dx,z+dz],same=e=>[e.a,e.b].map(String).sort().join('|')===[[x,z],b].map(String).sort().join('|');
     data.edges=data.edges.filter(e=>!same(e));if(o.edge!=='none')data.edges.push({a:[x,z],b,kind:o.edge});return [[x,z],b];});break;
@@ -1288,9 +1372,9 @@ export function createWorldEditor(host){
  // Choosing a tool puts down nothing: what you hold goes away unless the new tool is the Hand.
  // Every tool's hint, shown in the status line as you switch to it (never what the last tool said).
  const TOOL_HINTS={deco:'Pick from the catalogue, then click where it goes (, and . turn it). Click something to lift it.',select:'Click something to lift it and see all its options; drag a box to select several.',design:'Click something to change its colours.',eyedropper:'Click something to copy it, colours and all.',erase:'Click something to remove it.',
-  floorpaint:'Click inside a room to paint its floor.',wallpaint:'Click inside a room to paint its walls (one wall: click beside it).',stamp:'Pick a stamp, then click where its north-west corner goes.',
+  floorpaint:'Click inside a room to paint its floor.',wallpaint:'Point at a wall inside a room to paint it (or the whole room’s walls).',stamp:'Pick a stamp, then click where its north-west corner goes.',
   room:'Drag a rectangle: on open ground a new building, inside one a room with a door.',resize:'Drag from beside a wall (outside or a room’s) the way it should move.',building:'Click where the building’s north-west corner goes.',
-  footprint:'Drag to paint a footprint, then Build it.',walls:'Click beside a building’s wall to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the stairs’ bottom step goes.',
+  footprint:'Drag to paint a footprint, then Build it.',walls:'Point at a building’s wall and click to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the stairs’ bottom step goes.',
   use:'Click a building to set what it’s used for.',reroll:'Click a building to roll its furniture again.',underground:'Make a dungeon or cave here, then place its entrance.',
   raise:'Click or drag to raise the ground half a block.',lower:'Click or drag to lower the ground half a block.',flatten:'Drag to level the ground to where you start.',smooth:'Drag to ease the ground to its neighbours.',
   ramp:'Drag from the low end to the high end.',ramps:'Click or drag over ledges to turn them into ramps (or back).',surface:'Click or drag to paint the ground.',biome:'Drag to paint biomes or terrain (8 × 8 cells).',nature:'Click or drag to place nature, or clear it.',
@@ -1388,10 +1472,11 @@ export function createWorldEditor(host){
          coloursPanel(),lookPanel(),
          // The rest of what's selected, and what you can do with it: the Hand's.
          h('div',{class:'q-world-editor__opts',hidden:()=>tool.value!=='select'},spawnPanel(),personPanel(),crystalPanel(),floorsPanel(),
-         group(()=>{revision.value;heldRotation.value;const sel=selection.value,entry=entryOf(sel);return entry?`${nameOf(sel.kind,entry)} · ${anchorOf(sel.kind,entry)?.join(',')}${moving.value?' · held':''}`:'';},
+         group(()=>{revision.value;heldRotation.value;const sel=selection.value,entry=entryOf(sel);return entry?`${nameOf(sel.kind,entry)} · ${anchorOf(sel.kind,entry)?.join(',')}${entry.scale&&entry.scale!==1?` · ${Math.round(entry.scale*100)}%`:''}${moving.value?' · held':''}`:'';},
           h('div',{class:'q-world-editor__actions-grid'},...[['Move','M',startMove],['Rotate',', .',()=>rotateSelection(1)],['Reshape',null,reshapeSelection],['Duplicate',`${MOD}+D`,duplicateSelection],['Delete','Del',deleteSelection],['Deselect','Esc',cancel],
            ['← Nudge',null,()=>nudge(-1,0)],['Nudge →',null,()=>nudge(1,0)],['↑ Nudge',null,()=>nudge(0,-1)],['Nudge ↓',null,()=>nudge(0,1)]]
-           .map(([name,keyName,act])=>h('button',{type:'button',class:'q-button q-button--small',title:keyName||undefined,on:{click:fail(act)}},name)))))),
+           .map(([name,keyName,act])=>h('button',{type:'button',class:'q-button q-button--small',title:keyName||undefined,on:{click:fail(act)}},name)),
+           ...[['Smaller','−',()=>resize(-1)],['Bigger','+',()=>resize(1)]].map(([name,keyName,act])=>h('button',{type:'button',class:'q-button q-button--small',title:keyName,hidden:()=>!['prop','furniture'].includes(selection.value?.kind),on:{click:fail(act)}},name)))))),
         // Floors show with a selected building (Build) or while you're on one.
         h('div',{class:'q-world-editor__opts',hidden:()=>{revision.value;return !floorHere.value||tool.value==='deco'||!!selection.value&&['select','design'].includes(tool.value);}},floorsPanel())),
        // Map: the map itself, its size, the view, and its checks.
@@ -1442,7 +1527,7 @@ export function createWorldEditor(host){
   lookAt:(x,z)=>host.lookAt?.(x,z),
   selection,moving,select(kind,index){selection.value={kind,index};showSelection();},moveSelection,toolGroup,setTool,heldRotation,get holding(){return holding();},get placing(){return placing;},pickUpNew,drop,turnHeld,lift,cancel,goLevel,paintRoom,makeRoom,pushWall,get heldDoor(){return heldDoor;},get pendingFlight(){return pendingFlight;},commitColour,resetColours,applyPreset,savePreset,presetName,presetFor,palettes,catalogueBy,catalogueGroup,catalogueSearch,nudge,rotateSelection,duplicateSelection,placeCopy,deleteSelection,paint,drag,copySelection,pasteClipboard,
   growMap:growBy,draft,reshapeSelection,buildDraft,clearDraft,setWall,wallAt,setLook,addLand,removeLand,landDefault,reseedLand,
-  get checksPending(){return !!checkTimer;},runChecks(){clearTimeout(checkTimer);if(built)problems.value=mapProblems(data,built);return problems.peek();},
+  hover,get preview(){return {note:previewNote.peek(),ghosts:[...shownGhosts],cells:lastPreview?.cells||[],faces:(lastPreview?.faces||[]).length};},get checksPending(){return !!checkTimer;},runChecks(){clearTimeout(checkTimer);if(built)problems.value=mapProblems(data,built);return problems.peek();},
  };
  return editor;
 }

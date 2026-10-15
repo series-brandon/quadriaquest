@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createMapData,buildMap} from './world-map.js';
 import {BUILDING_PRESETS,planBuilding} from './building-kit.js';
-import {sideToward,wallPaint,floorPalette} from './paint.js';
+import {sideToward,wallPaint,floorPalette,floorPaint,floorTileColor,parseFloorPaint,FLOOR_INTENSITY} from './paint.js';
 import {buildFloorSpace} from './spaces.js';
 
 // Wall and floor paint (docs/TOWN.md, Wall and floor paint).
@@ -35,4 +35,18 @@ test('a building’s own rooms: its inside walls (local) stand where it is, belo
  assert.deepEqual(built.edges.info(tile(1,0),tile(2,0))?.owners,[0]);assert.ok(colorsIn(built.group).has('c0ffee'));
  data.buildings[0]={...b,x:12,z:9};const moved=buildMap(data,{scene:new THREE.Group()}),p2=planBuilding(b.desc,[12,9]);
  assert.equal(moved.edges.info(moved.tiles.get(`${p2.x0+1},${p2.z0}`),moved.tiles.get(`${p2.x0+2},${p2.z0}`))?.kind,'wall','moved with the building');
+});
+test('floor patterns: tweaks of the colour laid out by the tile’s place, as strong as the intensity',()=>{
+ const c='#c9a06a',row=(p,i,along)=>[0,1,2,3].map(n=>floorTileColor(floorPaint(c,p,i),along==='x'?n:0,along==='z'?n:0));
+ assert.equal(floorPaint(c),c,'the default is the bare colour (checkered)');assert.deepEqual(parseFloorPaint(c),{color:c,pattern:'checker',intensity:FLOOR_INTENSITY});
+ assert.deepEqual(parseFloorPaint(floorPaint(c,'stripes-ns',140)),{color:c,pattern:'stripes-ns',intensity:100},'intensity is clamped');
+ assert.deepEqual(new Set(row('plain',80,'x')),new Set([c]),'plain is the colour itself');
+ for(const p of ['checker','stripes-ns','stripes-ew','random'])assert.deepEqual(new Set(row(p,0,'x')),new Set([c]),`${p} at 0 is plain`);
+ const ns=row('stripes-ns',50,'x');assert.equal(ns[0],c);assert.notEqual(ns[1],c);assert.equal(ns[2],c);assert.equal(new Set(row('stripes-ns',50,'z')).size,1,'north–south stripes run along z');
+ assert.equal(new Set(row('stripes-ew',50,'x')).size,1,'east–west stripes run along x');assert.notEqual(row('stripes-ew',50,'z')[1],c);
+ assert.notEqual(floorTileColor(floorPaint(c,'checker',50),1,0),c);assert.equal(floorTileColor(floorPaint(c,'checker',50),1,1),c);
+ const random=new Set();for(let x=0;x<8;x++)for(let z=0;z<8;z++)random.add(floorTileColor(floorPaint(c,'random',50),x,z));assert.ok(random.size>=4&&random.size<=5,'four or five variations');
+ assert.equal(floorTileColor(floorPaint(c,'random',50),3,5),floorTileColor(floorPaint(c,'random',50),3,5),'the same every time');
+ const diff=i=>{const a=new THREE.Color(c),b=new THREE.Color(floorTileColor(floorPaint(c,'checker',i),1,0));return Math.abs(a.r-b.r)+Math.abs(a.g-b.g)+Math.abs(a.b-b.b);};assert.ok(diff(100)>diff(30)&&diff(30)>diff(5),'stronger with intensity');
+ const plan={x0:4,z0:4},pal=floorPalette({floor:{'1,0':floorPaint(c,'stripes-ns',50)}},plan,{x:5,z:4});assert.equal(pal[0],pal[1],'one colour per tile');assert.notEqual(pal[0],c);
 });
