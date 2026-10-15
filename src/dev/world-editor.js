@@ -4,6 +4,7 @@ import {keyedList} from '../ui/list.js';
 import {segmented,toggleSwitch,section} from '../ui/controls.js';
 import {signal,computed,effect,untracked} from '../reactive.js';
 import {createMapData,growMap,mapHeight,mapSurface,setMapHeight,setMapSurface,clearMapSurface,mapOffset,setMapOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells,packMap,unpackMap} from '../world-map.js';
+import {mapCrystals,crystalCells} from '../map-file.js';
 import {mapProblems} from '../map-checks.js';
 import {planBuilding,BUILDING_PRESETS,ROOF_TYPES,ROOF_COLORS,AWNINGS,toShaped,shiftShaped,shapeRuns,connectedCells} from '../building-kit.js';
 import {STYLE_NAMES,stylePalette} from '../edge-models.js';
@@ -165,7 +166,7 @@ export function createWorldEditor(host){
    if(!water&&t.water)throw Error(`${a},${b} is water.`);
    if(!mine.has(`${a},${b}`)&&(t.indoor||t.stair||t.prop||t.blocked&&!t.water))throw Error(`${a},${b} is taken.`);}};
  // Selection: what's at a tile, the tiles a thing covers, and the edits on it.
- const lists=()=>({building:data.buildings,prop:data.props,stairs:data.stairs,townsfolk:data.townsfolk||(data.townsfolk=[]),resource:data.resources||(data.resources=[]),cover:data.cover||(data.cover=[]),fishing:data.fishing||(data.fishing=[]),enemy:data.enemies||(data.enemies=[]),
+ const lists=()=>({building:data.buildings,prop:data.props,stairs:data.stairs,townsfolk:data.townsfolk||(data.townsfolk=[]),resource:data.resources||(data.resources=[]),cover:data.cover||(data.cover=[]),fishing:data.fishing||(data.fishing=[]),enemy:data.enemies||(data.enemies=[]),crystal:mapCrystals(data),
   // Inside a floor: its furniture.
   furniture:floorHere.peek()?floorAt(hereOwner(),floorHere.peek().level).furniture??=[]:[],edge:data.edges});
  // Furniture (docs/TOWN.md, Decorating indoors) lives on a floor: the one you're on, or, on the map, an in-place
@@ -177,7 +178,7 @@ export function createWorldEditor(host){
  const furnitureList=(owner,level)=>floorAt(owner,level).furniture??=[];
  // The list a selection's entry is in.
  const listFor=sel=>sel.kind==='furniture'&&sel.owner!==undefined?furnitureList(sel.owner,sel.level):lists()[sel.kind];
- function entryOf(sel){if(!sel||!data)return null;if(sel.kind==='crystal')return data.crystal||null;if(sel.kind==='group')return sel.items.length?sel:null;
+ function entryOf(sel){if(!sel||!data)return null;if(sel.kind==='group')return sel.items.length?sel:null;
   if(sel.kind==='furniture'&&sel.owner!==undefined)return floorsOf(sel.owner).find(f=>f.level===sel.level)?.furniture?.[sel.index]??null;return lists()[sel.kind]?.[sel.index]??null;}
  // An in-place building whose ground floor is the map, at a tile (its index), or null.
  const inPlaceAt=(x,z)=>{const t=at(x,z),i=t?.building;return !floorHere.peek()&&i!==undefined&&data.buildings[i]&&!['separate','none'].includes(data.buildings[i].desc.interior)?i:null;};
@@ -196,17 +197,17 @@ export function createWorldEditor(host){
   if(!e.placed){removeGrown(e.id);lists()[which].push({kind:e.kind,...e.species?{species:e.species}:{},x,z});}
   return {kind:which,index:lists()[which].findIndex(r=>r.x===x&&r.z===z)};}
  const stairSteps=s=>stairCells(s).slice((s.width||1),-(s.width||1));
- function cellsOf(kind,entry){if(!entry)return [];if(kind==='crystal')return [entry];if(kind==='group')return entry.items.flatMap(r=>cellsOf(r.kind,entryOf(r)));if(kind==='edge')return [entry.a,entry.b];if(kind==='resource'||kind==='cover')return [[entry.x,entry.z]];if(kind==='furniture'){const p=planOf(homeOf(entry)?.owner??hereOwner()),[w,d]=propFootprint(entry.kind,entry.rotation||0),out=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)out.push([p.x0+entry.at[0]+a,p.z0+entry.at[1]+b]);return out;}
+ function cellsOf(kind,entry){if(!entry)return [];if(kind==='crystal')return crystalCells(entry);if(kind==='group')return entry.items.flatMap(r=>cellsOf(r.kind,entryOf(r)));if(kind==='edge')return [entry.a,entry.b];if(kind==='resource'||kind==='cover')return [[entry.x,entry.z]];if(kind==='furniture'){const p=planOf(homeOf(entry)?.owner??hereOwner()),[w,d]=propFootprint(entry.kind,entry.rotation||0),out=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)out.push([p.x0+entry.at[0]+a,p.z0+entry.at[1]+b]);return out;}
   if(kind==='enemy'){const n=enemySize(entry.enemy),out=[];for(let b=0;b<n;b++)for(let a=0;a<n;a++)out.push([entry.x+a,entry.z+b]);return out;}if(kind==='building')return planBuilding(entry.desc,[entry.x,entry.z]).tiles;if(kind==='prop')return propCells(entry);if(kind==='stairs')return stairSteps(entry);return entry.home?[entry.home]:[];}
  function pickAt(x,z){const hit=(kind,list,test)=>{const index=list.findIndex(test);return index>=0?{kind,index}:null;},on=cells=>cells.some(([a,b])=>a===x&&b===z),l=lists();
   if(floorHere.peek())return hit('furniture',l.furniture,f=>on(cellsOf('furniture',f)));
   const inside=inPlaceAt(x,z);if(inside!==null){const list=floorsOf(inside).find(f=>f.level===0)?.furniture||[],index=list.findIndex(f=>on(cellsOf('furniture',f)));
    if(index>=0)return {kind:'furniture',index,owner:inside,level:0};
    if(!Array.isArray(data.buildings[inside].floors)&&built.buildings[inside]?.furniture?.some(p=>p.tiles.some(t=>t.x===x&&t.z===z)))return {kind:'furnished',owner:inside};}
-  return hit('townsfolk',l.townsfolk,f=>f.home&&f.home[0]===x&&f.home[1]===z)||(data.crystal&&data.crystal[0]===x&&data.crystal[1]===z?{kind:'crystal',index:0}:null)||hit('building',l.building,b=>on(cellsOf('building',b)))||hit('prop',l.prop,p=>on(propCells(p)))||hit('stairs',l.stairs,s=>on(stairSteps(s)))||hit('enemy',l.enemy,e=>on(cellsOf('enemy',e)))||hit('resource',l.resource,r=>r.x===x&&r.z===z)||hit('cover',l.cover,c=>c.x===x&&c.z===z);}
- const nameOf=(kind,entry)=>kind==='group'?`${entry.items.length} things`:kind==='edge'?`a ${entry.kind}`:kind==='furniture'?PROPS[entry.kind]?.name||entry.kind:kind==='enemy'?`${ENEMIES[entry.enemy]?.name||entry.enemy}${entry.aggressive?' (aggressive)':''}`:kind==='crystal'?'the Iter Crystal':kind==='resource'?natureName(entry):kind==='cover'?`${entry.kind} (cover)`:kind==='building'?entry.desc.name||'Building':kind==='prop'?PROPS[entry.kind]?.name||entry.kind:kind==='stairs'?`Stairs up ${SIDE_LABELS[entry.dir].toLowerCase()}`:entry.name||entry.id||'Townsfolk';
- const anchorOf=(kind,entry)=>kind==='group'?(c=>[Math.min(...c.map(p=>p[0])),Math.min(...c.map(p=>p[1]))])(cellsOf('group',entry)):kind==='edge'?entry.a:kind==='townsfolk'?entry.home:kind==='crystal'?entry:kind==='furniture'?(p=>[p.x0+entry.at[0],p.z0+entry.at[1]])(planOf(homeOf(entry)?.owner??hereOwner())):[entry.x,entry.z];
- const setAnchor=(kind,entry,[x,z])=>{if(kind==='edge'){const [ax,az]=entry.a;entry.b=[entry.b[0]+x-ax,entry.b[1]+z-az];entry.a=[x,z];return;}if(kind==='furniture'){const p=planOf(homeOf(entry)?.owner??hereOwner());entry.at=[x-p.x0,z-p.z0];return;}if(kind==='townsfolk')entry.home=[x,z];else if(kind==='crystal')data.crystal=[x,z];else{entry.x=x;entry.z=z;}};
+  return hit('townsfolk',l.townsfolk,f=>f.home&&f.home[0]===x&&f.home[1]===z)||hit('crystal',l.crystal,c=>on(crystalCells(c)))||hit('building',l.building,b=>on(cellsOf('building',b)))||hit('prop',l.prop,p=>on(propCells(p)))||hit('stairs',l.stairs,s=>on(stairSteps(s)))||hit('enemy',l.enemy,e=>on(cellsOf('enemy',e)))||hit('resource',l.resource,r=>r.x===x&&r.z===z)||hit('cover',l.cover,c=>c.x===x&&c.z===z);}
+ const nameOf=(kind,entry)=>kind==='group'?`${entry.items.length} things`:kind==='edge'?`a ${entry.kind}`:kind==='furniture'?PROPS[entry.kind]?.name||entry.kind:kind==='enemy'?`${ENEMIES[entry.enemy]?.name||entry.enemy}${entry.aggressive?' (aggressive)':''}`:kind==='crystal'?`the Iter Crystal ${entry.name||entry.id||''}`.trim():kind==='resource'?natureName(entry):kind==='cover'?`${entry.kind} (cover)`:kind==='building'?entry.desc.name||'Building':kind==='prop'?PROPS[entry.kind]?.name||entry.kind:kind==='stairs'?`Stairs up ${SIDE_LABELS[entry.dir].toLowerCase()}`:entry.name||entry.id||'Townsfolk';
+ const anchorOf=(kind,entry)=>kind==='group'?(c=>[Math.min(...c.map(p=>p[0])),Math.min(...c.map(p=>p[1]))])(cellsOf('group',entry)):kind==='edge'?entry.a:kind==='townsfolk'?entry.home:kind==='furniture'?(p=>[p.x0+entry.at[0],p.z0+entry.at[1]])(planOf(homeOf(entry)?.owner??hereOwner())):[entry.x,entry.z];
+ const setAnchor=(kind,entry,[x,z])=>{if(kind==='edge'){const [ax,az]=entry.a;entry.b=[entry.b[0]+x-ax,entry.b[1]+z-az];entry.a=[x,z];return;}if(kind==='furniture'){const p=planOf(homeOf(entry)?.owner??hereOwner());entry.at=[x-p.x0,z-p.z0];return;}if(kind==='townsfolk')entry.home=[x,z];else{entry.x=x;entry.z=z;}};
  // Checks an entry where it now stands (own: the tiles it covered before, which it may reuse).
  // dry: only check (previews); otherwise placing nature also takes away what grew on its tile.
  function validate(kind,entry,own,{dry=false}={}){const cells=cellsOf(kind,entry);
@@ -215,13 +216,15 @@ export function createWorldEditor(host){
   else if(kind==='furniture'){const mine=new Set(own.map(c=>c.join(','))),home=homeOf(entry),onMap=!floorHere.peek();
    for(const [a,b] of cells){const t=at(a,b);if(!t||!t.indoor&&!(onMap&&t.building!==undefined)||onMap&&t.building!==home?.owner)throw Error(onMap?`${a},${b} isn’t inside this building.`:`${a},${b} isn’t on this floor.`);
     if((t.blocked||onMap&&t.prop)&&!mine.has(`${a},${b}`))throw Error(`${a},${b} is taken.`);}}
-  else if(kind==='crystal'){if(at(...cells[0])?.water)throw Error('The crystal needs dry ground.');taken(cells,own);}
+  // An Iter Crystal: 2 × 2 dry, level tiles, and an id of its own.
+  else if(kind==='crystal'){const ts=cells.map(c=>at(...c));if(ts.some(t=>!t))throw Error('The crystal runs off the map.');if(ts.some(t=>t.water))throw Error('The crystal needs dry ground.');
+   if(ts.some(t=>Math.abs(t.h-ts[0].h)>.01))throw Error('The crystal needs level ground (2 × 2).');if(lists().crystal.some(c=>c!==entry&&c.id===entry.id))throw Error(`Another crystal has the id "${entry.id}".`);taken(cells,own);}
   // An enemy spawn: dry, open ground for its whole body, not on another spawn.
   else if(kind==='enemy'){const mine=new Set(own.map(c=>c.join(',')));for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);if(t.water)throw Error(`${a},${b} is water.`);
     if(!mine.has(`${a},${b}`)&&(t.blocked||t.indoor||t.stair))throw Error(`${a},${b} is taken.`);
     if(!mine.has(`${a},${b}`)&&lists().enemy.some(e=>e!==entry&&cellsOf('enemy',e).some(([p,q])=>p===a&&q===b)))throw Error(`${a},${b} already has a spawn.`);}}
   else if(kind==='resource'||kind==='cover'){const [x,z]=cells[0],t=at(x,z);if(!t)throw Error(`${x},${z} is off the map.`);
-   if(kind==='resource'&&(!resourceFits(t)||data.crystal&&data.crystal[0]===x&&data.crystal[1]===z))throw Error(`${x},${z} has no room for it.`);if(kind==='cover'&&(t.water||t.building!==undefined))throw Error(`${x},${z} has no room for it.`);
+   if(kind==='resource'&&(!resourceFits(t)||onCrystal(x,z)))throw Error(`${x},${z} has no room for it.`);if(kind==='cover'&&(t.water||t.building!==undefined))throw Error(`${x},${z} has no room for it.`);
    if(lists()[kind].filter(e=>e.x===x&&e.z===z).length>1)throw Error(`${x},${z} already has one.`);
    const grown=natureAt(x,z)[kind];if(grown&&!grown.placed&&!dry)removeGrown(grown.id);}
   else if(kind==='townsfolk'){for(const [a,b] of cells){const t=at(a,b);if(!t)throw Error(`${a},${b} is off the map.`);if(t.water||t.blocked)throw Error(`${a},${b} isn’t somewhere to stand.`);}}
@@ -394,10 +397,10 @@ export function createWorldEditor(host){
  async function rotateSelection(dir=1){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='group')throw Error('Rotate things one at a time.');if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover','enemy','edge','fishing'].includes(sel.kind))throw Error('Nothing to rotate.');
   const turn=v=>(((v||0)+90*dir)%360+360)%360;
   if(await change(()=>{if(sel.kind==='building')entry.desc.rotation=turn(entry.desc.rotation);else if(sel.kind==='prop'||sel.kind==='furniture')entry.rotation=turn(entry.rotation);else entry.dir=(dir>0?CLOCKWISE:COUNTER)[entry.dir];return validate(sel.kind,entry,own);},own))status.value=`Rotated ${nameOf(sel.kind,entry)}.`;}
- function duplicateSelection(){const {sel,entry}=selected();if(sel.kind==='crystal')throw Error('A map has one crystal.');
+ function duplicateSelection(){const {sel,entry}=selected();
   if(sel.kind==='group'){hold('stamp',makeStamp(entry,{ground:false}));status.value=`Click where the copy of ${nameOf('group',entry)} goes (its north-west corner). Esc to cancel.`;refreshPreview();return;}const copy=structuredClone(entry);
   if(sel.kind==='building')copy.desc.name=`${entry.desc.name||'Building'} copy`;if(sel.kind==='townsfolk'&&copy.id)copy.id=`${copy.id}-copy`;
-  if(sel.kind==='townsfolk')copy.id=uniqueFolkId(copy.id||copy.name||'townsfolk');
+  if(sel.kind==='townsfolk')copy.id=uniqueFolkId(copy.id||copy.name||'townsfolk');if(sel.kind==='crystal'){copy.id=uniqueCrystalId(copy.id);copy.name=`${entry.name||'Iter Crystal'} copy`;copy.known=false;}
   hold(sel.kind,copy);status.value=`Holding a copy of ${nameOf(sel.kind,entry)}: click where it goes (Esc to cancel).`;}
  async function placeCopy(x,z){const {kind,entry}=placing;placing=null;if(kind==='furniture'&&!homes.has(entry)&&floorHere.peek())homes.set(entry,{owner:hereOwner(),level:floorHere.peek().level});
   if(kind==='stamp'){const ok=await applyStamp(entry,x,z);if(ok)status.value=`Placed at ${x},${z}.`;return ok;}
@@ -409,7 +412,7 @@ export function createWorldEditor(host){
     const gone=new Set(byKind.building||[]);const living=(data.townsfolk||[]).find((f,i)=>gone.has(f.house)&&!(byKind.townsfolk||[]).includes(i));if(living)throw Error(`${living.name||'Someone'} lives in one of these; move them first.`);
     for(const [kind,list] of Object.entries(byKind))for(const i of list.sort((a,b)=>b-a)){lists()[kind].splice(i,1);if(kind==='building')for(const f of data.townsfolk||[])if(f.house>i)f.house--;}return [];},own)){selection.value=null;status.value=`Deleted ${name}.`;showSelection();}return;}
   if(await change(()=>{if(sel.kind==='building'){const living=(data.townsfolk||[]).find(f=>f.house===sel.index);if(living)throw Error(`${living.name||'Someone'} lives in ${name}; move them first.`);
-   for(const f of data.townsfolk||[])if(f.house>sel.index)f.house--;}if(sel.kind==='crystal')data.crystal=null;else listFor(sel).splice(sel.index,1);return [];},own)){selection.value=null;status.value=`Deleted ${name}.`;showSelection();}}
+   for(const f of data.townsfolk||[])if(f.house>sel.index)f.house--;}listFor(sel).splice(sel.index,1);return [];},own)){selection.value=null;status.value=`Deleted ${name}.`;showSelection();}}
  // Footprints: paint tiles into the draft, then build it as a new building or as the reshaped one.
  function reshapeSelection(){const {sel,entry}=selected();if(sel.kind!=='building')throw Error('Only buildings can be reshaped.');
   draft.value=new Set(cellsOf('building',entry).map(c=>c.join(',')));draftFor=sel.index;tool.value='footprint';showDraft();
@@ -520,6 +523,19 @@ export function createWorldEditor(host){
  // A selected townsfolk (docs/TOWN.md, Townsfolk tool): everything about them, changed in place (one undo
  // step each, the crowd rebuilt), and their places drawn on the map.
  let patrolling=false,spotsFill=null;const patrolOn=signal(false);
+ // Iter Crystals (docs/TOWN.md, Iter Crystals): ids are unique on the map; a selected one is renamed, given a new
+ // id or made known from the start in its panel (one undo step each).
+ const onCrystal=(x,z)=>mapCrystals(data).some(c=>crystalCells(c).some(([a,b])=>a===x&&b===z));
+ const uniqueCrystalId=base=>{const ids=new Set(mapCrystals(data).map(c=>c.id)),root=String(base||'crystal').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'crystal';let id=root,n=1;while(ids.has(id))id=`${root}-${++n}`;return id;};
+ const crystalOf=()=>{const sel=selection.peek();return sel?.kind==='crystal'?mapCrystals(data)[sel.index]:null;};
+ async function setCrystal(apply,label){const c=crystalOf();if(!c)throw Error('Select an Iter Crystal.');const own=crystalCells(c);
+  if(await change(()=>{apply(c);return [...own,...validate('crystal',c,own)];},own)){status.value=`${c.name||c.id}: ${label}.`;showSelection();}}
+ function crystalPanel(){const value=get=>()=>{revision.value;selection.value;const c=crystalOf();return c?get(c)??'':'';};
+  return h('div',{class:'q-world-editor__opts q-world-editor__opts--inline',hidden:()=>{revision.value;return selection.value?.kind!=='crystal';}},
+   group('Iter Crystal',fields(
+    field('Name',h('input',{type:'text',class:'q-input',value:value(c=>c.name),on:{change:e=>setCrystal(c=>{c.name=e.target.value.trim();},'renamed').catch(error=>{status.value=error.message;})}})),
+    field('Id',h('input',{type:'text',class:'q-input',value:value(c=>c.id),on:{change:e=>setCrystal(c=>{const id=e.target.value.trim().toLowerCase().replace(/[^a-z0-9-]+/g,'-');if(!id)throw Error('A crystal needs an id.');c.id=id;},'new id').catch(error=>{status.value=error.message;})}}))),
+    h('div',{class:'q-world-editor__toggles'},toggleSwitch({label:'Known from the start',description:'Listed before it’s discovered',on:()=>{revision.value;selection.value;return !!crystalOf()?.known;},onChange:v=>setCrystal(c=>{if(v)c.known=true;else delete c.known;},v?'known from the start':'found by discovery').catch(error=>{status.value=error.message;})}))));}
  const personOf=()=>{const sel=selection.peek();return sel?.kind==='townsfolk'?data.townsfolk[sel.index]:null;};
  const uniqueFolkId=base=>{const ids=new Set((data.townsfolk||[]).map(f=>f.id));let id=base.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'townsfolk',n=1;const root=id;while(ids.has(id))id=`${root}-${++n}`;return id;};
  async function setPerson(apply,label){const p=personOf();if(!p)throw Error('Select a townsfolk.');const own=cellsOf('townsfolk',p);
@@ -830,7 +846,7 @@ export function createWorldEditor(host){
    if(sel.kind==='group'){const [ax,az]=anchorOf('group',entry),cells=[],errors=[];
     for(const r of entry.items){const e=shiftEntry(r.kind,structuredClone(entryOf(r)),at[0]-ax,at[1]-az);try{cells.push(...cellsOf(r.kind,e));validate(r.kind,e,own,{dry:true});}catch(error){errors.push(error.message);}}
     return {cells:tint(cells,errors.length?NO:OK),refused:errors[0]||null};}
-   return placed(sel.kind,sel.kind==='crystal'?at:heldAt(sel.kind,entry,sel.kind==='furniture'?homeOf(entry):null),own);}
+   return placed(sel.kind,heldAt(sel.kind,entry,sel.kind==='furniture'?homeOf(entry):null),own);}
   switch(tool.peek()){
    // Paint: the room (or the tile) it would cover, in the paint's colour.
    case 'floorpaint':case 'wallpaint':{const room=paintTarget(at(x,z));if(!room)return {cells:[],refused:'Point inside a building.'};const cells=o.paintScope==='room'?room.tiles:[at(x,z)];
@@ -842,11 +858,11 @@ export function createWorldEditor(host){
    case 'building':{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};let cells=[];try{cells=planBuilding(desc,[x,z]).tiles;}catch(error){return {cells:[],refused:error.message};}
     const refused=fits(()=>{oneChunk(cells);taken(cells);});return {cells:tint(cells,refused?NO:OK),refused};}
    case 'stairs':{const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
-   case 'crystal':return placed('crystal',[x,z],data.crystal?[data.crystal]:[]);
+   case 'crystal':return placed('crystal',{id:'new',x,z},[]);
    case 'spawn':{const t=at(x,z),bad=!t||t.blocked||t.water;return {cells:tint([[x,z]],bad?NO:OK),refused:bad?'You can’t arrive there.':null};}
    case 'nature':{if(!data.land)return null;const choice=o.nature,[group]=choice.split(':');
     return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>{const t=at(a,b),n=natureAt(a,b);
-     const ok=choice==='fishing'?!!t?.water:choice==='grow'?!!t&&!t.water:choice==='clear'?!!(n.resource||n.cover):group==='cover'?!!t&&!t.water&&t.building===undefined:resourceFits(t)&&!(data.crystal&&data.crystal[0]===a&&data.crystal[1]===b);
+     const ok=choice==='fishing'?!!t?.water:choice==='grow'?!!t&&!t.water:choice==='clear'?!!(n.resource||n.cover):group==='cover'?!!t&&!t.water&&t.building===undefined:resourceFits(t)&&!onCrystal(a,b);
      return {x:a,z:b,color:ok?(choice==='clear'?NO:OK):'#8a8a8a'};})};}
    case 'raise':case 'lower':case 'flatten':case 'smooth':case 'ramp':case 'surface':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:BRUSH}))};
    case 'footprint':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:o.draftMode==='add'?OK:NO}))};
@@ -858,7 +874,7 @@ export function createWorldEditor(host){
   }
   return null;}
  // An entry's anchor moved to a tile, as a patch (townsfolk are anchored by their home).
- const anchorPatch=(kind,[x,z])=>kind==='townsfolk'?{home:[x,z]}:kind==='crystal'?{0:x,1:z}:{x,z};
+ const anchorPatch=(kind,[x,z])=>kind==='townsfolk'?{home:[x,z]}:{x,z};
  function refreshPreview(){clearPreview();const where=pinned||hoverAt;if(!built||!view||mode.peek()!=='edit'||!where)return;
   let p=null;try{p=previewAt(where.x,where.z);}catch{p=null;}if(!p)return;
   if(p.cells?.length)fill=createCellFill({cells:p.cells,heightAt,parent:overlayParent()});
@@ -925,7 +941,7 @@ export function createWorldEditor(host){
  // own), so a blank map can be filled by hand with biome-appropriate nature.
  function growNature(x,z){const t=at(x,z),land=built?.ground?.land;if(!t||!land||t.water)return false;let placed=false;
   const [e]=land.entities([t]),[c]=land.cover([t]);
-  if(e&&resourceFits(t)&&!(data.crystal&&data.crystal[0]===x&&data.crystal[1]===z)){const list=lists().resource;const i=list.findIndex(r=>r.x===x&&r.z===z);if(i>=0)list.splice(i,1);list.push(e.kind==='tree'?{kind:'tree',species:e.species,x,z}:{kind:e.kind,x,z});placed=true;}
+  if(e&&resourceFits(t)&&!onCrystal(x,z)){const list=lists().resource;const i=list.findIndex(r=>r.x===x&&r.z===z);if(i>=0)list.splice(i,1);list.push(e.kind==='tree'?{kind:'tree',species:e.species,x,z}:{kind:e.kind,x,z});placed=true;}
   if(c&&t.building===undefined){const list=lists().cover;const i=list.findIndex(r=>r.x===x&&r.z===z);if(i>=0)list.splice(i,1);list.push({kind:c.kind,x,z});placed=true;}
   return placed;}
  function putNature(x,z,choice){const t=at(x,z);if(choice==='clear'){clearNature(x,z);return true;}if(choice==='grow')return growNature(x,z);
@@ -933,7 +949,7 @@ export function createWorldEditor(host){
   if(choice==='fishing'){if(!t?.water)return false;const n=natureAt(x,z).fishing;if(n?.placed)return false;if(n)removeGrown(n.id);lists().fishing.push({x,z});return true;}
   const [group,kind]=choice.split(':');
   if(group==='cover'){if(!t||t.water||t.building!==undefined)return false;const n=natureAt(x,z).cover;if(n?.placed)lists().cover.splice(lists().cover.findIndex(c=>c.x===x&&c.z===z),1);else if(n)removeGrown(n.id);lists().cover.push({kind,x,z});return true;}
-  if(!resourceFits(t)||data.crystal&&data.crystal[0]===x&&data.crystal[1]===z)return false;const n=natureAt(x,z).resource;
+  if(!resourceFits(t)||onCrystal(x,z))return false;const n=natureAt(x,z).resource;
   if(n?.placed)lists().resource.splice(lists().resource.findIndex(r=>r.x===x&&r.z===z),1);else if(n)removeGrown(n.id);
   lists().resource.push(group==='tree'?{kind:'tree',species:kind,x,z}:{kind,x,z});return true;}
  function paintAt({x,z}){const o=tool.peek(),surface=options.surface.peek(),onLand=!!data.land;
@@ -1152,7 +1168,7 @@ export function createWorldEditor(host){
    case 'eyedropper':{let hit=pickAt(x,z),kind=null,entry=null;if(hit?.kind==='furnished'){if(!await adoptFurniture(hit.owner))break;hit=pickAt(x,z);}
     // A ground floor's furniture copies as a prop: it becomes furniture wherever it's put down indoors.
     if(hit?.kind==='furniture'&&!floorHere.peek()){const e=entryOf(hit);kind='prop';entry={kind:e.kind,x,z,rotation:e.rotation||0,...e.colors?{colors:{...e.colors}}:{}};}
-    else if(hit&&hit.kind!=='crystal'){kind=hit.kind;entry=structuredClone(entryOf(hit));if(kind==='building')entry.desc.name=`${entry.desc.name||'Building'} copy`;if(kind==='townsfolk')entry.id=uniqueFolkId(entry.id||entry.name||'townsfolk');}
+    else if(hit){kind=hit.kind;entry=structuredClone(entryOf(hit));if(kind==='crystal'){entry.id=uniqueCrystalId(entry.id);entry.name=`${entry.name||'Iter Crystal'} copy`;entry.known=false;}if(kind==='building')entry.desc.name=`${entry.desc.name||'Building'} copy`;if(kind==='townsfolk')entry.id=uniqueFolkId(entry.id||entry.name||'townsfolk');}
     else if(!floorHere.peek()&&data.land){const n=natureAt(x,z);if(n.resource){kind='resource';entry=n.resource.kind==='tree'?{kind:'tree',species:n.resource.species,x,z}:{kind:n.resource.kind,x,z};}else if(n.cover){kind='cover';entry={kind:n.cover.kind,x,z};}}
     if(!entry){status.value='Nothing to copy here.';break;}
     hold(kind,entry);status.value=`Copied ${nameOf(kind,entry)}: click where it goes (Shift-click places more; Esc to stop).`;break;}
@@ -1178,7 +1194,8 @@ export function createWorldEditor(host){
    case 'spawn':await change(()=>{data.spawn=[x,z];return [];});status.value=`Arrival at ${x},${z}.`;break;
    case 'enemy':{const spawn={enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z};
     if(await change(()=>{const cells=validate('enemy',spawn,[]);lists().enemy.push(spawn);return cells;}))status.value=`${nameOf('enemy',spawn)} spawns at ${x},${z}.`;break;}
-   case 'crystal':{const old=data.crystal?[data.crystal]:[];if(await change(()=>{data.crystal=[x,z];return validate('crystal',data.crystal,old);},old))status.value=`The Iter Crystal at ${x},${z}.`;break;}
+   // A new Iter Crystal (docs/TOWN.md, Iter Crystals): a unique id and a name to change in its panel (the Hand).
+   case 'crystal':{const entry={id:uniqueCrystalId('crystal'),name:'New crystal',x,z};if(await change(()=>{const cells=validate('crystal',entry,[]);lists().crystal.push(entry);return cells;})){selection.value={kind:'crystal',index:lists().crystal.length-1};showSelection();status.value=`${entry.name} (${entry.id}) at ${x},${z}: name it with the Hand.`;}break;}
   }
   return true;
  }
@@ -1206,9 +1223,9 @@ export function createWorldEditor(host){
    for(const layer of ['heights','offsets','surfaces'])(r[layer]||[]).forEach((row,z)=>{const old=o[layer]?.[z];if(row===old)return;for(let x=0;x<row.length;x++)if(row[x]!==old?.[x])cells.push([rx*REGION+x,rz*REGION+z]);});}
   // Placed things, entry by entry: the tiles of both versions of any that differ.
   const placed={buildings:e=>{try{return planBuilding(e.desc,[e.x,e.z]).tiles;}catch{return [[e.x,e.z]];}},props:propCells,stairs:stairCells,resources:e=>[[e.x,e.z]],cover:e=>[[e.x,e.z]],fishing:e=>[[e.x,e.z]],enemies:e=>cellsOf('enemy',e),
-   edges:e=>[e.a,e.b],townsfolk:e=>[e.home,...e.patrol||[]].filter(Boolean)};
+   edges:e=>[e.a,e.b],townsfolk:e=>[e.home,...e.patrol||[]].filter(Boolean),crystals:crystalCells};
   for(const [list,of] of Object.entries(placed)){const p=a[list]||[],q=b[list]||[];for(let i=0;i<Math.max(p.length,q.length);i++)if(JSON.stringify(p[i])!==JSON.stringify(q[i]))cells.push(...(p[i]?of(p[i]):[]),...(q[i]?of(q[i]):[]));}
-  for(const k of ['crystal','spawn'])if(JSON.stringify(a[k])!==JSON.stringify(b[k]))cells.push(...[a[k],b[k]].filter(Boolean));
+  for(const k of ['spawn'])if(JSON.stringify(a[k])!==JSON.stringify(b[k]))cells.push(...[a[k],b[k]].filter(Boolean));
   if(b.land){const [ox,oz]=b.land.origin||[0,0],at=id=>id.match(/(-?\d+),(-?\d+)$/)?.slice(1).map(Number);
    const removed=new Set(a.land.removed||[]),now=new Set(b.land.removed||[]);for(const id of [...removed,...now])if(removed.has(id)!==now.has(id)){const c=at(id);if(c)cells.push(c);}
    const changedCells=layer=>[...new Set([...Object.keys(a.land[layer]||{}),...Object.keys(b.land[layer]||{})])].filter(k=>a.land[layer]?.[k]!==b.land[layer]?.[k]);
@@ -1255,7 +1272,7 @@ export function createWorldEditor(host){
   use:'Click a building to set what it’s used for.',reroll:'Click a building to roll its furniture again.',underground:'Make a dungeon or cave here, then place its entrance.',
   raise:'Click or drag to raise the ground half a block.',lower:'Click or drag to lower the ground half a block.',flatten:'Drag to level the ground to where you start.',smooth:'Drag to ease the ground to its neighbours.',
   ramp:'Drag from the low end to the high end.',surface:'Click or drag to paint the ground.',biome:'Drag to paint biomes or terrain (8 × 8 cells).',nature:'Click or drag to place nature, or clear it.',
-  enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk.',crystal:'Click to move the Iter Crystal.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
+  enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk.',crystal:'Click to set an Iter Crystal (2 × 2); name it with the Hand.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
  function setTool(id){if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id);if(TOOL_HINTS[id])status.value=TOOL_HINTS[id];}
  // The dock's panel: always outside Decorate; in Decorate only for what's selected, paint and stamps.
  // The panel: always outside Decorate; in Decorate for paint and stamps, and for what's selected (the Hand and Colours
@@ -1341,7 +1358,7 @@ export function createWorldEditor(host){
         h('div',{class:'q-world-editor__opts',hidden:()=>!selection.value||!['select','design'].includes(tool.value)},
          coloursPanel(),lookPanel(),
          // The rest of what's selected, and what you can do with it: the Hand's.
-         h('div',{class:'q-world-editor__opts',hidden:()=>tool.value!=='select'},spawnPanel(),personPanel(),floorsPanel(),
+         h('div',{class:'q-world-editor__opts',hidden:()=>tool.value!=='select'},spawnPanel(),personPanel(),crystalPanel(),floorsPanel(),
          group(()=>{revision.value;heldRotation.value;const sel=selection.value,entry=entryOf(sel);return entry?`${nameOf(sel.kind,entry)} · ${anchorOf(sel.kind,entry)?.join(',')}${moving.value?' · held':''}`:'';},
           h('div',{class:'q-world-editor__actions-grid'},...[['Move','M',startMove],['Rotate',', .',()=>rotateSelection(1)],['Reshape',null,reshapeSelection],['Duplicate',`${MOD}+D`,duplicateSelection],['Delete','Del',deleteSelection],['Deselect','Esc',cancel],
            ['← Nudge',null,()=>nudge(-1,0)],['Nudge →',null,()=>nudge(1,0)],['↑ Nudge',null,()=>nudge(0,-1)],['Nudge ↓',null,()=>nudge(0,1)]]

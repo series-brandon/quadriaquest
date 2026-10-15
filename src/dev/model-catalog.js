@@ -192,7 +192,7 @@ export const MODEL_CATALOG=[
  {name:'Campfire',motions:['Burning','Static'],create(){const group=campfire();return {group,update(time,motion){animateCampfire(group,motion==='Static'?0:time);}};}},
  staticModel('Campfire placement ghost',()=>campfire(true)),
  {name:'Fishing spot',motions:['Ripples'],create(){const group=fishingSpot();return {group,update:time=>animateFishingSpot(group,time)};}},
- {name:'Iter Crystal',motions:['Floating','Static'],create(){const group=makeCrystal();return {group,update(time,motion){if(motion==='Floating')animateCrystal(group,time);else group.position.y=0;}};}},
+ {name:'Iter Crystal',motions:['Floating','Static'],create(){const group=makeCrystal();return {group,update(time,motion){animateCrystal(group,motion==='Floating'?time:0);}};}},
  {name:'Wooden chest',motions:['Closed','Open'],create(){const {group,lid}=makeChest();return {group,update(time,motion){lid.rotation.x=motion==='Open'?-1:0;lid.position.set(0,motion==='Open'?.64:.49,motion==='Open'?-.18:0);}};}},
  {name:'Bridge',motions:['Broken','Repair stages','Repaired'],create(){const bridge=makeBridge();return {group:bridge.group,update(time,motion){bridge.setProgress(motion==='Broken'?0:motion==='Repaired'?1:Math.floor((time%6)/1.5)/3);}};}},
  staticModel('Grass tile',()=>terrain([1])),staticModel('Half-height ledge',()=>terrain([1,1.5])),staticModel('Joined grass tiles',()=>terrain([1,1,1.5])),

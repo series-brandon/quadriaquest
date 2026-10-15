@@ -18,7 +18,7 @@ export const OVERWORLD={size:384,village:96,grow:96,origin:128,crystal:[144,144]
 
 export function overworldData(){
  const M=OVERWORLD,data=createMapData({id:'overworld',name:'Quadria overworld',size:[M.village,M.village],style:'timber',land:{seed:3,default:'meadow',cells:{},terrain:{},nature:false,enemies:false,fishing:false}});
- data.crystal=M.crystal.map(v=>v-M.grow);data.spawn=M.spawn.map(v=>v-M.grow);
+ data.crystals=[{id:'quadria',name:'Quadria',x:M.crystal[0]-M.grow,z:M.crystal[1]-M.grow,known:true}];data.spawn=M.spawn.map(v=>v-M.grow);
  // The land around the village (docs/BIOMES.md): one biome per 8 × 8 cell; unpainted cells are meadow.
  // Biomes (what grows and lives) and terrain (the land's shape and water) are painted apart.
  const cells=data.land.cells,terrain=data.land.terrain,fill=layer=>(cx0,cz0,cx1,cz1,id)=>{for(let cz=cz0;cz<=cz1;cz++)for(let cx=cx0;cx<=cx1;cx++)layer[`${cx},${cz}`]=id;},paint=fill(cells),shape=fill(terrain);

@@ -88,14 +88,14 @@ test('nature by hand: placed trees and cover stream like grown ones; removed one
 test('growing a map keeps the land and what was built where they were',()=>{
  const data=createMapData({id:'grow',size:[64,64],land:{seed:7,default:'hills',cells:{'2,2':'forest'}}});
  data.buildings.push({x:10,z:10,desc:{...structuredClone(BUILDING_PRESETS.cottage),name:'Cottage'}});data.props.push({kind:'bench',x:30,z:40});
- setMapSurface(data,5,5,'cobble');setMapOffset(data,6,6,1);data.crystal=[20,20];data.resources=[{kind:'tree',species:'oak',x:40,z:12}];data.land.removed=['tree:12,30'];
+ setMapSurface(data,5,5,'cobble');setMapOffset(data,6,6,1);data.crystals=[{id:'c',name:'C',x:20,z:20}];data.resources=[{kind:'tree',species:'oak',x:40,z:12}];data.land.removed=['tree:12,30'];
  const before=mapTiles(data);
  growMap(data,{west:32,north:64,east:32});
  assert.deepEqual(data.size,[128,128]);assert.deepEqual(data.land.origin,[-32,-64]);
  const after=mapTiles(data);
  for(const [x,z] of [[3,3],[6,6],[13,12],[50,50],[63,1]])assert.equal(after.get(key(x+32,z+64)).h,before.get(key(x,z)).h,`${x},${z}`);
  assert.equal(mapSurface(data,37,69),'cobble');assert.equal(mapOffset(data,38,70),1);
- assert.deepEqual([data.buildings[0].x,data.buildings[0].z,data.props[0].x,data.crystal[0],data.resources[0].z],[42,74,62,52,76]);
+ assert.deepEqual([data.buildings[0].x,data.buildings[0].z,data.props[0].x,data.crystals[0].x,data.resources[0].z],[42,74,62,52,76]);
  assert.deepEqual(data.land.removed,['tree:44,94']);
  assert.equal(townLand(data).biomeAt(16+32+3,16+64+3),'forest','painted cells stay with the land');
  assert.throws(()=>growMap(data,{west:10}),/whole/);assert.throws(()=>growMap(data,{west:32}),/regions/,'a map stays whole regions');

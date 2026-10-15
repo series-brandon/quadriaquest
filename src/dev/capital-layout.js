@@ -35,7 +35,7 @@ const styleAt=(x,z)=>z>116?'stone':x<72?'timber':'brick';
 
 export function capitalData(){
  const C=CAPITAL,data=createMapData({id:'capital',name:'Gelton',size:[C.size,C.size],base:1,surface:'grass',style:'timber'}),random=seeded(91);
- data.spawn=[...C.spawn];data.crystal=[...C.crystal];
+ data.spawn=[...C.spawn];data.crystals=[{id:'gelton',name:'Gelton',x:C.crystal[0],z:C.crystal[1],known:true}];
  for(const s of STREETS)fillMap(data,s,{surface:'cobble'});
  fillMap(data,C.square,{surface:'plaza'});fillMap(data,C.market,{surface:'plaza'});fillMap(data,C.park,{surface:'grass'});
  fillMap(data,C.terrace,{h:3,surface:'flagstone'});fillMap(data,C.courtyard,{surface:'stone'});

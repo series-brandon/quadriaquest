@@ -10,9 +10,14 @@
   80,
   92
  ],
- "crystal": [
-  80,
-  90
+ "crystals": [
+  {
+   "id": "gelton",
+   "name": "Gelton",
+   "x": 80,
+   "z": 90,
+   "known": true
+  }
  ],
  "regions": {
   "0,0": {

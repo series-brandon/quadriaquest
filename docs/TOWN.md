@@ -360,6 +360,18 @@ User request: hide what's lifted, wall and floor paint, Sims-like doors and stai
   - The building is reshaped as Reshape does.
   - Its rooms, paint and floors stay where they were when its north-west corner moves. Reshaping no longer drops a building's floors either.
 
+## Iter Crystals (2026-10-15)
+
+User request: a 2 × 2 Iter Crystal that feels important; any number of them in the world, each with a unique id and the name the teleport list shows; and no teleporting to one until you've discovered it (the tutorial's and Quadria's first crystal excepted).
+- **The model** (`crystal-model.js`, shared by every crystal, the tutorial's too): a stepped stone dais on 2 × 2 tiles with a glowing rune ring and four shard-capped posts; above it the great crystal floats and turns with three shards circling it. About 4.4 units tall (it was 2), so it reads as a landmark across the map. The runes breathe.
+- **Footprint:** a crystal stands on the 2 × 2 tiles from its tile south-east (`crystalFootprint`): four open, dry, level tiles, all blocked. Where that square doesn't fit (a tutorial crystal by an edge), another square holding its tile does; with none, its one tile. Arrivals step off beside the footprint, south side first (`portal-spawn.js`).
+- **Map data** (`map-file.js` `mapCrystals`): `crystals: [{id, name, x, z, known}]`. An older map's single `crystal: [x, z]` becomes the first, named after the map and known; the repo's maps are converted (the overworld's is *quadria*, "Quadria"; Gelton's *gelton*, "Gelton").
+- **Destinations** (`crystal-places.js`): each map crystal is a destination of its own, by id, shown by name. It's listed once you've **discovered** it (walked within four tiles of it, or used it: "Iter Crystal discovered: …"), or from the start when it's **known**. An area with crystals lists them instead of itself; the tutorial areas stay destinations by area as before. Travel goes to a crystal's area and lands beside it, and can go from one crystal to another in the same world (the ground round the far one loads first). Discovery lasts the session: the game has no saves yet.
+- **Editor:** *World* → *Crystal* places a new crystal (a unique id, "New crystal") and selects it; with the Hand, its panel sets its **Name**, **Id** and **Known from the start**. The Hand moves, duplicates (a new id, not known) and deletes crystals like anything else; the eyedropper copies one. A crystal must stand on 2 × 2 dry, level ground with an id of its own.
+- **Map checks:** each crystal has an id (unique on the map) and a name, and stands on dry, level ground; crystals can't overlap anything.
+- **Playground:** the debug panel's *Maps* has *Discover all crystals* and *Forget crystals*; the model catalogue shows the crystal floating or at rest.
+- **Tests:** `crystal-places.test.js` (footprint, arrival beside it, the old field's migration and packing, discovery, travel to a crystal and between two in one area). The overworld's own tests now check only what any valid overworld is (user, 2026-10-15: hand-edited maps shouldn't fail tests by being edited): it builds, it's whole regions, and its crystals have unique ids and names with one known.
+
 ## Streaming a map's content (2026-10-15)
 
 User request: section 4 (scale and speed). A map on the land (the overworld) is built a chunk at a time as you move, like its ground (`buildMap(…, {lazy: true})`, `world-map.js`; the world editor's maps on the land use it).
@@ -763,7 +775,7 @@ User request: move the Iter Crystal, and add, move or delete resources and the s
   - **Nature** brush: drag to place an oak, birch, pine, willow, cherry or maple tree, copper, a boulder, sticks, stones, flint, or any cover kind. *Clear nature* takes away whatever is there. The 1 or 3 × 3 brush applies.
   - **Select** on a generated tree, resource or flower takes it into the map's own list, so it can be moved (M, arrows) or deleted like anything placed.
   - **Erase** clears nature on a tile with nothing else on it.
-  - **Crystal** tool places the Iter Crystal. Select also picks it, and M or the arrows move it. It can't be duplicated or rotated, and needs dry, empty ground.
+  - **Crystal** tool places the Iter Crystal. Select also picks it, and M or the arrows move it. It can't be duplicated or rotated, and needs dry, empty ground. (Since: any number of crystals, *Iter Crystals* below.)
 - **Limits:** editing works inside the map's bounds. A resource can't go on a building, prop, stair, water or the crystal's tile.
 - **Tests:** `town-ground.test.js`, which checks:
   - removed things stay gone;

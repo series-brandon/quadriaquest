@@ -13,7 +13,7 @@ export function packMap(data){
  if(data.land)out.land={...data.land,...data.land.cells?{cells:packCells(data.land.cells)}:{},...data.land.terrain?{terrain:packCells(data.land.terrain)}:{}};
  return out;
 }
-export function unpackMap(data){for(const r of Object.values(data.regions||{}))unpackRegion(r);if(data.land)unpackLand(data.land);return data;}
+export function unpackMap(data){for(const r of Object.values(data.regions||{}))unpackRegion(r);if(data.land)unpackLand(data.land);mapCrystals(data);return data;}
 export function unpackRegion(r){for(const [layer,rows] of Object.entries(r))if(!Array.isArray(rows))r[layer]=Array.from({length:REGION},(_,z)=>rows.rows[z]??rows.fill.repeat(REGION));return r;}
 export function unpackLand(land){for(const k of ['cells','terrain'])if(Array.isArray(land[k]?.legend))land[k]=unpackCells(land[k]);return land;}
 function packRows(rows){
@@ -31,3 +31,14 @@ function packCells(cells){
  return {legend,rows};
 }
 function unpackCells({legend,rows}){const out={};for(const [cz,[x0,line]] of Object.entries(rows))for(let i=0;i<line.length;i++)if(line[i]!=='.')out[`${x0+i},${cz}`]=legend[index(line[i])];return out;}
+
+// A map's Iter Crystals (docs/TOWN.md, Iter Crystals): crystals [{id, name, x, z, known}], each standing on the
+// 2 × 2 tiles from (x, z). An older map's single `crystal: [x, z]` becomes the first, named after the map,
+// known from the start; read here, so every reader sees the new form.
+export function mapCrystals(data){
+ if(!data)return [];
+ if(data.crystal!==undefined&&!data.crystals){data.crystals=data.crystal?[{id:data.id||'crystal',name:data.name||'Iter Crystal',x:data.crystal[0],z:data.crystal[1],known:true}]:[];delete data.crystal;}
+ return data.crystals||(data.crystals=[]);
+}
+// The tiles a crystal stands on.
+export const crystalCells=c=>[[c.x,c.z],[c.x+1,c.z],[c.x,c.z+1],[c.x+1,c.z+1]];

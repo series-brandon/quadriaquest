@@ -10,9 +10,14 @@
   176,
   179
  ],
- "crystal": [
-  181,
-  194
+ "crystals": [
+  {
+   "id": "mistrom",
+   "name": "Mistrom",
+   "x": 181,
+   "z": 194,
+   "known": true
+  }
  ],
  "regions": {
   "0,0": {

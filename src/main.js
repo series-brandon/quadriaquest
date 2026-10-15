@@ -47,6 +47,8 @@ import {pushWorldActor,updateWorldActors} from './world-actors.js';
 import {configureDoors,updateDoors,doorApproach} from './doors.js';
 import {updateCutaway,cutawayState,setCutHeight,CUT_HEIGHT} from './cutaway.js';
 import {createMistWall,mistAt,updateMistWalls} from './mist-wall.js';
+import {createCrystalPlaces} from './crystal-places.js';
+import {mapCrystals} from './map-file.js';
 import {createAtmosphere} from './atmosphere.js';
 import {configureProps,createProp,seatPosition,takeLoot,updateProps} from './props.js';
 import {createSpaces} from './spaces.js';
@@ -275,7 +277,9 @@ function playerSkills(){return {Gathering:gatheringSkill,Crafting:craftingSkill,
 
 const clearingTiles=new Map(world);
 const areas=createAreaRuntime({world,beforeSwitch(){combat?.clear();stopAll();},placePlayer(landing){tile=landing;player.position.set(tile.x-6,tile.h,tile.z-6);},applyCamera(view){quality.settle();if(view.zoom!==undefined)zoom=view.zoom;if(view.angle!==undefined)angle=view.angle;if(view.elevation!==undefined)elevation=view.elevation;scene.background.set(view.background||'#e5e9df');ground.material.color.copy(scene.background);}});
-const travel=createTravelSystem({areas,stop:stopAll,blocked:()=>!areas.canMove||combat?.busy||combat?.working,
+// Iter Crystal destinations: each map crystal is one of its own, listed once discovered (crystal-places.js).
+const crystalPlaces=createCrystalPlaces();
+const travel=createTravelSystem({areas,places:crystalPlaces,stop:stopAll,blocked:()=>!areas.canMove||combat?.busy||combat?.working,
  occupied:t=>companions?.occupies(t),fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},failed:()=>toast('There’s no safe space beside the destination crystal.')});
 
 // Separate interiors, stairwells and dungeons (spaces.js): a quick fade between spaces of any map.
@@ -292,13 +296,16 @@ const drawRadius=()=>quality.drawDistance.peek(),streamedWorlds=new Set();
 let baseFar=120;
 effect(()=>{const r=quality.drawDistance.value;baseFar=camera.far=120+(r-1)*72;camera.updateProjectionMatrix();for(const w of streamedWorlds){if(w.streamer)w.streamer.radius=r;if(w.builtMap?.streamRadius!=null)w.builtMap.streamRadius=r;}});
 // Once Cinderhold is complete, the crystals offer "???": ending the tutorial (waking.js).
-destinations=createDestinationMenu({modals,areas,travel,stop:stopAll,blocked:()=>!canMove()||combat?.working,
+destinations=createDestinationMenu({modals,areas,travel,places:crystalPlaces,stop:stopAll,blocked:()=>!canMove()||combat?.working,
  extras:()=>cinder?.tutorialComplete&&!waking?.isWoken?[{id:'awaken',name:'???',description:'Somewhere beyond the dream',
   choose(){confirmModal(modals,{id:'end-tutorial',title:'???',message:'Do you wish to end the tutorial now?',confirm:'Yes',cancel:'Not yet',onConfirm:()=>waking.start()});}}]:[],
  services:{
  restore(){if(combat.inCombat)return 'Not available during combat.';crystalRestore();toast('You have been fully restored!');return null;},
  respec(){if(combat.inCombat)return 'Not available during combat.';auras.deactivateAll();const refund=character.redistribute();crystalRestore();return `${refund} attribute point${refund===1?'':'s'} returned to spend in Skills. Auras turned off; resources restored.`;}}});
-const crystals=createCrystals({world,pickables,travel,choose:(a,after)=>destinations.open(a,after),hover:()=>hover?.actor});
+const crystals=createCrystals({world,pickables,travel,choose:(a,after)=>{discoverCrystal(a);return destinations.open(a,after);},hover:()=>hover?.actor});
+// Walking up to a map's Iter Crystal (or using it) discovers it: from then on you can teleport to it.
+function discoverCrystal(actor){if(actor?.place&&crystalPlaces.discover(actor.place))messages.show(`Iter Crystal discovered: ${crystalPlaces.get(actor.place)?.name||actor.place}`);}
+function discoverNearbyCrystals(){for(const c of crystals.current())if(c.place&&Math.abs(tile.x-c.x-.5)<=4.5&&Math.abs(tile.z-c.z-.5)<=4.5)discoverCrystal(c);}
 const afterStep=createAfterStep({moving:()=>!!segment,prepare(label){cancelWork({keepCombat:label==='Eating',keepFood:label==='Eating'});path=[];target=null;gatherTime=0;menus.action();feedback.destination(segment.to);}});
 function stopAll(options){cancelWork(options);path=[];segment=null;target=null;gatherTime=0;player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();if(options?.keepMenu)menus.action();else menus.closeMenus();cookingMenu?.close();furnaceMenu?.close();anvilMenu?.close();}
 companions=createCompanionSystem({scene,world,player,pickables,feedback,inventory,
@@ -516,7 +523,7 @@ function geltonReady(){
   const [{buildMap},{default:data},{createCountryside},{createChunkStreamer},{surfaceColor}]=await Promise.all([import('./world-map.js'),import('./maps/capital.json'),import('./countryside.js'),import('./chunk-streamer.js'),import('./map-terrain.js')]);
   const mapData=structuredClone(data),source=createCountryside({mapData:mapData});
   // The city streams by the countryside's rule (radius 1, a band of hysteresis), so they always match.
-  const built=buildMap(mapData,{scene,pickables,streamRadius:drawRadius(),outside:source.tile,crystal:(t,parent)=>crystals.add({tile:t,parent,destination:'gelton',label:'Use Iter Crystal'})});
+  const built=buildMap(mapData,{scene,pickables,streamRadius:drawRadius(),outside:source.tile,crystal:(t,parent,entry,tileAt)=>crystals.add({tile:t,parent,place:entry.id,label:'Use Iter Crystal',tileAt})});
   built.areaId='gelton';attachCrowd(built);
   // Guards pacing the wall-top walkways (wall-sentries.js), hidden where the wall is cut down.
   built.sentries=built.walls?createWallSentries({walkways:built.walls.walkways,parent:built.group,hiddenAt:built.walls.cutAt,shownAt:built.isShown}):null;
@@ -540,6 +547,8 @@ function geltonReady(){
   const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place:placeLandExtra,dress:landDress(source,coverPool),radius:drawRadius()});
   // The world's edge round the countryside (mist-wall.js).
   createMistWall({...source.bounds,x1:source.bounds.x1-1,z1:source.bounds.z1-1,parent:built.group});
+  // Its Iter Crystals, each a destination of its own (crystal-places.js); the ground round one loads before you arrive.
+  crystalPlaces.provide('gelton',()=>mapCrystals(built.data).map(c=>({id:c.id,name:c.name,known:!!c.known,tile:()=>built.tiles.get(key(c.x,c.z)),prime:()=>streamer.prime(c.x,c.z,1)})));
   countryside={source,streamer,maps};built.countryside=countryside;streamedWorlds.add({streamer,builtMap:built});
   areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
    arrival:()=>built.crystal?.tile||built.spawn,
@@ -773,7 +782,7 @@ function updateAtmosphere(dt){const focus=__PLAYGROUND__&&freeCam?freeCam.focus:
  if(splash.scene)splash.scene.fog=scene.fog?splashFog:null;}
 function followSun(){const at=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,fx=Math.round(at.x/4)*4,fz=Math.round(at.z/4)*4,anchor=`${fx},${fz}`;if(anchor===sunAnchor)return;sunAnchor=anchor;sun.target.position.set(fx,0,fz);sun.position.set(fx-8,19,fz+5);sun.target.updateMatrixWorld();quality.shadowsChanged();}
 function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);followSun();updateAtmosphere(dt);quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);// Ambience: a breeze on the splash, silence in the opening scene, then the area's own profile.
- gameAudio.update(dt,splash.active?'splash':opening.finished?areas.active?.music||'clearing':'intro',narrator.visible.peek(),!!combat?.inCombat,splash.active?'breeze':opening.inClearing?areas.active?.ambience||'meadow':'none');if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);spaces.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);lootPiles.update(dt,elapsed,hover?.actor);jobs.update();updateJobMarkers(dt);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
+ gameAudio.update(dt,splash.active?'splash':opening.finished?areas.active?.music||'clearing':'intro',narrator.visible.peek(),!!combat?.inCombat,splash.active?'breeze':opening.inClearing?areas.active?.ambience||'meadow':'none');if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);spaces.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);discoverNearbyCrystals();lootPiles.update(dt,elapsed,hover?.actor);jobs.update();updateJobMarkers(dt);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
  let sleeping=asleep&&idleClock.sleepTime>=SLEEP_SETTLE;
@@ -988,6 +997,8 @@ if(__PLAYGROUND__){
    // An editor rebuild is a loading stall, not the device's speed: Auto quality warms up again.
    if(current.rebuild(dirty,{wrap})){quality.settle();attachCrowd(current);if(editorArea.land)editorArea.land.landKey=JSON.stringify([data.land,data.size]);return current;}}
   if(!editorArea){const group=new THREE.Group();group.name='world-editor';scene.add(group);editorArea={group,tiles:new Map(),built:null,land:null};
+   // The edited map's Iter Crystals: destinations of their own (crystal-places.js), the ground round one loaded before you arrive.
+   crystalPlaces.provide('world-editor',()=>{const b=editorArea.built;return b?mapCrystals(b.data).map(c=>({id:c.id,name:c.name,known:!!c.known,tile:()=>b.tiles.get(key(c.x,c.z)),prime:()=>{editorArea.land?.streamer.prime(c.x,c.z);b.stream?.(b.tiles.get(key(c.x,c.z)));}})):[];});
    streamedWorlds.add({get streamer(){return editorArea.land?.streamer;},get builtMap(){return editorArea.land?editorArea.built:null;}});
    areas.register({id:'world-editor',name:'World editor',description:'Playground: world editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,
     biomeAt:(x,z)=>editorArea.land?.land.biomeAt(x,z)??null,
@@ -1000,7 +1011,8 @@ if(__PLAYGROUND__){
   await editorLand(data);
   // On the land, the town's chunks show by the land's rule (radius 1), so ground and buildings stream together.
   // A map on the land streams its content per chunk too (world-map.js lazy; docs/TOWN.md, Streaming a map's content).
-  const built=buildMap(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?drawRadius():null,lazy:!!editorArea.land});built.areaId='world-editor';editorArea.built=built;attachCrowd(built);loadedMaps['world-editor']=built;
+  const built=buildMap(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?drawRadius():null,lazy:!!editorArea.land,
+   crystal:(t,parent,entry,tileAt)=>crystals.add({tile:t,parent,place:entry.id,label:'Use Iter Crystal',tileAt})});built.areaId='world-editor';editorArea.built=built;attachCrowd(built);loadedMaps['world-editor']=built;
   editorArea.tiles.clear();for(const [k,t] of built.tiles)editorArea.tiles.set(k,t);
   let landing=here&&(built.tiles.get(key(here.x,here.z))||built.ground?.tile(here.x,here.z));if(!landing||landing.blocked||landing.water)landing=built.spawn;
   const first=areas.id!=='world-editor';stopAll();splash.close();opening.enterFreePlay();if(first)craftingTutorial.reset();
@@ -1069,6 +1081,9 @@ if(__PLAYGROUND__){
   drawDistance:quality.drawDistance,setDrawDistance:chunks=>quality.setDrawDistance(chunks),
   // Biome atmosphere (atmosphere.js) on or off: the world editor's View.
   atmosphereOn,
+  // Iter Crystal discovery (crystal-places.js): every crystal at once, or forget them all; and what's known.
+  discoverAllCrystals(){crystalPlaces.discoverAll();return crystalPlaces.discovered.length;},forgetCrystals(){crystalPlaces.reset();},
+  get crystalPlaces(){return crystalPlaces.list().map(p=>({id:p.id,name:p.name,area:p.area,listed:crystalPlaces.listed(p.id)}));},
   // The tile the view is over (the free camera's focus, else the slime's).
   viewTile:()=>viewTile(),
   // Moves the view over a tile (the world editor's checks): the free camera's focus (turned on if it's off).
@@ -1285,7 +1300,7 @@ if(__PLAYGROUND__){
   wake(){idleClock.wake();},
   stop(){cancelWork();path=[];segment=null;target=null;gatherTime=0;player.position.set(tile.x-6,tile.h,tile.z-6);feedback.clearDestination();},
   reset(kind){
-   campfires.reset(kind==='all'?undefined:world);
+   campfires.reset(kind==='all'?undefined:world);if(kind==='all')crystalPlaces.reset();
    travel.cancel();if(areas.id!=='clearing'||kind==='all'){areas.activate('clearing',{landing:clearingTiles.get(key(SPAWN.x,SPAWN.z)),arrival:false});finale.reset();}if(kind==='all'){craftingTutorial.reset();opening.enterFreePlay();resetObjectives();for(const object of clearingObjects)object.visible=true;introTile.visible=false;player.visible=true;}
    clearSkillRewards();itemFeed.clear();messages?.clear();
    resourceActions.resetWhere(n=>clearingTiles.get(key(n.x,n.z))===n.tile&&(kind==='all'||kind==='items'&&!['tree','boulder'].includes(n.kind)||kind==='trees'&&n.kind==='tree'||kind==='boulders'&&n.kind==='boulder'));

@@ -5,6 +5,7 @@ import {stairProblems,DIRS} from './map-terrain.js';
 import {interiorProblems} from './spaces.js';
 import {townsfolkProblems} from './townsfolk.js';
 import {CHUNK,REGION,withinChunk} from './world-grid.js';
+import {mapCrystals,crystalCells} from './map-file.js';
 
 // Map checks (docs/CITY.md, Authoring: live checks; city Phase 6). The editor lists these; tests run
 // them over every city in the repo. Each problem: {kind, severity: 'error'|'warning', tile:[x, z],
@@ -45,6 +46,15 @@ export function mapProblems(data,built){
  const owners=new Map(),claim=(xz,what)=>{const k=xz.join(',');if(owners.has(k))add('overlap','error',xz,`${what} overlaps ${owners.get(k)}.`);else owners.set(k,what);};
  data.buildings.forEach((b,i)=>{try{for(const xz of footprintTiles(b,'building'))claim(xz,`building ${b.desc.name||i}`);}catch(error){add('building','error',[b.x,b.z],error.message);}});
  data.props.forEach(p=>{if(!PROPS[p.kind]){add('prop','error',[p.x,p.z],`Unknown prop "${p.kind}".`);return;}for(const xz of footprintTiles(p,'prop'))claim(xz,PROPS[p.kind].name.toLowerCase());});
+ // Iter Crystals (docs/TOWN.md, Iter Crystals): each has an id and a name (the teleport list shows it), no two
+ // share an id, and each stands on 2 × 2 open, dry, level tiles.
+ const crystalIds=new Set();
+ for(const c of mapCrystals(data)){const at=[c.x,c.z],label=c.name||c.id||'An Iter Crystal';
+  if(!c.id)add('crystal','error',at,`${label} has no id.`);else if(crystalIds.has(c.id))add('crystal','error',at,`Two Iter Crystals share the id "${c.id}".`);else crystalIds.add(c.id);
+  if(!c.name)add('crystal','warning',at,`The Iter Crystal "${c.id}" has no name for the teleport list.`);
+  const tiles=crystalCells(c).map(([x,z])=>map.get(key(x,z)));
+  if(tiles.every(Boolean)&&(tiles.some(t=>t.water)||tiles.some(t=>Math.abs(t.h-tiles[0].h)>.01)))add('crystal','error',at,`${label} needs 2 × 2 dry, level ground.`);
+  for(const xz of crystalCells(c))claim(xz,`the Iter Crystal ${label}`);}
  for(const t of map.values())if(t.stair)claim([t.x,t.z],'stairs');
  // Doors: a doorstep you can stand on, reachable from the arrival point; the door rule.
  const doorsteps=new Set();

@@ -94,7 +94,7 @@ export const KIT_ANNEX={
 };
 export function kitStreetData(){
  const data=createMapData({id:'kit-street',name:'Kit street',size:[91,61],base:1,surface:'grass',style:'timber'});
- data.spawn=[...GRAYBOX.spawn];data.crystal=[...GRAYBOX.crystal];
+ data.spawn=[...GRAYBOX.spawn];data.crystals=[{id:'kit-street',name:'Kit street',x:GRAYBOX.crystal[0],z:GRAYBOX.crystal[1],known:true}];
  fillMap(data,GRAYBOX.plaza,{surface:'plaza'});
  for(const s of STREETS)fillMap(data,s,{surface:'cobble'});
  BUILDINGS.forEach((b,i)=>data.buildings.push({x:b.x0,z:b.z0,desc:kitDescription(b,i)}));

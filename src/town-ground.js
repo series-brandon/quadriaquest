@@ -6,7 +6,7 @@ import {key} from './world.js';
 import {surfaceColor} from './map-terrain.js';
 import {hash} from './noise.js';
 import {biomeRule} from './biome-rules.js';
-import {unpackLand} from './map-file.js';
+import {unpackLand,mapCrystals,crystalCells} from './map-file.js';
 
 // Towns built on the world's land (docs/TOWN.md, The town on the land). A town with `land` has no ground
 // of its own: every tile starts as the generated biome land (biome-land.js), the same heights, colours
@@ -19,7 +19,7 @@ import {unpackLand} from './map-file.js';
 //  - surfaces: painted tiles (roads, paths, planks) replace the land's own ground; unpainted tiles show
 //    the biome's ground and colours.
 // Water stays where nothing is made on it; a made tile over water (a road across a pond) is dry ground.
-// Made tiles (painted, offset, pads, props, the crystal) grow no trees, cover or enemies (townSource).
+// Made tiles (painted, offset, pads, props, the crystals) grow no trees, cover or enemies (townSource).
 // createTownGround(data, land?) → {land, inside(x, z), tile(x, z), base(x, z), made(x, z), pads}
 //   tile(x, z): the town's ground there (a fresh tile, for the city to build on; null past the map's edge)
 export const PAD_APRON=1;
@@ -133,7 +133,7 @@ export function townSource(land,ground,townTiles,townData=()=>null){
   topColor:t=>t.water?land.topColor(t):color(surfaceColor(t)),
   entities(list){const {removed,resources}=hand(list),byKey=new Map(list.map(t=>[key(t.x,t.z),t]));
    const grown=grows()?land.entities(keep(list)).filter(e=>!removed.has(e.id)&&!resources.has(key(e.x,e.z))):[];
-   const crystal=townData()?.crystal,placed=[...resources.values()].filter(r=>resourceFits(byKey.get(key(r.x,r.z)))&&!(crystal&&crystal[0]===r.x&&crystal[1]===r.z)).map(r=>({id:placedId(r),kind:r.kind,x:r.x,z:r.z,...r.kind==='tree'?{species:r.species||'oak'}:{}}));
+   const onCrystal=new Set(mapCrystals(townData()).flatMap(crystalCells).map(([x,z])=>key(x,z))),placed=[...resources.values()].filter(r=>resourceFits(byKey.get(key(r.x,r.z)))&&!onCrystal.has(key(r.x,r.z))).map(r=>({id:placedId(r),kind:r.kind,x:r.x,z:r.z,...r.kind==='tree'?{species:r.species||'oak'}:{}}));
    return [...grown,...placed];},
   extras(list){const data=townData(),{removed}=hand(list),on=new Set(list.map(t=>key(t.x,t.z)));
    const grown=land.extras(keep(list)).filter(e=>!removed.has(e.id)&&(e.kind==='enemy'?data?.land?.enemies!==false:e.kind==='fishing'?data?.land?.fishing!==false:true));
