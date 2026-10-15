@@ -214,25 +214,25 @@ User report: strips of meadow where a sea painted to the overworld's edge met th
 ## Atmosphere and the minimap (2026-10-15)
 
 User request: section 3 of the editor plan, without music (music and ambience will come later, as themes by region or by a custom border).
-- **Atmosphere** (`src/atmosphere.js`): fog, the light's tint and drifting particles follow the biome under the view. Changes crossfade over a couple of seconds; particles fade out, switch kind and fade back in.
-  - **Where:** an area with biome land gives `biomeAt(x, z)` (`areas.register`): the world editor's map and the Biome test. Anywhere else it settles back to clear.
-  - **Data:** each biome's `atmosphere` is `{fog: {color, density 0..1}, light: {sky, ground, sun (tints), brightness}, particles}`. All six starter biomes have one now:
+- **Atmosphere** (`src/atmosphere.js`): a light haze everywhere, and the fog and light's tint of the biome under the view. Changes crossfade over a couple of seconds.
+  - **The haze** (user, 2026-10-15): the coast's light fog, in every area, biome land or not: clear round what the view looks at, fading into the area's own background at the draw distance, so the edge of the drawn land never shows. A biome with fog of its own thickens it and tints it towards its colour.
+  - **Where:** an area with biome land gives `biomeAt(x, z)` (`areas.register`): the world editor's map and the Biome test. Anywhere else only the haze shows.
+  - **Data:** each biome's `atmosphere` is `{fog: {color, density 0..1}, light: {sky, ground, sun (tints), brightness}}`:
 
-    | Biome | Fog | Light | Particles |
-    |---|---|---|---|
-    | Meadow | none | warm sun | pollen |
-    | Broadleaf forest | light, green-grey | a little dimmer, green sky | falling leaves |
-    | Pine forest | light, grey-green | cooler, dimmer | falling needles |
-    | Hills | none | a little brighter | thistledown |
-    | Coast | faint, pale blue | bright, cool sky | sea spray |
-    | Wetland | the thickest, grey-green | a little dimmer | midges |
+    | Biome | Fog | Light |
+    |---|---|---|
+    | Meadow | the haze | warm sun |
+    | Broadleaf forest | light, green-grey | a little dimmer, green sky |
+    | Pine forest | light, grey-green | cooler, dimmer |
+    | Hills | the haze | a little brighter |
+    | Coast | the haze, pale blue | bright, cool sky |
+    | Wetland | the thickest, grey-green | a little dimmer |
 
-  - **Fog** is in the scene only while a biome's fog shows, and never on the Low quality tiers: kept in the scene always, every material paid for it on every pixel, which took a software-rendered clearing from 47 to 7 fps (perf A/B). Turning it on or off switches between cached programs (the first time compiles). Its range follows the camera's far plane (the draw distance).
-  - **Low tiers:** half the particles, and the mist wall draws only its two outer layers with one noise lookup.
-  - **Particles:** one pool of 900 points round the view, moved entirely in their shader (fall, sway, drift, flutter, jitter) and wrapped round the view's centre so the field stays put in the world. Kinds are in `PARTICLES`; leaves and needles are flat flakes, the rest soft specks. No per-particle CPU work.
-  - **Playground:** the world editor's *Map* → *View* → *Atmosphere* switch; the Biome test shows every kind. A test (`atmosphere.test.js`) checks every biome's particles exist, the fog range, and the crossfade there and back.
+  - **Fog** is measured from what the view looks at, not the camera: clear to just past it, thickening to whole at the draw distance, so zooming out never buries the view (user report, 2026-10-15). It's off on the Low quality tiers: there every material paid for it on every pixel, which took a software-rendered clearing from 47 to 7 fps (perf A/B).
+  - **Particles** (pollen, leaves, needles, midges, spray, thistledown) were tried and dropped (user, 2026-10-15: they looked bad).
+  - **Playground:** the world editor's *Map* → *View* → *Atmosphere* switch (the biome's part on or off; the haze stays); the Biome test shows every biome. A test (`atmosphere.test.js`) checks the fog range, the haze everywhere, the crossfade there and back, and no fog on the Low tiers.
 - **Minimap colours:** open ground on biome land takes its biome's `ground.minimap` colour (its shore or rock their own), muted a fifth towards the minimap's ground colour so it sits with the rest. Water, indoors and what blocks keep their colours (`minimapTileColor`, `player-interface-policy.js`).
-- **Not yet:** music and ambience by biome (to be themes by region or custom border); fireflies need a time of day first.
+- **Not yet:** music and ambience by biome (to be themes by region or custom border).
 
 ## Open questions
 

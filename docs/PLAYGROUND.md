@@ -13,7 +13,7 @@ Every starter biome from [BIOMES.md](BIOMES.md), as bands of land 24 tiles deep 
 - **New seed:** regenerates the same bands with another seed.
 - **What's here?:** names the biome, height and water under you.
 - **Chunk outlines:** shows the streamed chunks.
-- **Atmosphere** (BIOMES.md, *Atmosphere*): walking between bands crossfades each biome's fog, light and particles, and the minimap shows each biome's colour. `window.quadriaquest.getState().atmosphere` reports the biome, particle kind, particle opacity and fog.
+- **Atmosphere** (BIOMES.md, *Atmosphere*): walking between bands crossfades each biome's fog and light over the haze every area has, and the minimap shows each biome's colour. `window.quadriaquest.getState().atmosphere` reports the biome, the fog density and whether fog is on.
 
 ## Streaming test
 
@@ -60,8 +60,9 @@ Previews run in place without consuming items or earning XP. Stop to play normal
   - Smooth, brush sizes up to 9 × 9, a straight-line brush shape, and water in Surface.
 - **Prop gallery:** every prop by category, with their live interactions (sit, sleep, cook, smith, open, read), a fence gate, a low stone wall and an iron gate.
 - **Force cutaway:** cuts every building at once (no roofs, one-storey walls).
+- **Play from where you work:** *Play* puts the slime on the open tile nearest the view and gives the camera back to it, as in the game; *Edit* frees the camera again. *Player here* (*Map* → *View*) moves the slime there without leaving Edit. The debug panel's *Maps* has *Player to camera* for the same outside the editor.
 - **Draw distance:** the world editor's top row has it too (*Draw*), the same setting as Settings.
-- **The world's edge and atmosphere** (docs/TOWN.md, *The mist wall*; BIOMES.md, *Atmosphere*): the *Map* group's *View* has *Atmosphere* (biome fog, light and particles on or off) and *Show the mist wall* (the camera looks at the edge nearest the view). In *Play*, clicking past the edge says the mist is too thick. Gelton's countryside (*Enter Gelton*) has the mist round it too.
+- **The world's edge and atmosphere** (docs/TOWN.md, *The mist wall*; BIOMES.md, *Atmosphere*): the *Map* group's *View* has *Atmosphere* (biome fog and light on or off; the haze stays) and *Show the mist wall* (the camera looks at the edge nearest the view). In *Play*, clicking past the edge says the mist is too thick. Gelton's countryside (*Enter Gelton*) has the mist round it too.
 - **Reworked props** (docs/TOWN.md, *Reworked props*): the stall, counters, lamps, crates, barrels, fences, gates and trees show in the catalogue, the model preview and anywhere they're placed.
 - **Free camera** (also a switch in the world editor):
   - the camera leaves the slime;

@@ -135,9 +135,12 @@ The same approach as Gelton's countryside (WORLD.md, *The land*), with more of i
 - **It has no story.** It's a soft border instead of a hard "end of the world".
 - **As built (2026-10-15,** `src/mist-wall.js`**):**
   - **Where:** round any map on the land (the shared map builder, `world-map.js`), and round Gelton's countryside (main.js). The overworld's edge is the world's edge.
-  - **Look:** four soft layers stand 0.7 to 5 tiles out, 9 to 17 units tall, all in one mesh (one draw: as chunk-long pieces, the wall round Gelton's countryside cost 36 draws, perf run 2026-10-15). They're shaded cool grey-blue in their folds and bright where they billow, so they read against the pale sky. They drift in their shader.
-  - **Never in the way:** mist nearer the camera than what it looks at thins away (as the cutaway opens buildings), so standing by the south or east edge never hides you.
+  - **Look** (user, 2026-10-15: a hard wall, like a fog gate, after soft layers kept showing seams): one opaque surface, 18 units tall, a tenth of a tile outside the edge line (on it, it fought the edge tiles' side faces). Grey-white mist swirls up and along it (a warped noise field in its shader) with brighter wisps, and its top billows into the sky. Its foot is below the floor, so it never meets the ground in a line. One mesh, one draw.
+  - **Only within the draw distance:** past it (measured square from what the view looks at, as chunks stream) there's no land drawn and no mist either; it fades in over the last 16 tiles as you near the edge (user report, 2026-10-15: it showed on the horizon from anywhere).
+  - **Never in the way:** where it stands between the camera and what the view looks at (you, by the south or east edge), it turns see-through (as the cutaway opens buildings).
+  - **Low tiers:** the swirl without its warp (2 noise lookups a pixel instead of 12): low-perf `mist-edge` 15 fps, dev-gpu unchanged.
   - **Per frame:** two uniforms (the time, and how far the camera is from what it looks at).
+  - **The floor beyond:** the pale floor under the world (click misses land on it) is 2,400 units square and follows the view, so it's under every map's whole extent (user report, 2026-10-15: it only covered the corner at the origin).
   - **The edge:** the map's last tiles are walkable (the whole map is usable). Clicking past them says "The mist is too thick to go on." (`mistAt`).
   - **Playground:** *Show the mist wall* in the world editor's *Map* → *View* looks at the edge nearest the view.
 

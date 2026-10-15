@@ -1278,7 +1278,10 @@ export function createWorldEditor(host){
   return h('div',{class:'q-world-editor','data-mode':()=>mode.value},
    // One row along the top: Edit / Play, the walls, levels, the tool groups, and Undo, Redo, Reset, Close.
    h('header',{class:'q-world-editor__bar','aria-label':'World editor'},
-    segmented({label:'Mode',options:[{value:'edit',label:'Edit'},{value:'play',label:'Play'}],value:mode,onChange:v=>{if(v==='play'&&holding())cancel();mode.value=v;status.value=v==='play'?'Test walk: clicks move you. Reset rebuilds the edited state.':'Edit: clicks use the tool.';}}),
+    segmented({label:'Mode',options:[{value:'edit',label:'Edit'},{value:'play',label:'Play'}],value:mode,onChange:v=>{if(v==='play'&&holding())cancel();mode.value=v;
+     // Play is the game: you're put where you were working, and the camera follows you; Edit frees it again.
+     if(v==='play'){const here=host.playerHere?.();host.freeCamera?.(false);status.value=here?'Test walk: clicks move you. Reset rebuilds the edited state.':'Test walk (no open ground near the view: you stay where you were).';}
+     else{host.freeCamera?.(true);status.value='Edit: clicks use the tool.';}}}),
     h('div',{class:'q-world-editor__edit',hidden:()=>mode.value!=='edit'},
      segmented({label:'Walls',options:[{value:'up',label:'Walls up'},{value:'cut',label:'Cutaway'},{value:'down',label:'Walls down'}],value:options.wallsMode,onChange:v=>{options.wallsMode.value=v;}}),
      h('div',{class:'q-world-editor__actions q-world-editor__levels'},smallButton('▲',()=>goLevel(1),{title:'Up a level (Page Up)','aria-label':'Up a level'}),smallButton('▼',()=>goLevel(-1),{title:'Down a level (Page Down)','aria-label':'Down a level'}),
@@ -1351,9 +1354,9 @@ export function createWorldEditor(host){
         group(()=>{revision.value;return data?`Size · ${data.size.join(' × ')}`:'Size';},fields(select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 region (${REGION})`],['2','2 regions']])),
          buttons(smallButton('Grow map',()=>growBy()),h('span',{hidden:()=>{revision.value;return !data||data.size.every(v=>v%REGION===0);}},smallButton('Round up to whole regions',()=>growBy(true))))),
         group('View',h('div',{class:'q-world-editor__toggles'},host.freeCameraOn?toggleSwitch({label:'Free camera',description:'WASD or middle-drag to pan',on:()=>host.freeCameraOn.value,onChange:v=>host.freeCamera(v)}):null,
-         host.atmosphereOn?toggleSwitch({label:'Atmosphere',description:'Fog, light and particles by biome',on:()=>host.atmosphereOn.value,onChange:v=>{host.atmosphereOn.value=v;}}):null,
+         host.atmosphereOn?toggleSwitch({label:'Atmosphere',description:'Fog and light by biome (the haze stays)',on:()=>host.atmosphereOn.value,onChange:v=>{host.atmosphereOn.value=v;}}):null,
          toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}})),
-         buttons(smallButton('Show the mist wall',showMist,{title:'Look at the world’s edge nearest the view'}))),
+         buttons(smallButton('Show the mist wall',showMist,{title:'Look at the world’s edge nearest the view'}),host.playerHere?smallButton('Player here',()=>{status.value=host.playerHere()?'The slime is where the view is.':'No open ground near the view.';},{title:'Move the slime to where the view is (Play does too)'}):null)),
         wideGroup(()=>`Checks · ${counts.value}`,
          keyedList(h('ol',{class:'q-world-editor__checks'}),problems,p=>`${p.kind}:${p.tile.join(',')}:${p.text}`,p=>h('li',null,h('button',{type:'button',class:'q-world-editor__check','data-severity':p.peek().severity,
           'aria-current':()=>String(shownProblem.value===p.value),on:{click:()=>showProblem(p.peek())}},label(p.peek())))))))))));

@@ -109,7 +109,7 @@ window.addEventListener('quadriaquest-level',()=>gameAudio.cue('level'));
 effect(()=>{const n=objectiveNotice.value;if(n)untracked(()=>gameAudio.cue(n.kind,n.part&&n.kind==='progress'?n.part.current/n.part.total:n.total?n.current/n.total:0));});
 import * as THREE from 'three';
 import {makeWorld,findPath,key,SPAWN,canMove as stepAllowed,DIAGONAL_MOVES} from './world.js';
-import {chunkId} from './world-grid.js';
+import {chunkId,CHUNK} from './world-grid.js';
 import {createFeedback} from './feedback.js';
 import {createContactShadow} from './contact-shadow.js';
 import {createOpening} from './opening.js';
@@ -151,7 +151,7 @@ if(__PLAYGROUND__){
  addEventListener('keyup',e=>panKeys.delete(e.key.toLowerCase()));addEventListener('blur',()=>panKeys.clear());
 }
 const hemisphere=new THREE.HemisphereLight('#fffce8','#879981',2.6);scene.add(hemisphere);const sun=new THREE.DirectionalLight('#fff3d3',3);sun.position.set(-8,19,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,far:80});sun.shadow.normalBias=.008;scene.add(sun);
-// Fog, light and particles by the biome under the view (atmosphere.js); clear where there's no biome land.
+// A light haze everywhere, thickened and tinted with the light by the biome under the view (atmosphere.js).
 const atmosphere=createAtmosphere({scene,hemisphere,sun}),atmosphereOn=signal(true);
 // Resolution, shadow map and shadow cadence by tier; Auto starts software rendering on Low and steps down when slow.
 const quality=createRenderQuality({renderer,light:sun,rendererName:(()=>{const gl=renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'';})(),onChange:()=>resize?.()});
@@ -165,14 +165,16 @@ let idx=0;const waterEffects=createWaterEffects(scene,renderer),grassFor=new Map
 for(const t of world.values()){
  if(t.water){for(const m of addWaterTile(scene,t,world,waterEffects)){m.userData.tile=t;pickables.push(m);}}else grassFor.set(t,grass[idx++%4]);
 }
-const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);const ground=mesh(new THREE.PlaneGeometry(200,200),mat('#e5e9df'));ground.rotation.x=-Math.PI/2;ground.position.y=-.045;ground.castShadow=false;
+const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);// The floor under the world (click misses land on it): large, and kept under the view (updateAtmosphere), so
+// every map, however big, has it under all its tiles.
+const ground=mesh(new THREE.PlaneGeometry(2400,2400),mat('#e5e9df'));ground.rotation.x=-Math.PI/2;ground.position.y=-.045;ground.castShadow=false;
 const trees=[];
 for(const t of world.values())if(t.blocked&&!t.water)trees.push(createResourceEntity({kind:BOULDER_TILES.has(key(t.x,t.z))?'boulder':'tree',tile:t,parent:scene,pickables}));
 createTerrainBatch({tiles:[...grassFor.keys()],map:world,factory:t=>makeTerrainTile(t,world,grassFor.get(t)),parent:scene,pickables,preserve:grass,roughness:.9,
  decorate(t,model){if(!t.blocked&&(t.x*17+t.z*13)%7===0){const flowers=makeFlowers();flowers.position.y=t.h;model.add(flowers);}}});
 const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[];
 resourceSpecs.forEach(([x,z,kind],id)=>resources.push(createResourceEntity({kind,tile:world.get(key(x,z)),parent:scene,pickables,id})));
-const clearingObjects=scene.children.filter(object=>!object.isLight&&object!==atmosphere.points);
+const clearingObjects=scene.children.filter(object=>!object.isLight);
 const clearingGroup=new THREE.Group();scene.add(clearingGroup);for(const object of clearingObjects)if(object!==ground)clearingGroup.add(object);
 for(const object of clearingObjects)object.visible=false;
 const introTile=new THREE.Group();scene.add(introTile);introTile.position.set(0,0,-2);
@@ -763,9 +765,8 @@ function panFreeCamera(dt){
 }
 // The mist wall's drift and thinning, and the atmosphere of the biome under the view (an area with biome land
 // has biomeAt(x, z)).
-const drawingBuffer=new THREE.Vector2();
-function updateAtmosphere(dt){const focus=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,at=viewTile();const detail=['low','lowest'].includes(quality.tier.peek())?0:1;updateMistWalls(clock.elapsedTime,camera.position.distanceTo(focus),detail);
- renderer.getDrawingBufferSize(drawingBuffer);atmosphere.update(dt,{biome:splash.active?null:areas.active?.biomeAt?.(at.x,at.z)??null,center:focus,camera,far:camera.far,on:atmosphereOn.peek(),viewportHeight:drawingBuffer.y,detail});}
+function updateAtmosphere(dt){const focus=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,at=viewTile();ground.position.x=Math.round(focus.x);ground.position.z=Math.round(focus.z);const detail=['low','lowest'].includes(quality.tier.peek())?0:1,focusDistance=camera.position.distanceTo(focus),range=(drawRadius()+.5)*CHUNK;updateMistWalls(clock.elapsedTime,focusDistance,detail,focus,range);
+ atmosphere.update(dt,{biome:splash.active?null:areas.active?.biomeAt?.(at.x,at.z)??null,range,focusDistance,background:scene.background,on:atmosphereOn.peek(),detail});}
 function followSun(){const at=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,fx=Math.round(at.x/4)*4,fz=Math.round(at.z/4)*4,anchor=`${fx},${fz}`;if(anchor===sunAnchor)return;sunAnchor=anchor;sun.target.position.set(fx,0,fz);sun.position.set(fx-8,19,fz+5);sun.target.updateMatrixWorld();quality.shadowsChanged();}
 function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);followSun();updateAtmosphere(dt);quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);// Ambience: a breeze on the splash, silence in the opening scene, then the area's own profile.
  gameAudio.update(dt,splash.active?'splash':opening.finished?areas.active?.music||'clearing':'intro',narrator.visible.peek(),!!combat?.inCombat,splash.active?'breeze':opening.inClearing?areas.active?.ambience||'meadow':'none');if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);spaces.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);lootPiles.update(dt,elapsed,hover?.actor);jobs.update();updateJobMarkers(dt);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
@@ -1068,6 +1069,9 @@ if(__PLAYGROUND__){
   viewTile:()=>viewTile(),
   // Moves the view over a tile (the world editor's checks): the free camera's focus (turned on if it's off).
   lookAt(x,z){if(!freeCam)this.freeCamera(true);const t=world.get(key(x,z));freeCam.focus.set(x-6,t?.h??freeCam.focus.y,z-6);return true;},
+  // Moves the slime to where the view is (the free camera's focus): the nearest open tile, searching outwards
+  // (the world editor's Play and Player here, the debug tool). Returns the tile, or null when none is near.
+  playerHere(){const at=viewTile();for(let r=0;r<=8;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;if(this.teleport(at.x+dx,at.z+dz))return tile;}return null;},
   freeCamera(on=!freeCam){
    if(on&&!freeCam)freeCam={focus:cameraFocus.clone()};
    else if(!on&&freeCam){freeCam=null;panKeys.clear();zoom=Math.min(zoom,areas.active?.maxZoom??34);camera.far=baseFar;camera.updateProjectionMatrix();sunAnchor='';}

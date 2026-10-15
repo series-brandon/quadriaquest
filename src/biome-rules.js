@@ -11,8 +11,8 @@
 //   resources   {kind, chance, where}: where is any, open, forest, high (rocky) or shore
 //   fishing     spot chance on water beside land; fish by water kind (one fish exists today)
 //   enemies     density per tile and a weighted table {enemy, weight, aggressive}
-//   atmosphere {fog {color, density 0..1}, light {sky, ground, sun tints, brightness}, particles (a kind in
-//               atmosphere.js PARTICLES)}: the look of the air there (atmosphere.js)
+//   atmosphere {fog {color, density 0..1}, light {sky, ground, sun tints, brightness}}: the look of the air
+//               there (atmosphere.js)
 //   wildlife, npcs, landmarks, audio {music, ambience}: data for later steps (docs/BIOMES.md, Building it)
 export const BIOME_DEFAULTS={
  name:'',
@@ -25,7 +25,7 @@ export const BIOME_DEFAULTS={
  enemies:{density:0,table:[]},
  wildlife:[],npcs:[],landmarks:[],
  audio:{music:null,ambience:'meadow'},
- atmosphere:{fog:null,light:null,particles:null},
+ atmosphere:{fog:null,light:null},
 };
 // The starter set (docs/BIOMES.md, The starter set). Water (the sea, rivers) is terrain.
 export const BIOME_RULES={
@@ -36,7 +36,7 @@ export const BIOME_RULES={
   resources:[{kind:'sticks',chance:.004,where:'open'},{kind:'stones',chance:.004,where:'open'},{kind:'flint',chance:.0015,where:'open'}],
   enemies:{density:.0002,table:[{enemy:'scrapper',weight:1,aggressive:false}]},
   wildlife:['butterflies','songbirds'],landmarks:['picnic','standing stone'],
-  audio:{ambience:'meadow'},atmosphere:{light:{sun:'#fff4dc'},particles:'pollen'}},
+  audio:{ambience:'meadow'},atmosphere:{light:{sun:'#fff4dc'}}},
  forest:{name:'Broadleaf forest',
   ground:{palette:['#6f9a58','#689352'],minimap:'#5f8a4c'},
   terrain:'rolling',
@@ -45,7 +45,7 @@ export const BIOME_RULES={
   resources:[{kind:'sticks',chance:.02,where:'forest'},{kind:'stones',chance:.003}],
   enemies:{density:.0006,table:[{enemy:'scrapper',weight:2,aggressive:false},{enemy:'bruiser',weight:1,aggressive:true}]},
   wildlife:['squirrels','woodland birds'],npcs:['woodcutter'],landmarks:["woodcutter's camp",'hunter\'s hide'],
-  audio:{ambience:'meadow'},atmosphere:{fog:{color:'#d6e0cc',density:.08},light:{sky:'#f1f7e8',sun:'#fff0d8',brightness:.94},particles:'falling leaves'}},
+  audio:{ambience:'meadow'},atmosphere:{fog:{color:'#d6e0cc',density:.08},light:{sky:'#f1f7e8',sun:'#fff0d8',brightness:.94}}},
  pines:{name:'Pine forest',
   ground:{palette:['#5f8a55','#58834f'],minimap:'#4c7349'},
   terrain:'uplands',
@@ -54,7 +54,7 @@ export const BIOME_RULES={
   resources:[{kind:'sticks',chance:.015,where:'forest'},{kind:'boulder',chance:.02,where:'high'},{kind:'stones',chance:.006,where:'high'}],
   enemies:{density:.0006,table:[{enemy:'scrapper',weight:1,aggressive:false},{enemy:'bruiser',weight:1,aggressive:true}]},
   wildlife:['owls'],landmarks:["hunter's hide"],
-  audio:{ambience:'meadow'},atmosphere:{fog:{color:'#d3dcd6',density:.12},light:{sky:'#eef3f2',sun:'#f4f2ea',brightness:.92},particles:'falling needles'}},
+  audio:{ambience:'meadow'},atmosphere:{fog:{color:'#d3dcd6',density:.12},light:{sky:'#eef3f2',sun:'#f4f2ea',brightness:.92}}},
  hills:{name:'Hills',
   ground:{palette:['#94ad73','#8ca66c'],minimap:'#8fa36e'},
   terrain:'hills',
@@ -63,7 +63,7 @@ export const BIOME_RULES={
   resources:[{kind:'copper',chance:.012,where:'high'},{kind:'boulder',chance:.02,where:'high'},{kind:'stones',chance:.006},{kind:'flint',chance:.002}],
   enemies:{density:.0004,table:[{enemy:'scrapper',weight:1,aggressive:false},{enemy:'bruiser',weight:2,aggressive:true}]},
   wildlife:['hawks'],landmarks:['old watchtower','cairn'],
-  audio:{ambience:'breeze'},atmosphere:{light:{sun:'#fffaf0',brightness:1.03},particles:'thistledown'}},
+  audio:{ambience:'breeze'},atmosphere:{light:{sun:'#fffaf0',brightness:1.03}}},
  coast:{name:'Coast',
   ground:{surface:'sand',palette:['#e3d3a3','#dccb99'],shore:{surface:'sand',palette:['#d8c48e','#d1bd86']},minimap:'#e3d3a3'},
   terrain:'plains',
@@ -72,7 +72,7 @@ export const BIOME_RULES={
   resources:[{kind:'flint',chance:.004},{kind:'stones',chance:.004},{kind:'sticks',chance:.002}],
   fishing:{spots:.05},
   wildlife:['gulls','crabs'],landmarks:['shipwreck','tide pools','lighthouse'],
-  audio:{ambience:'river'},atmosphere:{fog:{color:'#e6eef0',density:.05},light:{sky:'#f7fbff',sun:'#fffaf2',brightness:1.05},particles:'spray'}},
+  audio:{ambience:'river'},atmosphere:{fog:{color:'#e6eef0',density:.05},light:{sky:'#f7fbff',sun:'#fffaf2',brightness:1.05}}},
  wetland:{name:'Wetland',
   ground:{surface:'mud',palette:['#7f9a5c','#789455'],shore:{surface:'mud',palette:['#7a6f52','#73684c']},minimap:'#6f8a52'},
   terrain:'marsh',
@@ -81,7 +81,7 @@ export const BIOME_RULES={
   resources:[{kind:'sticks',chance:.006}],
   fishing:{spots:.09},
   wildlife:['frogs','dragonflies','herons'],landmarks:['boardwalk'],
-  audio:{ambience:'river'},atmosphere:{fog:{color:'#c9d3c4',density:.25},light:{sky:'#eef2e6',sun:'#f2eedc',brightness:.95},particles:'midges'}},
+  audio:{ambience:'river'},atmosphere:{fog:{color:'#c9d3c4',density:.25},light:{sky:'#eef2e6',sun:'#f2eedc',brightness:.95}}},
 };
 export const BIOME_IDS=Object.keys(BIOME_RULES);
 // A biome's full rules: its own over the defaults, one level deep (so a biome can set one ground value).
