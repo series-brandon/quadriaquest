@@ -157,6 +157,10 @@ export function mountPlayground(api){
   // A launcher tab (no page) in the journal's tab registry; it opens this debug panel.
   api.registerTab({id:'debug',tab:'show-debug-menu',label:'Debug',ariaLabel:'Show debug menu',order:1000,icon:()=>{const t=document.createElement('template');t.innerHTML='<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-14-2 16"/></svg>';return t.content.firstElementChild;},action:()=>{panel.open=true;panel.querySelector('summary').focus();}});
   const launcher=document.getElementById('show-debug-menu');launcher.setAttribute('aria-controls',panel.id);launcher.setAttribute('aria-expanded','false');
+  async function openWorldEditor(){const {createWorldEditor}=await import('./world-editor.js');worldEditor??=createWorldEditor(api);await worldEditor.open();window.quadriaquest.worldEditor=worldEditor;}
+  // The playground opens in the world editor on the overworld (docs/PLAYGROUND.md), unless the address asks for
+  // the game (?game; the perf harness always does). The editor's Map list switches to the game's clearing.
+  if(!new URLSearchParams(location.search).has('game'))setTimeout(()=>openWorldEditor().catch(error=>console.error(error)),0);
   panel.addEventListener('toggle',()=>{launcher.setAttribute('aria-expanded',String(panel.open));if(!panel.open&&panel.contains(document.activeElement))launcher.focus();});
 
   const $=id=>panel.querySelector('#dev-'+id);
@@ -204,7 +208,7 @@ export function mountPlayground(api){
         if(action==='combat'){status(api.combatAction($('combat').value));}
         if(action==='walkthrough'){status(api.walkThroughAction($('walkthrough').value));}
         if(action==='edges'){status(api.edgeAction($('edges').value));}
-        if(action==='world-editor'){stop();const {createWorldEditor}=await import('./world-editor.js');worldEditor??=createWorldEditor(api);await worldEditor.open();window.quadriaquest.worldEditor=worldEditor;status(`World editor: ${worldEditor.data.name}.`);}
+        if(action==='world-editor'){stop();await openWorldEditor();status(`World editor: ${worldEditor.data.name}.`);}
         if(action==='prop-gallery'){stop();status(await api.enterMap('prop-gallery')?'The prop gallery: every prop by category (hover for names; sit, sleep, cook, smith, open and read them), with a fence gate, a low stone wall and an iron gate at the top.':'Could not open the prop gallery.');}
         if(action==='free-camera'){status(api.freeCamera()?'Free camera: WASD or middle-drag to pan (Shift: faster), scroll to zoom far out.':'Camera back on the slime.');}
         if(action==='force-cutaway'){status(api.toggleForceCutaway()?'Force cutaway on: every building has no roof and one-storey walls.':'Force cutaway off.');}

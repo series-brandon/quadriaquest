@@ -35,7 +35,8 @@ export async function runScenario(session,{url,scenario,windows=3,windowMs=2500,
  const page=await context.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(String(e).slice(0,300)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text().slice(0,300));});
  try{
-  await page.goto(url);await page.waitForFunction(()=>window.quadriaquest?.perf,null,{timeout:30000});
+  // ?game: the playground starts in the game, not the world editor (scenarios set up their own areas).
+  const start=new URL(url);start.searchParams.set('game','');await page.goto(start.href);await page.waitForFunction(()=>window.quadriaquest?.perf,null,{timeout:30000});
   const renderer=await page.evaluate(()=>{const gl=document.querySelector('#game canvas').getContext('webgl2'),ext=gl.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);});
   if(env.requireGpu&&/swiftshader|llvmpipe|software/i.test(renderer))throw Error(`${session.name} requires hardware WebGL but got "${renderer}"`);
   const cdp=env.browser==='chromium'?await context.newCDPSession(page):null;

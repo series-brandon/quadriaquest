@@ -3,7 +3,6 @@ import {h,mount} from '../ui/dom.js';
 import {keyedList} from '../ui/list.js';
 import {segmented,toggleSwitch,section} from '../ui/controls.js';
 import {signal,computed,effect,untracked} from '../reactive.js';
-import {compactViewport} from '../ui/viewport.js';
 import {createMapData,growMap,mapHeight,mapSurface,setMapHeight,setMapSurface,clearMapSurface,mapOffset,setMapOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells} from '../world-map.js';
 import {mapProblems} from '../map-checks.js';
 import {planBuilding,BUILDING_PRESETS,ROOF_TYPES,ROOF_COLORS,AWNINGS,toShaped,shiftShaped,shapeRuns,connectedCells} from '../building-kit.js';
@@ -99,6 +98,8 @@ export function mapCatalogue(){
  // The repo's maps first (the overworld), then the playground's.
  const list=Object.entries(repoCities).map(([path,data])=>({id:'repo:'+path,mapId:data.id,name:`${data.name} (src/maps/${path.split('/').pop()})`,make:()=>structuredClone(data)}));
  list.sort((a,b)=>(b.mapId==='overworld')-(a.mapId==='overworld'));
+ // The game's own start (not a map file): choosing it leaves the editor for the clearing, a fresh start.
+ list.push({id:'area:clearing',mapId:null,name:'The clearing (where the game starts)',area:'clearing'});
  list.push({id:'prop-gallery',mapId:'prop-gallery',name:'Prop gallery (playground)',make:()=>propGalleryData()},{id:'blank',mapId:'new-map',name:'Blank 64 × 64',make:()=>createMapData({id:'new-map',name:'New map',size:[64,64]})});
  return list;
 }
@@ -106,7 +107,7 @@ export function mapCatalogue(){
 export function createWorldEditor(host){
  const catalogue=mapCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null,stopFloors=null,stopScreen=null;
- const tool=signal('select'),toolGroup=signal('decorate'),sideOpen=signal(!compactViewport().peek()),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
+ const tool=signal('select'),toolGroup=signal('decorate'),sideOpen=signal(false),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
  const options={paintColour:signal('#e8c8a0'),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
@@ -720,17 +721,21 @@ export function createWorldEditor(host){
   const chips=computed(()=>['All',...Object.keys(groups())].map(id=>({id})));
   const shows=kind=>{const g=catalogueGroup.value,q=catalogueSearch.value.trim().toLowerCase();return (g==='All'||(groups()[g]||[]).includes(kind))&&(!q||`${PROPS[kind].name} ${kind}`.toLowerCase().includes(q));};
   const variants=computed(()=>{const k=catalogueKind.value;return k?palettes.value.filter(p=>p.kind===k):[];});
-  const item=kind=>h('button',{type:'button',class:'q-world-editor__prop',title:`${PROPS[kind].name} (${PROPS[kind].footprint.join(' × ')})`,'aria-pressed':()=>String(catalogueKind.value===kind),hidden:()=>!shows(kind),on:{click:fail(()=>pickUpNew(kind))}},
-   h('img',{class:'q-world-editor__thumb',alt:'',width:56,height:56,src:()=>catalogueShown()?propThumbnail(kind).value||undefined:undefined}),h('span',null,PROPS[kind].name));
+  // Square icons only (the name shows on hover and to screen readers), as in the Sims.
+  const item=kind=>h('button',{type:'button',class:'q-world-editor__prop',title:`${PROPS[kind].name} (${PROPS[kind].footprint.join(' × ')})`,'aria-label':PROPS[kind].name,'aria-pressed':()=>String(catalogueKind.value===kind),hidden:()=>!shows(kind),on:{click:fail(()=>pickUpNew(kind))}},
+   h('img',{class:'q-world-editor__thumb',alt:'',width:56,height:56,src:()=>catalogueShown()?propThumbnail(kind).value||undefined:undefined}));
+  // Compact, bottom left: how to browse and search along the top; the groups on the left and the items on the
+  // right, two rows tall, scrolling down.
   return h('section',{class:'q-world-editor__catalogue','aria-label':'Catalogue',hidden:()=>!catalogueShown()},
    h('div',{class:'q-world-editor__catalogue-head'},
-    segmented({label:'Browse',options:[{value:'function',label:'By function'},{value:'room',label:'By room'}],value:catalogueBy,onChange:v=>{catalogueBy.value=v;catalogueGroup.value='All';}}),
+    segmented({label:'Browse',options:[{value:'function',label:'Function'},{value:'room',label:'Room'}],value:catalogueBy,onChange:v=>{catalogueBy.value=v;catalogueGroup.value='All';}}),
     h('input',{type:'search',class:'q-input','aria-label':'Search the catalogue',placeholder:'Search',value:()=>catalogueSearch.value,on:{input:e=>{catalogueSearch.value=e.target.value;}}})),
-   keyedList(h('div',{class:'q-world-editor__chips'}),chips,c=>c.id,c=>h('button',{type:'button',class:'q-world-editor__chip-button','aria-pressed':()=>String(catalogueGroup.value===c.value.id),on:{click:()=>{catalogueGroup.value=c.peek().id;}}},()=>c.value.id)),
-   h('div',{class:'q-world-editor__chips',hidden:()=>!variants.value.length},
-    h('button',{type:'button',class:'q-world-editor__chip-button',on:{click:fail(()=>pickUpNew(catalogueKind.peek()))}},'Own colours'),
-    keyedList(h('span',{class:'q-world-editor__chips'}),variants,p=>p.id,p=>h('button',{type:'button',class:'q-world-editor__chip-button',on:{click:fail(()=>pickUpNew(p.peek().kind,p.peek().colors))}},()=>p.value.name))),
-   h('div',{class:'q-world-editor__strip'},PROP_KINDS.map(item)));
+   keyedList(h('div',{class:'q-world-editor__groups'}),chips,c=>c.id,c=>h('button',{type:'button',class:'q-world-editor__group-button','aria-pressed':()=>String(catalogueGroup.value===c.value.id),on:{click:()=>{catalogueGroup.value=c.peek().id;}}},()=>c.value.id)),
+   h('div',{class:'q-world-editor__catalogue-main'},
+    h('div',{class:'q-world-editor__chips',hidden:()=>!variants.value.length},
+     h('button',{type:'button',class:'q-world-editor__chip-button',on:{click:fail(()=>pickUpNew(catalogueKind.peek()))}},'Own colours'),
+     keyedList(h('span',{class:'q-world-editor__chips'}),variants,p=>p.id,p=>h('button',{type:'button',class:'q-world-editor__chip-button',on:{click:fail(()=>pickUpNew(p.peek().kind,p.peek().colors))}},()=>p.value.name))),
+    h('div',{class:'q-world-editor__strip'},PROP_KINDS.map(item))));
  }
  // Previews (docs/TOWN.md, Preview ghosts): under the pointer, what a click or a stroke would change,
  // green where it fits and red where it doesn't, with a see-through model for props and the reason a
@@ -1221,7 +1226,7 @@ export function createWorldEditor(host){
      h('div',{hidden:shown('stairs')},select('Up towards',options.dir,Object.entries(SIDE_LABELS)),select('Length',options.length,[1,2,3,4].map(n=>[String(n),`${n} (${n/2} block${n>2?'s':''})`])),select('Width',options.width,[1,2,3,4,5].map(n=>[String(n),String(n)]))),
      h('div',{hidden:shown('edge')},select('Edge',options.edge,[['wall','Wall'],['window','Window'],['fence','Fence'],['railing','Railing'],['low','Counter'],['door','Door'],['none','Remove']]),select('Side',options.side,Object.entries(SIDE_LABELS)))),
     section({title:'Map'},
-     h('div',{class:'q-world-editor__row'},select('Map',choice,catalogue.map(c=>[c.id,c.name])),smallButton('Open',()=>load(catalogue.find(c=>c.id===choice.peek()).make()))),
+     h('div',{class:'q-world-editor__row'},select('Map',choice,catalogue.map(c=>[c.id,c.name])),smallButton('Open',()=>{const c=catalogue.find(m=>m.id===choice.peek());if(c.area){editor.close();host.reset?.('all');return;}return load(c.make());})),
      h('div',{class:'q-world-editor__row'},smallButton('Save to repo',save),
       smallButton('Copy JSON',async()=>{try{await navigator.clipboard.writeText(json());status.value='Copied the map JSON.';}catch{status.value='Copy failed: use Download.';}}),smallButton('Download',download)),
      h('div',{class:'q-world-editor__row'},select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 chunk (${CHUNK})`],['2','2 chunks'],['3','3 chunks']]),smallButton('Grow map',growBy)),
@@ -1238,6 +1243,8 @@ export function createWorldEditor(host){
   // (you stay where you are), else the overworld. `next` opens that data instead.
   async open(next=null){if(!view){view=mount(build);document.body.append(view.node);window.addEventListener('keydown',onKey,{capture:true});window.addEventListener('keyup',onKeyUp,{capture:true});
     // Editing fills the window (the player interface hides); Play shows it again for the test walk.
+    // The free camera while editing (the slime stays where it is); it comes back to the slime on Close.
+    if(host.freeCameraOn&&!host.freeCameraOn.peek())host.freeCamera(true);
     stopScreen=effect(()=>{const editing=mode.value==='edit';host.setEditorScreen?.(editing);host.setWalls?.(editing?options.wallsMode.value:'up');});
     // World clicks and left-drag belong to the editor only in Edit mode; in Play they reach the game.
     stopDrag=effect(()=>{const editing=mode.value==='edit';host.setTileClick(editing?(tile,point,actor)=>click(tile,point,actor):null);host.setTileHover?.(editing?hover:null);if(!editing)clearPreview();host.setTileDrag?.(editing&&DRAG_TOOLS.includes(tool.value)?drag:null);});
@@ -1252,7 +1259,7 @@ export function createWorldEditor(host){
    if(data&&here?.areaId==='world-editor'){showGrid();showSelection();showDraft();showBiomes();scheduleChecks(0);status.value=`Editing ${data.name} (${data.size.join(' × ')}).`;return editor;}
    if(here?.data){await load(structuredClone(here.data),{at:here.at});return editor;}
    await load(catalogue[0].make());return editor;},
-  close(){if(holding()||heldDoor||pendingFlight)cancel();stopScreen?.();stopScreen=null;host.setEditorScreen?.(false);host.setWalls?.('up');placing=null;moving.value=false;turning=null;pinned=null;window.removeEventListener('keyup',onKeyUp,{capture:true});stopFloors?.();stopFloors=null;host.setTileClick(null);host.setTileHover?.(null);spotsFill?.dispose();spotsFill=null;patrolling=false;patrolOn.value=false;stopPreview?.();stopPreview=null;clearPreview();hoverAt=null;stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
+  close(){if(holding()||heldDoor||pendingFlight)cancel();if(host.freeCameraOn?.peek())host.freeCamera(false);stopScreen?.();stopScreen=null;host.setEditorScreen?.(false);host.setWalls?.('up');placing=null;moving.value=false;turning=null;pinned=null;window.removeEventListener('keyup',onKeyUp,{capture:true});stopFloors?.();stopFloors=null;host.setTileClick(null);host.setTileHover?.(null);spotsFill?.dispose();spotsFill=null;patrolling=false;patrolOn.value=false;stopPreview?.();stopPreview=null;clearPreview();hoverAt=null;stopDrag?.();stopDrag=null;stopBiomes?.();stopBiomes=null;biomeOverlay?.dispose();biomeOverlay=null;host.setTileDrag?.(null);window.removeEventListener('keydown',onKey,{capture:true});clearTimeout(checkTimer);overlay?.dispose();overlay=null;outline?.dispose();outline=null;draftOutline?.dispose();draftOutline=null;view?.dispose();view=null;},
   get grid(){return grid.peek();},set grid(v){grid.value=!!v;showGrid();},
   click,undo:()=>step(undo,redo),redo:()=>step(redo,undo),
   // Fast editing, for scripted checks: the same actions as the panel and keys.

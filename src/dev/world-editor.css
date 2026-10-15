@@ -27,7 +27,7 @@
   border-radius: var(--q-modal-radius);
   background: var(--q-paper);
 }
-.q-world-editor__bar { grid-area: bar; display: grid; gap: 8px; }
+.q-world-editor__bar { grid-area: bar; justify-self: start; display: grid; gap: 8px; inline-size: max-content; max-inline-size: 100%; }
 .q-world-editor__bar[hidden], .q-world-editor__side[hidden], .q-world-editor__catalogue[hidden] { display: none; }
 .q-world-editor__bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .q-world-editor__bar-row[hidden] { display: none; }
@@ -79,18 +79,30 @@
 .q-world-editor__dots { display: flex; flex-wrap: wrap; gap: 4px; }
 .q-world-editor__dot { inline-size: 28px; block-size: 28px; padding: 0; border: 1px solid var(--q-modal-border); border-radius: 6px; cursor: pointer; }
 
-/* The catalogue: browse by function or room, a search box, group chips, and a strip of thumbnails that scrolls
-   sideways. */
-.q-world-editor__catalogue { grid-area: catalogue; display: grid; gap: 6px; align-self: end; overflow: hidden; }
-.q-world-editor__catalogue-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.q-world-editor__catalogue-head .q-input { flex: 1 1 160px; }
+/* The catalogue (compact, bottom left, as in the Sims): how to browse and search along the top, the groups on
+   the left, and square icons on the right, two rows tall, scrolling down. The groups take the icons' height. */
+.q-world-editor__catalogue {
+  grid-area: catalogue;
+  justify-self: start;
+  align-self: end;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  grid-template-areas: 'head head' 'groups main';
+  gap: 6px 8px;
+  inline-size: min(640px, 100%);
+}
+.q-world-editor__catalogue-head { grid-area: head; display: flex; align-items: center; gap: 8px; }
+.q-world-editor__catalogue-head .q-input { flex: 1 1 120px; min-inline-size: 0; }
+.q-world-editor__groups { grid-area: groups; contain: size; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.q-world-editor__group-button { flex: none; min-block-size: 30px; padding: 2px 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font-family: inherit; font-size: 12px; text-align: start; cursor: pointer; }
+.q-world-editor__group-button[aria-pressed='true'] { background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); font-weight: 600; }
+.q-world-editor__catalogue-main { grid-area: main; display: grid; gap: 6px; min-inline-size: 0; }
 .q-world-editor__chips { display: flex; gap: 4px; overflow-x: auto; }
 .q-world-editor__chips > * { flex: none; }
 .q-world-editor__chips[hidden] { display: none; }
 .q-world-editor__chip-button { min-block-size: 32px; padding: 2px 10px; border: 1px solid var(--q-modal-border); border-radius: 999px; background: transparent; color: inherit; font-family: inherit; font-size: 12px; cursor: pointer; }
-.q-world-editor__chip-button[aria-pressed='true'] { border-color: var(--q-control-pressed); background: var(--q-control-selected); }
-.q-world-editor__strip { display: grid; grid-auto-flow: column; grid-auto-columns: 84px; gap: 4px; overflow-x: auto; overflow-y: hidden; padding-block-end: 4px; }
-.q-world-editor__prop { display: grid; grid-template-rows: 56px auto; justify-items: center; gap: 2px; min-block-size: var(--q-touch); padding: 4px; border: 1px solid var(--q-modal-border); border-radius: 6px; background: transparent; color: inherit; font-family: inherit; font-size: 11px; line-height: 1.2; text-align: center; cursor: pointer; }
+.q-world-editor__strip { display: grid; grid-template-columns: repeat(auto-fill, 64px); grid-auto-rows: 64px; gap: 4px; block-size: calc(64px * 2 + 4px); overflow-y: auto; overflow-x: hidden; }
+.q-world-editor__prop { display: grid; place-items: center; inline-size: 64px; block-size: 64px; padding: 0; border: 1px solid var(--q-modal-border); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 .q-world-editor__prop[hidden] { display: none; }
 .q-world-editor__prop[aria-pressed='true'] { border-color: var(--q-control-pressed); box-shadow: inset 0 0 0 1px var(--q-control-pressed); background: var(--q-control-selected); }
 .q-world-editor__thumb { inline-size: 56px; block-size: 56px; object-fit: contain; }
@@ -117,10 +129,12 @@
   .q-world-editor__side { align-self: start; max-block-size: 40dvh; }
   /* One line each, scrolling sideways, so the world stays in view. */
   .q-world-editor__bar { gap: 6px; padding: 6px; }
+  .q-world-editor__bar { inline-size: auto; }
   .q-world-editor__bar-row, .q-world-editor__actions, .q-world-editor__tools, .q-world-editor__catalogue-head { flex-wrap: nowrap; overflow-x: auto; }
   .q-world-editor__bar-row > *, .q-world-editor__actions > *, .q-world-editor__tools > *, .q-world-editor__catalogue-head > * { flex: none; }
   .q-world-editor__name { display: none; }
   .q-world-editor__catalogue { padding: 6px; }
   .q-world-editor__catalogue-head .q-input { flex: 1 0 120px; }
   .q-world-editor[data-side='closed'] .q-world-editor__catalogue { grid-column: auto; }
+  .q-world-editor__catalogue { grid-template-columns: 110px minmax(0, 1fr); }
 }

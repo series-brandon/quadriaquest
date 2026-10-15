@@ -213,6 +213,13 @@ Every tool gets playground coverage, as AGENTS.md requires. The editor is playgr
    - both builds;
    - one perf pass with Mistrom's scenarios.
 
+## Opening in the editor, compact catalogue (2026-10-15)
+
+User request: open the editor on the overworld when the playground starts (the game's start an area switch), free camera and a hidden panel by default, and a compact catalogue like the Sims'.
+- **On start:** the playground opens the world editor on the overworld (`mountPlayground`), unless the address has `?game` (the perf harness always adds it). *The clearing (where the game starts)* in the Map list closes the editor and starts the game afresh there.
+- **Defaults:** the free camera is on while the editor is open (back on the slime on Close); the side panel starts hidden.
+- **Compact:** the bar sits top left at its own width. The catalogue sits bottom left (up to 640 wide): Function / Room and Search along its top, the groups on the left, and square icons only on the right (the name on hover), two rows tall, scrolling down.
+
 ## Decorating indoors, doors and stairs (2026-10-14)
 
 User request: hide what's lifted, wall and floor paint, Sims-like doors and stairs, and steps 4 and 5 (decorating indoors, the room tool).
