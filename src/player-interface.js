@@ -11,7 +11,7 @@ import {computed,signal,untracked} from './reactive.js';
 import {mountMinimapControls} from './minimap-controls.js';
 import {icon} from './icons.js';
 import {FOODS} from './player-health.js';
-import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems} from './player-interface-policy.js';
+import {menuReaction,minimapTiles,minimapGrid,minimapGroundItems,minimapTileColor} from './player-interface-policy.js';
 
 // Shared player chrome; every map supplies the same live world and player state.
 export function createPlayerInterface({cameraAngle=()=>0,modals=null,menus,journal,health,resources,food,inventory,equipment,world,tile,destination,move,enemies,groundItems,combat,styles,styleMenu,auras,toast=()=>{},playerControl=null,assistance=null}){
@@ -113,7 +113,7 @@ export function createPlayerInterface({cameraAngle=()=>0,modals=null,menus,journ
   ctx.save();ctx.translate(pixels/2,pixels/2);ctx.rotate(turn);ctx.translate(-pixels/2,-pixels/2);
   // A turned square needs the tiles out to its corners.
   const reach=Math.ceil(radius*Math.SQRT2)+1,cell=t=>[(t.x-p.x+radius)*size,(t.z-p.z+radius)*size];
-  for(const t of minimapTiles(world,p,reach)){const [x,y]=cell(t);ctx.fillStyle=t.water?'#7a9caf':t.indoor?'#d9c9a6':t.blocksSight?'#706679':t.blocked?'#97869a':t.safe?'#b4b59b':'#b2a39d';ctx.fillRect(x,y,size-gap,size-gap);}
+  for(const t of minimapTiles(world,p,reach)){const [x,y]=cell(t);ctx.fillStyle=minimapTileColor(t);ctx.fillRect(x,y,size-gap,size-gap);}
   ctx.lineCap='square';ctx.lineWidth=Math.max(2,Math.round(size*.22));
   for(const t of minimapTiles(world,p,reach)){if(!t.edges)continue;const [x,y]=cell(t);
    for(const [side,f] of Object.entries(t.edges)){if(f.door&&f.kind==='wall')continue;// an open door's leaf

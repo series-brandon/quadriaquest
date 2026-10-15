@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {cachedMergedMesh} from './merged-model.js';
 import {makeTree} from './world-models.js';
 import {key} from './world.js';
-import {SEAT,lowerTo,COL} from './prop-parts.js';
+import {SEAT,lowerTo,COL,barrelParts,crateParts,lanternParts} from './prop-parts.js';
 import {FURNITURE} from './prop-sets/furniture.js';
 import {TRADE} from './prop-sets/trade.js';
 import {STREET} from './prop-sets/street.js';
@@ -49,12 +49,21 @@ export const PROPS={
  hedge:{name:'Hedge',footprint:[1,1],policy:'solid',sight:false,spots:[],parts:()=>[W('#5f8a48',B(.96,.9,.7),[0,.45,0]),W('#6f9a55',B(.9,.14,.62),[0,.95,0])]},
  stall:{name:'Market stall',footprint:[2,1],policy:'solid',reachOver:true,interaction:{verb:'trade',label:'Browse stall'},shop:'market',
   spots:[{kind:'browse',at:[0,1],facing:'n'},{kind:'browse',at:[1,1],facing:'n'},{kind:'vend',at:[0,-1],facing:'s'}],
-  parts:()=>[W(WOOD,B(1.8,.49,.6),[0,.245,.1]),W(DARK,B(1.86,.06,.66),[0,.52,.1]),...[-.86,.86].flatMap(x=>[W(WOOD,B(.07,1.7,.07),[x,.85,-.18]),W(WOOD,B(.07,1.45,.07),[x,.72,.38])]),
-   ...[0,1,2,3,4,5].map(i=>W(i%2?CANVAS:CLOTH,B(.32,.04,.86),[-.8+i*.32,1.62,.12],[.28,0,0])),W('#d0913a',B(.3,.16,.22),[-.5,.63,.12]),W('#7aa04f',new THREE.IcosahedronGeometry(.1,0),[-.1,.63,.16]),W('#c8463d',new THREE.IcosahedronGeometry(.09,0),[.06,.62,.1]),W('#e8c46a',B(.34,.12,.24),[.5,.61,.1])]},
- crates:{name:'Crates',footprint:[1,1],policy:'solid',spots:[],parts:()=>[W('#a07850',B(.56,.5,.56),[-.1,.25,.08]),W('#8f6a46',B(.4,.36,.4),[.12,.68,0],[0,.4,0]),W(DARK,B(.58,.05,.05),[-.1,.4,.37])]},
- barrel:{name:'Barrel',footprint:[1,1],policy:'solid',spots:[],parts:()=>[W('#8f6a46',C(.3,.3,.74,12),[0,.37,0]),W('#9b754f',C(.34,.34,.4,12),[0,.37,0]),W(IRON,C(.315,.315,.04,12),[0,.12,0]),W(IRON,C(.315,.315,.04,12),[0,.62,0])]},
+  // A plank-fronted counter under a striped awning on four posts, with a scalloped valance, a price
+  // board and its goods: a crate of apples, cabbages and loaves.
+  parts:()=>[W(DARK,B(1.8,.06,.56),[0,.03,.1]),W(WOOD,B(1.74,.44,.5),[0,.27,.1]),...[-.7,-.35,0,.35,.7].map(x=>W(COL.plank,B(.32,.4,.02),[x,.27,.36])),W(DARK,B(1.9,.06,.68),[0,.52,.1]),
+   ...[-.86,.86].flatMap(x=>[W(WOOD,B(.07,1.75,.07),[x,.875,-.18]),W(WOOD,B(.07,1.42,.07),[x,.71,.4])]),W(DARK,B(1.8,.06,.06),[0,1.72,-.18]),W(DARK,B(1.8,.06,.06),[0,1.4,.4]),
+   ...[0,1,2,3,4,5].map(i=>W(i%2?CANVAS:CLOTH,B(.3,.035,.72),[-.75+i*.3,1.58,.11],[.48,0,0])),...[0,1,2,3,4,5].map(i=>W(i%2?CLOTH:CANVAS,B(.28,.14,.02),[-.75+i*.3,1.34,.48])),
+   ...crateParts(.42,.16,.3,{at:[-.55,.55,.08]}),...[[-.66,.02],[-.55,.12],[-.44,.03],[-.58,-.05]].map(([x,z])=>W('#c8463d',new THREE.SphereGeometry(.055,8,6),[x,.75,.08+z])),
+   W('#7aa04f',new THREE.IcosahedronGeometry(.1,1),[-.08,.65,.12]),W('#8fb85f',new THREE.IcosahedronGeometry(.09,1),[.12,.64,.02]),
+   ...[[.42,.16],[.56,.06],[.48,-.04]].map(([x,z])=>W('#d0913a',new THREE.SphereGeometry(.07,8,6),[x,.61,z],[0,.4,0],[1.6,.75,1])),
+   W(DARK,B(.025,.32,.025),[.8,.69,.4]),W(CANVAS,B(.22,.14,.02),[.8,.88,.41])]},
+ crates:{name:'Crates',footprint:[1,1],policy:'solid',spots:[],parts:()=>[...crateParts(.56,.5,.56,{at:[-.1,0,.08]}),...crateParts(.4,.36,.4,{at:[.12,.5,0],turn:.4,boards:'#8f6a46'})]},
+ barrel:{name:'Barrel',footprint:[1,1],policy:'solid',spots:[],parts:()=>barrelParts(0,0,{r:.33,h:.78})},
  sacks:{name:'Sacks',footprint:[1,1],policy:'solid',spots:[],parts:()=>[W('#cdb88f',new THREE.SphereGeometry(.26,10,8),[-.14,.22,.06],[0,0,0],[1,.9,.85]),W('#c3ad84',new THREE.SphereGeometry(.24,10,8),[.18,.2,-.08],[0,0,0],[1,.85,.9]),W('#d2bf96',new THREE.SphereGeometry(.2,10,8),[.02,.5,0],[0,0,0],[1,.9,1])]},
- lampPost:{name:'Lamp post',footprint:[1,1],policy:'solid',spots:[],glow:[[0,2.14,0,.09]],parts:()=>[W(IRON,C(.12,.16,.16,8),[0,.08,0]),W(IRON,C(.045,.06,1.9,8),[0,1.05,0]),W(IRON,B(.3,.04,.3),[0,1.98,0]),W('#ffe3a1',B(.22,.26,.22),[0,2.14,0]),W(IRON,new THREE.ConeGeometry(.22,.16,4),[0,2.35,0],[0,Math.PI/4,0])]},
+ lampPost:{name:'Lamp post',footprint:[1,1],policy:'solid',spots:[],glow:[[0,2.14,0,.09]],
+  // A stone footing, a fluted iron base, a slender pole with collars and a framed lantern on top.
+  parts:()=>[W(STONE,C(.2,.24,.12,8),[0,.06,0]),W(IRON,C(.1,.15,.32,8),[0,.28,0]),W(IRON,C(.04,.055,1.62,8),[0,1.24,0]),W(IRON,C(.075,.075,.05,8),[0,.47,0]),W(IRON,C(.07,.07,.05,8),[0,1.96,0]),W(IRON,C(.05,.11,.05,8),[0,2.0,0]),...lanternParts(0,2.14,0)]},
  signpost:{name:'Signpost',footprint:[1,1],policy:'solid',spots:[],parts:()=>[W(WOOD,B(.1,1.6,.1),[0,.8,0]),W('#c9a46c',B(.66,.16,.04),[.2,1.36,0]),W('#c9a46c',B(.04,.16,.6),[0,1.12,.18]),W('#c9a46c',B(.58,.16,.04),[-.16,.9,0])]},
  well:{name:'Well',footprint:[1,1],policy:'solid',interaction:{verb:'drink',label:'Drink from well'},spots:[{kind:'drink',at:[0,1],facing:'n'}],
   parts:()=>[W(STONE,C(.44,.46,.56,14),[0,.28,0]),W('#3d5966',C(.34,.34,.04,14),[0,.5,0]),...[-.38,.38].map(x=>W(WOOD,B(.07,.9,.07),[x,.95,0])),W(DARK,B(.94,.06,.08),[0,1.4,0]),W('#b5553c',new THREE.ConeGeometry(.66,.36,4),[0,1.6,0],[0,Math.PI/4,0]),W(WOOD,C(.06,.06,.6,8),[0,1.18,0],[0,0,Math.PI/2])]},

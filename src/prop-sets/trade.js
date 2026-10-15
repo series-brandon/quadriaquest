@@ -1,10 +1,14 @@
-import {W,B,C,S,I,K,COL,flame,SURFACE,lowerTo} from '../prop-parts.js';
+import {W,B,C,S,I,K,COL,flame,SURFACE,lowerTo,barrelParts,crateParts} from '../prop-parts.js';
 
 // Shop and trade fixtures (docs/CITY.md, Props, furniture and furnishing). Counters are `low` (they block
 // walking, not reach or sight); the keeper's spot is behind them (north), customers browse in front.
 // Counters come to a slime's chest (prop-parts.js SURFACE); goods sit on top.
 const COUNTER=SURFACE,on=y=>COUNTER+y;
-const counter=(w,top)=>[W(COL.wood,B(w-.1,COUNTER-.06,.5),[0,(COUNTER-.06)/2,0]),W(top,B(w,.06,.6),[0,COUNTER-.03,0]),W(COL.dark,B(w-.1,.1,.52),[0,.05,0])];
+// A counter: its body on a dark plinth, the front framed into panels, and a top that overhangs a little.
+const counter=(w,top)=>{const bays=Math.max(1,Math.round(w/.95)),bay=(w-.1)/bays,panelH=COUNTER-.26;
+ return [W(COL.wood,B(w-.1,COUNTER-.06,.5),[0,(COUNTER-.06)/2,0]),W(top,B(w,.06,.6),[0,COUNTER-.03,0]),W(COL.dark,B(w-.06,.1,.54),[0,.05,0]),W(COL.dark,B(w-.1,.04,.03),[0,COUNTER-.1,.26]),
+  ...Array.from({length:bays+1},(_,i)=>W(COL.dark,B(.05,COUNTER-.16,.03),[-(w-.1)/2+i*bay,(COUNTER-.16)/2+.1,.26])),
+  ...Array.from({length:bays},(_,i)=>W(COL.plank,B(bay-.14,panelH,.02),[-(w-.1)/2+bay*(i+.5),.13+panelH/2,.256]))];};
 const across=(w,kind,facing,z)=>Array.from({length:w},(_,i)=>({kind,at:[i,z],facing}));
 const shelfOf=(colors)=>[W(COL.dark,B(.9,1.5,.34),[0,.75,-.3]),...[.35,.75,1.15].flatMap((y,j)=>[0,1,2,3].map(i=>W(colors[(i+j)%colors.length],C(.06,.06,.16,8),[-.3+i*.2,y+.08,-.26])))];
 export const TRADE={
@@ -22,7 +26,7 @@ export const TRADE={
   parts:()=>[W('#8f8a84',B(1.8,.8,1.6),[0,.4,0]),W('#2d2622',B(1.2,.1,1),[0,.82,.1]),W('#ff8a3d',B(1,.04,.8),[0,.88,.1]),flame(-.2,.95,.1,1.6),flame(.2,.94,.2,1.4),W('#8f8a84',B(.7,1.6,.6),[0,1.6,-.45]),W(COL.dark,B(.4,.2,.5),[.75,.55,.6],[0,.3,0])]},
  anvil:{name:'Anvil',footprint:[1,1],policy:'solid',interaction:{verb:'smith',label:'Smith at anvil'},station:'anvil',spots:[{kind:'work',at:[0,1],facing:'n'}],
   parts:()=>[W(COL.wood,C(.24,.28,.36,10),[0,.18,0]),W(COL.iron,B(.24,.16,.2),[0,.44,0]),W(COL.iron,B(.56,.12,.22),[0,.58,0]),W(COL.iron,K(.08,.2,6),[.36,.58,0],[0,0,-Math.PI/2])]},
- quenchBarrel:{name:'Quench barrel',footprint:[1,1],policy:'solid',parts:()=>[W('#8f6a46',C(.3,.3,.6,12),[0,.3,0]),W(COL.iron,C(.31,.31,.04,12),[0,.12,0]),W(COL.iron,C(.31,.31,.04,12),[0,.5,0]),W('#4a6878',C(.27,.27,.02,12),[0,.58,0])]},
+ quenchBarrel:{name:'Quench barrel',footprint:[1,1],policy:'solid',parts:()=>barrelParts(0,0,{r:.31,h:.62,water:'#4a6878'})},
  workbench:{name:'Workbench',footprint:[2,1],policy:'solid',spots:[{kind:'work',at:[0,1],facing:'n'},{kind:'work',at:[1,1],facing:'n'}],parts:()=>lowerTo([W(COL.light,B(1.8,.1,.7),[0,.76,0]),...[[-.82,-.28],[.82,-.28],[-.82,.28],[.82,.28]].map(([x,z])=>W(COL.dark,B(.1,.74,.1),[x,.37,z])),W(COL.dark,B(1.6,.06,.5),[0,.2,0]),W('#b8bec6',B(.3,.04,.06),[-.4,.83,0]),W(COL.plank,B(.6,.06,.18),[.3,.84,.1])],0.76)},
  toolRack:{name:'Tool rack',footprint:[1,1],policy:'walk',mount:'wall',parts:()=>[W(COL.dark,B(.86,.5,.04),[0,1.1,-.43]),W('#b8bec6',B(.06,.32,.03),[-.25,1.08,-.4]),W(COL.wood,B(.04,.44,.03),[0,1.06,-.4]),W('#b8bec6',B(.14,.06,.03),[0,1.26,-.4]),W('#b8bec6',C(.08,.08,.03,10),[.27,1.1,-.4],[Math.PI/2,0,0])]},
  apothecaryShelf:{name:'Apothecary shelf',footprint:[1,1],policy:'solid',spots:[{kind:'browse',at:[0,1],facing:'n'}],parts:()=>shelfOf(['#5fb08a','#b05f8a','#5f8ab0','#c9a24a'])},
@@ -33,8 +37,8 @@ export const TRADE={
  tailorDummy:{name:'Tailor’s dummy',footprint:[1,1],policy:'solid',spots:[{kind:'browse',at:[0,1],facing:'n'}],parts:()=>[W(COL.dark,C(.18,.22,.05,10),[0,.03,0]),W(COL.dark,C(.03,.03,.7,6),[0,.4,0]),W('#c86a8a',C(.22,.18,.6,12),[0,1,0]),W('#e8d9c0',C(.16,.2,.18,12),[0,1.38,0])]},
  loom:{name:'Loom',footprint:[2,1],policy:'solid',spots:[{kind:'work',at:[0,1],facing:'n'}],parts:()=>[...[-.8,.8].flatMap(x=>[W(COL.wood,B(.08,1.3,.08),[x,.65,-.3]),W(COL.wood,B(.08,.8,.08),[x,.4,.3])]),W(COL.wood,B(1.68,.06,.06),[0,1.26,-.3]),W(COL.wood,B(1.68,.06,.06),[0,.78,.3]),W('#c8463d',B(1.4,.5,.02),[0,.95,-.05],[.6,0,0]),W(COL.light,B(1.6,.08,.1),[0,.6,.2])]},
  clothShelf:{name:'Cloth shelf',footprint:[1,1],policy:'solid',spots:[{kind:'browse',at:[0,1],facing:'n'}],parts:()=>[W(COL.dark,B(.9,1.5,.36),[0,.75,-.28]),...[.35,.75,1.15].flatMap((y,j)=>[-.22,.22].map((x,i)=>W(['#c8463d','#3d63a8','#d0913a','#5f8a48','#b49ad6','#efe6d2'][(i+j*2)%6],B(.36,.24,.28),[x,y+.06,-.24])))]},
- produceCrates:{name:'Produce crates',footprint:[2,1],policy:'solid',spots:across(2,'browse','n',1),parts:()=>[...[-.45,.45].flatMap((x,i)=>[W('#a07850',B(.8,.4,.7),[x,.2,0]),...[0,1,2].map(j=>W(['#c8463d','#e8c46a','#7aa04f'][(i+j)%3],I(.1,0),[x-.2+j*.2,.46,(j%2)*.15-.07]))]),W(COL.dark,B(1.7,.05,.05),[0,.4,.36])]},
+ produceCrates:{name:'Produce crates',footprint:[2,1],policy:'solid',spots:across(2,'browse','n',1),parts:()=>[-.45,.45].flatMap((x,i)=>[...crateParts(.8,.4,.7,{at:[x,0,0]}),...[0,1,2,3,4].map(j=>W(['#c8463d','#e8c46a','#7aa04f'][(i+j)%3],I(.1,1),[x-.24+j*.12,.44,(j%2)*.16-.08]))])},
  barCounter:{name:'Bar counter',footprint:[3,1],policy:'low',reachOver:true,interaction:{verb:'trade',label:'Trade at counter'},spots:[...across(3,'browse','n',1),{kind:'vend',at:[1,-1],facing:'s'}],parts:()=>[...counter(2.9,COL.dark),...[-.8,.2,.9].map(x=>W('#d8c9a7',C(.06,.05,.14,8),[x,on(.07),.05])),W('#8f6a46',C(.12,.12,.2,10),[-.3,on(.1),0])]},
  kegRack:{name:'Keg rack',footprint:[2,1],policy:'solid',parts:()=>[W(COL.dark,B(1.8,.3,.6),[0,.15,0]),...[-.45,.45].map(x=>W('#8f6a46',C(.28,.28,.6,12),[x,.6,0],[Math.PI/2,0,0])),...[-.45,.45].map(x=>W(COL.iron,C(.29,.29,.04,12),[x,.6,.22],[Math.PI/2,0,0]))]},
- kegs:{name:'Kegs',footprint:[1,1],policy:'solid',parts:()=>[W('#8f6a46',C(.24,.24,.5,12),[-.14,.25,.08]),W('#9b754f',C(.22,.22,.46,12),[.18,.23,-.1]),W(COL.iron,C(.25,.25,.03,12),[-.14,.4,.08]),W(COL.iron,C(.23,.23,.03,12),[.18,.38,-.1])]},
+ kegs:{name:'Kegs',footprint:[1,1],policy:'solid',parts:()=>[...barrelParts(-.14,.08,{r:.24,h:.5}),...barrelParts(.18,-.1,{r:.22,h:.46,wood:'#9b754f'})]},
 };

@@ -1,15 +1,17 @@
-import {W,B,C,S,I,K,COL,flame,SEAT,lowerTo} from '../prop-parts.js';
+import {W,B,C,S,I,K,COL,flame,SEAT,lowerTo,barrelParts,crateParts,lanternParts} from '../prop-parts.js';
 
 // Street and civic pieces (docs/CITY.md, Props, furniture and furnishing). The fence gate and the low
 // stone wall are edge features (doors.js / edge-models.js), not props. Walk-under structures (`block`)
 // block only their posts.
 const post=(x,z,h,color=COL.dark,t=.1)=>W(color,B(t,h,t),[x,h/2,z]);
-const lamp=(x,y,z)=>[W(COL.iron,B(.26,.04,.26),[x,y,z]),W('#ffe3a1',B(.18,.22,.18),[x,y+.13,z]),W(COL.iron,K(.18,.14,4),[x,y+.31,z],[0,Math.PI/4,0])];
 export const STREET={
- streetLampDouble:{name:'Double street lamp',footprint:[1,1],policy:'solid',glow:[[-.34,2.13,0,.09],[.34,2.13,0,.09]],parts:()=>[W(COL.iron,C(.12,.16,.16,8),[0,.08,0]),W(COL.iron,C(.05,.06,2.1,8),[0,1.1,0]),W(COL.iron,B(.8,.04,.04),[0,2.08,0]),...lamp(-.34,1.95,0),...lamp(.34,1.95,0)]},
+ streetLampDouble:{name:'Double street lamp',footprint:[1,1],policy:'solid',glow:[[-.34,2.13,0,.09],[.34,2.13,0,.09]],
+  // The lamp post's footing and pole, a crossarm with a lantern hanging from each end.
+  parts:()=>[W(COL.stone,C(.2,.24,.12,8),[0,.06,0]),W(COL.iron,C(.1,.15,.32,8),[0,.28,0]),W(COL.iron,C(.045,.06,2.1,8),[0,1.5,0]),W(COL.iron,C(.075,.075,.05,8),[0,.47,0]),
+   W(COL.iron,B(.84,.045,.045),[0,2.5,0]),W(COL.iron,B(.5,.03,.03),[0,2.38,0]),W(COL.iron,S(.045,6,4),[0,2.58,0]),...[-.34,.34].flatMap(x=>[W(COL.iron,B(.02,.1,.02),[x,2.44,0]),...lanternParts(x,2.13,0,{size:.18})])]},
  wallTorch:{name:'Wall torch',footprint:[1,1],policy:'walk',mount:'wall',glow:[[0,1.48,-.3,.08]],parts:()=>[W(COL.iron,B(.1,.16,.05),[0,1.2,-.42]),W(COL.dark,C(.03,.04,.4,6),[0,1.3,-.33],[.5,0,0]),flame(0,1.5,-.24,1.2)]},
  waterTrough:{name:'Water trough',footprint:[2,1],policy:'solid',interaction:{verb:'drink',label:'Drink from trough'},spots:[{kind:'drink',at:[0,1],facing:'n'},{kind:'drink',at:[1,1],facing:'n'}],parts:()=>[W(COL.stone,B(1.8,.5,.7),[0,.25,0]),W(COL.water,B(1.6,.04,.5),[0,.46,0])]},
- rainBarrel:{name:'Rain barrel',footprint:[1,1],policy:'solid',parts:()=>[W('#8f6a46',C(.32,.3,.8,12),[0,.4,0]),W(COL.iron,C(.33,.33,.04,12),[0,.2,0]),W(COL.iron,C(.33,.33,.04,12),[0,.66,0]),W(COL.water,C(.29,.29,.02,12),[0,.79,0])]},
+ rainBarrel:{name:'Rain barrel',footprint:[1,1],policy:'solid',parts:()=>barrelParts(0,0,{r:.34,h:.82,water:COL.water})},
  bin:{name:'Bin',footprint:[1,1],policy:'solid',parts:()=>[W('#6f7a6a',C(.22,.18,.6,10),[0,.3,0]),W('#5a6456',C(.24,.24,.05,10),[0,.62,0])]},
  noticePillar:{name:'Notice pillar',footprint:[1,1],policy:'solid',sight:false,interaction:{verb:'read',label:'Read notices'},spots:[{kind:'read',at:[0,1],facing:'n'}],parts:()=>[W('#6f6a62',C(.4,.42,.2,14),[0,.1,0]),W('#d6cbb2',C(.34,.34,1.9,14),[0,1.15,0]),W('#3d63a8',K(.44,.4,14),[0,2.3,0]),...[0,1.6,3.2,4.8].map((a,i)=>W(['#f2ead8','#f2d35b','#efe6d2','#e4dbc6'][i],B(.24,.32,.01),[Math.sin(a)*.345,1.2+i%2*.3,Math.cos(a)*.345],[0,a,0]))]},
  flagpole:{name:'Flagpole',footprint:[1,1],policy:'solid',parts:()=>[W(COL.stone,B(.5,.2,.5),[0,.1,0]),W('#d8d4cc',C(.04,.05,3.2,8),[0,1.7,0]),W(COL.gold,S(.07),[0,3.32,0]),W('#c8463d',B(.9,.55,.02),[.47,2.95,0]),W('#f2d35b',B(.24,.24,.025),[.47,2.95,0],[0,0,Math.PI/4])]},
@@ -20,7 +22,7 @@ export const STREET={
  handcart:{name:'Handcart',footprint:[1,2],policy:'solid',parts:()=>[W('#9b754f',B(.8,.3,1),[0,.55,.25]),W(COL.dark,C(.3,.3,.06,12),[-.44,.3,.25],[0,0,Math.PI/2]),W(COL.dark,C(.3,.3,.06,12),[.44,.3,.25],[0,0,Math.PI/2]),W(COL.wood,B(.05,.05,.9),[-.3,.6,-.6],[.25,0,0]),W(COL.wood,B(.05,.05,.9),[.3,.6,-.6],[.25,0,0]),W('#cdb88f',S(.2,8,6),[0,.8,.3])]},
  hayBales:{name:'Hay bales',footprint:[1,1],policy:'solid',parts:()=>[W(COL.straw,B(.7,.36,.46),[0,.18,.1]),W('#cfb66a',B(.62,.34,.42),[.05,.53,-.04],[0,.3,0]),W('#b89c4f',B(.72,.02,.02),[0,.2,.34])]},
  woodpile:{name:'Woodpile',footprint:[2,1],policy:'solid',parts:()=>[...[0,1,2].flatMap(r=>[-.6,-.2,.2,.6].slice(0,4-r).map(x=>W(['#9b754f','#8a6a4a','#a07a52'][(r+Math.round(x*5))%3],C(.12,.12,.8,8),[x+r*.2,.12+r*.22,0],[Math.PI/2,0,0]))),W(COL.dark,B(1.8,.06,.06),[0,.02,.3])]},
- crateStack:{name:'Crate stack',footprint:[1,1],policy:'solid',sight:false,parts:()=>[W('#a07850',B(.7,.6,.7),[0,.3,0]),W('#8f6a46',B(.6,.5,.6),[.04,.85,0],[0,.3,0]),W('#a07850',B(.42,.36,.42),[-.05,1.28,.02],[0,-.2,0]),W(COL.dark,B(.72,.05,.05),[0,.5,.36])]},
+ crateStack:{name:'Crate stack',footprint:[1,1],policy:'solid',sight:false,parts:()=>[...crateParts(.7,.6,.7),...crateParts(.6,.5,.6,{at:[.04,.6,0],turn:.3,boards:'#8f6a46'}),...crateParts(.42,.36,.42,{at:[-.05,1.1,.02],turn:-.2})]},
  sackPile:{name:'Sack pile',footprint:[1,1],policy:'solid',parts:()=>[W('#cdb88f',S(.24,10,8),[-.16,.2,.1]),W('#c3ad84',S(.24,10,8),[.18,.2,-.05]),W('#d2bf96',S(.22,10,8),[-.1,.2,-.2]),W('#cdb88f',S(.2,10,8),[0,.48,0])]},
  archway:{name:'Archway',footprint:[3,1],policy:'walk',block:[[0,0],[2,0]],parts:()=>[...[-1,1].flatMap(x=>[W(COL.pale,B(.5,2.2,.6),[x,1.1,0]),W(COL.stone,B(.6,.16,.7),[x,.08,0])]),W(COL.pale,B(2.6,.4,.6),[0,2.4,0]),W(COL.stone,B(2.8,.12,.7),[0,2.66,0]),W(COL.stone,B(.5,.3,.62),[0,2.4,0])]},
  waterPump:{name:'Water pump',footprint:[1,1],policy:'solid',interaction:{verb:'drink',label:'Drink from pump'},spots:[{kind:'drink',at:[0,1],facing:'n'}],parts:()=>[W(COL.stone,B(.5,.2,.5),[0,.1,0]),W('#5b7a6a',C(.1,.12,.9,10),[0,.6,0]),W('#5b7a6a',C(.04,.04,.3,6),[0,.92,.16],[Math.PI/2,0,0]),W('#5b7a6a',B(.05,.05,.5),[0,1.1,-.2],[.4,0,0]),W(COL.stone,B(.4,.1,.3),[0,.05,.35])]},

@@ -18,6 +18,8 @@ import {key} from './world.js';
 import {CHUNK,REGION,BAND,chunkId,regionId,chunkGap} from './world-grid.js';
 import {createTownGround,townLand} from './town-ground.js';
 import {CELL as LAND_CELL} from './biome-land.js';
+import {createMistWall} from './mist-wall.js';
+import {packMap,unpackMap,unpackRegion} from './map-file.js';
 
 // Cities as data (docs/CITY.md, Authoring and Streaming; city Phases 5, 6 and 9). A city is a plain
 // object the editor edits and the repo stores, built by the shared builders:
@@ -43,7 +45,8 @@ export function createMapData({id='city',name='City',size=[64,64],base=1,surface
   data.regions[`${rx},${rz}`]=land?{offsets:rows(heightChar(OFFSET_BIAS)),surfaces:rows(UNPAINTED)}:{heights:rows(heightChar(base)),surfaces:rows(SURFACE_CODES[surface])};
  return data;
 }
-const regionOf=(data,x,z)=>data.regions[regionId(x,z)];
+export {packMap,unpackMap};
+const regionOf=(data,x,z)=>{const r=data.regions[regionId(x,z)];if(r&&!Array.isArray(r.surfaces))unpackRegion(r);return r;};
 const inside=(data,x,z)=>x>=0&&z>=0&&x<data.size[0]&&z<data.size[1];
 export function mapHeight(data,x,z){if(!inside(data,x,z))return null;const r=regionOf(data,x,z);return charHeight(r.heights[z%REGION][x%REGION]);}
 // A tile's painted surface; null where a town on the land leaves its ground unpainted.
@@ -62,7 +65,7 @@ export {SURFACE_NAMES};
 // offsets on the land's ground (a terrace a block above ground level stays a block above the land) and
 // its grass becomes the land's own ground. Off: the ground goes flat at level 1, keeping the offsets.
 export function putOnLand(data,land){
- if(data.land){data.land=land;return data;}
+ if(data.land){data.land=land;return data;}unpackMap(data);
  for(const r of Object.values(data.regions)){r.offsets=r.heights.map(row=>[...row].map(c=>heightChar(OFFSET_BIAS+charHeight(c)-1)).join(''));delete r.heights;r.surfaces=r.surfaces.map(row=>row.replaceAll(SURFACE_CODES.grass,UNPAINTED));}
  data.land=land;return data;
 }
@@ -104,7 +107,7 @@ export function growMap(data,{north=0,east=0,south=0,west=0},{round=false}={}){
 export function roundUpToRegions(data){const pad=n=>{const need=Math.ceil(n/REGION)*REGION-n,low=Math.floor(need/2/CHUNK)*CHUNK;return [low,need-low];};
  const [west,east]=pad(data.size[0]),[north,south]=pad(data.size[1]);return west+east+north+south?growMap(data,{north,east,south,west},{round:true}):data;}
 export function takeOffLand(data){
- if(!data.land)return data;
+ if(!data.land)return data;unpackMap(data);
  for(const r of Object.values(data.regions)){r.heights=r.offsets.map(row=>[...row].map(c=>heightChar(Math.max(0,1+charHeight(c)-OFFSET_BIAS))).join(''));delete r.offsets;r.surfaces=r.surfaces.map(row=>row.replaceAll(UNPAINTED,SURFACE_CODES.grass));}
  delete data.land;return data;
 }
@@ -151,16 +154,22 @@ export function mapTiles(data,ground=data.land?mapGround(data):null,chunkIds=nul
 // streamRadius / streamBand: chunks within the radius show; shown ones stay until the player is more than
 // radius × CHUNK + band tiles from them (the chunk streamer's rule, so a city and the land streamed around
 // it always match).
-export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=null,streamBand=BAND,crystal:placeCrystal=null,outside=null,land=null}){
+// lazy (docs/TOWN.md, Streaming a map's content): tiles are made a chunk at a time when first asked for, and
+// a chunk's content (buildings, props, edges, furniture) is built when it comes within the stream radius,
+// a few milliseconds a frame (stream()). The chunks townsfolk live and work in, the spawn's and the
+// crystal's are always built. Otherwise everything is built at once.
+export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=null,streamBand=BAND,crystal:placeCrystal=null,outside=null,land=null,lazy=false}){
  const group=new THREE.Group();group.name='city '+data.id;group.visible=visible;scene.add(group);
  const onLand=data.land?land||townLand(data):null;let ground=onLand?mapGround(data,onLand):null;
  if(ground&&!outside)outside=(x,z)=>ground.inside(x,z)?null:ground.tile(x,z);
- const map=mapTiles(data,ground),t=(x,z)=>map.get(key(x,z)),tiles=[...map.values()];
- // Each tile's ground as built (before buildings and props mark it), for rebuild() to compare against.
- const groundOf=new WeakMap();for(const tile of tiles)groundOf.set(tile,{...tile});
- // The tiles of each chunk, worked out once: partial rebuilds visit only the chunks they rebuild
- // (a large map has tens of thousands of tiles).
- const byChunk=new Map();for(const tile of tiles){const id=chunkId(tile.x,tile.z);if(!byChunk.has(id))byChunk.set(id,[]);byChunk.get(id).push(tile);}
+ // Each tile's ground as built (before buildings and props mark it), for rebuild() to compare against, and
+ // the tiles of each chunk: partial rebuilds visit only the chunks they rebuild (a large map has tens of
+ // thousands of tiles).
+ const tiles=[],groundOf=new WeakMap(),byChunk=new Map();
+ const keep=list=>{for(const tile of list){tiles.push(tile);groundOf.set(tile,{...tile});const id=chunkId(tile.x,tile.z);if(!byChunk.has(id))byChunk.set(id,[]);byChunk.get(id).push(tile);}};
+ const map=lazy?chunkTiles(data.size,id=>{const fresh=[];for(const [k,tile] of mapTiles(data,ground,[id],map))if(!map.peek(k)){map.put(k,tile);fresh.push(tile);}keep(fresh);}):mapTiles(data,ground);
+ if(!lazy)keep([...map.values()]);
+ const t=(x,z)=>map.get(key(x,z));
  const tilesOf=ids=>[...ids].flatMap(id=>byChunk.get(id)||[]);
  // The tiles just outside these chunks, along their edges (railings on a chunk's border look one tile out).
  const borderOf=ids=>{const out=[];for(const id of ids){const [cx,cz]=id.split(',').map(Number),x0=cx*CHUNK,z0=cz*CHUNK;
@@ -195,9 +204,11 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
  // Builds the content of the chunks in `only` (a Set of chunk ids), or of every chunk (null). The same
  // steps serve the first build and a partial rebuild, so they can't drift apart.
  function populate(only=null){
-  const want=c=>!only||only.has(c.id);
+  // A lazy map makes these chunks' tiles first (their stairs and floors need them even with nothing built there).
+  if(only)for(const id of only){populated.add(id);if(lazy)map.get(firstTileOf(id));}
+  const want=c=>!only||only.has(typeof c==='string'?c:c.id);
   data.buildings.forEach((b,i)=>{
-   const home=chunk(b.x,b.z);if(!want(home))return;if(isHeld(b)){buildings[i]=null;return;}
+   if(!want(chunkOf(b.x,b.z)))return;const home=chunk(b.x,b.z);if(isHeld(b)){buildings[i]=null;return;}
    // Wall paint (paint.js): the ground floor's, on its walls' inside faces.
    let plan=null;try{plan=planBuilding(b.desc,[b.x,b.z]);}catch{}
    const local={...edges,add:(a,c,kind,options)=>addIn(home,a,c,kind,{...options,paint:wallPaint(b.paint,plan,a,c)}),addCutPart:(o,owner,opt)=>home.edges.addCutPart(o,owner,opt),removeCutPart:o=>home.edges.removeCutPart(o)};
@@ -209,14 +220,14 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
   const edgePaint=(a,b)=>{const of=p=>{const i=p.building;return i!==undefined&&buildings[i]?{paint:data.buildings[i].paint,plan:buildings[i].plan}:null;},pa=of(a),pb=of(b);
    const fa=pa&&wallPaint(pa.paint,pa.plan,a,b)?.a,fb=pb&&wallPaint(pb.paint,pb.plan,a,b)?.b;return fa||fb?{a:fa||null,b:fb||null}:null;};
   // Hand-placed edges never replace a building's own walls (a curtain wall flush with a tower).
-  for(const e of notHeld(data.edges)){const a=t(...e.a),b=t(...e.b);if(!a||!b)continue;const home=edgeChunk(a,b);if(!want(home))continue;
+  for(const e of notHeld(data.edges)){if(only&&!only.has(chunkOf(...e.a))&&!only.has(chunkOf(...e.b)))continue;const a=t(...e.a),b=t(...e.b);if(!a||!b)continue;const home=edgeChunk(a,b);if(!want(home))continue;
    // A wall inside a building belongs to it, so it's cut with it (cutaway.js).
    const owner=[...new Set([a.building,b.building].filter(i=>i!==undefined&&buildings[i]))];
    if(!(edges.info(a,b)?.owners.length)){const f=edges.add(a,b,e.kind,{...e.options,...owner.length?{owner}:{},paint:edgePaint(a,b)});if(e.kind==='door')home.items.doors.push(f);}}
   if(!only&&data.walls)walls=buildCityWalls({plan:wallPlan({size:data.size[0],gates:data.gates||[],thickness:data.walls.thickness}),tileAt:t,chunkRoot:(x,z)=>chunk(x,z).root,root:group,pickables,sound:doorSound});
   // An in-place building's rooms (its own inside walls and doors, `edges`, local to its north-west tile, so
   // they move with it): its own, cut with it, painted with its paint.
-  data.buildings.forEach((b,i)=>{const built=buildings[i];if(!built||!b.edges?.length||!want(chunk(b.x,b.z)))return;const {x0,z0}=built.plan;
+  data.buildings.forEach((b,i)=>{const built=buildings[i];if(!built||!b.edges?.length||!want(chunkOf(b.x,b.z)))return;const {x0,z0}=built.plan;
    for(const e of b.edges){const a=t(x0+e.a[0],z0+e.a[1]),c=t(x0+e.b[0],z0+e.b[1]);if(!a||!c||edges.info(a,c)?.owners.length)continue;
     const f=addIn(chunk(b.x,b.z),a,c,e.kind,{owner:i,paint:wallPaint(b.paint,built.plan,a,c)});if(e.kind==='door')chunk(b.x,b.z).items.doors.push(f);}});
   // Railings along stair sides and terrace edges (map-terrain.js), unless an edge is already there.
@@ -227,12 +238,12 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
    edges.add(high,low,'railing',{hidden:!!stair});if(stair){if(!stairSides.has(home))stairSides.set(home,[]);stairSides.get(home).push([high,low]);}}
   // Stair sides: sloped handrails, one merged mesh per chunk.
   for(const [c,list] of stairSides){const rails=mergedMesh(stairRailParts(list));rails.name='stair-rails';c.root.add(rails);}
-  for(const p of notHeld(data.props)){const home=chunk(p.x,p.z);if(!want(home))continue;
+  for(const p of notHeld(data.props)){if(!want(chunkOf(p.x,p.z)))continue;const home=chunk(p.x,p.z);
    try{const prop=createProp(p.kind,{origin:[p.x,p.z],rotation:p.rotation||0,tileAt:t,parent:home.root,pickables,id:p.id??null,loot:p.loot?{id:`${data.id}:${p.x},${p.z}`,items:p.loot}:null,shop:p.shop??null,colors:p.colors||null});if(p.link)prop.link={kind:'dungeon',builtMap,id:p.link};home.items.props.push(prop);}catch(error){console.warn(error.message);}}
   // Furniture (furnish.js): each in-place building furnished by its use, around hand-placed props, in a
   // group of its own that shows only while the building is cut (the roof hides it otherwise). Static
   // pieces merge into one mesh per building; interactive ones stay pickable.
-  data.buildings.forEach((b,i)=>{const home=chunk(b.x,b.z);if(!want(home)||!buildings[i])return;const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];built.shop=use?shopForBuilding(b.desc,use):null;
+  data.buildings.forEach((b,i)=>{if(!want(chunkOf(b.x,b.z))||!buildings[i])return;const home=chunk(b.x,b.z);const built=buildings[i],use=furnishingUse(b.desc);built.furniture=[];built.shop=use?shopForBuilding(b.desc,use):null;
    // Floors by hand (spaces.js; docs/CITY.md, Floors): an in-place building's ground floor shows its own
    // placed furniture and the stairwells to the floors above and below; nothing is furnished for it.
    const levels=built.plan.desc.interior==='inPlace'?floorLevels(b):null;
@@ -255,7 +266,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
    group.updateWorldMatrix(true,true);group.matrixWorldAutoUpdate=false;for(const p of built.furniture)p.frozen=true;
   });
   // The Iter Crystal: a model, or (with `crystal`) the game's travel crystal (crystals.js).
-  if(data.crystal&&!isHeld(data.crystal)){const tile=t(...data.crystal);if(tile&&want(chunk(tile.x,tile.z))){const parent=chunk(tile.x,tile.z).root;crystalChunk=chunkOf(tile.x,tile.z);
+  if(data.crystal&&!isHeld(data.crystal)&&want(chunkOf(...data.crystal))){const tile=t(...data.crystal);if(tile){const parent=chunk(tile.x,tile.z).root;crystalChunk=chunkOf(tile.x,tile.z);
    if(placeCrystal)crystal=placeCrystal(tile,parent);else{crystal=makeCrystal();crystal.position.set(tile.x-6,tile.h,tile.z-6);parent.add(crystal);tile.blocked=true;}}}
   // Always-visible decoration merged per chunk (static-merge.js): building decor (awnings, sign boards,
   // flower boxes) and props nobody clicks. Clickable props, doors, sign icons, roofs and caps stay apart.
@@ -276,7 +287,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
  }
  // Tears a chunk down completely: its buildings, props, furniture, edges, terrain and meshes.
  function clearChunk(id){
-  const c=chunks.get(id);if(!c)return;
+  populated.delete(id);const c=chunks.get(id);if(!c)return;
   for(const p of [...c.items.props,...c.items.furniture])p.dispose();
   for(const i of c.items.buildings){buildings[i]?.dispose();buildings[i]=undefined;}
   if(crystalChunk===id&&crystal){if(crystal.dispose)crystal.dispose();else crystal.removeFromParent();crystal=null;crystalChunk=null;}
@@ -288,10 +299,21 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
  // Which chunks a placed thing covers: anything spanning chunks is rebuilt with all of them.
  const spanChunks=cells=>[...new Set(cells.filter(Boolean).map(([x,z])=>chunkOf(x,z)))];
  let roofsShown=true,streamCenter=null,streamTile=null;
- populate();
+ // Lazy: the chunks whose content is built, those waiting (nearest first), and those always built.
+ const populated=new Set(),queue=[],pinned=new Set();
+ if(lazy){const pin=(x,z)=>{if(x>=0&&z>=0&&x<data.size[0]&&z<data.size[1])pinned.add(chunkOf(x,z));};pin(...data.spawn);if(data.crystal)pin(...data.crystal);
+  for(const f of data.townsfolk||[]){if(f.home)pin(...f.home);const b=Number.isInteger(f.house)?data.buildings[f.house]:null;if(b)pin(b.x,b.z);}
+  populate(new Set(pinned));}
+ else populate();
+ // Builds waiting chunks' content for up to `budget` ms (at least one chunk).
+ function pump(budget=4){if(!queue.length)return 0;const start=performance.now();let n=0;
+  while(queue.length&&(n===0||performance.now()-start<budget)){const id=queue.shift();if(populated.has(id))continue;populate(new Set([id]));n++;}
+  if(n){if(!roofsShown)for(const r of roofs){r.userData.hiddenByMap=true;r.visible=false;}builtMap.onStream?.(chunks);}return n;}
+ // A map on the land is the world: its edge is the world's edge, where the mist wall stands (mist-wall.js).
+ const mist=data.land?createMistWall({x0:0,z0:0,x1:data.size[0]-1,z1:data.size[1]-1,parent:group}):null;
  const broken=edges.doorProblems();if(broken.length)console.warn('Door rule: '+broken.map(r=>`${r.door.a.x},${r.door.a.z}: ${r.problems.join('; ')}`).join(' | '));
  // defineProperties, not Object.assign: assign would copy the getters as fixed values.
- return Object.defineProperties(builtMap,Object.getOwnPropertyDescriptors({group,tiles:map,doors,edges,roofs,buildings,props,furniture,chunks,walls,spawn:t(...data.spawn)||tiles[0],
+ return Object.defineProperties(builtMap,Object.getOwnPropertyDescriptors({group,tiles:map,doors,edges,roofs,buildings,props,furniture,chunks,walls,spawn:t(...data.spawn)||tiles[0],mist,
   get crystal(){return crystal;},get ground(){return ground;},
   get roofsShown(){return roofsShown;},setRoofs(on){roofsShown=!!on;for(const r of roofs){r.userData.hiddenByMap=!roofsShown;r.visible=roofsShown;}},
   // Rebuilds only the given chunks from the (edited) data, leaving the rest of the city as it is: the
@@ -342,7 +364,10 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
    return only;
   },
   // Shows only the chunks within `radius` chunks of the tile (render streaming; tiles stay resident).
-  stream(tile,radius=streamRadius){if(!tile||radius===null)return;const at=`${tile.x},${tile.z}`;if(at===streamTile)return;const first=streamCenter===null;streamTile=at;const id=chunkOf(tile.x,tile.z);streamCenter=id;const [cx,cz]=id.split(',').map(Number);
+  // Lazy: queues the content of the chunks within the radius (nearest first) and builds some each call.
+  stream(tile,radius=streamRadius){if(!tile||radius===null)return;if(lazy)pump();const at=`${tile.x},${tile.z}`;if(at===streamTile)return;const first=streamCenter===null;streamTile=at;const id=chunkOf(tile.x,tile.z);streamCenter=id;const [cx,cz]=id.split(',').map(Number);
+   if(lazy){queue.length=0;const [W,D]=data.size,near=[];for(let dz=-radius;dz<=radius;dz++)for(let dx=-radius;dx<=radius;dx++){const x=cx+dx,z=cz+dz;if(x<0||z<0||x*CHUNK>=W||z*CHUNK>=D)continue;const c=`${x},${z}`;if(!populated.has(c))near.push([Math.max(Math.abs(dx),Math.abs(dz)),Math.abs(dx)+Math.abs(dz),c]);}
+    near.sort((p,q)=>p[0]-q[0]||p[1]-q[1]);queue.push(...near.map(n=>n[2]));pump();}
    const shown=new Set();
    // The first time, only the radius (a fresh city starts with everything shown).
    for(const c of chunks.values()){const d=Math.max(Math.abs(c.cx-cx),Math.abs(c.cz-cz));if(d<=radius||!first&&c.root.visible&&chunkGap(c.cx,c.cz,tile.x,tile.z)<=radius*CHUNK+streamBand)shown.add(c);}
@@ -357,13 +382,37 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
   // The streaming radius (chunks; a draw distance change): the next stream() call applies it.
   get streamRadius(){return streamRadius;},set streamRadius(value){streamRadius=value;streamTile=null;},
   get shownChunks(){return [...chunks.values()].filter(c=>c.root.visible).length;},
-  dispose(){walls?.dispose();edges.dispose();for(const p of props)p.dispose();const owned=new Set();group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)owned.add(o.geometry);});for(const g of owned)g.dispose();
+  // Lazy maps: content built, waiting, and tiles made so far (the playground and perf report them).
+  // Every tile made so far, without making more (a lazy map's checks); the tiles themselves otherwise.
+  get loadedTiles(){return lazy?map.loaded():map;},
+  get content(){return {lazy,built:lazy?populated.size:chunks.size,queued:queue.length,pinned:pinned.size,tiles:map.size};},
+  // Builds every waiting chunk now (tests; a save that needs the whole map).
+  settle(){while(queue.length)pump(1e9);},
+  dispose(){mist?.dispose();walls?.dispose();edges.dispose();for(const p of props)p.dispose();const owned=new Set();group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)owned.add(o.geometry);});for(const g of owned)g.dispose();
    for(const m of [...pickables])if(isUnder(m,group))pickables.splice(pickables.indexOf(m),1);group.removeFromParent();}}));
 }
 // How far a building pad's ease can reach past it (tiles; town-ground.js), for partial rebuilds.
 const PAD_REACH=16;
 // A chunk's first tile key (to tell whether a partial ground covers it).
 const firstTileOf=id=>{const [cx,cz]=id.split(',').map(Number);return key(Math.max(0,cx*CHUNK),Math.max(0,cz*CHUNK));};
+// A lazy map's tiles (buildMap lazy): get and has make the chunk a key falls in (inside the map) the first
+// time it's asked for, with fill(id); iterating sees only the chunks made so far. peek and put skip that.
+function chunkTiles([W,D],fill){
+ const filled=new Set();
+ class Tiles extends Map{
+  get(k){const v=super.get(k);if(v!==undefined)return v;const i=k.indexOf(','),x=+k.slice(0,i),z=+k.slice(i+1);if(!(x>=0&&z>=0&&x<W&&z<D))return undefined;
+   const id=chunkId(x,z);if(filled.has(id))return undefined;filled.add(id);fill(id);return super.get(k);}
+  has(k){return this.get(k)!==undefined;}
+  peek(k){return super.get(k);}
+  put(k,v){return super.set(k,v);}
+  // The tiles made so far, read-only and without making more (the map checks: a flood fill from the spawn
+  // would otherwise make the whole map).
+  loaded(){const self=this,size=Object.getOwnPropertyDescriptor(Map.prototype,'size').get;
+   return {get:k=>self.peek(k),has:k=>self.peek(k)!==undefined,get size(){return size.call(self);},values:()=>Map.prototype.values.call(self),keys:()=>Map.prototype.keys.call(self),entries:()=>Map.prototype.entries.call(self),
+    forEach:fn=>Map.prototype.forEach.call(self,fn),[Symbol.iterator]:()=>Map.prototype.entries.call(self)};}
+ }
+ return new Tiles();
+}
 // What a tile's ground sets (cleared before a rebuild refills a tile).
 const GROUND_KEYS=['h','surface','blocked','water','buildable','palette','biome','shore','rocky','made','still','waterKind'];
 const isUnder=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};

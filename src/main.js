@@ -46,6 +46,8 @@ import {blocksMovement,occupancy} from './world-occupancy.js';
 import {pushWorldActor,updateWorldActors} from './world-actors.js';
 import {configureDoors,updateDoors,doorApproach} from './doors.js';
 import {updateCutaway,cutawayState,setCutHeight,CUT_HEIGHT} from './cutaway.js';
+import {createMistWall,mistAt,updateMistWalls} from './mist-wall.js';
+import {createAtmosphere} from './atmosphere.js';
 import {configureProps,createProp,seatPosition,takeLoot,updateProps} from './props.js';
 import {createSpaces} from './spaces.js';
 import {createCrowd} from './townsfolk.js';
@@ -148,7 +150,9 @@ if(__PLAYGROUND__){
   if(e.target instanceof Element&&e.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])'))return;panKeys.add(k);});
  addEventListener('keyup',e=>panKeys.delete(e.key.toLowerCase()));addEventListener('blur',()=>panKeys.clear());
 }
-scene.add(new THREE.HemisphereLight('#fffce8','#879981',2.6));const sun=new THREE.DirectionalLight('#fff3d3',3);sun.position.set(-8,19,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,far:80});sun.shadow.normalBias=.008;scene.add(sun);
+const hemisphere=new THREE.HemisphereLight('#fffce8','#879981',2.6);scene.add(hemisphere);const sun=new THREE.DirectionalLight('#fff3d3',3);sun.position.set(-8,19,5);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24,far:80});sun.shadow.normalBias=.008;scene.add(sun);
+// Fog, light and particles by the biome under the view (atmosphere.js); clear where there's no biome land.
+const atmosphere=createAtmosphere({scene,hemisphere,sun}),atmosphereOn=signal(true);
 // Resolution, shadow map and shadow cadence by tier; Auto starts software rendering on Low and steps down when slow.
 const quality=createRenderQuality({renderer,light:sun,rendererName:(()=>{const gl=renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');return ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):'';})(),onChange:()=>resize?.()});
 const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.9,...extra});
@@ -161,14 +165,14 @@ let idx=0;const waterEffects=createWaterEffects(scene,renderer),grassFor=new Map
 for(const t of world.values()){
  if(t.water){for(const m of addWaterTile(scene,t,world,waterEffects)){m.userData.tile=t;pickables.push(m);}}else grassFor.set(t,grass[idx++%4]);
 }
-const ground=mesh(new THREE.PlaneGeometry(200,200),mat('#e5e9df'));ground.rotation.x=-Math.PI/2;ground.position.y=-.045;ground.castShadow=false;
+const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);const ground=mesh(new THREE.PlaneGeometry(200,200),mat('#e5e9df'));ground.rotation.x=-Math.PI/2;ground.position.y=-.045;ground.castShadow=false;
 const trees=[];
 for(const t of world.values())if(t.blocked&&!t.water)trees.push(createResourceEntity({kind:BOULDER_TILES.has(key(t.x,t.z))?'boulder':'tree',tile:t,parent:scene,pickables}));
 createTerrainBatch({tiles:[...grassFor.keys()],map:world,factory:t=>makeTerrainTile(t,world,grassFor.get(t)),parent:scene,pickables,preserve:grass,roughness:.9,
  decorate(t,model){if(!t.blocked&&(t.x*17+t.z*13)%7===0){const flowers=makeFlowers();flowers.position.y=t.h;model.add(flowers);}}});
 const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[];
 resourceSpecs.forEach(([x,z,kind],id)=>resources.push(createResourceEntity({kind,tile:world.get(key(x,z)),parent:scene,pickables,id})));
-const clearingObjects=scene.children.filter(object=>!object.isLight);
+const clearingObjects=scene.children.filter(object=>!object.isLight&&object!==atmosphere.points);
 const clearingGroup=new THREE.Group();scene.add(clearingGroup);for(const object of clearingObjects)if(object!==ground)clearingGroup.add(object);
 for(const object of clearingObjects)object.visible=false;
 const introTile=new THREE.Group();scene.add(introTile);introTile.position.set(0,0,-2);
@@ -532,6 +536,8 @@ function geltonReady(){
   const maps=[built.tiles];
   const topColor=t=>{if(t.water)return WATER_TOP;const hex=surfaceColor(t);if(!surfaceTop.has(hex))surfaceTop.set(hex,new THREE.Color(hex));return surfaceTop.get(hex);};
   const streamer=createChunkStreamer({source,maps,parent:built.group,pickables,resources:resourceActions,topColor,place:placeLandExtra,dress:landDress(source,coverPool),radius:drawRadius()});
+  // The world's edge round the countryside (mist-wall.js).
+  createMistWall({...source.bounds,x1:source.bounds.x1-1,z1:source.bounds.z1-1,parent:built.group});
   countryside={source,streamer,maps};built.countryside=countryside;streamedWorlds.add({streamer,builtMap:built});
   areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
    arrival:()=>built.crystal?.tile||built.spawn,
@@ -705,7 +711,9 @@ canvas.addEventListener('pointerup',e=>{
   const hit=pick(e),data=terrainHitData(hit);
   const clicked=data?.tile||data?.actor?.tile;
   if(__PLAYGROUND__&&tileClick&&clicked){tileClick(editorTile(hit,data)||clicked,hit?.point||null,data?.actor||null);}else if(campfires.placing)campfires.selectPlacement(data?.tile);else if(data?.actor)selectActor(data.actor,true);else if(data?.tree)selectTree(data.tree);else if(data?.tile)moveTo(data.tile,data.resource);
-  else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);toast('Choose a tile inside the area.');}
+  else{const groundHit=raycaster.intersectObject(ground)[0];if(groundHit)feedback.pulse(groundHit.point,false);
+   // Past the world's edge: the mist wall (mist-wall.js).
+   const flat=raycaster.ray.intersectPlane(groundPlane,new THREE.Vector3());toast(flat&&mistAt(Math.round(flat.x+6),Math.round(flat.z+6))?'The mist is too thick to go on.':'Choose a tile inside the area.');}
  }
  activePointers.delete(e.pointerId);pinchDistance=null;
  if(!activePointers.size)down=null;
@@ -753,8 +761,13 @@ function panFreeCamera(dt){
  const under=world.get(key(Math.round(freeCam.focus.x+6),Math.round(freeCam.focus.z+6)));if(under)freeCam.focus.y+=(under.h+.35-freeCam.focus.y)*Math.min(1,dt*6);
  const far=Math.max(baseFar,zoom*3+60);if(camera.far!==far){camera.far=far;camera.updateProjectionMatrix();}
 }
+// The mist wall's drift and thinning, and the atmosphere of the biome under the view (an area with biome land
+// has biomeAt(x, z)).
+const drawingBuffer=new THREE.Vector2();
+function updateAtmosphere(dt){const focus=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,at=viewTile();const detail=['low','lowest'].includes(quality.tier.peek())?0:1;updateMistWalls(clock.elapsedTime,camera.position.distanceTo(focus),detail);
+ renderer.getDrawingBufferSize(drawingBuffer);atmosphere.update(dt,{biome:splash.active?null:areas.active?.biomeAt?.(at.x,at.z)??null,center:focus,camera,far:camera.far,on:atmosphereOn.peek(),viewportHeight:drawingBuffer.y,detail});}
 function followSun(){const at=__PLAYGROUND__&&freeCam?freeCam.focus:player.position,fx=Math.round(at.x/4)*4,fz=Math.round(at.z/4)*4,anchor=`${fx},${fz}`;if(anchor===sunAnchor)return;sunAnchor=anchor;sun.target.position.set(fx,0,fz);sun.position.set(fx-8,19,fz+5);sun.target.updateMatrixWorld();quality.shadowsChanged();}
-function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);followSun();quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);// Ambience: a breeze on the splash, silence in the opening scene, then the area's own profile.
+function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05);followSun();updateAtmosphere(dt);quality.frame(elapsedReal*1000);healthVisible.value=playerUiShown();playerInterface?.update(dt,playerUiShown()&&!splash.active);// Ambience: a breeze on the splash, silence in the opening scene, then the area's own profile.
  gameAudio.update(dt,splash.active?'splash':opening.finished?areas.active?.music||'clearing':'intro',narrator.visible.peek(),!!combat?.inCombat,splash.active?'breeze':opening.inClearing?areas.active?.ambience||'meadow':'none');if(__PLAYGROUND__)perfProbe.lap('interface');if(splash.active){rotationKeys.clear();renderer.shadowMap.needsUpdate=true;splash.render(dt);return;}elapsed+=dt;travel.update(dt);spaces.update(dt);const worldMotion=areas.update(dt,elapsed,camera,hover?.actor);characterDialogue.update(dt);crystals.update(elapsed);lootPiles.update(dt,elapsed,hover?.actor);jobs.update();updateJobMarkers(dt);waking?.update(dt);syncTutorialSkip();destinations.update();projectiles.update(dt);document.body.classList.toggle('q-cutscene',!!(areas.cameraFocus||areas.celebration));$('game-menus').inert=areas.busy||travel.busy;
  if(__PLAYGROUND__)perfProbe.lap('world');
  const asleep=idleClock.update(dt,opening.playable?(!segment&&!path.length&&!target&&!actorTarget&&!areas.busy&&!travel.busy&&!debug?.previewing&&!combat.working&&!combat.busy&&!areas.working&&!companions.working&&!resourceActions.working&&!carpentry.working&&!fishing.working&&!food.working&&!cooking.working&&!recipeCrafting.working&&!smithing.working):opening.quiet);
@@ -906,7 +919,7 @@ if(__PLAYGROUND__){
   if(!biomeSandbox){const group=new THREE.Group(),tiles=new Map();scene.add(group);
    biomeSandbox={group,tiles,seed:1,source:null,streamer:null,cover:createGroundCoverPool({parent:group})};streamedWorlds.add(biomeSandbox);
    areas.register({id:'biome-test',name:'Biome test',description:'Playground: every biome side by side',listed:()=>false,group,tiles,music:'world',ambience:'meadow',
-    camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>biomeSandbox.landing,
+    camera:{zoom:22,angle:Math.PI/4,elevation:THREE.MathUtils.degToRad(35.264)},arrival:()=>biomeSandbox.landing,biomeAt:(x,z)=>biomeSandbox.source?.biomeAt(x,z)??null,
     // Streamed tiles join the live world map only while you're here (as Gelton's countryside does).
     enter(){if(!biomeSandbox.maps.includes(world))biomeSandbox.maps.push(world);},leave(){const i=biomeSandbox.maps.indexOf(world);if(i>=0)biomeSandbox.maps.splice(i,1);},
     update:dt=>{biomeSandbox.streamer.update(dt,viewTile());streamWater?.update(dt);}});}
@@ -972,6 +985,7 @@ if(__PLAYGROUND__){
   if(!editorArea){const group=new THREE.Group();group.name='world-editor';scene.add(group);editorArea={group,tiles:new Map(),built:null,land:null};
    streamedWorlds.add({get streamer(){return editorArea.land?.streamer;},get builtMap(){return editorArea.land?editorArea.built:null;}});
    areas.register({id:'world-editor',name:'World editor',description:'Playground: world editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,
+    biomeAt:(x,z)=>editorArea.land?.land.biomeAt(x,z)??null,
     // The land around the map joins the live world map while you're here (as any streamed countryside).
     enter(){const m=editorArea.land?.maps;if(m&&!m.includes(world))m.push(world);},leave(){const m=editorArea.land?.maps,i=m?m.indexOf(world):-1;if(i>=0)m.splice(i,1);},
     update:(dt,time,view)=>{editorArea.built?.crowd?.update(dt,time,{camera:view});if(editorArea.land){const at=viewTile();editorArea.built?.stream(at);editorArea.land.streamer.update(dt,at);streamWater?.update(dt);}},
@@ -980,7 +994,8 @@ if(__PLAYGROUND__){
   if(editorArea.built){spaces.forget(editorArea.built);editorArea.built.crowd?.dispose();editorArea.built.dispose();}
   await editorLand(data);
   // On the land, the town's chunks show by the land's rule (radius 1), so ground and buildings stream together.
-  const built=buildMap(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?drawRadius():null});built.areaId='world-editor';editorArea.built=built;attachCrowd(built);loadedMaps['world-editor']=built;
+  // A map on the land streams its content per chunk too (world-map.js lazy; docs/TOWN.md, Streaming a map's content).
+  const built=buildMap(data,{scene:editorArea.group,pickables,visible:true,land:editorArea.land?.land,streamRadius:editorArea.land?drawRadius():null,lazy:!!editorArea.land});built.areaId='world-editor';editorArea.built=built;attachCrowd(built);loadedMaps['world-editor']=built;
   editorArea.tiles.clear();for(const [k,t] of built.tiles)editorArea.tiles.set(k,t);
   let landing=here&&(built.tiles.get(key(here.x,here.z))||built.ground?.tile(here.x,here.z));if(!landing||landing.blocked||landing.water)landing=built.spawn;
   const first=areas.id!=='world-editor';stopAll();splash.close();opening.enterFreePlay();if(first)craftingTutorial.reset();
@@ -1047,6 +1062,10 @@ if(__PLAYGROUND__){
   freeCameraOn:freeCamOn,
   // The draw distance (render-quality.js), the same setting as the game's Settings: the world editor's top bar.
   drawDistance:quality.drawDistance,setDrawDistance:chunks=>quality.setDrawDistance(chunks),
+  // Biome atmosphere (atmosphere.js) on or off: the world editor's View.
+  atmosphereOn,
+  // The tile the view is over (the free camera's focus, else the slime's).
+  viewTile:()=>viewTile(),
   // Moves the view over a tile (the world editor's checks): the free camera's focus (turned on if it's off).
   lookAt(x,z){if(!freeCam)this.freeCamera(true);const t=world.get(key(x,z));freeCam.focus.set(x-6,t?.h??freeCam.focus.y,z-6);return true;},
   freeCamera(on=!freeCam){
@@ -1281,7 +1300,7 @@ systemsReady.value=true;
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
-if(__PLAYGROUND__)window.quadriaquest={getState:()=>({cutaway:cutawayState(),facing:+(Math.atan2(Math.sin(facing),Math.cos(facing))).toFixed(2),telegraphs:telegraphs.active,hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,face:playerFace,body:{squash:visual.scale.y,twist:visual.rotation.y,lean:visual.rotation.x},finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
+if(__PLAYGROUND__)window.quadriaquest={getState:()=>({cutaway:cutawayState(),atmosphere:atmosphere.state,facing:+(Math.atan2(Math.sin(facing),Math.cos(facing))).toFixed(2),telegraphs:telegraphs.active,hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,face:playerFace,body:{squash:visual.scale.y,twist:visual.rotation.y,lean:visual.rotation.x},finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),atmosphere,screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
 // Playground inspection: the renderer (compiled programs, render stats).
 if(__PLAYGROUND__)Object.defineProperty(window.quadriaquest,'renderer',{get:()=>renderer});
 // The playground's own API, for scripted browser checks (playground only).

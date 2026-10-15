@@ -3,7 +3,7 @@ import {h,mount} from '../ui/dom.js';
 import {keyedList} from '../ui/list.js';
 import {segmented,toggleSwitch,section} from '../ui/controls.js';
 import {signal,computed,effect,untracked} from '../reactive.js';
-import {createMapData,growMap,mapHeight,mapSurface,setMapHeight,setMapSurface,clearMapSurface,mapOffset,setMapOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells} from '../world-map.js';
+import {createMapData,growMap,mapHeight,mapSurface,setMapHeight,setMapSurface,clearMapSurface,mapOffset,setMapOffset,putOnLand,takeOffLand,SURFACE_NAMES,propCells,stairCells,packMap,unpackMap} from '../world-map.js';
 import {mapProblems} from '../map-checks.js';
 import {planBuilding,BUILDING_PRESETS,ROOF_TYPES,ROOF_COLORS,AWNINGS,toShaped,shiftShaped,shapeRuns,connectedCells} from '../building-kit.js';
 import {STYLE_NAMES,stylePalette} from '../edge-models.js';
@@ -100,7 +100,7 @@ const SIDES=['n','e','s','w'],COUNTER={n:'w',w:'s',s:'e',e:'n'};
 const GAME_SWATCHES=[...new Set(Object.values(COL).map(colorKey))];
 export function mapCatalogue(){
  // The repo's maps first (the overworld), then the playground's.
- const list=Object.entries(repoCities).map(([path,data])=>({id:'repo:'+path,mapId:data.id,name:`${data.name} (src/maps/${path.split('/').pop()})`,make:()=>structuredClone(data)}));
+ const list=Object.entries(repoCities).map(([path,data])=>({id:'repo:'+path,mapId:data.id,name:`${data.name} (src/maps/${path.split('/').pop()})`,make:()=>unpackMap(structuredClone(data))}));
  list.sort((a,b)=>(b.mapId==='overworld')-(a.mapId==='overworld'));
  // The game's own start (not a map file): choosing it leaves the editor for the clearing, a fresh start.
  list.push({id:'area:clearing',mapId:null,name:'The clearing (where the game starts)',area:'clearing'});
@@ -138,13 +138,13 @@ export function createWorldEditor(host){
   try{await rebuilding;}finally{rebuilding=null;}
   if(queued){const next=queued;queued=null;await rebuild(next);}
  }
- const snapshot=()=>{undo.push(JSON.stringify(data));if(undo.length>60)undo.shift();redo.length=0;history.value={undo:undo.length,redo:0};};
+ const snapshot=()=>{undo.push(JSON.stringify(packMap(data)));if(undo.length>60)undo.shift();redo.length=0;history.value={undo:undo.length,redo:0};};
  // An edit: apply() changes the data and returns the tiles it touched afterwards; `before` are the tiles
  // it touched before. Only their chunks are rebuilt. A refused edit (apply throws) leaves the data as it
  // was, in place, so the map being edited stays the same object.
  async function change(apply,before=[]){
-  const saved=JSON.stringify(data);snapshot();let after;
-  try{after=apply()||[];}catch(error){const restored=JSON.parse(saved);for(const k of Object.keys(data))delete data[k];Object.assign(data,restored);undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return false;}
+  snapshot();const saved=undo.at(-1);let after;
+  try{after=apply()||[];}catch(error){const restored=unpackMap(JSON.parse(saved));for(const k of Object.keys(data))delete data[k];Object.assign(data,restored);undo.pop();history.value={undo:undo.length,redo:redo.length};status.value=error.message;return false;}
   // Inside a floor every edit rebuilds that floor's building (or dungeon), and you stay where you are.
   const owner=hereOwner();if(owner!==null){if(!isDungeon(owner))staleBuildings.add(owner);host.rebuildFloors(owner);revision.value++;showSelection();refreshPreview();return true;}
   await rebuild({dirty:chunksAround([...before,...after])});return true;}
@@ -1188,7 +1188,7 @@ export function createWorldEditor(host){
  // Undo and redo: the saved state replaces the data in place (the map being edited stays the same
  // object), and only what differs between the two states rebuilds (whole when the map's size or land
  // settings differ).
- async function step(from,to){if(!from.length)return;to.push(JSON.stringify(data));const next=JSON.parse(from.pop()),diff=differences(data,next);
+ async function step(from,to){if(!from.length)return;to.push(JSON.stringify(packMap(data)));const next=unpackMap(JSON.parse(from.pop())),diff=differences(unpackMap(data),next);
   for(const k of Object.keys(data))delete data[k];Object.assign(data,next);history.value={undo:undo.length,redo:redo.length};if(!entryOf(selection.peek()))selection.value=null;
   // Inside a floor: rebuild that building's floors (you stay); the map catches up when you step out.
   const here=floorHere.peek();if(here){host.rebuildFloors(here.building);staleBuildings.add(here.building);revision.value++;refreshPreview();return;}
@@ -1225,7 +1225,8 @@ export function createWorldEditor(host){
   if(rebuilding)await rebuilding;built=await host.editMap(data,{keepPlayer:false,at:here&&{x:here.x+(sides.west||0),z:here.z+(sides.north||0)}});
   scheduleChecks(0);showGrid();showSelection();showDraft();showBiomes();revision.value++;status.value=`${data.name} is now ${data.size.join(' × ')}.`;}
  const roundSides=([W,D])=>{const pad=v=>{const need=Math.ceil(v/REGION)*REGION-v,low=Math.floor(need/2/CHUNK)*CHUNK;return [low,need-low];},[west,east]=pad(W),[north,south]=pad(D);return {north,east,south,west};};
- const json=()=>JSON.stringify(data,null,1);
+ // Saved compact (world-map.js packMap): only ground rows that differ from their region's plain ground.
+ const json=()=>JSON.stringify(packMap(data),null,1);
  async function save(){
   try{const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:json()})});
    const result=await response.json();status.value=response.ok?`Saved to ${result.path}.`:`Not saved: ${result.error}`;}catch{status.value='Saving needs the playground dev server (npm run dev:debug). Use Copy or Download instead.';}}
@@ -1350,11 +1351,17 @@ export function createWorldEditor(host){
         group(()=>{revision.value;return data?`Size · ${data.size.join(' × ')}`:'Size';},fields(select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 region (${REGION})`],['2','2 regions']])),
          buttons(smallButton('Grow map',()=>growBy()),h('span',{hidden:()=>{revision.value;return !data||data.size.every(v=>v%REGION===0);}},smallButton('Round up to whole regions',()=>growBy(true))))),
         group('View',h('div',{class:'q-world-editor__toggles'},host.freeCameraOn?toggleSwitch({label:'Free camera',description:'WASD or middle-drag to pan',on:()=>host.freeCameraOn.value,onChange:v=>host.freeCamera(v)}):null,
-         toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}}))),
+         host.atmosphereOn?toggleSwitch({label:'Atmosphere',description:'Fog, light and particles by biome',on:()=>host.atmosphereOn.value,onChange:v=>{host.atmosphereOn.value=v;}}):null,
+         toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}})),
+         buttons(smallButton('Show the mist wall',showMist,{title:'Look at the world’s edge nearest the view'}))),
         wideGroup(()=>`Checks · ${counts.value}`,
          keyedList(h('ol',{class:'q-world-editor__checks'}),problems,p=>`${p.kind}:${p.tile.join(',')}:${p.text}`,p=>h('li',null,h('button',{type:'button',class:'q-world-editor__check','data-severity':p.peek().severity,
           'aria-current':()=>String(shownProblem.value===p.value),on:{click:()=>showProblem(p.peek())}},label(p.peek())))))))))));
  }
+ // The mist wall (mist-wall.js): the camera looks at the world's edge nearest the view.
+ function showMist(){if(!data?.land){status.value='Only a map on the land has the world’s edge.';return;}const at=host.viewTile?.()||{x:data.size[0]/2,z:data.size[1]/2},[w,d]=data.size;
+  const sides=[[at.x,0,'north'],[at.x,d-1,'south'],[0,at.z,'west'],[w-1,at.z,'east']].map(([x,z,n])=>({x:Math.max(0,Math.min(w-1,Math.round(x))),z:Math.max(0,Math.min(d-1,Math.round(z))),n,dist:Math.abs(x-at.x)+Math.abs(z-at.z)})).sort((a,b)=>a.dist-b.dist),s=sides[0];
+  host.lookAt?.(s.x,s.z);status.value=`The mist wall on the ${s.n} edge.`;}
  const editor={
   get active(){return !!view;},get data(){return data;},get built(){return built;},get problems(){return problems.peek();},tool,mode,options,brush,
   // Opens on the map you're on: the one being edited (as you left it), else the map you stand in
@@ -1381,6 +1388,8 @@ export function createWorldEditor(host){
   get grid(){return grid.peek();},set grid(v){grid.value=!!v;showGrid();},
   click,undo:()=>step(undo,redo),redo:()=>step(redo,undo),
   // Fast editing, for scripted checks: the same actions as the panel and keys.
+  // Moves the view over a tile (the free camera's focus).
+  lookAt:(x,z)=>host.lookAt?.(x,z),
   selection,moving,select(kind,index){selection.value={kind,index};showSelection();},moveSelection,toolGroup,setTool,heldRotation,get holding(){return holding();},get placing(){return placing;},pickUpNew,drop,turnHeld,lift,cancel,goLevel,paintRoom,makeRoom,pushWall,get heldDoor(){return heldDoor;},get pendingFlight(){return pendingFlight;},commitColour,resetColours,applyPreset,savePreset,presetName,presetFor,palettes,catalogueBy,catalogueGroup,catalogueSearch,nudge,rotateSelection,duplicateSelection,placeCopy,deleteSelection,paint,drag,copySelection,pasteClipboard,
   growMap:growBy,draft,reshapeSelection,buildDraft,clearDraft,setWall,wallAt,setLook,addLand,removeLand,landDefault,reseedLand,
   get checksPending(){return !!checkTimer;},runChecks(){clearTimeout(checkTimer);if(built)problems.value=mapProblems(data,built);return problems.peek();},

@@ -17,7 +17,9 @@ export const PERF_SCENARIOS=[
  {id:'city-walk',description:'Kit street (city Phases 4–8): walking across the town square past buildings, props and its 14 townsfolk'},
  {id:'city-crowd',description:'Kit street square with a generated crowd of 60 townsfolk (crowd budget rings)'},
  {id:'capital-square',description:'The capital (160 × 160, city Phase 9): the town square at the default view, chunks streamed, its townsfolk'},
- {id:'overworld-pan',description:'The overworld (288 × 288) in the world editor, the free camera panning back and forth across it at zoom 40: chunks of land, nature and water streaming in and out'},
+ {id:'overworld-pan',description:'The overworld (384 × 384) in the world editor, the free camera panning back and forth across it at zoom 40: chunks of land, nature, water and the map\'s content streaming in and out'},
+ {id:'biome-atmosphere',description:'The Biome test\'s broadleaf forest: walking among its trees in its fog and falling leaves (atmosphere.js)'},
+ {id:'mist-edge',description:'The overworld\'s north edge in the world editor at zoom 40: the mist wall\'s soft layers across the view (mist-wall.js)'},
  {id:'countryside-walk',description:'Gelton\'s countryside (docs/WORLD.md): walking the west road out of the city and back, loading and unloading countryside chunks (woods, rocks, goblins) on the way'}
 ];
 
@@ -56,6 +58,9 @@ export function createPerfScenarios({api,probe,setView,walkTo,state}){
   async 'overworld-pan'(){api.reset('all');await dismiss();const {default:data}=await import('../maps/overworld.json');await api.editMap(structuredClone(data),{keepPlayer:false});await wait(1500);
    settle({...DEFAULT_VIEW,zoom:40});api.freeCamera(true);const key=(type,k)=>dispatchEvent(new KeyboardEvent(type,{key:k}));let dir='w';key('keydown',dir);
    every(3000,()=>{key('keyup',dir);dir=dir==='w'?'s':'w';key('keydown',dir);});cleanups.push(()=>{key('keyup','w');key('keyup','s');api.freeCamera(false);});},
+  async 'biome-atmosphere'(){api.reset('all');await dismiss();await api.enterBiomeTest('forest');await wait(2500);settle();const at=state().tile,ends=[[at.x,at.z],[at.x+5,at.z]];let next=1;every(200,()=>{if(state().moving)return;const [x,z]=ends[next];next=1-next;walkTo(x,z);});},
+  async 'mist-edge'(){api.reset('all');await dismiss();const {default:data}=await import('../maps/overworld.json');await api.editMap(structuredClone(data),{keepPlayer:false});await wait(1000);
+   settle({...DEFAULT_VIEW,zoom:40});api.lookAt(192,14);await wait(1500);cleanups.push(()=>api.freeCamera(false));},
   async 'city-crowd'(){api.reset('all');await dismiss();await api.enterMap('kit-street');await api.crowd(60);await wait(1500);settle();}
  };
  return {

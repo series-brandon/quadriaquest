@@ -28,6 +28,8 @@ Do not hand-place held items, position hands, or write per-character animation r
 
 ## Mobile UI and model previews
 
+**Exception: the world (map) editor is desktop-only.** Map editing is done by the developers on a desktop, so the editor doesn't need to work well on phones; don't spend effort on its phone layout. Everything players see still follows the rules below.
+
 Default menus and utility modal windows to fullscreen, edge-to-edge layouts on small screens, with safe-area padding. Dialogue, tutorial tips, toasts, and other transient gameplay overlays are exceptions. Tiny confirmations with a short message and a few buttons (such as eating at full health) should also remain compact, centered dialogs with touch-sized actions; use the modal host's compact confirmation (`confirmModal` in `src/ui/modal.js`). Keep controls touch-sized and preview camera aspects synchronized with actual canvas dimensions. Every new shared 3D model belongs in the dev model catalogue; list only motions it actually supports and reuse production animation functions.
 
 ## Fresh-context entry point

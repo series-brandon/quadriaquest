@@ -6,6 +6,7 @@ import {key} from './world.js';
 import {surfaceColor} from './map-terrain.js';
 import {hash} from './noise.js';
 import {biomeRule} from './biome-rules.js';
+import {unpackLand} from './map-file.js';
 
 // Towns built on the world's land (docs/TOWN.md, The town on the land). A town with `land` has no ground
 // of its own: every tile starts as the generated biome land (biome-land.js), the same heights, colours
@@ -28,7 +29,7 @@ export const PAD_APRON=1;
 // The land covers the map exactly (user, 2026-10-14: no unusable land; everything you see can be edited
 // and reached). The map's edge is the world's edge.
 export function townLand(data){
- data.land.cells??={};data.land.terrain??={};// painted live by the editor (useCells after undo)
+ unpackLand(data.land);data.land.cells??={};data.land.terrain??={};// painted live by the editor (useCells after undo)
  const {seed=1,default:fallback='meadow',cells,terrain,origin:[ox,oz]=[0,0]}=data.land,[w,d]=data.size;
  const land=createBiomeLand({seed,bounds:[ox,oz,ox+w,oz+d],map:{default:fallback,cells,terrain}});
  return ox||oz?shiftLand(land,ox,oz):land;

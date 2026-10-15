@@ -24,7 +24,7 @@ export function stylePalette(style){
 // A building's style as edge pieces take it: just the name, or the name with its colours.
 export const buildingStyle=(name,colors)=>colors&&['wall','trim','base','door'].some(r=>colors[r])?{name,...Object.fromEntries(['wall','trim','base','door'].filter(r=>colors[r]).map(r=>[r,colors[r]]))}:name;
 const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.85,...extra});
-const shared={glass:mat('#a9d3e3',{transparent:true,opacity:.45,roughness:.15}),fence:mat('#9b6c46'),iron:mat('#4b4651',{roughness:.5,metalness:.3}),sill:mat('#b6afa3')};
+const shared={glass:mat('#a9d3e3',{transparent:true,opacity:.45,roughness:.15}),fence:mat('#9b6c46'),picket:mat('#b08a62'),iron:mat('#4b4651',{roughness:.5,metalness:.3}),sill:mat('#b6afa3')};
 const materials=new Map();
 function material(style,role){
  if(shared[role])return shared[role];
@@ -35,6 +35,11 @@ function material(style,role){
 const geometries=new Map();
 function box(w,h,d){const id=`${w},${h},${d}`;if(!geometries.has(id))geometries.set(id,new THREE.BoxGeometry(w,h,d));return geometries.get(id);}
 function piece(parent,w,h,d,m,x,y,z=0){const mesh=new THREE.Mesh(box(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);return mesh;}
+// Fences, railings and fence gates (docs/TOWN.md, Reworked props): capped posts on the tile's corners (two
+// pieces in a row share theirs exactly), rails behind, and pointed pickets or balusters in front.
+const caps=new Map();function cap(size){if(!caps.has(size))caps.set(size,new THREE.ConeGeometry(size*.75,size*.8,4));return caps.get(size);}
+function fencePost(parent,x,h,m,size=.09){piece(parent,size,h,size,m,x,h/2);const top=new THREE.Mesh(cap(size),m);top.position.set(x,h+size*.4,0);top.rotation.y=Math.PI/4;top.castShadow=top.receiveShadow=true;parent.add(top);}
+function picket(parent,x,h,z=.035,w=.1){piece(parent,w,h,.025,shared.picket,x,h/2,z);const tip=piece(parent,w*.7,w*.7,.025,shared.picket,x,h,z);tip.rotation.z=Math.PI/4;}
 // Parts are stacked without overlapping (stone base, wall, trim cap, floor bands), so no two faces
 // share a plane and nothing flickers. Trim stands slightly proud of the wall. Corner posts are not
 // part of a piece: createEdgeFeatures (doors.js) puts one post on each grid corner where pieces meet.
@@ -84,9 +89,8 @@ export function edgePiece(kind,{height=STOREY,storeys=Math.max(1,Math.floor(heig
   for(let i=0;i<storeys;i++)storeyBand(g,style,rows[i],rows[i+1],{ground:i===0,top:i===storeys-1,window:kind==='window'||upperWindows&&i>0});
   if(paint)paintFaces(g,paint,{ground:true,top:storeys===1,window:kind==='window',y0:rows[0],y1:rows[1],flat:!!stylePalette(style).flat});
  }else if(kind==='fence'||kind==='railing'){
-  const h=kind==='fence'?.6:.7;
-  for(const x of [-.46,.46])piece(g,.08,h,.08,shared.fence,x,h/2);
-  for(const y of kind==='fence'?[.22,.5]:[.32,.66])piece(g,.84,.06,.05,shared.fence,0,y);
+  if(kind==='fence'){for(const x of [-.5,.5])fencePost(g,x,.66,shared.fence);for(const y of [.18,.46])piece(g,.92,.05,.04,shared.fence,0,y,-.01);for(const x of [-.32,-.16,0,.16,.32])picket(g,x,.54);}
+  else{for(const x of [-.5,.5])fencePost(g,x,.7,shared.fence,.08);piece(g,.94,.06,.08,shared.fence,0,.7);piece(g,.92,.04,.04,shared.fence,0,.2);for(const x of [-.3,-.1,.1,.3])piece(g,.035,.48,.035,shared.picket,x,.44);}
  }else if(kind==='low'){
   piece(g,1,.42,WALL_THICKNESS+.12,material(style,'base'),0,.21);piece(g,1.02,.06,WALL_THICKNESS+.22,material(style,'trim'),0,.45);
  }
@@ -102,12 +106,12 @@ export function edgePiece(kind,{height=STOREY,storeys=Math.max(1,Math.floor(heig
 export const GATE_STYLES=['fenceGate','ironGate'];
 function gateModel(style){
  const g=new THREE.Group();g.name='edge-gate';const iron=style==='ironGate',h=iron?1.5:.9,post=iron?shared.iron:shared.fence;
- for(const x of [-.47,.47])piece(g,.09,h+.1,.09,post,x,(h+.1)/2);
+ for(const x of [-.47,.47]){if(iron)piece(g,.09,h+.1,.09,post,x,(h+.1)/2);else fencePost(g,x,h-.08,shared.fence,.1);}
  if(iron)piece(g,1,.08,.1,shared.iron,0,h+.06);
  const upper=new THREE.Group();upper.name='door-upper';g.add(upper);
  const leaf=new THREE.Group();leaf.name='door-leaf';g.add(leaf);const panel=new THREE.Group();panel.name='door-panel';leaf.add(panel);
  if(iron){for(const x of [-.36,-.18,0,.18,.36])piece(panel,.04,h-.1,.04,shared.iron,x,(h-.1)/2+.05);for(const y of [.2,h-.15])piece(panel,.84,.05,.05,shared.iron,0,y);}
- else{for(const y of [.25,.6])piece(panel,.84,.07,.05,shared.fence,0,y);for(const x of [-.36,0,.36])piece(panel,.08,.75,.05,shared.fence,x,.42);piece(panel,.07,.9,.04,shared.fence,0,.45).rotation.z=.85;}
+ else{for(const y of [.2,.52])piece(panel,.84,.06,.04,shared.fence,0,y,-.01);for(const x of [-.33,-.165,0,.165,.33])picket(panel,x,.6,.025,.09);piece(panel,.05,.62,.03,shared.fence,0,.36,-.035).rotation.z=.68;}
  const door={group:g,leaf,panel,upper,swing:-Math.PI/2};setDoorHinge(door,-1,1);return door;
 }
 export function doorModel({height=STOREY,storeys=Math.max(1,Math.floor((height)/STOREY+.01)),sill=0,lower=1,style,upperWindows=false}={}){

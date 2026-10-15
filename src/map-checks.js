@@ -35,7 +35,8 @@ function footprintTiles(entry,kind){
 }
 export function mapProblems(data,built){
  const problems=[],add=(kind,severity,tile,text)=>problems.push({kind,severity,tile,text});
- const map=built.tiles,spawn=built.spawn;
+ // A lazy map (world-map.js): only the chunks made so far (the area round the view).
+ const map=built.loadedTiles||built.tiles,spawn=built.spawn;
  if(!spawn||spawn.blocked)add('spawn','error',data.spawn,'The arrival tile is missing or blocked.');
  const reach=spawn?reachableFrom(map,spawn):new Set();
  // A world map (on the land) is whole regions (docs/TOWN.md, Whole regions).
@@ -47,7 +48,7 @@ export function mapProblems(data,built){
  for(const t of map.values())if(t.stair)claim([t.x,t.z],'stairs');
  // Doors: a doorstep you can stand on, reachable from the arrival point; the door rule.
  const doorsteps=new Set();
- for(const b of built.buildings)for(const d of b.anchors.doors){const step=d.doorstep;if(!step){add('door','error',[b.plan.x0,b.plan.z0],`${b.plan.desc.name||'A building'}'s door opens off the map.`);continue;}
+ for(const b of built.buildings.filter(Boolean))for(const d of b.anchors.doors){const step=d.doorstep;if(!step){add('door','error',[b.plan.x0,b.plan.z0],`${b.plan.desc.name||'A building'}'s door opens off the map.`);continue;}
   doorsteps.add(step);if(step.blocked)add('door','error',[step.x,step.z],`Something stands on ${b.plan.desc.name||'a building'}'s doorstep.`);
   else if(!reach.has(step))add('door','error',[step.x,step.z],`${b.plan.desc.name||'A building'}'s doorstep can't be reached from the arrival point.`);}
  for(const r of built.edges.doorProblems())add('door rule','error',[r.door.a.x,r.door.a.z],r.problems.join('; '));
@@ -55,8 +56,10 @@ export function mapProblems(data,built){
  for(const p of stairProblems(map))add('stairs','error',[p.tile.x,p.tile.z],p.problem);
  // Land only the water cuts off (across a river or the sea) is a note: it needs a bridge or a boat, not stairs.
  const open=[...map.values()].filter(t=>!t.blocked&&!t.water&&!t.indoor&&!reach.has(t)),across=open.length&&spawn?reachableAcrossWater(map,spawn):new Set();
- for(const group of components(open.filter(t=>!across.has(t)),map))add('unreachable','warning',[group[0].x,group[0].z],`${group.length} tile${group.length>1?'s':''} of open ground can't be reached (a full-block drop needs stairs).`);
- for(const group of components(open.filter(t=>across.has(t)),map))add('across water','info',[group[0].x,group[0].z],`${group.length} tile${group.length>1?'s':''} of land across the water: no bridge or boat reaches ${group.length>1?'them':'it'} yet.`);
+ // A lazy map's groups that run into chunks not made yet may well be reached through them: no verdict yet.
+ const [W,D]=data.size,unknown=group=>group.some(t=>NEIGHBOURS.some(([dx,dz])=>{const x=t.x+dx,z=t.z+dz;return x>=0&&z>=0&&x<W&&z<D&&!map.has(key(x,z));}));
+ for(const group of components(open.filter(t=>!across.has(t)),map))if(!unknown(group))add('unreachable','warning',[group[0].x,group[0].z],`${group.length} tile${group.length>1?'s':''} of open ground can't be reached (a full-block drop needs stairs).`);
+ for(const group of components(open.filter(t=>across.has(t)),map))if(!unknown(group))add('across water','info',[group[0].x,group[0].z],`${group.length} tile${group.length>1?'s':''} of land across the water: no bridge or boat reaches ${group.length>1?'them':'it'} yet.`);
  // Streets: no one-tile slots and no passages under two tiles wide (stairs may be one wide).
  for(const t of map.values()){if(t.blocked||t.water||t.indoor||t.stair||!reach.has(t)||doorsteps.has(t))continue;
   // DIRS order: n, e, s, w (opposites: 0–2, 1–3).
@@ -66,7 +69,7 @@ export function mapProblems(data,built){
   else if(count===2&&(open[0]&&open[2]||open[1]&&open[3]))add('narrow','warning',[t.x,t.z],'A passage one tile wide (streets and alleys are at least two).');}
  // Furniture (furnish.js): a bed, stove, forge, anvil or counter nobody can reach is wasted; so is a
  // shop whose keeper can't reach the counter.
- for(const b of built.buildings){const door=b.anchors.doors[0]?.inside;if(!door||!b.furniture?.length)continue;const inside=reachableFrom(map,door);
+ for(const b of built.buildings.filter(Boolean)){const door=b.anchors.doors[0]?.inside;if(!door||!b.furniture?.length)continue;const inside=reachableFrom(map,door);
   for(const p of b.furniture){const useful=p.spots.filter(sp=>['sleep','cook','work','vend','browse'].includes(sp.kind));if(useful.length&&!useful.some(sp=>inside.has(sp.tile)))add("furniture","warning",[p.tile.x,p.tile.z],`${b.plan.desc.name||'A building'}: nobody can reach its ${p.def.name.toLowerCase()}.`);}
   if(b.anchors.keeper&&!inside.has(b.anchors.keeper))add('furniture','warning',[b.anchors.keeper.x,b.anchors.keeper.z],`${b.plan.desc.name||'A shop'}: the keeper can't get behind the counter.`);}
  // Separate interiors and dungeons (spaces.js).
@@ -76,7 +79,7 @@ export function mapProblems(data,built){
  for(const p of built.props)for(const s of p.spots)if(s.tile&&(s.tile.blocked||!reach.has(s.tile)))add('spot','warning',[s.tile.x,s.tile.z],`${p.def.name}'s ${s.kind} spot can't be used.`);
  // The grid (docs/WORLD.md, Design constraints): a building stays inside one chunk, so it streams, draws
  // and is stored whole with it. Region lines are chunk lines, so this keeps it inside one region too.
- for(const b of built.buildings){const {x0,z0,x1,z1}=b.plan;if(!withinChunk(x0,z0,x1,z1))add('chunks','error',[x0,z0],`${b.plan.desc.name||'A building'} crosses a chunk line (buildings must fit inside one ${CHUNK} × ${CHUNK} chunk).`);}
+ for(const b of built.buildings.filter(Boolean)){const {x0,z0,x1,z1}=b.plan;if(!withinChunk(x0,z0,x1,z1))add('chunks','error',[x0,z0],`${b.plan.desc.name||'A building'} crosses a chunk line (buildings must fit inside one ${CHUNK} × ${CHUNK} chunk).`);}
  return problems;
 }
 // Connected groups of tiles (4-neighbour, same walk rule).

@@ -133,6 +133,13 @@ The same approach as Gelton's countryside (WORLD.md, *The land*), with more of i
 - **Beyond it there are no tiles,** and the last tiles before it are unwalkable. Clicking into it does nothing, or shows "The mist is too thick to go on" as a short toast.
 - **It's one shared effect,** made of a few soft layers drawn per chunk along the edge (no per-frame CPU work). It belongs to the world's edge, so maps don't place it.
 - **It has no story.** It's a soft border instead of a hard "end of the world".
+- **As built (2026-10-15,** `src/mist-wall.js`**):**
+  - **Where:** round any map on the land (the shared map builder, `world-map.js`), and round Gelton's countryside (main.js). The overworld's edge is the world's edge.
+  - **Look:** four soft layers stand 0.7 to 5 tiles out, 9 to 17 units tall, all in one mesh (one draw: as chunk-long pieces, the wall round Gelton's countryside cost 36 draws, perf run 2026-10-15). They're shaded cool grey-blue in their folds and bright where they billow, so they read against the pale sky. They drift in their shader.
+  - **Never in the way:** mist nearer the camera than what it looks at thins away (as the cutaway opens buildings), so standing by the south or east edge never hides you.
+  - **Per frame:** two uniforms (the time, and how far the camera is from what it looks at).
+  - **The edge:** the map's last tiles are walkable (the whole map is usable). Clicking past them says "The mist is too thick to go on." (`mistAt`).
+  - **Playground:** *Show the mist wall* in the world editor's *Map* → *View* looks at the edge nearest the view.
 
 ## Gelton during the prototype
 
@@ -349,6 +356,40 @@ User request: hide what's lifted, wall and floor paint, Sims-like doors and stai
   - A room's wall (one you drew, on the map or a floor): drag from a tile beside it, and the straight run of that wall, doors and all, moves the way you drag. A room wall meeting one of its ends on one side only (its room's) stretches or shrinks with it. It can't cross another wall or run into the outside wall.
   - The building is reshaped as Reshape does.
   - Its rooms, paint and floors stay where they were when its north-west corner moves. Reshaping no longer drops a building's floors either.
+
+## Streaming a map's content (2026-10-15)
+
+User request: section 4 (scale and speed). A map on the land (the overworld) is built a chunk at a time as you move, like its ground (`buildMap(…, {lazy: true})`, `world-map.js`; the world editor's maps on the land use it).
+- **Tiles:** made a chunk at a time the first time anything asks for one: the land streamer drawing the ground, a chunk's content, a path, an edit. They match a full build tile for tile (a test compares them).
+- **Content:** a chunk's buildings, props, edges, stairs and furniture are built when it comes within the draw distance, nearest first, a few milliseconds a frame (at least one chunk). Once built, a chunk stays built.
+- **Always built:** the arrival spot's chunk, the crystal's, and those of every townsfolk's home and house, so the townsfolk always have their buildings.
+- **Edits anywhere:** an edit builds the chunks it touches, wherever they are; undo and redo work as before.
+- **The checks** see only the chunks made so far (the area round the view): a flood fill would otherwise make the whole map. Ground that runs into chunks not made yet gets no verdict (it may be reached through them).
+- **Measured (Node, 384 × 384 overworld):** opening went from about 1.5 s to about 0.16 s. The 25 chunks within two of the arrival take about 0.45 s, spread over frames (about 18 ms a chunk, most of it making the land's tiles).
+- **Not yet:** chunks are never unloaded (memory grows with where you've been); a chunk's content is built in one go (about 18 ms), so panning onto new land can cost a frame.
+- **The minimap** looks up the tiles round you by key instead of walking every tile in the world (over 100,000 on the overworld) every 0.15 s.
+
+## The map file (2026-10-15)
+
+User request: the compact map file from section 4. Maps are saved packed (`src/map-file.js` `packMap`/`unpackMap`):
+- **Ground:** each region's layer (heights, offsets, surfaces) is `{fill, rows}`, keeping only the rows that aren't all `fill`, by their index.
+- **Land paint:** the biome and terrain cells are `{legend, rows}`: per row of cells, `[first cx, one letter per cell]` ('.' unpainted), the letters indexing `legend`.
+- **Reading:** a region is unpacked the first time it's read (`world-map.js`), and the land's cells when the land is made, so a packed file loads as it is. The editor unpacks on open, and saves, copies, downloads and undo snapshots packed (60 undo steps of the overworld were about 21 MB; now well under 1 MB).
+- **Sizes:** the overworld went from 360 KB to 11 KB; Gelton's capital from 258 KB to 149 KB (its terrain really varies, row by row). The generators (`scripts/generate-*.mjs`) write packed files too.
+- **Tests:** `map-file.test.js` checks the round trip, that only changed rows are kept, that a packed map reads as it is, and that the repo's maps are saved packed.
+
+## Reworked props (2026-10-15)
+
+User request: section 3's prop rework (the most-used props first). Same footprints, spots and rules; only the models changed. Shared detailed pieces in `prop-parts.js` (`barrelParts`, `crateParts`, `lanternParts`) build them, so a barrel or lantern looks the same everywhere:
+- **Market stall:** a plank-fronted counter, four posts with beams, a striped awning with a scalloped valance, a price board, and goods (a crate of apples, cabbages, loaves).
+- **Counters** (shop, corner, fish, bar): framed front panels on a dark plinth, a top that overhangs, and a rail under it.
+- **Lamps:** the lamp post and double street lamp stand on a stone footing with a fluted base and collars, under framed lanterns (corner bars, warm glass, pyramid roof, finial). The glow points sit in the glass.
+- **Crates** (crates, crate stack, produce crates): dark frames on every edge and a brace across the front.
+- **Barrels** (barrel, rain barrel, quench barrel, kegs): bulging staves (a lathe), four iron hoops, and a lid or water inset at the top.
+- **Fences, railings and the fence gate** (edge pieces): capped posts on the tile corners (two pieces in a row share theirs), rails behind and pointed pickets in front; railings have a handrail and balusters.
+- **Trees** (all six species): a flared foot and a branch or two; crowns of clusters shaded darker underneath and lighter on top; pines have four drooping tiers and a tip, willows two rings of fronds. Each is still one merged mesh at the same height.
+- **Colours:** each distinct colour is still a piece you can recolour (*Colours*), so these props have more pieces than before. Their colours come from the shared palette, so schemes by piece name still apply.
+- **Checked in the browser:** each placed on the overworld beside the other props and buildings.
 
 ## Room doors, inside walls and Walls down (2026-10-15)
 
@@ -620,7 +661,7 @@ User report: editor performance was "atrocious". Measured on the 288 × 288 over
   - The first open generates the whole map's land (about 1.3 s).
   - A full rebuild takes about 0.7 s once the land is generated.
   - The checks take about 0.15 s, run once after editing stops.
-  - Building the map's content per chunk, streamed like its ground, is the next step for large maps.
+  - Building the map's content per chunk, streamed like its ground, is the next step for large maps. (Since done: *Streaming a map's content*, below.)
 - **Draw distance** (Settings → Graphics; `render-quality.js` `drawDistance`):
   - Near, Medium, Far or Very far: 1–4 chunks around you, saved per device.
   - Every streamed land and town streams that far, and the camera's far plane follows.
@@ -657,8 +698,8 @@ User request: grow the overworld, so the river, coast and sea (and the woods and
   - `overworld.test.js` checks the size, the origin, the middle chunk, and the river and sea being the map's own tiles.
 - **Not yet:**
   - Adding a building still does a full rebuild.
-  - The map file is about 330 KB, mostly unedited rows; a sparser format can come later.
-  - The overworld will need to stream its city content (not only its ground) as it nears the world's 2048 × 2048.
+  - The map file is about 330 KB, mostly unedited rows; a sparser format can come later. (Since done: *The map file*, below.)
+  - The overworld will need to stream its city content (not only its ground) as it nears the world's 2048 × 2048. (Since done: *Streaming a map's content*, below.)
 
 ## Prop palette and village props (2026-10-14)
 

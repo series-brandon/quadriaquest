@@ -152,8 +152,7 @@ The area's music plays by default. When you stand in a biome with its own music 
   - **Checked in the browser:** added land around a blank map, painted forest and coast, undid a stroke, reseeded, changed the default, saved, and removed the land, with no errors.
 - **Not yet:**
   - music and ambience by biome (step 3);
-  - atmosphere and the later biomes' models (step 4);
-  - the minimap doesn't show biome colours yet.
+  - the later biomes' models (step 4; atmosphere and minimap colours are done: *Atmosphere and the minimap*, below).
 
 ## Terrain and biome (2026-10-14)
 
@@ -211,6 +210,29 @@ User report: strips of meadow where a sea painted to the overworld's edge met th
 - **Cause:** a tile's biome and terrain are looked up through a small warp (so borders wander), and its height blends the cells within 20 tiles. Near the edge both reached cells outside the map. Nothing can be painted there, so they read as the default biome (meadow) and its usual terrain (rolling land): land along the sea's edge.
 - **Fix** (`biome-land.js`): a cell past the land's edge reads as the nearest cell inside it, so the edge keeps its own biome and terrain to the last tile.
 - **Result:** the overworld's checks went from 11 warnings to 3; the stranded strips of open ground are gone. A test paints a sea up to the edge and checks every tile there is water, and that the opposite edge keeps its painted biome.
+
+## Atmosphere and the minimap (2026-10-15)
+
+User request: section 3 of the editor plan, without music (music and ambience will come later, as themes by region or by a custom border).
+- **Atmosphere** (`src/atmosphere.js`): fog, the light's tint and drifting particles follow the biome under the view. Changes crossfade over a couple of seconds; particles fade out, switch kind and fade back in.
+  - **Where:** an area with biome land gives `biomeAt(x, z)` (`areas.register`): the world editor's map and the Biome test. Anywhere else it settles back to clear.
+  - **Data:** each biome's `atmosphere` is `{fog: {color, density 0..1}, light: {sky, ground, sun (tints), brightness}, particles}`. All six starter biomes have one now:
+
+    | Biome | Fog | Light | Particles |
+    |---|---|---|---|
+    | Meadow | none | warm sun | pollen |
+    | Broadleaf forest | light, green-grey | a little dimmer, green sky | falling leaves |
+    | Pine forest | light, grey-green | cooler, dimmer | falling needles |
+    | Hills | none | a little brighter | thistledown |
+    | Coast | faint, pale blue | bright, cool sky | sea spray |
+    | Wetland | the thickest, grey-green | a little dimmer | midges |
+
+  - **Fog** is in the scene only while a biome's fog shows, and never on the Low quality tiers: kept in the scene always, every material paid for it on every pixel, which took a software-rendered clearing from 47 to 7 fps (perf A/B). Turning it on or off switches between cached programs (the first time compiles). Its range follows the camera's far plane (the draw distance).
+  - **Low tiers:** half the particles, and the mist wall draws only its two outer layers with one noise lookup.
+  - **Particles:** one pool of 900 points round the view, moved entirely in their shader (fall, sway, drift, flutter, jitter) and wrapped round the view's centre so the field stays put in the world. Kinds are in `PARTICLES`; leaves and needles are flat flakes, the rest soft specks. No per-particle CPU work.
+  - **Playground:** the world editor's *Map* → *View* → *Atmosphere* switch; the Biome test shows every kind. A test (`atmosphere.test.js`) checks every biome's particles exist, the fog range, and the crossfade there and back.
+- **Minimap colours:** open ground on biome land takes its biome's `ground.minimap` colour (its shore or rock their own), muted a fifth towards the minimap's ground colour so it sits with the rest. Water, indoors and what blocks keep their colours (`minimapTileColor`, `player-interface-policy.js`).
+- **Not yet:** music and ambience by biome (to be themes by region or custom border); fireflies need a time of day first.
 
 ## Open questions
 

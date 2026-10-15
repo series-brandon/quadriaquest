@@ -1066,80 +1066,80 @@
   },
   "city-crowd": {
    "meta": {
-    "updated": "2026-10-11T21:20:35.984Z",
-    "note": "Countryside around Gelton (new countryside-walk scenario); baked edge originals leave the scene graph (objects -75% in cities); city wall, gather spots",
+    "updated": "2026-10-15T17:00:17.054Z",
+    "note": "Section 3/4: reworked props (lathe barrels, framed crates, lanterns, picket fences, trees: +17 geometries), mist wall and atmosphere shaders (+4 programs), lazy map content; new scenarios biome-atmosphere and mist-edge",
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
     "windows": 3,
     "windowMs": 2500,
-    "calibrationMs": 26.650001525878906
+    "calibrationMs": 26.549999237060547
    },
    "summary": {
     "counters": {
-     "draws": 1032.993,
-     "threeDrawCalls": 457.313,
-     "triangles": 242220,
-     "uploadsPerFrame": 0.053,
-     "uploadKBPerFrame": 0.058,
+     "draws": 988.57,
+     "threeDrawCalls": 412.413,
+     "triangles": 305848,
+     "uploadsPerFrame": 0,
+     "uploadKBPerFrame": 0,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 117.589,
-     "mutationsPerSec": 3.595,
+     "programSwitchesPerFrame": 92.94,
+     "mutationsPerSec": 3.993,
      "layoutsPerSec": 0,
-     "styleRecalcsPerSec": 3.988,
-     "objects": 2117,
-     "visibleMeshes": 865,
+     "styleRecalcsPerSec": 3.982,
+     "objects": 2086,
+     "visibleMeshes": 821,
      "programs": 24,
-     "geometries": 220,
+     "geometries": 236,
      "textures": 6
     },
     "timing": {
-     "frameMs": 3.535,
-     "frameP95": 4.68,
-     "frameMax": 27.77,
+     "frameMs": 3.22,
+     "frameP95": 4.3,
+     "frameMax": 5.47,
      "intervalP95": 16.67,
-     "fps": 58.322,
-     "cpuPercent": 53.63,
-     "gpuMs": 3.404,
-     "scriptMsPerSec": 249.27,
-     "longTasks": 1
+     "fps": 59.516,
+     "cpuPercent": 52.274,
+     "gpuMs": 3.831,
+     "scriptMsPerSec": 208.603,
+     "longTasks": 0
     },
     "sections": {
-     "render": 2.54,
-     "world": 0.548,
-     "other": 0.374,
-     "interface": 0.22,
-     "systems": 0.092,
-     "hover": 0.09,
-     "player": 0.057,
-     "feedback": 0.016
+     "render": 2.209,
+     "world": 0.524,
+     "other": 0.299,
+     "interface": 0.098,
+     "hover": 0.088,
+     "systems": 0.084,
+     "player": 0.05,
+     "feedback": 0.014
     }
    },
    "samples": [
     {
-     "frameMs": 3.5349998474121094,
-     "frameP95": 4.680000305175781,
+     "frameMs": 3.5149993896484375,
+     "frameP95": 4.560001373291016,
      "intervalP95": 16.670000000000073,
-     "fps": 57.10554737584411,
-     "cpuPercent": 54.239188940669294,
-     "draws": 1019.0909090909091,
-     "gpuMs": 3.393
+     "fps": 59.53796145506555,
+     "cpuPercent": 55.34985095372227,
+     "draws": 988.5704697986578,
+     "gpuMs": 3.826
     },
     {
-     "frameMs": 3.5900001525878906,
-     "frameP95": 5.740001678466797,
+     "frameMs": 3.1750030517578125,
+     "frameP95": 4.125,
      "intervalP95": 16.670000000000073,
-     "fps": 58.32161573421454,
-     "cpuPercent": 53.46398674092171,
-     "draws": 1032.9931506849316,
-     "gpuMs": 3.404
+     "fps": 59.49433808823651,
+     "cpuPercent": 50.62052745094905,
+     "draws": 984.1610738255033,
+     "gpuMs": 3.831
     },
     {
-     "frameMs": 3.470001220703125,
-     "frameP95": 4.090000152587891,
+     "frameMs": 3.220001220703125,
+     "frameP95": 4.3000030517578125,
      "intervalP95": 16.670000000000073,
-     "fps": 59.718249252642174,
-     "cpuPercent": 53.63006074198673,
-     "draws": 1054.4666666666667,
-     "gpuMs": 3.418
+     "fps": 59.51632006851402,
+     "cpuPercent": 52.27383100329014,
+     "draws": 1011.3624161073825,
+     "gpuMs": 3.891
     }
    ],
    "leak": null,
@@ -1148,103 +1148,105 @@
      "scene": 1,
      "HemisphereLight": 1,
      "DirectionalLight": 1,
+     "atmosphere-particles": 1,
      "Mesh": 11,
      "Group": 29,
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "city kit-street": 2071
+     "city kit-street": 2039
     },
     "byKind": {
      "Mesh/PlaneGeometry/MeshStandardMaterial": 9,
      "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 32,
-     "Mesh/BufferGeometry/MeshBasicMaterial": 60,
-     "Mesh/BufferGeometry/MeshStandardMaterial": 45,
-     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 69,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 46,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 37,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 76,
      "Mesh/PlaneGeometry/ShaderMaterial": 9,
-     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 505,
-     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 133,
-     "Mesh/SphereGeometry/MeshBasicMaterial": 2,
-     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 1
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 482,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 122,
+     "Mesh/SphereGeometry/MeshBasicMaterial": 3,
+     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 3
     }
    }
   },
   "capital-square": {
    "meta": {
-    "updated": "2026-10-12T20:58:10.766Z",
-    "note": "World grid: 32x32 chunks, 128x128 regions, tile-band hysteresis, stepped chunk builds; capital re-centred at 160x160 (178 buildings): more objects in the city group",
+    "updated": "2026-10-15T17:34:31.653Z",
+    "note": "Fog only while a biome's fog shows (none on Low tiers); mist wall one mesh round Gelton's countryside (+program switches); lazy map content streaming (uploads vary); biome fog variants (+6 programs in biome-atmosphere)",
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
     "windows": 3,
     "windowMs": 2500,
-    "calibrationMs": 26.200000762939453
+    "calibrationMs": 26.649999618530273
    },
    "summary": {
     "counters": {
-     "draws": 1036.376,
-     "threeDrawCalls": 364,
-     "triangles": 669320,
-     "uploadsPerFrame": 0.04,
-     "uploadKBPerFrame": 0.798,
+     "draws": 1031.88,
+     "threeDrawCalls": 368.694,
+     "triangles": 698172,
+     "uploadsPerFrame": 0,
+     "uploadKBPerFrame": 0,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 76.846,
-     "mutationsPerSec": 3.994,
+     "programSwitchesPerFrame": 82.718,
+     "mutationsPerSec": 3.97,
      "layoutsPerSec": 0,
-     "styleRecalcsPerSec": 3.987,
-     "objects": 11308,
-     "visibleMeshes": 1880,
-     "programs": 24,
-     "geometries": 230,
+     "styleRecalcsPerSec": 3.958,
+     "objects": 11459,
+     "visibleMeshes": 1871,
+     "programs": 25,
+     "geometries": 227,
      "textures": 7
     },
     "timing": {
-     "frameMs": 5.78,
-     "frameP95": 7.315,
-     "frameMax": 9.955,
+     "frameMs": 5.77,
+     "frameP95": 7.12,
+     "frameMax": 12.45,
      "intervalP95": 16.67,
-     "fps": 59.536,
-     "cpuPercent": 62.683,
-     "gpuMs": 4.048,
-     "scriptMsPerSec": 368.49,
+     "fps": 59.551,
+     "cpuPercent": 68.862,
+     "gpuMs": 4.321,
+     "scriptMsPerSec": 368.302,
      "longTasks": 0
     },
     "sections": {
-     "render": 4.042,
-     "other": 0.692,
-     "world": 0.548,
-     "systems": 0.19,
-     "hover": 0.155,
-     "interface": 0.135,
-     "player": 0.051,
+     "render": 3.975,
+     "other": 0.832,
+     "world": 0.791,
+     "systems": 0.224,
+     "hover": 0.173,
+     "interface": 0.111,
+     "player": 0.059,
      "feedback": 0.015
     }
    },
    "samples": [
     {
-     "frameMs": 5.779998779296875,
-     "frameP95": 7.409999847412109,
+     "frameMs": 6.275001525878906,
+     "frameP95": 9.865001678466797,
      "intervalP95": 16.670000000000073,
-     "fps": 59.51299194402729,
-     "cpuPercent": 75.36195671947196,
-     "draws": 1036.3758389261745,
-     "gpuMs": 4.039
+     "fps": 59.22557590191839,
+     "cpuPercent": 89.84756638020828,
+     "draws": 1035.8523489932886,
+     "gpuMs": 4.281
     },
     {
-     "frameMs": 5.840000152587891,
-     "frameP95": 7.314998626708984,
+     "frameMs": 5.770000457763672,
+     "frameP95": 7.119998931884766,
      "intervalP95": 16.670000000000073,
-     "fps": 59.53570142429291,
-     "cpuPercent": 62.68267683377022,
-     "draws": 1037.6510067114093,
-     "gpuMs": 4.078
+     "fps": 59.55063089925274,
+     "cpuPercent": 68.86243966746464,
+     "draws": 1031.88,
+     "gpuMs": 4.321
     },
     {
-     "frameMs": 5.3300018310546875,
-     "frameP95": 6.575000762939453,
+     "frameMs": 5.529998779296875,
+     "frameP95": 7.009998321533203,
      "intervalP95": 16.670000000000073,
-     "fps": 59.536058331492654,
-     "cpuPercent": 53.498932491683334,
-     "draws": 1016.3691275167786,
-     "gpuMs": 4.048
+     "fps": 59.79141993823351,
+     "cpuPercent": 62.756230700419025,
+     "draws": 1014.2884615384615,
+     "gpuMs": 4.335
     }
    ],
    "leak": null,
@@ -1253,25 +1255,27 @@
      "scene": 1,
      "HemisphereLight": 1,
      "DirectionalLight": 1,
+     "atmosphere-particles": 1,
      "Mesh": 11,
      "Group": 29,
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "city capital": 11262
+     "city capital": 11412
     },
     "byKind": {
      "Mesh/PlaneGeometry/MeshStandardMaterial": 35,
-     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 19,
-     "Mesh/BufferGeometry/MeshBasicMaterial": 31,
-     "Mesh/BufferGeometry/MeshStandardMaterial": 39,
-     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 45,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 17,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 29,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 37,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 41,
      "Mesh/PlaneGeometry/ShaderMaterial": 9,
      "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 1441,
      "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 252,
      "Mesh/BoxGeometry/MeshBasicMaterial": 4,
      "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 1,
-     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 4
+     "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 4,
+     "Mesh/BufferGeometry/ShaderMaterial": 1
     }
    }
   },
@@ -1389,98 +1393,80 @@
   },
   "overworld-pan": {
    "meta": {
-    "updated": "2026-10-14T17:41:29.334Z",
-    "note": "Re-baselined after fixing missing tile sides in indexed chunk terrain (a shadowed vertex counter left side quads unindexed)",
+    "updated": "2026-10-15T17:34:31.653Z",
+    "note": "Fog only while a biome's fog shows (none on Low tiers); mist wall one mesh round Gelton's countryside (+program switches); lazy map content streaming (uploads vary); biome fog variants (+6 programs in biome-atmosphere)",
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
-    "windows": 5,
+    "windows": 3,
     "windowMs": 2500,
-    "calibrationMs": 26.549999237060547
+    "calibrationMs": 26.649999618530273
    },
    "summary": {
     "counters": {
-     "draws": 645.379,
-     "threeDrawCalls": 460.682,
-     "triangles": 481413,
-     "uploadsPerFrame": 7.628,
-     "uploadKBPerFrame": 86.354,
+     "draws": 21.463,
+     "threeDrawCalls": 17.18,
+     "triangles": 190824,
+     "uploadsPerFrame": 0.503,
+     "uploadKBPerFrame": 80.681,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 19.573,
-     "mutationsPerSec": 10.771,
+     "programSwitchesPerFrame": 5.57,
+     "mutationsPerSec": 3.596,
      "layoutsPerSec": 0,
-     "styleRecalcsPerSec": 8.364,
-     "objects": 2879,
-     "visibleMeshes": 605,
-     "programs": 17,
-     "geometries": 146,
+     "styleRecalcsPerSec": 3.984,
+     "objects": 176,
+     "visibleMeshes": 26,
+     "programs": 21,
+     "geometries": 95,
      "textures": 2
     },
     "timing": {
-     "frameMs": 2.915,
-     "frameP95": 12.675,
-     "frameMax": 23.005,
+     "frameMs": 0.87,
+     "frameP95": 5.505,
+     "frameMax": 7.48,
      "intervalP95": 16.67,
-     "fps": 59.492,
-     "cpuPercent": 56.387,
-     "gpuMs": 3.046,
-     "scriptMsPerSec": 308.108,
+     "fps": 59.512,
+     "cpuPercent": 33.911,
+     "gpuMs": 2.231,
+     "scriptMsPerSec": 99.47,
      "longTasks": 0
     },
     "sections": {
-     "render": 2.215,
-     "world": 1.312,
-     "other": 0.448,
-     "systems": 0.307,
-     "interface": 0.213,
-     "player": 0.088,
-     "hover": 0.032,
-     "feedback": 0.013
+     "world": 0.61,
+     "render": 0.464,
+     "interface": 0.151,
+     "player": 0.144,
+     "systems": 0.112,
+     "hover": 0.049,
+     "other": 0.039,
+     "feedback": 0.024
     }
    },
    "samples": [
     {
-     "frameMs": 2.700000762939453,
-     "frameP95": 8.944999694824219,
+     "frameMs": 1.4299964904785156,
+     "frameP95": 5.915000915527344,
      "intervalP95": 16.670000000000073,
-     "fps": 59.4920813680295,
-     "cpuPercent": 40.90053310247242,
-     "draws": 417.90604026845637,
-     "gpuMs": 2.35
+     "fps": 59.470829351389156,
+     "cpuPercent": 34.66250711693981,
+     "draws": 21.463087248322147,
+     "gpuMs": 2.291
     },
     {
-     "frameMs": 2.914997100830078,
-     "frameP95": 14.314998626708984,
+     "frameMs": 0.8699989318847656,
+     "frameP95": 5.504997253417969,
      "intervalP95": 16.670000000000073,
-     "fps": 57.73844482731191,
-     "cpuPercent": 56.386679996954356,
-     "draws": 645.3793103448276,
-     "gpuMs": 3.194
+     "fps": 59.53962682203646,
+     "cpuPercent": 31.935411702860776,
+     "draws": 35.281879194630875,
+     "gpuMs": 2.157
     },
     {
-     "frameMs": 2.904998779296875,
-     "frameP95": 11.954998016357422,
+     "frameMs": 0.8549995422363281,
+     "frameP95": 5.224998474121094,
      "intervalP95": 16.670000000000073,
-     "fps": 59.508951286371165,
-     "cpuPercent": 51.32619527866641,
-     "draws": 566.3892617449665,
-     "gpuMs": 2.156
-    },
-    {
-     "frameMs": 4.154998779296875,
-     "frameP95": 14.395000457763672,
-     "intervalP95": 16.670000000000073,
-     "fps": 59.32508756594491,
-     "cpuPercent": 58.41412119878137,
-     "draws": 782.1409395973154,
-     "gpuMs": 3.063
-    },
-    {
-     "frameMs": 3.6599998474121094,
-     "frameP95": 12.674995422363281,
-     "intervalP95": 16.67000000000189,
-     "fps": 59.84130093566225,
-     "cpuPercent": 56.95225296119133,
-     "draws": 665.9866666666667,
-     "gpuMs": 3.046
+     "fps": 59.51204121035575,
+     "cpuPercent": 33.91062797028583,
+     "draws": 20.879194630872483,
+     "gpuMs": 2.231
     }
    ],
    "leak": null,
@@ -1489,26 +1475,242 @@
      "scene": 1,
      "HemisphereLight": 1,
      "DirectionalLight": 1,
+     "atmosphere-particles": 1,
      "Mesh": 11,
      "Group": 29,
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "city-editor": 2833
+     "world-editor": 129
     },
     "byKind": {
+     "Points/BufferGeometry/ShaderMaterial": 1,
      "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
-     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 15,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 1,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 1,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 9,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 9,
+     "Mesh/BufferGeometry/ShaderMaterial": 1
+    }
+   }
+  },
+  "biome-atmosphere": {
+   "meta": {
+    "updated": "2026-10-15T17:34:31.653Z",
+    "note": "Fog only while a biome's fog shows (none on Low tiers); mist wall one mesh round Gelton's countryside (+program switches); lazy map content streaming (uploads vary); biome fog variants (+6 programs in biome-atmosphere)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
+    "windows": 3,
+    "windowMs": 2500,
+    "calibrationMs": 26.649999618530273
+   },
+   "summary": {
+    "counters": {
+     "draws": 278.853,
+     "threeDrawCalls": 256.62,
+     "triangles": 274035,
+     "uploadsPerFrame": 0.161,
+     "uploadKBPerFrame": 0.006,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 23.02,
+     "mutationsPerSec": 20.36,
+     "layoutsPerSec": 5.179,
+     "styleRecalcsPerSec": 8.373,
+     "objects": 4597,
+     "visibleMeshes": 1056,
+     "programs": 25,
+     "geometries": 123,
+     "textures": 6
+    },
+    "timing": {
+     "frameMs": 2.22,
+     "frameP95": 5.6,
+     "frameMax": 9.035,
+     "intervalP95": 16.67,
+     "fps": 59.826,
+     "cpuPercent": 37.48,
+     "gpuMs": 2.37,
+     "scriptMsPerSec": 165.085,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 1.627,
+     "systems": 0.476,
+     "other": 0.258,
+     "interface": 0.16,
+     "player": 0.113,
+     "world": 0.051,
+     "feedback": 0.022,
+     "hover": 0.018
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 2.220001220703125,
+     "frameP95": 5.599998474121094,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.82638380862678,
+     "cpuPercent": 35.04632885722687,
+     "draws": 278.8333333333333,
+     "gpuMs": 2.359
+    },
+    {
+     "frameMs": 2.485004425048828,
+     "frameP95": 5.685001373291016,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.48329371600946,
+     "cpuPercent": 41.03188007775746,
+     "draws": 407.53691275167785,
+     "gpuMs": 2.545
+    },
+    {
+     "frameMs": 2.145000457763672,
+     "frameP95": 5.024997711181641,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.910134797803295,
+     "cpuPercent": 37.4800444879516,
+     "draws": 278.85333333333335,
+     "gpuMs": 2.37
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "atmosphere-particles": 1,
+     "Mesh": 13,
+     "Group": 29,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1,
+     "biome-test": 4546,
+     "Sprite": 2
+    },
+    "byKind": {
+     "Points/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 43,
      "Mesh/BufferGeometry/MeshBasicMaterial": 1,
      "Mesh/BufferGeometry/MeshStandardMaterial": 13,
-     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 15,
-     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 492,
-     "LineSegments/BufferGeometry/LineBasicMaterial": 4,
-     "Mesh/BoxGeometry/MeshBasicMaterial": 45,
-     "Mesh/BufferGeometry/ShaderMaterial": 1,
-     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 8,
-     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 2,
-     "Mesh/CapsuleGeometry/MeshStandardMaterial/shadow": 8
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 42,
+     "Mesh/PlaneGeometry/MeshBasicMaterial": 3,
+     "Sprite/BufferGeometry/SpriteMaterial": 3,
+     "Mesh/PlaneGeometry/ShaderMaterial": 9,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 802,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 9,
+     "Mesh/BoxGeometry/MeshBasicMaterial": 74,
+     "Mesh/ConeGeometry/MeshStandardMaterial/shadow": 24,
+     "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 6,
+     "Mesh/CapsuleGeometry/MeshStandardMaterial/shadow": 24,
+     "Mesh/BufferGeometry/ShaderMaterial": 1
+    }
+   }
+  },
+  "mist-edge": {
+   "meta": {
+    "updated": "2026-10-15T17:34:31.653Z",
+    "note": "Fog only while a biome's fog shows (none on Low tiers); mist wall one mesh round Gelton's countryside (+program switches); lazy map content streaming (uploads vary); biome fog variants (+6 programs in biome-atmosphere)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
+    "windows": 3,
+    "windowMs": 2500,
+    "calibrationMs": 26.649999618530273
+   },
+   "summary": {
+    "counters": {
+     "draws": 13.289,
+     "threeDrawCalls": 13,
+     "triangles": 108330,
+     "uploadsPerFrame": 0,
+     "uploadKBPerFrame": 0,
+     "textureUploadsPerFrame": 0,
+     "programSwitchesPerFrame": 7.087,
+     "mutationsPerSec": 3.588,
+     "layoutsPerSec": 0,
+     "styleRecalcsPerSec": 3.944,
+     "objects": 136,
+     "visibleMeshes": 28,
+     "programs": 23,
+     "geometries": 87,
+     "textures": 2
+    },
+    "timing": {
+     "frameMs": 1.11,
+     "frameP95": 2.765,
+     "frameMax": 3.535,
+     "intervalP95": 16.67,
+     "fps": 59.524,
+     "cpuPercent": 27.929,
+     "gpuMs": 2.131,
+     "scriptMsPerSec": 79.887,
+     "longTasks": 0
+    },
+    "sections": {
+     "render": 0.404,
+     "player": 0.273,
+     "interface": 0.184,
+     "systems": 0.148,
+     "world": 0.101,
+     "hover": 0.053,
+     "other": 0.039,
+     "feedback": 0.027
+    }
+   },
+   "samples": [
+    {
+     "frameMs": 0.8400001525878906,
+     "frameP95": 3.2849998474121094,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.719673490530866,
+     "cpuPercent": 23.666073277482017,
+     "draws": 13.28476821192053,
+     "gpuMs": 2.131
+    },
+    {
+     "frameMs": 1.4549980163574219,
+     "frameP95": 2.7649993896484375,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.39378477202132,
+     "cpuPercent": 31.448302295883856,
+     "draws": 13.288590604026846,
+     "gpuMs": 2.213
+    },
+    {
+     "frameMs": 1.1100006103515625,
+     "frameP95": 2.2550010681152344,
+     "intervalP95": 16.670000000000073,
+     "fps": 59.5241661795896,
+     "cpuPercent": 27.92907225534546,
+     "draws": 13.288590604026846,
+     "gpuMs": 2.131
+    }
+   ],
+   "leak": null,
+   "census": {
+    "byGroup": {
+     "scene": 1,
+     "HemisphereLight": 1,
+     "DirectionalLight": 1,
+     "atmosphere-particles": 1,
+     "Mesh": 11,
+     "Group": 29,
+     "sleep-z0": 1,
+     "sleep-z1": 1,
+     "sleep-z2": 1,
+     "world-editor": 89
+    },
+    "byKind": {
+     "Points/BufferGeometry/ShaderMaterial": 1,
+     "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
+     "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 1,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 1,
+     "Mesh/BufferGeometry/MeshStandardMaterial": 5,
+     "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 2,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 6,
+     "LineSegments/BufferGeometry/LineBasicMaterial": 6,
+     "Mesh/BufferGeometry/ShaderMaterial": 5
     }
    }
   }

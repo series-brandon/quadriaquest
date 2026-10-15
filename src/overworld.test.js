@@ -39,3 +39,12 @@ test('the land around the village: painted biomes, the river down the east side,
  const tiles=mapTiles(data),{origin:grow}=OVERWORLD;
  assert.equal(tiles.get(key(grow+99,grow+40)).waterKind,'river');assert.equal(tiles.get(key(grow+40,grow+130)).waterKind,'sea');
 });
+test('a lazy build opens with only what it must, streams the rest, and matches a full build (docs/TOWN.md, Streaming a map’s content)',()=>{
+ const lazy=buildMap(structuredClone(data),{scene:new THREE.Group(),lazy:true,streamRadius:1}),eager=buildMap(structuredClone(data),{scene:new THREE.Group()});
+ assert.ok(lazy.content.built<=lazy.content.pinned+1&&lazy.content.tiles<eager.tiles.size/4,'little at first');
+ lazy.stream(lazy.spawn);lazy.settle();assert.equal(lazy.content.built,9,'the chunks round the spawn');
+ for(const [k,tile] of lazy.tiles){const e=eager.tiles.get(k);for(const f of ['h','blocked','building','water','indoor','surface','prop'])assert.equal(tile[f],e[f],`${k} ${f}`);}
+ // A townsfolk's house is always built, wherever it is.
+ const far=structuredClone(data);far.buildings.push({...structuredClone(far.buildings[0]),x:300,z:300});far.townsfolk=[{name:'Pip',house:far.buildings.length-1,routine:[{do:'stroll'}]}];
+ const pinned=buildMap(far,{scene:new THREE.Group(),lazy:true,streamRadius:1});assert.ok(pinned.buildings[far.buildings.length-1],'the far house is built');
+});
