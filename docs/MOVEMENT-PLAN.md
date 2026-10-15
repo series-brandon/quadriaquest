@@ -1,6 +1,6 @@
 # Movement plan: diagonal steps and companion following
 
-Status: **plan only (2026-10-15)**, nothing implemented. Two pieces of work:
+Status: **plan only (2026-10-15)**, nothing implemented. Open questions were decided by the user on 2026-10-15 (see Decisions at the end). Two pieces of work:
 
 1. Let walkers step diagonally.
 2. Give the companion its own follow behaviour: a bit slower than the player, ignores other characters when it plans a route, starts walking once you're a tile or two away, stops next to you, and teleports to you if you get too far ahead.
@@ -34,7 +34,7 @@ The same `[[1,0],[-1,0],[0,1],[0,-1]]` list is copied into about 20 places. Some
 Goal: every walker asks one place "where can I step from here?", so diagonals (and companion rules) change in one spot.
 
 - Add to world.js:
-  - `STEPS`: the orthogonal offsets now, the eight offsets later, each with its length (1 or √2).
+  - `STEPS`: the orthogonal offsets now, the eight offsets later, each costing one step (RuneScape-style timing, see Phase 2).
   - `stepsFrom(map, tile, {diagonal, passable=canStep})`: yields `{tile, cost}` for each legal neighbour.
   - `canMove(map, from, to, passable)`: the map-aware step rule. Orthogonal steps call `canStep`; diagonal steps use the corner rule below. It lets the "re-route if the path closed" check in main.js validate any step.
 - Generalise `findPath` into one A*: `findRoute(map, start, {goal, cost, limit, diagonal, passable, heuristic})` (goal tile or goal predicate, optional occupancy cost, bounded search). `findPath`, `cheapestPath`, `wanderRoute`, `companionRoute` and the footprint searches become thin wrappers. Keep the binary heap. Make tie-breaking deterministic (a sequence number in the heap), because a future server must agree with the client.
@@ -47,47 +47,49 @@ Goal: every walker asks one place "where can I step from here?", so diagonals (a
 
 | Rule | Proposal (tunable constants in companion-follow.js) |
 |---|---|
-| Speed | `COMPANION_PACE = .85` of the player's **base** walk, about 2.0 tiles/s. It walks on the shared step timing (`moveMotion` durations ÷ pace), not its own 3.3 u/s lerp, so diagonal timing and stairs match everyone else. Its hop scales the same way. |
-| When it starts | Idle while within `FOLLOW_START = 2` tiles (Chebyshev: any direction, diagonals count as 1). It starts walking once the player is 3 or more tiles away. |
+| Speed | `COMPANION_PACE = .85` of the player's walk (Celerity and Rush included), about 2.0 tiles/s at base. While the player sprints it moves at **2×** that pace: faster than walking, still slower than the sprinting player. Sprint is +100 % in `playerResources.advance`, so the player sprints at (2 + bonus)× and the companion at 2 × .85 × (1 + bonus)×, which is always slower. It follows the player's sprint state frame by frame, so it drops back to walking when the player stops sprinting or runs out of stamina. It walks on the shared step timing (`moveMotion` durations ÷ pace), not its own 3.3 u/s lerp, so diagonal timing and stairs match everyone else. Its hop scales the same way. No separate catch-up trot (decided). |
+| When it starts | Stays put while next to the player (any of the 8 surrounding tiles). It starts walking once the player is `FOLLOW_START = 2` or more tiles away (Chebyshev: any direction, diagonals count as 1). |
 | Where it goes | Re-plans at each tile boundary toward the player's **current** tile, so it curves after you instead of walking to where you were. |
 | When it stops | On any of the 8 tiles around the player (Chebyshev 1). The stop tile must be dry, standable, not the player's tile and not the player's next step tile. It prefers a tile nobody stands on and falls back to an occupied one (drawing on shared tiles already works via `occupancy.top`). It keeps walking while the player keeps walking; the stop check only applies once it is adjacent. |
 | Other characters | The route **ignores** occupancy (no `PLAYER_COST` / `OCCUPIED_COST`, no detours around NPCs, enemies or the player). Terrain, water, walls, fences, closed doors and ledges still apply: it never walks through solid things. |
 | Teleport | Teleport next to the player when any of these is true: Chebyshev distance > `TELEPORT_DISTANCE = 8`; the route is longer than `TELEPORT_ROUTE = 12` (the player went round a wall or through a door it can't open); no route within the bounded search; the map changed (travel, interiors); or the player was moved instantly (the existing > 3-tile jump check). The bounded A* (`limit` ≈ 400 nodes) doubles as the "too far" test. |
 | Landing spot | A ring search outward from the player (replaces the whole-world sort in `spawn`). It prefers the tile **behind** the player (opposite their facing), then the other neighbours. The spot must be standable and steppable from the player's tile (never across a wall or onto a ledge they can't reach), not water, not the player's next step, and preferably unoccupied. If nothing is free within 2 tiles, it waits and tries again next frame. |
-| Teleport look | A short pop-out at the old spot and a small drop-in hop at the new one: the existing companion `jump` state starting from a raised height, plus a puff. See open questions. |
+| Teleport look | It vanishes from the old spot and **pops in** at the new one: a quick scale-up with a slight overshoot (about .2 s). No puff or hop (decided). |
 | Unchanged | Rest here (`following:false`), petting, sitting, scratching and sleeping. The player stopping on its tile still pushes it aside. Approaching it to pet still freezes it (`api.approaching()`). |
 
-Rough feel: when the player walks without stopping, the companion loses about 0.15 tiles for every tile the player walks. It waits until the gap is 3, then drifts from 3 to the 8-tile teleport over roughly 35 tiles of non-stop walking, and sooner when sprinting. Every time the player stops it catches up and settles beside them.
+Rough feel: when the player walks or sprints without stopping, the companion loses about 0.15 tiles for every tile the player covers (the 2× sprint keeps the ratio at .85). It starts once the gap is 2, then drifts out to the 8-tile teleport over roughly 40 tiles of non-stop travel. Every time the player stops it catches up and settles beside them. If teleports turn out too frequent in play, tune `COMPANION_PACE` or `TELEPORT_DISTANCE` rather than adding a trot.
 
-### Related change worth making together
+### Player routes ignore the companion (decided)
 
-The player's own routes currently pay `OCCUPIED_COST` to step around the companion (`playerRouteCost` uses the shared occupancy). With a trailing companion, that makes the player swerve around their own pet. Proposal: drop the companion from the player's route cost. NPCs and enemies keep treating it as an occupant.
+The player's own routes currently pay `OCCUPIED_COST` to step around the companion (`playerRouteCost` uses the shared occupancy). With a trailing companion, that makes the player swerve around their own pet. Drop the companion from the player's route cost. NPCs and enemies keep treating it as an occupant.
 
 ### Code
 
 - [companion-follow.js](../src/companion-follow.js): replace `companionRoute` with `followRoute(world, start, player, {stopOk, limit})` on the shared `findRoute`, with a goal predicate and no cost. `createCompanionFollower` gets a small state machine (`resting → following → settling`, plus `teleport`), takes its step timing from the shared motion helper ÷ pace, and exposes `teleport(reason)` for the playground.
-- [companions.js](../src/companions.js): the conditions for calling `update` stay as they are. Hand it the player's facing and next step. Drop the `occupied` argument from route planning; it is still used for choosing the stop tile.
+- [companions.js](../src/companions.js): the conditions for calling `update` stay as they are. Hand it the player's facing, next step, walk multiplier and sprint state (from `playerResources`, not a copy of the formula). Drop the `occupied` argument from route planning; it is still used for choosing the stop tile.
 - [main.js](../src/main.js): leave `companionOccupant` out of `playerRouteCost`.
-- The model's gait and hop animation stay in [companion-model.js](../src/companion-model.js). The pop-in effect goes in shared feedback, so any future teleporting entity can reuse it.
+- The model's gait and hop animation stay in [companion-model.js](../src/companion-model.js). The pop-in (scale pop on any group) goes in shared presentation code, so any future teleporting entity can reuse it.
 
 ### Playground (same change)
 
 Companions fieldset, controls only:
 - **Teleport to me** (calls the real `teleport`).
 - **Send away**: places it N tiles behind the player (2, 5, 9). This tests the start threshold, catch-up and teleport-by-distance without walking there.
-- Readouts: state (resting, following, settling, teleported) and the last teleport reason.
+- Readouts: state (resting, following, settling, teleported), current pace (walk or sprint) and the last teleport reason.
 - Tuning sliders for pace, start distance and teleport distance (session-only, resettable).
+- Sprint: the existing sprint toggle and a stamina refill cover the 2× pace; verify that explicitly.
 - Teleport by route: covered by the existing Walls & doors yard (go inside and lock the door). Ignoring occupants: covered by the Walk-through characters crowd fixture. Confirm both explicitly.
 
 Explanations go in [PLAYGROUND.md](PLAYGROUND.md) → Companions.
 
 ### Tests
 
-- Hysteresis: no movement within 2 tiles; starts at 3; stops on an 8-neighbour.
+- Thresholds: no movement while adjacent; starts at 2; stops on an 8-neighbour.
 - Ignores occupants: a straight route through a crowd is not bent.
 - Never stops on the player or the player's next tile; prefers a free stop tile.
-- Pace: tile time = shared step time ÷ .85, on level ground, a hop and stairs.
-- Teleport triggers: distance, long route, no route (locked door), map change, instant player move. The landing is behind the player, never across a wall.
+- Pace: tile time = shared step time ÷ (.85 × walk multiplier), halved while the player sprints, on level ground, a hop and stairs. It is always slower than the player in both modes, and drops back when sprint ends or stamina runs out.
+- Teleport triggers: distance, long route, no route (locked door), map change, instant player move. The landing is behind the player, never across a wall. The pop-in plays and ends at normal scale.
+- The player's routes are not bent by the companion; NPC and enemy routes still are.
 - Ring search doesn't scan the whole map. Assert on a 2048-wide sparse map.
 - Existing rescue and ledge-hop tests keep passing.
 
@@ -106,9 +108,9 @@ Doorways: the door rule (a wall on each side of every door) together with condit
 
 ### Cost and timing
 
-- Path cost: 1 for orthogonal, √2 for diagonal (octile). A* heuristic: octile distance. Occupancy costs are added per tile as now.
-- Step time: diagonal = √2 × the orthogonal slide, so speed in world units is the same in every direction. The slide keeps one propulsion cycle per step, stretched over the longer step. The alternative is RuneScape's rule (a diagonal takes the same time as an orthogonal step, so diagonals are 41 % faster). That only makes sense on a tick-based server. See open questions.
-- Straightness: equal-cost routes can still zigzag. Break ties toward the straight line from start to goal (a small cross-product nudge), so a route looks like "diagonal, then straight" rather than a staircase.
+- **Step time: RuneScape-style (decided).** A diagonal step takes the same time as an orthogonal one (`SLIDE_DURATION`), so diagonals cover √2 the ground per step. One shared step duration fits a future tick-based server. The slide keeps one propulsion cycle per step; on a diagonal it just travels further.
+- Path cost: 1 per step in any direction (Chebyshev), which matches the timing. A* heuristic: Chebyshev distance. Occupancy costs are added per tile as now.
+- Straightness: with every step costing 1 there are many equally short routes, and an unordered search picks staircases. Break ties deterministically toward the straight line from start to goal (a small cross-product nudge), so a route reads as "diagonal, then straight". Cross-check with RuneScape's fixed neighbour order if that reads better in play.
 
 ### Rollout by walker
 
@@ -130,13 +132,14 @@ Add a `diagonal` option per walker kind, so each group can be switched on and ch
 - The mid-route re-route in main.js (`!canStep(tile,path[0])`) must use `canMove`.
 
 **Gameplay and balance**
-- Travel is faster: across open ground a route of n diagonals takes n·√2 slides instead of 2n, about 29 % less time. That changes tutorial pacing, resource loops, how fast enemies catch you, leash return times, townsfolk schedules and companion catch-up.
-- **Melee reach stays cardinal** (COMBAT.md, "one adjacent cardinal tile"). Diagonal adjacency becomes a common resting spot: a player standing diagonally to an enemy can't hit it or be hit. Pursuit and attack-route goals already aim for cardinal reach tiles, so the AI takes one extra orthogonal step. Decide whether that safe spot is a feature (RuneScape has it) or should go (diagonal melee reach).
-- **Ranges and leashes are Manhattan** (attack range > 1, aggro range, 6-tile leash). With diagonal movement, a Manhattan range is a diamond and a diagonal step changes it by 2. Kiting gets easier, and leaving aggro or leash range diagonally happens sooner. Consider Chebyshev or Euclidean ranges as a separate combat decision.
-- Ground-target attacks (`lockTiles`, square areas) get more escape options and diagonal escapes take √2 longer. Re-check windup timings against the dodge windows in COMBAT.md.
+- Travel is faster: with equal-time diagonals, a route of n diagonals takes n steps instead of 2n, **up to 50 % less time** across open ground. That changes tutorial pacing, resource loops, how fast enemies catch you, leash return times, townsfolk schedules and companion catch-up. Walk the tutorials and check that nothing scripted now arrives too early.
+- **Melee reach stays cardinal (decided)** (COMBAT.md, "one adjacent cardinal tile"). Diagonal adjacency becomes a common resting spot: a player standing diagonally to an enemy can't hit it or be hit, as in RuneScape. Pursuit and attack-route goals already aim for cardinal reach tiles, so the AI takes one extra orthogonal step. Make sure enemies never idle on a diagonal tile while hostile, and that the player's attack approach never stops on one.
+- **Ranges, aggro and leash stay Manhattan (decided)** (attack range > 1, aggro range, 6-tile leash). One diagonal step changes the Manhattan distance by 2, so kiting gets stronger and you leave aggro or leash range sooner by moving diagonally. That is accepted; check that the Bruiser and Cinderhold encounters still feel right and record it in COMBAT.md.
+- Ground-target attacks (`lockTiles`, square areas) get more escape options, and a diagonal escape takes no longer than a straight one. Re-check windup timings against the dodge windows in COMBAT.md.
 - Push-aside and step-aside could use 8 neighbours. Keep them orthogonal at first: less to verify.
 
 **Presentation**
+- Diagonal slides are visibly √2 faster in world units. Check the slide pose still reads as one push, not a skid.
 - A diagonal step sweeps past the two corner tiles. A character standing there clips visually for a moment. Everyone is walk-through, so that's acceptable, but look at it in the crowd fixture.
 - Facing has 8 directions; the existing shortest-arc turn smooths it. Check the companion and the 2×2 golem.
 - `tileAtPosition` rounding mid-diagonal stays on the from/to tiles (x and z move together), so `actor.tile` never reports a corner tile. Keep a test.
@@ -144,16 +147,17 @@ Add a `diagonal` option per walker kind, so each group can be switched on and ch
 **Performance**
 - 8 neighbours roughly double the edges looked at per search. BFS becomes A* or Dijkstra.
 - Hot spots: the hover route check (`findPath` while the pointer moves; unreachable targets still flood the whole region); `attackRoute` (one `findPath` per in-range tile; worth replacing with a single multi-goal search in Phase 0); townsfolk distance fields (cached, but each rebuild costs more); `findFootprintPath` `limit` (counts pops, so check the golem still finds routes).
-- A* with an octile heuristic makes routes to reachable targets cheaper than today's BFS. Measure with `npm run perf` once after Phase 2 (city-walk, city-crowd, willowbank-river), plus a `--env low-perf` run if main-thread time moves. Record the result in PERFORMANCE.md. Consider a `route-heavy` scenario in `src/dev/perf-scenarios.js` (many enemies pursuing, plus hover routing).
+- A* with a Chebyshev heuristic makes routes to reachable targets cheaper than today's BFS. Measure with `npm run perf` once after Phase 2 (city-walk, city-crowd, willowbank-river), plus a `--env low-perf` run if main-thread time moves. Record the result in PERFORMANCE.md. Consider a `route-heavy` scenario in `src/dev/perf-scenarios.js` (many enemies pursuing, plus hover routing).
 
 **Future server**
-- Routes must be deterministic (ordered ties). The timing choice (√2 vs tick) should be one shared constant the server can also use.
+- Routes must be deterministic (ordered ties). Equal-time steps mean one shared step duration the server can also use as its tick.
 
 ### Playground (same change)
 
 World & water → **Movement**:
 - **Diagonal moves** toggle per walker group (player and companion, NPCs, townsfolk, enemies, bodies). It flips the real `diagonal` option, so you can compare with and without.
 - **Route overlay**: draws the planned route for the player, the companion and pursuing enemies. It sits next to the existing occupancy overlay.
+- **Combat geometry (for tuning melee and ranges):** melee reach (cardinal or 8-way) and distance metric (Manhattan, Chebyshev or Euclidean) for attack range, aggro and leash. Both are options on the shared combat-range and pursuit code, not playground copies, so a tuned value can become the default with no rewrite. Pair them with the existing Combat practice enemies.
 - **Corner yard** fixture near the player: one each of blocked tile, water, wall end, fence, window, counter, closed and open door, a ledge and a stair flight, for testing corner cutting in any map. It reuses the edge fixtures and Walls & doors yard pieces where they already exist.
 
 Explanations go in PLAYGROUND.md.
@@ -162,8 +166,8 @@ Explanations go in PLAYGROUND.md.
 
 - Corner rule: each blocker kind on B or C or on any of the four edges; ledges and stairs; doorways.
 - The reachability invariant on every shipped map (clearing, Willowbank, Cinderhold, Gelton or overworld chunks).
-- Octile costs; deterministic and straight-leaning ties.
-- Diagonal step duration = √2 × slide, including speed bonuses and slows.
+- Chebyshev costs; deterministic and straight-leaning ties.
+- Diagonal step duration = orthogonal slide, including speed bonuses, sprint and slows.
 - Enemy pursuit still ends on a cardinal reach tile; leash and aggro behave as documented.
 - Update the tests that assert exact orthogonal routes (wander, companion, interaction, footprint, edges, townsfolk).
 
@@ -173,13 +177,13 @@ DESIGN.md (movement, companion), COMBAT.md (reach, range metric, leash), CITY.md
 
 ---
 
-## Open questions (decide before implementing)
+## Decisions (user, 2026-10-15)
 
-1. **Diagonal timing**: √2 per diagonal (same speed in every direction; recommended) or RuneScape-style equal time (diagonals 41 % faster, tick-friendly)?
-2. **Diagonal melee reach**: keep cardinal-only (the diagonal safe spot stays; recommended for now) or allow diagonal melee and interaction?
-3. **Range metric**: keep Manhattan for range, aggro and leash, or move to Chebyshev or Euclidean with diagonals?
-4. **Companion and sprint**: should the companion's pace follow the player's *current* speed (Celerity, Rush), so sprinting doesn't make it teleport much more often, or stay tied to base walk?
-5. **Companion catch-up**: with teleporting roughly every 35 tiles of non-stop walking, is that the intended feel, or should it break into a short trot when more than ~5 tiles behind?
-6. **Start distance**: start following at 3 tiles (a two-tile gap; proposed) or at 2?
-7. **Teleport look**: pop-and-hop with a puff (proposed), a plain blink, or something themed (it runs to the edge of the screen)?
-8. **Player routing around the companion**: drop the companion from the player's route cost (proposed)?
+1. **Diagonal timing:** RuneScape-style. A diagonal step takes the same time as an orthogonal one; route cost is 1 per step.
+2. **Melee reach:** stays cardinal-only for the first pass. Standing diagonally next to an enemy is a deliberate no-melee spot. Provisional: may be tuned after playtesting diagonals.
+3. **Range, aggro and leash:** stay Manhattan for the first pass. Provisional: may be tuned after playtesting diagonals.
+4. **Companion and sprint:** the companion moves at 2× its pace while the player sprints. That is still slower than the player, but faster than walking.
+5. **Catch-up trot:** none. The sprint speed-up should keep teleports rare; tune pace or distance if they aren't.
+6. **Start distance:** the companion starts following once the player is 2 tiles away.
+7. **Teleport look:** a simple pop-in.
+8. **Player routing:** the player's routes ignore the companion.
