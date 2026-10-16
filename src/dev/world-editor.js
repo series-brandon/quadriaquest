@@ -15,7 +15,7 @@ import {DRAW_DISTANCES} from '../render-quality.js';
 import {BY_ROOM,BY_FUNCTION,DESCRIPTIONS} from './prop-catalogue.js';
 import {propThumbnail} from './prop-thumbnails.js';
 import {USE_NAMES,USE_ICONS,furnishRoom,furnishingUse,upstairsUse} from '../furnish.js';
-import {flightOf,floorLevels} from '../spaces.js';
+import {flightOf,floorLevels,stairwellModel} from '../spaces.js';
 import {DIRS} from '../map-terrain.js';
 import {CHUNK,REGION,withinChunk,chunksAround} from '../world-grid.js';
 import {createGridOverlay,createCellOutline,createBiomeOverlay,createCellFill,createFaceFill} from './grid-overlay.js';
@@ -104,7 +104,7 @@ const SIDES=['n','e','s','w'],COUNTER={n:'w',w:'s',s:'e',e:'n'};
 const GAME_SWATCHES=[...new Set(Object.values(COL).map(colorKey))];
 export function mapCatalogue(){
  // The repo's maps first (the overworld), then the playground's.
- const list=Object.entries(repoCities).map(([path,data])=>({id:'repo:'+path,mapId:data.id,name:`${data.name} (src/maps/${path.split('/').pop()})`,make:()=>unpackMap(structuredClone(data))}));
+ const list=Object.entries(repoCities).map(([path,data])=>({id:'repo:'+path,mapId:data.id,name:`${data.name} (src/maps/${path.split('/').pop()})`,make:()=>unpackMap(structuredClone(repoCities[path]))}));
  list.sort((a,b)=>(b.mapId==='overworld')-(a.mapId==='overworld'));
  // The game's own start (not a map file): choosing it leaves the editor for the clearing, a fresh start.
  list.push({id:'area:clearing',mapId:null,name:'The clearing (where the game starts)',area:'clearing'});
@@ -116,7 +116,7 @@ export function createWorldEditor(host){
  const catalogue=mapCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null,stopFloors=null,stopScreen=null;
  const tool=signal('deco'),toolGroup=signal('decorate'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),floorPattern:signal('checker'),floorIntensity:signal(String(FLOOR_INTENSITY)),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),floorPattern:signal('checker'),floorIntensity:signal(String(FLOOR_INTENSITY)),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),flight:signal('up'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
  // The footprint being painted: tiles ('x,z'), and the building it reshapes (its index) or null for a new one.
@@ -405,7 +405,7 @@ export function createWorldEditor(host){
   if(hit.index===index){cancel();return;}const from=r.list[index],cells=[[from.a[0]+r.plan.x0,from.a[1]+r.plan.z0],[from.b[0]+r.plan.x0,from.b[1]+r.plan.z0],...hit.cells];
   if(await change(()=>{const list=r.edit();list[index].kind='wall';list[hit.index].kind='door';return cells;})){heldDoor=null;status.value='Moved the room’s door.';refreshPreview();}}
  function liftFlight(well){const l=well.link;if(l?.kind!=='floor')return false;const owner=l.dungeon!==undefined?{dungeon:l.dungeon}:l.building,level=l.via==='up'?l.level-1:l.level,f=floorsOf(owner).find(e=>e.level===level);if(!f?.up)return false;
-  pendingFlight={building:owner,level,well};options.dir.value=f.up.dir;well.group.visible=false;status.value='Holding the stairs: click where their bottom step goes; , and . turn them. Esc puts them back.';refreshPreview();return true;}
+  pendingFlight={building:owner,level,view:well.direction==='down'?'down':'up',well};options.dir.value=f.up.dir;well.group.visible=false;status.value='Holding the stairs: click where their bottom step goes; , and . turn them. Esc puts them back.';refreshPreview();return true;}
  async function nudge(dx,dz){const {sel,entry}=selected(),[x,z]=anchorOf(sel.kind,entry);await moveSelection(x+dx,z+dz);}
  // dir: 1 clockwise, −1 the other way.
  async function rotateSelection(dir=1){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='group')throw Error('Rotate things one at a time.');if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover','enemy','edge','fishing'].includes(sel.kind))throw Error('Nothing to rotate.');
@@ -641,10 +641,19 @@ export function createWorldEditor(host){
    group('Routine',h('p',{class:'q-page__help'},'How often (0: never). Their spots are blue on the map.'),h('div',{class:'q-world-editor__routine'},ACTIVITIES.map(weight))));
  }
  // The Floors panel: a selected building's floors (or the one you're in), with Go, Add and Remove, and the
- // floor's own actions: its use, Generate and Clear furniture, Place stairs up.
+ // floor's own actions: its use, Generate and Clear furniture, and its stairs up and down.
+ // A floor is reached when stairs come to it: from below for an upper floor, its own flight up below the ground.
+ const reached=(o,level)=>level===0||(level>0?!!floorsOf(o).find(f=>f.level===level-1)?.up:!!floorsOf(o).find(f=>f.level===level)?.up);
  const floorRows=computed(()=>{revision.value;floorHere.value;const i=ownerHere();if(i===null||!ownerEntry(i))return [];const b=ownerEntry(i),cave=isDungeon(i);
-  const levels=[...new Set([...(cave?[]:[0]),...floorsOf(i).map(f=>f.level)])].sort((a,c)=>c-a);return levels.map(level=>({id:`${cave?i.dungeon:i}:${level}`,building:i,level,here:floorHere.value?.level===level||!floorHere.value&&level===0,
-   label:`${LEVEL_NAME(level,i)}${!cave&&level===0&&b.desc.interior!=='separate'?' (the map)':''}`,furniture:(floorsOf(i).find(f=>f.level===level)?.furniture||[]).length}));});
+  const levels=[...new Set([...(cave?[]:[0]),...floorsOf(i).map(f=>f.level)])].sort((a,c)=>c-a),top=levels[0],bottom=levels[levels.length-1];
+  return levels.map(level=>({id:`${cave?i.dungeon:i}:${level}`,building:i,level,here:floorHere.value?.level===level||!floorHere.value&&level===0,
+   label:`${LEVEL_NAME(level,i)}${!cave&&level===0&&b.desc.interior!=='separate'?' (the map)':''}`,furniture:(floorsOf(i).find(f=>f.level===level)?.furniture||[]).length,
+   reached:reached(i,level),removable:level!==0&&!(cave&&level===-1)&&(level===top||level===bottom)}));});
+ // This floor's stairs: up (to the floor above, or out of a dungeon) and down (the flight up from the floor below).
+ const thisFloor=computed(()=>{revision.value;floorHere.value;selection.value;const i=ownerHere();if(i===null||!ownerEntry(i))return null;const level=floorHere.value?.level??0,list=floorsOf(i);
+  return {level,name:LEVEL_NAME(level,i),up:hasLevel(i,level+1)||isDungeon(i)&&level===-1,down:hasLevel(i,level-1),hasUp:!!list.find(f=>f.level===level)?.up,hasDown:!!list.find(f=>f.level===level-1)?.up};});
+ function startFlight(way){const i=ownerHere();if(i===null)throw Error('Select a building.');const {level,view}=flightFrom(i,currentLevel(),way),f=floorsOf(i).find(e=>e.level===level);
+  if(f?.up)options.dir.value=f.up.dir;pendingFlight={building:i,level,view};status.value=`Click where the bottom step goes; , and . turn them. Esc to stop.`;refreshPreview();}
  const floorAction=(label,act)=>h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>Promise.resolve().then(act).catch(error=>{status.value=error.message;})}},label);
  const currentLevel=()=>floorHere.peek()?.level??0;
  async function addFloor(where){const i=ownerHere();if(i===null)throw Error('Select a building.');const b=ownerEntry(i),levels=floorsOf(i).map(f=>f.level);
@@ -666,19 +675,25 @@ export function createWorldEditor(host){
  async function clearFurniture(){const i=ownerHere();if(i===null)throw Error('Select a building.');const level=currentLevel(),f=floorAt(i,level);
   if(floorHere.peek())await changeFloor(()=>{f.furniture=[];},'Furniture cleared.');else if(await change(()=>{f.furniture=[];return cellsOf('building',data.buildings[i]);},cellsOf('building',data.buildings[i])))status.value='Ground floor furniture cleared.';}
  function floorsPanel(){
+  const t=()=>thisFloor.value;
   return h('div',{class:'q-world-editor__opts q-world-editor__opts--inline',hidden:()=>{revision.value;return !floorHere.value&&selection.value?.kind!=='building';}},
-   h('div',{class:'q-world-editor__group q-world-editor__floors-group'},heading(()=>{const here=floorHere.value;return here?`Floors · in ${LEVEL_NAME(here.level).toLowerCase()}`:'Floors';}),
-   keyedList(h('div',{class:'q-world-editor__list'}),floorRows,r=>r.id,r=>h('div',{class:'q-world-editor__list-row'},
-    h('span',null,()=>`${r.value.label}${r.value.furniture?` · ${r.value.furniture} pieces`:''}`),
-    h('button',{type:'button',class:'q-button q-button--small',disabled:()=>r.value.here,on:{click:()=>{status.value=host.enterFloor?.(r.peek().building,r.peek().level)?`To the ${LEVEL_NAME(r.peek().level).toLowerCase()}.`:'No way there yet: place the stairs to it.';}}},'Go'),
-    h('button',{type:'button',class:'q-button q-button--small',hidden:()=>r.value.level===0,on:{click:()=>removeFloor(r.peek().level).catch(error=>{status.value=error.message;})}},'Remove'))),
-   buttons(h('span',{hidden:()=>{floorHere.value;return isDungeon(ownerHere());}},floorAction('Add floor above',()=>addFloor('above'))),floorAction(()=>{floorHere.value;return isDungeon(ownerHere())?'Add level below':'Add cellar';},()=>addFloor('below'))),
-   heading('This floor'),buttons(floorAction('Place stairs up',()=>{const i=ownerHere();if(i===null)throw Error('Select a building.');pendingFlight={building:i,level:currentLevel()};status.value='Click the bottom step of the stairs (they rise the way the Stairs tool’s “Up towards” says).';}),
-    floorAction('Generate furniture',generateFurniture),floorAction('Clear furniture',clearFurniture)),
-   fields(h('label',{class:'q-world-editor__field'},'This floor is a',h('select',{class:'q-select',on:{change:e=>{const i=ownerHere(),level=currentLevel();if(i===null)return;const apply=()=>{const f=floorAt(i,level);if(e.target.value)f.use=e.target.value;else delete f.use;};
+   h('div',{class:'q-world-editor__group q-world-editor__floors-group'},heading('Floors'),
+    keyedList(h('div',{class:'q-world-editor__list'}),floorRows,r=>r.id,r=>h('div',{class:'q-world-editor__list-row q-world-editor__floor-row','aria-current':()=>String(r.value.here)},
+     h('span',{class:'q-world-editor__floor-name'},h('span',null,()=>r.value.label),
+      h('small',{class:'q-world-editor__floor-note','data-tone':()=>r.value.reached?'':'warning'},()=>[r.value.reached?null:'no stairs',r.value.furniture?`${r.value.furniture} pieces`:null].filter(Boolean).join(' · '))),
+     h('span',{class:'q-world-editor__buttons'},
+      h('span',{class:'q-world-editor__here',hidden:()=>!r.value.here},'Here'),
+      h('button',{type:'button',class:'q-button q-button--small',hidden:()=>r.value.here,on:{click:()=>{status.value=host.enterFloor?.(r.peek().building,r.peek().level)?`To the ${LEVEL_NAME(r.peek().level).toLowerCase()}.`:'No way there yet: place the stairs to it.';}}},'Go'),
+      h('button',{type:'button',class:'q-button q-button--small',hidden:()=>!r.value.removable||r.value.here,on:{click:()=>removeFloor(r.peek().level).catch(error=>{status.value=error.message;})}},'Remove')))),
+    buttons(h('span',{hidden:()=>{floorHere.value;return isDungeon(ownerHere());}},floorAction('Add floor above',()=>addFloor('above'))),floorAction(()=>{floorHere.value;return isDungeon(ownerHere())?'Add level below':'Add cellar';},()=>addFloor('below'))),
+    h('div',{class:'q-world-editor__buttons',hidden:()=>!floorHere.value},floorAction('Back outside',()=>{status.value=host.leaveFloor?.()?'Back outside.':'';}))),
+   h('div',{class:'q-world-editor__group q-world-editor__floors-group'},heading(()=>t()?`This floor · ${t().name}`:'This floor'),
+    buttons(h('span',{hidden:()=>!t()?.up},floorAction(()=>t()?.hasUp?'Move stairs up':'Place stairs up',()=>startFlight('up'))),
+     h('span',{hidden:()=>!t()?.down},floorAction(()=>t()?.hasDown?'Move stairs down':'Place stairs down',()=>startFlight('down'))),
+     floorAction('Generate furniture',generateFurniture),floorAction('Clear furniture',clearFurniture)),
+    fields(h('label',{class:'q-world-editor__field'},'Used as',h('select',{class:'q-select',on:{change:e=>{const i=ownerHere(),level=currentLevel();if(i===null)return;const apply=()=>{const f=floorAt(i,level);if(e.target.value)f.use=e.target.value;else delete f.use;};
      (floorHere.peek()?changeFloor(apply,'Use set.'):change(()=>{apply();return [];})).catch(error=>{status.value=error.message;});}}},
-    [['','Its usual use'],...USE_NAMES.map(u=>[u,u])].map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;floorHere.value;selection.value;const i=ownerHere();return i!==null&&(floorsOf(i).find(f=>f.level===currentLevel())?.use||'')===id;}},name))))),
-   h('div',{class:'q-world-editor__buttons',hidden:()=>!floorHere.value},floorAction('Back outside',()=>{status.value=host.leaveFloor?.()?'Back outside.':'';}))));
+    [['','Its usual use'],...USE_NAMES.map(u=>[u,u])].map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;floorHere.value;selection.value;const i=ownerHere();return i!==null&&(floorsOf(i).find(f=>f.level===currentLevel())?.use||'')===id;}},name)))))));
  }
  // How a building is inside (docs/CITY.md, Floors): open in place (its ground floor is the map), a separate
  // space (its ground floor is a floor of its own, entered by its doors; it starts empty, like any floor), or
@@ -927,6 +942,9 @@ export function createWorldEditor(host){
    placePropModel(g,e.kind,[e.x,e.z],r,base,e.scale);}};
   if(kind==='building'){const desc={...e.desc};delete desc.name;const cells=planBuilding(e.desc,[e.x,e.z]).tiles;
    return {key:`building:${JSON.stringify(desc)}`,make:()=>buildingGhost(desc),place(g){g.position.set(e.x,Math.max(...cells.map(([a,b])=>heightAt(a,b))),e.z);}};}
+  // Stairs between floors: the real stairwell model (a flight up, or the opening of one going down).
+  if(kind==='flight'){const [bx,bz]=e.bottom,[tx,tz]=e.top;return {key:`flight:${e.view}`,make:()=>{const group=new THREE.Group();group.add(stairwellModel(e.view));return {group,dispose(){group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();});}};},
+   place(g){g.position.set((bx+tx)/2-6,heightAt(bx,bz),(bz+tz)/2-6);g.rotation.y=Math.atan2(tx-bx,tz-bz);}};}
   if(kind==='crystal')return {key:'crystal',make:()=>({group:makeCrystal()}),place(g){const c=crystalCentre(crystalCells(e).map(([x,z])=>({x,z,h:heightAt(x,z)})));g.position.set(c.x,c.y,c.z);}};
   if(kind==='resource'&&e.kind==='tree')return {key:`tree:${e.species||'oak'}`,make:()=>({group:makeTreeModel(e.species||'oak')}),place(g){g.position.set(e.x-6,heightAt(e.x,e.z),e.z-6);}};
   if(kind==='townsfolk'||kind==='enemy'){const n=kind==='enemy'?enemySize(e.enemy):1,[x,z]=kind==='townsfolk'?e.home||[]:[e.x,e.z];if(x===undefined)return null;
@@ -949,11 +967,11 @@ export function createWorldEditor(host){
   const placed=(kind,entry,own=[])=>{let cells=[];try{cells=cellsOf(kind,entry);}catch{return {cells:[],refused:'That doesn’t fit here.'};}const refused=fits(()=>validate(kind,entry,own,{dry:true}));
    return {cells:tint(cells,refused?NO:OK),refused,ghosts:[ghostOf(kind,entry)]};};
   // On a floor: furniture fits on open floor tiles; the shape, walls and stairs show the tile.
-  if(floorHere.peek()&&!HAND_TOOLS.includes(tool.peek())){if(pendingFlight){const fl=flightOf({at:[0,0],dir:o.dir}),cells=[fl.bottom,fl.top,fl.front].map(([a,b])=>[x+a,z+b]),bad=cells.some(([a,b])=>!at(a,b)?.indoor);return {cells:tint(cells,bad?NO:OK),refused:bad?'The stairs and the tile in front must be on the floor.':null};}
+  if(pendingFlight)return flightPreview(pendingFlight.building,pendingFlight.level,pendingFlight.view,x,z);
+  if(floorHere.peek()&&!HAND_TOOLS.includes(tool.peek())){if(tool.peek()==='stairs')return stairsPreview(hereOwner(),floorHere.peek().level,x,z);
    if(tool.peek()==='prop'){[x,z]=wallAim?.at||[x,z];const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([x+a,z+b]);const bad=cells.some(([a,b])=>{const t=at(a,b);return !t||!t.indoor||t.blocked;});
     return {cells:tint(cells,bad?NO:OK),refused:bad?'No room for it here.':null,ghosts:[{kind:'prop',entry:{kind:o.prop,rotation,x,z}}]};}
    return ['footprint','surface','edge','erase'].includes(tool.peek())?{cells:tint([[x,z]],tool.peek()==='erase'?NO:BRUSH)}:null;}
-  if(pendingFlight){const fl=flightOf({at:[0,0],dir:o.dir}),cells=[fl.bottom,fl.top,fl.front].map(([a,b])=>[x+a,z+b]),own=data.buildings[pendingFlight.building],inB=new Set(cellsOf('building',own).map(c=>c.join(','))),bad=cells.some(c=>!inB.has(c.join(',')));return {cells:tint(cells,bad?NO:OK),refused:bad?'The stairs and the tile in front must be inside the building.':null};}
   if(placing?.kind==='stamp'||tool.peek()==='stamp'&&chosenStamp.peek())return stampPreview(placing?.kind==='stamp'?placing.entry:stampOf(chosenStamp.peek()),x,z);
   if(boxing)return null;
   if(HAND_TOOLS.includes(tool.peek())){const at=wallAim?wallAim.at:[x+grab[0],z+grab[1]];
@@ -985,7 +1003,7 @@ export function createWorldEditor(host){
    case 'enemy':return placed('enemy',{enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z});
    case 'building':{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};let cells=[];try{cells=planBuilding(desc,[x,z]).tiles;}catch(error){return {cells:[],refused:error.message};}
     const refused=fits(()=>{oneChunk(cells);taken(cells);});return {cells:tint(cells,refused?NO:OK),refused,ghosts:[{kind:'building',entry:{x,z,desc}}]};}
-   case 'stairs':{const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
+   case 'stairs':{if(inPlaceAt(x,z)!==null)return stairsPreview(inPlaceAt(x,z),0,x,z);const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
    case 'crystal':return onCrystal(x,z)?{cells:[{x,z,color:BRUSH}]}:placed('crystal',{id:'new',x,z},[]);
    case 'spawn':{const t=at(x,z),bad=!t||t.blocked||t.water;return {cells:tint([[x,z]],bad?NO:OK),refused:bad?'You can’t arrive there.':null};}
    case 'nature':{if(!data.land)return null;const choice=o.nature,[group]=choice.split(':');
@@ -1040,8 +1058,8 @@ export function createWorldEditor(host){
   else if(mod&&k==='s')act=save;else if(mod&&k==='z')act=e.shiftKey?()=>step(redo,undo):()=>step(undo,redo);else if(mod&&k==='y')act=()=>step(redo,undo);
   else if(mod&&k==='v')act=pasteClipboard;else if(mod&&k==='c'&&selection.peek())act=copySelection;
   else if(e.key==='PageUp'||e.key==='PageDown'){const dir=e.key==='PageUp'?1:-1;act=()=>goLevel(dir);}
-  // Held stairs turn with , and . too.
-  else if(!mod&&(e.key===','||e.key==='.'||k==='r')&&pendingFlight){const dir=e.key===','?-1:1;act=()=>{options.dir.value=(dir>0?CLOCKWISE:COUNTER)[options.dir.peek()];};}
+  // Held stairs, and the Stairs tool's, turn with , and . too.
+  else if(!mod&&(e.key===','||e.key==='.'||k==='r')&&(pendingFlight||tool.peek()==='stairs'&&!holding())){const dir=e.key===','?-1:1;act=()=>{options.dir.value=(dir>0?CLOCKWISE:COUNTER)[options.dir.peek()];refreshPreview();};}
   // , and . turn what you hold (or the selection) one way and the other; R turns it clockwise.
   else if(!mod&&(e.key===','||e.key==='.'||k==='r')&&(holding()||selection.peek())){const dir=e.key===','?-1:1;act=()=>turnHeld(dir)||rotateSelection(dir);}
   else if(!mod&&(e.key==='Delete'||e.key==='Backspace')&&placing)act=cancel;
@@ -1261,13 +1279,14 @@ export function createWorldEditor(host){
     throw Error('Nothing to erase here.');}
    case 'edge':{const [dx,dz]=DIRS[o.side],b=[lx+dx,lz+dz],same=e=>[e.a,e.b].map(String).sort().join('|')===[[lx,lz],b].map(String).sort().join('|');
     await changeFloor(()=>{f.edges=(f.edges||[]).filter(e=>!same(e));if(o.edge!=='none')f.edges.push({a:[lx,lz],b,kind:o.edge});},o.edge==='none'?'Wall removed.':`${o.edge} placed.`);return;}
+   case 'stairs':await setFlight(i,flightFrom(i,here.level,o.flight).level,tile);return;
    case 'surface':if(o.surface==='water')throw Error('Water is for the land, not floors.');await changeFloor(()=>{f.surface=o.surface==='land'?undefined:o.surface;},`Floor: ${o.surface}.`);return;
    // A floor's shape may be any size (paint onto the solid ring around it to grow it); one bigger than the
    // floor below is a warning in the checks, and underground floors aren't limited.
    case 'footprint':{const plan=planOf(i),foot=plan.tiles.map(([x,z])=>[x-plan.x0,z-plan.z0]),cells=new Set((f.cells?.length?f.cells:foot).map(c=>c.join(','))),k=`${lx},${lz}`;
     await changeFloor(()=>{if(o.draftMode==='add')cells.add(k);else cells.delete(k);f.cells=[...cells].map(c=>c.split(',').map(Number));if(f.cells.length===foot.length)delete f.cells;},`${LEVEL_NAME(here.level)}: ${cells.size} tiles.`);return;}
   }
-  throw Error('On a floor: Inspect, Prop, Edge, Footprint, Surface and Erase work (and the Floors panel).');}
+  throw Error('On a floor: Inspect, Prop, Room, Edge, Stairs, Footprint, Surface and Erase work (and the Floors panel).');}
  // Levels (docs/TOWN.md, Decorating indoors): Page Up / Page Down, or the bar's ▲ and ▼, go up and down in the
  // building you're in, the selected one, or the one under the pointer.
  function levelOwner(){const h=hereOwner();if(h!==null)return h;const sel=selection.peek();if(sel?.kind==='building')return sel.index;if(sel?.kind==='furniture'&&sel.owner!==undefined)return sel.owner;
@@ -1278,15 +1297,38 @@ export function createWorldEditor(host){
   if(holding()||heldDoor||pendingFlight)cancel();
   const ok=next===0&&(isDungeon(o)||ownerEntry(o).desc?.interior!=='separate')?host.leaveFloor?.():host.enterFloor?.(o,next);
   status.value=ok?`${next===0&&!isDungeon(o)?'Ground floor':LEVEL_NAME(next,o)}.`:'No way there yet: place the stairs to it.';}
- // The flight up from a floor (or the ground floor, on the map): its bottom step where you click, rising
- // the way the Stairs tool's "Up towards" says.
- async function placeFlight(tile){const {building:i,level}=pendingFlight;pendingFlight=null;const [lx,lz]=localOf(i,tile.x,tile.z),dir=options.dir.peek();
-  const apply=()=>{const f=floorAt(i,level),fl=flightOf({at:[lx,lz],dir}),plan=planOf(i),inside=c=>plan.tiles.some(([x,z])=>x===plan.x0+c[0]&&z===plan.z0+c[1]);
-   // On this floor: a floor's own shape (or, on the map, the building's footprint).
-   const own=floorHere.peek()?c=>!!at(plan.x0+c[0],plan.z0+c[1])?.indoor:inside;
-   if(![fl.bottom,fl.top,fl.front].every(own))throw Error('The stairs and the tile in front of them must be on this floor.');f.up={at:[lx,lz],dir};};
-  if(floorHere.peek())return changeFloor(apply,`Stairs up from ${ON_LEVEL(level).replace(/^(on|in) /,'')}.`);
-  if(!isDungeon(i)&&await change(()=>{apply();return cellsOf('building',data.buildings[i]);},cellsOf('building',data.buildings[i]))){status.value=`Stairs up from the ground floor.`;return true;}return false;}
+ // Stairs between floors (docs/CITY.md, Floors): a flight belongs to the floor it rises from (that floor's `up`),
+ // its bottom step where you click, rising the Stairs tool's “Up towards” way (, and . turn it). Stairs down from
+ // a floor are the flight up from the floor below, on the same two tiles.
+ const hasLevel=(o,level)=>floorsOf(o).some(f=>f.level===level)||level===0&&!isDungeon(o);
+ // A floor's shape (local "x,z" keys): its own cells, or the building's footprint.
+ const floorShape=(o,level)=>{const f=floorsOf(o).find(e=>e.level===level),plan=planOf(o);return new Set((f?.cells?.length?f.cells:plan.tiles.map(([x,z])=>[x-plan.x0,z-plan.z0])).map(c=>c.join(',')));};
+ // Which flight the Stairs tool means from floor `here`: {level (the floor it rises from), view: 'up' | 'down'}.
+ function flightFrom(o,here,way){
+  if(way==='down'){if(!hasLevel(o,here-1))throw Error(isDungeon(o)?'No level below: add one in the Floors panel first.':here===0?'No cellar: add one in the Floors panel first.':'Nothing below.');return {level:here-1,view:'down'};}
+  if(!hasLevel(o,here+1)&&!(isDungeon(o)&&here===-1))throw Error(!isDungeon(o)&&here+1>(ownerEntry(o).desc?.storeys||1)-1?`No floor above: raise ${ownerEntry(o).desc?.name||'the building'}’s storeys, then Add floor above.`:'No floor above: Add floor above first (Floors panel).');
+  return {level:here,view:'up'};}
+ // Why the flight up from `level` can't have its bottom step at local `at`, or null: both steps on the two floors
+ // it joins, the tile in front on its own floor, and clear of the other stairs on those floors.
+ function flightRefused(o,level,at,dir){const fl=flightOf({at,dir}),k=c=>c.join(','),own=floorShape(o,level),next=hasLevel(o,level+1)?floorShape(o,level+1):null,levels=floorsOf(o);
+  if(![fl.bottom,fl.top,fl.front].every(c=>own.has(k(c))))return `The stairs and the tile in front must be on ${LEVEL_NAME(level,o).toLowerCase()}.`;
+  if(next&&![fl.bottom,fl.top].every(c=>next.has(k(c))))return `The stairs must be under ${LEVEL_NAME(level+1,o).toLowerCase()} too.`;
+  const below=levels.find(f=>f.level===level-1)?.up,above=levels.find(f=>f.level===level+1)?.up,mine=new Set([fl.bottom,fl.top].map(k));
+  if(below){const b=flightOf(below);if([b.bottom,b.top].some(c=>[fl.bottom,fl.top,fl.front].some(m=>k(m)===k(c))))return 'That’s on the stairs down.';}
+  if(above&&next){const a=flightOf(above);if([a.bottom,a.top,a.front].some(c=>mine.has(k(c))))return `That’s on ${LEVEL_NAME(level+1,o).toLowerCase()}’s stairs up.`;}
+  return null;}
+ // The preview of a flight: its two steps (and, going up, the tile in front kept clear) and the stairwell's ghost.
+ function flightPreview(o,level,view,x,z){const dir=options.dir.peek(),at=localOf(o,x,z),refused=flightRefused(o,level,at,dir),fl=flightOf({at,dir}),plan=planOf(o),w=([a,b])=>[plan.x0+a,plan.z0+b];
+  return {cells:[...tint([fl.bottom,fl.top].map(w),refused?NO:OK),...(view==='up'?tint([w(fl.front)],refused?NO:BRUSH):[])],refused,ghosts:[{kind:'flight',entry:{bottom:w(fl.bottom),top:w(fl.top),view}}]};}
+ function stairsPreview(o,here,x,z){try{const {level,view}=flightFrom(o,here,options.flight.peek());return flightPreview(o,level,view,x,z);}catch(error){return {cells:tint([[x,z]],NO),refused:error.message};}}
+ const flightSaid=(o,level)=>isDungeon(o)&&level===-1?'Stairs up to the entrance.':`Stairs from ${LEVEL_NAME(level,o).toLowerCase()} up to ${LEVEL_NAME(level+1,o).toLowerCase()}.`;
+ // Puts the flight up from `level` with its bottom step on a tile (world); it replaces the one there was.
+ async function setFlight(o,level,tile){const at=localOf(o,tile.x,tile.z),dir=options.dir.peek(),refused=flightRefused(o,level,at,dir);if(refused)throw Error(refused);
+  const apply=()=>{floorAt(o,level).up={at,dir};};
+  if(floorHere.peek())return changeFloor(apply,flightSaid(o,level));
+  if(isDungeon(o))throw Error('Go into it first.');
+  const b=data.buildings[o];if(await change(()=>{apply();return cellsOf('building',b);},cellsOf('building',b))){status.value=flightSaid(o,level);return true;}return false;}
+ async function placeFlight(tile){const {building:o,level}=pendingFlight;pendingFlight=null;return setFlight(o,level,tile);}
  async function click(tile,point=null,actor=null){if(problemMarks.length)clearProblem();
   // A door into a building, or a stairwell: Inspect and Select follow it (docs/CITY.md, Floors).
   // The Hand lifts a door or a floor's stairs; Inspect goes through doors and up and down stairs.
@@ -1330,7 +1372,9 @@ export function createWorldEditor(host){
    case 'raise':case 'lower':case 'flatten':case 'nature':case 'ramps':case 'surface':case 'footprint':case 'biome':await paint('start',tile);await paint('end',tile);break;
    case 'building':if(await change(()=>{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};delete desc.name;desc.name=`${BUILDING_PRESETS[o.preset].name} ${data.buildings.length+1}`;const cells=planBuilding(desc,[x,z]).tiles;oneChunk(cells);taken(cells);data.buildings.push({x,z,desc});return cells;}))status.value=`Placed ${BUILDING_PRESETS[o.preset].name} at ${x},${z}.`;break;
    case 'prop':{const [px,pz]=wallAim?.at||[x,z];if(await change(()=>{const [w,d]=propFootprint(o.prop,rotation),cells=[];for(let b=0;b<d;b++)for(let a=0;a<w;a++)cells.push([px+a,pz+b]);taken(cells,[],o.prop);data.props.push({kind:o.prop,x:px,z:pz,rotation});return cells;}))status.value=`Placed ${PROPS[o.prop].name} at ${px},${pz}.`;break;}
-   case 'stairs':await change(()=>{const s={x,z,dir:o.dir,length:+o.length,width:+o.width};data.stairs.push(s);return stairCells(s);});status.value=`Stairs from ${x},${z}, going up ${SIDE_LABELS[o.dir].toLowerCase()}.`;break;
+   // Inside an open building the Stairs tool joins its floors; outside it climbs the land.
+   case 'stairs':if(inPlaceAt(x,z)!==null){const i=inPlaceAt(x,z);await setFlight(i,flightFrom(i,0,o.flight).level,tile).catch(error=>{status.value=error.message;});break;}
+    await change(()=>{const s={x,z,dir:o.dir,length:+o.length,width:+o.width};data.stairs.push(s);return stairCells(s);});status.value=`Stairs from ${x},${z}, going up ${SIDE_LABELS[o.dir].toLowerCase()}.`;break;
    case 'edge':await change(()=>{const [dx,dz]=DIRS[o.side],b=[x+dx,z+dz],same=e=>[e.a,e.b].map(String).sort().join('|')===[[x,z],b].map(String).sort().join('|');
     data.edges=data.edges.filter(e=>!same(e));if(o.edge!=='none')data.edges.push({a:[x,z],b,kind:o.edge});return [[x,z],b];});break;
    case 'erase':{const hit=pickAt(x,z);
@@ -1406,8 +1450,10 @@ export function createWorldEditor(host){
  // Saved compact (world-map.js packMap): only ground rows that differ from their region's plain ground.
  const json=()=>{endWallTrial();return JSON.stringify(packMap(data),null,1);};
  async function save(){
-  try{const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:json()})});
-   const result=await response.json();if(response.ok)unsaved.value=false;status.value=response.ok?`Saved to ${result.path}.`:`Not saved: ${result.error}`;}catch{status.value='Saving needs the playground dev server (npm run dev:debug). Use Copy or Download instead.';}}
+  const text=json();
+  try{const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:data.id,json:text})});
+   // The dev server doesn't reload for it (vite.config.js): the session's copy of the repo map is what you saved.
+   const result=await response.json();if(response.ok){unsaved.value=false;repoCities[`../maps/${data.id}.json`]=JSON.parse(text);}status.value=response.ok?`Saved to ${result.path}.`:`Not saved: ${result.error}`;}catch{status.value='Saving needs the playground dev server (npm run dev:debug). Use Copy or Download instead.';}}
  function download(){const link=h('a',{href:URL.createObjectURL(new Blob([json()],{type:'application/json'})),download:`${data.id}.json`});link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
  // A colour swatch choice (biomes, terrains): the colour the overlay paints, and the name.
  const swatch=(value,id,name,color)=>h('button',{type:'button',class:'q-world-editor__swatch','aria-pressed':()=>String(value.value===id),on:{click:()=>{value.value=id;}}},h('span',{class:'q-world-editor__chip',style:{background:color||'transparent'}}),h('span',null,name));
@@ -1428,12 +1474,14 @@ export function createWorldEditor(host){
  const TOOL_HINTS={deco:'Pick from the catalogue, then click where it goes (, and . turn it). Click something to lift it.',select:'Click something to lift it and see all its options; drag a box to select several.',design:'Click something to change its colours.',eyedropper:'Click something to copy it, colours and all.',erase:'Click something to remove it.',
   floorpaint:'Click inside a room to paint its floor.',wallpaint:'Point at a wall inside a room to paint it (or the whole room’s walls).',stamp:'Pick a stamp, then click where its north-west corner goes.',
   room:'Drag a rectangle: on open ground a new building, inside one a room with a door.',resize:'Drag from beside a wall (outside or a room’s) the way it should move.',building:'Click where the building’s north-west corner goes.',
-  footprint:'Drag to paint a footprint, then Build it.',walls:'Point at a building’s wall and click to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the stairs’ bottom step goes.',
+  footprint:'Drag to paint a footprint, then Build it.',walls:'Point at a building’s wall and click to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the bottom step goes (inside a building: stairs to another floor); , and . turn them.',
   use:'Click a building to set what it’s used for.',reroll:'Click a building to roll its furniture again.',underground:'Make a dungeon or cave here, then place its entrance.',
   raise:'Click or drag to raise the ground half a block.',lower:'Click or drag to lower the ground half a block.',flatten:'Drag to level the ground to where you start.',smooth:'Drag to ease the ground to its neighbours.',
   ramp:'Drag from the low end to the high end.',ramps:'Click or drag over ledges to turn them into ramps (or back).',surface:'Click or drag to paint the ground.',biome:'Drag to paint biomes or terrain (8 × 8 cells).',nature:'Click or drag to place nature, or clear it.',
   enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk, or click one to change them.',crystal:'Click to set an Iter Crystal (2 × 2), or click one to name it.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
- function setTool(id){if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id);if(TOOL_HINTS[id])status.value=TOOL_HINTS[id];}
+  // On a floor some tools say what they do there.
+ const FLOOR_HINTS={room:'Drag a rectangle on this floor: a room with a door.',stairs:'Click where the bottom step goes; , and . turn them.'};
+ function setTool(id){if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id);const hint=floorHere.peek()&&FLOOR_HINTS[id]||TOOL_HINTS[id];if(hint)status.value=hint;}
  // The dock's panel: always outside Decorate; in Decorate only for what's selected, paint and stamps.
  // The panel: always outside Decorate; in Decorate for paint and stamps, and for what's selected (the Hand and Colours
  // give it the whole card; Deco, a column beside the catalogue for a selected prop).
@@ -1518,7 +1566,9 @@ export function createWorldEditor(host){
         opts(['surface'],group(null,fields(select('Surface',options.surface,[['land',"Land's own"],...SURFACE_NAMES.map(s=>[s,s]),['water','water (land maps)']])))),
         opts(['use'],group(null,fields(select('Use',options.use,[...USE_NAMES,'none'].map(u=>[u,u]))))),
         opts(['building'],group(null,fields(select('Building',options.preset,Object.entries(BUILDING_PRESETS).map(([id,p])=>[id,p.name])),select('Rotation',options.rotation,[['0','0°'],['90','90°'],['180','180°'],['270','270°']])))),
-        opts(['stairs'],group(null,fields(select('Up towards',options.dir,Object.entries(SIDE_LABELS)),select('Length',options.length,[1,2,3,4].map(n=>[String(n),`${n} (${n/2} block${n>2?'s':''})`])),select('Width',options.width,[1,2,3,4,5].map(n=>[String(n),String(n)]))))),
+        // Stairs: which way they rise; inside a building, up or down to the next floor; outside, their size.
+        opts(['stairs'],group(null,fields(select('Up towards',options.dir,Object.entries(SIDE_LABELS)),select(()=>floorHere.value?'Stairs':'In a building',options.flight,[['up','Up a floor'],['down','Down a floor']]),
+         h('span',{class:'q-world-editor__fields',hidden:()=>!!floorHere.value},select('Length',options.length,[1,2,3,4].map(n=>[String(n),`${n} (${n/2} block${n>2?'s':''})`])),select('Width',options.width,[1,2,3,4,5].map(n=>[String(n),String(n)])))))),
         opts(['edge'],group(null,fields(select('Edge',options.edge,[['wall','Wall'],['window','Window'],['fence','Fence'],['railing','Railing'],['low','Counter'],['door','Door'],['none','Remove']]),select('Side',options.side,Object.entries(SIDE_LABELS))))),
         cavesPanel(),stampsPanel(),paintPanel(),presetsWindow(),
         // What's selected: its own panels side by side, then what you can do with it.

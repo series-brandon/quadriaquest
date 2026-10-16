@@ -42,7 +42,11 @@ function gamePublicAssets(){
 // World editor saving (playground dev server only, docs/CITY.md Authoring): POST /__map-save
 // {id, json, kind} writes src/maps/<id>.json (kind 'stamp': src/stamps/<id>.json; kind 'palette', a colour preset: src/palettes/<id>.json). Builds never include it (configureServer runs only in dev).
 function mapSave(){
-  return {name:'map-save',configureServer(server){server.middlewares.use('/__map-save',(req,res)=>{
+  return {name:'map-save',
+   // A saved map must not reload the page either (the editor imports every map, so Vite would): you'd lose the
+   // map's undo, the view and the floor you're on. The editor keeps what it saved; the next page load reads the file.
+   hotUpdate({file}){if(/[\\/]src[\\/]maps[\\/][^\\/]+\.json$/.test(file))return [];},
+   configureServer(server){server.middlewares.use('/__map-save',(req,res)=>{
     const reply=(code,body)=>{res.statusCode=code;res.setHeader('content-type','application/json');res.end(JSON.stringify(body));};
     if(req.method!=='POST')return reply(405,{error:'POST only'});
     let body='';req.on('data',chunk=>{body+=chunk;if(body.length>8e6)req.destroy();});

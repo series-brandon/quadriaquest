@@ -63,9 +63,10 @@
 /* The two cards share a height (the taller one's); the content is only as wide as it needs, except the catalogue,
    which takes the whole width. */
 .q-world-editor__content[data-catalogue='true'] { justify-self: stretch; inline-size: auto; }
-.q-world-editor__body { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 16px; min-block-size: 0; }
+.q-world-editor__body { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: minmax(0, auto); align-items: start; gap: 16px; min-block-size: 0; }
 .q-world-editor__content[data-catalogue='true'] .q-world-editor__body:has(> .q-world-editor__panel:not([hidden])) { grid-template-columns: minmax(0, 1fr) 340px; }
-.q-world-editor__panel { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; gap: 12px 20px; min-block-size: 0; overflow: auto; }
+/* The panel scrolls inside the card rather than running off the bottom of the window. */
+.q-world-editor__panel { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; gap: 12px 20px; min-block-size: 0; max-block-size: 100%; overflow: auto; }
 .q-world-editor__map { display: grid; gap: 6px; }
 /* A tool's options: groups side by side, each a heading over a row of fields, buttons, toggles or a list. A wide
    group takes the room left (swatches, lists, checks). */
@@ -87,10 +88,21 @@
 .q-world-editor__list-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 6px; border-radius: 6px; background: var(--q-card); }
 .q-world-editor__actions-grid { display: grid; grid-template-columns: repeat(2, minmax(92px, auto)); gap: 4px; }
 .q-world-editor__actions-grid .q-button { min-inline-size: 0; }
-/* Floors: one column (the list, then this floor), its buttons two to a row. */
-.q-world-editor__floors-group { inline-size: 260px; }
-.q-world-editor__floors-group .q-world-editor__buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Floors: two cards side by side, the building's floors and this floor; buttons two to a row. Each floor's row:
+   its name over a short note (no stairs, its furniture), then Go / Remove, or Here for the one you're on. */
+.q-world-editor__floors-group { inline-size: 250px; }
+.q-world-editor__floors-group > .q-world-editor__buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.q-world-editor__floors-group > .q-world-editor__buttons > span:not([hidden]) { display: contents; }
 .q-world-editor__floors-group .q-button { min-inline-size: 0; }
+.q-world-editor__floor-row { min-block-size: 40px; }
+.q-world-editor__floor-row[aria-current='true'] { background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); }
+.q-world-editor__floor-row .q-world-editor__buttons { flex-wrap: nowrap; }
+.q-world-editor__floor-name { display: grid; min-inline-size: 0; font-weight: 600; }
+.q-world-editor__floor-note { color: var(--q-ink-muted); font-size: 11px; font-weight: 500; }
+.q-world-editor__floor-note:empty { display: none; }
+.q-world-editor__floor-note[data-tone='warning'] { color: color-mix(in srgb, var(--q-tone-warning) 45%, var(--q-ink)); font-weight: 600; }
+.q-world-editor__here { padding-inline: 8px; color: var(--q-ink-muted); font-size: 12px; font-weight: 600; }
+.q-world-editor__here[hidden] { display: none; }
 .q-world-editor__head, .q-world-editor__row { display: flex; flex-wrap: wrap; align-items: end; gap: 6px; justify-content: space-between; }
 .q-world-editor__row[hidden] { display: none; }
 .q-world-editor__row .q-world-editor__field { flex: 1 1 140px; }

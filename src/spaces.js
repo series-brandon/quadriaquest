@@ -28,8 +28,11 @@ export const INTERIOR_MAX_ZOOM=14,DUNGEON_MAX_ZOOM=18,FADE=.25;
 export function stairwellModel(direction='up',{railX=.42}={}){
  const wood=['#a27a55','#9a7350'],rail='#5a3d28',steps=8,rise=1.36/steps,parts=[];
  if(direction==='down'){
-  parts.push({geometry:new THREE.BoxGeometry(.9,.02,1.9),color:'#1d1915',position:[0,.015,0]});
-  for(let i=0;i<4;i++)parts.push({geometry:new THREE.BoxGeometry(.82,.03,.25),color:wood[i%2],position:[0,.01-i*.002,.86-i*.25]});
+  // The top four steps from the top end (+z), darkening as they go down, then the dark well beyond: side by side,
+  // never stacked, so no two faces share a plane (they flickered against each other).
+  const fade=['#9a7350','#74573d','#50402e','#342a21'];
+  for(let i=0;i<4;i++)parts.push({geometry:new THREE.BoxGeometry(.9,.02,.25),color:fade[i],position:[0,.015,.825-i*.25]});
+  parts.push({geometry:new THREE.BoxGeometry(.9,.02,.9),color:'#1d1915',position:[0,.015,-.5]});
   for(const z of [-.92,0,.92])parts.push({geometry:new THREE.BoxGeometry(.06,.72,.06),color:rail,position:[railX,.36,z]});
   parts.push({geometry:new THREE.BoxGeometry(.06,.06,1.9),color:rail,position:[railX,.72,0]},{geometry:new THREE.BoxGeometry(.9,.06,.06),color:rail,position:[0,.72,-.92]},{geometry:new THREE.BoxGeometry(.06,.72,.06),color:rail,position:[-railX,.36,-.92]});
   return mergedMesh(parts);

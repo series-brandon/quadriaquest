@@ -345,6 +345,7 @@ User request: hide what's lifted, wall and floor paint, Sims-like doors and stai
 - **Doors and stairs, as in the Sims:**
   - The Hand picks up a building's door; it goes down on another of that building's walls (where you click). The door rule still applies, and a refused door stays in your hand.
   - The Hand picks up a floor's stairs: they go down where you click (their bottom step), `,` and `.` turn them, and Esc puts them back.
+  - The Stairs tool places them too: inside a building it joins floors (docs/CITY.md, *Floors, round three*).
   - Map stairs (outdoor flights) turn with `,` and `.` too.
   - Inspect still goes through doors and up and down stairs.
 - **Decorating a ground floor in place:** the catalogue works inside an in-place building on the map. What you put down there is that building's ground-floor furniture.

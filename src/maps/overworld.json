@@ -544,7 +544,7 @@
       "side": "south"
      }
     ],
-    "storeys": 1,
+    "storeys": 2,
     "roof": "gable",
     "style": "timber",
     "chimney": true,
@@ -572,7 +572,17 @@
    "floors": [
     {
      "level": 0,
-     "furniture": []
+     "furniture": [],
+     "up": {
+      "at": [
+       12,
+       2
+      ],
+      "dir": "n"
+     }
+    },
+    {
+     "level": 1
     }
    ]
   }

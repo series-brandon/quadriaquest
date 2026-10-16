@@ -201,7 +201,7 @@ User decisions:
 - **Floors panel**, for the selected building or the floor you're in:
   - the floors with Go and Remove (top or bottom first);
   - Add floor above (up to the storeys outside) and Add cellar;
-  - Place stairs up: click the bottom step; it rises the Stairs tool's *Up towards* way, with a preview;
+  - Place stairs up: click the bottom step; it rises the Stairs tool's *Up towards* way, with a preview (see *Floors, round three* for stairs down and the Stairs tool);
   - Generate furniture (rolls the floor's use; again for another roll) and Clear furniture;
   - *This floor is a* (its use);
   - Back outside.
@@ -259,6 +259,42 @@ User decisions:
   - made a cave and placed its entrance, then went in with Go;
   - added a level, generated furniture and grew the cave by painting;
   - no console errors.
+
+### Floors, round three: joining floors with stairs, and the Floors panel (2026-10-15)
+
+User report: adding a floor worked, but joining two floors with stairs was very unintuitive, maybe impossible; and the Room tool on a floor looked bad.
+
+- **What was wrong:**
+  - Build → Stairs only laid map stairs, and refused inside a building. The floor stairs were only in the Floors panel, under the Hand with a building selected.
+  - That panel ran off the bottom of the window instead of scrolling, so *Place stairs up* could be out of reach.
+  - Their direction came from the Stairs tool's options, with only three tinted tiles to show it. Stairs down weren't offered at all: you had to go to the floor below and place its stairs up.
+- **The Stairs tool joins floors** (world-editor.js `flightFrom`, `flightRefused`, `setFlight`):
+  - clicked inside an open building on the map, or anywhere on a floor you're in, it places stairs to the floor above or below (*Up a floor* / *Down a floor*);
+  - stairs down from a floor are the flight up from the floor below, on the same two tiles, so they replace that flight;
+  - outside a building it still lays map stairs. On a floor, Length and Width hide.
+- **The preview** is a ghost of the real stairwell (`spaces.js` `stairwellModel`): the flight up, or the opening of one going down. The tile in front of a flight up is tinted blue (kept clear). `,` and `.` turn it, with the tool or with held stairs.
+- **Refusals** come from the same data the checks use, wherever you are:
+  - both steps must be on both floors the stairs join, and the tile in front on its own floor;
+  - they can't land on the floor's other stairs;
+  - with no floor above or below, it says what to add (and to raise the storeys first, if needed).
+- **Floors panel:**
+  - two cards: the building's floors, and *This floor*;
+  - the floor you're on is highlighted (*Here*), and Remove shows only on the top or bottom floor;
+  - floors with no stairs to them say so;
+  - *Place* / *Move stairs up* and *down*;
+  - the use is labelled *Used as*.
+- **The dock panel** now scrolls inside its card (it is capped at 42% of the window's height).
+- On a floor, Room's and Stairs' hints say what they do there.
+- **Checked in the browser:**
+  - raised a building to two storeys, added a floor and a cellar;
+  - placed the stairs up with Build → Stairs (ghost, turned with `.`), went up, and moved them from upstairs with *Down a floor*;
+  - drew a room on floor 2, went back outside, and linked the cellar with *Down a floor* from the map;
+  - refused *Up a floor* on the top floor, with the reason;
+  - map stairs outside, and stairs lifted by the Hand, unchanged;
+  - no check problems.
+- **Follow-up (user, 2026-10-16):**
+  - The opening of stairs going down flickered at its top end: its steps sat on the dark well with their tops level with it. `stairwellModel('down')` now lays the four top steps, darkening, beside the well instead of on it.
+  - Saving a map reloaded the page, losing undo, the view and the floor you were on. This was Vite reloading because the editor imports every `src/maps/*.json`. The save plugin (vite.config.js) now skips hot updates for map files, and the editor keeps its copy of what it saved. Each map is still one file, `src/maps/<id>.json`, written only by Save; floors, rooms and stairs live inside it.
 
 ### Interior size rules (user decision, 2026-10-10)
 
