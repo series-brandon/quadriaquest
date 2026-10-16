@@ -22,25 +22,43 @@ import {key} from './world.js';
 // Dungeon spec (map data.interiors[id]): {kind:'dungeon', size:[w, d], exit:[x, z], furniture:[…]}.
 export const INTERIOR_MAX_ZOOM=14,DUNGEON_MAX_ZOOM=18,FADE=.25;
 
-// Stairwell models, two tiles long along local z (−1 … +1, the top at +z): a flight of eight steps up
-// with a sloped handrail on the open side (railX), or the opening of a flight going down, railed on its
-// open side and far end.
-export function stairwellModel(direction='up',{railX=.42}={}){
- const wood=['#a27a55','#9a7350'],rail='#5a3d28',steps=8,rise=1.36/steps,parts=[];
+// Stairwell models, two tiles long along local z (−1 … +1, the top at +z): a flight of eight steps up with a
+// sloped handrail on both sides (it may stand in the middle of a room), or the opening of a flight going down,
+// railed on its three sides but the top end, where you step down.
+export function stairwellModel(direction='up'){
+ const wood=['#a27a55','#9a7350'],rail='#5a3d28',steps=8,rise=1.36/steps,parts=[],sides=[-.42,.42];
  if(direction==='down'){
   // The top four steps from the top end (+z), darkening as they go down, then the dark well beyond: side by side,
   // never stacked, so no two faces share a plane (they flickered against each other).
   const fade=['#9a7350','#74573d','#50402e','#342a21'];
   for(let i=0;i<4;i++)parts.push({geometry:new THREE.BoxGeometry(.9,.02,.25),color:fade[i],position:[0,.015,.825-i*.25]});
   parts.push({geometry:new THREE.BoxGeometry(.9,.02,.9),color:'#1d1915',position:[0,.015,-.5]});
-  for(const z of [-.92,0,.92])parts.push({geometry:new THREE.BoxGeometry(.06,.72,.06),color:rail,position:[railX,.36,z]});
-  parts.push({geometry:new THREE.BoxGeometry(.06,.06,1.9),color:rail,position:[railX,.72,0]},{geometry:new THREE.BoxGeometry(.9,.06,.06),color:rail,position:[0,.72,-.92]},{geometry:new THREE.BoxGeometry(.06,.72,.06),color:rail,position:[-railX,.36,-.92]});
+  for(const x of sides){for(const z of [-.92,0,.92])parts.push({geometry:new THREE.BoxGeometry(.06,.72,.06),color:rail,position:[x,.36,z]});
+   parts.push({geometry:new THREE.BoxGeometry(.06,.06,1.9),color:rail,position:[x,.72,0]});}
+  parts.push({geometry:new THREE.BoxGeometry(.9,.06,.06),color:rail,position:[0,.72,-.92]});
   return mergedMesh(parts);
  }
  for(let i=0;i<steps;i++)parts.push({geometry:new THREE.BoxGeometry(.86,rise*(i+1),.25),color:wood[i%2],position:[0,rise*(i+1)/2,-1+.125+.25*i]});
  const slope=Math.atan2(rise*steps,2),length=Math.hypot(2,rise*steps);
- parts.push({geometry:new THREE.BoxGeometry(.05,.05,length),color:rail,position:[railX,.8+rise*steps/2,0],rotation:[-slope,0,0]});
- for(const z of [-.9,0,.9])parts.push({geometry:new THREE.BoxGeometry(.05,.8,.05),color:rail,position:[railX,rise*Math.ceil((z+1)/.25)+.4,z]});
+ for(const x of sides){parts.push({geometry:new THREE.BoxGeometry(.05,.05,length),color:rail,position:[x,.8+rise*steps/2,0],rotation:[-slope,0,0]});
+  for(const z of [-.9,0,.9])parts.push({geometry:new THREE.BoxGeometry(.05,.8,.05),color:rail,position:[x,rise*Math.ceil((z+1)/.25)+.4,z]});}
+ return mergedMesh(parts);
+}
+// Ladder models, one tile (−.5 … +.5 along local z, climbing towards +z): a ladder standing against the tile's
+// far side, up to the floor above; or the hatch it comes up through, railed on its three sides but the near one
+// (−z), where you step on, with the ladder's top showing.
+export function ladderModel(direction='up'){
+ const wood='#9a7350',rail='#5a3d28',parts=[],height=1.5,back=.36;
+ if(direction==='down'){
+  parts.push({geometry:new THREE.BoxGeometry(.9,.02,.9),color:'#1d1915',position:[0,.015,0]});
+  for(const x of [-.28,.28])parts.push({geometry:new THREE.BoxGeometry(.06,.34,.06),color:wood,position:[x,.17,back]});
+  for(const [x,z] of [[-.42,-.42],[.42,-.42],[-.42,.42],[.42,.42]])parts.push({geometry:new THREE.BoxGeometry(.06,.72,.06),color:rail,position:[x,.36,z]});
+  for(const x of [-.42,.42])parts.push({geometry:new THREE.BoxGeometry(.06,.06,.9),color:rail,position:[x,.72,0]});
+  parts.push({geometry:new THREE.BoxGeometry(.9,.06,.06),color:rail,position:[0,.72,.42]});
+  return mergedMesh(parts);
+ }
+ for(const x of [-.28,.28])parts.push({geometry:new THREE.BoxGeometry(.06,height,.06),color:wood,position:[x,height/2,back]});
+ for(let y=.22;y<height;y+=.24)parts.push({geometry:new THREE.BoxGeometry(.56,.04,.05),color:wood,position:[0,y,back]});
  return mergedMesh(parts);
 }
 // An interior floor tile: its surface on a thin dark slab (a space floats in darkness, not on a hill).
@@ -51,17 +69,18 @@ function floorTile(tile,map){
 }
 export const SPACE_BACKGROUND='#2b2622';
 const ARRIVAL_ORDER=[[0,1],[1,0],[-1,0],[0,-1]];
-// A stairwell entity on two tiles (bottom and top): solid, picked like any actor; interact() follows its
-// link. Going up you approach the bottom step; going down, the top.
-export function createStairwell({place,direction,link,parent,pickables,services,tileAt}){
- const {bottom,top}=place,ux=top.x-bottom.x,uz=top.z-bottom.z,angle=Math.atan2(ux,uz);
- // The rail goes on the side away from the wall.
- const side=[Math.cos(angle),-Math.sin(angle)],beside=tileAt(bottom.x+Math.round(side[0]),bottom.z+Math.round(side[1]));
- const group=new THREE.Group();group.add(stairwellModel(direction,{railX:beside&&beside.indoor?.42:-.42}));
+// A stairwell entity on two tiles (bottom and top), or a ladder on one: solid, picked like any actor; interact()
+// follows its link. place: {bottom, top, front, landing, dir: [dx, dz], ladder} (tiles; flightOf's, live).
+// One way on (interaction-route.js `approach`): going up, from the tile in front of the foot, facing up; going
+// down, from the landing at the top, facing down. Legacy stairs into a corner have no landing: any side.
+export function createStairwell({place,direction,link,parent,pickables,services}){
+ const {bottom,top}=place,[ux,uz]=place.dir||[top.x-bottom.x,top.z-bottom.z],angle=Math.atan2(ux,uz);
+ const group=new THREE.Group();group.add(place.ladder?ladderModel(direction):stairwellModel(direction));
  group.position.set((bottom.x+top.x)/2-6,bottom.h,(bottom.z+top.z)/2-6);group.rotation.y=angle;parent.add(group);
  bottom.blocked=top.blocked=true;
- const anchor=direction==='up'?bottom:top;
- const well={kind:'stairwell',direction,tile:anchor,x:anchor.x,z:anchor.z,place,group,link,ready:true,opened:false,duration:0,label:direction==='up'?'Go upstairs':'Go downstairs',available:()=>true,interact(){services.enter(link,{from:well});}};
+ const anchor=direction==='up'?bottom:top,way=direction==='up'?place.front:place.landing,approach=way?.indoor?way:null;
+ const label=place.ladder?(direction==='up'?'Climb up':'Climb down'):direction==='up'?'Go upstairs':'Go downstairs';
+ const well={kind:'stairwell',direction,tile:anchor,x:anchor.x,z:anchor.z,place,group,link,approach,ready:true,opened:false,duration:0,label,available:()=>true,interact(){services.enter(link,{from:well});}};
  group.traverse(m=>{if(m.isMesh){m.userData.actor=well;m.userData.tile=anchor;pickables.push(m);}});
  return well;
 }
@@ -125,8 +144,11 @@ export function buildSpace({pickables=[],plan=null,size=null,origin=[0,0],floor=
 // with the editor's Generate (furnish.js). Every coordinate is local to the building's north-west tile.
 export const FLOOR_DIRS={n:[0,-1],e:[1,0],s:[0,1],w:[-1,0]};
 export const floorLevels=entry=>Array.isArray(entry?.floors)?[...entry.floors].sort((a,b)=>a.level-b.level):null;
-// A flight's tiles (local): its bottom step, its top and the tile in front of the bottom.
-export function flightOf(up){const [dx,dz]=FLOOR_DIRS[up.dir]||FLOOR_DIRS.n,[x,z]=up.at;return {bottom:[x,z],top:[x+dx,z+dz],front:[x-dx,z-dz]};}
+// A flight's tiles (local): its bottom step, its top, the tile in front of the bottom (where you stand to go up,
+// and arrive coming down) and its landing upstairs (where you step off the top, and stand to go down). A ladder
+// (`kind: 'ladder'`) is one tile: you face `dir` to climb it, and its landing is on the same side as its front.
+export function flightOf(up){const [dx,dz]=FLOOR_DIRS[up.dir]||FLOOR_DIRS.n,[x,z]=up.at,ladder=up.kind==='ladder',top=ladder?[x,z]:[x+dx,z+dz];
+ return {bottom:[x,z],top,front:[x-dx,z-dz],landing:ladder?[x-dx,z-dz]:[top[0]+dx,top[1]+dz],dir:[dx,dz],ladder};}
 // One floor of a building as a space: its shape walled (the outside's windows on a full floor, its doors
 // on a separate ground floor), inside walls and doors, stairwells to the floors above and below, and its
 // furniture. links: {exit(edge) (a door out), floor(level, via), ground(via, tile) (an in-place building's
@@ -150,7 +172,7 @@ export function buildFloorSpace({pickables=[],plan,entry,level,style='timber',ba
   else edges.add(n,m,level>=0&&e?.kind==='window'?'window':'wall',{owner:0,style:wallStyle,paint:wallPaint(spec.paint,plan,n,m)});}
  for(const e of spec.edges||[]){const a=tl(e.a),b=tl(e.b);if(a&&b&&!edges.info(a,b))edges.add(a,b,e.kind,{owner:0,style:wallStyle,paint:wallPaint(spec.paint,plan,a,b)});}
  // Stairwells: this floor's flight up, and the opening down where the floor below's flight arrives.
- const stairs=[],live=f=>({bottom:tl(f.bottom),top:tl(f.top),front:tl(f.front)}),ok=p=>p.bottom?.indoor&&p.top?.indoor;
+ const stairs=[],live=f=>({...f,bottom:tl(f.bottom),top:tl(f.top),front:tl(f.front),landing:tl(f.landing)}),ok=p=>p.bottom?.indoor&&p.top?.indoor;
  const toLevel=(l,via)=>l===0&&inPlace?links.ground(via,flightOf(via==='up'?levels.get(-1).up:levels.get(0).up)):links.floor(l,via);
  if(spec.up&&(levels.has(level+1)||level+1===0&&inPlace)){const place=live(flightOf(spec.up));if(ok(place))stairs.push(createStairwell({place,direction:'up',link:toLevel(level+1,'up'),parent:group,pickables,services,tileAt:t}));}
  const below=levels.get(level-1);if(below?.up&&(levels.has(level-1)||level-1===0)){const place=live(flightOf(below.up));if(ok(place))stairs.push(createStairwell({place,direction:'down',link:toLevel(level-1,'down'),parent:group,pickables,services,tileAt:t}));}
@@ -160,9 +182,14 @@ export function buildFloorSpace({pickables=[],plan,entry,level,style='timber',ba
  createTerrainBatch({tiles:inner,map:tiles,factory:tile=>floorTile(tile,tiles),parent:group,pickables});
  edges.bake();
  const free=n=>n&&n.indoor&&!n.blocked,besideTop=well=>ARRIVAL_ORDER.map(([dx,dz])=>t(well.place.top.x+dx,well.place.top.z+dz)).find(free);
+ // Arriving by stairs, as if you'd walked them: coming up, on the landing at the top, facing on (away from the
+ // stairs); coming down, in front of the foot, facing away from it. {tile, face: [dx, dz]} or null.
+ const stepOff=from=>{const w=stairs.find(s=>s.direction===(from==='up'?'down':'up')),p=w?.place;if(!p)return null;
+  const [at,off]=from==='up'?[p.landing,p.top]:from==='down'?[p.front,p.bottom]:[null,null];return free(at)?{tile:at,face:[at.x-off.x,at.z-off.z]}:null;};
  return {group,tiles,doors,stairs,edges,inner,furniture,level,
+  arrivalFace(from){return stepOff(from)?.face||null;},
   arrival(from){if(from?.door!==undefined){const door=doors[from.door];return door?.a||inner.find(free);}
-   const down=stairs.find(s=>s.direction==='down'),up=stairs.find(s=>s.direction==='up');
+   const down=stairs.find(s=>s.direction==='down'),up=stairs.find(s=>s.direction==='up'),off=stepOff(from);if(off)return off.tile;
    if(from==='up'&&down)return besideTop(down)||inner.find(free);
    if(from==='down'&&up&&free(up.place.front))return up.place.front;
    return (up&&free(up.place.front)?up.place.front:null)||inner.find(free);},
@@ -211,7 +238,11 @@ export function interiorProblems(data){
    if(f.level>0){const [w,d]=span(cellsOf(f)),[bw,bd]=span(cellsOf(byLevel.get(f.level-1)));
     if(w>bw||d>bd)out.push({kind:'floors',severity:'warning',tile:at,text:`${name}: floor ${f.level+1} is ${w} × ${d}, bigger than the floor below (${bw} × ${bd}).`});}
    if(!f.up)continue;const next=byLevel.get(f.level+1);if(!next&&f.level!==-1)continue;const fl=flightOf(f.up),own=shape(f),onto=shape(next);
-   for(const [part,c] of [['bottom',fl.bottom],['top',fl.top]])if(!own.has(c.join(','))||!onto.has(c.join(',')))out.push({kind:'floors',severity:'error',tile:[plan.x0+c[0],plan.z0+c[1]],text:`${name}: the stairs up from ${label(f.level)} leave the floor (${part}).`});}
+   const what=fl.ladder?'ladder':'stairs';
+   for(const [part,c] of fl.ladder?[['ladder',fl.bottom]]:[['bottom',fl.bottom],['top',fl.top]])if(!own.has(c.join(','))||!onto.has(c.join(',')))out.push({kind:'floors',severity:'error',tile:[plan.x0+c[0],plan.z0+c[1]],text:`${name}: the ${what} up from ${label(f.level)} ${fl.ladder?'leaves':'leave'} the floor (${part}).`});
+   // Where you stand to go up, and where you step off at the top (and stand to come down).
+   if(!own.has(fl.front.join(',')))out.push({kind:'floors',severity:'error',tile:[plan.x0+fl.front[0],plan.z0+fl.front[1]],text:`${name}: the ${what} up from ${label(f.level)} ${fl.ladder?'has':'have'} nowhere to stand at the foot.`});
+   if(!onto.has(fl.landing.join(',')))out.push({kind:'floors',severity:'error',tile:[plan.x0+fl.landing[0],plan.z0+fl.landing[1]],text:`${name}: the ${what} up from ${label(f.level)} ${fl.ladder?'has':'have'} nowhere to step off at the top.`});}
   for(const f of levels)if(f.level!==0&&!levels.some(o=>o.level===f.level-1&&o.up||f.level<0&&f.up))out.push({kind:'floors',severity:'warning',tile:at,text:`${name}: ${f.level<0?'the cellar':`floor ${f.level+1}`} has no stairs to it.`});
  });
  for(const [id,spec] of Object.entries(data.interiors||{})){if(spec.kind!=='dungeon')continue;
@@ -245,7 +276,8 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
   if(levels){const inPlace=entry.desc.interior!=='separate',ground=builtMap.buildings[building].groundHeight??(plan.tiles.map(([x,z])=>builtMap.tiles.get(key(x,z))?.h??1).reduce((a,b)=>Math.max(a,b),1));
    for(const f of levels){if(f.level===0&&inPlace)continue;
     const links={exit:e=>({kind:'exit',area:builtMap.areaId,tile:e.b}),floor:(level,via)=>({kind:'floor',builtMap,building,level,via}),
-     ground:(via,flight)=>({kind:'exit',area:builtMap.areaId,tile:[plan.x0+flight[via==='up'?'top':'front'][0],plan.z0+flight[via==='up'?'top':'front'][1]]})};
+     // Onto the map's ground floor: coming up, on the cellar flight's landing; coming down, in front of the foot.
+     ground:(via,flight)=>{const [at,off]=via==='up'?[flight.landing,flight.top]:[flight.front,flight.bottom];return {kind:'exit',area:builtMap.areaId,tile:[plan.x0+at[0],plan.z0+at[1]],face:[at[0]-off[0],at[1]-off[1]]};}};
     const space=buildFloorSpace({pickables,plan,entry,level:f.level,style:entry.desc.style,base:ground,links,services,inPlace}),areaId=`${id}:L${f.level}#${++serial}`;scene.add(space.group);
     const name=entry.desc.name||'Building',floorName=f.level<0?'cellar':f.level===0?'ground floor':`floor ${f.level+1}`;
     areas.register({id:areaId,name:`${name} (${floorName})`,description:'Interior',listed:()=>false,group:space.group,tiles:space.tiles,maxZoom:INTERIOR_MAX_ZOOM,interior:true,camera:{background:SPACE_BACKGROUND},building,level:f.level,builtMap});
@@ -284,18 +316,18 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
  // Where a link leads: [area id, landing tile].
  function resolve(link,from){
   if(link.kind==='interior'){const r=spacesFor(link.builtMap,link.building),g=r.byLevel.get(0);if(g)return [g.areaId,g.space.arrival({door:link.door})];return [r.ids[0],r.spaces[0].arrival({door:link.door})];}
-  if(link.kind==='floor'&&link.dungeon!==undefined){const r=dungeonFor(link.builtMap,link.dungeon),f=r.byLevel?.get(link.level);return f?[f.areaId,f.space.arrival(link.via||null)]:[null,null];}
-  if(link.kind==='floor'&&link.level!==undefined&&link.dungeon===undefined){const r=spacesFor(link.builtMap,link.building),f=r.byLevel.get(link.level);return f?[f.areaId,f.space.arrival(link.via||null)]:[null,null];}
+  if(link.kind==='floor'&&link.dungeon!==undefined){const r=dungeonFor(link.builtMap,link.dungeon),f=r.byLevel?.get(link.level);return f?[f.areaId,f.space.arrival(link.via||null),f.space.arrivalFace(link.via||null)]:[null,null];}
+  if(link.kind==='floor'&&link.level!==undefined&&link.dungeon===undefined){const r=spacesFor(link.builtMap,link.building),f=r.byLevel.get(link.level);return f?[f.areaId,f.space.arrival(link.via||null),f.space.arrivalFace(link.via||null)]:[null,null];}
   if(link.kind==='floor'){const r=spacesFor(link.builtMap,link.building);return [r.ids[link.floor],r.spaces[link.floor].arrival(link.via||null)];}
-  if(link.kind==='dungeon'){const r=dungeonFor(link.builtMap,link.id),top=r.byLevel?.get(-1);if(top)return [top.areaId,top.space.arrival('down')];return [r.ids[0],r.spaces[0].arrival(null)];}
-  if(link.kind==='exit'){const area=areas.get(link.area);return [link.area,area?.tiles.get(key(...link.tile))];}
+  if(link.kind==='dungeon'){const r=dungeonFor(link.builtMap,link.id),top=r.byLevel?.get(-1);if(top)return [top.areaId,top.space.arrival('down'),top.space.arrivalFace('down')];return [r.ids[0],r.spaces[0].arrival(null)];}
+  if(link.kind==='exit'){const area=areas.get(link.area);return [link.area,area?.tiles.get(key(...link.tile)),link.face||null];}
   void from;return [null,null];
  }
  let saved=null;
  function enter(link,{from}={}){
   if(transition||!link)return false;
-  const [area,landing]=resolve(link,from);if(!area||!landing)return false;
-  stop();transition={area,landing,age:0,switched:false,leaving:areas.active?.interior&&link.kind==='exit'};return true;
+  const [area,landing,face=null]=resolve(link,from);if(!area||!landing)return false;
+  stop();transition={area,landing,face,age:0,switched:false,leaving:areas.active?.interior&&link.kind==='exit'};return true;
  }
  return {services,enter,resolve,
   get busy(){return !!transition;},
@@ -306,7 +338,7 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
     if(!areas.activate(tr.area,{landing:tr.landing,announce:false})){transition=null;fade(0);return;}
     tr.switched=true;const next=areas.active;
     if(next.interior){const v=view.get();if(v&&v.zoom>next.maxZoom)view.set({...v,zoom:next.maxZoom});}else if(saved){view.set(saved);saved=null;}
-    arrived(tr.landing);
+    arrived(tr.landing,tr.face);
    }
    if(tr.age>=FADE*2){transition=null;fade(0);areas.enter({arrival:false});}
    else fade(tr.age<FADE?tr.age/FADE:1-(tr.age-FADE)/FADE);

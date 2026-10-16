@@ -24,7 +24,7 @@ import {createEdgeFeatures} from '../doors.js';
 import {PROPS,PROP_KINDS,propModel,setPropOpen,spinProp} from '../props.js';
 import {makeMapTile,layStairs,railingEdges,stairRailParts} from '../map-terrain.js';
 import {mergedMesh} from '../merged-model.js';
-import {stairwellModel} from '../spaces.js';
+import {stairwellModel,ladderModel} from '../spaces.js';
 import {uniforms as cutUniforms} from '../cutaway.js';
 import {companion,animateCompanion,setCompanionOutfit} from '../companion-model.js';
 import {makeCompanionTopHat} from '../hat-models.js';
@@ -186,6 +186,7 @@ export const MODEL_CATALOG=[
  {name:'Wall pieces',motions:['Idle'],create(){const group=new THREE.Group();['wall','window','fence','railing','low'].forEach((kind,i)=>{const p=edgePiece(kind);p.position.x=(i-2)*1.15;group.add(p);});return {group,update(){}};}},
  {name:'Door',motions:['Open','Close','Locked'],create(){const door=doorModel();return {group:door.group,update(time,motion){const t=time%2.4,open=motion==='Open'?Math.min(1,t*1.6):motion==='Close'?Math.max(0,1-t*1.6):0;animateDoor(door,open,motion==='Locked'?Math.max(0,1-(time%1.2)*2):0,time);}};}},
  staticModel('Stairs and terrace',terracePreview),staticModel('Stairwell (up)',()=>{const g=new THREE.Group();g.add(stairwellModel('up'));return g;}),staticModel('Stairwell (down)',()=>{const g=new THREE.Group();g.add(stairwellModel('down'));return g;}),
+ staticModel('Ladder (up)',()=>{const g=new THREE.Group();g.add(ladderModel('up'));return g;}),staticModel('Ladder (hatch)',()=>{const g=new THREE.Group();g.add(ladderModel('down'));return g;}),
  // Props: lids, doors and drawers open and close on their real moving parts; a waterwheel turns.
  ...PROP_KINDS.map(kind=>PROPS[kind].spin?{name:PROPS[kind].name,motions:['Turning','Still'],create(){const group=propModel(kind);return {group,update(time,motion){spinProp(group,motion==='Turning'?time*PROPS[kind].spin.speed:0);}};}}:PROPS[kind].moving?{name:PROPS[kind].name,motions:['Closed','Open'],create(){const group=propModel(kind);return {group,update(time,motion){setPropOpen(group,motion==='Open'?Math.min(1,(time%2.4)*1.5):0);}};}}:staticModel(PROPS[kind].name,()=>propModel(kind))),
  {name:'Building',motions:['Doors closed','Doors open','Cut (cutaway)'],wear:BUILDING_OPTIONS,create:buildingPreview},

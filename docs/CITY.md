@@ -296,6 +296,33 @@ User report: adding a floor worked, but joining two floors with stairs was very 
   - The opening of stairs going down flickered at its top end: its steps sat on the dark well with their tops level with it. `stairwellModel('down')` now lays the four top steps, darkening, beside the well instead of on it.
   - Saving a map reloaded the page, losing undo, the view and the floor you were on. This was Vite reloading because the editor imports every `src/maps/*.json`. The save plugin (vite.config.js) now skips hot updates for map files, and the editor keeps its copy of what it saved. Each map is still one file, `src/maps/<id>.json`, written only by Save; floors, rooms and stairs live inside it.
 
+### Walking stairs, railings and ladders (2026-10-16)
+
+User request: arrive at the top of stairs facing away from them, as if you'd just walked up. To go down you walk to that same spot and face down; to go up, to the foot facing up. Only those sides work, not any side of the top tile. Stairs up get railings on both sides; the opening above gets railings on its three sides that aren't the way down. Add a ladder: like stairs, but one tile.
+
+- **A flight's four tiles** (`spaces.js` `flightOf`):
+  - *bottom* and *top* (the same tile for a ladder);
+  - *front*, the tile in front of the foot: where you stand to go up, and where you arrive coming down;
+  - *landing*, upstairs past the top: where you step off going up, and stand to go down. A ladder's landing is on the same side as its front, so a ladder can stand against a wall.
+- **One way on:** a stairwell has an `approach` tile: the front going up, the landing going down. `interaction-route.js` routes only there, and you face the stairs from it (their foot, or their top). Legacy stairs into a corner (Gelton's separate interiors) have no landing and keep any side.
+- **Arriving:** `buildFloorSpace().arrival`/`arrivalFace`, and the map's ground-floor `ground` link, put you on the other end's tile, facing on: up onto the landing facing away from the stairs, down at the foot facing away from them. `createSpaces` passes the facing to `arrived(tile, face)`, and main.js turns the player.
+- **Railings:** `stairwellModel('up')` rails both sides; `stairwellModel('down')` rails both long sides and the bottom end, open at the top end, where you step down.
+- **Ladders:** a floor's `up` may be `{at, dir, kind: 'ladder'}`. `ladderModel('up')` is a ladder against the tile's far side; `ladderModel('down')` is the hatch, railed on three sides with the ladder's top showing. Labels: *Climb up* / *Climb down*.
+- **Checks:** a flight needs room to stand at the foot (its own floor) and to step off at the top (the floor above); both are errors. The editor refuses the same, and keeps the foot and landing clear of the other stairs and of generated furniture.
+- **Editor:** the Stairs tool's *As* picks Stairs or A ladder. The ghost is the real model, and the blue tile is where you'd stand to use it. Lifting or moving a flight keeps its kind.
+- **Model catalogue:** Ladder (up) and Ladder (hatch), beside the stairwells.
+- **Tests** (`floors.test.js`):
+  - the approach tiles, and a route only to the foot;
+  - arrivals and facings up, down, into the cellar and back onto the map;
+  - a ladder's one tile, labels, approach and arrivals;
+  - the foot and landing checks.
+- **Checked in the browser (Play):**
+  - clicked the stairs from beyond their top: the slime walked round to the foot, faced up, went up and landed on the landing facing on;
+  - from the far side upstairs it walked to the landing, faced down, and arrived at the foot facing away;
+  - swapped the flight for a ladder from upstairs (*Down a floor*, *As: A ladder*) and climbed it both ways;
+  - the rails on both kinds;
+  - no check problems.
+
 ### Interior size rules (user decision, 2026-10-10)
 
 - **Most ground floors are overworld**, open in place. Only large or unique ground floors are separate spaces.

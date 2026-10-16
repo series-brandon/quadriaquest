@@ -15,7 +15,7 @@ import {DRAW_DISTANCES} from '../render-quality.js';
 import {BY_ROOM,BY_FUNCTION,DESCRIPTIONS} from './prop-catalogue.js';
 import {propThumbnail} from './prop-thumbnails.js';
 import {USE_NAMES,USE_ICONS,furnishRoom,furnishingUse,upstairsUse} from '../furnish.js';
-import {flightOf,floorLevels,stairwellModel} from '../spaces.js';
+import {flightOf,floorLevels,stairwellModel,ladderModel} from '../spaces.js';
 import {DIRS} from '../map-terrain.js';
 import {CHUNK,REGION,withinChunk,chunksAround} from '../world-grid.js';
 import {createGridOverlay,createCellOutline,createBiomeOverlay,createCellFill,createFaceFill} from './grid-overlay.js';
@@ -116,7 +116,7 @@ export function createWorldEditor(host){
  const catalogue=mapCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null,stopFloors=null,stopScreen=null;
  const tool=signal('deco'),toolGroup=signal('decorate'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),floorPattern:signal('checker'),floorIntensity:signal(String(FLOOR_INTENSITY)),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),flight:signal('up'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),floorPattern:signal('checker'),floorIntensity:signal(String(FLOOR_INTENSITY)),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),flight:signal('up'),flightKind:signal('stairs'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
  // The footprint being painted: tiles ('x,z'), and the building it reshapes (its index) or null for a new one.
@@ -405,7 +405,7 @@ export function createWorldEditor(host){
   if(hit.index===index){cancel();return;}const from=r.list[index],cells=[[from.a[0]+r.plan.x0,from.a[1]+r.plan.z0],[from.b[0]+r.plan.x0,from.b[1]+r.plan.z0],...hit.cells];
   if(await change(()=>{const list=r.edit();list[index].kind='wall';list[hit.index].kind='door';return cells;})){heldDoor=null;status.value='Moved the room’s door.';refreshPreview();}}
  function liftFlight(well){const l=well.link;if(l?.kind!=='floor')return false;const owner=l.dungeon!==undefined?{dungeon:l.dungeon}:l.building,level=l.via==='up'?l.level-1:l.level,f=floorsOf(owner).find(e=>e.level===level);if(!f?.up)return false;
-  pendingFlight={building:owner,level,view:well.direction==='down'?'down':'up',well};options.dir.value=f.up.dir;well.group.visible=false;status.value='Holding the stairs: click where their bottom step goes; , and . turn them. Esc puts them back.';refreshPreview();return true;}
+  pendingFlight={building:owner,level,view:well.direction==='down'?'down':'up',well};options.dir.value=f.up.dir;options.flightKind.value=f.up.kind==='ladder'?'ladder':'stairs';well.group.visible=false;status.value='Holding the stairs: click where their bottom step goes; , and . turn them. Esc puts them back.';refreshPreview();return true;}
  async function nudge(dx,dz){const {sel,entry}=selected(),[x,z]=anchorOf(sel.kind,entry);await moveSelection(x+dx,z+dz);}
  // dir: 1 clockwise, −1 the other way.
  async function rotateSelection(dir=1){const {sel,entry}=selected(),own=cellsOf(sel.kind,entry);if(sel.kind==='group')throw Error('Rotate things one at a time.');if(sel.kind==='townsfolk')throw Error('Townsfolk face where they go.');if(['crystal','resource','cover','enemy','edge','fishing'].includes(sel.kind))throw Error('Nothing to rotate.');
@@ -653,7 +653,7 @@ export function createWorldEditor(host){
  const thisFloor=computed(()=>{revision.value;floorHere.value;selection.value;const i=ownerHere();if(i===null||!ownerEntry(i))return null;const level=floorHere.value?.level??0,list=floorsOf(i);
   return {level,name:LEVEL_NAME(level,i),up:hasLevel(i,level+1)||isDungeon(i)&&level===-1,down:hasLevel(i,level-1),hasUp:!!list.find(f=>f.level===level)?.up,hasDown:!!list.find(f=>f.level===level-1)?.up};});
  function startFlight(way){const i=ownerHere();if(i===null)throw Error('Select a building.');const {level,view}=flightFrom(i,currentLevel(),way),f=floorsOf(i).find(e=>e.level===level);
-  if(f?.up)options.dir.value=f.up.dir;pendingFlight={building:i,level,view};status.value=`Click where the bottom step goes; , and . turn them. Esc to stop.`;refreshPreview();}
+  if(f?.up){options.dir.value=f.up.dir;options.flightKind.value=f.up.kind==='ladder'?'ladder':'stairs';}pendingFlight={building:i,level,view};status.value=`Click where the bottom step goes; , and . turn them. Esc to stop.`;refreshPreview();}
  const floorAction=(label,act)=>h('button',{type:'button',class:'q-button q-button--small',on:{click:()=>Promise.resolve().then(act).catch(error=>{status.value=error.message;})}},label);
  const currentLevel=()=>floorHere.peek()?.level??0;
  async function addFloor(where){const i=ownerHere();if(i===null)throw Error('Select a building.');const b=ownerEntry(i),levels=floorsOf(i).map(f=>f.level);
@@ -943,8 +943,8 @@ export function createWorldEditor(host){
   if(kind==='building'){const desc={...e.desc};delete desc.name;const cells=planBuilding(e.desc,[e.x,e.z]).tiles;
    return {key:`building:${JSON.stringify(desc)}`,make:()=>buildingGhost(desc),place(g){g.position.set(e.x,Math.max(...cells.map(([a,b])=>heightAt(a,b))),e.z);}};}
   // Stairs between floors: the real stairwell model (a flight up, or the opening of one going down).
-  if(kind==='flight'){const [bx,bz]=e.bottom,[tx,tz]=e.top;return {key:`flight:${e.view}`,make:()=>{const group=new THREE.Group();group.add(stairwellModel(e.view));return {group,dispose(){group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();});}};},
-   place(g){g.position.set((bx+tx)/2-6,heightAt(bx,bz),(bz+tz)/2-6);g.rotation.y=Math.atan2(tx-bx,tz-bz);}};}
+  if(kind==='flight'){const [bx,bz]=e.bottom,[tx,tz]=e.top,[dx,dz]=e.dir;return {key:`flight:${e.ladder?'ladder':'stairs'}:${e.view}`,make:()=>{const group=new THREE.Group();group.add((e.ladder?ladderModel:stairwellModel)(e.view));return {group,dispose(){group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();});}};},
+   place(g){g.position.set((bx+tx)/2-6,heightAt(bx,bz),(bz+tz)/2-6);g.rotation.y=Math.atan2(dx,dz);}};}
   if(kind==='crystal')return {key:'crystal',make:()=>({group:makeCrystal()}),place(g){const c=crystalCentre(crystalCells(e).map(([x,z])=>({x,z,h:heightAt(x,z)})));g.position.set(c.x,c.y,c.z);}};
   if(kind==='resource'&&e.kind==='tree')return {key:`tree:${e.species||'oak'}`,make:()=>({group:makeTreeModel(e.species||'oak')}),place(g){g.position.set(e.x-6,heightAt(e.x,e.z),e.z-6);}};
   if(kind==='townsfolk'||kind==='enemy'){const n=kind==='enemy'?enemySize(e.enemy):1,[x,z]=kind==='townsfolk'?e.home||[]:[e.x,e.z];if(x===undefined)return null;
@@ -1259,7 +1259,7 @@ export function createWorldEditor(host){
  // A floor's tiles (world) for furnishing: its shape, minus its stairs and their fronts.
  function furnishFloor(i,level){const b=ownerEntry(i),plan=planOf(i),f=floorAt(i,level),levels=new Map(floorLevels(b).map(e=>[e.level,e]));
   const world=([dx,dz])=>[plan.x0+dx,plan.z0+dz],shape=(f.cells?.length?f.cells.map(world):plan.tiles);
-  const flights=[f.up,levels.get(level-1)?.up].filter(Boolean).map(flightOf),keep=flights.flatMap(fl=>[fl.bottom,fl.top,fl.front]).map(world);
+  const flights=[f.up,levels.get(level-1)?.up].filter(Boolean).map(flightOf),keep=flights.flatMap(fl=>[fl.bottom,fl.top,fl.front,fl.landing]).map(world);
   const doors=level===0?plan.doors.map(d=>({inside:d.inside,out:d.out})):flights.map(fl=>({inside:world(fl.front),out:[0,0]}));
   const use=f.use||(isDungeon(i)?'crypt':level===0?furnishingUse(b.desc):level<0?'warehouse':upstairsUse(furnishingUse(b.desc)||'home'))||'home';
   const layout=furnishRoom({tiles:shape,doors,keeper:level===0&&!isDungeon(i)?plan.anchors.keeper:null,keep},use,((b.desc?.seed)??7)*31+level+(f.roll??0)*97);
@@ -1308,26 +1308,32 @@ export function createWorldEditor(host){
   if(way==='down'){if(!hasLevel(o,here-1))throw Error(isDungeon(o)?'No level below: add one in the Floors panel first.':here===0?'No cellar: add one in the Floors panel first.':'Nothing below.');return {level:here-1,view:'down'};}
   if(!hasLevel(o,here+1)&&!(isDungeon(o)&&here===-1))throw Error(!isDungeon(o)&&here+1>(ownerEntry(o).desc?.storeys||1)-1?`No floor above: raise ${ownerEntry(o).desc?.name||'the building'}’s storeys, then Add floor above.`:'No floor above: Add floor above first (Floors panel).');
   return {level:here,view:'up'};}
- // Why the flight up from `level` can't have its bottom step at local `at`, or null: both steps on the two floors
- // it joins, the tile in front on its own floor, and clear of the other stairs on those floors.
- function flightRefused(o,level,at,dir){const fl=flightOf({at,dir}),k=c=>c.join(','),own=floorShape(o,level),next=hasLevel(o,level+1)?floorShape(o,level+1):null,levels=floorsOf(o);
-  if(![fl.bottom,fl.top,fl.front].every(c=>own.has(k(c))))return `The stairs and the tile in front must be on ${LEVEL_NAME(level,o).toLowerCase()}.`;
-  if(next&&![fl.bottom,fl.top].every(c=>next.has(k(c))))return `The stairs must be under ${LEVEL_NAME(level+1,o).toLowerCase()} too.`;
-  const below=levels.find(f=>f.level===level-1)?.up,above=levels.find(f=>f.level===level+1)?.up,mine=new Set([fl.bottom,fl.top].map(k));
-  if(below){const b=flightOf(below);if([b.bottom,b.top].some(c=>[fl.bottom,fl.top,fl.front].some(m=>k(m)===k(c))))return 'That’s on the stairs down.';}
-  if(above&&next){const a=flightOf(above);if([a.bottom,a.top,a.front].some(c=>mine.has(k(c))))return `That’s on ${LEVEL_NAME(level+1,o).toLowerCase()}’s stairs up.`;}
+ // The flight the Stairs tool would put down: its `up` entry (a ladder carries kind).
+ const flightEntry=(at,dir)=>({at,dir,...options.flightKind.peek()==='ladder'?{kind:'ladder'}:{}});
+ // Why the flight up from `level` can't go there (`up`: {at, dir, kind}), or null: its steps on both floors it
+ // joins, the tile in front of the foot on its own floor and the landing at the top on the floor above, all clear
+ // of the other stairs on those floors.
+ function flightRefused(o,level,up){const fl=flightOf(up),k=c=>c.join(','),own=floorShape(o,level),next=hasLevel(o,level+1)?floorShape(o,level+1):null,levels=floorsOf(o),what=fl.ladder?'The ladder':'The stairs';
+  if(![fl.bottom,fl.top].every(c=>own.has(k(c))))return `${what} must be on ${LEVEL_NAME(level,o).toLowerCase()}.`;
+  if(!own.has(k(fl.front)))return `${what} need room to stand at the foot.`;
+  if(next&&![fl.bottom,fl.top].every(c=>next.has(k(c))))return `${what} must be under ${LEVEL_NAME(level+1,o).toLowerCase()} too.`;
+  if(next&&!next.has(k(fl.landing)))return `${what} need room to step off at the top, on ${LEVEL_NAME(level+1,o).toLowerCase()}.`;
+  const below=levels.find(f=>f.level===level-1)?.up,above=levels.find(f=>f.level===level+1)?.up,here=new Set([fl.bottom,fl.top,fl.front].map(k)),upstairs=new Set([fl.bottom,fl.top,fl.landing].map(k));
+  // On this floor: the opening down (and its landing); upstairs, that floor's own flight (and its foot).
+  if(below){const b=flightOf(below);if([b.bottom,b.top,b.landing].some(c=>here.has(k(c))))return 'That’s on the way down.';}
+  if(above&&next){const a=flightOf(above);if([a.bottom,a.top,a.front].some(c=>upstairs.has(k(c))))return `That’s on ${LEVEL_NAME(level+1,o).toLowerCase()}’s way up.`;}
   return null;}
- // The preview of a flight: its two steps (and, going up, the tile in front kept clear) and the stairwell's ghost.
- function flightPreview(o,level,view,x,z){const dir=options.dir.peek(),at=localOf(o,x,z),refused=flightRefused(o,level,at,dir),fl=flightOf({at,dir}),plan=planOf(o),w=([a,b])=>[plan.x0+a,plan.z0+b];
-  return {cells:[...tint([fl.bottom,fl.top].map(w),refused?NO:OK),...(view==='up'?tint([w(fl.front)],refused?NO:BRUSH):[])],refused,ghosts:[{kind:'flight',entry:{bottom:w(fl.bottom),top:w(fl.top),view}}]};}
+ // The preview of a flight: its tiles (and the tile you stand on to use it, kept clear) and its ghost.
+ function flightPreview(o,level,view,x,z){const up=flightEntry(localOf(o,x,z),options.dir.peek()),refused=flightRefused(o,level,up),fl=flightOf(up),plan=planOf(o),w=([a,b])=>[plan.x0+a,plan.z0+b];
+  return {cells:[...tint([...new Set([fl.bottom,fl.top].map(String))].map(c=>w(c.split(',').map(Number))),refused?NO:OK),...tint([w(view==='up'?fl.front:fl.landing)],refused?NO:BRUSH)],refused,ghosts:[{kind:'flight',entry:{bottom:w(fl.bottom),top:w(fl.top),dir:fl.dir,ladder:fl.ladder,view}}]};}
  function stairsPreview(o,here,x,z){try{const {level,view}=flightFrom(o,here,options.flight.peek());return flightPreview(o,level,view,x,z);}catch(error){return {cells:tint([[x,z]],NO),refused:error.message};}}
- const flightSaid=(o,level)=>isDungeon(o)&&level===-1?'Stairs up to the entrance.':`Stairs from ${LEVEL_NAME(level,o).toLowerCase()} up to ${LEVEL_NAME(level+1,o).toLowerCase()}.`;
+ const flightSaid=(o,level,up)=>{const what=up?.kind==='ladder'?'A ladder':'Stairs';return isDungeon(o)&&level===-1?`${what} up to the entrance.`:`${what} from ${LEVEL_NAME(level,o).toLowerCase()} up to ${LEVEL_NAME(level+1,o).toLowerCase()}.`;};
  // Puts the flight up from `level` with its bottom step on a tile (world); it replaces the one there was.
- async function setFlight(o,level,tile){const at=localOf(o,tile.x,tile.z),dir=options.dir.peek(),refused=flightRefused(o,level,at,dir);if(refused)throw Error(refused);
-  const apply=()=>{floorAt(o,level).up={at,dir};};
-  if(floorHere.peek())return changeFloor(apply,flightSaid(o,level));
+ async function setFlight(o,level,tile){const up=flightEntry(localOf(o,tile.x,tile.z),options.dir.peek()),refused=flightRefused(o,level,up);if(refused)throw Error(refused);
+  const apply=()=>{floorAt(o,level).up=up;};
+  if(floorHere.peek())return changeFloor(apply,flightSaid(o,level,up));
   if(isDungeon(o))throw Error('Go into it first.');
-  const b=data.buildings[o];if(await change(()=>{apply();return cellsOf('building',b);},cellsOf('building',b))){status.value=flightSaid(o,level);return true;}return false;}
+  const b=data.buildings[o];if(await change(()=>{apply();return cellsOf('building',b);},cellsOf('building',b))){status.value=flightSaid(o,level,up);return true;}return false;}
  async function placeFlight(tile){const {building:o,level}=pendingFlight;pendingFlight=null;return setFlight(o,level,tile);}
  async function click(tile,point=null,actor=null){if(problemMarks.length)clearProblem();
   // A door into a building, or a stairwell: Inspect and Select follow it (docs/CITY.md, Floors).
@@ -1474,7 +1480,7 @@ export function createWorldEditor(host){
  const TOOL_HINTS={deco:'Pick from the catalogue, then click where it goes (, and . turn it). Click something to lift it.',select:'Click something to lift it and see all its options; drag a box to select several.',design:'Click something to change its colours.',eyedropper:'Click something to copy it, colours and all.',erase:'Click something to remove it.',
   floorpaint:'Click inside a room to paint its floor.',wallpaint:'Point at a wall inside a room to paint it (or the whole room’s walls).',stamp:'Pick a stamp, then click where its north-west corner goes.',
   room:'Drag a rectangle: on open ground a new building, inside one a room with a door.',resize:'Drag from beside a wall (outside or a room’s) the way it should move.',building:'Click where the building’s north-west corner goes.',
-  footprint:'Drag to paint a footprint, then Build it.',walls:'Point at a building’s wall and click to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the bottom step goes (inside a building: stairs to another floor); , and . turn them.',
+  footprint:'Drag to paint a footprint, then Build it.',walls:'Point at a building’s wall and click to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the bottom step goes (inside a building: stairs or a ladder to another floor); , and . turn them.',
   use:'Click a building to set what it’s used for.',reroll:'Click a building to roll its furniture again.',underground:'Make a dungeon or cave here, then place its entrance.',
   raise:'Click or drag to raise the ground half a block.',lower:'Click or drag to lower the ground half a block.',flatten:'Drag to level the ground to where you start.',smooth:'Drag to ease the ground to its neighbours.',
   ramp:'Drag from the low end to the high end.',ramps:'Click or drag over ledges to turn them into ramps (or back).',surface:'Click or drag to paint the ground.',biome:'Drag to paint biomes or terrain (8 × 8 cells).',nature:'Click or drag to place nature, or clear it.',
@@ -1567,7 +1573,7 @@ export function createWorldEditor(host){
         opts(['use'],group(null,fields(select('Use',options.use,[...USE_NAMES,'none'].map(u=>[u,u]))))),
         opts(['building'],group(null,fields(select('Building',options.preset,Object.entries(BUILDING_PRESETS).map(([id,p])=>[id,p.name])),select('Rotation',options.rotation,[['0','0°'],['90','90°'],['180','180°'],['270','270°']])))),
         // Stairs: which way they rise; inside a building, up or down to the next floor; outside, their size.
-        opts(['stairs'],group(null,fields(select('Up towards',options.dir,Object.entries(SIDE_LABELS)),select(()=>floorHere.value?'Stairs':'In a building',options.flight,[['up','Up a floor'],['down','Down a floor']]),
+        opts(['stairs'],group(null,fields(select('Up towards',options.dir,Object.entries(SIDE_LABELS)),select(()=>floorHere.value?'Goes':'In a building',options.flight,[['up','Up a floor'],['down','Down a floor']]),select('As',options.flightKind,[['stairs','Stairs'],['ladder','A ladder']]),
          h('span',{class:'q-world-editor__fields',hidden:()=>!!floorHere.value},select('Length',options.length,[1,2,3,4].map(n=>[String(n),`${n} (${n/2} block${n>2?'s':''})`])),select('Width',options.width,[1,2,3,4,5].map(n=>[String(n),String(n)])))))),
         opts(['edge'],group(null,fields(select('Edge',options.edge,[['wall','Wall'],['window','Window'],['fence','Fence'],['railing','Railing'],['low','Counter'],['door','Door'],['none','Remove']]),select('Side',options.side,Object.entries(SIDE_LABELS))))),
         cavesPanel(),stampsPanel(),paintPanel(),presetsWindow(),

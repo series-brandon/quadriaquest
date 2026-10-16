@@ -6,7 +6,9 @@ import {findPath,key,edgeBetween,edgePasses} from './world.js';
 // Across a counter (a tile marked reachOver, props.js): you can also stand on the far side of it, two
 // tiles away, as at a shop.
 // A target on several tiles (an Iter Crystal's 2 × 2, `target.tiles`): any open tile beside any of them.
+// A target with one way on (`target.approach`, a tile: a stairwell's foot or landing) is reached only from there.
 export function interactionRoute(world,start,target,occupied=()=>false,cost=null){
+ if(target.approach){const at=world.get(key(target.approach.x,target.approach.z));if(!at)return null;const route=findPath(world,start,at,cost);return route?{at,route,taken:at!==start&&occupied(at)}:null;}
  const routes=[];
  if(target.tiles?.length>1){const own=new Set(target.tiles.map(t=>key(t.x,t.z))),seen=new Set();
   for(const f of target.tiles)for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const k=key(f.x+dx,f.z+dz);if(own.has(k)||seen.has(k))continue;seen.add(k);

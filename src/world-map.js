@@ -256,7 +256,7 @@ export function buildMap(data,{scene,pickables=[],visible=false,streamRadius=nul
    // Floors by hand (spaces.js; docs/CITY.md, Floors): an in-place building's ground floor shows its own
    // placed furniture and the stairwells to the floors above and below; nothing is furnished for it.
    const levels=built.plan.desc.interior==='inPlace'?floorLevels(b):null;
-   if(levels){const byLevel=new Map(levels.map(f=>[f.level,f])),plan=built.plan,tl=([dx,dz])=>t(plan.x0+dx,plan.z0+dz),live=f=>({bottom:tl(f.bottom),top:tl(f.top),front:tl(f.front)});
+   if(levels){const byLevel=new Map(levels.map(f=>[f.level,f])),plan=built.plan,tl=([dx,dz])=>t(plan.x0+dx,plan.z0+dz),live=f=>({...f,bottom:tl(f.bottom),top:tl(f.top),front:tl(f.front),landing:tl(f.landing)});
     const group=new THREE.Group();group.name='furniture';group.userData.showWhenCut=true;group.visible=false;home.root.add(group);
     const well=(up,direction,level)=>{const place=live(flightOf(up));if(place.bottom?.building===i&&place.top?.building===i)built.stairwells.push(createStairwell({place,direction,link:{kind:'floor',builtMap,building:i,level,via:direction},parent:group,pickables,services:{enter:enterLink},tileAt:t}));};
     built.stairwells=[];if(byLevel.get(0)?.up&&byLevel.has(1))well(byLevel.get(0).up,'up',1);if(byLevel.get(-1)?.up)well(byLevel.get(-1).up,'down',-1);

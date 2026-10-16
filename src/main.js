@@ -287,7 +287,8 @@ const travel=createTravelSystem({areas,places:crystalPlaces,stop:stopAll,blocked
 
 // Separate interiors, stairwells and dungeons (spaces.js): a quick fade between spaces of any map.
 const spaces=createSpaces({areas,scene,pickables,stop:stopAll,fade(value){$('scene-fade').hidden=value===0;$('scene-fade').style.opacity=String(value);},
- arrived(landing){companions.resetRoute(landing);if(__PLAYGROUND__)updateFloorHere();},view:{get:()=>({zoom,angle,elevation}),set(v){zoom=v.zoom;angle=v.angle;elevation=v.elevation;}}});// Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
+ // Through stairs you arrive facing the way you'd have walked off them (spaces.js stepOff): face [dx, dz].
+ arrived(landing,face){companions.resetRoute(landing);if(face&&(face[0]||face[1])){facing=Math.atan2(face[0],face[1]);player.rotation.y=facing;}if(__PLAYGROUND__)updateFloorHere();},view:{get:()=>({zoom,angle,elevation}),set(v){zoom=v.zoom;angle=v.angle;elevation=v.elevation;}}});// Iter Crystal services share one restoration: full refill of all five pools after recalculating maxima.
 // Restore keeps active auras (and their upkeep) and just announces itself; respec turns them off and refunds invested attribute points.
 function crystalRestore(){health.max=character.maxima.health;health.restore();playerResources.restoreAll();}
 // Utility dialogs (stations, destinations, naming, confirmations) share one modal host.

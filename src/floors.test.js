@@ -17,8 +17,8 @@ async function world(data){
  const {createSpaces}=await import('./spaces.js'),{createAreaRuntime}=await import('./area-runtime.js'),{configureDoors}=await import('./doors.js');
  const map=new Map(),scene=new THREE.Group(),areas=createAreaRuntime({world:map}),builtMap=buildMap(data,{scene});builtMap.areaId='town';
  areas.register({id:'town',group:builtMap.group,tiles:builtMap.tiles});areas.activate('town');
- const spaces=createSpaces({areas,scene});configureDoors({enter:link=>spaces.enter(link)});
- return {areas,spaces,builtMap,map,run:()=>{for(let i=0;i<10;i++)spaces.update(.1);}};
+ const arrivals=[],spaces=createSpaces({areas,scene,arrived:(tile,face)=>arrivals.push({at:[tile.x,tile.z],face})});configureDoors({enter:link=>spaces.enter(link)});
+ return {areas,spaces,builtMap,map,arrivals,run:()=>{for(let i=0;i<10;i++)spaces.update(.1);}};
 }
 const actorOf=group=>{let a=null;group.traverse(o=>{if(o.userData?.actor?.kind==='stairwell'&&!a)a=o.userData.actor;});return a;};
 const wells=group=>{const out=new Set();group.traverse(o=>{if(o.userData?.actor?.kind==='stairwell')out.add(o.userData.actor);});return [...out];};
@@ -82,4 +82,39 @@ test('a cave by hand: in from its entrance, down a level and back out to the ent
  wells(areas.active.group).find(w=>w.direction==='up').interact();run();assert.equal(areas.active.level,-1);
  wells(areas.active.group).find(w=>w.direction==='up').interact();run();assert.equal(areas.id,'town','out by the entrance');
  const {interiorProblems}=await import('./spaces.js');assert.deepEqual(interiorProblems(data).filter(p=>p.kind==='dungeon'),[]);
+});
+
+// Stairs as if you walked them (user, 2026-10-16): one way on, at the foot facing up or on the landing facing
+// down; you arrive on the other end's tile, facing on.
+test('stairs are used from one side only, and you arrive at the other end facing away from them',async()=>{
+ const {interactionRoute}=await import('./interaction-route.js');
+ const data=cottage(),{areas,builtMap,arrivals,run}=await world(data),b=builtMap.buildings[0],up=b.stairwells.find(w=>w.direction==='up');
+ // The ground floor's flight: its foot at local [4,2] rising north, so you stand on [4,3] (world 14,11).
+ assert.deepEqual([up.approach.x,up.approach.z],[14,11],'the tile in front of the foot');
+ const route=interactionRoute(builtMap.tiles,builtMap.tiles.get(key(12,10)),up);assert.deepEqual([route.at.x,route.at.z],[14,11],'only from there');
+ up.interact();run();assert.equal(areas.active.level,1);
+ assert.deepEqual(arrivals.at(-1),{at:[14,8],face:[0,-1]},'on the landing past the top, facing on (north)');
+ const down=wells(areas.active.group).find(w=>w.direction==='down');assert.deepEqual([down.approach.x,down.approach.z],[14,8],'down from the landing');
+ down.interact();run();assert.equal(areas.id,'town');assert.deepEqual(arrivals.at(-1),{at:[14,11],face:[0,1]},'at the foot, facing away (south)');
+ // The cellar's flight (foot [1,2], north): down from its landing on the map, up from its foot in the cellar.
+ const cellar=b.stairwells.find(w=>w.direction==='down');assert.deepEqual([cellar.approach.x,cellar.approach.z],[11,8]);
+ cellar.interact();run();assert.equal(areas.active.level,-1);assert.deepEqual(arrivals.at(-1),{at:[11,11],face:[0,1]});
+ wells(areas.active.group).find(w=>w.direction==='up').interact();run();assert.deepEqual(arrivals.at(-1),{at:[11,8],face:[0,-1]},'onto the map at the landing');
+});
+test('a ladder: one tile, climbed facing its way, with its landing upstairs on the same side',async()=>{
+ const data=cottage();data.buildings[0].floors[1].up={at:[4,1],dir:'n',kind:'ladder'};
+ const {interiorProblems}=await import('./spaces.js');assert.deepEqual(interiorProblems(data).filter(p=>p.kind==='floors'),[],'sound');
+ const fl=flightOf(data.buildings[0].floors[1].up);assert.deepEqual([fl.bottom,fl.top,fl.front,fl.landing],[[4,1],[4,1],[4,2],[4,2]]);
+ const {areas,builtMap,arrivals,run}=await world(data),up=builtMap.buildings[0].stairwells.find(w=>w.direction==='up');
+ assert.equal(up.label,'Climb up');assert.ok(builtMap.tiles.get(key(14,9)).blocked,'the ladder’s tile');assert.ok(!builtMap.tiles.get(key(14,8)).blocked,'only that one');
+ assert.deepEqual([up.approach.x,up.approach.z],[14,10]);
+ up.interact();run();assert.equal(areas.active.level,1);assert.deepEqual(arrivals.at(-1),{at:[14,10],face:[0,1]},'beside the hatch, facing away');
+ const hatch=wells(areas.active.group).find(w=>w.direction==='down');assert.equal(hatch.label,'Climb down');assert.deepEqual([hatch.approach.x,hatch.approach.z],[14,10]);
+ hatch.interact();run();assert.deepEqual(arrivals.at(-1),{at:[14,10],face:[0,1]});
+});
+test('floor checks: stairs need room to stand at the foot and to step off at the top',async()=>{
+ const {interiorProblems}=await import('./spaces.js'),texts=d=>interiorProblems(d).filter(p=>p.kind==='floors').map(p=>p.text).join(' | ');
+ const top=cottage();top.buildings[0].floors[1].up={at:[4,1],dir:'n'};assert.match(texts(top),/nowhere to step off at the top/);
+ const foot=cottage();foot.buildings[0].floors[1].up={at:[4,4],dir:'s'};assert.match(texts(foot),/leave the floor/);
+ const wall=cottage();wall.buildings[0].floors[1].up={at:[4,0],dir:'s'};assert.match(texts(wall),/nowhere to stand at the foot/);
 });
