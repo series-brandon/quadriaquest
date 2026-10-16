@@ -74,6 +74,24 @@ Models (`tree-models.js`): Poplar is a pale, columnar tree; Asla (after balsa) i
 - **Ingredient groups.** A recipe may ask for any member of a group (`ITEM_GROUPS` in `items.js`). The Campfire and the bridge repair take any Wood Pieces; crafting spends the lowest tier first, mixing tiers if one runs short.
 - **Waiting for the mining pass:** mine Copper Ore, smelt it at the furnace into Copper Pieces, and have smithing use pieces. Copper Ingots go away for now (they may return as pieces → ingots → things that need ingots). Pickaxes gain tiers the same way axes do.
 
+### Guide and interactive tutorials (planned)
+
+User direction, 2026-10-16. Not built yet.
+
+- **A guide** with an entry per skill (and most items or systems). Most entries have an **Interactive Tutorial** button.
+- **The button moves the player for a moment** to a tiny area, about the size of the first clearing, holding *only* what that lesson needs. When it ends, the player goes back to where they were.
+- **Bite-sized is the point.** Each one takes a couple of minutes and never more than 5–10; longer tutorials quickly lose players' attention and excitement. Combat may need a little more, but keep it small.
+- **Example: Lumberjack.** A small area with just some trees.
+  1. What chopping needs: an axe. The player is given one.
+  2. Click a tree and chop it down.
+  3. Requirements, shown rather than told. Without an axe you can't chop. A made-up tree with an impossible level (such as Lumberjack 10,000) shows the level gate.
+- **Built on the real systems.** The tiny area is placement and narrative only (AGENTS.md: shared gameplay, area-owned narrative). Chopping, gates, messages and models are the production ones, so a guide tutorial can never teach something the game doesn't do. The joke tree is just a tutorial-only tree tier with a huge level. Its gate message uses the same shared text; the level cap is 500, so it can never be met.
+- **Decided (user, 2026-10-16):**
+  - **Each tutorial is a small dream.** The player arrives with no items except what the tutorial needs. At the end, all XP and items from inside are removed, and the player's real inventory, skills and position come back exactly as they were. This is the same idea as the opening dream (`waking.js`, where dream items are gone on waking), applied in reverse.
+  - **Can be started anywhere** except during combat, cutscenes or anything else that strongly can't be interrupted.
+  - **Replayable any number of times.**
+  - **The guide is its own tab** in the menu tab row (a new journal tab, phone and desktop).
+
 **Combat and defeat.** Combat is real-time and stat-driven, inspired by the user's description of Old School RuneScape: attack rates, combat ranges, hit and damage calculations, and equipment support strategic play. Combat formulas and progression rules are specified in [COMBAT.md](COMBAT.md). Attacks use shared weapon-specific motions (punch, stab, slash, bow release, cast); hit reactions select fists, blade, shield or bow guard, with an active attack taking priority. Passive enemies ignore proximity and targeting: melee provokes when its hit splat resolves, and ranged/magic provoke at projectile impact, including misses and zero damage. Aggressive enemies initiate within a configured awareness radius, respecting obstruction and safe zones. The combat redesign defaults to Auto + Balanced + Melee with no particular training skill. Balanced uses damage-based adaptive retaliation and advisory escape warnings; Pacifist blocks manual and automatic attacks while preserving defensive assistance. See COMBAT.md for the shared rules. Combat interrupts skilling, including crafting, fishing and carpentry, but preserves eating and combat actions. Eating preserves combat intent, consumes food and applies healing together at initiation, cancels an unreleased attack and clears the pending action; ordinary attacks may begin a fresh windup without waiting for the cosmetic eating animation. Incoming attacks continue. Aggressive enemies walk into range and walk home when leashed, keeping occupancy and physical movement coordinated. Casting requires no weapon and keeps equipped items visible without adding their damage to spells. Skilling actions temporarily substitute their own tools for combat equipment.
 
 On defeat, the player respawns with all items and progression intact. The penalty is traveling back to resume the previous activity. Respawn locations remain to be defined.
