@@ -168,7 +168,7 @@
    "x": 164,
    "z": 152,
    "desc": {
-    "name": "Building 1",
+    "name": "Lord Tevor's House",
     "cells": [
      [
       0,
@@ -545,7 +545,7 @@
      }
     ],
     "storeys": 2,
-    "roof": "gable",
+    "roof": "hip",
     "style": "timber",
     "chimney": true,
     "windows": "auto",
@@ -1015,7 +1015,65 @@
  ],
  "props": [],
  "edges": [],
- "townsfolk": [],
+ "townsfolk": [
+  {
+   "id": "townsfolk",
+   "name": "Lord Tevor",
+   "look": {
+    "color": "#77a5ee"
+   },
+   "home": [
+    167,
+    154
+   ],
+   "routine": [
+    {
+     "do": "gaze",
+     "weight": 1
+    },
+    {
+     "do": "sit",
+     "weight": 1
+    },
+    {
+     "do": "patrol",
+     "weight": 5
+    },
+    {
+     "do": "home",
+     "weight": 5
+    }
+   ],
+   "pace": 1,
+   "patrol": [
+    [
+     165,
+     158
+    ],
+    [
+     175,
+     153
+    ],
+    [
+     168,
+     152
+    ],
+    [
+     169,
+     153
+    ],
+    [
+     172,
+     153
+    ],
+    [
+     175,
+     158
+    ]
+   ],
+   "house": 0
+  }
+ ],
  "interiors": {},
  "land": {
   "seed": 3,
