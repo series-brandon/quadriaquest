@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {buildMap} from './world-map.js';
 import {createCrowd,createNavigator,generateTownsfolk,townsfolkProblems} from './townsfolk.js';
+import {reachableFrom,neighbourIndex,connectedAreas} from './map-checks.js';
 import {kitStreetData} from './dev/kit-street.js';
 import {occupancy} from './world-occupancy.js';
 import {key} from './world.js';
@@ -39,6 +40,10 @@ test('generated crowds and townsfolk checks',()=>{
  const built=builtMap();const folk=generateTownsfolk(built,40);assert.equal(folk.length,40);
  assert.deepEqual(townsfolkProblems(built.data,built).filter(p=>p.severity==='error'),[]);
  built.data.townsfolk.push({id:'x',home:[29,30],routine:[{do:'sit'}]});assert.ok(townsfolkProblems(built.data,built).some(p=>/blocked/.test(p.text)));
+ // The map checks pass their own reachability (no whole-map navigator field); the verdicts must match.
+ const stranded={id:'y',home:[0,0],routine:[{do:'stroll'}]};built.data.townsfolk.push(stranded);
+ const near=neighbourIndex(built.tiles);
+ assert.deepEqual(townsfolkProblems(built.data,built,{reach:reachableFrom(built.tiles,built.spawn,near),connected:connectedAreas(near)}),townsfolkProblems(built.data,built));
 });
 test('residents go home through their door, open it, shut it behind them, and keepers mind their shops',async()=>{
  const built=builtMap(),resident=built.data.townsfolk.find(e=>e.house!==undefined&&!built.data.buildings[e.house].desc.sign);

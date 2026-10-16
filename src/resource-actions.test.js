@@ -47,7 +47,7 @@ test('ground pickup respawns remain walkable and do not clear another occupant',
 });
 test('tool work shares bounded rolls, skill speed, and fresh progress on restart',async()=>{
  const {rollToolWork}=await import('./resource-rules.js');
- for(const value of [0,.5,.999999]){const roll=rollToolWork(4,()=>value);assert.ok(roll.duration>=3.4&&roll.duration<=4.6);assert.ok(roll.quantity>=1&&roll.quantity<=3);}
+ for(const value of [0,.5,.999999]){const roll=rollToolWork(4,()=>value);assert.ok(roll.duration>=3.4&&roll.duration<=4.6);}
  for(const [kind,skill,effort] of [['tree','Lumberjack',4],['boulder','Mining',4.5]]){const f=fixture(kind);f.skills[skill].level=11;f.system.start(f.node);assert.equal(f.system.state.duration,effort/1.2);f.system.update(.5);f.system.cancel();f.system.start(f.node);assert.equal(f.system.state.age,0);}
 });
 
@@ -80,6 +80,31 @@ test('the best usable tool tier works; a locked tier explains itself',()=>{
  }finally{tiers.pop();}
 });
 test('an entity XP modifier boosts awards only below its level',()=>{
- const f=fixture('sticks',null,{xp:{scale:7,belowLevel:2}});f.system.start(f.node);f.system.update(5);assert.equal(f.skills.Gathering.xp,7*actionXp(4));
- const g=fixture('sticks',null,{xp:{scale:7,belowLevel:2}});g.skills.Gathering.level=2;g.system.start(g.node);g.system.update(5);assert.equal(g.skills.Gathering.xp,actionXp(4));
+ const f=fixture('sticks',null,{xpBoost:{scale:7,belowLevel:2}});f.system.start(f.node);f.system.update(5);assert.equal(f.skills.Gathering.xp,7*actionXp(4));
+ const g=fixture('sticks',null,{xpBoost:{scale:7,belowLevel:2}});g.skills.Gathering.level=2;g.system.start(g.node);g.system.update(5);assert.equal(g.skills.Gathering.xp,actionXp(4));
+});
+test('trees regrow on their tier\'s timer unless a placement sets its own; levels above the requirement raise the yield',async()=>{
+ const {TREES}=await import('./lumberjack.js'),{RESOURCE_RESPAWN}=await import('./resource-entities.js');
+ assert.equal(fixture('tree',null,{species:'oak',respawn:undefined}).node.respawn,TREES.oak.respawn,'no respawn given: the tier\'s');assert.ok(TREES.cherry.respawn>TREES.poplar.respawn);
+ assert.equal(fixture('tree',5,{species:'oak'}).node.respawn,5,'a placement may set its own');assert.equal(fixture('boulder',null,{respawn:undefined}).node.respawn,RESOURCE_RESPAWN);
+ const f=fixture('tree',null,{species:'oak'});f.skills.Lumberjack.level=60;f.system.start(f.node);f.system.update(10);f.system.update(.85);
+ assert.equal(f.inventory.oakWood,3,'a roll of 2 at +60% (random .5) gives 2 + floor(1.2 + .5)');
+});
+test('configuration layers: the type\'s table, then the placement\'s overrides, the formula only for what neither sets',async()=>{
+ const {TREES}=await import('./lumberjack.js');
+ // Type: an Oak's tier table sets its respawn and drop table (its wood); XP falls back to the effort pace.
+ const plain=fixture('tree',null,{species:'oak',respawn:undefined});plain.skills.Lumberjack.level=30;
+ assert.equal(plain.node.respawn,TREES.oak.respawn);assert.deepEqual(resourceRules(plain.node).drops,TREES.oak.drops);
+ plain.system.start(plain.node);plain.system.update(10);plain.system.update(.85);assert.equal(plain.skills.Lumberjack.xp,actionXp(6,30));assert.equal(plain.inventory.oakWood,2,'its table: oak wood ×1–3 (random .5)');
+ // A tier may set its XP, and its table may add more drops.
+ const table=TREES.oak.drops;TREES.oak.xp=50;TREES.oak.drops={...table,rolls:[{item:'sticks',chance:1,count:2}]};
+ try{
+  const typed=fixture('tree',null,{species:'oak'});typed.skills.Lumberjack.level=30;typed.system.start(typed.node);typed.system.update(10);typed.system.update(.85);
+  assert.equal(typed.skills.Lumberjack.xp,50);assert.equal(typed.inventory.sticks,2);assert.equal(typed.inventory.oakWood,2);
+ }finally{delete TREES.oak.xp;TREES.oak.drops=table;}
+ // Instance: this one tree regrows slower, gives 5 oak wood and a flint, and pays 99 XP.
+ const own=fixture('tree',null,{species:'oak',respawn:undefined,config:{respawn:300,xp:99,drops:{always:[{item:'oakWood',count:5},{item:'flint',count:1}]},colour:'ignored'}});
+ assert.equal(own.node.respawn,300);assert.deepEqual(Object.keys(own.node.config).sort(),['drops','xp']);
+ own.skills.Lumberjack.level=30;own.system.start(own.node);own.system.update(10);own.system.update(.85);
+ assert.equal(own.inventory.oakWood,5);assert.equal(own.skills.Lumberjack.xp,99);assert.equal(own.inventory.flint,1);
 });

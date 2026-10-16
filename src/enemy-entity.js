@@ -26,14 +26,15 @@ export const enemySize=kind=>MODELS[kind]?.size||1;
 // who leaves it (a boss arena). Without it, pursuit uses the leash distance from home.
 // attacksPacifists: rare opt-in (the most aggressive creatures, some bosses) to engage players whose
 // attacks are prevented; placements may override the enemy type's setting.
-export function createEnemyEntity({kind,tile,parent,pickables,patrol,respawn=null,id,aggressive,aggroRange,attacksPacifists,territory=null,xp=null}){
+// drops: this spawn's own drop table, overriding its type's (drops.js format).
+export function createEnemyEntity({kind,tile,parent,pickables,patrol,respawn=null,id,aggressive,aggroRange,attacksPacifists,territory=null,xp=null,drops=null}){
  const rules=xp?{...ENEMIES[kind],xpMultiplier:xp.multiplier??1,xpLevelCap:xp.levelCap??null,xpAfterCapMultiplier:xp.afterCapMultiplier??0}:ENEMIES[kind],model=MODELS[kind],group=model.create(),scale=model.scale??1;
  if(model.character)markCharacter(group);
  group.scale.setScalar(scale);group.position.set(tile.x-6,tile.h,tile.z-6);parent.add(group);
  // Signal-backed HP: combat keeps assigning a.hp; the health plate (target frame) follows it.
  const hp=signal(rules.health);let plate;
  const plateView=mount(()=>{plate=healthPlate({value:hp,max:rules.health});return plate.node;});document.body.append(plateView.node);
- const a={kind,id,respawn,aggressive:aggressive??rules.aggressive??false,aggroRange:aggroRange??rules.aggroRange??3,attacksPacifists:attacksPacifists??rules.attacksPacifists??false,tile,home:tile,x:tile.x,z:tile.z,group,scale,rules,animate:model.animate,territory,size:model.size??1,plateLift:model.plateLift,aimHeight:model.aimHeight,patrol:patrol||{minX:tile.x-2,maxX:tile.x+2,minZ:tile.z-2,maxZ:tile.z+2},enemy:true,ready:true,opened:false,duration:0,plate};
+ const a={kind,id,respawn,drops,aggressive:aggressive??rules.aggressive??false,aggroRange:aggroRange??rules.aggroRange??3,attacksPacifists:attacksPacifists??rules.attacksPacifists??false,tile,home:tile,x:tile.x,z:tile.z,group,scale,rules,animate:model.animate,territory,size:model.size??1,plateLift:model.plateLift,aimHeight:model.aimHeight,patrol:patrol||{minX:tile.x-2,maxX:tile.x+2,minZ:tile.z-2,maxZ:tile.z+2},enemy:true,ready:true,opened:false,duration:0,plate};
  Object.defineProperty(a,'hp',{get(){return hp.value;},set(next){hp.value=next;},enumerable:true});
  // The hover label carries the name and exact health (the plate is only a bar).
  Object.defineProperty(a,'label',{get(){return `Fight ${rules.name} · ${Math.ceil(hp.value)}/${rules.health} HP${rules.boss?' · Boss':''}${a.attacksPacifists?' · ⚠ Hunts pacifists':''}`;},enumerable:true});

@@ -1,5 +1,4 @@
-import {ITEMS} from './items.js';
-import {WOODS} from './lumberjack.js';
+import {ITEMS,WOODS} from './items.js';
 import {signal} from './reactive.js';
 
 // Jobs (docs/ECONOMY.md, Jobs): repeatable paid tasks, apart from story quests, shared by every map.

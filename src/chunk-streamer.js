@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {buildChunkTerrain} from './chunk-terrain.js';
-import {createResourceEntity,RESOURCE_RESPAWN} from './resource-entities.js';
+import {createResourceEntity} from './resource-entities.js';
 import {key} from './world.js';
 import {CHUNK,BAND,chunkOf,chunkGap} from './world-grid.js';
 
@@ -21,7 +21,7 @@ import {CHUNK,BAND,chunkOf,chunkGap} from './world-grid.js';
 //   dress     (tiles, {root, tileAt}) → {dispose()}: more of a chunk's look (streamed water), built and
 //             released with it
 const BATCH=16,ROWS=4;
-export function createChunkStreamer({source,maps,parent,pickables,resources,topColor,place=null,dress=null,radius=1,band=BAND,budgetMs=4,now=()=>performance.now(),respawn=RESOURCE_RESPAWN}){
+export function createChunkStreamer({source,maps,parent,pickables,resources,topColor,place=null,dress=null,radius=1,band=BAND,budgetMs=4,now=()=>performance.now(),respawn}){
  const chunks=new Map(),state=new Map(),group=new THREE.Group();parent.add(group);
  let time=0,lastBuildMs=0,builtTotal=0,center=null,delay=0,bounds=false,pending=null;
  const boundsMaterial=new THREE.LineBasicMaterial({color:'#ff4fa3',transparent:true,opacity:.85,depthTest:false});
@@ -45,7 +45,8 @@ export function createChunkStreamer({source,maps,parent,pickables,resources,topC
   const entities=source.entities(tiles);
   for(let i=0;i<entities.length;i++){const e=entities[i];
    const tile=maps[0].get(key(e.x,e.z));
-   const node=resources.add(createResourceEntity({kind:e.kind,species:e.species,tile,parent:root,pickables,id:e.id,respawn}));
+   // A placement's own settings (respawn, yield, xp, drops) ride on its entity; else the streamer's, else the type's.
+   const node=resources.add(createResourceEntity({kind:e.kind,species:e.species,tile,parent:root,pickables,id:e.id,respawn,config:e}));
    const saved=state.get(e.id);
    if(saved){const respawnIn=saved.respawnAt===null?null:Math.max(0,saved.respawnAt-time);if(saved.depleted&&respawnIn!==0)resources.restore(node,{depleted:true,respawnIn});state.delete(e.id);}
    chunk.nodes.push(node);

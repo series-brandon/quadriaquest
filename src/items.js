@@ -1,5 +1,3 @@
-import {TREES,WOODS} from './lumberjack.js';
-
 export const ITEMS={
  gold:{name:'Gold Pieces',description:'The coin of Quadria. Earn it by selling what you gather and make; spend it at shops.'},
  copperOre:{name:'Copper Ore',description:'Orange-veined ore. Smelt it into a Copper Ingot at a furnace.'},
@@ -22,8 +20,17 @@ export const ITEMS={
  pickaxes:{name:'Crude Pickaxe',icon:'⛏',description:'A simple pickaxe for mining boulders. Keep it in your inventory to use it.'},
  stone:{name:'Stone',icon:'⬟',description:'A larger piece of mined stone, useful for making stone equipment.'},
  crudeAxe:{name:'Crude Axe',icon:'⚒',description:'A simple axe for chopping trees. Keep it in your inventory to use it.'},
- // Wood pieces, one per tree tier (lumberjack.js).
- ...Object.fromEntries(Object.values(TREES).map(t=>[t.wood,{name:t.woodName,icon:'▰',description:t.description}])),
+ // Wood pieces, one per tree tier (src/data/trees.json drops them), lowest tier first.
+ poplarWood:{name:'Poplar Wood Pieces',icon:'▰',description:'Light, pale wood from a Poplar Tree. The everyday crafting wood.'},
+ aslaWood:{name:'Asla Wood Pieces',icon:'▰',description:'Feather-light wood from an Asla Tree. Soft and easy to shape.'},
+ pineWood:{name:'Pine Wood Pieces',icon:'▰',description:'Resinous wood from a Pine Tree. Cheap and plentiful.'},
+ oakWood:{name:'Oak Wood Pieces',icon:'▰',description:'Strong, dependable wood from an Oak Tree.'},
+ willowWood:{name:'Willow Wood Pieces',icon:'▰',description:'Supple wood from a Willow Tree. It bends before it breaks.'},
+ mapleWood:{name:'Maple Wood Pieces',icon:'▰',description:'Hard, fine-grained wood from a Maple Tree.'},
+ walnutWood:{name:'Walnut Wood Pieces',icon:'▰',description:'Dark, handsome wood from a Walnut Tree.'},
+ ironwood:{name:'Ironwood Pieces',icon:'▰',description:'Wood from an Ironwood Tree, heavy as stone.'},
+ mungilWood:{name:'Mungil Wood Pieces',icon:'▰',description:'Oily, very dense wood from a Mungil Tree. It sinks in water.'},
+ cherryWood:{name:'Cherry Wood Pieces',icon:'▰',description:'Rosy wood from a Cherry Blossom Tree. Prized by fine crafters.'},
  hats:{name:'Top Hat',icon:'🎩',description:'A rather fancy reward for a hard-working adventurer. Equip it here to wear it.'},
  staffs:{name:'Simple Staff',description:'A wooden staff topped with a glowing crystal. Spell focus: +6 magic Power and Accuracy to your spells while held. One hand · +5 melee Power and Accuracy · bludgeoning swing · trains Staff proficiency.'},
  ironSkullcap:{name:'Iron Skullcap',description:"Sergeant Bristle's brimless iron cap, with a raised ridge and cheek guards. Equip it to wear it."},
@@ -37,6 +44,8 @@ export const ITEMS={
 };
 
 // Ingredient groups: a recipe may ask for any member (recipes.js spends the lowest tier first).
+// Every wood, lowest tier first (any-wood recipes spend in this order).
+export const WOODS=['poplarWood','aslaWood','pineWood','oakWood','willowWood','mapleWood','walnutWood','ironwood','mungilWood','cherryWood'];
 export const ITEM_GROUPS={anyWood:{name:'Wood Pieces',hint:'Any kind; the lowest tier is used first',items:WOODS}};
 export function itemName(id){return ITEMS[id]?.name??ITEM_GROUPS[id]?.name??id;}
 // How many of an item, or of all of a group's members, the inventory holds.
@@ -54,9 +63,9 @@ const WORTH={
  bows:[30,'weapon'],arrows:[2,'ammo'],swords:[20,'weapon'],crudeShield:[12,'armour'],hammers:[9,'tool'],rods:[9,'tool'],
  flint:[4,'stone'],firestarters:[15,'tool'],campfires:[15,'tool'],rawFish:[8,'fish'],cookedFish:[15,'food'],
  sticks:[2,'wood'],stones:[2,'stone'],pickaxes:[9,'tool'],stone:[6,'stone'],crudeAxe:[9,'tool'],
+ poplarWood:[4,'wood'],aslaWood:[6,'wood'],pineWood:[8,'wood'],oakWood:[11,'wood'],willowWood:[15,'wood'],mapleWood:[20,'wood'],walnutWood:[26,'wood'],ironwood:[33,'wood'],mungilWood:[42,'wood'],cherryWood:[52,'wood'],
  hats:[60,'hat'],staffs:[45,'weapon'],ironSkullcap:[50,'hat'],minersCap:[40,'hat'],archerCap:[40,'hat'],wizardHat:[50,'hat'],
  breathHeadband:[40,'hat'],fishersHat:[40,'hat'],companionHats:[40,'hat'],package:[0,'quest'],
 };
-for(const t of Object.values(TREES))WORTH[t.wood]=[t.value,'wood'];
 for(const [id,[value,category]] of Object.entries(WORTH))Object.assign(ITEMS[id],{value,category});
 ITEMS.gold.sellable=false;ITEMS.package.sellable=false;

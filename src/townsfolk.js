@@ -228,8 +228,11 @@ export function createCrowd({builtMap,parent,pickables=[],seed=1,services={}}){
 }
 // Townsfolk checks (map-checks.js): a home that exists and is reachable, and a routine with at least
 // one usable activity.
-export function townsfolkProblems(data,builtMap){
- const out=[],nav=createNavigator(builtMap.tiles),spots=kind=>builtMap.props.flatMap(p=>p.spots.filter(s=>s.kind===kind&&s.tile&&!s.tile.blocked));
+// reach (tiles reachable from the arrival point) and connected(a, b) are optional answers the map checks
+// already have (map-checks.js), so no whole-map navigator search runs per townsperson or spot.
+export function townsfolkProblems(data,builtMap,{reach=null,connected=null}={}){
+ // The navigator covers the whole map, so it is only made when there are townsfolk to check.
+ const out=[];let navigator=null;const nav={reachable:(a,b)=>(navigator??=createNavigator(builtMap.tiles)).reachable(a,b)},spots=kind=>builtMap.props.flatMap(p=>p.spots.filter(s=>s.kind===kind&&s.tile&&!s.tile.blocked));
  for(const entry of data.townsfolk||[]){
   const house=entry.house!==undefined?builtMap.buildings[entry.house]:null;
   if(entry.house!==undefined&&(!house||house.plan.desc.interior!=='inPlace'||house.plan.doors.every(d=>d.locked))){out.push({kind:'townsfolk',severity:'error',tile:entry.home||data.spawn,text:`${entry.name||entry.id}'s house can't be walked into.`});continue;}
@@ -237,8 +240,8 @@ export function townsfolkProblems(data,builtMap){
   // Posted outside the city (a gate guard on the land around it): checked where that land exists.
   const [w,d]=builtMap.data?.size||[Infinity,Infinity];if(where&&!home&&(where[0]<0||where[1]<0||where[0]>=w||where[1]>=d))continue;
   if(!home||home.blocked){out.push({kind:'townsfolk',severity:'error',tile:where||data.spawn,text:`${entry.name||entry.id}'s home tile is missing or blocked.`});continue;}
-  if(builtMap.spawn&&!nav.reachable(home,builtMap.spawn))out.push({kind:'townsfolk',severity:'warning',tile:where,text:`${entry.name||entry.id} can't reach the town square from home.`});
-  const usable=(entry.routine||[{do:'stroll'}]).some(r=>['stroll','chat','enter','post'].includes(r.do)||house&&['home','keep','tend'].includes(r.do)||r.do==='patrol'&&entry.patrol?.length||spots(r.do).some(s=>nav.reachable(home,s.tile)));
+  if(builtMap.spawn&&!(reach?reach.has(home):nav.reachable(home,builtMap.spawn)))out.push({kind:'townsfolk',severity:'warning',tile:where,text:`${entry.name||entry.id} can't reach the town square from home.`});
+  const usable=(entry.routine||[{do:'stroll'}]).some(r=>['stroll','chat','enter','post'].includes(r.do)||house&&['home','keep','tend'].includes(r.do)||r.do==='patrol'&&entry.patrol?.length||spots(r.do).some(s=>connected?connected(home,s.tile):nav.reachable(home,s.tile)));
   if(!usable)out.push({kind:'townsfolk',severity:'warning',tile:where,text:`${entry.name||entry.id} has nothing in their routine they can do here.`});}
  return out;
 }

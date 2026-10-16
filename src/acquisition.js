@@ -1,7 +1,8 @@
 import {RECIPES,missingFor} from './recipes.js';
 import {RESOURCE_RULES} from './resource-actions.js';
+import {mainDrop} from './resource-rules.js';
 import {ITEM_GROUPS,countOf,itemName} from './items.js';
-import {TREES} from './lumberjack.js';
+import {TREES,treeWood} from './lumberjack.js';
 import {baseTool,ownsTool} from './tool-tiers.js';
 
 // What a player should do next to obtain items, from the shared recipes and resource rules, so
@@ -12,9 +13,10 @@ import {baseTool,ownsTool} from './tool-tiers.js';
 //          {step:'harvest', kind, item, have, count, for}    chop/mine a node with its tool in hand
 //          {step:'craft', item, for}                         everything is in hand; craft it
 //   `for` is the item the step works toward (null for a goal's own need).
-// A tree yields its tier's wood (lumberjack.js); a group (any wood) is planned as its lowest tier.
-const SOURCES={...Object.fromEntries(Object.entries(RESOURCE_RULES).filter(([,rule])=>rule.item).map(([kind,rule])=>[rule.item,{kind,...rule}])),
- ...Object.fromEntries(Object.values(TREES).map(t=>[t.wood,{kind:'tree',...RESOURCE_RULES.tree,item:t.wood}]))};
+// Where an item comes from: the resource whose drop table mainly gives it (a tree its tier's wood,
+// lumberjack.js). Read when asked, so Types-screen edits apply. A group (any wood) is planned as its lowest tier.
+const sources=()=>({...Object.fromEntries(Object.entries(RESOURCE_RULES).filter(([kind])=>kind!=='tree').map(([kind,rule])=>[mainDrop(rule),{kind,...rule,item:mainDrop(rule)}])),
+ ...Object.fromEntries(Object.keys(TREES).map(id=>[treeWood(id),{kind:'tree',...RESOURCE_RULES.tree,item:treeWood(id)}]))});
 
 function plan(inventory,item,count,parent,seen){
  const group=ITEM_GROUPS[item];
@@ -31,7 +33,7 @@ function plan(inventory,item,count,parent,seen){
   if(gathers.length===steps.length&&gathers.length>1)return {step:'gather',kinds:gathers.flatMap(s=>s.kinds),items:gathers.flatMap(s=>s.items),have:null,count:null,for:item};
   return steps[0];
  }
- const source=SOURCES[item];
+ const source=sources()[item];
  if(!source)return null;
  if(source.tool&&!ownsTool(source.tool,inventory))return plan(inventory,baseTool(source.tool),1,item,new Set([...seen,item]));
  return source.tool?{step:'harvest',kind:source.kind,item,have,count,for:parent}:{step:'gather',kinds:[source.kind],items:[item],have,count,for:parent};

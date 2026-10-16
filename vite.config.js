@@ -40,19 +40,22 @@ function gamePublicAssets(){
 }
 
 // World editor saving (playground dev server only, docs/CITY.md Authoring): POST /__map-save
-// {id, json, kind} writes src/maps/<id>.json (kind 'stamp': src/stamps/<id>.json; kind 'palette', a colour preset: src/palettes/<id>.json). Builds never include it (configureServer runs only in dev).
+// {id, json, kind} writes src/maps/<id>.json (kind 'stamp': src/stamps/<id>.json; kind 'palette', a colour preset: src/palettes/<id>.json;
+// kind 'data', the shared type tables: src/data/<id>.json, only the known ones). Builds never include it (configureServer runs only in dev).
+const DATA_FILES=['trees','resources','enemies'];
 function mapSave(){
   return {name:'map-save',
    // A saved map must not reload the page either (the editor imports every map, so Vite would): you'd lose the
    // map's undo, the view and the floor you're on. The editor keeps what it saved; the next page load reads the file.
-   hotUpdate({file}){if(/[\\/]src[\\/]maps[\\/][^\\/]+\.json$/.test(file))return [];},
+   hotUpdate({file}){if(/[\\/]src[\\/](maps|data)[\\/][^\\/]+\.json$/.test(file))return [];},
    configureServer(server){server.middlewares.use('/__map-save',(req,res)=>{
     const reply=(code,body)=>{res.statusCode=code;res.setHeader('content-type','application/json');res.end(JSON.stringify(body));};
     if(req.method!=='POST')return reply(405,{error:'POST only'});
     let body='';req.on('data',chunk=>{body+=chunk;if(body.length>8e6)req.destroy();});
     req.on('end',()=>{try{const {id,json,kind}=JSON.parse(body);if(!/^[a-z0-9][a-z0-9-]{0,40}$/.test(id))return reply(400,{error:'bad id'});JSON.parse(json);
       // kind 'stamp' or 'palette': the editor's stamps and colour presets; otherwise a map.
-      const folder=kind==='stamp'?'stamps':kind==='palette'?'palettes':'maps',dir=fileURLToPath(new URL(`./src/${folder}/`,import.meta.url));mkdirSync(dir,{recursive:true});writeFileSync(dir+id+'.json',json+'\n');reply(200,{path:`src/${folder}/${id}.json`});}
+      if(kind==='data'&&!DATA_FILES.includes(id))return reply(400,{error:'unknown data file'});
+      const folder=kind==='stamp'?'stamps':kind==='palette'?'palettes':kind==='data'?'data':'maps',dir=fileURLToPath(new URL(`./src/${folder}/`,import.meta.url));mkdirSync(dir,{recursive:true});writeFileSync(dir+id+'.json',json+'\n');reply(200,{path:`src/${folder}/${id}.json`});}
     catch(error){reply(400,{error:error.message});}});
   });}};
 }

@@ -1,0 +1,142 @@
+{
+ "poplar": {
+  "name": "Poplar Tree",
+  "level": 1,
+  "effort": 4,
+  "respawn": 10,
+  "drops": {
+   "always": [
+    {
+     "item": "poplarWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "asla": {
+  "name": "Asla Tree",
+  "level": 10,
+  "effort": 6,
+  "respawn": 15,
+  "drops": {
+   "always": [
+    {
+     "item": "aslaWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "pine": {
+  "name": "Pine Tree",
+  "level": 20,
+  "effort": 6,
+  "respawn": 20,
+  "drops": {
+   "always": [
+    {
+     "item": "pineWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "oak": {
+  "name": "Oak Tree",
+  "level": 30,
+  "effort": 6,
+  "respawn": 30,
+  "drops": {
+   "always": [
+    {
+     "item": "oakWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "willow": {
+  "name": "Willow Tree",
+  "level": 40,
+  "effort": 9,
+  "respawn": 45,
+  "drops": {
+   "always": [
+    {
+     "item": "willowWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "maple": {
+  "name": "Maple Tree",
+  "level": 50,
+  "effort": 9,
+  "respawn": 60,
+  "drops": {
+   "always": [
+    {
+     "item": "mapleWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "walnut": {
+  "name": "Walnut Tree",
+  "level": 60,
+  "effort": 9,
+  "respawn": 90,
+  "drops": {
+   "always": [
+    {
+     "item": "walnutWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "ironwood": {
+  "name": "Ironwood Tree",
+  "level": 70,
+  "effort": 13,
+  "respawn": 120,
+  "drops": {
+   "always": [
+    {
+     "item": "ironwood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "mungil": {
+  "name": "Mungil Tree",
+  "level": 80,
+  "effort": 13,
+  "respawn": 180,
+  "drops": {
+   "always": [
+    {
+     "item": "mungilWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "cherry": {
+  "name": "Cherry Blossom Tree",
+  "level": 90,
+  "effort": 13,
+  "respawn": 240,
+  "drops": {
+   "always": [
+    {
+     "item": "cherryWood",
+     "count": [1, 3]
+    }
+   ]
+  }
+ }
+}

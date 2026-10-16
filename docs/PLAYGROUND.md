@@ -166,12 +166,16 @@ The clearing pond has a practice bridge at (2, 4). Add a Crude Hammer and any Wo
 
 The clearing pond has a Pondfish spot at (4, 4). Add a Crude Fishing Rod with Inventory controls, then click its ripples. Repeat catches, cancel by moving, and reset with Full test area. Willowbank · Catch Pondfish uses the same action. Fishing XP and levels use the Skills controls; cast, wait, and catch motions are in the shared model viewer.
 
+## Types (shared configuration)
+
+World editor → **Map** group → **Types** tool button (opens nearly full-window). Every tree and rock type's shared level, effort (seconds), respawn, XP and drop table, and every enemy type's respawn and drop table, applied in the world as you edit and saved to `src/data/*.json` with *Save* (dev server only). Plant a tree with Lumberjack practice to try a change at once. A selected placement's *Edit … type* jumps to its type; its rare per-placement override is folded away under it.
+
 ## Lumberjack practice
 
 Plants production trees next to the player in whichever map you are in (planting after travel starts over in the new map).
 - **Tree** picks a tier. **Plant this tree** plants one; **Plant every tier** plants one of each, lowest tier nearest, as far as nearby free tiles allow.
 - **Set Lumberjack to its level** sets the skill exactly to the tree's requirement, so you can try it one level under (use Skills to lower it) and at its level.
-- **Chop time and XP** reads the chop time for your level and best usable axe, and the XP per tree.
+- **Chop time and XP** reads the chop time for your level and best usable axe, the XP per tree, its sure drop and yield bonus, and the regrow time.
 - **Fell planted trees (stumps)** turns them all into stumps that regrow on the normal timer; **Regrow** resets them at once; **Remove** clears them.
 - **Give axe** adds an axe tier to the inventory. Only the Crude Axe exists for now; new tiers appear here automatically from `tool-tiers.js`.
 
@@ -179,7 +183,7 @@ Clicking a tree above your level shows the level it needs, in the toast and the 
 
 ## Resource picking
 
-Trees, boulders, and ground items in both areas use shared actions. Inventory supplies axes and pickaxes; Skills adjusts Gathering, Lumberjack, and Mining. Move to cancel before depletion. Ground items, Trees, Boulders, and Full test area resets support repeats in the clearing. Willowbank resources respawn after 8 seconds. A felled tree or mined rock leaves its stump or rubble on a still-blocked tile, so regrowth is never delayed. Load Willowbank · Collect Flint to check its narrative callback. Model viewer motions reuse the production hit/depletion animations.
+Trees, boulders, and ground items in both areas use shared actions. Inventory supplies axes and pickaxes; Skills adjusts Gathering, Lumberjack, and Mining. Move to cancel before depletion. Ground items, Trees, Boulders, and Full test area resets support repeats in the clearing. Trees regrow on their tier's timer (Poplars, as in the clearing and Willowbank, in 10 seconds); other resources respawn after 8. A felled tree or mined rock leaves its stump or rubble on a still-blocked tile, so regrowth is never delayed. Load Willowbank · Collect Flint to check its narrative callback. Model viewer motions reuse the production hit/depletion animations.
 
 ## Performance
 

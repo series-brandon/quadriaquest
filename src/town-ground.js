@@ -1,3 +1,5 @@
+import {DEFAULT_TREE} from './lumberjack.js';
+import {instanceConfig} from './resource-rules.js';
 import {createBiomeLand,WATER_H} from './biome-land.js';
 import {notHeld} from './held.js';
 import {normalizeBuilding} from './building-kit.js';
@@ -133,12 +135,12 @@ export function townSource(land,ground,townTiles,townData=()=>null){
   topColor:t=>t.water?land.topColor(t):color(surfaceColor(t)),
   entities(list){const {removed,resources}=hand(list),byKey=new Map(list.map(t=>[key(t.x,t.z),t]));
    const grown=grows()?land.entities(keep(list)).filter(e=>!removed.has(e.id)&&!resources.has(key(e.x,e.z))):[];
-   const onCrystal=new Set(mapCrystals(townData()).flatMap(crystalCells).map(([x,z])=>key(x,z))),placed=[...resources.values()].filter(r=>resourceFits(byKey.get(key(r.x,r.z)))&&!onCrystal.has(key(r.x,r.z))).map(r=>({id:placedId(r),kind:r.kind,x:r.x,z:r.z,...r.kind==='tree'?{species:r.species||'oak'}:{}}));
+   const onCrystal=new Set(mapCrystals(townData()).flatMap(crystalCells).map(([x,z])=>key(x,z))),placed=[...resources.values()].filter(r=>resourceFits(byKey.get(key(r.x,r.z)))&&!onCrystal.has(key(r.x,r.z))).map(r=>({id:placedId(r),kind:r.kind,x:r.x,z:r.z,...r.kind==='tree'?{species:r.species||DEFAULT_TREE}:{},...instanceConfig(r)}));
    return [...grown,...placed];},
   extras(list){const data=townData(),{removed}=hand(list),on=new Set(list.map(t=>key(t.x,t.z)));
    const grown=land.extras(keep(list)).filter(e=>!removed.has(e.id)&&(e.kind==='enemy'?data?.land?.enemies!==false:e.kind==='fishing'?data?.land?.fishing!==false:true));
    const placed=notHeld(data?.fishing).filter(f=>on.has(key(f.x,f.z))).map(f=>({id:`placed:fishing:${f.x},${f.z}`,kind:'fishing',x:f.x,z:f.z,fish:f.fish||'rawFish'}));
-   const spawns=notHeld(data?.enemies).filter(e=>on.has(key(e.x,e.z))).map(e=>({id:`placed:enemy:${e.x},${e.z}`,kind:'enemy',enemy:e.enemy,aggressive:!!e.aggressive,respawn:e.respawn??null,x:e.x,z:e.z}));
+   const spawns=notHeld(data?.enemies).filter(e=>on.has(key(e.x,e.z))).map(e=>({id:`placed:enemy:${e.x},${e.z}`,kind:'enemy',enemy:e.enemy,aggressive:!!e.aggressive,respawn:e.respawn??null,...e.drops?{drops:e.drops}:{},x:e.x,z:e.z}));
    const taken=new Set(placed.map(f=>key(f.x,f.z)));return [...grown.filter(e=>!(e.kind==='fishing'&&taken.has(key(e.x,e.z)))),...placed,...spawns];},
   cover(list){const {removed,cover}=hand(list),byKey=new Map(list.map(t=>[key(t.x,t.z),t]));
    const grown=!grows()?[]:land.cover(keep(list)).filter(c=>{const k=key(Math.round(c.x),Math.round(c.z));return !removed.has(`cover:${k}`)&&!cover.has(k);});

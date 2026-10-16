@@ -29,9 +29,16 @@ import {enemySize} from '../enemy-entity.js';
 import {townSource,resourceFits,coverId,placedId} from '../town-ground.js';
 import {TREE_SPECIES,makeTreeModel} from '../tree-models.js';
 import {TREES,DEFAULT_TREE,treeOf} from '../lumberjack.js';
+import {resourceRules} from '../resource-actions.js';
+import {typeEditor,dropTableEditor} from './type-editor.js';
+import {resourceRespawn} from '../resource-entities.js';
+import {actionXp} from '../skill-pacing.js';
 import {makeCrystal,crystalCentre} from '../crystal-model.js';
 import {createEdgeFeatures} from '../doors.js';
-import {COVER_KINDS} from '../ground-cover.js';
+import {COVER_KINDS,coverModel} from '../ground-cover.js';
+import {makeBoulder} from '../mining.js';
+import {copperOutcrop} from '../training-models.js';
+import {createGroundItemModel} from '../ground-item-models.js';
 import {CELL as BIOME_CELL,FORGET_MARGIN} from '../biome-land.js';
 import {propGalleryData} from './prop-gallery.js';
 import {setHeld} from '../held.js';
@@ -86,6 +93,9 @@ const PAINT_TOOLS=['raise','lower','flatten','smooth','ramps','surface','footpri
 const HEADS=Object.keys(GEAR).filter(id=>GEAR[id].slot==='head'),HANDS=Object.keys(GEAR).filter(id=>GEAR[id].slot==='hand');
 const FOLK_COLOURS=['#9ccf7a','#e0a96d','#9db8e3','#c7b46a','#a4ce77','#8fc9b8','#d9a3c4','#c88d6e'];
 const RESPAWNS=[['30','30 seconds'],['45','45 seconds'],['120','2 minutes'],['300','5 minutes'],['900','15 minutes']];
+// A placed resource's own settings (resource-rules.js); '' keeps its type's.
+const RESOURCE_RESPAWNS=[['10','10 seconds'],['30','30 seconds'],['60','1 minute'],['120','2 minutes'],['300','5 minutes'],['900','15 minutes']];
+const RESOURCE_XP=['0','10','25','50','100','250','500'].map(n=>[n,`${n} XP`]);
 // The Nature brush (docs/TOWN.md, Nature by hand): trees by species, resources, ground cover, or clear.
 const NATURE_CHOICES=[['grow','Grow (biome)'],['clear','Clear nature'],['fishing','Fishing spot (on water)'],...Object.keys(TREE_SPECIES).map(id=>[`tree:${id}`,`${TREES[id].name} (Lv ${TREES[id].level})`]),
  ...['copper','boulder','sticks','stones','flint'].map(k=>[`resource:${k}`,k[0].toUpperCase()+k.slice(1)]),...COVER_KINDS.filter(k=>k!=='lilyPad').map(k=>[`cover:${k}`,`Cover: ${k}`])];
@@ -97,8 +107,9 @@ const TOOL_GROUPS=[
  ['build','Build',[['room','Room'],['resize','Push/pull walls'],['building','Building'],['footprint','Footprint'],['walls','Walls'],['edge','Edge'],['stairs','Stairs'],['use','Use'],['reroll','Reroll furniture'],['underground','Underground']]],
  ['terrain','Terrain',[['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['smooth','Smooth'],['ramp','Slope'],['ramps','Ramp ledges'],['surface','Surface'],['biome','Biome']]],
  ['world','World',[['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['spawn','Arrival']]],
- // Map: open, save and grow the map, its lines, and its checks (with Inspect).
- ['map','Map',[['inspect','Inspect']]]];
+ // Map: open, save and grow the map, its lines, and its checks (with Inspect). Types opens the shared type
+ // settings (a screen of its own, not a tool you click the map with).
+ ['map','Map',[['inspect','Inspect'],['types','Types']]]];
 const TOOLS=TOOL_GROUPS.flatMap(([,,tools])=>tools),groupOf=id=>TOOL_GROUPS.find(([,,tools])=>tools.some(([t])=>t===id))?.[0]||'decorate';
 const SIDES=['n','e','s','w'],COUNTER={n:'w',w:'s',s:'e',e:'n'};
 // The colour picker's quick swatches: the game's own palette (any colour is allowed; these are only quick picks).
@@ -135,12 +146,14 @@ export function createWorldEditor(host){
  const showGrid=()=>{overlay?.dispose();overlay=grid.peek()&&built&&mode.peek()==='edit'?createGridOverlay({tiles:built.tiles,parent:built.group}):null;};
  const showSelection=()=>{outline?.dispose();outline=null;showPersonSpots();const sel=selection.peek(),entry=entryOf(sel);if(!built||!entry)return;outline=createCellOutline({cells:cellsOf(sel.kind,entry),tiles:{get:k=>at(...k.split(',').map(Number))},parent:overlayParent(),color:moving.peek()?'#5fe0ff':'#ffe14d'});};
  // Checks run a moment after editing stops (they take seconds on the capital).
- const scheduleChecks=(delay=250)=>{clearTimeout(checkTimer);checkTimer=setTimeout(()=>{if(heldEntries.length){scheduleChecks(500);return;}if(built&&data)problems.value=mapProblems(data,built);},delay);};
+ // Checks walk the whole loaded map, so they wait until edits settle and the browser is idle.
+ const scheduleChecks=(delay=400)=>{clearTimeout(checkTimer);checkTimer=setTimeout(()=>{if(heldEntries.length){scheduleChecks(500);return;}
+  const run=()=>{checkTimer=null;if(built&&data)problems.value=mapProblems(data,built);};if(!delay||!globalThis.requestIdleCallback){run();return;}checkTimer=-1;requestIdleCallback(()=>{if(checkTimer===-1)run();},{timeout:1000});},delay);};
  // Rebuilds run one at a time; edits that arrive meanwhile merge into the next one.
  let rebuilding=null,queued=null;
  async function rebuild({keepPlayer=true,dirty=null}={}){
   if(rebuilding){queued=queued?{keepPlayer,dirty:queued.dirty&&dirty?[...new Set([...queued.dirty,...dirty])]:null}:{keepPlayer,dirty};return rebuilding;}
-  rebuilding=(async()=>{built=await host.editMap(data,{keepPlayer,dirty});scheduleChecks(dirty?250:0);showGrid();showSelection();showDraft();showBiomes();refreshPreview();revision.value++;})();
+  rebuilding=(async()=>{built=await host.editMap(data,{keepPlayer,dirty});scheduleChecks(dirty?400:0);showGrid();showSelection();showDraft();showBiomes();refreshPreview();revision.value++;})();
   try{await rebuilding;}finally{rebuilding=null;}
   if(queued){const next=queued;queued=null;await rebuild(next);}
  }
@@ -616,11 +629,41 @@ export function createWorldEditor(host){
   if(await change(()=>{apply(e);return [...own,...validate('enemy',e,own)];},own))status.value=`${nameOf('enemy',e)}: ${label}.`;}
  const spawnControl=(label,value,choices,apply)=>h('label',{class:'q-world-editor__field'},label,h('select',{class:'q-select',on:{change:e=>setSpawn(s=>apply(s,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
   choices.map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const s=spawnOf();return !!s&&value(s)===id;}},name))));
+ // The Types screen (type-editor.js): shared per-type settings, saved to src/data/*.json.
+ async function postData(id,json){const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({kind:'data',id,json})});const result=await response.json();if(!response.ok)throw Error(result.error||response.statusText);}
+ function openTypes(start=null){if(!host.modals){status.value='No dialog host here.';return;}host.modals.open({id:'world-editor-types',title:'Types',size:'full',build:()=>typeEditor({start,post:postData})});}
+ // A selected placed resource: its own respawn, XP and drops, or its type's (one undo step each).
+ const resourceOf=()=>{const sel=selection.peek();return sel?.kind==='resource'?lists().resource[sel.index]:null;};
+ async function setResource(apply,label){const r=resourceOf();if(!r)throw Error('Select a resource.');const own=cellsOf('resource',r);
+  if(await change(()=>{apply(r);return own;},own))status.value=`${nameOf('resource',r)}: ${label}.`;}
+ const typeRules=r=>resourceRules({kind:r.kind,species:r.species});
+ const resourceControl=(label,value,typeLabel,choices,apply)=>h('label',{class:'q-world-editor__field'},label,h('select',{class:'q-select',on:{change:e=>setResource(r=>apply(r,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
+  [['',()=>{revision.value;selection.value;const r=resourceOf();return r?`Type (${typeLabel(r)})`:'Type';}],...choices].map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const r=resourceOf();return !!r&&value(r)===id;}},name))));
+ const own=(field,parse)=>(r,v)=>{if(v==='')delete r[field];else r[field]=parse(v);};
+ // The type comes first (shared by every one of it, edited on the Types screen); this placement's own
+ // overrides are rare, so they sit folded away.
+ const typeKeyOf=r=>r.kind==='tree'?`tree:${r.species||DEFAULT_TREE}`:`resource:${r.kind}`;
+ const typeName=r=>r.kind==='tree'?treeOf(r.species).name:r.kind[0].toUpperCase()+r.kind.slice(1);
+ const overrides=(summary,...children)=>h('details',{class:'q-override'},h('summary',null,summary),...children);
+ function resourcePanel(){
+  const rev=signal(0);
+  return h('div',{class:'q-world-editor__group',hidden:()=>{revision.value;return selection.value?.kind!=='resource';}},heading('Resource'),
+   buttons(smallButton(()=>{revision.value;selection.value;const r=resourceOf();return r?`Edit ${typeName(r)} type`:'Edit type';},()=>{const r=resourceOf();if(r)openTypes(typeKeyOf(r));})),
+   overrides('Override for this one (rare)',
+    fields(resourceControl('Respawns after',r=>r.respawn===undefined?'':String(r.respawn),r=>`${resourceRespawn(r.kind,r.species)} s`,RESOURCE_RESPAWNS,own('respawn',Number)),
+     resourceControl('XP',r=>r.xp===undefined?'':String(r.xp),r=>{const t=typeRules(r);return `${t.xp??actionXp(t.effort,t.level)} XP`;},RESOURCE_XP,own('xp',Number))),
+    h('h5',{class:'q-label'},'Drops (blank: the type\u2019s table)'),
+    dropTableEditor({get:()=>{selection.value;revision.value;return resourceOf()?.drops;},set:t=>setResource(r=>{if(t)r.drops=t;else delete r.drops;},'drops').catch(error=>{status.value=error.message;}),rev})));
+ }
+ const spawnRev=signal(0);
  function spawnPanel(){
   return h('div',{class:'q-world-editor__group',hidden:()=>{revision.value;return selection.value?.kind!=='enemy';}},heading('Spawn'),
    fields(spawnControl('Enemy',s=>s.enemy,Object.entries(ENEMIES).map(([id,e])=>[id,e.name]),(s,v)=>{s.enemy=v;}),
-    spawnControl('Behaviour',s=>s.aggressive?'aggressive':'passive',[['passive','Passive'],['aggressive','Aggressive']],(s,v)=>{s.aggressive=v==='aggressive';}),
-    spawnControl('Respawns after',s=>String(s.respawn??45),RESPAWNS,(s,v)=>{s.respawn=+v;})));
+    spawnControl('Behaviour',s=>s.aggressive?'aggressive':'passive',[['passive','Passive'],['aggressive','Aggressive']],(s,v)=>{s.aggressive=v==='aggressive';})),
+   buttons(smallButton(()=>{revision.value;selection.value;const s=spawnOf();return s?`Edit ${ENEMIES[s.enemy]?.name||s.enemy} type`:'Edit type';},()=>{const s=spawnOf();if(s)openTypes(`enemy:${s.enemy}`);})),
+   overrides('Override for this one (rare)',fields(spawnControl('Respawns after',s=>s.respawn===undefined?'':String(s.respawn),[['',()=>{revision.value;selection.value;const s=spawnOf();return s?`Type (${ENEMIES[s.enemy]?.respawn??45} s)`:'Type';}],...RESPAWNS],(s,v)=>{if(v==='')delete s.respawn;else s.respawn=+v;})),
+    h('h5',{class:'q-label'},'Drops (blank: the type\u2019s table)'),
+    dropTableEditor({get:()=>{selection.value;revision.value;return spawnOf()?.drops;},set:t=>setSpawn(e=>{if(t)e.drops=t;else delete e.drops;},'drops').catch(error=>{status.value=error.message;}),rev:spawnRev})));
  }
 
  // A selected townsfolk (docs/TOWN.md, Townsfolk tool): everything about them, changed in place (one undo
@@ -1005,6 +1048,9 @@ export function createWorldEditor(host){
    place(g){g.position.set((bx+tx)/2-6,heightAt(bx,bz),(bz+tz)/2-6);g.rotation.y=Math.atan2(dx,dz);}};}
   if(kind==='crystal')return {key:'crystal',make:()=>({group:makeCrystal()}),place(g){const c=crystalCentre(crystalCells(e).map(([x,z])=>({x,z,h:heightAt(x,z)})));g.position.set(c.x,c.y,c.z);}};
   if(kind==='resource'&&e.kind==='tree')return {key:`tree:${e.species||DEFAULT_TREE}`,make:()=>({group:makeTreeModel(e.species||DEFAULT_TREE)}),place(g){g.position.set(e.x-6,heightAt(e.x,e.z),e.z-6);}};
+  // Other nature as the same models the map shows (the Nature brush's ghosts).
+  if(kind==='resource')return {key:`resource:${e.kind}`,make:()=>({group:e.kind==='boulder'?makeBoulder():e.kind==='copper'?copperOutcrop():createGroundItemModel(e.kind)}),place(g){g.position.set(e.x-6,heightAt(e.x,e.z),e.z-6);}};
+  if(kind==='cover')return {key:`cover:${e.kind}`,make:()=>({group:coverModel(e.kind)}),place(g){g.position.set(e.x-6,heightAt(e.x,e.z),e.z-6);}};
   if(kind==='townsfolk'||kind==='enemy'){const n=kind==='enemy'?enemySize(e.enemy):1,[x,z]=kind==='townsfolk'?e.home||[]:[e.x,e.z];if(x===undefined)return null;
    return {key:`blob:${n}`,make:()=>{const group=new THREE.Group(),m=new THREE.Mesh(blobGeometry);m.scale.set(n,n*.8,n);m.position.y=.34*n;group.add(m);return {group};},place(g){g.position.set(x+(n-1)/2-6,heightAt(x,z),z+(n-1)/2-6);}};}
   return null;}
@@ -1066,10 +1112,13 @@ export function createWorldEditor(host){
    case 'stairs':{if(inPlaceAt(x,z)!==null)return stairsPreview(inPlaceAt(x,z),0,x,z);const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
    case 'crystal':return onCrystal(x,z)?{cells:[{x,z,color:BRUSH}]}:placed('crystal',{id:'new',x,z},[]);
    case 'spawn':{const t=at(x,z),bad=!t||t.blocked||t.water;return {cells:tint([[x,z]],bad?NO:OK),refused:bad?'You can’t arrive there.':null};}
-   case 'nature':{if(!data.land)return null;const choice=o.nature,[group]=choice.split(':');
-    return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>{const t=at(a,b),n=natureAt(a,b);
+   case 'nature':{if(!data.land)return null;const choice=o.nature,[group,kind]=choice.split(':'),ghosts=[];
+    const cells=brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>{const t=at(a,b),n=natureAt(a,b);
      const ok=choice==='fishing'?!!t?.water:choice==='grow'?!!t&&!t.water:choice==='clear'?!!(n.resource||n.cover):group==='cover'?!!t&&!t.water&&t.building===undefined:resourceFits(t)&&!onCrystal(a,b);
-     return {x:a,z:b,color:ok?(choice==='clear'?NO:OK):'#8a8a8a'};})};}
+     // What would be put down, as a ghost on every tile that takes it.
+     if(ok&&kind)ghosts.push(group==='tree'?{kind:'resource',entry:{kind:'tree',species:kind,x:a,z:b}}:{kind:group,entry:{kind,x:a,z:b}});
+     return {x:a,z:b,color:ok?(choice==='clear'?NO:OK):'#8a8a8a'};});
+    return {cells,ghosts};}
    case 'raise':case 'lower':case 'flatten':case 'smooth':case 'ramp':case 'ramps':case 'surface':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:BRUSH}))};
    case 'footprint':return {cells:brushTiles(x,z).filter(([a,b])=>inMap(a,b)).map(([a,b])=>({x:a,z:b,color:o.draftMode==='add'?OK:NO}))};
    case 'biome':{if(!data.land)return null;const r=o.biomeBrush==='3'?1:o.biomeBrush==='5'?2:0,[cx,cz]=cellOf(x,z),[ox,oz]=data.land.origin||[0,0],cells=[];
@@ -1589,7 +1638,7 @@ export function createWorldEditor(host){
   enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk, or click one to change them.',crystal:'Click to set an Iter Crystal (2 × 2), or click one to name it.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
   // On a floor some tools say what they do there.
  const FLOOR_HINTS={room:'Drag a rectangle on this floor: a room with a door.',stairs:'Click where the bottom step goes; , and . turn them.'};
- function setTool(id){if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id)??toolGroup.peek();const hint=floorHere.peek()&&FLOOR_HINTS[id]||TOOL_HINTS[id];if(hint)status.value=hint;}
+ function setTool(id){if(id==='types'){openTypes();return;}if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id)??toolGroup.peek();const hint=floorHere.peek()&&FLOOR_HINTS[id]||TOOL_HINTS[id];if(hint)status.value=hint;}
  // The dock's panel: always outside Decorate; in Decorate only for what's selected, paint and stamps.
  // The panel: always outside Decorate; in Decorate for paint and stamps, and for what's selected (the Hand and Colours
  // give it the whole card; Deco, a column beside the catalogue for a selected prop).
@@ -1685,7 +1734,7 @@ export function createWorldEditor(host){
         h('div',{class:'q-world-editor__opts',hidden:()=>!selection.value||!['select','design'].includes(tool.value)},
          coloursPanel(),lookPanel(),
          // The rest of what's selected, and what you can do with it: the Hand's.
-         h('div',{class:'q-world-editor__opts',hidden:()=>tool.value!=='select'},spawnPanel(),personPanel(),crystalPanel(),floorsPanel(),
+         h('div',{class:'q-world-editor__opts',hidden:()=>tool.value!=='select'},spawnPanel(),resourcePanel(),personPanel(),crystalPanel(),floorsPanel(),
          group(()=>{revision.value;heldRotation.value;const sel=selection.value,entry=entryOf(sel);return entry?`${nameOf(sel.kind,entry)} · ${anchorOf(sel.kind,entry)?.join(',')}${entry.scale&&entry.scale!==1?` · ${Math.round(entry.scale*100)}%`:''}${moving.value?' · held':''}`:'';},flightButtons(),doorButtons(),
           h('div',{class:'q-world-editor__actions-grid',hidden:()=>['flight','door'].includes(selection.value?.kind)},
            h('button',{type:'button',class:'q-button q-button--small',hidden:()=>{revision.value;const e=entryOf(selection.value);return selection.value?.kind!=='prop'||e?.kind!=='dungeonEntrance';},on:{click:fail(()=>{const e=entryOf(selection.peek());status.value=host.enterFloor?.({dungeon:e.link},-1)?`Into ${data.interiors?.[e.link]?.name||'it'}.`:'Can’t go in yet.';})}},'Go in'),
@@ -1743,7 +1792,7 @@ export function createWorldEditor(host){
   lookAt:(x,z)=>host.lookAt?.(x,z),
   selection,moving,select(kind,index){selection.value={kind,index};showSelection();},moveSelection,toolGroup,setTool,heldRotation,get holding(){return holding();},get placing(){return placing;},pickUpNew,drop,turnHeld,lift,cancel,goLevel,paintRoom,makeRoom,pushWall,get heldDoor(){return heldDoor;},get pendingFlight(){return pendingFlight;},commitColour,resetColours,applyPreset,savePreset,presetName,presetFor,palettes,catalogueBy,catalogueGroup,catalogueSearch,nudge,rotateSelection,duplicateSelection,placeCopy,deleteSelection,paint,drag,copySelection,pasteClipboard,
   growMap:growBy,draft,reshapeSelection,buildDraft,clearDraft,setWall,wallAt,setLook,addLand,removeLand,landDefault,reseedLand,
-  hover,get preview(){return {note:previewNote.peek(),ghosts:[...shownGhosts].map(id=>`${id}@${ghosts.get(id)?.group.scale.x}`),cells:lastPreview?.cells||[],faces:(lastPreview?.faces||[]).length};},get checksPending(){return !!checkTimer;},runChecks(){clearTimeout(checkTimer);if(built)problems.value=mapProblems(data,built);return problems.peek();},
+  hover,get preview(){return {note:previewNote.peek(),ghosts:[...shownGhosts].map(id=>`${id}@${ghosts.get(id)?.group.scale.x}`),cells:lastPreview?.cells||[],faces:(lastPreview?.faces||[]).length};},get checksPending(){return !!checkTimer;},runChecks(){clearTimeout(checkTimer);checkTimer=null;if(built)problems.value=mapProblems(data,built);return problems.peek();},
  };
  return editor;
 }

@@ -1,0 +1,67 @@
+{
+ "copper": {
+  "level": 1,
+  "effort": 4.5,
+  "respawn": 8,
+  "drops": {
+   "always": [
+    {
+     "item": "copperOre",
+     "count": 1
+    }
+   ]
+  }
+ },
+ "boulder": {
+  "level": 1,
+  "effort": 4.5,
+  "respawn": 8,
+  "drops": {
+   "always": [
+    {
+     "item": "stone",
+     "count": [1, 3]
+    }
+   ]
+  }
+ },
+ "sticks": {
+  "level": 1,
+  "effort": 4,
+  "respawn": 8,
+  "drops": {
+   "always": [
+    {
+     "item": "sticks",
+     "count": 1
+    }
+   ]
+  }
+ },
+ "stones": {
+  "level": 1,
+  "effort": 4,
+  "respawn": 8,
+  "drops": {
+   "always": [
+    {
+     "item": "stones",
+     "count": 1
+    }
+   ]
+  }
+ },
+ "flint": {
+  "level": 1,
+  "effort": 4,
+  "respawn": 8,
+  "drops": {
+   "always": [
+    {
+     "item": "flint",
+     "count": 1
+    }
+   ]
+  }
+ }
+}

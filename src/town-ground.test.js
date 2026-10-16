@@ -84,6 +84,11 @@ test('nature by hand: placed trees and cover stream like grown ones; removed one
  // A placed resource replaces whatever grew on its tile: one per tile.
  const grownTile=all.find(t=>source.natureAt(t).resource&&!source.natureAt(t).resource.placed);
  data.resources.push({kind:'boulder',x:grownTile.x,z:grownTile.z});assert.deepEqual(source.entities([grownTile]).map(e=>e.kind),['boulder']);
+ // A placement's own settings ride on its entity (resource-rules.js instance overrides); nothing else does.
+ data.enemies=[{enemy:'scrapper',x:grownTile.x,z:grownTile.z,drops:{always:[{item:'flint',count:1}]}}];
+ const spawn=source.extras([grownTile]).find(e=>e.kind==='enemy');assert.equal(spawn.respawn,null,'no spawn respawn: the type\'s applies');assert.deepEqual(spawn.drops,{always:[{item:'flint',count:1}]});
+ data.resources.at(-1).respawn=120;data.resources.at(-1).drops={always:[{item:'stone',count:4}]};data.resources.at(-1).note='x';
+ const [own]=source.entities([grownTile]);assert.equal(own.respawn,120);assert.deepEqual(own.drops,{always:[{item:'stone',count:4}]});assert.equal('note' in own,false);
 });
 test('growing a map keeps the land and what was built where they were',()=>{
  const data=createMapData({id:'grow',size:[64,64],land:{seed:7,default:'hills',cells:{'2,2':'forest'}}});

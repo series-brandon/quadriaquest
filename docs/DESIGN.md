@@ -46,24 +46,26 @@ Decided 2026-10-16. Shared code: `skill-pacing.js` (pace), `tool-tiers.js` (tool
 - **One curve, measured in time.** Every skill levels on the adopted curve ([COMBAT.md](COMBAT.md): 100,000 XP at level 100). Level 100 should take a few hours of active work in that skill. Past 100 is where the real grind starts; levels 200+ are for the hardcore, and no content effort goes there yet. Lumberjack goes well past the current tiers: more trees will come.
 - **XP comes from effort.** An action earns 3.5 XP per second of its nominal effort, ×1.2 for every 10 levels of its requirement, so newly unlocked content always out-earns older content, even at the older content's speed cap. With a Crude Axe, always chopping the best unlocked tree reaches Lumberjack 100 in about 2.7 hours of chopping (`skill-pacing.test.js` keeps it between 2 and 4).
 - **Speed.** Each level above an action's requirement makes it 2% faster, capped at +60% (30 levels above), so nothing becomes instant. Better tool tiers multiply on top. Timed tool work never goes under 1.5 seconds.
+- **Yield.** The same +2% per level above the requirement, capped at +60%, raises each *sure* drop of tool work (the `always` entries of its drop table; `boostedYield`). The extra is rounded by chance: a roll of 2 at +30% gives 2 or 3, averaging 2.6. Chance drops and XP stay per action.
+- **Respawn.** Higher-tier trees take longer to regrow (the table below). A map placement may still set its own time ([Resource and enemy configuration](#resource-and-enemy-configuration)).
 - **Tool tiers.** A tool family (axes, pickaxes) has tiers, each needing a level in its skill. The best tier the player owns and may use does the work, and the slime holds that tier's model. Only the Crude tier exists; more axes come with the mining and smithing pass.
 - **Depleted resources leave a remnant** (RuneScape-style, 2026-10-16): a felled tree leaves a stump in its own bark and size, and a mined boulder or copper rock leaves low rubble. The tile stays blocked until the resource regrows, so regrowth never waits for the tile to clear. Hovering a remnant names it ("Oak Tree stump", "Rubble", "Spent copper rock"); clicking it does nothing. Ground items still just disappear.
 - **Entity XP modifiers.** A resource can boost its XP below a level (`xp: {scale, belowLevel}`), as Cinderhold's creatures do for combat. The clearing's six pickups give ×7 until Gathering 2, so the opening still reaches its first level on the sixth item.
 
-**Lumberjack tiers** (`lumberjack.js`). Each tree yields its wood ×1–3. Effort is before the level bonus; values are shop prices ([ECONOMY.md](ECONOMY.md)).
+**Lumberjack tiers** (`src/data/trees.json`). Each tree's drop table gives its wood (more above its level); effort is in seconds, before the level bonus. Wood prices belong to the items (`items.js`; [ECONOMY.md](ECONOMY.md)).
 
-| Tree | Yields | Lumberjack | Effort | XP | Value |
+| Tree | Drops | Lumberjack | Effort | XP | Regrows |
 |---|---|---|---|---|---|
-| Poplar Tree | Poplar Wood Pieces | 1 | Tiny (4 s) | 14 | 4 |
-| Asla Tree | Asla Wood Pieces | 10 | Small (6 s) | 25 | 6 |
-| Pine Tree | Pine Wood Pieces | 20 | Small (6 s) | 30 | 8 |
-| Oak Tree | Oak Wood Pieces | 30 | Small (6 s) | 36 | 11 |
-| Willow Tree | Willow Wood Pieces | 40 | Medium (9 s) | 65 | 15 |
-| Maple Tree | Maple Wood Pieces | 50 | Medium (9 s) | 78 | 20 |
-| Walnut Tree | Walnut Wood Pieces | 60 | Medium (9 s) | 94 | 26 |
-| Ironwood Tree | Ironwood Pieces | 70 | Large (13 s) | 163 | 33 |
-| Mungil Tree | Mungil Wood Pieces | 80 | Large (13 s) | 196 | 42 |
-| Cherry Blossom Tree | Cherry Wood Pieces | 90 | Large (13 s) | 235 | 52 |
+| Poplar Tree | Poplar Wood Pieces ×1–3 | 1 | 4 s | 14 | 10 s |
+| Asla Tree | Asla Wood Pieces ×1–3 | 10 | 6 s | 25 | 15 s |
+| Pine Tree | Pine Wood Pieces ×1–3 | 20 | 6 s | 30 | 20 s |
+| Oak Tree | Oak Wood Pieces ×1–3 | 30 | 6 s | 36 | 30 s |
+| Willow Tree | Willow Wood Pieces ×1–3 | 40 | 9 s | 65 | 45 s |
+| Maple Tree | Maple Wood Pieces ×1–3 | 50 | 9 s | 78 | 1 min |
+| Walnut Tree | Walnut Wood Pieces ×1–3 | 60 | 9 s | 94 | 1.5 min |
+| Ironwood Tree | Ironwood Pieces ×1–3 | 70 | 13 s | 163 | 2 min |
+| Mungil Tree | Mungil Wood Pieces ×1–3 | 80 | 13 s | 196 | 3 min |
+| Cherry Blossom Tree | Cherry Wood Pieces ×1–3 | 90 | 13 s | 235 | 4 min |
 
 Models (`tree-models.js`): Poplar is a pale, columnar tree; Asla (after balsa) is a tall smooth trunk under a light umbrella crown; Willow is a few small weeping peaks; Walnut is a stout, broad, dark tree; Ironwood is a gnarled near-black trunk with an angular crown; Mungil (after lignum vitae) is the dense orb with hanging fronds (the old willow) dotted with blue blossoms. Pine, Oak, Maple and Cherry keep their looks. Every tutorial tree is a Poplar, and an unknown species falls back to one. Overworld trees are hand-placed for a good mix; generated woodland still picks species by biome.
 
@@ -73,6 +75,20 @@ Models (`tree-models.js`): Poplar is a pale, columnar tree; Asla (after balsa) i
 - **The Crude exception.** Crude tools, weapons and armor are always craftable from sticks and rocks, so a player can never get stuck. The Crude Shield (Sticks ×2, Rocks ×1) replaced the Wooden Shield.
 - **Ingredient groups.** A recipe may ask for any member of a group (`ITEM_GROUPS` in `items.js`). The Campfire and the bridge repair take any Wood Pieces; crafting spends the lowest tier first, mixing tiers if one runs short.
 - **Waiting for the mining pass:** mine Copper Ore, smelt it at the furnace into Copper Pieces, and have smithing use pieces. Copper Ingots go away for now (they may return as pieces → ingots → things that need ingots). Pickaxes gain tiers the same way axes do.
+
+### Resource and enemy configuration
+
+User rule, 2026-10-16 (also in AGENTS.md): tuning is data in layers, never only a formula. Almost everything is set once per type and shared by every instance (every Poplar regrows the same; every Oak drops the same); a placement override is the rare exception.
+
+**Where the types live:** `src/data/trees.json` (every tree tier), `src/data/resources.json` (rocks and ground items) and `src/data/enemies.json` (each enemy's respawn and drops; its combat stats stay in `combat-rules.js`). The game imports them as its live tables (`TREES`, `RESOURCE_RULES`, `ENEMIES`). Edit them by hand or with the world editor's **Types** screen (Map → Types): pick a type and change a resource's level, effort (seconds), respawn and XP (blank: from effort), or an enemy's respawn, and either's drop table; edits apply in the world at once, and *Save* writes the files through the dev server (`formatData`, without reloading the page).
+
+| Layer | Resources (trees, rocks, ground items) | Enemies |
+|---|---|---|
+| **Type** (shared) | `src/data/resources.json` and each tree tier in `src/data/trees.json`: `level`, `effort` (seconds), `respawn`, `drops`, optional `xp`; Types screen | `src/data/enemies.json`: `respawn`, `drops`; Types screen |
+| **Instance** (rare) | `respawn`, `xp`, `drops` (replaces the type's table) on the entry in `data.resources`; select it → Resource panel → *Override for this one (rare)* | `respawn` and `drops` on the entry in `data.enemies`; Spawn panel → *Override for this one (rare)* |
+| **Formula** (only where neither sets) | XP from effort (`actionXp`); the level's speed bonus, and its yield bonus on sure drops | none |
+
+Drops use one table format everywhere (`drops.js`: `{always:[{item,count}], rolls:[{item,chance,count}]}`, a count a number or [min, max]). Everything a resource or enemy gives is in it: a tree's wood, a rock's stone, a goblin's Gold Pieces (just the `gold` item). The configs themselves stay separate: a resource has level, effort and XP; an enemy has stats and behaviour (in code). One drop-table editor (`dropTableEditor` in `dev/type-editor.js`) serves the Types screen and the rare overrides.
 
 ### Guide and interactive tutorials (planned)
 
@@ -453,7 +469,7 @@ Every added shared capability must also be exercisable in the development playgr
 Combat/equipment, gathering/chopping/mining, fishing, carpentry, eating/health, cooking, and campfire placement use app-owned systems. Inventory crafting, including the introductory axe and pickaxe, uses the shared recipe controller. The existing file placement does not authorize copying these implementations into another world. The bridge collapse and repair/rescue story, scripted injury moment, stranded-animal sequence, Reed's lines, tutorial objectives, and map coordinates remain legitimate Willowbank narrative/layout. Shared carpentry owns tool/material checks, timing, hammering, cancellation, consumption, and XP; the chapter configures the target and reacts to its progress/completion. See [HANDOFF.md](HANDOFF.md) for the actionable backlog and current verification status.
 
 
-Resource gameplay is shared through `resource-actions.js`, `resource-entities.js`, and `resource-rules.js`. Trees and boulders use a 3–6 second base work roll, reduced by skill level, and yield 1–3 materials plus 20 skill XP after their depletion animation. Ground bundles yield one item and 20 Gathering XP. Every area uses the same eight-second respawn (`RESOURCE_RESPAWN`, the default in `createResourceEntity`; pass `respawn:null` only for a deliberately finite node). Solid respawns wait until their tile is free of players, reserved movement, companions, and other occupants. Off-map depletion and respawn clocks pause; committed depletion resumes on return, and reset discards pending rewards.
+Resource gameplay is shared through `resource-actions.js`, `resource-entities.js`, and `resource-rules.js`. Trees and boulders take their effort ±15% (a tree's from its tier), sped up by skill level, and give their drop table (more sure drops with levels above the requirement), plus effort-based skill XP after their depletion animation ([Skill tiers and pacing](#skill-tiers-and-pacing)). Ground bundles yield one item and Gathering XP. Respawn is the same in every area: a tree's tier sets its own, everything else takes `RESOURCE_RESPAWN` (8 s); a placement may pass its own `respawn`, or `respawn:null` for a deliberately finite node. A depleted solid resource keeps its tile blocked under its stump or rubble, so its respawn never waits. Off-map depletion and respawn clocks pause; committed depletion resumes on return, and reset discards pending rewards.
 
 
 Equipment state and worn sword/shield/top-hat presentation are app-owned and persist through travel/defeat. The clearing finale only owns its held-hat reward celebration. Sword/shield recipes and equip actions are available without visiting an area. Removing the last item unequips it. Equip changes are blocked while working or fighting. Combat retains the existing damage/attack cadence, protected Scrapper, pursuit timeout/distance leash, fleeing win presentation, and 20 XP reward. Enemy homes and patrol bounds are placement configuration. Returning enemies wait if their home is occupied. Defeat uses a safe crystal-adjacent tile when available, otherwise a free tile in the current map; if no safe tile exists, recovery waits. Items, equipment, and skills are preserved.

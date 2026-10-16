@@ -1,26 +1,22 @@
-import {rollToolWork} from './resource-rules.js';
+import {RESOURCE_RULES,rollToolWork} from './resource-rules.js';
+import {rollDrops} from './drops.js';
 import {Vector3} from 'three';
-import {addSkillXp,gatheringDuration,GATHER_EFFORT} from './skills.js';
-import {actionXp,workDuration} from './skill-pacing.js';
+import {addSkillXp,gatheringDuration} from './skills.js';
+import {actionXp,workDuration,boostedYield} from './skill-pacing.js';
 import {treeOf,treeEffort} from './lumberjack.js';
 import {bestTool,toolBlocker} from './tool-tiers.js';
 import {animateResourceHit,animateResourceDepletion} from './resource-depletion.js';
 import {blocksMovement,setWorldOccupancy} from './world-occupancy.js';
 
-// `tool` is a tool family (tool-tiers.js); `effort` the nominal seconds of work, which also sets the XP
-// (skill-pacing.js); `level` the skill level needed. A tree takes its item, level and effort from its
-// species' tier (lumberjack.js).
-export const RESOURCE_RULES={
- copper:{tool:'pickaxe',skill:'Mining',motion:'Mining',item:'copperOre',quantity:1,effort:4.5,level:1},
- tree:{tool:'axe',skill:'Lumberjack',motion:'Chopping'},
- boulder:{tool:'pickaxe',skill:'Mining',motion:'Mining',item:'stone',effort:4.5,level:1},
- sticks:{skill:'Gathering',motion:'Gathering',item:'sticks',effort:GATHER_EFFORT,level:1},
- stones:{skill:'Gathering',motion:'Gathering',item:'stones',effort:GATHER_EFFORT,level:1},
- flint:{skill:'Gathering',motion:'Gathering',item:'flint',effort:GATHER_EFFORT,level:1}
-};
+export {RESOURCE_RULES};
+// A node's rules: its type (RESOURCE_RULES, and a tree's tier), then its own placement's overrides
+// (node.config: xp, drops; respawn lives on the node). See resource-rules.js.
 export function resourceRules(node){
- const base=RESOURCE_RULES[node.kind];if(!base||node.kind!=='tree')return base;
- const tree=treeOf(node.species);return {...base,item:tree.wood,level:tree.level,effort:treeEffort(node.species),name:tree.name};
+ const base=RESOURCE_RULES[node.kind];if(!base)return base;
+ const tree=node.kind==='tree'?treeOf(node.species):null;
+ const type=tree?{...base,level:tree.level,effort:treeEffort(node.species),name:tree.name,respawn:tree.respawn,drops:tree.drops,
+  ...tree.xp!==undefined?{xp:tree.xp}:{}}:base;
+ return node.config?{...type,...node.config}:type;
 }
 // Why the player can't work this node right now (level, then tool), or null.
 export function resourceBlocker(node,inventory,skills){
@@ -28,10 +24,10 @@ export function resourceBlocker(node,inventory,skills){
  if(level<rules.level)return `You need ${rules.skill} level ${rules.level} to ${rules.motion==='Chopping'?'chop':'work'} ${rules.name?`the ${rules.name}`:'this'}.`;
  return rules.tool?toolBlocker(rules.tool,inventory,level):null;
 }
-// A node's XP for one reward, after its entity modifier (`xp: {scale, belowLevel}`; tutorial areas boost
-// early levels this way, as Cinderhold's creatures do for combat).
+// A node's XP for one reward: its configured `xp`, else the effort pace; then its entity modifier
+// (`xpBoost: {scale, belowLevel}`; tutorial areas boost early levels this way, as Cinderhold's creatures do).
 export function resourceXp(node,rules,skill){
- const base=actionXp(rules.effort,rules.level),boost=node.xp;
+ const base=rules.xp??actionXp(rules.effort,rules.level),boost=node.xpBoost;
  return boost&&skill.level<(boost.belowLevel??Infinity)?Math.round(base*(boost.scale??1)):base;
 }
 export function resourceDuration(rules,skills,inventory,roll){
@@ -48,22 +44,26 @@ export function createResourceActions(api){
   const blocked=resourceBlocker(node,api.inventory,api.skills);if(blocked){api.toast?.(blocked);return false;}
   api.stop();api.face(node.x,node.z);const roll=rules.tool?rollToolWork(rules.effort,api.random):null;
   const tool=rules.tool?bestTool(rules.tool,api.inventory,api.skills[rules.skill].level).item:null;
-  action={node,rules,tool,age:0,duration:resourceDuration(rules,api.skills,api.inventory,roll),quantity:rules.quantity??roll?.quantity??1};
+  action={node,rules,tool,age:0,duration:resourceDuration(rules,api.skills,api.inventory,roll)};
   api.started?.(node,rules);node.onStart?.();return true;
  }
- function reward(node,rules,quantity){
+ function reward(node,rules){
   // A solid resource leaves its remnant on a still-blocked tile; a ground item frees its tile.
   node.group.visible=false;node.showRemnant?.(true);if(!node.solid)setWorldOccupancy(node,false);
-  api.inventory[rules.item]=(api.inventory[rules.item]||0)+quantity;
+  // Its drop table (the type's, or this placement's); levels above the requirement raise tool work's sure
+  // drops, as they raise its speed (skill-pacing.js).
+  const level=api.skills[rules.skill].level,boost=rules.tool?n=>boostedYield(n,level,rules.level,api.random):null;
+  const changes=rollDrops(rules.drops,api.random,{boost});
+  for(const [id,n] of Object.entries(changes))api.inventory[id]=(api.inventory[id]||0)+n;
   const skill=api.skills[rules.skill],xp=addSkillXp(skill,resourceXp(node,rules,skill),rules.skill);
   if(node.respawn!==null)respawning.set(node,node.respawn);
-  api.rewarded?.(node,{[rules.item]:quantity},xp);node.onReward?.(quantity,xp);
+  api.rewarded?.(node,changes,xp);node.onReward?.(changes,xp);
  }
  function update(dt){
   const waiting=[...respawning];
   // Finish committed depletion before starting new work. Off-map entities retain state.
   for(const [node,fall] of [...depleting])if(current(node)){
-   fall.age+=dt;if(animateResourceDepletion(node,fall.age,fall.axis)){depleting.delete(node);reward(node,fall.rules,fall.quantity);}
+   fall.age+=dt;if(animateResourceDepletion(node,fall.age,fall.axis)){depleting.delete(node);reward(node,fall.rules);}
   }
   for(const [node,left] of waiting)if(current(node)){
    const remaining=left-dt;respawning.set(node,remaining);
@@ -75,7 +75,7 @@ export function createResourceActions(api){
   if(a.age>=a.duration){
    action=null;node.depleted=true;node.highlight?.update(false,0);api.completed?.();
    if(rules.tool){api.sound('fall');const at=api.tile(),direction=new Vector3(node.x-at.x,0,node.z-at.z).normalize();depleting.set(node,{...a,age:0,axis:new Vector3(direction.z,0,-direction.x)});node.showRemnant?.(true);}
-   else reward(node,rules,a.quantity);
+   else reward(node,rules);
    return null;
   }
   return {kind:rules.motion,time:a.age,tool:a.tool};

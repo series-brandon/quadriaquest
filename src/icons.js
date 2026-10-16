@@ -1,4 +1,4 @@
-import {WOODS} from './lumberjack.js';
+import {WOODS} from './items.js';
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
  quickRestore:'<path d="M9 3h6M10 3v5l-5 9q-2 4 3 4h8q5 0 3-4l-5-9V3M7 15h10"/>',

@@ -182,7 +182,7 @@ createTerrainBatch({tiles:[...grassFor.keys()],map:world,factory:t=>makeTerrainT
 const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[],CLEARING_GATHER_XP={scale:7,belowLevel:2};
 // Gathering after n of the opening's pickups, for checkpoints and lessons that start partway.
 const openingGathering=n=>{const xp=n*Math.round(actionXp(GATHER_EFFORT)*CLEARING_GATHER_XP.scale);return {xp,level:levelForXp(xp)};};
-resourceSpecs.forEach(([x,z,kind],id)=>resources.push(createResourceEntity({kind,tile:world.get(key(x,z)),parent:scene,pickables,id,xp:CLEARING_GATHER_XP})));
+resourceSpecs.forEach(([x,z,kind],id)=>resources.push(createResourceEntity({kind,tile:world.get(key(x,z)),parent:scene,pickables,id,xpBoost:CLEARING_GATHER_XP})));
 const clearingObjects=scene.children.filter(object=>!object.isLight);
 const clearingGroup=new THREE.Group();scene.add(clearingGroup);for(const object of clearingObjects)if(object!==ground)clearingGroup.add(object);
 for(const object of clearingObjects)object.visible=false;
@@ -458,7 +458,7 @@ const shopMenu=createShopMenu({modals,shops,items:ITEMS,inventory,wallet,onTrade
 // click to pick up. The playground can fix the random seed.
 let dropRandom=Math.random;
 const lootPiles=createLootPiles({pickables,pickUp(items){for(const [id,n] of Object.entries(items))inventory[id]=(inventory[id]||0)+n;showItemChanges(items);return true;}});
-function dropLoot(enemy){const items=rollDrops(enemy.rules?.drops,dropRandom);if(Object.keys(items).length)lootPiles.spawn({tile:enemy.tile,parent:areas.active?.group||scene,items});}
+function dropLoot(enemy){const items=rollDrops(enemy.drops??ENEMIES[enemy.kind]?.drops,dropRandom);if(Object.keys(items).length)lootPiles.spawn({tile:enemy.tile,parent:areas.active?.group||scene,items});}
 // Jobs (jobs.js; docs/ECONOMY.md): the quest board's offers and townsfolk givers, shared by every map.
 // Deliveries go to people who live or work in the giver's city.
 const jobs=createJobs({inventory,wallet,
@@ -510,12 +510,12 @@ function placeLandExtra(e,{tile:t,parent,tileAt},saved){
    return {dispose(){model.group.removeFromParent();for(const m of hits){const k=pickables.indexOf(m);if(k>=0)pickables.splice(k,1);}model.group.traverse(o=>o.geometry?.dispose());}};}
   if(e.kind==='prop'){try{const prop=createProp(e.prop,{origin:[e.x,e.z],rotation:e.rotation,tileAt,parent,pickables});return {dispose:()=>prop.dispose()};}catch{return null;}}
   if(e.kind==='enemy'){
-   // A defeated enemy stays away for its respawn time (a placed spawn's own, else ENEMY_RESPAWN seconds),
-   // even if its chunk unloads meanwhile.
-   const respawn=e.respawn??ENEMY_RESPAWN;
+   // A defeated enemy stays away for its respawn time (the spawn's own, else its type's, else ENEMY_RESPAWN
+   // seconds), even if its chunk unloads meanwhile. A spawn may also carry its own drop table.
+   const respawn=e.respawn??ENEMIES[e.enemy]?.respawn??ENEMY_RESPAWN;
    if(saved?.away>elapsed)return {dispose(){},save:()=>saved};
    if(t.blocked||characterAt(t))return null;
-   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressive:e.aggressive,aggroRange:3,respawn}));
+   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressive:e.aggressive,aggroRange:3,respawn,drops:e.drops??null}));
    return {dispose:()=>combat.remove(a),busy:()=>combat.matches(a)||combat.engagedEnemy===a,save:()=>a.opened?{away:elapsed+respawn}:null};}
   return null;}
 // A chunk's dressing: its animated water and its ground cover (flowers, grass, reeds, lily pads…),
@@ -549,7 +549,7 @@ function geltonReady(){
    const cover=chunkedCover(coverPool,greens.cover);
    built.onStream=chunks=>cover.sync(id=>chunks.get(id)?.root.visible);built.onStream(built.chunks);}
   // Gather spots placed by the map (shared resource entities).
-  for(const r of built.data.resources||[]){const t=built.tiles.get(key(r.x,r.z));if(t&&!t.blocked&&!t.prop)resourceActions.add(createResourceEntity({kind:r.kind,species:r.species,tile:t,parent:chunkRootOf(r.x,r.z),pickables,id:`gelton:${r.kind}:${r.x},${r.z}`}));}
+  for(const r of built.data.resources||[]){const t=built.tiles.get(key(r.x,r.z));if(t&&!t.blocked&&!t.prop)resourceActions.add(createResourceEntity({kind:r.kind,species:r.species,tile:t,parent:chunkRootOf(r.x,r.z),pickables,config:r,id:`gelton:${r.kind}:${r.x},${r.z}`}));}
   // The countryside streams into the area's tiles, and into the live world map while Gelton is active.
   const maps=[built.tiles];
   const topColor=t=>{if(t.water)return WATER_TOP;const hex=surfaceColor(t);if(!surfaceTop.has(hex))surfaceTop.set(hex,new THREE.Color(hex));return surfaceTop.get(hex);};

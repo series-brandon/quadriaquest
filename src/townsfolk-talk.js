@@ -1,5 +1,4 @@
-import {ITEMS} from './items.js';
-import {WOODS} from './lumberjack.js';
+import {ITEMS,WOODS} from './items.js';
 import {SHOP_WANTS} from './jobs.js';
 
 // Talking to townsfolk (docs/ECONOMY.md, Jobs): a conversation in the character dialogue box, the same

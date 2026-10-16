@@ -239,3 +239,23 @@
 .q-world-editor__weight:has(.q-input[data-on='false']) span { opacity: .55; }
 .q-world-editor__pair > .q-world-editor__field { display: grid; gap: 4px; }
 .q-world-editor__person .q-world-editor__buttons .q-button { white-space: nowrap; }
+
+/* Types screen (type-editor.js): the type list beside the chosen type's shared settings. */
+.q-types { display: grid; grid-template-columns: minmax(180px, 240px) 1fr; gap: 24px; block-size: 100%; min-block-size: 0; }
+.q-types__nav { display: grid; align-content: start; gap: 12px; overflow: auto; }
+.q-types__nav section { display: grid; gap: 2px; }
+.q-types__pick { inline-size: 100%; padding: 6px 8px; border: 0; border-radius: var(--q-control-radius); background: transparent; color: var(--q-ink); font: inherit; text-align: start; cursor: pointer; }
+.q-types__pick[aria-pressed='true'] { background: var(--q-control-selected); }
+.q-types__detail { display: grid; align-content: start; gap: 12px; min-block-size: 0; overflow: auto; }
+.q-types__detail h3 { margin: 0; }
+.q-types__file { margin: 0 0 8px; color: var(--q-ink-muted); font-size: 12px; }
+.q-types__fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 12px; margin-block-end: 12px; }
+.q-types__field { display: grid; gap: 4px; }
+.q-types__inline { display: inline-flex; align-items: center; gap: 6px; }
+.q-types__num { inline-size: 4.5em; }
+.q-types__drops { display: grid; gap: 6px; }
+.q-types__list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.q-types__drop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.q-types__drop .q-select { flex: 0 1 220px; min-inline-size: 140px; inline-size: auto; }
+.q-types__bar { display: flex; align-items: center; gap: 12px; }
+.q-override summary { cursor: pointer; color: var(--q-ink-muted); }

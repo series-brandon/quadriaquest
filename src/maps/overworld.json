@@ -1432,7 +1432,542 @@
   "enemies": false,
   "fishing": false
  },
- "resources": [],
+ "resources": [
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 175,
+   "z": 195
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 181,
+   "z": 201
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 189,
+   "z": 195
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 186,
+   "z": 182
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 176,
+   "z": 181
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 186,
+   "z": 162
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 174,
+   "z": 193
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 162,
+   "z": 161
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 170,
+   "z": 145
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 187,
+   "z": 200
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 187,
+   "z": 163
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 199,
+   "z": 159
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 208,
+   "z": 172
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 217,
+   "z": 182
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 214,
+   "z": 182
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 213,
+   "z": 183
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 217,
+   "z": 202
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 206,
+   "z": 213
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 175,
+   "z": 209
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 182,
+   "z": 150
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 178,
+   "z": 156
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 161,
+   "z": 176
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 163,
+   "z": 176
+  },
+  {
+   "kind": "tree",
+   "species": "asla",
+   "x": 195,
+   "z": 228
+  },
+  {
+   "kind": "tree",
+   "species": "asla",
+   "x": 190,
+   "z": 229
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 93,
+   "z": 163
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 90,
+   "z": 162
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 86,
+   "z": 159
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 100,
+   "z": 151
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 86,
+   "z": 144
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 94,
+   "z": 115
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 81,
+   "z": 127
+  },
+  {
+   "kind": "tree",
+   "species": "oak",
+   "x": 167,
+   "z": 163
+  },
+  {
+   "kind": "tree",
+   "species": "oak",
+   "x": 173,
+   "z": 163
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 241,
+   "z": 175
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 249,
+   "z": 180
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 244,
+   "z": 194
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 249,
+   "z": 208
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 261,
+   "z": 194
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 271,
+   "z": 200
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 265,
+   "z": 213
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 247,
+   "z": 219
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 281,
+   "z": 211
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 298,
+   "z": 201
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 299,
+   "z": 223
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 313,
+   "z": 214
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 322,
+   "z": 209
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 323,
+   "z": 215
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 324,
+   "z": 216
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 342,
+   "z": 202
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 341,
+   "z": 216
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 328,
+   "z": 226
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 358,
+   "z": 227
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 372,
+   "z": 226
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 376,
+   "z": 218
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 360,
+   "z": 204
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 380,
+   "z": 197
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 283,
+   "z": 222
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 243,
+   "z": 152
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 254,
+   "z": 159
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 252,
+   "z": 139
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 247,
+   "z": 137
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 238,
+   "z": 132
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 251,
+   "z": 126
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 249,
+   "z": 131
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 238,
+   "z": 122
+  },
+  {
+   "kind": "tree",
+   "species": "willow",
+   "x": 234,
+   "z": 120
+  },
+  {
+   "kind": "tree",
+   "species": "maple",
+   "x": 183,
+   "z": 19
+  },
+  {
+   "kind": "tree",
+   "species": "maple",
+   "x": 193,
+   "z": 14
+  },
+  {
+   "kind": "tree",
+   "species": "maple",
+   "x": 123,
+   "z": 16
+  },
+  {
+   "kind": "tree",
+   "species": "maple",
+   "x": 113,
+   "z": 13
+  },
+  {
+   "kind": "tree",
+   "species": "maple",
+   "x": 120,
+   "z": 9
+  },
+  {
+   "kind": "tree",
+   "species": "maple",
+   "x": 336,
+   "z": 25
+  },
+  {
+   "kind": "tree",
+   "species": "maple",
+   "x": 302,
+   "z": 18
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 306,
+   "z": 89
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 272,
+   "z": 85
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 277,
+   "z": 75
+  },
+  {
+   "kind": "tree",
+   "species": "pine",
+   "x": 295,
+   "z": 77
+  },
+  {
+   "kind": "tree",
+   "species": "walnut",
+   "x": 22,
+   "z": 14
+  },
+  {
+   "kind": "tree",
+   "species": "walnut",
+   "x": 18,
+   "z": 10
+  },
+  {
+   "kind": "tree",
+   "species": "walnut",
+   "x": 18,
+   "z": 17
+  },
+  {
+   "kind": "tree",
+   "species": "ironwood",
+   "x": 7,
+   "z": 15
+  },
+  {
+   "kind": "tree",
+   "species": "ironwood",
+   "x": 6,
+   "z": 17
+  },
+  {
+   "kind": "tree",
+   "species": "mungil",
+   "x": 318,
+   "z": 211
+  },
+  {
+   "kind": "tree",
+   "species": "mungil",
+   "x": 378,
+   "z": 225
+  },
+  {
+   "kind": "tree",
+   "species": "cherry",
+   "x": 184,
+   "z": 197
+  },
+  {
+   "kind": "tree",
+   "species": "cherry",
+   "x": 179,
+   "z": 197
+  },
+  {
+   "kind": "tree",
+   "species": "cherry",
+   "x": 185,
+   "z": 192
+  },
+  {
+   "kind": "tree",
+   "species": "cherry",
+   "x": 178,
+   "z": 189
+  }
+ ],
  "cover": [],
  "fishing": [],
  "enemies": []

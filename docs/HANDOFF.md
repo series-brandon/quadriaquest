@@ -30,6 +30,31 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Drop tables carry every yield; effort in seconds; gold an item — 2026-10-16 (user feedback)
+- `src/data/trees.json` is one row per tree (`name`, `level`, `effort` seconds, `respawn`, `drops`, optional `xp`); effort size classes are gone. `resources.json` the same without `name`. Their wood/stone/ore comes from `drops.always`; `yield`, `item` and tree `value`/`wood`/`woodName`/`description` are gone. Wood items (names, descriptions, prices) are written out in `items.js`, which now exports `WOODS`.
+- `rollDrops(table, random, {boost})` boosts sure drops (the level yield bonus for tool work); resources roll their table at reward (`resource-actions.js`). The drop format has no `gold` field: Gold Pieces are the `gold` item (`enemies.json` lists it in `always`).
+- Types screen: resources show Level, Effort (seconds), Respawn (seconds), XP and Drops; enemies show Respawn and Drops (their stats stay in code). One drop editor (sure and chance drops) for both. The placement override lost Yield (its drops replace the type's table).
+- Next: an item editor (value, stats) on the same screen.
+
+### Types screen and shared type data files — 2026-10-16 (user request)
+- Type tables moved to `src/data/trees.json`, `resources.json`, `enemies.json` (imported with `with {type:'json'}`; Node 22 and Vite both handle it). `treesData()`, `resourcesData()`, `enemiesData()` write the live tables back; `data-file.js` `formatData` keeps them readable; `data-file.test.js` checks they round-trip unchanged.
+- `dev/type-editor.js`: the Types screen (Map group → Types tool button; a `full`-size modal, a new modal-host size for work that needn't see the game) and the shared `dropTableEditor`. Saving uses `/__map-save` with `kind:'data'` (only those three ids; no page reload). Edits apply live: a resource's respawn now reads its type when it has no override, enemy drops read `ENEMIES` live, a wood's value updates its item.
+- Resource and Spawn panels lead with *Edit <type> type*; per-placement overrides (now with drop tables) are folded under *Override for this one (rare)*.
+- Not done: undo on the Types screen (Save is explicit; close without saving and reload to drop edits).
+
+### Configuration as layered data — 2026-10-16 (user rule, now in AGENTS.md)
+- Resources: `resource-rules.js` holds each type's `respawn`, `yield`, `effort`, `level` (trees: their tier in `lumberjack.js`, now with `yield`), optional `xp` and `drops`. A placement's `respawn`/`yield`/`xp`/`drops` (`instanceConfig`) override per instance through `createResourceEntity({config})`, `town-ground.js` placed entities, `chunk-streamer.js` and main.js's built-map resources. XP falls back to `actionXp` only when neither sets it. The tutorial XP modifier is now `xpBoost`.
+- Enemies: `ENEMIES[kind].respawn` per type; land spawns may carry `respawn` and `drops` (`createEnemyEntity({drops})`, `dropLoot` prefers the spawn's).
+- World editor: a **Resource** panel for a selected placed resource (respawn, yield, XP, each with *Type*); the Spawn panel's respawn has *Type*. Not built: editing drop tables in the editor.
+
+### Tree respawn by tier and the yield bonus — 2026-10-16 (user request)
+- Each tree tier has `respawn` seconds (`lumberjack.js`: Poplar 10 s up to Cherry Blossom 4 min). `createResourceEntity` uses it when no `respawn` is passed (`resourceRespawn`); other resources keep `RESOURCE_RESPAWN` (8 s), and an explicit value (or `null`) still wins. `chunk-streamer.js` no longer forces 8 s.
+- `boostedYield` (`skill-pacing.js`): tool work yields +2% per level above the requirement, capped at +60%, rounded by chance; applied in `resource-actions.js` to trees, boulders and copper. XP stays per action. Playground readout shows the bonus and the regrow time.
+
+### Editor: Nature brush ghosts and the placement hitch — 2026-10-16 (user report)
+- The Nature brush now shows ghosts (trees, other resources, ground cover) on every tile under the brush that takes them (`ghostSpec` kinds `resource` and `cover`).
+- **The hitch after placing anything was the live map checks**, which ran 250 ms after every edit and took about 0.45 s on the overworld and about 3 s in the capital (measured headless with `buildMap` on `src/maps/*.json`). Fixes in `map-checks.js`: one grid-based `neighbourIndex` per run instead of "x,z" string keys; `connectedAreas` labels walkable areas once, used by the furniture check (was a whole-map flood fill per building) and by `townsfolkProblems` (now takes `{reach, connected}` instead of building a navigator distance field per townsperson and spot). Now the overworld takes about 0.1 s in the browser and the capital about 35 ms. The editor also runs them 400 ms after edits settle, when the browser is idle.
+
 ### Resource remnants, no inventory gold total, dialogue portrait faces — 2026-10-16 (user request)
 - **Remnants:** a depleted tree, boulder or copper rock leaves a stump (`makeStumpModel`, `tree-models.js`; each species has `bark` and `trunk`) or rubble (`makeRubble`, `mining.js`) made lazily by `entity.showRemnant` (`resource-entities.js`). The tile stays blocked while depleted, so solid regrowth no longer waits for the tile; ground items are unchanged. Hover shows `depletedLabel`; clicking a remnant does nothing. `selectTree` now uses `resourceActions.blocker` instead of its own tool check. Playground: Lumberjack practice → *Fell planted trees (stumps)*; model viewer: *Stump (…)*, *Rubble (…)*.
 - **Gold:** the Inventory page's separate gold total is gone; Gold Pieces are just a stack.

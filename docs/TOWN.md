@@ -368,6 +368,7 @@ User request: see a ghost of anything being moved or placed (buildings too); aim
   - props and furniture (sized as they will be);
   - **buildings**: their real model, built off to the side on flat ground of their own (`createBuilding` at origin 0, 0, as the model catalogue does) and rebuilt only when the building's look or turn changes;
   - Iter Crystals, trees, and a blob for townsfolk and enemy spawns;
+  - the **Nature brush**: the tree, resource or ground cover being placed, one ghost on every tile under the brush that takes it (2026-10-16);
   - each item of a group or stamp.
   
   Edges and stairs show only their tiles. A look is built once and kept (a building's is let go when many have been made).
@@ -648,7 +649,9 @@ User request: an enemy spawn placement tool (generated enemies are off; spawns a
 - **In play:** spawns come in through the land's streamer (town-ground.js `townSource` extras) like any other enemy, with their own respawn time (main.js `placeLandExtra`). A defeated enemy stays away for that time, even while its chunk is unloaded.
 - **World editor:**
   - The **Enemy** tool sets the enemy, its behaviour (passive, which fights back, or aggressive) and its respawn time (30 s to 15 min). Its preview turns red, with the reason, on water, blocked tiles or another spawn.
-  - **Select** picks a spawn. Move (M), Delete and Duplicate (Ctrl/⌘+D) work, and a **Spawn** panel changes its enemy, behaviour and respawn in place.
+  - **Select** picks a spawn. Move (M), Delete and Duplicate (Ctrl/⌘+D) work, and a **Spawn** panel changes its enemy, behaviour and respawn in place (*Type* keeps the enemy type's respawn; 2026-10-16).
+  - Selecting a **placed resource** (a tree, rock or ground item) shows a **Resource** panel: *Edit <type> type* opens the Types screen on its type; *Override for this one (rare)*, folded away, holds its own *Respawns after*, *Yield*, *XP* (each with *Type*, its type's value in brackets) and extra drops. The Spawn panel works the same for an enemy spawn's respawn and drops (2026-10-16; [DESIGN.md](DESIGN.md#resource-and-enemy-configuration)).
+  - **Map → Types** (a tool button beside Inspect) opens the Types screen, nearly full-window since it doesn't need the map behind it: every tree, rock and enemy type's shared settings, saved to `src/data/*.json` with *Save*.
   - **Erase** removes one.
   - Spawns move with the map when it grows, and undo covers them.
 - **Tests:** `town-ground.test.js` checks placed spawns stream with their settings while generated enemies are off, and move with growth.

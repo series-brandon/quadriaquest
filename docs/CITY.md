@@ -650,7 +650,7 @@ A dev-only editor (compile-time isolated like the rest of the playground) that e
   - **Raise, Lower and Surface paint as you drag.** Each tile changes once per stroke, a stroke is one undo step, and right-drag or the arrow keys still turn the camera.
   - **Only the chunks an edit touches are rebuilt** (`city.rebuild(dirty)` in `world-map.js`). It covers each touched tile's chunk, one tile out. Props, stairs and buildings that share a wall across a chunk line pull in their other chunks.
   - **A full rebuild still happens when needed:** when buildings are added or removed (their indices shift), after undo and redo, and in a walled city when an edit touches a wall chunk.
-  - **Checks run 250 ms after editing stops.**
+  - **Checks run once editing stops** (400 ms, then when the browser is idle; 2026-10-16). They share one neighbour index and one set of walkable-area labels per run, so the overworld takes about 0.1 s and the capital about 35 ms (were about 0.65 s and 3 s).
   - **Measured:**
     - **In Node, one chunk:** about 40–60 ms on a 96 × 96 map (a full rebuild is about 350 ms), and about 100 ms on the capital (about 2 s full).
     - **In the browser, on the kit street, host work included:** an edit takes about 90–190 ms, against about 280 ms for a full rebuild.

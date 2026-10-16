@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {actionXp,skillSpeed,workDuration,SPEED_CAP,MIN_WORK_SECONDS} from './skill-pacing.js';
+import {actionXp,skillSpeed,workDuration,yieldBonus,boostedYield,SPEED_CAP,MIN_WORK_SECONDS} from './skill-pacing.js';
 import {TREES,TREE_IDS,treeEffort} from './lumberjack.js';
 import {levelForXp,totalXpForLevel} from './combat-formulas.js';
 test('levels above a requirement speed work up to a cap; tools multiply; work has a floor',()=>{
@@ -26,4 +26,11 @@ test('chopping the best unlocked tree with a Crude Axe reaches level 100 in a fe
  assert.ok(hours[10]<.5,`level 10 in ${hours[10]}h`);
  assert.ok(hours[100]>2&&hours[100]<4,`level 100 in ${hours[100]}h`);
  assert.ok(hours[150]>hours[100]*1.6,'past 100 slows down');
+});
+test('levels above a requirement raise the expected yield, capped like speed, rounded by chance',()=>{
+ assert.equal(yieldBonus(30,30),0);assert.equal(yieldBonus(45,30),.3);assert.equal(yieldBonus(400,30),SPEED_CAP);
+ assert.equal(boostedYield(2,30,30,()=>.999),2,'no bonus at the requirement');
+ assert.equal(boostedYield(2,45,30,()=>0),2);assert.equal(boostedYield(2,45,30,()=>.5),3);
+ let sum=0;for(let i=0;i<1000;i++)sum+=boostedYield(2,45,30,()=>i/1000);assert.ok(Math.abs(sum/1000-2.6)<.01,'averages 2 × 1.3');
+ assert.equal(boostedYield(3,90,30,()=>.999),4+1,'the cap: 3 × 1.6 = 4.8 gives 4 or 5');
 });

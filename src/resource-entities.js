@@ -7,18 +7,26 @@ import {createGroundItemModel} from './ground-item-models.js';
 import {createResourceHitbox} from './resource-hitbox.js';
 import {highlightResource} from './resource-highlight.js';
 import {setWorldOccupancy} from './world-occupancy.js';
+import {RESOURCE_RULES,instanceConfig} from './resource-rules.js';
 
-// Seconds before a depleted resource grows back; the same in every area. Pass respawn:null for a finite node.
+// Seconds before a depleted resource grows back, the same in every area: its type's (resource-rules.js, a
+// tree's tier), RESOURCE_RESPAWN only for a kind with none. A placement may set its own, or null for a finite node.
 export const RESOURCE_RESPAWN=8;
+export const resourceRespawn=(kind,species)=>kind==='tree'?treeOf(species).respawn:RESOURCE_RULES[kind]?.respawn??RESOURCE_RESPAWN;
 // Picking, models, occupancy and depletion state are identical in every area. A solid resource (tree,
 // boulder, copper) leaves a remnant when depleted (a stump, rubble) that keeps its tile blocked until it
 // regrows, as in RuneScape; ground items simply disappear.
 // species: a tree's tier (lumberjack.js: level, wood, effort) and look (tree-models.js).
-// xp: an optional entity XP modifier {scale, belowLevel} (resource-actions.js resourceXp).
-export function createResourceEntity({kind,tile,parent,pickables,id,species=DEFAULT_TREE,respawn=RESOURCE_RESPAWN,xp=null,onStart,onReward}){
+// xpBoost: an optional entity XP modifier {scale, belowLevel} (resource-actions.js resourceXp).
+// config: this placement's overrides of its type ({respawn, yield, xp, drops}; resource-rules.js).
+export function createResourceEntity({kind,tile,parent,pickables,id,species=DEFAULT_TREE,respawn,config=null,xpBoost=null,onStart,onReward}){
  if(kind==='tree'&&!TREES[species])species=DEFAULT_TREE;
+ // The placement's own respawn wins, then one the caller passes (a whole area's), then the type's, read live
+ // so a Types-screen edit reaches resources already in the world.
+ const own=instanceConfig(config);if(own.respawn!==undefined)respawn=own.respawn;delete own.respawn;
  const solid=kind==='tree'||kind==='boulder'||kind==='copper',group=kind==='copper'?copperOutcrop():kind==='tree'?makeTree(species):kind==='boulder'?makeBoulder():createGroundItemModel(kind);
- const entity={depleted:false,kind,id,tile,x:tile.x,z:tile.z,group,resourceNode:true,ready:true,duration:0,species,xp,label:solid?(kind==='tree'?`Chop ${treeOf(species).name}`:kind==='copper'?'Mine copper':'Mine boulder'):'Gather '+kind,depletedLabel:kind==='tree'?`${treeOf(species).name} stump`:kind==='copper'?'Spent copper rock':kind==='boulder'?'Rubble':null,solid,remnant:null,respawn,onStart,onReward};
+ const entity={depleted:false,kind,id,tile,x:tile.x,z:tile.z,group,resourceNode:true,ready:true,duration:0,species,xpBoost,config:Object.keys(own).length?own:null,label:solid?(kind==='tree'?`Chop ${treeOf(species).name}`:kind==='copper'?'Mine copper':'Mine boulder'):'Gather '+kind,depletedLabel:kind==='tree'?`${treeOf(species).name} stump`:kind==='copper'?'Spent copper rock':kind==='boulder'?'Rubble':null,solid,remnant:null,onStart,onReward};
+ Object.defineProperty(entity,'respawn',{get:()=>respawn!==undefined?respawn:resourceRespawn(kind,species),enumerable:true});
  group.position.set(tile.x-6,tile.h,tile.z-6);parent.add(group);setWorldOccupancy(entity,true);
  group.traverse(mesh=>{if(mesh.isMesh){mesh.userData.tile=tile;mesh.userData[solid?'tree':'resource']=entity;pickables.push(mesh);}});
  entity.highlight=highlightResource(group,{height:solid?(kind==='tree'?TREE_SPECIES[species]?.height||2.9:1.6):.95});
