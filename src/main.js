@@ -129,6 +129,8 @@ import {idlePose,moveMotion,standHeight} from './slime-motion.js';
 const $=id=>document.getElementById(id),world=makeWorld(),scene=new THREE.Scene();scene.background=new THREE.Color('#e5e9df');
 // Antialiasing is fixed at creation, so it follows the saved quality tier (render-quality.js).
 const renderer=new THREE.WebGLRenderer({antialias:QUALITY_TIERS[initialTier()].antialias});renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.setSize(innerWidth,innerHeight);$('game').appendChild(renderer.domElement);
+// The world editor's Walls preview clips its stand-in wall at the cut, as cut walls are (playground only).
+if(__PLAYGROUND__)renderer.localClippingEnabled=true;
 const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,120),raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let angle=Math.PI/4,elevation=THREE.MathUtils.degToRad(35.264),zoom=22,introZoom=6.5,hover=null;
 const rotationKeys = new Set();
 const keyboardRotationSpeed = Math.PI / 2; // 90 degrees per second, independent of key repeat.
@@ -1087,6 +1089,9 @@ if(__PLAYGROUND__){
   get crystalPlaces(){return crystalPlaces.list().map(p=>({id:p.id,name:p.name,area:p.area,listed:crystalPlaces.listed(p.id)}));},
   // The tile the view is over (the free camera's focus, else the slime's).
   viewTile:()=>viewTile(),
+  // Whether any of these tiles ([x, z]) is on screen above the editor's bottom panels (the world editor's paint
+  // warns when what it changes isn't).
+  inView(cells){const v=new THREE.Vector3(),step=Math.max(1,Math.floor(cells.length/40));for(let i=0;i<cells.length;i+=step){const [x,z]=cells[i];v.set(x-6,world.get(key(x,z))?.h??0,z-6).project(camera);if(v.z<1&&Math.abs(v.x)<=1&&v.y<=1&&v.y>=-.35)return true;}return false;},
   // Moves the view over a tile (the world editor's checks): the free camera's focus (turned on if it's off).
   lookAt(x,z){if(!freeCam)this.freeCamera(true);const t=world.get(key(x,z));freeCam.focus.set(x-6,t?.h??freeCam.focus.y,z-6);return true;},
   // Moves the slime to where the view is (the free camera's focus): the nearest open tile, searching outwards

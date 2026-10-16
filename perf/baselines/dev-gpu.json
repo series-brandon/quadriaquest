@@ -734,73 +734,81 @@
    }
   },
   "dialogue": {
+   "meta": {
+    "updated": "2026-10-15T23:08:22.364Z",
+    "note": "Iter Crystal rework (2x2 model, rune ring, per-part guide outline) in Willowbank's view: +15 draws; predates the wall-preview shader change (A/B vs HEAD: equal)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)",
+    "windows": 3,
+    "windowMs": 2500,
+    "calibrationMs": 27
+   },
    "summary": {
     "counters": {
-     "draws": 101.98,
-     "threeDrawCalls": 88,
-     "triangles": 40172,
+     "draws": 117.597,
+     "threeDrawCalls": 92,
+     "triangles": 43052,
      "uploadsPerFrame": 2.013,
      "uploadKBPerFrame": 77.273,
      "textureUploadsPerFrame": 0,
-     "programSwitchesPerFrame": 31.45,
-     "mutationsPerSec": 63.918,
+     "programSwitchesPerFrame": 32.805,
+     "mutationsPerSec": 63.866,
      "layoutsPerSec": 0,
-     "styleRecalcsPerSec": 61.433,
-     "objects": 602,
-     "visibleMeshes": 153,
+     "styleRecalcsPerSec": 61.706,
+     "objects": 614,
+     "visibleMeshes": 157,
      "programs": 19,
-     "geometries": 173,
+     "geometries": 177,
      "textures": 3
     },
     "timing": {
-     "frameMs": 1.85,
-     "frameP95": 4.275,
-     "frameMax": 5.43,
+     "frameMs": 1.75,
+     "frameP95": 4.54,
+     "frameMax": 8.955,
      "intervalP95": 16.67,
-     "fps": 59.524,
-     "cpuPercent": 37.52,
-     "gpuMs": 1.482,
-     "scriptMsPerSec": 138.558,
+     "fps": 59.542,
+     "cpuPercent": 37.121,
+     "gpuMs": 1.487,
+     "scriptMsPerSec": 144.409,
      "longTasks": 0
     },
     "sections": {
-     "world": 0.977,
-     "render": 0.788,
-     "player": 0.105,
-     "systems": 0.091,
-     "interface": 0.073,
-     "other": 0.066,
+     "world": 1.093,
+     "render": 0.789,
+     "interface": 0.126,
+     "player": 0.107,
+     "systems": 0.094,
+     "other": 0.064,
      "hover": 0.017,
-     "feedback": 0.015
+     "feedback": 0.016
     }
    },
    "samples": [
     {
-     "frameMs": 1.9949989318847656,
-     "frameP95": 4.319999694824219,
+     "frameMs": 1.7349967956542969,
+     "frameP95": 4.540000915527344,
      "intervalP95": 16.670000000000073,
-     "fps": 59.52404734828114,
-     "cpuPercent": 38.69699312411233,
-     "draws": 102.67114093959732,
-     "gpuMs": 1.519
+     "fps": 59.75250513467319,
+     "cpuPercent": 41.132022470938,
+     "draws": 118.19333333333333,
+     "gpuMs": 1.487
     },
     {
-     "frameMs": 1.6450004577636719,
-     "frameP95": 4,
+     "frameMs": 1.7500038146972656,
+     "frameP95": 4.590003967285156,
      "intervalP95": 16.670000000000073,
-     "fps": 59.52690097287178,
-     "cpuPercent": 34.7058101664985,
-     "draws": 101.97986577181209,
-     "gpuMs": 1.482
+     "fps": 59.47557710358959,
+     "cpuPercent": 35.43105644616985,
+     "draws": 116.1744966442953,
+     "gpuMs": 1.449
     },
     {
-     "frameMs": 1.8500022888183594,
-     "frameP95": 4.275001525878906,
+     "frameMs": 1.8649978637695312,
+     "frameP95": 3.9199981689453125,
      "intervalP95": 16.670000000000073,
-     "fps": 59.51513145523747,
-     "cpuPercent": 37.51982513133502,
-     "draws": 101.26174496644295,
-     "gpuMs": 1.481
+     "fps": 59.542244041450644,
+     "cpuPercent": 37.120729306194875,
+     "draws": 117.59731543624162,
+     "gpuMs": 1.502
     }
    ],
    "leak": null,
@@ -814,21 +822,20 @@
      "sleep-z0": 1,
      "sleep-z1": 1,
      "sleep-z2": 1,
-     "willowbank": 556
+     "willowbank": 568
     },
     "byKind": {
      "Mesh/PlaneGeometry/MeshStandardMaterial": 1,
      "Mesh/RoundedBoxGeometry/MeshStandardMaterial/shadow": 12,
-     "Mesh/BufferGeometry/MeshBasicMaterial": 6,
+     "Mesh/BufferGeometry/MeshBasicMaterial": 12,
      "Mesh/BufferGeometry/MeshStandardMaterial": 6,
      "Mesh/SphereGeometry/MeshStandardMaterial/shadow": 14,
      "Mesh/PlaneGeometry/ShaderMaterial": 9,
      "Mesh/BufferGeometry/ShaderMaterial": 1,
-     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 60,
+     "Mesh/BufferGeometry/MeshStandardMaterial/shadow": 63,
+     "Mesh/TorusGeometry/MeshStandardMaterial": 1,
      "Mesh/CylinderGeometry/MeshStandardMaterial/shadow": 8,
      "Line/BufferGeometry/LineBasicMaterial": 1,
-     "Mesh/RoundedBoxGeometry/MeshBasicMaterial": 2,
-     "Mesh/SphereGeometry/MeshBasicMaterial": 4,
      "Sprite/BufferGeometry/SpriteMaterial": 1,
      "Mesh/BoxGeometry/MeshStandardMaterial/shadow": 6,
      "Mesh/BoxGeometry/MeshBasicMaterial": 6,

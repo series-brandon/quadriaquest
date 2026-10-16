@@ -12,12 +12,16 @@ import * as THREE from 'three';
 // them is pickable.
 export const CUT_HEIGHT=1.5;
 export const MAX_CUT=16;
-export const uniforms={uCutIds:{value:new Float32Array(MAX_CUT).fill(-1)},uCutCount:{value:0},uCutAll:{value:0},uCutHeight:{value:CUT_HEIGHT}};
+export const uniforms={uCutIds:{value:new Float32Array(MAX_CUT).fill(-1)},uCutCount:{value:0},uCutAll:{value:0},uCutHeight:{value:CUT_HEIGHT},
+ uHideOn:{value:0},uHideBox:{value:new THREE.Vector4()},uHideY:{value:new THREE.Vector2()}};
 // Where cut walls stop: one storey, or (the world editor's "walls down") just above the floor.
 export function setCutHeight(height=CUT_HEIGHT){uniforms.uCutHeight.value=height;}
+// A box of baked wall left out (the world editor's Walls preview draws what would stand there instead):
+// {x0, z0, x1, z1, y0, y1} in world units, or null.
+export function setHiddenBox(box){uniforms.uHideOn.value=box?1:0;if(box){uniforms.uHideBox.value.set(box.x0,box.z0,box.x1,box.z1);uniforms.uHideY.value.set(box.y0,box.y1);}}
 
-const VERTEX_HEAD='attribute vec3 cutOwner;\nvarying vec3 vCutOwner;\nvarying float vCutY;\n';
-const FRAGMENT_HEAD=`uniform float uCutIds[${MAX_CUT}];uniform int uCutCount;uniform int uCutAll;uniform float uCutHeight;varying vec3 vCutOwner;varying float vCutY;
+const VERTEX_HEAD='attribute vec3 cutOwner;\nvarying vec3 vCutOwner;\nvarying float vCutY;\nvarying vec2 vCutXZ;\n';
+const FRAGMENT_HEAD=`uniform float uCutIds[${MAX_CUT}];uniform int uCutCount;uniform int uCutAll;uniform float uCutHeight;uniform int uHideOn;uniform vec4 uHideBox;uniform vec2 uHideY;varying vec3 vCutOwner;varying float vCutY;varying vec2 vCutXZ;
 bool idCut(float id){
  for(int i=0;i<${MAX_CUT};i++){if(i>=uCutCount)break;if(abs(id-uCutIds[i])<.5)return true;}
  return false;
@@ -29,6 +33,7 @@ bool ownerCut(){
  return (!a||idCut(vCutOwner.x))&&(!b||idCut(vCutOwner.y));
 }
 bool cutAway(){return vCutY>vCutOwner.z+uCutHeight-.01&&ownerCut();}
+bool hiddenHere(){return uHideOn==1&&vCutXZ.x>uHideBox.x&&vCutXZ.x<uHideBox.z&&vCutXZ.y>uHideBox.y&&vCutXZ.y<uHideBox.w&&vCutY>uHideY.x&&vCutY<uHideY.y;}
 `;
 // The same test in JS (the tests use it; keep in step with the shader). A part or wall with two building
 // owners counts as cut only when both are. The cut sits just below the
@@ -44,8 +49,8 @@ export function applyCutaway(material,{section=false}={}){
  if(material.userData.cutaway)return material;material.userData.cutaway=true;material.userData.cutawaySection=section;
  material.onBeforeCompile=shader=>{
   Object.assign(shader.uniforms,uniforms);
-  shader.vertexShader=VERTEX_HEAD+shader.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n vCutOwner=cutOwner;vCutY=(modelMatrix*vec4(transformed,1.0)).y;');
-  shader.fragmentShader=FRAGMENT_HEAD+shader.fragmentShader.replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>\n if(cutAway()${section?'||!ownerCut()':''})discard;`);
+  shader.vertexShader=VERTEX_HEAD+shader.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n vCutOwner=cutOwner;vec4 cutWorld=modelMatrix*vec4(transformed,1.0);vCutY=cutWorld.y;vCutXZ=cutWorld.xz;');
+  shader.fragmentShader=FRAGMENT_HEAD+shader.fragmentShader.replace('#include <clipping_planes_fragment>',`#include <clipping_planes_fragment>\n if(cutAway()||hiddenHere()${section?'||!ownerCut()':''})discard;`);
  };
  material.customProgramCacheKey=()=>section?'cutaway-section':'cutaway';material.needsUpdate=true;
  return material;

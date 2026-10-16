@@ -383,7 +383,21 @@ User request: see a ghost of anything being moved or placed (buildings too); aim
   - A size is `scale` on the entry (none at 100%).
   - Things are sized from their middle, except wall decorations, which keep their back on the wall at the height they hang.
   - Seats and other spots keep their places and heights.
+- **Live colours** (follow-up): every colour picker shows its colour as you drag, not only when you let go: a prop's pieces, a building's colours and a townsfolk's colour. `liveEdit` takes one undo step for the whole drag and rebuilds what changed every 80 ms. The paint pickers and Floor paint's Pattern and Intensity change the preview, which stays where you last pointed while you work the panel.
+- **Quick colours everywhere**: the same quick colours (the game's palette, then your recent colours) are in the Colours tool for a building's parts (the part whose picker you last touched; each pick is one undo step) as well as for a prop's pieces and for paint.
 - **Building names**: a selected building's Look card starts with its Name (one undo step). Names show wherever buildings are listed, such as a townsfolk's building.
+
+## Walls and paint follow you (2026-10-15)
+
+User request: painting a floor should select it, so changing the paint changes that floor (with a warning when it's out of view); Walls should preview its change on the wall you hover.
+- **The painted floor** (`paintedFloor`, `followPaint`): after you paint a floor, its building is selected and Floor paint's panel says which floor it's *Changing*. Changing the colour (picker or quick colours), the pattern or the intensity repaints that floor at once. Those changes are one undo step, apart from the paint itself.
+  - It lets go when you paint another floor, make any other edit, undo, leave Floor paint, or press Esc / *Done*.
+  - When none of the floor is on screen (above the bottom panels; the host's `inView`), the panel says *Out of view*, and *Show* moves the view over it.
+- **Walls preview** (`wallChanged`, `tryWall`; follow-up: a ghost, not a rebuild): as soon as you aim at a wall, it shows what Walls would make of it (a window, a plain wall, a door, the sign, no sign, a flower box) exactly as it would look, without changing the map or rebuilding anything.
+  - The building is planned again with the change, off to the side: `createBuilding` runs on copies of its tiles, with a stand-in for the map's edges that keeps only what it would put on that edge.
+  - That piece (through the same edge features, without its corner posts) and the building's new decorations take the place of the real ones. The real piece is left out of the baked walls by a hide box in the wall shader (`cutaway.js` `setHiddenBox`); a real door there and the old decorations are hidden.
+  - With Cutaway or Walls down, the piece is clipped where the real walls are cut. The playground turns on local clipping for this.
+  - It goes when you aim elsewhere, edit anything, save, leave the tool or close the editor. A change Walls can't make (a door breaking the door rule) isn't shown.
 
 ## The Townsfolk and Crystal tools' panels (2026-10-15)
 

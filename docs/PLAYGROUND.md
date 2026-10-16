@@ -54,7 +54,8 @@ Previews run in place without consuming items or earning XP. Stop to play normal
   - Indoors (docs/TOWN.md, *Decorating indoors, doors and stairs* and *Wall and floor paint*): Walls up / Cutaway / Walls down and ▲ ▼ (Page Up / Down) in the bar; Floor paint and Wall paint; the Hand picks up doors and stairs; the catalogue furnishes ground floors in place.
   - Build: Room (drag a rectangle) and Push/pull walls (outside walls, and the walls of rooms you drew). The Hand also moves a room's door to another of its walls.
   - Ghosts and walls (docs/TOWN.md, *Ghosts, aiming at walls, floor patterns, sizing and names*): whatever is placed or held shows as a ghost, buildings included. Walls, Wall paint and wall decorations (e.g. Painting, Wall torch) follow the wall face under the pointer.
-  - Floor paint's Pattern and Intensity; `+` / `−` (Bigger / Smaller) size a held or selected prop; a selected building's Name is in its Look card.
+  - Walls shows its change (a ghost of the real result) on the wall you hover before you click; after painting a floor, Floor paint's colour, pattern and intensity keep changing that floor (*Changing*: Show, Done) until you paint another or press Esc.
+  - Colour pickers change things live; Quick colours in Colours (props and buildings) and in paint. Floor paint's Pattern and Intensity (the preview stays while you change them); `+` / `−` (Bigger / Smaller) size a held or selected prop; a selected building's Name is in its Look card.
 - **World editor drags and stamps** (docs/TOWN.md, *Box select, copy and stamps* and *Lines and brushes*):
   - Select: drag a box to select a group. Ctrl/⌘+C and Ctrl/⌘+V copy and paste.
   - Stamp: save a selection and place it again (`src/stamps/`).
