@@ -8,13 +8,14 @@
     "rateTolerance": 0.25,
     "counterNote": 0.05
   },
-  "_comment": "The gate fails only on what players feel (user, 2026-10-16): fps below minFps, a frame-interval p95 over maxIntervalP95 ms (stutter) or a worst gap between frames over maxIntervalMs (a hitch or load stall). '*' applies to every scenario in an environment; a scenario's own entry overrides it. Counts (draws, objects, triangles, uploads\u2026) are reported, never gated: the map is still being designed. Leaks across travel and page errors also fail.",
+  "_comment": "The gate fails only on what players feel (user, 2026-10-16): fps below minFps, a frame-interval p95 over maxIntervalP95 ms (stutter) or a worst gap between frames over maxIntervalMs (a hitch or load stall). '*' applies to every scenario in an environment; a scenario's own entry overrides it. Counts (draws, objects, triangles, uploads\u2026) are reported, never gated: the map is still being designed. The one exception is a per-view density limit: maxViewDraws/maxViewTriangles: draws or triangles drawn per frame (the view and its shadow pass, not scene totals), set only from the knee the view-density sweep measured in that environment (docs/PERFORMANCE.md, Density). Leaks across travel and page errors also fail.",
   "targets": {
     "dev-gpu": {
       "*": {
         "minFps": 55,
         "maxIntervalP95": 25,
-        "maxIntervalMs": 100
+        "maxIntervalMs": 100,
+        "maxViewDraws": 5000
       }
     },
     "webkit": {

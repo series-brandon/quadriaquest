@@ -174,6 +174,8 @@ Trees, boulders, and ground items in both areas use shared actions. Inventory su
 
 Same probe and scenarios as `npm run perf`. The HUD shows main-thread frame time, GPU time when the browser exposes it, draw calls, scene objects and the slowest loop phases. Prepare loads a perf scenario with its fixed camera; census logs scene contents by group and mesh kind to the console.
 
+**Density step** builds one step of the `view-density` sweep (docs/PERFORMANCE.md, *Density*) round the clearing walk: that many real props, each its own mesh (`separate`) or merged per quarter as town decoration is (`merged`). Prepare `view-density` first: it starts the walk (shadows redraw every frame, as when playing) and pins the graphics tier Auto picked, so the tier can't step down mid-sweep; preparing another scenario removes the props and restores the tier. Read draws, triangles and frame time off the perf HUD at each step; step 0 (no props) clears them.
+
 ## Music lab
 
 Arrangement: Cozy plays the Stardew-style versions (every song has one); Original plays the first versions. Switching crossfades.

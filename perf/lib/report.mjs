@@ -6,6 +6,17 @@ const pct=n=>`${n>=0?'+':''}${(n*100).toFixed(1)}%`;
 // stutter (frame-interval p95) or a hitch (worst gap between frames) over its threshold, leaks across travel, page
 // errors. WARN: statistically significant timing/CPU regressions against the stored baseline. Counts (draws,
 // objects, triangles, uploads…) are notes only: the map is still being designed, so they grow on purpose.
+// A sweep's knee (view-density): per series, the first step whose felt time is clearly worse than the sweep's
+// first (empty) step, or misses the environment's targets. lastGood is the step before it in the same series.
+export const KNEE={fpsDrop:.1,p95Rise:.25};
+export function sweepKnees(steps,target={}){
+ const t0=steps[0].summary.timing,out={};
+ const bad=({summary:{timing:t}})=>t.fps<t0.fps*(1-KNEE.fpsDrop)||t.intervalP95>t0.intervalP95*(1+KNEE.p95Rise)||(target.minFps&&t.fps<target.minFps)||(target.maxIntervalP95&&t.intervalP95>target.maxIntervalP95);
+ for(const series of new Set(steps.map(s=>s.series))){const list=steps.filter(s=>s.series===series),i=list.findIndex(bad);out[series]={knee:i<0?null:list[i],lastGood:i<0?list.at(-1):i>0?list[i-1]:null};}
+ return out;
+}
+const at=step=>`${step.props} props, ${Math.round(step.summary.counters.draws)} draws, ${Math.round(step.summary.counters.triangles/1000)}k triangles, ${round(step.summary.timing.fps,1)} fps, interval p95 ${round(step.summary.timing.intervalP95,1)} ms`;
+
 export function evaluate({envName,env,results,baseline,budgets,calibrationMs,scenarios=[]}){
  const d=budgets.defaults,rows=[];
  // Machine-speed ratio vs the baseline session, clamped; scales baseline frame times (not CPU %, fps or counters).
@@ -14,6 +25,17 @@ export function evaluate({envName,env,results,baseline,budgets,calibrationMs,sce
  for(const r of results){
   const issues=[],notes=[],s=r.summary,base=baseline?.scenarios?.[r.scenario],speed=speedFor(base);
   const target={...budgets.targets?.[envName]?.['*'],...budgets.targets?.[envName]?.[r.scenario]};
+  // A sweep drives frame time down on purpose: it reports its curve and knee, and fails only on page errors.
+  if(r.sweep){
+   const knees=sweepKnees(r.sweep,target);
+   for(const [series,{knee,lastGood}] of Object.entries(knees))notes.push(`${series}: ${knee?`knee at ${at(knee)}`:'no knee'}${lastGood?`; last good ${at(lastGood)}`:''}`);
+   if(r.errors?.length)issues.push({level:'FAIL',text:`${r.errors.length} page error(s): ${r.errors[0]}`});
+   rows.push({scenario:r.scenario,status:issues.length?'FAIL':'PASS',issues,notes,knees,diagnosis:null});continue;
+  }
+  // Density within the view (draws and triangles actually drawn per frame, shadow pass included; not scene
+  // totals): limits measured by the view-density sweep, where frame time starts to suffer (docs/PERFORMANCE.md).
+  if(target.maxViewDraws&&s.counters.draws>target.maxViewDraws)issues.push({level:'FAIL',text:`density: ${Math.round(s.counters.draws)} draws per frame over ${target.maxViewDraws} (measured knee, view-density)`});
+  if(target.maxViewTriangles&&s.counters.triangles>target.maxViewTriangles)issues.push({level:'FAIL',text:`density: ${Math.round(s.counters.triangles)} triangles per frame over ${target.maxViewTriangles} (measured knee, view-density)`});
   if(!env.countersOnly){
    if(target.minFps&&s.timing.fps<target.minFps)issues.push({level:'FAIL',text:`fps ${round(s.timing.fps,1)} below target ${target.minFps}`});
    if(target.maxIntervalP95&&s.timing.intervalP95>target.maxIntervalP95)issues.push({level:'FAIL',text:`stutter: frame interval p95 ${round(s.timing.intervalP95,1)} ms over ${target.maxIntervalP95} ms`});
@@ -60,6 +82,9 @@ export function formatTable(envName,results,rows){
  for(const r of results){const s=r.summary,row=rows.find(x=>x.scenario===r.scenario),phases=Object.entries(s.sections).slice(0,3).map(([k,v])=>`${k} ${v.toFixed(2)}`).join(', ');
   lines.push(`| ${r.scenario} | ${row?.status??'—'} | ${s.timing.frameMs?.toFixed(2)} (${s.timing.frameP95?.toFixed(2)}) | ${s.timing.fps?.toFixed(1)} | ${s.timing.intervalP95?.toFixed(1)} / ${s.timing.intervalMax?.toFixed(0)??'—'} | ${s.timing.cpuPercent?.toFixed(0)??'—'} | ${Math.round(s.counters.draws)} | ${s.counters.objects} | ${phases} |`);}
  for(const row of rows){
+  const sweep=results.find(r=>r.scenario===row.scenario)?.sweep;
+  if(sweep){lines.push('',`**${row.scenario}** sweep`,'','| step | series | props | draws | triangles | fps | interval p95 / worst ms | frame ms (p95) | GPU ms | render ms |','|---|---|---|---|---|---|---|---|---|---|');
+   for(const {step,series,props,summary:{counters:c,timing:t,sections}} of sweep)lines.push(`| ${step} | ${series} | ${props} | ${Math.round(c.draws)} | ${Math.round(c.triangles)} | ${t.fps?.toFixed(1)} | ${t.intervalP95?.toFixed(1)} / ${t.intervalMax?.toFixed(0)} | ${t.frameMs?.toFixed(2)} (${t.frameP95?.toFixed(2)}) | ${t.gpuMs?.toFixed(2)??'—'} | ${sections.render?.toFixed(2)??'—'} |`);}
   if(row.issues.length||row.notes.length)lines.push('',`**${row.scenario}** — ${row.status}`,...row.issues.map(i=>`- ${i.level}: ${i.text}`),...row.notes.map(n=>`- note: ${n}`));
   const g=row.diagnosis;if(!g)continue;
   if(g.sections?.length)lines.push(`- phase change (ms/frame): ${g.sections.map(([k,v])=>`${k} ${v>0?'+':''}${v}`).join(', ')}`);

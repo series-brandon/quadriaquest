@@ -28,7 +28,7 @@ function topFunctions(profile,limit=15){
 }
 
 // One scenario in one environment: a fresh page, real scenario setup, warm-up, then measurement windows.
-export async function runScenario(session,{url,scenario,windows=3,windowMs=2500,warmupMs=1500,profile=false,screenshot}){
+export async function runScenario(session,{url,scenario,windows=3,windowMs=2500,warmupMs=1500,settleMs=1500,profile=false,screenshot}){
  const {env,browser}=session;
  const context=await browser.newContext({viewport:env.viewport,deviceScaleFactor:env.deviceScaleFactor,isMobile:env.isMobile,hasTouch:env.hasTouch});
  await context.addInitScript({content:injectSource});
@@ -54,7 +54,7 @@ export async function runScenario(session,{url,scenario,windows=3,windowMs=2500,
    const rate=key=>before?(after[key]-before[key])/wall:null;
    return {...result.page,probe:result.probe,cpuPercent:cpu0==null?null:(cpu1-cpu0)/wall*100,layoutsPerSec:rate('LayoutCount'),styleRecalcsPerSec:rate('RecalcStyleCount'),scriptMsPerSec:before?rate('ScriptDuration')*1000:null,taskMsPerSec:before?rate('TaskDuration')*1000:null};
   }
-  const samples=[],leak=[];
+  const samples=[],leak=[],sweep=[];
   if(scenario.kind==='travel'){
    for(let cycle=0;cycle<3;cycle++){
     samples.push(await measure(()=>page.evaluate(()=>window.quadriaquest.perf.travelCycle())));
@@ -63,13 +63,20 @@ export async function runScenario(session,{url,scenario,windows=3,windowMs=2500,
     const census=await page.evaluate(()=>window.quadriaquest.perf.census()),heapMB=await page.evaluate(()=>performance.memory?performance.memory.usedJSHeapSize/1048576:null);
     leak.push({cycle,objects:census.objects,geometries:census.geometries,textures:census.textures,programs:census.programs,heapMB:round(heapMB,2)});
    }
+  }else if(scenario.kind==='sweep'){
+   // One fresh content step after another, each measured on its own after a settle (first compiles, the shadow redraw).
+   for(let i=0;i<scenario.steps.length;i++){
+    const step=await page.evaluate(i=>window.quadriaquest.perf.sweep(i),i);await page.waitForTimeout(settleMs);
+    const stepSamples=[];for(let w=0;w<windows;w++)stepSamples.push(await measure());
+    samples.push(...stepSamples);sweep.push({...step,summary:summarize(stepSamples,await page.evaluate(()=>window.quadriaquest.perf.census()))});
+   }
   }else for(let i=0;i<windows;i++)samples.push(await measure());
   let cpuProfile=null;
   if(profile&&cdp){await cdp.send('Profiler.enable');await cdp.send('Profiler.setSamplingInterval',{interval:200});await cdp.send('Profiler.start');await page.waitForTimeout(windowMs);cpuProfile=(await cdp.send('Profiler.stop')).profile;}
   const census=await page.evaluate(()=>window.quadriaquest.perf.census());
   if(screenshot)await page.screenshot({path:screenshot,type:'jpeg',quality:70});
   await page.evaluate(()=>window.quadriaquest.perf.stop());
-  return {scenario:scenario.id,renderer,summary:summarize(samples,census),samples:samples.map(stripSample),leak:leak.length?leak:null,census,top:cpuProfile?topFunctions(cpuProfile):null,cpuProfile,errors};
+  return {scenario:scenario.id,renderer,summary:sweep.length?sweep[0].summary:summarize(samples,census),sweep:sweep.length?sweep:null,samples:samples.map(stripSample),leak:leak.length?leak:null,census,top:cpuProfile?topFunctions(cpuProfile):null,cpuProfile,errors};
  }finally{await context.close();}
 }
 

@@ -13,7 +13,7 @@ const argv=process.argv.slice(2),option=(name,fallback)=>{const i=argv.indexOf('
 const optionValues=new Set(argv.flatMap((a,i)=>a.startsWith('--')?[i+1]:[]));
 const ref=argv.find((a,i)=>!a.startsWith('--')&&!optionValues.has(i))||'HEAD';
 const envName=option('env','dev-gpu'),rounds=Number(option('rounds',4)),windows=Number(option('windows',2)),windowMs=Number(option('window-ms',2500));
-const scenarios=option('scenarios')?option('scenarios').split(',').map(id=>PERF_SCENARIOS.find(s=>s.id===id)):PERF_SCENARIOS.filter(s=>s.kind!=='travel');
+const scenarios=option('scenarios')?option('scenarios').split(',').map(id=>PERF_SCENARIOS.find(s=>s.id===id)):PERF_SCENARIOS.filter(s=>s.kind!=='travel'&&!s.manual);
 if(scenarios.some(s=>!s))throw Error('Unknown scenario in --scenarios');
 
 // --base-build <dir> compares against an existing perf build instead of a git ref (e.g. an A/A noise check).

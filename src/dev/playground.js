@@ -27,7 +27,7 @@ import {SLIME_ACTOR_MOTIONS} from '../slime-presentation.js';
 import {WATER_DEFAULTS} from '../water-effects.js';
 import {socialMotion,SOCIAL_DURATIONS,HELD_MOTIONS} from '../slime-social.js';
 import {TUTORIAL_CHECKPOINTS,getCheckpoint} from './tutorial-checkpoints.js';
-import {PERF_SCENARIOS} from './perf-scenarios.js';
+import {PERF_SCENARIOS,DENSITY_STEPS} from './perf-scenarios.js';
 import {createOpening,showGatheringPrompt} from '../opening.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion,CHOP_DURATION} from '../slime-motion.js';
 import {showSkillReward,grantSkillXp,addSkillLevels} from '../skills.js';
@@ -152,7 +152,7 @@ export function mountPlayground(api){
     <fieldset><legend>Carpentry practice</legend></fieldset>
     <fieldset><legend>Fishing practice</legend></fieldset>
     <fieldset><legend>Resource picking</legend><label><input id="dev-hitboxes" type="checkbox"> Show half-tile hitboxes</label></fieldset>
-    <fieldset><legend>Performance</legend><label>Scenario<select id="dev-perf-scenario">${PERF_SCENARIOS.map(s=>`<option value="${s.id}">${s.id}</option>`).join('')}</select></label><div><button data-dev="perf-scenario">Prepare scenario</button><button data-dev="perf-hud">Toggle perf HUD</button><button data-dev="perf-census">Log scene census</button></div></fieldset>
+    <fieldset><legend>Performance</legend><label>Scenario<select id="dev-perf-scenario">${PERF_SCENARIOS.map(s=>`<option value="${s.id}">${s.id}</option>`).join('')}</select></label><div><button data-dev="perf-scenario">Prepare scenario</button><button data-dev="perf-hud">Toggle perf HUD</button><button data-dev="perf-census">Log scene census</button></div><label>Density step<select id="dev-perf-density">${DENSITY_STEPS.map((s,i)=>`<option value="${i}">${s.series} · ${s.props} props</option>`).join('')}</select></label><button data-dev="perf-density">Build density step</button></fieldset>
     <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="boulders">Boulders</button><button data-reset="all">Full test area</button></div></fieldset>
     <output id="dev-status" aria-live="polite">Ready. Starter kit: Sticks ×10, Rocks ×10, Crude Axe ×1, Crude Pickaxe ×1.</output>
     <pre id="dev-state"></pre>`;
@@ -212,6 +212,7 @@ export function mountPlayground(api){
         if(action==='dream'){stop();api.reset('all');status('Back in the dream: full test session reset.');}
         if(action==='checkpoint'){stop();const checkpoint=getCheckpoint($('checkpoint').value);await api.loadCheckpoint(checkpoint);status('Loaded '+checkpoint.label+' with required resources.');}
         if(action==='perf-scenario'){stop();const id=$('perf-scenario').value;await window.quadriaquest.perf.prepare(id);status('Perf scenario ready: '+id);}
+        if(action==='perf-density'){const step=window.quadriaquest.perf.sweep(+$('perf-density').value);status(`Density step ${step.step}: ${step.props} props, ${step.series}.`);}
         if(action==='perf-hud')status(api.perf.hud(!document.getElementById('quadriaquest-perf-hud'))?'Perf HUD on.':'Perf HUD off.');
         if(action==='perf-census'){const census=api.perf.census();console.table(census.byKind);console.log('Scene census',census);status(`Census: ${census.objects} objects, ${census.visibleMeshes} visible meshes, ${census.programs} programs (details in console).`);}
         if(action==='reset-area'){stop();api.closeSplash();api.resetCurrentArea();status('Current area reset.');}

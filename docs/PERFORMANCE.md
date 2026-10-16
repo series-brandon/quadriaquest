@@ -60,6 +60,7 @@ Each scenario uses real gameplay entry points (checkpoints, travel, menus, comba
 | `menus` | Inventory journal open |
 | `dialogue` | Reed conversation with the portrait renderer |
 | `travel` | Three crystal round trips. Measures transition spikes and checks for leaks (objects, geometries, textures, programs and heap must be steady). |
+| `view-density` | A measurement, not a gate, and only run by name (`--scenarios view-density`). The clearing walk with more and more real props in view, step by step: see *Density* below. |
 
 ## What is measured
 
@@ -88,9 +89,9 @@ Thresholds live in `perf/budgets.json`; baselines live in `perf/baselines/<env>.
 - `mobile-emu/cinderhold-combat`: at least 30 fps.
 - `low-perf` (SwiftShader, pessimistic): only `clearing-idle` ≥ 58 fps.
 
-**Counts are notes, never failures:** draws, objects, triangles, visible meshes, programs, geometries, textures, uploads, mutations and layouts are reported when they move more than 5% from the baseline, so a report still shows where a cost came from.
+**Counts are notes, never failures**, except the per-view density limit below: draws, objects, triangles, visible meshes, programs, geometries, textures, uploads, mutations and layouts are reported when they move more than 5% from the baseline, so a report still shows where a cost came from.
 
-A per-view density budget (draws or triangles within a radius of the camera) would fit this rule only if its limit is where frame time starts to suffer, found by measurement, not an arbitrary number. There isn't one yet.
+**Per-view density** (`maxViewDraws`, `maxViewTriangles` in `targets`): draws or triangles actually drawn per frame, which is what the camera sees plus the shadow pass, not scene totals. A limit is set only where the `view-density` sweep found a clear knee in that environment, minus a margin. There is one so far: `dev-gpu` fails above **5,000 draws per frame** (see *Density*). No triangle limit: no environment showed a triangle knee that could be used.
 
 **WARN:** egregious timing changes against the stored baseline: frame median +50%, frame p95 +75%, browser CPU +50% or fps −5%, and only when the 95% bootstrap confidence interval excludes zero. Smaller changes appear as report lines only.
 
@@ -100,6 +101,52 @@ Non-passing scenarios are automatically re-run once with the CPU profiler on Chr
 1. **phase change**: main-loop phases whose ms per frame grew;
 2. **objects by group / visible meshes by kind**: what was added to the scene and where;
 3. **hottest functions**: self time from the profile.
+
+## Density (`view-density` sweep)
+
+**Question:** how many draws or triangles in view does it take before frame time suffers? The gate should fail at that measured number, not at an arbitrary one.
+
+**Method** (`src/dev/perf-scenarios.js`, `DENSITY_STEPS`). The player walks the clearing (shadows redraw every frame, as in play). Each step fills a 12-tile disc covering the default view with N real props from `propModel`/`placePropModel`, a mix of 16 street and home kinds averaging about 200 triangles each. Two series:
+- `separate`: one mesh per prop, as clickable props are;
+- `merged`: the same props merged per quarter of the disc with `mergeStatic`, as a town chunk's decoration is. Triangles grow while draws stay flat.
+
+At equal props, the two series differ only in draw calls, which separates draw cost from triangle and pixel cost. Overlap (overdraw) grows with density in both series. The graphics tier Auto picks at load is pinned (`dev-gpu` High, `low-perf` Lowest). Each step is measured for 3 × 2.5 s after a 1.5 s settle. Run it with `npm run perf -- --scenarios view-density --env <env>`; the report prints the curve and each series' knee. The knee is the first step with fps 10% below the empty step's, interval p95 25% above it, or a missed target (`sweepKnees`, `perf/lib/report.mjs`).
+
+**dev-gpu** (Apple GPU, 1280×800 @2×, High; 2026-10-16, `perf/results/2026-10-16T07-08-52-870Z`; a 1-window run before it agreed within 0.5 ms per step):
+
+| props | separate: draws | tris | fps | interval p95 | main thread ms | GPU ms | merged: draws | tris | fps | GPU ms |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 107 | 14k | 59.5 | 16.7 | 1.2 | 1.9 | | | | |
+| 1,000 | 1,831 | 194k | 59.5 | 16.7 | 4.1 | 2.9 | 118 | 215k | 59.5 | 3.0 |
+| 2,000 | 3,565 | 377k | 59.5 | 16.7 | 7.3 | 4.0 | 119 | 415k | 59.5 | 4.1 |
+| 3,000 | 5,311 | 554k | 59.6 | 16.7 | 10.6 | 4.7 | | | | |
+| 4,000 | 7,128 | 749k | 59.5 | 16.7 | 15.4 | 5.8 | 119 | 816k | 59.5 | 6.3 |
+| 5,000 | **8,765** | 921k | **52.7** | **33.3** | 19.1 | 6.7 | | | | |
+| 6,000 | 10,695 | 1.10M | 43.1 | 33.3 | 23.5 | 7.7 | | | | |
+| 8,000 | 14,807 | 1.45M | 30.4 | 33.3 | 32.9 | 9.8 | 118 | 1.62M | 59.5 | 8.0 |
+| 12,000 | | | | | | | 119 | 2.42M | 59.5 | 9.3 |
+| 16,000 | | | | | | | 118 | 3.22M | 59.5 | 11.5 |
+
+- **Draws:** main-thread time grows linearly, about 2.0 ms per 1,000 draws (three.js per-object work plus WebGL calls). It crosses the 16.7 ms frame at about 7,700 draws. That is the knee: 7,128 draws holds 59.5 fps, and 8,765 drops to 52.7 fps with a 33 ms interval p95 (every other frame missed). GPU time stays far below the frame.
+- **Triangles:** no knee. 3.2M triangles in 118 draws holds 59.5 fps; GPU time grows about 3 ms per million triangles, so the frame would fill at roughly 5M. That is beyond anything measured, so there is no triangle limit.
+- **Limit:** `maxViewDraws: 5000`, about 35% under the knee. On the sweep's curve, 5,000 draws costs about 10 ms of main thread, which leaves headroom for scenes whose game logic is heavier than the clearing's, and for draws dearer than the sweep's. All sweep props share one vertex-coloured material, the cheapest case. Today's busiest scenario, `capital-square`, draws about 1,100.
+
+**low-perf** (SwiftShader, 4× CPU throttle, 1366×768, Lowest; `perf/results/2026-10-16T07-19-16-507Z`):
+
+| props | separate: draws | tris | fps | interval p95 | GPU ms | merged: draws | tris | fps | GPU ms |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 95 | 14k | 48.2 | 33 | 15 | | | | |
+| 100 | 247 | 33k | 33.2 | 50 | 26 | | | | |
+| 250 | 479 | 61k | 20.8 | 67 | 45 | | | | |
+| 500 | 885 | 110k | 10.0 | 133 | 87 | | | | |
+| 1,000 | 1,717 | 208k | 6.8 | 167 | 124 | 113 | 215k | 6.0 | 151 |
+| 2,000 | 3,631 | 407k | 3.0 | 483 | 288 | 121 | 415k | 3.2 | 251 |
+| 4,000 | 8,390 | 809k | 1.4 | 933 | 537 | 127 | 816k | 1.6 | 482 |
+
+- **No knee:** fps falls from the first step, in proportion to triangles and covered pixels. At equal props the separate and merged series run at the same fps, although one has 15–60× the draws, so software rasterisation, not draw calls, is the cost here. The empty clearing walk is already under the 58 fps `clearing-idle` target (48 fps), and 30 fps is crossed at about 35–40k triangles in view.
+- **No gate:** a limit there would sit under every current scene. `low-perf` is a pessimistic stand-in, never representative, and a real integrated GPU rasterises triangles in hardware. This needs calibrating against a real minimum device before it can set a number.
+
+Not yet measured: `mobile-emu` (phone pixel density with 4× CPU throttle and a hardware GPU; its draw knee should be lower than `dev-gpu`'s) and real devices. Content with many materials (towns) costs more per draw than the sweep's one shared material.
 
 ## Workflow
 
@@ -185,3 +232,4 @@ GitHub Actions on Ubuntu will run `PERF_BUNDLED_CHROMIUM=1 node perf/run.mjs --e
 | 2026-10-15 | Iter Crystals: a 2 × 2 landmark model, any number per map | First run with the model as ~15 separate meshes per crystal: `willowbank-river` +46 draws, `travel` +48, objects +44 and geometries +61. Rebuilt as 5 meshes whose geometry and materials every crystal shares (the dais and posts one merged vertex-coloured mesh): `willowbank-river`, `cinderhold-combat` and `capital-square` PASS again; `travel` +10 draws and +12 visible meshes, the overworld scenarios +~15 objects, re-baselined with a note. All at 59.5–59.9 fps. |
 | 2026-10-15 | World editor: wall-preview hide box in the shared wall cutaway shader (`cutaway.js` `setHiddenBox`: one world-position varying and a uniform box test), prop sizing (`placePropModel`), floor patterns | dev-gpu full suite: 14/16 PASS. `overworld-pan` upload +16% did not repeat (PASS on rerun: noise). `dialogue` draws 117 vs 102: A/B against HEAD equal (116.8 both), so it predates this batch. It is the Iter Crystal rework in Willowbank's view (rune ring, shadowed parts, per-part guide outline); baseline updated with a note. |
 | 2026-10-16 | Editor Select tool, stairs/ladders by hand, hover route search bounded (`canReach`), mist fix; **gate now fails only on felt time** (fps, interval p95, worst gap; counts are notes) | Full dev-gpu suite before the gate change: 14/16 PASS; `overworld-pan` and `mist-edge` failed only on counts (+12 objects in the overworld map, from Building 1 becoming two storeys with stairs), frame times normal. Under the new gate (focused run): both PASS, worst gap 17 ms; `capital-square` 5.2 ms/frame, 59.7 fps. `travel` failed the leak check once (geometries 331 → 346) and passed on the rerun: the leak check is flaky. |
+| 2026-10-16 | `view-density` sweep (new, manual) and the first per-view density limit | dev-gpu: main thread +2.0 ms per 1,000 draws; knee between 7,128 draws (59.5 fps) and 8,765 (52.7 fps, interval p95 33 ms); no triangle knee up to 3.2M (GPU 11.5 ms). Gate `dev-gpu` `maxViewDraws: 5000`. low-perf: no knee, fps falls with triangles from the first step (48 → 33 fps from 14k → 33k triangles), draws irrelevant there; no gate. Details under *Density*. Harness fix: the run's timeout timer kept Node alive for its full length after a run finished. |

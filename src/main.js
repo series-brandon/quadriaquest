@@ -1344,4 +1344,4 @@ if(__PLAYGROUND__)window.quadriaquest={getState:()=>({cutaway:cutawayState(),atm
 if(__PLAYGROUND__)Object.defineProperty(window.quadriaquest,'renderer',{get:()=>renderer});
 // The playground's own API, for scripted browser checks (playground only).
 if(__PLAYGROUND__)window.quadriaquest.api=playgroundApi;
-if(__PLAYGROUND__)window.quadriaquest.perf=playground.createPerfScenarios({api:playgroundApi,probe:perfProbe,setView(view){angle=view.angle;elevation=view.elevation;zoom=view.zoom;},walkTo(x,z){const t=world.get(key(x,z));if(t)moveTo(t);},state:()=>window.quadriaquest.getState()});
+if(__PLAYGROUND__)window.quadriaquest.perf=playground.createPerfScenarios({api:playgroundApi,probe:perfProbe,setView(view){angle=view.angle;elevation=view.elevation;zoom=view.zoom;},walkTo(x,z){const t=world.get(key(x,z));if(t)moveTo(t);},state:()=>window.quadriaquest.getState(),density:{scene,quality,tileAt:(x,z)=>world.get(key(x,z))}});
