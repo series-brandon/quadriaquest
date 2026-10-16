@@ -344,6 +344,29 @@ User report: ▲ / ▼ in the bar said to select a building or point at one. Sel
   - ▼ beside a new cave went in, ▲ came out at its entrance;
   - Page Up while pointing at a building.
 
+### Select (2026-10-16)
+
+User request: make the Hand its own tool, the default, where clicking something selects it and takes you to the right place. Agreed form: clicks pick placed things only, never the ground, so dragging on ground stays a selection box; terrain stays a deliberate trip to Terrain.
+
+- **The tool:** *Select* in the bar, before the tabs; the editor opens on it. It's the Hand (`select`): Decorate no longer lists it.
+- **Esc** steps back towards it: what you hold goes back, then the selection, then the tool becomes Select.
+- **A click** picks the most specific placed thing under the pointer: furniture, then a floor's stairs or ladder, then the building; a door by its own click. It shows its options, and its tab comes forward (`HOME_GROUP`; Select stays the tool, so the next click doesn't place or dig anything). Empty ground deselects and names the tile.
+- **A second click** on what's selected lifts it; a drag from it moves it. Doors lift onto another wall, and stairs follow the pointer as when placing.
+- **Hovering** tints what a click would pick.
+- **Nothing is written by selecting:** a tree that grew from the land or furniture the game furnished is selected as `grown` / `furnished`, and becomes the map's own on its first edit (lift, move, nudge, turn, duplicate, delete; `real()`).
+- **New selections** (`SPECIAL`):
+  - a floor's stairs or ladder (`flight`: owner, level, view): Move, Turn, Make it a ladder / stairs, Go up / Go down, Remove; nudges, drag, Delete and `,` `.` work too;
+  - a building's door (`door`): Move, and Go through when it leads somewhere.
+- **A cave entrance** (a prop) has *Go in*.
+- Stairs can no longer be put on furniture (either floor).
+- **Checked in the browser:**
+  - the editor opened on Select;
+  - a game-furnished chair selected without writing anything, then a second click made it placed and lifted it, and a click put it down;
+  - Esc deselected, and Esc from Raise came back to Select;
+  - clicking a building's floor selected the building with Build forward;
+  - stairs selected from below and their opening from above, turned, made a ladder and back, dragged to a new spot, deleted and undone;
+  - a door selected, then lifted on the second click.
+
 ### Interior size rules (user decision, 2026-10-10)
 
 - **Most ground floors are overworld**, open in place. Only large or unique ground floors are separate spaces.

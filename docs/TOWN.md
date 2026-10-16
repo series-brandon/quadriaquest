@@ -513,8 +513,9 @@ User request: make the world editor work like the Sims 4 build/buy editor, for a
   - In Decorate, the catalogue along the bottom.
   - Phones: the panel starts hidden (*Show panel*), the bar's rows and the catalogue scroll sideways, and the world stays in view.
   - The game's hover hint ("Move here") hides while editing.
+- **Select** (the Hand's tool, `select`) is in the bar before the tabs, and is the tool the editor opens on (docs/CITY.md, *Select*).
 - **Tool groups:**
-  - **Decorate:** Hand, Colours, Eyedropper, Sledgehammer (Erase), Stamp;
+  - **Decorate:** Deco, Colours, Eyedropper, Sledgehammer (Erase), Floor and Wall paint, Stamp;
   - **Build:** Building, Footprint, Walls, Edge, Stairs, Use, Reroll furniture, Underground;
   - **Terrain:** Raise, Lower, Flatten, Smooth, Ramp, Surface, Biome;
   - **World:** Nature, Enemy, Townsfolk, Crystal, Arrival, Inspect.
@@ -523,8 +524,8 @@ User request: make the world editor work like the Sims 4 build/buy editor, for a
   - A prop may be in several groups; a test checks every prop has a room and a function.
   - A click puts a new one in your hand. Inside a floor it's furniture on that floor.
   - Once you've picked an item, its saved colour presets show beside *Own colours*.
-- **The Hand** (Decorate's main tool, `select`):
-  - Click something to select it (its options show); click it again to lift it (user, 2026-10-16: a first click lifting made selecting, e.g. a building to go up in, awkward). Or drag from what's selected: it lifts as the pointer leaves its tile and goes down where you let go. A drag that starts anywhere else draws a selection box.
+- **The Hand** (Select, in the bar; `select`):
+  - Click something to select it (its options show, and its tab comes forward); click it again to lift it (user, 2026-10-16: a first click lifting made selecting, e.g. a building to go up in, awkward). Or drag from what's selected: it lifts as the pointer leaves its tile and goes down where you let go. A drag that starts anywhere else draws a selection box.
   - Lifted, it follows the pointer, as a green or red ghost, and keeps the spot you took hold of under the pointer. Click again to put it down.
   - Put it down where it was and nothing changes; anywhere else is one undo step.
   - Click inside a box-selected group to lift the whole group.

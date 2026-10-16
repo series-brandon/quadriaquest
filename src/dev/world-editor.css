@@ -42,6 +42,8 @@
 .q-world-editor__draw .q-select { inline-size: auto; }
 /* Up and down a level: two small square buttons and where you are. */
 .q-world-editor__levels { align-items: center; flex-wrap: nowrap; }
+/* Select, before the tool tabs: pressed while it's the tool. */
+.q-world-editor__select[aria-pressed='true'] { background: var(--q-control-selected); box-shadow: inset 0 0 0 1px var(--q-control-pressed); font-weight: 700; }
 .q-world-editor__levels .q-button { min-inline-size: var(--q-touch); inline-size: var(--q-touch); padding-inline: 0; }
 .q-world-editor__actions { display: flex; flex-wrap: wrap; gap: 4px; }
 .q-world-editor__status { display: grid; gap: 2px; }
