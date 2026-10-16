@@ -131,13 +131,26 @@ export function searchRoute(start,expand,{target=null,goal=null,near=0,limit=Inf
   expanded++;
   expand(t,(n,step)=>{const nd=d+step;if(nd<(best.get(n)??Infinity)){best.set(n,nd);previous.set(n,t);heap.push(nd+h(n),n);}},d);
  }
- return {end:null,cost:Infinity,previous,best};
+ // complete: every reachable tile was tried (false when `limit` cut the search short).
+ return {end:null,cost:Infinity,previous,best,complete:!heap.size};
 }
 // The tiles from just after the start to `end`, following `previous`.
 export function routeTo(previous,end){const route=[];for(let t=end;previous.get(t)!==null&&t!==undefined;t=previous.get(t))route.unshift(t);return route;}
 // The player's route (and anyone's shortest route between two tiles). cost(tile): extra cost of
 // stepping onto a tile (occupied tiles, world-occupancy.js); the target's own cost doesn't count.
 // diagonal: whether diagonal steps are allowed (the player's setting by default).
+// Whether a walker could get from start to end, for hints such as the hover cursor: true, false, or null when the
+// search gave up after `limit` tiles. Without a limit, a spot that can't be reached (inside a building with its door
+// shut) made the search try every tile of a big streamed world: ~100 ms, ten times a second (user report, 2026-10-16).
+export function canReach(map,start,end,{limit=3000,diagonal=DIAGONAL_MOVES.player,passable=canStep}={}){
+ const target=map.get(key(end.x,end.z));if(!target||target.blocked)return false;
+ const from=map.get(key(start.x,start.z))||start;if(from===target)return true;
+ const expand=(t,add)=>eachStep(map,t,n=>add(n,stepCost(t,n)),{diagonal,passable}),there=searchRoute(from,expand,{target,limit});
+ if(there.end)return true;if(there.complete)return false;
+ // Gave up: search back from the far end too. A closed-off spot (a room behind a shut door) is small, so that search
+ // finishes at once and says no.
+ const back=searchRoute(target,expand,{target:from,limit});return back.end?true:back.complete?false:null;
+}
 export function findPath(map,start,end,cost=null,{diagonal=DIAGONAL_MOVES.player,passable=canStep,limit=Infinity}={}){
  const target=map.get(key(end.x,end.z));if(!target||target.blocked)return null;
  const from=map.get(key(start.x,start.z))||start;if(from===target)return [];

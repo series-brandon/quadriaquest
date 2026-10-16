@@ -367,6 +367,16 @@ User request: make the Hand its own tool, the default, where clicking something 
   - stairs selected from below and their opening from above, turned, made a ladder and back, dragged to a new spot, deleted and undone;
   - a door selected, then lifted on the second click.
 
+### The first Play stutter and the black mist (2026-10-16)
+
+- **Stutter** (user report: the first switch from Edit to Play stuttered for a few seconds, worst near the building in Mistrom at Draw distance Far; Near fixed it).
+  - The user's capture showed frames of 105–150 ms for about three seconds, almost all in the frame's *hover* section. Rendering, shader compiles and world building were normal.
+  - The game's hover check asks "can I get there?" to choose the cursor and hint. It ran a full route search to the tile under the pointer on every pointer move and ten times a second. For a spot that can't be reached (the slime put inside a building with its door shut, or the pointer on a shut room), that search tried every reachable tile. At Far that's a whole streamed region: about 100 ms a time. The editor already turns the hover off while editing for this reason, so it only showed in Play.
+  - **Fix** (`world.js` `canReach`, main.js `updateHover`): a plain tile is searched at most 3000 tiles. If that gives up, it searches back from the target, so a closed-off spot (small) is a definite no; if both give up, it counts as reachable, and the click still finds the real route. Doors, trees and NPCs get the same bound (`routeToTree(target, limit)`, `interactionRoute`'s `limit`). The answer is kept for a second while the pointer and the slime stay put.
+  - Checked in the browser at Far: from inside the shut building and from outside it, the hint is right ("No safe route"), the hover takes about 1 ms on average, and no frame comes near 100 ms.
+  - Test: `world.test.js` (yes, no, closed off, and unknown).
+- **Black mist after a floor:** a floor's dark background stayed when you came back out to an area without camera settings (the editor's map; in the game, any such area after an interior). The mist fades into the background, so it went black. Every area change now applies its camera (`area-runtime.js`); test in `travel.test.js`.
+
 ### Interior size rules (user decision, 2026-10-10)
 
 - **Most ground floors are overworld**, open in place. Only large or unique ground floors are separate spaces.

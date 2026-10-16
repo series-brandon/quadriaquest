@@ -25,3 +25,9 @@ test('landing and crystal availability are revalidated during fade',()=>{
  const f=fixture(),landing=f.areas.get('second').tiles.get('0,1');f.occupy(landing);assert.equal(f.travel.request('second'),false);f.occupy(null);assert.ok(f.travel.request('second'));landing.blocked=true;f.travel.update(.8);assert.equal(f.areas.id,'first');assert.equal(f.travel.busy,false);landing.blocked=false;
  let available=true;const source={available:()=>available};assert.ok(f.travel.request('second',{source}));available=false;f.travel.update(.8);assert.equal(f.areas.id,'first');available=true;f.travel.request('second',{source});f.travel.cancelFrom(source);assert.equal(f.travel.busy,false);assert.equal(f.failures,3);
 });
+test('an area without camera settings still applies its camera, so a previous area’s background doesn’t stay',()=>{
+ const world=new Map(),cameras=[],areas=createAreaRuntime({world,applyCamera:c=>cameras.push(c)}),tile={x:0,z:0,h:0};
+ areas.register({id:'inside',group:{visible:true},tiles:new Map([['0,0',tile]]),camera:{background:'#2b2622'}});
+ areas.register({id:'outside',group:{visible:true},tiles:new Map([['0,0',{...tile}]])});
+ areas.activate('inside');areas.activate('outside');assert.deepEqual(cameras,[{background:'#2b2622'},{}]);
+});

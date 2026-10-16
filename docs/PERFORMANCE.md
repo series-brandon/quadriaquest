@@ -42,7 +42,7 @@ Runs use one browser at a time and close it in `finally`. They never touch your 
 | `low-perf` | Chrome, SwiftShader software WebGL, 4× CPU throttle, 1366×768 @1× | Pessimistic weak laptop / integrated GPU. Fill-rate and main-thread problems show up first here. Never representative of normal play. |
 | `mobile-emu` | Chrome, 390×844 @3×, touch, 4× CPU throttle, hardware GPU | Phone pixel density, fullscreen menus |
 | `webkit` | Playwright WebKit, 1280×800 @2× | Safari-engine behaviour. No throttling, profiles, layout metrics or whole-browser CPU, and timers have 1 ms resolution, so counters and fps matter most here. |
-| `ci` | Software WebGL, counters only | Planned GitHub Actions gate (draws, objects, uploads, leaks); timings not gated |
+| `ci` | Software WebGL, no timing gates | Planned GitHub Actions gate: leaks and page errors fail; counts are reported |
 
 Real devices aren't part of the loop yet. When they are, use the playground **Performance → Toggle perf HUD** over remote debugging (Safari Web Inspector / `chrome://inspect`) with the same scenarios.
 
@@ -74,18 +74,27 @@ Each scenario uses real gameplay entry points (checkpoints, travel, menus, comba
 
 Thresholds live in `perf/budgets.json`; baselines live in `perf/baselines/<env>.json` (committed).
 
-**FAIL**, which exits non-zero. Per-second rates such as mutations and layouts use a 25% tolerance, because they move with frame rate. They aren't gated at all in scenarios marked `stochastic` (combat).
-- a counter is over its absolute budget;
-- an fps target is missed;
-- the travel leak check fails;
-- the page throws errors;
-- a counter rose more than 5% (+3 slack) over baseline. Counters: draws, objects, visible meshes, programs, geometries, textures, uploads, mutations, layouts.
+**Only what players feel fails** (user decision, 2026-10-16). The map is being designed, so adding or removing things changes the world's counts on purpose. Gates that failed when those counts moved were brittle, so they're gone.
+
+**FAIL**, which exits non-zero:
+- **fps** under the scenario's `minFps`;
+- **stutter:** the frame-interval p95 over `maxIntervalP95` ms;
+- **a hitch or load stall:** the worst gap between two frames (`intervalMax`, the median of each window's worst) over `maxIntervalMs` ms;
+- the travel leak check fails (objects, geometries, textures or programs growing across repeated trips, or the heap growing over 2 MB): a leak, not map content;
+- the page throws errors.
+
+**Thresholds** (`targets` in `perf/budgets.json`; `*` is every scenario in an environment, and a scenario's own entry overrides it):
+- `dev-gpu`, `webkit` and `mobile-emu`: at least 55 fps, interval p95 at most 25 ms, worst gap at most 100 ms. On 2026-10-16 every dev-gpu scenario ran at about 59.5 fps with a 16.7 ms p95.
+- `mobile-emu/cinderhold-combat`: at least 30 fps.
+- `low-perf` (SwiftShader, pessimistic): only `clearing-idle` ≥ 58 fps.
+
+**Counts are notes, never failures:** draws, objects, triangles, visible meshes, programs, geometries, textures, uploads, mutations and layouts are reported when they move more than 5% from the baseline, so a report still shows where a cost came from.
+
+A per-view density budget (draws or triangles within a radius of the camera) would fit this rule only if its limit is where frame time starts to suffer, found by measurement, not an arbitrary number. There isn't one yet.
 
 **WARN:** egregious timing changes against the stored baseline: frame median +50%, frame p95 +75%, browser CPU +50% or fps −5%, and only when the 95% bootstrap confidence interval excludes zero. Smaller changes appear as report lines only.
 
-These are advisory. Each run first times a fixed JS workload in the same browser (`calibration`). Baseline frame times are scaled by the machine-speed ratio, clamped to 0.6–1.6×, to absorb background load and thermal state. Even so, cross-session timing comparisons drift. On an unchanged tree, frame times still moved +36–81% between sessions even with calibration at ×1.01. That points to GPU or compositor contention from other activity, such as the game open in another browser, which a JS benchmark can't see. Precise timing claims therefore come from `perf:ab`, which measures both sides in the same session. Counters are exact across sessions, which is why they gate.
-
-**Targets** (initial; adjust as data arrives): `low-perf/clearing-idle` ≥ 58 fps; `mobile-emu/cinderhold-combat` ≥ 30 fps.
+Baseline comparisons are advisory. Each run first times a fixed JS workload in the same browser (`calibration`). Baseline frame times are scaled by the machine-speed ratio, clamped to 0.6–1.6×, to absorb background load and thermal state. Even so, cross-session timing comparisons drift. On an unchanged tree, frame times still moved +36–81% between sessions even with calibration at ×1.01. That points to GPU or compositor contention from other activity, such as the game open in another browser, which a JS benchmark can't see. Precise timing claims therefore come from `perf:ab`, which measures both sides in the same session. The FAIL thresholds are absolute (not against a baseline), so drift only matters near a limit. If something else is using the GPU (the game open in another browser), close it and run again before chasing a FAIL.
 
 Non-passing scenarios are automatically re-run once with the CPU profiler on Chromium. The report then lists:
 1. **phase change**: main-loop phases whose ms per frame grew;
@@ -100,7 +109,7 @@ Non-passing scenarios are automatically re-run once with the CPU profiler on Chr
    - An A/A check (identical builds) showed about ±10–20% CI on frame ms and ±9% on browser CPU with 4 rounds × 2 windows.
    - Detecting 2–5% effects needs `--rounds 8`–`12`, or the `low-perf` environment, where main-thread work is amplified 4×.
    - Counters such as draws are exact, so one round proves those.
-4. When an improvement lands, refresh the baselines and tighten that scenario's budget in `perf/budgets.json` (a ratchet), so later work can't silently spend the gain.
+4. When an improvement lands, refresh the baselines, so the report's notes and warnings compare against the new level.
 
 ## Playbook: symptom → usual fix
 
@@ -175,3 +184,4 @@ GitHub Actions on Ubuntu will run `PERF_BUNDLED_CHROMIUM=1 node perf/run.mjs --e
 | 2026-10-15 | Follow-ups: haze in every area (fog in every scene except the Low tiers), particles removed, a hard fog-gate mist wall, floor following the view, Play from where you work | Full dev-gpu run: every scenario 59.1–59.8 fps. `splash` 15 → 22 programs (fog now always in the world, never in the splash's scene, so shared materials compiled twice); the splash scene now gets the world's far-off fog whenever the world has fog, back to 15. `biome-atmosphere` 279 → 417 draws: a goblin wandering into view moves shadow casters every frame (found by logging `castersChanged`), not the atmosphere (397 with it off) or the floor; the scenario is now marked stochastic. Re-baselined `biome-atmosphere`, `mist-edge` and `splash` with notes. The floor moves in 100-unit steps so it never triggers a redraw. Low-perf `mist-edge`: 8 fps with the full swirl, 15 with the Low tiers' cheaper one (as before). |
 | 2026-10-15 | Iter Crystals: a 2 × 2 landmark model, any number per map | First run with the model as ~15 separate meshes per crystal: `willowbank-river` +46 draws, `travel` +48, objects +44 and geometries +61. Rebuilt as 5 meshes whose geometry and materials every crystal shares (the dais and posts one merged vertex-coloured mesh): `willowbank-river`, `cinderhold-combat` and `capital-square` PASS again; `travel` +10 draws and +12 visible meshes, the overworld scenarios +~15 objects, re-baselined with a note. All at 59.5–59.9 fps. |
 | 2026-10-15 | World editor: wall-preview hide box in the shared wall cutaway shader (`cutaway.js` `setHiddenBox`: one world-position varying and a uniform box test), prop sizing (`placePropModel`), floor patterns | dev-gpu full suite: 14/16 PASS. `overworld-pan` upload +16% did not repeat (PASS on rerun: noise). `dialogue` draws 117 vs 102: A/B against HEAD equal (116.8 both), so it predates this batch. It is the Iter Crystal rework in Willowbank's view (rune ring, shadowed parts, per-part guide outline); baseline updated with a note. |
+| 2026-10-16 | Editor Select tool, stairs/ladders by hand, hover route search bounded (`canReach`), mist fix; **gate now fails only on felt time** (fps, interval p95, worst gap; counts are notes) | Full dev-gpu suite before the gate change: 14/16 PASS; `overworld-pan` and `mist-edge` failed only on counts (+12 objects in the overworld map, from Building 1 becoming two storeys with stairs), frame times normal. Under the new gate (focused run): both PASS, worst gap 17 ms; `capital-square` 5.2 ms/frame, 59.7 fps. `travel` failed the leak check once (geometries 331 → 346) and passed on the rerun: the leak check is flaky. |

@@ -110,7 +110,7 @@ window.addEventListener('quadriaquest-level',()=>gameAudio.cue('level'));
 // finished part, objective or quest has its own cue. A level-up at the same moment wins.
 effect(()=>{const n=objectiveNotice.value;if(n)untracked(()=>gameAudio.cue(n.kind,n.part&&n.kind==='progress'?n.part.current/n.part.total:n.total?n.current/n.total:0));});
 import * as THREE from 'three';
-import {makeWorld,findPath,key,SPAWN,canMove as stepAllowed,DIAGONAL_MOVES} from './world.js';
+import {makeWorld,findPath,canReach,key,SPAWN,canMove as stepAllowed,DIAGONAL_MOVES} from './world.js';
 import {chunkId,CHUNK} from './world-grid.js';
 import {createFeedback} from './feedback.js';
 import {createContactShadow} from './contact-shadow.js';
@@ -611,7 +611,8 @@ function cancelWork({keepCombat=false,keepFood=false}={}){
 }
 // A queued quick spell opens the next fight from its own range.
 function attackRange(){return combat?.queuedSpell?SPELLS[combat.queuedSpell].range:styles.attack.range;}
-function routeToTree(target){return target.depleted?null:target.kind==='door'?doorApproach(target,segment?segment.to:tile,at=>findPath(world,segment?segment.to:tile,at,playerRouteCost)):target.enemy?attackRoute(world,segment?segment.to:tile,target,attackRange(),characterAt,playerRouteCost):interactionRoute(world,segment?segment.to:tile,target,characterAt,playerRouteCost);}
+// limit: the hover's hint searches at most this many tiles per route (the click searches in full).
+function routeToTree(target,limit=Infinity){return target.depleted?null:target.kind==='door'?doorApproach(target,segment?segment.to:tile,at=>findPath(world,segment?segment.to:tile,at,playerRouteCost,{limit})):target.enemy?attackRoute(world,segment?segment.to:tile,target,attackRange(),characterAt,playerRouteCost):interactionRoute(world,segment?segment.to:tile,target,characterAt,playerRouteCost,limit);}
 // Occupied tiles (world-occupancy.js): the player and companion register each frame; creatures and
 // NPCs register as they move. Another character stands here (companion, creature or NPC):
 function characterAt(t){return !!t&&occupancy.occupied(t,playerOccupant);}
@@ -685,6 +686,9 @@ function pick(event){const rect=gameViewport();pointer.set((event.clientX-rect.l
 let down=null,dragged=false,pinchDistance=null;
 const activePointers=new Map();
 let pointerOnCanvas=false,pointerClient={x:0,y:0},hoverDirty=true,hoverCleared=false,hoverAt=0;
+// The hover's answer to "can I get there?", kept for a second while the pointer stays on the same thing and you
+// haven't moved (the 10 Hz refresh used to search again every time).
+let hoverReach={subject:null,from:null,at:0,valid:false};const HOVER_SEARCH=3000;
 const canvas=renderer.domElement;
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 function spread(){const [a,b]=[...activePointers.values()];return Math.hypot(a.x-b.x,a.y-b.y);}
@@ -747,7 +751,11 @@ function updateHover(){
  if(__PLAYGROUND__&&freeCam&&(panKeys.has('w')||panKeys.has('a')||panKeys.has('s')||panKeys.has('d')||down))return;
  const now=performance.now();if(!hoverDirty&&!hoverCleared&&now-hoverAt<100)return;hoverDirty=false;hoverCleared=false;hoverAt=now;
  const hit=pick({clientX:pointerClient.x,clientY:pointerClient.y});hover=terrainHitData(hit);
- const t=hover?.tile,tree=hover?.tree,actor=hover?.actor,placementStatus=campfires.hoverPlacement(t),valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&!!routeToTree(actor):tree?(['boulder','copper'].includes(tree.kind)?inventory.pickaxes>0:inventory.axes>0)&&!!routeToTree(tree):hover?.resource?!!routeToTree(hover.resource):!!t&&findPath(world,segment?segment.to:tile,t)!==null;
+ const t=hover?.tile,tree=hover?.tree,actor=hover?.actor,placementStatus=campfires.hoverPlacement(t),from=segment?segment.to:tile,subject=actor||tree||hover?.resource||t;
+ const reach=()=>{if(hoverReach.subject===subject&&hoverReach.from===from&&now-hoverReach.at<1000)return hoverReach.valid;
+  // A plain tile: a bounded search (unknown counts as reachable; the click finds the real route).
+  const valid=actor||tree||hover?.resource?!!routeToTree(actor||tree||hover.resource,HOVER_SEARCH):!!t&&canReach(world,from,t,{limit:HOVER_SEARCH})!==false;hoverReach={subject,from,at:now,valid};return valid;};
+ const valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&reach():tree?(['boulder','copper'].includes(tree.kind)?inventory.pickaxes>0:inventory.axes>0)&&reach():hover?.resource?reach():!!t&&reach();
  feedback.hover(t,valid);
  renderer.domElement.style.cursor=t?(valid?'pointer':'not-allowed'):'default';
  // Editing (playground world editor): the editor previews what a click does, so the game's hint stays away.

@@ -1,75 +1,42 @@
 {
   "defaults": {
-    "counterTolerance": 0.05,
-    "counterSlack": 3,
     "medianTolerance": 0.5,
     "p95Tolerance": 0.75,
     "cpuTolerance": 0.5,
     "fpsTolerance": 0.05,
     "heapGrowthMB": 2,
-    "rateTolerance": 0.25
+    "rateTolerance": 0.25,
+    "counterNote": 0.05
   },
+  "_comment": "The gate fails only on what players feel (user, 2026-10-16): fps below minFps, a frame-interval p95 over maxIntervalP95 ms (stutter) or a worst gap between frames over maxIntervalMs (a hitch or load stall). '*' applies to every scenario in an environment; a scenario's own entry overrides it. Counts (draws, objects, triangles, uploads\u2026) are reported, never gated: the map is still being designed. Leaks across travel and page errors also fail.",
   "targets": {
-    "low-perf": {
-      "clearing-idle": {
-        "minFps": 58
+    "dev-gpu": {
+      "*": {
+        "minFps": 55,
+        "maxIntervalP95": 25,
+        "maxIntervalMs": 100
+      }
+    },
+    "webkit": {
+      "*": {
+        "minFps": 55,
+        "maxIntervalP95": 25,
+        "maxIntervalMs": 100
       }
     },
     "mobile-emu": {
+      "*": {
+        "minFps": 55,
+        "maxIntervalP95": 25,
+        "maxIntervalMs": 100
+      },
       "cinderhold-combat": {
         "minFps": 30
       }
-    }
-  },
-  "budgets": {
-    "*": {
-      "splash": {
-        "draws": 110,
-        "objects": 550,
-        "programs": 20,
-        "uploadsPerFrame": 10
-      },
+    },
+    "low-perf": {
       "clearing-idle": {
-        "draws": 230,
-        "objects": 550,
-        "programs": 15,
-        "uploadsPerFrame": 10
-      },
-      "clearing-walk": {
-        "draws": 240,
-        "objects": 550,
-        "programs": 20,
-        "uploadsPerFrame": 10
-      },
-      "willowbank-river": {
-        "draws": 490,
-        "objects": 1350,
-        "programs": 20,
-        "uploadsPerFrame": 10
-      },
-      "cinderhold-combat": {
-        "draws": 780,
-        "objects": 2450,
-        "programs": 30,
-        "uploadsPerFrame": 10
-      },
-      "menus": {
-        "draws": 230,
-        "objects": 550,
-        "programs": 15,
-        "uploadsPerFrame": 10
-      },
-      "dialogue": {
-        "draws": 430,
-        "objects": 1350,
-        "programs": 20,
-        "uploadsPerFrame": 10
-      },
-      "travel": {
-        "draws": 380,
-        "objects": 550,
-        "programs": 30,
-        "uploadsPerFrame": 10
+        "minFps": 58
       }
     }
   }

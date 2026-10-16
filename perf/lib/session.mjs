@@ -73,7 +73,7 @@ export async function runScenario(session,{url,scenario,windows=3,windowMs=2500,
  }finally{await context.close();}
 }
 
-const stripSample=s=>({frameMs:s.frameMs.median,frameP95:s.frameMs.p95,intervalP95:s.intervalMs.p95,fps:s.fps,cpuPercent:s.cpuPercent,draws:s.draws,gpuMs:s.probe.gpuMs?.median??null});
+const stripSample=s=>({frameMs:s.frameMs.median,frameP95:s.frameMs.p95,intervalP95:s.intervalMs.p95,intervalMax:s.intervalMs.max,fps:s.fps,cpuPercent:s.cpuPercent,draws:s.draws,gpuMs:s.probe.gpuMs?.median??null});
 function summarize(samples,census){
  const pick=fn=>samples.map(fn).filter(v=>v!=null&&Number.isFinite(v)),med=fn=>{const v=pick(fn);return v.length?round(median(v)):null;};
  const sectionNames=[...new Set(samples.flatMap(s=>Object.keys(s.probe.sections)))];
@@ -81,7 +81,7 @@ function summarize(samples,census){
   counters:{draws:med(s=>s.draws),threeDrawCalls:med(s=>s.probe.drawCalls),triangles:med(s=>s.probe.triangles),uploadsPerFrame:med(s=>s.uploads),uploadKBPerFrame:med(s=>s.uploadKB),
    textureUploadsPerFrame:med(s=>s.textureUploads),programSwitchesPerFrame:med(s=>s.programSwitches),mutationsPerSec:med(s=>s.mutationsPerSec),layoutsPerSec:med(s=>s.layoutsPerSec),styleRecalcsPerSec:med(s=>s.styleRecalcsPerSec),
    objects:census.objects,visibleMeshes:census.visibleMeshes,programs:census.programs,geometries:census.geometries,textures:census.textures},
-  timing:{frameMs:med(s=>s.frameMs.median),frameP95:med(s=>s.frameMs.p95),frameMax:med(s=>s.frameMs.max),intervalP95:med(s=>s.intervalMs.p95),fps:med(s=>s.fps),cpuPercent:med(s=>s.cpuPercent),
+  timing:{frameMs:med(s=>s.frameMs.median),frameP95:med(s=>s.frameMs.p95),frameMax:med(s=>s.frameMs.max),intervalP95:med(s=>s.intervalMs.p95),intervalMax:med(s=>s.intervalMs.max),fps:med(s=>s.fps),cpuPercent:med(s=>s.cpuPercent),
    gpuMs:med(s=>s.probe.gpuMs?.median),scriptMsPerSec:med(s=>s.scriptMsPerSec),longTasks:pick(s=>s.longTasks).reduce((a,b)=>a+b,0)},
   sections:Object.fromEntries(sectionNames.map(n=>[n,round(mean(samples.map(s=>s.probe.sections[n]?.mean||0)))]).sort((a,b)=>b[1]-a[1]))
  };

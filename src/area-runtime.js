@@ -17,7 +17,9 @@ export function createAreaRuntime({world,beforeSwitch=()=>{},placePlayer=()=>{},
    beforeSwitch();if(active){active.leave?.();park(active);}
    world.clear();for(const [key,tile] of next.tiles)world.set(key,tile);
    active=next;entered=false;unpark(next);
-   if(landing)placePlayer(landing);if(next.camera)applyCamera(next.camera);
+   // Every area applies its camera, even with none of its own: its background (which the haze fades into) mustn't
+   // stay a previous area's, e.g. an interior's dark one (user report, 2026-10-16: the mist went black).
+   if(landing)placePlayer(landing);applyCamera(next.camera||{});
    if(announce)enter({arrival});return true;
   },
   enter,update:(...args)=>active?.update?.(...args),notify:(event,...args)=>active?.[event]?.(...args),

@@ -572,7 +572,200 @@
    "floors": [
     {
      "level": 0,
-     "furniture": [],
+     "furniture": [
+      {
+       "kind": "tableLong",
+       "at": [
+        1,
+        1
+       ],
+       "rotation": 90
+      },
+      {
+       "kind": "chair",
+       "at": [
+        1,
+        3
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "chair",
+       "at": [
+        1,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "rug",
+       "at": [
+        6,
+        1
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "armchair",
+       "at": [
+        5,
+        2
+       ],
+       "rotation": 270
+      },
+      {
+       "kind": "armchair",
+       "at": [
+        8,
+        3
+       ],
+       "rotation": 90
+      },
+      {
+       "kind": "sideTable",
+       "at": [
+        5,
+        3
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "washstand",
+       "at": [
+        0,
+        6
+       ],
+       "rotation": 270
+      },
+      {
+       "kind": "bookshelf",
+       "at": [
+        5,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "bookshelf",
+       "at": [
+        8,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "painting",
+       "at": [
+        0,
+        3
+       ],
+       "rotation": 270
+      },
+      {
+       "kind": "painting",
+       "at": [
+        11,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "wallShelf",
+       "at": [
+        0,
+        1
+       ],
+       "rotation": 270
+      },
+      {
+       "kind": "fireplace",
+       "at": [
+        6,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "pottedPlant",
+       "at": [
+        5,
+        6
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "pottedPlant",
+       "at": [
+        7,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "sideTable",
+       "at": [
+        8,
+        2
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "candleStand",
+       "at": [
+        0,
+        0
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "candleStand",
+       "at": [
+        2,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "candleStand",
+       "at": [
+        10,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "painting",
+       "at": [
+        4,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "sacks",
+       "at": [
+        0,
+        5
+       ],
+       "rotation": 90
+      },
+      {
+       "kind": "crateStack",
+       "at": [
+        12,
+        0
+       ],
+       "rotation": 90
+      },
+      {
+       "kind": "crates",
+       "at": [
+        11,
+        0
+       ],
+       "rotation": 90
+      }
+     ],
      "up": {
       "at": [
        12,
@@ -582,9 +775,242 @@
      }
     },
     {
-     "level": 1
+     "level": 1,
+     "furniture": [
+      {
+       "kind": "doubleBed",
+       "at": [
+        5,
+        5
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "sideTable",
+       "at": [
+        4,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "wardrobe",
+       "at": [
+        2,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "wardrobe",
+       "at": [
+        1,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "dresser",
+       "at": [
+        0,
+        5
+       ],
+       "rotation": 270
+      },
+      {
+       "kind": "washstand",
+       "at": [
+        0,
+        3
+       ],
+       "rotation": 270
+      },
+      {
+       "kind": "chest",
+       "at": [
+        12,
+        3
+       ],
+       "rotation": 90
+      },
+      {
+       "kind": "trunk",
+       "at": [
+        7,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "bookshelf",
+       "at": [
+        11,
+        6
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "crates",
+       "at": [
+        6,
+        0
+       ],
+       "rotation": 180
+      },
+      {
+       "kind": "wallShelf",
+       "at": [
+        5,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "wallShelf",
+       "at": [
+        7,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "barrel",
+       "at": [
+        0,
+        1
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "kegs",
+       "at": [
+        0,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "painting",
+       "at": [
+        2,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "painting",
+       "at": [
+        11,
+        0
+       ],
+       "rotation": 0
+      },
+      {
+       "kind": "rugRound",
+       "at": [
+        1,
+        4
+       ],
+       "rotation": 0
+      }
+     ]
     }
-   ]
+   ],
+   "paint": {
+    "floor": {
+     "7,5": "#9b754f stripes-ew 6",
+     "7,4": "#9b754f stripes-ew 6",
+     "8,5": "#9b754f stripes-ew 6",
+     "7,6": "#9b754f stripes-ew 6",
+     "6,5": "#9b754f stripes-ew 6",
+     "7,3": "#9b754f stripes-ew 6",
+     "8,4": "#9b754f stripes-ew 6",
+     "6,4": "#9b754f stripes-ew 6",
+     "9,5": "#9b754f stripes-ew 6",
+     "8,6": "#9b754f stripes-ew 6",
+     "6,6": "#9b754f stripes-ew 6",
+     "5,5": "#9b754f stripes-ew 6",
+     "7,2": "#9b754f stripes-ew 6",
+     "8,3": "#9b754f stripes-ew 6",
+     "6,3": "#9b754f stripes-ew 6",
+     "9,4": "#9b754f stripes-ew 6",
+     "5,4": "#9b754f stripes-ew 6",
+     "10,5": "#9b754f stripes-ew 6",
+     "9,6": "#9b754f stripes-ew 6",
+     "5,6": "#9b754f stripes-ew 6",
+     "4,5": "#9b754f stripes-ew 6",
+     "7,1": "#9b754f stripes-ew 6",
+     "8,2": "#9b754f stripes-ew 6",
+     "6,2": "#9b754f stripes-ew 6",
+     "9,3": "#9b754f stripes-ew 6",
+     "5,3": "#9b754f stripes-ew 6",
+     "10,4": "#9b754f stripes-ew 6",
+     "4,4": "#9b754f stripes-ew 6",
+     "11,5": "#9b754f stripes-ew 6",
+     "10,6": "#9b754f stripes-ew 6",
+     "4,6": "#9b754f stripes-ew 6",
+     "3,5": "#9b754f stripes-ew 6",
+     "7,0": "#9b754f stripes-ew 6",
+     "8,1": "#9b754f stripes-ew 6",
+     "6,1": "#9b754f stripes-ew 6",
+     "9,2": "#9b754f stripes-ew 6",
+     "5,2": "#9b754f stripes-ew 6",
+     "10,3": "#9b754f stripes-ew 6",
+     "4,3": "#9b754f stripes-ew 6",
+     "11,4": "#9b754f stripes-ew 6",
+     "3,4": "#9b754f stripes-ew 6",
+     "12,5": "#9b754f stripes-ew 6",
+     "11,6": "#9b754f stripes-ew 6",
+     "3,6": "#9b754f stripes-ew 6",
+     "2,5": "#9b754f stripes-ew 6",
+     "8,0": "#9b754f stripes-ew 6",
+     "6,0": "#9b754f stripes-ew 6",
+     "9,1": "#9b754f stripes-ew 6",
+     "5,1": "#9b754f stripes-ew 6",
+     "10,2": "#9b754f stripes-ew 6",
+     "4,2": "#9b754f stripes-ew 6",
+     "11,3": "#9b754f stripes-ew 6",
+     "3,3": "#9b754f stripes-ew 6",
+     "12,4": "#9b754f stripes-ew 6",
+     "2,4": "#9b754f stripes-ew 6",
+     "12,6": "#9b754f stripes-ew 6",
+     "2,6": "#9b754f stripes-ew 6",
+     "1,5": "#9b754f stripes-ew 6",
+     "9,0": "#9b754f stripes-ew 6",
+     "5,0": "#9b754f stripes-ew 6",
+     "10,1": "#9b754f stripes-ew 6",
+     "4,1": "#9b754f stripes-ew 6",
+     "11,2": "#9b754f stripes-ew 6",
+     "3,2": "#9b754f stripes-ew 6",
+     "12,3": "#9b754f stripes-ew 6",
+     "2,3": "#9b754f stripes-ew 6",
+     "1,4": "#9b754f stripes-ew 6",
+     "1,6": "#9b754f stripes-ew 6",
+     "0,5": "#9b754f stripes-ew 6",
+     "10,0": "#9b754f stripes-ew 6",
+     "4,0": "#9b754f stripes-ew 6",
+     "11,1": "#9b754f stripes-ew 6",
+     "3,1": "#9b754f stripes-ew 6",
+     "12,2": "#9b754f stripes-ew 6",
+     "2,2": "#9b754f stripes-ew 6",
+     "1,3": "#9b754f stripes-ew 6",
+     "0,4": "#9b754f stripes-ew 6",
+     "0,6": "#9b754f stripes-ew 6",
+     "11,0": "#9b754f stripes-ew 6",
+     "3,0": "#9b754f stripes-ew 6",
+     "12,1": "#9b754f stripes-ew 6",
+     "2,1": "#9b754f stripes-ew 6",
+     "1,2": "#9b754f stripes-ew 6",
+     "0,3": "#9b754f stripes-ew 6",
+     "12,0": "#9b754f stripes-ew 6",
+     "2,0": "#9b754f stripes-ew 6",
+     "1,1": "#9b754f stripes-ew 6",
+     "0,2": "#9b754f stripes-ew 6",
+     "1,0": "#9b754f stripes-ew 6",
+     "0,1": "#9b754f stripes-ew 6",
+     "0,0": "#9b754f stripes-ew 6"
+    }
+   }
   }
  ],
  "props": [],
