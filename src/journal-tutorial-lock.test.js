@@ -14,10 +14,10 @@ test('guided journal lessons permit only the required action, never closing or r
  assert.deepEqual(journalTutorialActions('skills-summary'),[]);
  // The axe lesson follows its guide step by step: the tab, the recipe, then Craft.
  for(const stage of ['craft-menu','retry'])assert.deepEqual(journalTutorialActions(stage),['#open-crafting','[data-tab="open-crafting"]']);
- assert.deepEqual(journalTutorialActions('retry','choose-axes'),['#choose-axes','[data-tab="choose-axes"]']);
+ assert.deepEqual(journalTutorialActions('retry','choose-crudeAxe'),['#choose-crudeAxe','[data-tab="choose-crudeAxe"]']);
  assert.deepEqual(journalTutorialActions('recipe'),[]);
- assert.deepEqual(journalTutorialActions('recipe','choose-axes'),['#choose-axes','[data-tab="choose-axes"]']);
- assert.deepEqual(journalTutorialActions('recipe','craft-axes'),['#craft-axes','[data-tab="craft-axes"]']);
+ assert.deepEqual(journalTutorialActions('recipe','choose-crudeAxe'),['#choose-crudeAxe','[data-tab="choose-crudeAxe"]']);
+ assert.deepEqual(journalTutorialActions('recipe','craft-crudeAxe'),['#craft-crudeAxe','[data-tab="craft-crudeAxe"]']);
 });
 test('optional guided recipes use the real highlighted action and release on completion',()=>{
  assert.deepEqual(journalTutorialActions('pickaxe','craft-pickaxes'),['#craft-pickaxes','[data-tab="craft-pickaxes"]']);
@@ -29,7 +29,7 @@ test('optional guided recipes use the real highlighted action and release on com
 test('capture guard rejects stray actions and preserves native availability when unlocked',async()=>{
  const {mountJournalTutorialLock}=await import('./journal-tutorial-lock.js');
  const make=id=>({id,inert:false,attrs:new Map(),matches(selector){return selector==='#'+id;},closest(selector){return selector==='#gather-tutorial'?null:this;},getAttribute(key){return this.attrs.get(key);},hasAttribute(key){return this.attrs.has(key);},setAttribute(k,v){this.attrs.set(k,v);},removeAttribute(k){this.attrs.delete(k);}});
- const close=make('journal-close'),quest=make('open-quests'),craft=make('craft-axes');craft.disabled=true;
+ const close=make('journal-close'),quest=make('open-quests'),craft=make('craft-crudeAxe');craft.disabled=true;
  const listeners={},host={querySelectorAll:selector=>selector.startsWith('.gold-guide')?[]:[close,quest,craft],addEventListener:(type,fn)=>listeners[type]=fn};
  const controller={stage:'quests-menu',onStageChange(){}},lock=mountJournalTutorialLock(host,controller);lock.sync();
  assert.equal(close.inert,true);assert.equal(quest.inert,false);assert.equal(craft.disabled,true);

@@ -40,7 +40,7 @@ test('new wording for the same progress updates quietly; re-finishing is not a n
 test('losing progress is a quiet setback; a withdrawn objective leaves the quest', () => {
   resetObjectives();
   const seen = watch();
-  const parts = (hammer, logs) => [{label: 'Craft a Crude Hammer', current: hammer, total: 1}, {label: 'Gather Small Logs', current: logs, total: 3}];
+  const parts = (hammer, wood) => [{label: 'Craft a Crude Hammer', current: hammer, total: 1}, {label: 'Gather Wood Pieces', current: wood, total: 3}];
   updateObjective('willow-prepare', 'Prepare for repair', 'Both.', 0, 1, parts(0, 2)); seen();
   updateObjective('willow-prepare', 'Prepare for repair', 'Both.', 0, 1, parts(1, 3)); seen();
   updateObjective('willow-bridge', 'Repair the bridge', 'Click it.'); seen();

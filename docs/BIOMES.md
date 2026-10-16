@@ -24,7 +24,7 @@ Draft, 2026-10-14, for review. A **biome** is a set of rules for generating a ki
   - woods appear by noise, pines above height 2, willows by water, cherries in groves;
   - goblins appear away from roads;
   - fixed resource odds.
-- **`biomes.js`** has five *mini biomes* for green spaces in a city (blossom, willow, autumn, birch, meadow). Each is just tree species and flowers.
+- **`biomes.js`** has five *mini biomes* for green spaces in a city (blossom, willow, autumn, poplar, meadow). Each is just tree species and flowers.
 - **Terrain colour** comes from the surface (`SURFACES` in `map-terrain.js`): one fixed pair of greens for grass.
 - **Music and ambience** are per area (`areas.register({music, ambience})`).
 
@@ -62,9 +62,9 @@ The first pass covers the biomes around Mistrom. The others are defined now, so 
 
 | Biome | Verticality | Foliage | Colours | Gather and fight | Sound |
 |---|---|---|---|---|---|
-| **Meadow** (grassland) | Flat to gentle (relief 1) | Sparse oaks and birches; lots of wildflowers | Fresh green | Sticks, stones, flint; few enemies | Meadow birds, breeze |
-| **Broadleaf forest** | Gentle (relief 2) | Dense oak, birch and maple, clumped; ferns, mushrooms | Deep green | Logs, sticks; goblins deeper in | Woodland birds |
-| **Pine forest** | Rolling (relief 3) | Dense pines, some birch | Dark green, stone on rises | Logs, boulders up high | Wind in the pines |
+| **Meadow** (grassland) | Flat to gentle (relief 1) | Sparse oaks and poplars; lots of wildflowers | Fresh green | Sticks, stones, flint; few enemies | Meadow birds, breeze |
+| **Broadleaf forest** | Gentle (relief 2) | Dense oak, poplar and maple, clumped; ferns, mushrooms | Deep green | Wood, sticks; goblins deeper in | Woodland birds |
+| **Pine forest** | Rolling (relief 3) | Dense pines, some poplar | Dark green, stone on rises | Wood, boulders up high | Wind in the pines |
 | **Hills** | Rolling to steep (relief 5); no cliffs | Few trees, pines on tops; grass tufts | Green to grey stone | Copper, boulders, stones | Wind, distant birds |
 | **Coast** (beach and dunes) | Flat; dunes a half block | Dune grass, a few hardy shrubs | Sand, pale | Tide pools (gather), shells, flint; sea fishing | Waves, gulls |
 | **Wetland** (marsh, estuary) | Flat, low, many small pools | Reeds, willows, lily pads | Olive green, dark water | Reeds, river and marsh fishing | Frogs, insects, water |
@@ -72,9 +72,9 @@ The first pass covers the biomes around Mistrom. The others are defined now, so 
 | *Desert* | Flat with dunes | Almost none: cacti, dry shrubs (new models) | Yellow and tan | Flint, later sandstone | Dry wind |
 | *Snowfields* | Gentle | Snowy pines (new model) | White and pale blue | Later ice and furs | Muffled wind |
 | *Deadlands* | Broken, some cliffs | Dead trees (new model), no flowers | Dark grey, ash | Later bones and ores; tougher enemies | Silence, wind |
-| *Blossom valley* | Gentle | Cherry groves, pink flowers | Bright green | Logs | Soft birds |
+| *Blossom valley* | Gentle | Cherry groves, pink flowers | Bright green | Wood | Soft birds |
 
-The city mini biomes in `biomes.js` (blossom, willow, autumn, birch, meadow) fold in as foliage themes, so green spaces in towns use the same tree and flower lists.
+The city mini biomes in `biomes.js` (blossom, willow, autumn, poplar, meadow) fold in as foliage themes, so green spaces in towns use the same tree and flower lists.
 
 ## Placing biomes
 

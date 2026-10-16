@@ -1,4 +1,5 @@
 import {ITEMS} from './items.js';
+import {WOODS} from './lumberjack.js';
 import {signal} from './reactive.js';
 
 // Jobs (docs/ECONOMY.md, Jobs): repeatable paid tasks, apart from story quests, shared by every map.
@@ -17,14 +18,14 @@ export const PACKAGE='package';
 export const BOARD_POOL=[
  {id:'sticks',kind:'bring',item:'sticks',count:10,gold:15,giver:'The guild clerk',note:'Kindling for the guild hall.',noTools:true},
  {id:'rocks',kind:'bring',item:'stones',count:10,gold:15,giver:'The road mender',note:'Fill for the potholes on the avenue.',noTools:true},
- {id:'logs',kind:'bring',item:'logs',count:5,gold:30,giver:'The carpenter',note:'Fresh timber for a new door.',xp:['Lumberjack',15]},
+ {id:'poplarWood',kind:'bring',item:'poplarWood',count:5,gold:30,giver:'The carpenter',note:'Fresh timber for a new door.',xp:['Lumberjack',15]},
  {id:'ore',kind:'bring',item:'copperOre',count:3,gold:40,giver:'The smith',note:'Copper for the forge.',xp:['Mining',15]},
  {id:'stone',kind:'bring',item:'stone',count:4,gold:30,giver:'The mason',note:'Stone for the castle wall.',xp:['Mining',10]},
  {id:'meals',kind:'craft',item:'cookedFish',count:3,gold:50,giver:'The inn',note:'Hot meals for travellers.',xp:['Culinary',30]},
  {id:'rods',kind:'craft',item:'rods',count:2,gold:25,giver:'The fishmonger',note:'Spare rods for her apprentices.',xp:['Crafting',20]},
  {id:'daggers',kind:'craft',item:'copperDagger',count:1,gold:60,giver:'The guard captain',note:'A blade for a new recruit.',xp:['Smithing',30]},
  {id:'fish',kind:'gather',item:'rawFish',count:5,gold:45,giver:'The fishmonger',note:'Catch fresh pondfish.',xp:['Fishing',30]},
- {id:'chop',kind:'gather',item:'logs',count:5,gold:35,giver:'The carpenter',note:'Chop wood for the winter stores.',xp:['Lumberjack',25]},
+ {id:'chop',kind:'gather',item:'poplarWood',count:5,gold:35,giver:'The carpenter',note:'Chop wood for the winter stores.',xp:['Lumberjack',25]},
  {id:'mine',kind:'gather',item:'copperOre',count:3,gold:45,giver:'The smith',note:'Mine copper yourself.',xp:['Mining',25]},
  {id:'gather-sticks',kind:'gather',item:'sticks',count:8,gold:12,giver:'The guild clerk',note:'Pick up fallen sticks around town.',noTools:true},
 ];
@@ -37,17 +38,17 @@ export const GIVER_COOLDOWN=45;
 const want=(item,kind,min,max,need)=>({item,kind,min,max,need});
 const FOOD_WANTS=[want('cookedFish','craft',2,4,'The supper crowd will be here before I can cook enough.'),want('rawFish','bring',3,5,'I’m out of fish for the pot.')];
 export const SHOP_WANTS={
- general:[want('sticks','bring',6,12,'Folk keep buying kindling faster than I can stock it.'),want('logs','bring',3,6,'Firewood flies off the shelves this time of year.'),want('stones','bring',5,10,'The road mender has emptied me of rocks.')],
+ general:[want('sticks','bring',6,12,'Folk keep buying kindling faster than I can stock it.'),want('poplarWood','bring',3,6,'Firewood flies off the shelves this time of year.'),want('stones','bring',5,10,'The road mender has emptied me of rocks.')],
  smithy:[want('copperOre','bring',2,5,'The forge is hungry for copper.'),want('copperIngots','craft',1,3,'I’ve more orders than I can smelt.')],
- weapons:[want('copperDagger','craft',1,2,'The guard wants new daggers, and I’m behind.'),want('logs','bring',2,4,'I need good wood for hilts.')],
+ weapons:[want('copperDagger','craft',1,2,'The guard wants new daggers, and I’m behind.'),want('poplarWood','bring',2,4,'I need good wood for hilts.')],
  armour:[want('copperIngots','craft',2,4,'I need ingots for shield rims.'),want('copperShield','craft',1,1,'A recruit needs a shield by the week’s end.')],
  fishmonger:[want('rawFish','gather',3,6,'I’d go catch them myself, but I have to watch the shop.'),want('rawFish','bring',3,5,'The morning catch was thin.')],
  grocer:FOOD_WANTS,bakery:FOOD_WANTS,tavern:FOOD_WANTS,inn:FOOD_WANTS,
- carpenter:[want('logs','gather',4,8,'I need timber, and my axe arm is tired.'),want('sticks','bring',8,14,'Pegs and dowels don’t whittle themselves.')],
- market:[want('rawFish','gather',3,5,'The stall’s empty and the day is young.'),want('logs','bring',3,5,'Folk want firewood with their fish.')],
+ carpenter:[want('poplarWood','gather',4,8,'I need timber, and my axe arm is tired.'),want('sticks','bring',8,14,'Pegs and dowels don’t whittle themselves.')],
+ market:[want('rawFish','gather',3,5,'The stall’s empty and the day is young.'),want('poplarWood','bring',3,5,'Folk want firewood with their fish.')],
 };
 // The skill a job trains, by item and kind.
-const SKILL_FOR={rawFish:{gather:'Fishing'},logs:{gather:'Lumberjack'},copperOre:{gather:'Mining',bring:'Mining'},cookedFish:{craft:'Culinary'},copperIngots:{craft:'Smithing'},copperDagger:{craft:'Smithing'},copperShield:{craft:'Smithing'}};
+const SKILL_FOR={rawFish:{gather:'Fishing'},...Object.fromEntries(WOODS.map(id=>[id,{gather:'Lumberjack'}])),copperOre:{gather:'Mining',bring:'Mining'},cookedFish:{craft:'Culinary'},copperIngots:{craft:'Smithing'},copperDagger:{craft:'Smithing'},copperShield:{craft:'Smithing'}};
 const KIND_VERB={deliver:'Deliver',bring:'Bring',craft:'Make',gather:'Gather'};
 export const jobTitle=job=>job.kind==='deliver'?`Deliver a package to ${job.recipient.name}`:`${job.kind==='gather'&&job.item==='rawFish'?'Catch':KIND_VERB[job.kind]} ${ITEMS[job.item]?.name||job.item} ×${job.count}`;
 

@@ -117,7 +117,9 @@ import {createContactShadow} from './contact-shadow.js';
 import {createOpening} from './opening.js';
 import {createCraftingTutorial} from './crafting-tutorial.js';
 import {createGameMenus} from './game-menus.js';
-import {createGatheringSkill,showSkillReward,updateSkillRewards,clearSkillRewards,onSkillXp,grantSkillXp} from './skills.js';
+import {createSkill,showSkillReward,updateSkillRewards,clearSkillRewards,onSkillXp,grantSkillXp,GATHER_EFFORT} from './skills.js';
+import {actionXp} from './skill-pacing.js';
+import {levelForXp} from './combat-formulas.js';
 import {rollDrops,dropOdds,seededRandom} from './drops.js';
 import {ENEMIES} from './combat-rules.js';
 import {createLootPiles} from './loot-piles.js';
@@ -176,8 +178,11 @@ const trees=[];
 for(const t of world.values())if(t.blocked&&!t.water)trees.push(createResourceEntity({kind:BOULDER_TILES.has(key(t.x,t.z))?'boulder':'tree',tile:t,parent:scene,pickables}));
 createTerrainBatch({tiles:[...grassFor.keys()],map:world,factory:t=>makeTerrainTile(t,world,grassFor.get(t)),parent:scene,pickables,preserve:grass,roughness:.9,
  decorate(t,model){if(!t.blocked&&(t.x*17+t.z*13)%7===0){const flowers=makeFlowers();flowers.position.y=t.h;model.add(flowers);}}});
-const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[];
-resourceSpecs.forEach(([x,z,kind],id)=>resources.push(createResourceEntity({kind,tile:world.get(key(x,z)),parent:scene,pickables,id})));
+// The opening's six pickups reach Gathering level 2 (an entity XP modifier), so its lesson can explain levels.
+const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[],CLEARING_GATHER_XP={scale:7,belowLevel:2};
+// Gathering after n of the opening's pickups, for checkpoints and lessons that start partway.
+const openingGathering=n=>{const xp=n*Math.round(actionXp(GATHER_EFFORT)*CLEARING_GATHER_XP.scale);return {xp,level:levelForXp(xp)};};
+resourceSpecs.forEach(([x,z,kind],id)=>resources.push(createResourceEntity({kind,tile:world.get(key(x,z)),parent:scene,pickables,id,xp:CLEARING_GATHER_XP})));
 const clearingObjects=scene.children.filter(object=>!object.isLight);
 const clearingGroup=new THREE.Group();scene.add(clearingGroup);for(const object of clearingObjects)if(object!==ground)clearingGroup.add(object);
 for(const object of clearingObjects)object.visible=false;
@@ -190,10 +195,10 @@ let facing=0,happyUntil=0,playerFace='idle';
 // Every successful finish (gathering, chopping, mining, crafting, smithing, smelting, cooking, carpentry,
 // fishing) gives the player a moment of happy face.
 const succeeded=()=>{happyUntil=Math.max(happyUntil,elapsed+1.2);};
-const gatheringSkill=createGatheringSkill();
-const craftingSkill=createGatheringSkill(),lumberjackSkill=createGatheringSkill(),miningSkill=createGatheringSkill();
+const gatheringSkill=createSkill();
+const craftingSkill=createSkill(),lumberjackSkill=createSkill(),miningSkill=createSkill();
 let chopTarget=null,actorTarget=null,actorTime=0;
-let tile=world.get(key(SPAWN.x,SPAWN.z)),path=[],segment=null,target=null,gatherTime=0,inventory=reactiveRecord({sticks:0,stones:0,axes:0,logs:0,hats:0,pickaxes:0,stone:0});for(const id of Object.keys(ITEMS))inventory[id]??=0;player.position.set(tile.x-6,tile.h,tile.z-6);
+let tile=world.get(key(SPAWN.x,SPAWN.z)),path=[],segment=null,target=null,gatherTime=0,inventory=reactiveRecord({sticks:0,stones:0,crudeAxe:0,hats:0,pickaxes:0,stone:0});for(const id of Object.keys(ITEMS))inventory[id]??=0;player.position.set(tile.x-6,tile.h,tile.z-6);
 const feedback=createFeedback(scene);
 const contactShadow=createContactShadow(scene,world);
 const idleClock=createIdleClock(),sleepFeedback=createSleepFeedback(scene);
@@ -232,7 +237,7 @@ function editorTile(hit,data=terrainHitData(hit)){let t=data?.tile||data?.actor?
  if(t&&data?.tileForFace&&n&&Math.abs(n.y)<.5){const beside=world.get(key(t.x+Math.round(n.x),t.z+Math.round(n.z)));if(beside&&beside.h<t.h)t=beside;}return t;}
 // Told again as the pointer moves within a tile (a quarter tile at a time), with its ray, so the editor can aim at walls.
 function hoverTile(e){const hit=pick(e),data=terrainHitData(hit),at=editorTile(hit,data),p=hit?.point,id=at?`${at.x},${at.z},${p?[p.x,p.z].map(v=>Math.round(v*4)).join(','):''}`:'';if(id===hoverTileId)return;hoverTileId=id;tileHover?.(at,p||null,raycaster.ray.clone());}
-let edgeFixtures,movementFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
+let lumberjackFixtures,edgeFixtures,movementFixtures,walkThroughFixtures,waking,assistance,finale,willow,companions,cooking,cookingMenu,campfires,recipeCrafting,food,fishing,carpentry,carpentryFixture,resourceActions,combat,equipment,combatFixtures,cinder,smithing,styles,styleMenu,destinations,trainingFixtures,furnaceMenu,anvilMenu;
 const fishingSpots=createFishingSpots({scene,world,pickables,hover:()=>hover?.actor});
 let playerInterface;
 const playerResources=createPlayerResources();
@@ -354,7 +359,7 @@ resourceActions=createResourceActions({world,inventory,skills:{Gathering:gatheri
  face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},toast,sound:name=>gameAudio.play(name),
  started(node,rules){feedback.destination(tile);feedback.interacting(rules.motion);},interacting:kind=>feedback.interacting(kind),completed(){feedback.complete();},cancelled(){feedback.clearDestination();},
  rewarded(node,changes,reward){areas.broadcast('resourceCompleted',changes);jobs.gathered(changes);showSkillReward(reward,player.position);showItemChanges(changes);succeeded();
-  if(clearingTiles.get(key(node.x,node.z))===node.tile){if(node.kind==='tree')craftingTutorial.chopped(changes.logs);else if(node.kind==='boulder')craftingTutorial.mined();else {gatherTime=0;$('tooltip').style.display='none';updateUI(reward);}}
+  if(clearingTiles.get(key(node.x,node.z))===node.tile){if(node.kind==='tree')craftingTutorial.chopped(changes);else if(node.kind==='boulder')craftingTutorial.mined();else {gatherTime=0;$('tooltip').style.display='none';updateUI(reward);}}
  }
 });
 for(const node of [...trees,...resources])resourceActions.add(node);
@@ -581,7 +586,7 @@ const topUp=items=>{for(const [id,n] of Object.entries(items))inventory[id]=Math
 const SKIPS={
  start(){craftingTutorial.reset();menus.host.hidden=false;opening.skipControls();},
  journal(){craftingTutorial.skipJournal();topUp({sticks:3,stones:3});opening.skipGathering();},
- tools(){topUp({axes:1,pickaxes:1});craftingTutorial.skipTools();},
+ tools(){topUp({crudeAxe:1,pickaxes:1});craftingTutorial.skipTools();},
  finale(){const crystal=finale.skip();if(!travel.request('willowbank',{source:crystal}))toast('There’s no safe space beside the destination crystal.');},
  willowbank(){willow.skip(()=>{if(!travel.request('cinderhold'))toast('There’s no safe space beside the destination crystal.');});},
  cinderhold(){waking.start();},
@@ -659,8 +664,9 @@ function resolveStanding(){
 }
 function selectTree(tree){
  if(!canMove()||chopTarget===tree||resourceActions.matches(tree))return;if(__PLAYGROUND__)debug?.stop(false);
- const mining=['boulder','copper'].includes(tree.kind),tool=mining?'pickaxes':'axes';
- if(!inventory[tool]){toast('Missing the required tool!');feedback.pulse(tree.group.position,false);return;}
+ // A stump or rubble waits to regrow; a level or tool gate explains itself (resource-actions.js).
+ if(tree.depleted){feedback.pulse(tree.group.position,false);return;}
+ const blocked=resourceActions.blocker(tree);if(blocked){toast(blocked);feedback.pulse(tree.group.position,false);return;}
  if(chopTarget===tree||resourceActions.matches(tree))return;
  const result=routeToTree(tree);if(!result){toast('There is no safe route to this resource.');feedback.pulse(tree.group.position,false);return;}
  combat.disengage();cancelWork({keepCombat:true});target=null;gatherTime=0;chopTarget=tree;path=result.route;
@@ -755,12 +761,12 @@ function updateHover(){
  const reach=()=>{if(hoverReach.subject===subject&&hoverReach.from===from&&now-hoverReach.at<1000)return hoverReach.valid;
   // A plain tile: a bounded search (unknown counts as reachable; the click finds the real route).
   const valid=actor||tree||hover?.resource?!!routeToTree(actor||tree||hover.resource,HOVER_SEARCH):!!t&&canReach(world,from,t,{limit:HOVER_SEARCH})!==false;hoverReach={subject,from,at:now,valid};return valid;};
- const valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&reach():tree?(['boulder','copper'].includes(tree.kind)?inventory.pickaxes>0:inventory.axes>0)&&reach():hover?.resource?reach():!!t&&reach();
+ const valid=placementStatus?placementStatus.valid:actor?actor.ready&&!actor.opened&&reach():tree?(['boulder','copper'].includes(tree.kind)?inventory.pickaxes>0:inventory.crudeAxe>0)&&reach():hover?.resource?reach():!!t&&reach();
  feedback.hover(t,valid);
  renderer.domElement.style.cursor=t?(valid?'pointer':'not-allowed'):'default';
  // Editing (playground world editor): the editor previews what a click does, so the game's hint stays away.
  const hint=t&&!(__PLAYGROUND__&&editorScreen);$('tooltip').style.display=hint?'block':'none';
- if(hint){$('tooltip').textContent=placementStatus?placementStatus.label:actor?(actor.opened?(actor.enemy?'Recovering…':'Empty chest'):!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(valid?(tree.kind==='copper'?'Mine copper':['boulder','copper'].includes(tree.kind)?'Mine Boulder':'Chop tree'):!inventory[['boulder','copper'].includes(tree.kind)?'pickaxes':'axes']?'Missing the required tool!':'No safe route'):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+ITEMS[hover.resource.kind].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
+ if(hint){$('tooltip').textContent=placementStatus?placementStatus.label:actor?(actor.opened?(actor.enemy?'Recovering…':'Empty chest'):!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(tree.depleted?tree.depletedLabel:resourceActions.blocker(tree)||(valid?tree.label:'No safe route')):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+ITEMS[hover.resource.kind].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
 }
 function changeZoom(delta){if(!areas.canOrbit||travel.busy)return;if(!opening.playable){introZoom=THREE.MathUtils.clamp(introZoom*Math.exp(delta/22),3,10);return;}const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,__PLAYGROUND__&&freeCam?FREE_MAX_ZOOM:areas.active?.maxZoom??34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});
 function resize(){const {left,width,height}=measureGameViewport();document.documentElement.style.setProperty('--game-viewport-width',`${width}px`);document.documentElement.style.setProperty('--game-viewport-center',`${left+width/2}px`);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);}addEventListener('resize',resize);new ResizeObserver(resize).observe($('game'));resize();
@@ -814,7 +820,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
  }
  campfires.update(elapsed);
  fishingSpots.update(elapsed);
- if(__PLAYGROUND__)trainingFixtures?.update(elapsed);
+ if(__PLAYGROUND__){trainingFixtures?.update(elapsed);lumberjackFixtures?.update();}
  playerOccupant.moving=!!segment||path.length>0;occupancy.place(playerOccupant,[tile,segment?.to]);occupancy.place(companionOccupant,companions.cells);
  updateWorldActors(dt,t=>t===tile||t===segment?.to);resolveStanding();updateDoors(dt,elapsed);updateProps(dt);
  if(__PLAYGROUND__)walkThroughFixtures?.update(dt,elapsed);
@@ -909,6 +915,7 @@ function frame(){const elapsedReal=clock.getDelta(),dt=Math.min(elapsedReal,.05)
 }
 if(__PLAYGROUND__){
  trainingFixtures=playground.createTrainingFixtures({scene,world,pickables,resources:resourceActions,combat,styles,supplies,openStation,stop:stopAll,approach:selectActor,tile:()=>tile,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.actor||m.userData.resource)),clearUI:()=>areas.notify('clearUI')});
+ lumberjackFixtures=playground.createLumberjackFixtures({scene,world,pickables,resources:resourceActions,inventory,skills:{Lumberjack:lumberjackSkill},stop:stopAll,tile:()=>tile,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.actor||m.userData.resource||m.userData.tree))});
  combatFixtures=playground.createCombatFixtures({combat,world,scene,pickables,tile:()=>tile,stop:stopAll,approach:selectActor,occupied:t=>t===tile||companions.occupies(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  walkThroughFixtures=playground.createWalkThroughFixtures({scene,world,pickables,combat,tile:()=>tile,stop:stopAll,moveTo:t=>moveTo(t),characterAt,occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  edgeFixtures=playground.createEdgeFixtures({scene,world,pickables,tile:()=>tile,stop:stopAll,moveTo:t=>moveTo(t),occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
@@ -1137,7 +1144,7 @@ if(__PLAYGROUND__){
   // and fix the random seed (null: random again).
   enemyIds:()=>Object.keys(ENEMIES),
   rollDrops(id){return {items:rollDrops(ENEMIES[id]?.drops,dropRandom),odds:dropOdds(ENEMIES[id]?.drops)};},
-  spawnLoot(id){const items=id?rollDrops(ENEMIES[id]?.drops,dropRandom):{gold:25,logs:2,copperOre:1};const at=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dz])=>world.get(key(tile.x+dx,tile.z+dz))).find(t=>t&&!t.blocked&&!t.water);
+  spawnLoot(id){const items=id?rollDrops(ENEMIES[id]?.drops,dropRandom):{gold:25,poplarWood:2,copperOre:1};const at=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dz])=>world.get(key(tile.x+dx,tile.z+dz))).find(t=>t&&!t.blocked&&!t.water);
    if(!at)return null;return lootPiles.spawn({tile:at,parent:areas.active?.group||scene,items})?items:{};},
   setDropSeed(seed){dropRandom=seed==null?Math.random:seededRandom(seed);},
   clearLoot(){lootPiles.clear();},
@@ -1212,6 +1219,7 @@ if(__PLAYGROUND__){
   set streamBounds(value){if(streamSandbox)streamSandbox.streamer.showBounds=value;},
   streamStall(seconds){streamSandbox?.streamer.stall(seconds);},
   trainingAction:action=>trainingFixtures.run(action),
+  lumberjackAction:(action,value)=>lumberjackFixtures.run(action,value),
   // NPC slimes play any shared motion through their real actor (playground NPC slimes section).
   npcMotion(id,kind){if(id==='reed'){if(areas.id!=='willowbank')return 'Load a Willowbank checkpoint (or travel there) to see Reed.';kind?willow.debug.reed.play(kind):willow.debug.reed.stop();return kind?`Reed: ${kind}.`:'Reed: idle.';}
    const mentor=cinder.mentors[id];if(!mentor)return 'Unknown NPC.';if(areas.id!=='cinderhold')this.landmark(id);kind?mentor.play(kind):mentor.stop();return kind?`${MENTORS[id].name}: ${kind}.`:`${MENTORS[id].name}: idle.`;},
@@ -1239,23 +1247,23 @@ if(__PLAYGROUND__){
     finale.ensurePortal();areas.activate('willowbank',{landing:travel.landingFor('willowbank'),arrival:false});willow.debug.stage(checkpoint.step);return;
    }
    const step=checkpoint.step;
-   Object.assign(inventory,{sticks:3,stones:3,axes:1,pickaxes:1,logs:3,stone:1});
+   Object.assign(inventory,{sticks:3,stones:3,crudeAxe:1,pickaxes:1,poplarWood:3,stone:1});
    if(['color','name','mode'].includes(step)){this.customization();opening.debugCheckpoint(step);return;}
    if(['rotate','zoom','move','gather','gather-resume','xp','xp-benefits','level','level-encouragement','gather-complete'].includes(step)){
     if(['gather','gather-resume','xp','xp-benefits'].includes(step)){
      inventory.sticks=inventory.stones=0;
-     if(step!=='gather'){resourceActions.restore(resources[0],{depleted:true,respawnIn:resources[0].respawn});inventory[resources[0].kind]=1;Object.assign(gatheringSkill,{xp:20,level:1});}
-    }else if(step.startsWith('level')||step==='gather-complete'){for(const r of resources)resourceActions.restore(r,{depleted:true,respawnIn:r.respawn});Object.assign(gatheringSkill,{xp:120,level:2});}
+     if(step!=='gather'){resourceActions.restore(resources[0],{depleted:true,respawnIn:resources[0].respawn});inventory[resources[0].kind]=1;Object.assign(gatheringSkill,openingGathering(1));}
+    }else if(step.startsWith('level')||step==='gather-complete'){for(const r of resources)resourceActions.restore(r,{depleted:true,respawnIn:r.respawn});Object.assign(gatheringSkill,openingGathering(6));}
     opening.debugCheckpoint(step);return;
    }
    const finaleSteps={closing:()=>finale.begin(),portal:()=>finale.dropPortal(),practice:()=>finale.resetPractice(),reward:()=>finale.revealReward(),chest:()=>finale.dropChest()};
    if(finaleSteps[step]){finaleSteps[step]();return;}
-   Object.assign(gatheringSkill,{xp:120,level:2});
-   if(['intro','craft-menu','recipe','crafting'].includes(step))inventory.axes=0;
+   Object.assign(gatheringSkill,openingGathering(6));
+   if(['intro','craft-menu','recipe','crafting'].includes(step))inventory.crudeAxe=0;
    if(['mining-intro','pickaxe','mining-craft'].includes(step))inventory.pickaxes=0;
    await craftingTutorial.debugCheckpoint(step);
   },
-  resetCurrentArea(){stopAll();travel.cancel();trainingFixtures.clear();combatFixtures.clear();walkThroughFixtures.clear();edgeFixtures.clear();movementFixtures.clear();if(areas.active.reset)areas.active.reset();else this.reset('all');},
+  resetCurrentArea(){stopAll();travel.cancel();trainingFixtures.clear();lumberjackFixtures.clear();combatFixtures.clear();walkThroughFixtures.clear();edgeFixtures.clear();movementFixtures.clear();if(areas.active.reset)areas.active.reset();else this.reset('all');},
   openInterface(name){
    splash.close();travel.cancel();stopAll();modals.closeAll('replaced');areas.notify('clearUI');craftingTutorial.reset();opening.enterFreePlay();$('game-menus').hidden=false;$('game-menus').inert=false;
    if(name==='cooking'){cookingMenu.open();return;}
@@ -1271,7 +1279,7 @@ if(__PLAYGROUND__){
   tip,modals,
   grassPalette:playground.createGrassPaletteControls(()=>[...grass,...splash.grassMaterials,...willow.grassMaterials]),
   combatProfile:()=>combat.preview(),
-  objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Small Logs by chopping regular trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip(),
+  objectives:{add:()=>updateObjective('debug','Chop some wood','Obtain Poplar Wood Pieces by chopping Poplar Trees in the clearing.',0,6),update:()=>updateObjective('debug','Chop some wood','Obtain Poplar Wood Pieces by chopping Poplar Trees in the clearing.',3,6),complete:()=>finishObjective('debug'),reset:resetObjectives,tip:()=>craftingTutorial.previewTip(),
    // A separate quest for the Quests page: a finished objective, then one with two equal parts.
    quest(){registerQuestChapter('playground-','Playground Quest');updateObjective('playground-talk','Talk to the tester','Say hello.',1,1);updateObjective('playground-gather','Gather supplies','Collect both kinds in any order.',0,1,[{label:'Collect 3 Rocks',current:0,total:3},{label:'Collect 2 Sticks',current:0,total:2}]);},
    questAdvance(){const goal=objectives.get('playground-gather');if(!goal)return;const parts=goal.parts.map(p=>({...p}));const next=parts.find(p=>p.current<p.total&&p.current<=Math.min(...parts.map(q=>q.current)))??parts.find(p=>p.current<p.total);if(next)next.current++;updateObjective(goal.id,goal.title,goal.description,0,1,parts);},
@@ -1291,12 +1299,12 @@ if(__PLAYGROUND__){
   showInventory(){menus.openInventory();},
   inventoryLesson(){stopAll();Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startInventory();},
   showSkills(){menus.openSkills();},
-  levelLesson(){this.reset('all');Object.assign(inventory,{sticks:3,stones:3});Object.assign(gatheringSkill,{xp:120,level:2});opening.startLevelExplanation();},
+  levelLesson(){this.reset('all');Object.assign(inventory,{sticks:3,stones:3});Object.assign(gatheringSkill,openingGathering(6));opening.startLevelExplanation();},
   gatheringLesson(){this.reset('all');Object.assign(inventory,{sticks:0,stones:0});Object.assign(gatheringSkill,{xp:0,level:1});opening.startGathering();},
   customization(){this.reset('all');stopAll();for(const object of clearingObjects)object.visible=false;introTile.visible=true;player.visible=true;player.rotation.set(0,0,0);visual.scale.setScalar(1);introZoom=6.5;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);$('scene-fade').hidden=false;$('scene-fade').style.opacity='0';opening.startCustomization();},
   controlsLesson(){stopAll();craftingTutorial.reset();opening.startControls(()=>opening.enterFreePlay());},
   questsLesson(){stopAll();craftingTutorial.reset();craftingTutorial.startQuests();},
-  skillsLesson(){stopAll();Object.assign(gatheringSkill,{xp:120,level:2});Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startSkills();},
+  skillsLesson(){stopAll();Object.assign(gatheringSkill,openingGathering(6));Object.assign(inventory,{sticks:3,stones:3});craftingTutorial.startSkills();},
   // Every character track is reachable here, including proficiencies not yet shown in Skills.
   skills:{...playerSkills(),...Object.fromEntries(TRACKS.map(d=>[d.name,character.tracks[d.id]]))},character,auras,assistance,playerControl,combatPreview:()=>combat.preview(),
   // Test-only control sources: the shared control state is real; nothing in content applies these yet.
@@ -1320,7 +1328,7 @@ if(__PLAYGROUND__){
    travel.cancel();if(areas.id!=='clearing'||kind==='all'){areas.activate('clearing',{landing:clearingTiles.get(key(SPAWN.x,SPAWN.z)),arrival:false});finale.reset();}if(kind==='all'){craftingTutorial.reset();opening.enterFreePlay();resetObjectives();for(const object of clearingObjects)object.visible=true;introTile.visible=false;player.visible=true;}
    clearSkillRewards();itemFeed.clear();messages?.clear();
    resourceActions.resetWhere(n=>clearingTiles.get(key(n.x,n.z))===n.tile&&(kind==='all'||kind==='items'&&!['tree','boulder'].includes(n.kind)||kind==='trees'&&n.kind==='tree'||kind==='boulders'&&n.kind==='boulder'));
-   if(kind==='all'){character.reset();auras.reset();playerControl.reset();assistance.reset();if(__PLAYGROUND__)SPELLS.energyStrike.requirements['magic.technique']=1;playerResources.reset();health.restore();playerInterface?.reset();combat.setAutoRetaliate(true);trainingFixtures.clear();cinder.reset();waking.reset();shops.reset();lootPiles.clear();jobs.reset();dropRandom=Math.random;styles.reset();supplies.reset();destinations.reset();combatFixtures.clear();combat.clear();equipment.reset();carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of Object.values(playerSkills()))Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,axes:1,logs:0,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
+   if(kind==='all'){character.reset();auras.reset();playerControl.reset();assistance.reset();if(__PLAYGROUND__)SPELLS.energyStrike.requirements['magic.technique']=1;playerResources.reset();health.restore();playerInterface?.reset();combat.setAutoRetaliate(true);trainingFixtures.clear();cinder.reset();waking.reset();shops.reset();lootPiles.clear();jobs.reset();dropRandom=Math.random;styles.reset();supplies.reset();destinations.reset();combatFixtures.clear();combat.clear();equipment.reset();carpentry.cancel();carpentryFixture.reset();willow.debug.reset();for(const id of Object.keys(ITEMS))inventory[id]=0;for(const skill of Object.values(playerSkills()))Object.assign(skill,{xp:0,level:1});Object.assign(inventory,{sticks:10,stones:10,crudeAxe:1,hats:0,pickaxes:1,stone:0});tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);happyUntil=0;angle=Math.PI/4;elevation=THREE.MathUtils.degToRad(35.264);zoom=12;}
    if(tile.blocked){tile=world.get(key(SPAWN.x,SPAWN.z));player.position.set(tile.x-6,tile.h,tile.z-6);}
   },
   wakeUp(options){return waking.start(options);},

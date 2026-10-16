@@ -7,12 +7,12 @@ import {signal} from './reactive.js';
 export const GEAR={
  swords:{slot:'hand',name:'Stone Sword',style:'melee',power:6,accuracy:6,baseInterval:2.55,range:1,proficiency:'sword',damageTypes:['slashing'],requirements:{'melee.technique':1}},
  copperDagger:{slot:'hand',name:'Copper Dagger',style:'melee',power:10,accuracy:10,baseInterval:2.55,range:1,proficiency:'dagger',damageTypes:['piercing','slashing'],requirements:{'melee.technique':1}},
- shields:{slot:'hand',name:'Wooden Shield',shield:true,resistance:30,requirements:{'prof.shield':1}},
+ crudeShield:{slot:'hand',name:'Crude Shield',shield:true,resistance:30,requirements:{'prof.shield':1}},
  copperShield:{slot:'hand',name:'Copper Shield',shield:true,resistance:50,requirements:{'prof.shield':1}},
  bows:{slot:'hand',name:'Training Bow',twoHanded:true,style:'ranged',power:10,accuracy:10,baseInterval:2.55,range:6,proficiency:'bow',ammo:'arrows',damageTypes:['piercing'],requirements:{'ranged.technique':1}},
  // Tools can be held for looks only (`cosmetic`): no combat stats, and the hand still fights as a bare fist.
  // They keep working as tools from the inventory whether held or not.
- axes:{slot:'hand',name:'Crude Axe',cosmetic:true},
+ crudeAxe:{slot:'hand',name:'Crude Axe',cosmetic:true},
  pickaxes:{slot:'hand',name:'Crude Pickaxe',cosmetic:true},
  hammers:{slot:'hand',name:'Crude Hammer',cosmetic:true},
  rods:{slot:'hand',name:'Crude Fishing Rod',cosmetic:true},

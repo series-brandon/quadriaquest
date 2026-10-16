@@ -10,16 +10,16 @@ import {signal} from './reactive.js';
 const FOOD={stock:[{item:'cookedFish'},{item:'rawFish'}],buys:['food','fish']};
 export const SHOPS={
  general:{name:'General Store',greeting:'Tools, food and odds and ends. I buy anything.',buys:'all',
-  stock:[{item:'axes'},{item:'pickaxes'},{item:'hammers'},{item:'rods'},{item:'firestarters'},{item:'campfires',limit:3},{item:'cookedFish'},{item:'sticks'},{item:'stones'},{item:'logs'},{item:'arrows'}]},
+  stock:[{item:'crudeAxe'},{item:'pickaxes'},{item:'hammers'},{item:'rods'},{item:'firestarters'},{item:'campfires',limit:3},{item:'cookedFish'},{item:'sticks'},{item:'stones'},{item:'poplarWood'},{item:'arrows'}]},
  smithy:{name:'Smithy',greeting:'Copper, fresh from the forge.',buys:['metal','weapon','armour','tool'],
   stock:[{item:'copperOre'},{item:'copperIngots'},{item:'copperDagger',limit:3},{item:'copperShield',limit:2},{item:'hammers'},{item:'pickaxes'}]},
  weapons:{name:'Weaponsmith',greeting:'A good blade for a good slime.',buys:['weapon','ammo','metal'],
   stock:[{item:'copperDagger',limit:3},{item:'swords'},{item:'bows',limit:2},{item:'arrows'},{item:'staffs',limit:1}]},
  armour:{name:'Armourer',greeting:'Shields and helms. Mind the edges.',buys:['armour','hat','metal'],
-  stock:[{item:'copperShield',limit:2},{item:'shields'},{item:'ironSkullcap',limit:1}]},
+  stock:[{item:'copperShield',limit:2},{item:'crudeShield'},{item:'ironSkullcap',limit:1}]},
  // A village smith (docs/TOWN.md, Mistrom): a little of the smithy, weaponsmith and armourer in one.
  villageSmith:{name:'Smith',greeting:'Metal, blades and shields. Whatever the forge can make.',buys:['metal','weapon','armour','tool','ammo'],
-  stock:[{item:'copperOre'},{item:'copperIngots'},{item:'copperDagger',limit:3},{item:'swords',limit:2},{item:'copperShield',limit:2},{item:'shields',limit:1},{item:'ironSkullcap',limit:1},{item:'hammers'},{item:'pickaxes'},{item:'arrows'}]},
+  stock:[{item:'copperOre'},{item:'copperIngots'},{item:'copperDagger',limit:3},{item:'swords',limit:2},{item:'copperShield',limit:2},{item:'crudeShield',limit:1},{item:'ironSkullcap',limit:1},{item:'hammers'},{item:'pickaxes'},{item:'arrows'}]},
  fishmonger:{name:'Fishmonger',greeting:'Caught this morning, every one.',buys:['fish','food'],
   stock:[{item:'rawFish'},{item:'cookedFish'},{item:'rods'}]},
  grocer:{name:'Grocer',greeting:'Fresh and filling.',...FOOD},
@@ -29,9 +29,9 @@ export const SHOPS={
  tailor:{name:'Hatter',greeting:'Every slime deserves a fine hat.',buys:['hat'],
   stock:[{item:'hats',limit:2},{item:'companionHats',limit:2},{item:'wizardHat',limit:1},{item:'archerCap',limit:1},{item:'fishersHat',limit:1},{item:'minersCap',limit:1},{item:'breathHeadband',limit:1}]},
  carpenter:{name:'Carpenter',greeting:'Good timber, straight and true.',buys:['wood','tool'],
-  stock:[{item:'logs'},{item:'sticks'},{item:'hammers'},{item:'shields'}]},
+  stock:[{item:'poplarWood'},{item:'sticks'},{item:'hammers'},{item:'crudeShield'}]},
  market:{name:'Market stall',greeting:'Fish, firewood and stone, cheap!',buys:['fish','food','wood','stone'],
-  stock:[{item:'rawFish'},{item:'cookedFish'},{item:'logs'},{item:'sticks'},{item:'stones'},{item:'flint'}]},
+  stock:[{item:'rawFish'},{item:'cookedFish'},{item:'poplarWood'},{item:'sticks'},{item:'stones'},{item:'flint'}]},
 };
 // Building uses (furnish.js) that trade, and which shop they run. A building's own `shop` wins.
 export const SHOP_FOR_USE={store:'general',apothecary:'general',smithy:'smithy',weaponsmith:'weapons',armourer:'armour',fishmonger:'fishmonger',

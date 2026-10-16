@@ -28,6 +28,7 @@ import {ACTIVITIES} from '../townsfolk.js';
 import {enemySize} from '../enemy-entity.js';
 import {townSource,resourceFits,coverId,placedId} from '../town-ground.js';
 import {TREE_SPECIES,makeTreeModel} from '../tree-models.js';
+import {TREES,DEFAULT_TREE,treeOf} from '../lumberjack.js';
 import {makeCrystal,crystalCentre} from '../crystal-model.js';
 import {createEdgeFeatures} from '../doors.js';
 import {COVER_KINDS} from '../ground-cover.js';
@@ -86,7 +87,7 @@ const HEADS=Object.keys(GEAR).filter(id=>GEAR[id].slot==='head'),HANDS=Object.ke
 const FOLK_COLOURS=['#9ccf7a','#e0a96d','#9db8e3','#c7b46a','#a4ce77','#8fc9b8','#d9a3c4','#c88d6e'];
 const RESPAWNS=[['30','30 seconds'],['45','45 seconds'],['120','2 minutes'],['300','5 minutes'],['900','15 minutes']];
 // The Nature brush (docs/TOWN.md, Nature by hand): trees by species, resources, ground cover, or clear.
-const NATURE_CHOICES=[['grow','Grow (biome)'],['clear','Clear nature'],['fishing','Fishing spot (on water)'],...Object.entries(TREE_SPECIES).map(([id,t])=>[`tree:${id}`,`${t.name||id} tree`]),
+const NATURE_CHOICES=[['grow','Grow (biome)'],['clear','Clear nature'],['fishing','Fishing spot (on water)'],...Object.keys(TREE_SPECIES).map(id=>[`tree:${id}`,`${TREES[id].name} (Lv ${TREES[id].level})`]),
  ...['copper','boulder','sticks','stones','flint'].map(k=>[`resource:${k}`,k[0].toUpperCase()+k.slice(1)]),...COVER_KINDS.filter(k=>k!=='lilyPad').map(k=>[`cover:${k}`,`Cover: ${k}`])];
 // Tools in four groups, as in a Sims build/buy mode (docs/TOWN.md, Sims-style editor). Decorate opens the
 // catalogue (Deco: pick something new and put it down); the Hand ('select') lifts what you click and has the
@@ -216,7 +217,7 @@ export function createWorldEditor(host){
  const nature=()=>built?.ground?townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data):null;
  const natureAt=(x,z)=>nature()?.natureAt(at(x,z))||{resource:null,cover:null};
  const removeGrown=id=>{const list=data.land.removed||(data.land.removed=[]);if(!list.includes(id))list.push(id);};
- const natureName=e=>e.kind==='tree'?`${TREE_SPECIES[e.species]?.name||e.species||'oak'} tree`:e.kind;
+ const natureName=e=>e.kind==='tree'?treeOf(e.species).name:e.kind;
  // Takes what grew on a tile into the map's own list (so it can be moved or deleted like anything placed).
  function adopt(x,z){const n=natureAt(x,z),which=n.resource?'resource':n.cover?'cover':null;if(!which)return null;const e=n[which];
   if(!e.placed){removeGrown(e.id);lists()[which].push({kind:e.kind,...e.species?{species:e.species}:{},x,z});}
@@ -1003,7 +1004,7 @@ export function createWorldEditor(host){
   if(kind==='flight'){const [bx,bz]=e.bottom,[tx,tz]=e.top,[dx,dz]=e.dir;return {key:`flight:${e.ladder?'ladder':'stairs'}:${e.view}`,make:()=>{const group=new THREE.Group();group.add((e.ladder?ladderModel:stairwellModel)(e.view));return {group,dispose(){group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();});}};},
    place(g){g.position.set((bx+tx)/2-6,heightAt(bx,bz),(bz+tz)/2-6);g.rotation.y=Math.atan2(dx,dz);}};}
   if(kind==='crystal')return {key:'crystal',make:()=>({group:makeCrystal()}),place(g){const c=crystalCentre(crystalCells(e).map(([x,z])=>({x,z,h:heightAt(x,z)})));g.position.set(c.x,c.y,c.z);}};
-  if(kind==='resource'&&e.kind==='tree')return {key:`tree:${e.species||'oak'}`,make:()=>({group:makeTreeModel(e.species||'oak')}),place(g){g.position.set(e.x-6,heightAt(e.x,e.z),e.z-6);}};
+  if(kind==='resource'&&e.kind==='tree')return {key:`tree:${e.species||DEFAULT_TREE}`,make:()=>({group:makeTreeModel(e.species||DEFAULT_TREE)}),place(g){g.position.set(e.x-6,heightAt(e.x,e.z),e.z-6);}};
   if(kind==='townsfolk'||kind==='enemy'){const n=kind==='enemy'?enemySize(e.enemy):1,[x,z]=kind==='townsfolk'?e.home||[]:[e.x,e.z];if(x===undefined)return null;
    return {key:`blob:${n}`,make:()=>{const group=new THREE.Group(),m=new THREE.Mesh(blobGeometry);m.scale.set(n,n*.8,n);m.position.y=.34*n;group.add(m);return {group};},place(g){g.position.set(x+(n-1)/2-6,heightAt(x,z),z+(n-1)/2-6);}};}
   return null;}

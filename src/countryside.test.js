@@ -55,7 +55,7 @@ test('green spaces vary: tree species by place, ponds, and ground cover',async()
  const {COVER_KINDS}=await import('./ground-cover.js'),{TREE_SPECIES}=await import('./tree-models.js');
  const tiles=[...map.values()].filter(t=>land.tile(t.x,t.z)===t),trees=land.entities(tiles).filter(e=>e.kind==='tree');
  const bySpecies={};for(const tr of trees)bySpecies[tr.species]=(bySpecies[tr.species]||0)+1;
- for(const s of ['oak','birch','pine','willow','cherry','maple'])assert.ok(bySpecies[s]>=5,`${s}: ${bySpecies[s]}`);
+ for(const s of ['oak','poplar','pine','willow','cherry','maple'])assert.ok(bySpecies[s]>=5,`${s}: ${bySpecies[s]}`);
  for(const s of Object.keys(bySpecies))assert.ok(TREE_SPECIES[s],s);
  for(const tr of trees.filter(t=>t.species==='pine').slice(0,20))assert.ok(map.get(key(tr.x,tr.z)).h>=2,'pines on the hills');
  assert.ok(land.ponds.length>=4,`ponds: ${land.ponds.length}`);

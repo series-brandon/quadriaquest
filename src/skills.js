@@ -1,32 +1,30 @@
 import * as THREE from 'three';
-import {levelProgress,totalXpForLevel} from './combat-formulas.js';
+import {levelForXp,levelProgress,totalXpForLevel} from './combat-formulas.js';
 import {reactiveRecord,signal} from './reactive.js';
+import {workDuration} from './skill-pacing.js';
 
-export const GATHERING_XP_PER_ITEM = 20;
-export const GATHERING_XP_PER_LEVEL = 120;
-
-// Reactive so menus follow XP from any source (awards, resets, dev grants) without polling.
-export function createGatheringSkill(){return reactiveRecord({xp:0,level:1});}
+// Every skill shares the adopted XP curve (docs/COMBAT.md, Levels and XP); awards come from effort
+// (skill-pacing.js). Reactive so menus follow XP from any source (awards, resets, dev grants) without polling.
+export function createSkill(){return reactiveRecord({xp:0,level:1});}
 // Every non-combat skill award passes through here so it also feeds the character's single core-XP
 // conversion (5:1, shared remainder) alongside combat tracks. The app registers the listener once.
 let skillXpListener=null;
 export function onSkillXp(listener){skillXpListener=listener;}
 export function addSkillXp(skill,amount,skillName){
   const previousLevel=skill.level;
-  skill.xp+=amount;skill.level=1+Math.floor(skill.xp/GATHERING_XP_PER_LEVEL);
+  skill.xp+=amount;skill.level=levelForXp(skill.xp);
   const reward={skillName,xp:amount,totalXp:skill.xp,level:skill.level,leveledUp:skill.level>previousLevel};
   reward.core=skillXpListener?.(amount,reward)||null;
   return reward;
 }
-export function awardSkillXp(skill,skillName){return addSkillXp(skill,GATHERING_XP_PER_ITEM,skillName);}
-export function awardGatheringXp(skill){return awardSkillXp(skill,'Gathering');}
-export function gatheringDuration(skill){return 1.2/(1+.08*(skill.level-1));}
+// Picking up a ground item takes GATHER_SECONDS; its XP counts GATHER_EFFORT, since finding the item is
+// most of the work.
+export const GATHER_SECONDS=1.2;
+export const GATHER_EFFORT=4;
+export function gatheringDuration(skill){return workDuration(GATHER_SECONDS,{level:skill.level});}
 
-// Skills on the adopted curve (combat tracks) and the prototype 120-XP-per-level skills share one view.
-export function skillProgress(skill){
-  if(skill.curve==='adopted'){const p=levelProgress(skill.xp);return {level:p.level,xp:skill.xp,into:p.xp-p.floor,span:p.next==null?1:p.next-p.floor,remaining:p.remaining};}
-  const into=skill.xp%GATHERING_XP_PER_LEVEL;return {level:skill.level,xp:skill.xp,into,span:GATHERING_XP_PER_LEVEL,remaining:GATHERING_XP_PER_LEVEL-into};
-}
+// Combat tracks and the other skills share one curve and one view.
+export function skillProgress(skill){const p=levelProgress(skill.xp);return {level:p.level,xp:skill.xp,into:p.xp-p.floor,span:p.next==null?1:p.next-p.floor,remaining:p.remaining};}
 // Development grants route character tracks through their real award path (including core XP).
 export function grantSkillXp(skill,amount){
   if(skill.curve==='adopted'&&skill.grant){const r=skill.grant(amount).tracks[0];return r||{skillName:skill.name,xp:0,level:skill.level,leveledUp:false};}
@@ -34,7 +32,7 @@ export function grantSkillXp(skill,amount){
 }
 export function addSkillLevels(skill,levels){
   const target=skill.level+levels;
-  return grantSkillXp(skill,(skill.curve==='adopted'?Math.ceil(totalXpForLevel(target)):(target-1)*GATHERING_XP_PER_LEVEL)-skill.xp);
+  return grantSkillXp(skill,Math.ceil(totalXpForLevel(target))-skill.xp);
 }
 
 const floatingXp=[];

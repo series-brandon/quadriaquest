@@ -6,8 +6,8 @@ import {cachedMergedMesh} from './merged-model.js';
 const material=color=>new THREE.MeshStandardMaterial({color,roughness:.9});
 function add(parent,geometry,mat,x=0,y=0,z=0){const mesh=new THREE.Mesh(geometry,typeof mat==='string'?material(mat):mat);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);return mesh;}
 // One merged mesh (trunk and three crowns): a single draw and shadow draw per tree.
-// Trees come in species (tree-models.js); the default is the original oak.
-export function makeTree(species='oak'){return makeTreeModel(species);}
+// Trees come in species (tree-models.js), one per Lumberjack tier; the default is the Poplar.
+export function makeTree(species='poplar'){return makeTreeModel(species);}
 export function makeFlowers(){
  const group=new THREE.Group();for(let j=0;j<3;j++){add(group,new THREE.CylinderGeometry(.008,.008,.12,3),'#799b62',-.32+j*.11,.07,.3);add(group,new THREE.IcosahedronGeometry(.035,0),j%2?'#f6e8ae':'#f8f5dd',-.32+j*.11,.13,.3);}return group;
 }

@@ -34,7 +34,7 @@ test('loot piles are picked up by clicking and expire when left alone',()=>{
  const pile=piles.spawn({tile,parent,items:{gold:5,sticks:2}});
  assert.ok(pickables.some(m=>m.userData.actor===pile));assert.equal(pile.label,'Pick up loot');
  pile.interact();assert.deepEqual(got,[{gold:5,sticks:2}]);assert.equal(piles.piles.length,0);assert.equal(pickables.length,0);
- piles.spawn({tile,parent,items:{logs:1}});piles.update(LOOT_LIFETIME-1,0);assert.equal(piles.piles.length,1);piles.update(1,0);assert.equal(piles.piles.length,0,'gone after its lifetime');
+ piles.spawn({tile,parent,items:{poplarWood:1}});piles.update(LOOT_LIFETIME-1,0);assert.equal(piles.piles.length,1);piles.update(1,0);assert.equal(piles.piles.length,0,'gone after its lifetime');
 });
 test('the board offers four jobs, one always needing no tools; taking is limited and refills later',()=>{
  const s=setup();

@@ -82,7 +82,8 @@ export function createCharacterDialogue({player}){
    if(queue&&age>=.22){const current=queue;queue=null;install(current);}
    if(!model)return;
    if(pairs.some(([a,,children])=>a.children.length!==children))build();
-   for(const [a,b] of pairs)if(b!==model){b.position.copy(a.position);b.quaternion.copy(a.quaternion);b.scale.copy(a.scale);b.visible=a.visible;}
+   // Geometry and material too: a slime's face changes expression by swapping its geometry (slime-face.js).
+   for(const [a,b] of pairs)if(b!==model){b.position.copy(a.position);b.quaternion.copy(a.quaternion);b.scale.copy(a.scale);b.visible=a.visible;if(b.isMesh){b.geometry=a.geometry;b.material=a.material;}}
    // The mirrored slime already breathes with its (calm, in conversation) idle; the portrait adds no motion of its own.
    model.rotation.y=speaker==='left'?.52:-.52;model.scale.setScalar(1);model.position.y=-.035;render.render(scene,camera);
   }

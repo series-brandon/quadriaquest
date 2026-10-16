@@ -16,7 +16,8 @@ import {placeFaintedHands} from './faint-motion.js';
 import {miningMotion,makePickaxe} from './mining.js';
 import {chopMotion} from './slime-motion.js';
 import {makeAxe} from './axe-model.js';
-import {heldTool,carriedTool} from './tool-models.js';
+import {heldTool,carriedTool,tool} from './tool-models.js';
+import {TOOL_TIERS,baseTool} from './tool-tiers.js';
 
 // One presentation for every slime, player or NPC (AGENTS.md: shared slime presentation). A caller
 // decides what the slime is doing (a base pose, an action motion, social hands, a celebration); this
@@ -95,8 +96,13 @@ export function createSlimePresentation(rig,{equipment=null,tools={},carry=null}
   for(const i of bottomIndices){bodyVertex.fromBufferAttribute(bodyPositions,i).applyMatrix4(bodyTransform);bottom=Math.min(bottom,bodyVertex.y);}
   visual.position.y=.002-bottom;
   const chopTool=motion?.kind==='Chopping'||debugTools?.chopping,mineTool=motion?.kind==='Mining'||debugTools?.mining;
-  if(chopTool||made.axe)toolModel('axe',makeAxe).visible=!!chopTool;
-  if(mineTool||made.pickaxe)toolModel('pickaxe',makePickaxe).visible=!!mineTool;
+  // The tool of the tier doing the work (motion.tool, tool-tiers.js); the base tier keeps its named model.
+  const tierModel=(family,base,make,active)=>{
+   const want=active?(motion?.tool&&motion.tool!==baseTool(family)?motion.tool:base):null;
+   for(const t of TOOL_TIERS[family].tiers){const name=t.item===baseTool(family)?base:t.item;if(made[name])made[name].visible=name===want;}
+   if(want)toolModel(want,want===base?make:()=>tool(want)).visible=true;
+  };
+  tierModel('axe','axe',makeAxe,chopTool);tierModel('pickaxe','pickaxe',makePickaxe,mineTool);
   const toolTime=motion?.time??debugTools?.time??0,chopping=mineTool?miningMotion(toolTime):chopTool?chopMotion(toolTime):null;
   const slots=equipmentNow()?.slots,carryHands=equipmentIdleHands({rightHand:slots?.right,leftHand:slots?.left});
   // Both hands share the chop cycle; other interactions keep their scoop gesture.

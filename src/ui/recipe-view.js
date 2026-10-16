@@ -1,5 +1,6 @@
 import {h} from './dom.js';
 import {iconNode} from './icon.js';
+import {ITEM_GROUPS, countOf} from '../items.js';
 
 // Shared recipe UI for the Crafting page and the station dialogs (campfire, furnace, anvil), so
 // both browse and read recipes the same way. Owned counts follow the reactive inventory.
@@ -30,11 +31,12 @@ export function recipeTile({id, recipe, pressed, ready, tag = () => '', label = 
 //   recipeDetailBody({id, recipe, items, inventory, time, timeId, backId, onBack, backLabel, atStation})
 //   time: a function giving the time line; timeId, backId: stable ids for it and the back button (guides, tests).
 export function recipeDetailBody({id, recipe, items, inventory, time, timeId = null, backId = null, onBack, backLabel = 'All recipes', atStation = null}) {
-  const name = item => items[item]?.name ?? item;
+  // An ingredient group (items.js ITEM_GROUPS, such as any wood) counts every member and says so.
+  const name = item => items[item]?.name ?? ITEM_GROUPS[item]?.name ?? item;
   const need = (item, count) => {
-    const owned = () => inventory[item] || 0;
+    const owned = () => countOf(inventory, item), hint = ITEM_GROUPS[item]?.hint;
     return h('li', {'data-missing': () => owned() < count},
-      h('span', {class: 'q-recipe-part__item'}, iconNode(item), h('span', null, name(item))),
+      h('span', {class: 'q-recipe-part__item'}, iconNode(item), h('span', null, name(item), hint ? h('small', {class: 'q-recipe-part__hint'}, hint) : null)),
       h('strong', {'aria-label': () => `${owned()} owned, ${count} required`}, () => `${owned()} / ${count}`));
   };
   const plain = (text, icon = null) => h('li', null, h('span', {class: 'q-recipe-part__item'}, icon ? iconNode(icon) : null, h('span', null, text)));

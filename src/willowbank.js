@@ -1,3 +1,4 @@
+import {countOf} from './items.js';
 import {createResourceEntity} from './resource-entities.js';
 import {createCarpentryBridge} from './carpentry-bridge.js';
 import {setWorldOccupancy} from './world-occupancy.js';
@@ -73,8 +74,8 @@ export function createWillowbank(api){
  // menus, or the final target with a short camera pan. The next step starts unhighlighted.
  const bridgeMiddle=()=>Math.round((WILLOWBANK.bridgeStart+WILLOWBANK.bridgeEnd)/2);
  const GOALS={
-  bridge:{needs:()=>[['hammers',1],['logs',BRIDGE_REPAIR.cost.logs]],purpose:{hammers:'to repair the bridge',logs:'for the bridge'},
-   final:{title:'A little carpentry',text:'You have a Crude Hammer and enough Small Logs. Click or tap any broken bridge tile to begin.',show(){api.closeMenus();showTarget(bridgeMiddle(),WILLOWBANK.bridgeZ);}}},
+  bridge:{needs:()=>[['hammers',1],['anyWood',BRIDGE_REPAIR.cost.anyWood]],purpose:{hammers:'to repair the bridge',anyWood:'for the bridge'},
+   final:{title:'A little carpentry',text:'You have a Crude Hammer and enough Wood Pieces. Click or tap any broken bridge tile to begin.',show(){api.closeMenus();showTarget(bridgeMiddle(),WILLOWBANK.bridgeZ);}}},
   fish:{needs:()=>[['rods',1]],purpose:{rods:'to fish'},
    final:{title:'Dinner starts here',text:'Click or tap the rippling fishing spot in the pond. Each catch ends with a little celebration. Catch one Raw Pondfish for your first meal.',show(){api.closeMenus();showTarget(16,14);}}},
   fire:{needs:()=>[['campfires',1]],purpose:{campfires:'to cook your fish'},final:null},
@@ -115,7 +116,7 @@ export function createWillowbank(api){
   lines([['Oh thank you so much!','happy']],()=>{
    introActive=true;
    introFocus={position:pet.position.clone(),blend:0,returning:false,after:prompt};
-   dialogue.show({side:'right',name:'Reed',model:reed.group,expression:'idle',text:'There they are, across the broken bridge. Craft a Crude Hammer and bring three Small Logs. We can get them home safely!',next:()=>{dialogue.hide();introFocus.returning=true;}});
+   dialogue.show({side:'right',name:'Reed',model:reed.group,expression:'idle',text:'There they are, across the broken bridge. Craft a Crude Hammer and bring three Wood Pieces. We can get them home safely!',next:()=>{dialogue.hide();introFocus.returning=true;}});
   });
  }
  function prompt(){
@@ -123,23 +124,23 @@ export function createWillowbank(api){
   if(phase==='bridge'){prepareKey=null;followPrepare();startGoal();}
   if(phase==='fish'){goal('fish','Catch Raw Pondfish','Craft a Crude Fishing Rod from Sticks ×2, then catch one Raw Pondfish at the rippling water in the pond.',caught,1);setObjectiveHelp('willow-fish',goalHelp);startGoal();}
   if(phase==='flint'){goal('flint','Collect Flint','Gather Flint on the ground near the water.',flintCollected,1);guided=true;showTip('A spark of an idea','Look near the water for Flint. Gather one piece to get started.');}
-  if(phase==='fire'){goal('fire','Prepare a Campfire','Craft Flint and Stone from Flint ×1 and Stone ×1, then a Campfire from Small Logs ×2. The fire-starting tool is reusable.',api.inventory.campfires||api.campfires.current?1:0);setObjectiveHelp('willow-fire',goalHelp);startGoal();}
+  if(phase==='fire'){goal('fire','Prepare a Campfire','Craft Flint and Stone from Flint ×1 and Stone ×1, then a Campfire from Wood Pieces ×2. The fire-starting tool is reusable.',api.inventory.campfires||api.campfires.current?1:0);setObjectiveHelp('willow-fire',goalHelp);startGoal();}
   if(phase==='place'){goal('place','Place your Campfire','Use Place in your Campfire inventory details. Click or tap a clear meadow tile to walk over and place it.');showTip('Make yourself at home','Select your Campfire in your inventory, then choose Place.');}
   if(phase==='cook'){goal('cook','Cook a Pondfish','Interact with your Campfire and cook a Raw Pondfish.',cooked,1);guided=true;showTip('Something warm','Click or tap your Campfire to open its cooking menu. Cook a Pondfish to make your first meal.');}
   if(phase==='eat'){goal('eat','Eat a Cooked Pondfish','Select Cooked Pondfish in your inventory and choose Eat. It restores 20 health.',eaten,1);showTip('Time to recover','Select the Cooked Pondfish in your inventory and choose Eat. Food restores health. Eat your cooked fish to soothe that sore hand!',null,eatHelp);setObjectiveHelp('willow-eat',eatHelp);}
  }
 
- // Preparing for the repair counts what the player holds right now, so a hammer or logs from earlier
+ // Preparing for the repair counts what the player holds right now, so a hammer or wood from earlier
  // already count, and dropping them undoes it: Repair the bridge appears only while both are ready.
  let prepareKey=null;
  function followPrepare(){
   if(phase!=='bridge'||bridgeDone)return;
-  const need=BRIDGE_REPAIR.cost.logs,hammer=Math.min(api.inventory.hammers||0,1),logs=Math.min(api.inventory.logs||0,need),key=hammer+'/'+logs;
+  const need=BRIDGE_REPAIR.cost.anyWood,hammer=Math.min(api.inventory.hammers||0,1),wood=Math.min(countOf(api.inventory,'anyWood'),need),key=hammer+'/'+wood;
   if(key===prepareKey)return;prepareKey=key;
-  goal('prepare','Prepare for repair','Craft a Crude Hammer and gather Small Logs to repair the bridge.',0,1,[{label:'Craft a Crude Hammer',current:hammer,total:1},{label:'Gather Small Logs',current:logs,total:need}]);
-  const ready=hammer===1&&logs===need;
+  goal('prepare','Prepare for repair','Craft a Crude Hammer and gather Wood Pieces to repair the bridge.',0,1,[{label:'Craft a Crude Hammer',current:hammer,total:1},{label:'Gather Wood Pieces',current:wood,total:need}]);
+  const ready=hammer===1&&wood===need;
   setObjectiveHelp('willow-prepare',ready?null:goalHelp);
-  if(ready){goal('bridge','Repair the bridge','Click or tap any broken bridge tile to repair it with your Crude Hammer and Small Logs.');setObjectiveHelp('willow-bridge',goalHelp);}
+  if(ready){goal('bridge','Repair the bridge','Click or tap any broken bridge tile to repair it with your Crude Hammer and Wood Pieces.');setObjectiveHelp('willow-bridge',goalHelp);}
   else removeObjective('willow-bridge');
  }
  function checkProgress(){
@@ -229,7 +230,7 @@ reedFacing.update(dt);reedSlime.update(dt,time,{expression:phase==='meet'?'distr
   get state(){return {active,phase,health:api.health.value,injuryApplied:bridgeInjury.applied,injuryPaused:!!injuryReaction,bridgeDone,petOwned:companions.state.owned,petName:companions.state.name,petFollowing:companions.state.following,caught,cooked,eaten,action:api.carpentry.matches(bridge)?'Repairing':api.resourceActions.state?.kind};},
   debug:__PLAYGROUND__?{reset,reed:reedSlime,clearUI(){dialogue.hide();introActive=false;introFocus=null;tip.hide();cookUI.close();},hit(){hitFeedback.show(api.player.position,3);},miss(){hitFeedback.show(api.player.position,null);},zero(){hitFeedback.show(api.player.position,0);},stage(value){reset();introSeen=true;phase=({hammer:'bridge',rod:'fish',firestarter:'fire',rescue:'fish',arrival:'meet',dialogue:'meet'})[value]||value;
  if(['rescue','rod','fish','flint','firestarter','fire','place','cook','eat','finished'].includes(value)){bridgeInjury.atProgress(1,api.health.value);api.health.value=api.health.max-INJURY_DAMAGE;bridgeDone=true;showBridge(1);setBridgeRepairTarget(false);for(let x=WILLOWBANK.bridgeStart;x<=WILLOWBANK.bridgeEnd;x++){t(x,WILLOWBANK.bridgeZ).blocked=false;t(x,WILLOWBANK.bridgeZ).water=false;}companions.acquire();}
- for(const [id,n] of Object.entries({sticks:20,stones:20,stone:20,logs:20,axes:1,pickaxes:1,hammers:1,rods:1,flint:3,firestarters:1,campfires:1,rawFish:5,cookedFish:2}))api.inventory[id]=Math.max(api.inventory[id]||0,n);if(['cook','eat','finished'].includes(value)){placeFire(t(5,8));phase=value;}
+ for(const [id,n] of Object.entries({sticks:20,stones:20,stone:20,poplarWood:20,crudeAxe:1,pickaxes:1,hammers:1,rods:1,flint:3,firestarters:1,campfires:1,rawFish:5,cookedFish:2}))api.inventory[id]=Math.max(api.inventory[id]||0,n);if(['cook','eat','finished'].includes(value)){placeFire(t(5,8));phase=value;}
  if(value==='hammer')api.inventory.hammers=0;
  if(value==='rod')api.inventory.rods=0;
  if(value==='firestarter'){api.inventory.firestarters=0;api.inventory.campfires=0;}

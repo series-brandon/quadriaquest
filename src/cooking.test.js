@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {RECIPES,recipeXp} from './recipes.js';
 import {createCookingSystem} from './cooking.js';
 
 test('one shared cooking action works with stations from different worlds',()=>{
@@ -9,7 +10,7 @@ test('one shared cooking action works with stations from different worlds',()=>{
   let done=0;const station={world,available:()=>true,onCooked:id=>{assert.equal(id,'cookedFish');done++;}};
   assert.ok(cooking.start('cookedFish',station));cooking.update(1);assert.equal(done,0);cooking.update(3);cooking.update(30);assert.equal(done,1);
  }
- assert.deepEqual(inventory,{rawFish:1,cookedFish:2});assert.equal(cooking.skill.xp,40);assert.equal(rewards.length,2);assert.equal(cooking.working,false);
+ assert.deepEqual(inventory,{rawFish:1,cookedFish:2});assert.equal(cooking.skill.xp,2*recipeXp(RECIPES.cookedFish));assert.equal(rewards.length,2);assert.equal(cooking.working,false);
 });
 test('cancelling, losing a station, or losing ingredients never grants cooking rewards',()=>{
  const inventory={rawFish:3,cookedFish:0};let live=true,earned=0;const cooking=createCookingSystem({inventory,stop(){},completed(){earned++;}}),station={available:()=>live};

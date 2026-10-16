@@ -33,7 +33,7 @@ test('casting gathers energy between converging hands, pulls back, then tosses i
   const step=Math.max(...h.map((x,i)=>Math.hypot(x[0]-prev[i][0],x[1]-prev[i][1],x[2]-prev[i][2])));assert.ok(step<.12,`no jump at ${t.toFixed(2)} (${step.toFixed(3)})`);prev=h;}
 });
 test('block poses cover bare hands, blades, bows, magic and every legal shield combination',()=>{
- for(const item of [null,'swords','copperDagger','bows'])for(const offHand of [null,'shields','copperShield']){if(item==='bows'&&offHand)continue;const pose=blockAnimation({item,leftHand:offHand},.1);for(const h of pose.hands)assert.ok(h.every(Number.isFinite));if(offHand){assert.ok(pose.hands[1][2]>.5);assert.equal(pose.hands[0][0],-.47);}else if(!item)assert.ok(pose.hands.every(h=>h[1]>.55));else if(item!=='bows')assert.ok(pose.hands[0][4]<-.7);}
+ for(const item of [null,'swords','copperDagger','bows'])for(const offHand of [null,'crudeShield','copperShield']){if(item==='bows'&&offHand)continue;const pose=blockAnimation({item,leftHand:offHand},.1);for(const h of pose.hands)assert.ok(h.every(Number.isFinite));if(offHand){assert.ok(pose.hands[1][2]>.5);assert.equal(pose.hands[0][0],-.47);}else if(!item)assert.ok(pose.hands.every(h=>h[1]>.55));else if(item!=='bows')assert.ok(pose.hands[0][4]<-.7);}
  // Bare hands settle back into the boxing guard the punches resume from, not down to the sides.
  const end=blockAnimation({},.42);assert.deepEqual(end.hands,PUNCH_GUARD);
 });
@@ -110,7 +110,7 @@ test('bow sweep and body turn finish during setup before the stationary bow is d
  const hand=drawn.hands[0];assert.ok(Math.abs(hand[0])<.2);assert.equal(hand[1],.55);assert.ok(hand[2]>.455&&hand[2]<.47);
 });
 test('shield blocks preserve the main-hand carry orientation through the whole block',()=>{
- for(const item of [null,'swords','copperDagger'])for(const offHand of ['shields','copperShield']){
+ for(const item of [null,'swords','copperDagger'])for(const offHand of ['crudeShield','copperShield']){
   const profile={item,leftHand:offHand},rest=equipmentIdleHands(profile);
   for(const age of [0,.035,.1,.25,.35,.42])assert.deepEqual(blockAnimation(profile,age).hands[0].slice(3),rest[0].slice(3));
   assert.equal(blockAnimation(profile,.1).hands[1][5],-Math.PI/2);

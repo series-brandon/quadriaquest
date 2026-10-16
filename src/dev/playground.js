@@ -2,6 +2,7 @@ import {SHOPS} from '../shops.js';
 import {ENEMIES} from '../combat-rules.js';
 import './test-armor.js';
 export {createTrainingFixtures} from './training-fixtures.js';
+export {createLumberjackFixtures} from './lumberjack-fixtures.js';
 export {createCombatFixtures} from './combat-fixtures.js';
 export {createWalkThroughFixtures} from './walkthrough-fixtures.js';
 export {createEdgeFixtures} from './edge-fixtures.js';
@@ -32,6 +33,8 @@ import {createOpening,showGatheringPrompt} from '../opening.js';
 import {idlePose,slideMotion,stepMotion,STEP_DURATION,workPose,spawnMotion,CHOP_DURATION} from '../slime-motion.js';
 import {showSkillReward,grantSkillXp,addSkillLevels} from '../skills.js';
 import {ATTRIBUTES} from '../character.js';
+import {TREES} from '../lumberjack.js';
+import {TOOL_TIERS} from '../tool-tiers.js';
 import './playground.css';
 
 // This entire module (including its stylesheet) is behind the compile-time flag.
@@ -134,7 +137,7 @@ export function mountPlayground(api){
       <div><button data-dev="price-list">Price list</button></div>
     </fieldset>
     <fieldset><legend>Countryside</legend><label>Place <select id="dev-country-place"><option value="west-gate">West gate (inside; guards)</option><option value="south-gate">South gate (inside; guards)</option><option value="west-road">West road end (woodcutter)</option><option value="lake">Lake shore</option><option value="pond">Pond</option><option value="bridge">East road bridge</option><option value="ruins">Ruins (north hills)</option><option value="hills">North-east hills</option><option value="woods">South-west woods</option><option value="south-road">South road</option></select></label>
-      <label>City biome <select id="dev-city-biome"><option value="blossom">Blossom garden</option><option value="willow">Willow green</option><option value="autumn">Autumn grove</option><option value="birch">Birch copse</option><option value="meadow">Meadow</option></select></label><div><button data-dev="city-biome-jump">Jump to city biome</button></div>
+      <label>City biome <select id="dev-city-biome"><option value="blossom">Blossom garden</option><option value="willow">Willow green</option><option value="autumn">Autumn grove</option><option value="poplar">Poplar copse</option><option value="meadow">Meadow</option></select></label><div><button data-dev="city-biome-jump">Jump to city biome</button></div>
       <div><button data-dev="country-jump">Jump</button><button data-dev="country-bounds">Toggle chunk outlines</button><button data-dev="country-stats">Streaming stats</button><button data-dev="country-radius-1">Radius 1</button><button data-dev="country-radius-2">Radius 2</button></div>
     </fieldset>
     <fieldset><legend>Drops &amp; jobs</legend><label>Enemy <select id="dev-drop-enemy"><option value="">Test pile</option>${Object.keys(ENEMIES).map(id=>`<option value="${id}">${ENEMIES[id].name}</option>`).join('')}</select></label>
@@ -151,6 +154,9 @@ export function mountPlayground(api){
     <fieldset><legend>Player health</legend><label>Resource<select id="dev-resource"><option value="health">Health</option><option value="mana">Mana</option><option value="stamina">Stamina</option><option value="energy">Energy</option><option value="ki">Ki</option></select></label><label>Value<input id="dev-resource-value" type="number" min="0" max="5000" step="any" value="100"></label><button data-dev="resource-set">Set resource</button><button data-dev="resource-reset">Restore all resources</button><label>Action<select id="dev-health"><option value="heal">Restore health</option><option value="hurt">Lose 10 health</option></select></label><button data-dev="health">Apply</button></fieldset>
     <fieldset><legend>Carpentry practice</legend></fieldset>
     <fieldset><legend>Fishing practice</legend></fieldset>
+    <fieldset><legend>Lumberjack practice</legend><label>Tree <select id="dev-tree">${Object.entries(TREES).map(([id,t])=>`<option value="${id}">${t.name} (Lv ${t.level})</option>`).join('')}</select></label>
+      <label>Action <select id="dev-lumber">${[['plant','Plant this tree'],['plant-all','Plant every tier'],['level','Set Lumberjack to its level'],['info','Chop time and XP'],['fell','Fell planted trees (stumps)'],['reset','Regrow planted trees'],['remove','Remove planted trees']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label><button data-dev="lumber">Run</button>
+      <label>Axe <select id="dev-axe">${TOOL_TIERS.axe.tiers.map(t=>`<option value="${t.item}">${ITEMS[t.item]?.name||t.item} (Lv ${t.level})</option>`).join('')}</select></label><button data-dev="axe">Give axe</button></fieldset>
     <fieldset><legend>Resource picking</legend><label><input id="dev-hitboxes" type="checkbox"> Show half-tile hitboxes</label></fieldset>
     <fieldset><legend>Performance</legend><label>Scenario<select id="dev-perf-scenario">${PERF_SCENARIOS.map(s=>`<option value="${s.id}">${s.id}</option>`).join('')}</select></label><div><button data-dev="perf-scenario">Prepare scenario</button><button data-dev="perf-hud">Toggle perf HUD</button><button data-dev="perf-census">Log scene census</button></div><label>Density step<select id="dev-perf-density">${DENSITY_STEPS.map((s,i)=>`<option value="${i}">${s.series} · ${s.props} props</option>`).join('')}</select></label><button data-dev="perf-density">Build density step</button></fieldset>
     <fieldset><legend>Reset</legend><div><button data-reset="items">Ground items</button><button data-reset="trees">Trees</button><button data-reset="boulders">Boulders</button><button data-reset="all">Full test area</button></div></fieldset>
@@ -194,6 +200,8 @@ export function mountPlayground(api){
       if(b.dataset.dev){
         const action=b.dataset.dev;
         if(action==='training')status(api.trainingAction($('training').value));
+        if(action==='lumber')status(api.lumberjackAction($('lumber').value,$('tree').value));
+        if(action==='axe')status(api.lumberjackAction('axe',$('axe').value));
         if(action==='landmark')api.landmark($('landmark').value);
         if(action==='npc-play')status(api.npcMotion($('npc').value,$('npc-motion').value));
         if(action==='npc-stop')status(api.npcMotion($('npc').value,null));
@@ -235,7 +243,7 @@ export function mountPlayground(api){
         if(action==='interface'){stop();const name=$('interface').value;if(name==='models'){modelPreview??=createModelViewer(api.modals);modelPreview.show();}else if(name==='splash')api.showSplash();else api.openInterface(name);status('Opened '+name+'.');}
 
         if(action==='crafting-menu'){stop();api.showCrafting();}
-        if(action==='receipt')api.itemFeed.show({sticks:-1,stones:-1,axes:1});
+        if(action==='receipt')api.itemFeed.show({sticks:-1,stones:-1,crudeAxe:1});
         if(action==='clear-loot')api.itemFeed.clear();
         if(action==='quests')document.getElementById('open-quests').click();
         if(action==='settings')api.openSettings();

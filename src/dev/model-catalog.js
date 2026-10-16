@@ -1,4 +1,5 @@
-import {makeTreeModel,TREE_SPECIES_NAMES} from '../tree-models.js';
+import {makeTreeModel,makeStumpModel,TREE_SPECIES_NAMES} from '../tree-models.js';
+import {TREES} from '../lumberjack.js';
 import {coverModel,COVER_KINDS} from '../ground-cover.js';
 import {wallPiecePreview,cityGateModel} from '../city-walls.js';
 import {makeLootPile} from '../loot-pile-model.js';
@@ -33,7 +34,7 @@ import {makePondfish} from '../fish-model.js';
 import {holdUpMotion,CELEBRATION_DURATION,HOOK_DURATION,CAST_DURATION} from '../catch-motion.js';
 import {FAINT_PREVIEW_DURATION} from '../faint-motion.js';
 import * as THREE from 'three';
-import {makeTree,makeFlowers,makeTerrainTile,addWaterTile} from '../world-models.js';
+import {makeFlowers,makeTerrainTile,addWaterTile} from '../world-models.js';
 import {createGrassColors} from '../grass-palette.js';
 import {createGroundItemModel} from '../ground-item-models.js';
 import {makeSlime} from '../slime-model.js';
@@ -46,7 +47,7 @@ import {GEAR} from '../equipment.js';
 import {COMPANION_GEAR} from '../companions.js';
 import {ITEMS} from '../items.js';
 import {attackPose} from '../combat-motion.js';
-import {makeBoulder,makePickaxe} from '../mining.js';
+import {makeBoulder,makePickaxe,makeRubble} from '../mining.js';
 import {makeAxe} from '../axe-model.js';
 import {makeChest,makeTopHat} from '../finale-models.js';
 import {createWaterEffects} from '../water-effects.js';
@@ -160,7 +161,7 @@ export const MODEL_CATALOG=[
  resource('Copper outcrop',copperOutcrop,'copper'),staticModel('Copper Ingot',ingot),
  ...[['copperDagger','Copper Dagger'],['copperShield','Copper Shield'],['bows','Training Bow'],['arrows','Training Arrow']].map(([id,name])=>staticModel(name,()=>tool(id))),
  {name:'Furnace',motions:['Burning','Static'],create(){const group=furnace();return {group,update:(time,motion)=>animateFurnace(group,motion==='Static'?0:time)};}},
- staticModel('Anvil (Cinderhold station)',anvil),...TREE_SPECIES_NAMES.filter(n=>n!=='oak').map(n=>staticModel(`Tree (${n})`,()=>makeTreeModel(n))),...COVER_KINDS.map(k=>staticModel(`Ground cover (${k})`,()=>coverModel(k))),staticModel('Loot pile',()=>makeLootPile()),staticModel('City wall (run)',()=>wallPiecePreview('run')),staticModel('City wall tower',()=>wallPiecePreview('tower')),staticModel('City gatehouse',()=>wallPiecePreview('gatehouse')),{name:'City gate (double doors)',motions:['Open','Closed'],create(){const gate=cityGateModel(3);return {group:gate.group,update(time,motion){gate.set(motion==='Open'?Math.min(1,(time%3)*.8):0);}};}},staticModel('Road bridge',()=>{const b=makeBridge(4,{width:3});b.setProgress(1);return b.group;}),staticModel('Loot pile (no gold)',()=>makeLootPile({gold:false})),staticModel('Job marker (offer)',()=>makeJobMarker('offer')),staticModel('Job marker (hand in)',()=>makeJobMarker('due')),staticModel('Provision shelf',supplyShelf),staticModel('Stone arch',stoneArch),
+ staticModel('Anvil (Cinderhold station)',anvil),...COVER_KINDS.map(k=>staticModel(`Ground cover (${k})`,()=>coverModel(k))),staticModel('Loot pile',()=>makeLootPile()),staticModel('City wall (run)',()=>wallPiecePreview('run')),staticModel('City wall tower',()=>wallPiecePreview('tower')),staticModel('City gatehouse',()=>wallPiecePreview('gatehouse')),{name:'City gate (double doors)',motions:['Open','Closed'],create(){const gate=cityGateModel(3);return {group:gate.group,update(time,motion){gate.set(motion==='Open'?Math.min(1,(time%3)*.8):0);}};}},staticModel('Road bridge',()=>{const b=makeBridge(4,{width:3});b.setProgress(1);return b.group;}),staticModel('Loot pile (no gold)',()=>makeLootPile({gold:false})),staticModel('Job marker (offer)',()=>makeJobMarker('offer')),staticModel('Job marker (hand in)',()=>makeJobMarker('due')),staticModel('Provision shelf',supplyShelf),staticModel('Stone arch',stoneArch),
  staticModel('Stone tile',()=>stoneTile({x:0,z:0,h:1},new Map())),
  {name:'Practice target',motions:['Static','Hit'],create(){const group=trainingTarget();return {group,update:(time,motion)=>animateTarget(group,time,motion==='Hit'?1:0)};}},
  // Every spell look (charge orb and projectile) from the shared registry.
@@ -174,11 +175,12 @@ export const MODEL_CATALOG=[
  ...[false,true].map(big=>({name:big?'Goblin Bruiser':'Goblin',motions:['Idle','Walk','Attack','Hit'],create(){const group=goblin(big);return {group,update(time,motion){animateGoblin(group,time,{walk:motion==='Walk'?1:0,attack:motion==='Attack'?attackPose(time):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}})),
  // Cosmetics come from the viewer's Head cosmetic dropdown (options.worn), through the shared outfit code.
  {name:'Corgi',wear:COMPANION_WEAR,motions:['Idle','Walk','Jump up','Jump down','Sit','Scratch','Petting','Sleeping'],expressions:['Idle','Happy','Sad','Sleeping'],create(){const group=companion();return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){setCompanionOutfit(group,{head:options.worn?.head||null});animateCompanion(group,time,{moving:motion==='Walk',expression:expressionOverride||'Default',motion,age:motion==='Sleeping'?time:time%2.6});}};}},
- resource('Tree',makeTree,'tree'),resource('Boulder',makeBoulder,'boulder'),staticModel('Flowers',makeFlowers),
+ ...TREE_SPECIES_NAMES.map(n=>resource(`Tree (${TREES[n].name} · Lumberjack ${TREES[n].level})`,()=>makeTreeModel(n),'tree')),
+ ...TREE_SPECIES_NAMES.map(n=>staticModel(`Stump (${TREES[n].name})`,()=>makeStumpModel(n))),staticModel('Rubble (boulder)',()=>makeRubble('boulder')),staticModel('Rubble (copper)',()=>makeRubble('copper')),resource('Boulder',makeBoulder,'boulder'),staticModel('Flowers',makeFlowers),
  ...['sticks','stones','flint'].map((id,i)=>staticModel(['Sticks','Rocks','Flint'][i],()=>createGroundItemModel(id))),
  staticModel('Crude Axe',makeAxe),staticModel('Crude Pickaxe',makePickaxe),
  staticModel('Raw Pondfish',makePondfish),
- ...[['swords','Stone Sword'],['shields','Wooden Shield'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod'],['staffs','Simple Staff']].map(([id,name])=>staticModel(name,()=>tool(id))),
+ ...[['swords','Stone Sword'],['crudeShield','Crude Shield'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod'],['staffs','Simple Staff']].map(([id,name])=>staticModel(name,()=>tool(id))),
  staticModel('Top Hat',makeTopHat),staticModel('Companion Top Hat',makeCompanionTopHat),
  ...Object.entries(WORN_MODELS).filter(([id])=>!['hats','companionHats'].includes(id)).map(([id,make])=>staticModel(ITEMS[id].name,make)),
  // Edge features (docs/CITY.md, Walls and doors): the production pieces side by side, and the shared door

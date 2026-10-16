@@ -311,7 +311,7 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
     record.ids.push(areaId);record.spaces.push(space);record.byLevel.set(f.level,{areaId,space});}
    return record;}
   const links={exit:()=>({kind:'exit',area:builtMap.areaId,tile:back?[back.x,back.z]:[...builtMap.data.spawn]}),floor:()=>null};
-  const space=buildSpace({pickables,size:spec.size,origin:[0,0],spec,kind:'dungeon',base:1,links,services,use:spec.use||'crypt',lootId:`${builtMap.data.id}:${dungeon}:chest`,loot:spec.loot||{copperOre:3,logs:2}}),areaId=id;scene.add(space.group);
+  const space=buildSpace({pickables,size:spec.size,origin:[0,0],spec,kind:'dungeon',base:1,links,services,use:spec.use||'crypt',lootId:`${builtMap.data.id}:${dungeon}:chest`,loot:spec.loot||{copperOre:3,poplarWood:2}}),areaId=id;scene.add(space.group);
   areas.register({id:areaId,name:spec.name||'Dungeon',description:'Dungeon',listed:()=>false,group:space.group,tiles:space.tiles,maxZoom:DUNGEON_MAX_ZOOM,interior:true,camera:{background:SPACE_BACKGROUND}});
   const record={ids:[areaId],spaces:[space]};built.set(id,record);return record;
  }

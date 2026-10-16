@@ -12,7 +12,7 @@ export const sellPrice=(id,rate=SELL_RATE)=>itemValue(id)?Math.max(1,Math.floor(
 // "1,250 GP": the short form for tight spaces.
 export const formatGold=n=>`${Math.floor(n).toLocaleString('en-US')} GP`;
 // Tools you need for a skill: selling your last one asks first.
-export const NEEDED_TOOLS={axes:'chop trees',pickaxes:'mine',hammers:'build and smith',rods:'fish',firestarters:'make campfires'};
+export const NEEDED_TOOLS={crudeAxe:'chop trees',pickaxes:'mine',hammers:'build and smith',rods:'fish',firestarters:'make campfires'};
 
 // The wallet: gold in the inventory, changed only here. `last` is the latest change ({amount, source}),
 // a signal anything can watch; listeners also get each change as it happens.

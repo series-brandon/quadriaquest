@@ -6,7 +6,7 @@ import {createNarrator} from './ui/hud/narrator.js';
 import {createTip} from './ui/hud/tip.js';
 import {readFileSync} from 'node:fs';
 import {parseHTML} from 'linkedom';
-import {createGatheringSkill} from './skills.js';
+import {createSkill} from './skills.js';
 import {reactiveRecord} from './reactive.js';
 import {createCharacter} from './character.js';
 function createCraftingTutorial(options){let tutorial;const startCraft=id=>{const started=options.startCraft(id);if(started)tutorial.craftStarted(id);return started;};const menus=createGameMenus({...options,startCraft});
@@ -25,8 +25,8 @@ test('normal chopping leads into optional mining guidance, retry, success and fi
  const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
   let finished=0;const crafts=[];
-  const tutorial=createCraftingTutorial({getInventory:()=>({sticks:3,stones:3,axes:1,pickaxes:0}),getSkills:()=>({}),startCraft:item=>{crafts.push(item);return true;},onComplete:()=>finished++});
-  tutorial.chopped(2);assert.equal(tutorial.stage,'chop-success');assert.equal(finished,0);
+  const tutorial=createCraftingTutorial({getInventory:()=>({sticks:3,stones:3,crudeAxe:1,pickaxes:0}),getSkills:()=>({}),startCraft:item=>{crafts.push(item);return true;},onComplete:()=>finished++});
+  tutorial.chopped({poplarWood:2});assert.equal(tutorial.stage,'chop-success');assert.equal(finished,0);
   get('tutorial-continue').click();assert.equal(tutorial.stage,'mining-intro');
   for(let i=0;i<4;i++)get('dialogue').click();
   assert.equal(tutorial.stage,'pickaxe');assert.equal(get('tutorial-help').hidden,false);
@@ -75,7 +75,7 @@ test('first quest reveals the menus with its line, guides the Quests tab, then r
  test('the skills page keeps rows and open state while XP changes, and highlights the lesson skill',()=>{
  const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
-  const skill=createGatheringSkill();
+  const skill=createSkill();
   const tutorial=createCraftingTutorial({freePlay:true,getInventory:()=>({}),getSkills:()=>({Gathering:skill}),startCraft:()=>false});
   get('open-character').click();const rows=()=>[...get('character-panel').querySelectorAll('[data-skill]')],row=rows()[0];
   const open=()=>row.hasAttribute('open');row.toggleAttribute('open',true);skill.xp=20;
@@ -121,12 +121,12 @@ test('shared menus expose both introductory tools and Culinary without a tutoria
   const inventory=reactiveRecord({sticks:2,stones:2}),crafts=[];let started=true;
   const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>({Crafting:{level:6,xp:600},Culinary:{level:1,xp:0},'Melee Power':{level:1,xp:0,group:'combat'},'Light Armor':{level:1,xp:0,group:'armor'},'Dagger Proficiency':{level:2,xp:90,group:'weapon',curve:'adopted'}}),startCraft:id=>{crafts.push(id);return started;}});
   menus.openCrafting();
-  for(const id of ['axes','pickaxes']){assert.equal(get('choose-'+id).hidden,false);assert.equal(get('craft-'+id).disabled,false);assert.equal(get(id+'-duration').textContent,'Time · 1.67 seconds');get('craft-'+id).click();}
-  assert.deepEqual(crafts,['axes','pickaxes']);
-  inventory.stones=0;assert.equal(get('craft-axes').disabled,true,'materials follow the inventory');assert.equal(get('craft-pickaxes').disabled,true);
+  for(const id of ['crudeAxe','pickaxes']){assert.equal(get('choose-'+id).hidden,false);assert.equal(get('craft-'+id).disabled,false);assert.equal(get(id+'-duration').textContent,'Time · 1.82 seconds');get('craft-'+id).click();}
+  assert.deepEqual(crafts,['crudeAxe','pickaxes']);
+  inventory.stones=0;assert.equal(get('craft-crudeAxe').disabled,true,'materials follow the inventory');assert.equal(get('craft-pickaxes').disabled,true);
   assert.equal(get('craft-copperIngots').disabled,true,'station recipes are made at their station');assert.match(get('craft-copperIngots').textContent,/Make at a furnace/);
-  inventory.stones=1;started=false;get('craft-axes').click();assert.match(get('axes-detail').textContent,/finish your current action first/,'a refused start explains why');
-  menus.selectRecipe('pickaxes');assert.equal(get('pickaxes-detail').hidden,false);assert.equal(get('axes-detail').hidden,true);assert.equal(menus.selectedRecipe,'pickaxes');
+  inventory.stones=1;started=false;get('craft-crudeAxe').click();assert.match(get('crudeAxe-detail').textContent,/finish your current action first/,'a refused start explains why');
+  menus.selectRecipe('pickaxes');assert.equal(get('pickaxes-detail').hidden,false);assert.equal(get('crudeAxe-detail').hidden,true);assert.equal(menus.selectedRecipe,'pickaxes');
   menus.openSkills();const lists=[...get('character-panel').querySelectorAll('.q-skills')].map(list=>[...list.querySelectorAll('[data-skill]')].map(row=>row.dataset.skill));
   assert.deepEqual(lists,[['Crafting','Culinary','Melee Power','Light Armor'],['Dagger Proficiency']],'skills (non-combat, combat, armor), then proficiencies');
   assert.equal(menus.panels.isOpen('character'),true);
@@ -143,14 +143,14 @@ test('the axe lesson has the player open Crafting, choose the Crude Axe, then cr
   assert.equal(tutorial.stage,'craft-menu');assert.ok(guided('open-crafting'));
   get('open-crafting').click();
   assert.equal(tutorial.stage,'recipe');assert.equal(tutorial.menus.selectedRecipe,null,'the page opens with nothing chosen');
-  assert.equal(get('axes-detail').hidden,true);assert.ok(guided('choose-axes'));assert.equal(guided('craft-axes'),false);
-  get('choose-axes').click();
-  assert.equal(get('axes-detail').hidden,false);assert.ok(guided('craft-axes'));assert.equal(guided('choose-axes'),false);
-  get('craft-axes').click();assert.deepEqual(crafts,['axes']);assert.equal(tutorial.stage,'crafting');
+  assert.equal(get('crudeAxe-detail').hidden,true);assert.ok(guided('choose-crudeAxe'));assert.equal(guided('craft-crudeAxe'),false);
+  get('choose-crudeAxe').click();
+  assert.equal(get('crudeAxe-detail').hidden,false);assert.ok(guided('craft-crudeAxe'));assert.equal(guided('choose-crudeAxe'),false);
+  get('craft-crudeAxe').click();assert.deepEqual(crafts,['crudeAxe']);assert.equal(tutorial.stage,'crafting');
   assert.equal(document.querySelectorAll('[data-menu-guide]').length,0);
   // Interrupted: back to the Crafting tab; the page reopens where it was, on the Crude Axe.
   tutorial.menus.closeMenus();tutorial.craftCancelled();assert.equal(tutorial.stage,'retry');assert.ok(guided('open-crafting'));
-  get('open-crafting').click();assert.equal(tutorial.stage,'recipe');assert.ok(guided('craft-axes'));
+  get('open-crafting').click();assert.equal(tutorial.stage,'recipe');assert.ok(guided('craft-crudeAxe'));
  }finally{globalThis.document=previous;}
 });
 
@@ -170,7 +170,7 @@ test('the shared menu guide walks the Inventory tab, the item, then its action',
 test('the skills lesson has the player open Character, choose Skills, then open Gathering',()=>{
  const previous=globalThis.document,{document,get}=fixture();globalThis.document=document;
  try{
-  const skill=createGatheringSkill();
+  const skill=createSkill();
   const tutorial=createCraftingTutorial({getInventory:()=>({}),getSkills:()=>({Gathering:skill}),getCharacter:()=>createCharacter(),startCraft:()=>false});
   const panel=tutorial.menus.characterPanel,tab=label=>[...panel.querySelectorAll('[role=tab]')].find(t=>t.textContent.startsWith(label));
   tutorial.startSkills();get('dialogue').click();
@@ -193,12 +193,12 @@ test('a recipe guide from another recipe shows the way back to the list instead 
  try{
   const menus=createGameMenus({getInventory:()=>reactiveRecord({sticks:2,stones:2}),getSkills:()=>({}),startCraft:()=>true});
   const guided=id=>get(id).classList.contains('gold-guide');
-  get('open-crafting').click();get('choose-axes').click();
+  get('open-crafting').click();get('choose-crudeAxe').click();
   menus.guide({page:'crafting',recipe:'pickaxes'});
-  assert.equal(menus.selectedRecipe,'axes','the page stays where the player left it');
-  assert.ok(guided('axes-back'),'narrow journals: the back button');assert.ok(guided('choose-pickaxes'),'wide journals: the recipe beside it');
-  assert.equal(guided('craft-axes'),false);
-  get('axes-back').click();assert.equal(guided('axes-back'),false);assert.ok(guided('choose-pickaxes'));
+  assert.equal(menus.selectedRecipe,'crudeAxe','the page stays where the player left it');
+  assert.ok(guided('crudeAxe-back'),'narrow journals: the back button');assert.ok(guided('choose-pickaxes'),'wide journals: the recipe beside it');
+  assert.equal(guided('craft-crudeAxe'),false);
+  get('crudeAxe-back').click();assert.equal(guided('crudeAxe-back'),false);assert.ok(guided('choose-pickaxes'));
   get('choose-pickaxes').click();assert.ok(guided('craft-pickaxes'));
  }finally{globalThis.document=previous;}
 });

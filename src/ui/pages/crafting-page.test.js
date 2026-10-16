@@ -4,15 +4,15 @@ import {installDom} from '../test-dom.js';
 import {reactiveRecord, signal} from '../../reactive.js';
 import {mount} from '../dom.js';
 import {craftingPage} from './crafting-page.js';
-import {createGatheringSkill} from '../../skills.js';
+import {createSkill} from '../../skills.js';
 
 installDom();
 
 const press = el => el.dispatchEvent(new window.Event('click'));
 
 function setup() {
-  const inventory = reactiveRecord({sticks: 1, stones: 1}), crafting = createGatheringSkill(), active = signal(null), started = [];
-  const selected = signal('axes'), viewing = signal(false);
+  const inventory = reactiveRecord({sticks: 1, stones: 1}), crafting = createSkill(), active = signal(null), started = [];
+  const selected = signal('crudeAxe'), viewing = signal(false);
   const {node} = mount(() => craftingPage({
     inventory, skills: () => ({Crafting: crafting}), active: () => active.value,
     start: id => { started.push(id); active.value = id; return true; }, onStarted: id => started.push(`after ${id}`),
@@ -25,39 +25,39 @@ function setup() {
 test('one recipe grid: hand recipes first, station recipes after and tagged, each with stable ids', () => {
   const s = setup();
   const tiles = [...s.node.querySelectorAll('.q-crafting__list .q-recipe-tile')].map(b => b.id);
-  assert.ok(tiles.indexOf('choose-axes') < tiles.indexOf('choose-copperIngots'));
+  assert.ok(tiles.indexOf('choose-crudeAxe') < tiles.indexOf('choose-copperIngots'));
   assert.equal(s.get('choose-copperIngots').querySelector('.q-recipe-tile__tag').textContent, 'Furnace');
-  assert.equal(s.get('choose-axes').querySelector('.q-recipe-tile__tag').hidden, true);
-  assert.equal(s.get('axes-detail').hidden, false);
+  assert.equal(s.get('choose-crudeAxe').querySelector('.q-recipe-tile__tag').hidden, true);
+  assert.equal(s.get('crudeAxe-detail').hidden, false);
   assert.equal(s.get('pickaxes-detail').hidden, true);
-  assert.equal(s.get('choose-axes').getAttribute('aria-pressed'), 'true');
+  assert.equal(s.get('choose-crudeAxe').getAttribute('aria-pressed'), 'true');
 });
 
 test('ingredients, readiness and time follow the inventory and skill records', () => {
   const s = setup();
-  const craft = s.get('craft-axes');
+  const craft = s.get('craft-crudeAxe');
   assert.equal(craft.disabled, false);
-  assert.match(s.get('choose-axes').getAttribute('aria-label'), /materials ready/);
-  assert.equal(s.get('choose-axes').hasAttribute('data-missing'), false);
+  assert.match(s.get('choose-crudeAxe').getAttribute('aria-label'), /materials ready/);
+  assert.equal(s.get('choose-crudeAxe').hasAttribute('data-missing'), false);
   s.inventory.stones = 0;
   assert.equal(craft.disabled, true);
-  assert.match(s.get('choose-axes').getAttribute('aria-label'), /missing materials/);
-  assert.equal(s.get('choose-axes').hasAttribute('data-missing'), true);
-  assert.match(s.get('axes-detail').querySelector('[aria-label=Ingredients]').textContent, /Rocks0 \/ 1/);
-  const time = s.get('axes-duration').textContent;
+  assert.match(s.get('choose-crudeAxe').getAttribute('aria-label'), /missing materials/);
+  assert.equal(s.get('choose-crudeAxe').hasAttribute('data-missing'), true);
+  assert.match(s.get('crudeAxe-detail').querySelector('[aria-label=Ingredients]').textContent, /Rocks0 \/ 1/);
+  const time = s.get('crudeAxe-duration').textContent;
   s.crafting.level = 10;
-  assert.notEqual(s.get('axes-duration').textContent, time, 'higher Crafting is faster');
+  assert.notEqual(s.get('crudeAxe-duration').textContent, time, 'higher Crafting is faster');
 });
 
 test('crafting starts through the shared system and shows progress; choosing switches the phone view', () => {
   const s = setup();
-  press(s.get('craft-axes'));
-  assert.deepEqual(s.started, ['axes', 'after axes']);
-  assert.equal(s.get('craft-axes').textContent, 'Crafting…');
-  assert.equal(s.get('craft-axes').disabled, true);
-  assert.equal(s.get('choose-axes').querySelector('.q-recipe-tile__tag').textContent, 'Crafting…');
+  press(s.get('craft-crudeAxe'));
+  assert.deepEqual(s.started, ['crudeAxe', 'after crudeAxe']);
+  assert.equal(s.get('craft-crudeAxe').textContent, 'Crafting…');
+  assert.equal(s.get('craft-crudeAxe').disabled, true);
+  assert.equal(s.get('choose-crudeAxe').querySelector('.q-recipe-tile__tag').textContent, 'Crafting…');
   s.active.value = null;
-  assert.equal(s.get('craft-axes').textContent, 'Craft Crude Axe');
+  assert.equal(s.get('craft-crudeAxe').textContent, 'Craft Crude Axe');
 
   const page = s.node;
   assert.equal(page.dataset.view, 'list');
@@ -73,11 +73,11 @@ test('the detail lists Ingredients, Tools, Station and Makes', () => {
   const s = setup();
   const parts = id => Object.fromEntries([...s.get(`${id}-detail`).querySelectorAll('.q-recipe-part')].map(p => [p.getAttribute('aria-label'), p.querySelector('ul').textContent]));
   assert.deepEqual(Object.keys(parts('campfires')), ['Ingredients', 'Tools', 'Station', 'Makes']);
-  assert.match(parts('campfires').Ingredients, /Small Logs/);
+  assert.match(parts('campfires').Ingredients, /Wood Pieces/);
   assert.match(parts('campfires').Tools, /Flint and Stone0 \/ 1/);
   assert.match(parts('campfires').Station, /None: craft anywhere/);
   assert.match(parts('campfires').Makes, /Campfire ×1/);
-  assert.match(parts('axes').Tools, /None needed/);
+  assert.match(parts('crudeAxe').Tools, /None needed/);
   assert.match(parts('copperDagger').Station, /Anvil/);
   assert.equal(s.get('copperDagger-detail').querySelector('[aria-label=Station] li').hasAttribute('data-missing'), true, 'crossed: not at an anvil');
   assert.equal(s.get('copperDagger-detail').querySelector('[aria-label=Station] strong').getAttribute('aria-label'), 'Needs an anvil');
@@ -91,7 +91,7 @@ test('search and Show filters narrow the grid', () => {
   assert.equal(stations.getAttribute('aria-pressed'), 'false');
   assert.ok(!shown().includes('copperIngots'), 'station recipes hidden');
   press(missing);
-  assert.deepEqual(shown(), ['axes', 'pickaxes', 'hammers'], 'only what the Sticks and Rocks can make');
+  assert.deepEqual(shown(), ['crudeAxe', 'pickaxes', 'hammers'], 'only what the Sticks and Rocks can make');
   const search = s.node.querySelector('.q-crafting__search');
   search.value = 'pick';
   search.dispatchEvent(new window.Event('input'));

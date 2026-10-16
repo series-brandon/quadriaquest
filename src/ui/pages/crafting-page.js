@@ -3,7 +3,7 @@ import {h} from '../dom.js';
 import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
 import {recipeTile, recipeDetailBody, STATION_LABEL} from '../recipe-view.js';
-import {RECIPES, canMake, durationFor} from '../../recipes.js';
+import {RECIPES, canMake, recipeDuration} from '../../recipes.js';
 import {ITEMS} from '../../items.js';
 
 const STATION_NAME = {furnace: 'a furnace', anvil: 'an anvil', fire: 'a campfire'};
@@ -58,7 +58,7 @@ export function craftingPage({inventory, skills = () => ({}), active = () => nul
     const recipe = RECIPES[id];
     const seconds = computed(() => {
       const levels = skills();
-      return Number(durationFor(recipe.duration, levels[recipe.skill]?.level || levels.Crafting?.level || 1).toFixed(2));
+      return Number(recipeDuration(recipe, levels[recipe.skill]?.level || levels.Crafting?.level || 1).toFixed(2));
     });
     return h('article', {class: 'q-recipe-detail', id: `${id}-detail`, 'aria-label': recipe.name, hidden: () => selected.value !== id},
       recipeDetailBody({id, recipe, items: ITEMS, inventory, time: () => `Time · ${seconds.value} seconds`, timeId: `${id}-duration`, backId: `${id}-back`, onBack: () => { viewing.value = false; }}),

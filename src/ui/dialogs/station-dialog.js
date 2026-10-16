@@ -3,6 +3,7 @@ import {h} from '../dom.js';
 import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
 import {recipeTile, recipeDetailBody} from '../recipe-view.js';
+import {ITEM_GROUPS} from '../../items.js';
 
 export const STATIONS = {
   fire: {title: 'Cooking', noun: 'campfire', verb: 'Cook one'},
@@ -21,7 +22,7 @@ export function stationDialog({kind, recipes, items, inventory, canMake, duratio
   const info = STATIONS[kind];
   const catalogue = Object.entries(recipes).filter(([, recipe]) => recipe.station === kind);
   const usable = () => !!station?.available();
-  const label = id => items[id]?.name || id;
+  const label = id => items[id]?.name || ITEM_GROUPS[id]?.name || id;
   const query = signal('');
   const viewing = signal(false);
   const status = signal('');

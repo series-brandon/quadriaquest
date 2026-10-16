@@ -72,15 +72,15 @@ test('the item feed merges repeated pickups, shows crafts with their costs, and 
     feed.show({sticks: 2});
     assert.equal(receipts().length, 1, 'same item, same direction: one receipt');
     assert.equal(receipts()[0].textContent, '+Sticks ×3');
-    feed.show({sticks: -1, stones: -1, axes: 1});
+    feed.show({sticks: -1, stones: -1, crudeAxe: 1});
     const craft = receipts()[1];
     assert.match(craft.textContent, /Crafted Crude Axe ×1/);
     assert.match(craft.querySelector('small').textContent, /Used Sticks ×1 · Rocks ×1/);
     feed.show({swords: 1, gold: -20}, {trade: 'bought'});
     assert.match(receipts()[2].textContent, /Bought Stone Sword ×1/);
     assert.equal(receipts()[2].querySelector('small').textContent, 'Paid 20 GP');
-    feed.show({logs: -5, gold: 10}, {trade: 'sold'});
-    assert.match(receipts()[3].textContent, /Sold Small Logs ×5/);
+    feed.show({poplarWood: -5, gold: 10}, {trade: 'sold'});
+    assert.match(receipts()[3].textContent, /Sold Poplar Wood Pieces ×5/);
     assert.equal(receipts()[3].querySelector('small').textContent, 'Received 10 GP');
     feed.clear();
     feed.show({package: -1, gold: 26}, {trade: 'handedIn'});
@@ -89,7 +89,7 @@ test('the item feed merges repeated pickups, shows crafts with their costs, and 
     feed.show({gold: 45}, {trade: 'handedIn'});
     assert.match(receipts()[1].textContent, /\+Gold Pieces ×45/);
     assert.equal(receipts()[1].querySelector('small').hidden, true);
-    for (let i = 0; i < 5; i++) feed.show({[['logs', 'stone', 'flint', 'rawFish', 'rods'][i]]: 1});
+    for (let i = 0; i < 5; i++) feed.show({[['poplarWood', 'stone', 'flint', 'rawFish', 'rods'][i]]: 1});
     assert.equal(receipts().length, 4, 'at most four');
     mock.timers.tick(3800);
     assert.ok(receipts().every(r => r.hasAttribute('data-leaving')));

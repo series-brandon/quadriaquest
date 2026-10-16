@@ -80,7 +80,7 @@ test('the staff is an equippable swing; the axe, pickaxe, hammer and rod are equ
  const {createEquipment,GEAR}=await import('./equipment.js'),{resolveAttackMotion}=await import('./combat-animation.js');
  const staff=createEquipment({inventory:{staffs:1}});assert.ok(staff.toggle('staffs'));assert.equal(staff.handAttack('main').item,'staffs');assert.equal(resolveAttackMotion(staff.handAttack('main')),'slash');
  assert.equal(GEAR.firestarters,undefined,'Flint and Stone is not equippable');
- for(const id of ['axes','pickaxes','hammers','rods']){
+ for(const id of ['crudeAxe','pickaxes','hammers','rods']){
   assert.equal(GEAR[id].cosmetic,true,id);assert.ok(!GEAR[id].style&&!GEAR[id].power,'no combat stats: '+id);
   const e=createEquipment({inventory:{[id]:1}});assert.ok(e.toggle(id),'equippable: '+id);assert.equal(e.slots.right,id);
   const attack=e.handAttack('right');assert.equal(attack.style,'unarmed',id+' hand punches');assert.equal(attack.item,null);
@@ -93,7 +93,7 @@ test('the staff is an equippable swing; the axe, pickaxe, hammer and rod are equ
 test('held tools rest like a blade; a held rod rests on the shoulder; the staff stands upright',async()=>{
  const {equipmentIdleHands}=await import('./combat-animation.js'),{heldTool,carriedTool}=await import('./tool-models.js');
  const sword=equipmentIdleHands({rightHand:'swords'})[0][3];
- for(const id of ['axes','pickaxes','hammers'])assert.equal(equipmentIdleHands({rightHand:id})[0][3],sword,id);
+ for(const id of ['crudeAxe','pickaxes','hammers'])assert.equal(equipmentIdleHands({rightHand:id})[0][3],sword,id);
  assert.equal(equipmentIdleHands({rightHand:'staffs'})[0][3],0,'staff upright');
  assert.deepEqual(heldTool('rods').rotation.toArray().slice(0,3),carriedTool('rods').rotation.toArray().slice(0,3),'rod on the shoulder');
 });

@@ -64,7 +64,7 @@ test('foliage and resources follow the biome: woods are dense, coasts bare, pine
  assert.ok(forest.trees/forest.land>4*meadow.trees/meadow.land,'woods are much denser than meadows');
  assert.equal(coast.trees,0,'no trees on the coast');
  assert.ok(pines.species.filter(s=>s==='pine').length>pines.species.length*.7,'pine forest is mostly pines');
- assert.ok(wet.species.every(s=>s==='willow'||s==='birch'));
+ assert.ok(wet.species.every(s=>s==='willow'||s==='poplar'));
  assert.ok(hills.kinds.has('copper')&&hills.kinds.has('boulder'),'ore and boulders in the hills');
  assert.ok(!meadow.kinds.has('copper'),'no ore in the meadow');
 });

@@ -9,8 +9,8 @@ import {createWaking,STARTER_KIT,WAKING_LINES,SKIP_LINES} from './waking.js';
 
 // Real shared systems; only presentation (narrator, fade, travel) is faked.
 function fixture({ownsCompanion=false,prepare=null}={}){
- const items={sticks:{},stones:{},logs:{},copperDagger:{},copperShield:{},bows:{},arrows:{},hats:{},axes:{},pickaxes:{},hammers:{},rods:{},firestarters:{},cookedFish:{},copperOre:{}};
- const inventory={logs:7,copperOre:4,sticks:12,axes:1},equipment=createEquipment({inventory}),styles=createCombatStyles({equipment});
+ const items={sticks:{},stones:{},poplarWood:{},copperDagger:{},copperShield:{},bows:{},arrows:{},hats:{},crudeAxe:{},pickaxes:{},hammers:{},rods:{},firestarters:{},cookedFish:{},copperOre:{}};
+ const inventory={poplarWood:7,copperOre:4,sticks:12,crudeAxe:1},equipment=createEquipment({inventory}),styles=createCombatStyles({equipment});
  const character=createCharacter(),resources=createPlayerResources(),auras=createAuras({ki:resources.ki}),health=createResource(100);health.value=40;
  const gathering={xp:500,level:4};
  const companion={owned:ownsCompanion},log=[],lines=[];let fade=0,narrated=null;
@@ -31,7 +31,7 @@ test('waking resets the dream to the starter kit, keeping the dominant hand',()=
  f.run();
  assert.equal(f.waking.isWoken,true);assert.equal(f.fade,0,'faded back in');
  for(const [id,count] of Object.entries(STARTER_KIT.items))assert.equal(f.inventory[id],count,id);
- assert.equal(f.inventory.logs,0,'dream items are gone');assert.equal(f.inventory.copperOre,0);
+ assert.equal(f.inventory.poplarWood,0,'dream items are gone');assert.equal(f.inventory.copperOre,0);
  assert.deepEqual([f.equipment.slots.main,f.equipment.slots.off],['copperDagger','copperShield']);
  assert.equal(f.equipment.handedness,'left','the dominant hand carries over');assert.equal(f.equipment.slots.left,'copperDagger');
  assert.ok(f.styles.knowsSpell('energyStrike'));assert.ok(f.styles.knowsAbility('strongStrike'));

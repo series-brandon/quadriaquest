@@ -51,11 +51,11 @@ test('props: walk-under posts block only their corners, wall pieces block nothin
 });
 test('chest loot is given once, by id, and resets',()=>{
  resetLoot();const {at}=tilesOf(4,4),parent=new THREE.Group();
- const chest=createProp('chest',{origin:[1,1],tileAt:at,parent,loot:{id:'t:1,1',items:{logs:2}}});
+ const chest=createProp('chest',{origin:[1,1],tileAt:at,parent,loot:{id:'t:1,1',items:{poplarWood:2}}});
  const plain=createProp('chest',{origin:[2,2],tileAt:at,parent});
- assert.deepEqual(takeLoot(chest),{logs:2});assert.equal(takeLoot(chest),null);assert.ok(lootTaken('t:1,1'));
+ assert.deepEqual(takeLoot(chest),{poplarWood:2});assert.equal(takeLoot(chest),null);assert.ok(lootTaken('t:1,1'));
  assert.equal(takeLoot(plain),null,'city chests: nothing interesting');
- resetLoot();assert.deepEqual(takeLoot(chest),{logs:2});resetLoot();
+ resetLoot();assert.deepEqual(takeLoot(chest),{poplarWood:2});resetLoot();
 });
 test('the prop gallery builds with every prop that stands on land',()=>{
  const data=propGalleryData(),builtMap=buildMap(data,{scene:new THREE.Group()}),onLand=PROP_KINDS.filter(k=>PROPS[k].water!=='only');

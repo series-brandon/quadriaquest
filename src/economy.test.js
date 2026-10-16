@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ITEMS} from './items.js';
+import {ITEMS,ITEM_GROUPS} from './items.js';
 import {RECIPES} from './recipes.js';
 import {GOLD,SELL_RATE,createWallet,formatGold,itemValue,sellPrice} from './economy.js';
 import {SHOPS,SHOP_FOR_USE,createShops,RESTOCK_MINUTES} from './shops.js';
@@ -16,7 +16,8 @@ test('every item has a value and a category; gold is currency and cannot be sold
 test('crafting pays, and nothing profits from buying and reselling',()=>{
  for(const id of Object.keys(ITEMS))if(itemValue(id))assert.ok(sellPrice(id)<=itemValue(id),`${id} sells for no more than it costs`);
  for(const [id,recipe] of Object.entries(RECIPES)){
-  const inputsSell=Object.entries(recipe.cost).reduce((sum,[i,n])=>sum+sellPrice(i)*n,0),inputsBuy=Object.entries(recipe.cost).reduce((sum,[i,n])=>sum+itemValue(i)*n,0);
+  // A group (any wood) is priced as its lowest tier, the one crafting spends first.
+  const lowest=i=>ITEM_GROUPS[i]?.items[0]??i,inputsSell=Object.entries(recipe.cost).reduce((sum,[i,n])=>sum+sellPrice(lowest(i))*n,0),inputsBuy=Object.entries(recipe.cost).reduce((sum,[i,n])=>sum+itemValue(lowest(i))*n,0);
   assert.ok(sellPrice(id)>=inputsSell,`${id}: worth more than its materials (${sellPrice(id)} ≥ ${inputsSell})`);
   assert.ok(sellPrice(id)<inputsBuy,`${id}: buying its materials to craft and sell loses gold (${sellPrice(id)} < ${inputsBuy})`);
  }
@@ -42,19 +43,19 @@ test('buying spends gold and limited stock, which restocks over time',()=>{
  assert.equal(s.shops.buy('smithy','copperShield',3).reason,'Only 2 left');
  assert.ok(s.shops.buy('smithy','copperShield',2).ok);assert.equal(s.inventory.copperShield,2);assert.equal(s.wallet.gold,40);
  assert.equal(s.shops.buy('smithy','copperShield').reason,'Sold out');
- assert.equal(s.shops.buy('general','logs',10).reason,'Not enough gold');assert.equal(s.wallet.gold,40,'nothing taken');
- assert.equal(s.shops.maxBuy('general','logs'),6);
+ assert.equal(s.shops.buy('general','poplarWood',11).reason,'Not enough gold');assert.equal(s.wallet.gold,40,'nothing taken');
+ assert.equal(s.shops.maxBuy('general','poplarWood'),10);
  s.advance(RESTOCK_MINUTES);assert.equal(s.shops.left('smithy','copperShield'),1);
  s.advance(RESTOCK_MINUTES*10);assert.equal(s.shops.left('smithy','copperShield'),2,'up to its limit');
- assert.equal(s.shops.left('smithy','logs'),0,'not stocked');
+ assert.equal(s.shops.left('smithy','poplarWood'),0,'not stocked');
 });
 test('selling pays the sell rate; quest items, gold, the wrong shop and worn items are refused',()=>{
- const s=shop({items:{logs:5,copperDagger:1,hats:2,axes:1},equipped:{copperDagger:1,hats:1}});
- const sold=s.shops.sell('general','logs',5);assert.ok(sold.ok);assert.equal(s.wallet.gold,5*sellPrice('logs'));assert.equal(s.inventory.logs,0);
+ const s=shop({items:{poplarWood:5,copperDagger:1,hats:2,crudeAxe:1},equipped:{copperDagger:1,hats:1}});
+ const sold=s.shops.sell('general','poplarWood',5);assert.ok(sold.ok);assert.equal(s.wallet.gold,5*sellPrice('poplarWood'));assert.equal(s.inventory.poplarWood,0);
  assert.equal(s.shops.sellBlock('general','gold'),'Currency');
- assert.equal(s.shops.sellBlock('fishmonger','axes'),"The fishmonger doesn't buy this");
+ assert.equal(s.shops.sellBlock('fishmonger','crudeAxe'),"The fishmonger doesn't buy this");
  assert.equal(s.shops.sellBlock('general','copperDagger'),'Equipped');
  assert.equal(s.shops.maxSell('tailor','hats'),1,'the worn copy stays');
- assert.ok(s.shops.needsConfirm('axes',1),'your last axe asks first');assert.ok(!s.shops.needsConfirm('logs',1));
- assert.equal(s.shops.sell('general','logs',1).reason,'You don’t have that many to sell');
+ assert.ok(s.shops.needsConfirm('crudeAxe',1),'your last axe asks first');assert.ok(!s.shops.needsConfirm('poplarWood',1));
+ assert.equal(s.shops.sell('general','poplarWood',1).reason,'You don’t have that many to sell');
 });

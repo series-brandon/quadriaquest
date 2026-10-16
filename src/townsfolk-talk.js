@@ -1,4 +1,5 @@
 import {ITEMS} from './items.js';
+import {WOODS} from './lumberjack.js';
 import {SHOP_WANTS} from './jobs.js';
 
 // Talking to townsfolk (docs/ECONOMY.md, Jobs): a conversation in the character dialogue box, the same
@@ -11,7 +12,7 @@ import {SHOP_WANTS} from './jobs.js';
 //   openShop(p)   open the shop they're minding
 //   received(job, result, stage)  receipts: 'accepted' (a package), 'delivered', 'paid'
 const name=id=>ITEMS[id]?.name||id;
-const GATHER_VERB={rawFish:'catch me',logs:'chop me',copperOre:'mine me'};
+const GATHER_VERB={rawFish:'catch me',copperOre:'mine me',...Object.fromEntries(WOODS.map(id=>[id,'chop me']))};
 const verbFor=offer=>offer.kind==='craft'?'make me':offer.kind==='gather'?GATHER_VERB[offer.item]||'gather me':'bring me';
 export function createTownsfolkTalk({dialogue,jobs,shopFor=()=>null,openShop=()=>{},received=()=>{}}){
  let current=null;

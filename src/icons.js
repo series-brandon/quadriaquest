@@ -1,3 +1,4 @@
+import {WOODS} from './lumberjack.js';
 // One rounded, ink-and-paper vocabulary for navigation, skills, and supplies.
 const paths={
  quickRestore:'<path d="M9 3h6M10 3v5l-5 9q-2 4 3 4h8q5 0 3-4l-5-9V3M7 15h10"/>',
@@ -63,6 +64,7 @@ const paths={
  expand:'<path d="M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6"/>',
  check:'<path d="m4 12 5 5L20 6"/>',
 };
-const aliases={Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes',ironSkullcap:'hats',minersCap:'hats',archerCap:'hats',wizardHat:'hats',breathHeadband:'hats',fishersHat:'hats'};
+// Item ids that share a drawing: tiered items and wood pieces (lumberjack.js) use their family's icon.
+const aliases={crudeAxe:'axes',crudeShield:'shields',anyWood:'logs',...Object.fromEntries(WOODS.map(id=>[id,'logs'])),Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes',ironSkullcap:'hats',minersCap:'hats',archerCap:'hats',wizardHat:'hats',breathHeadband:'hats',fishersHat:'hats'};
 export function icon(name){return `<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[aliases[name]||name]||paths.skills}</svg>`;}
 export const ICON_NAMES=Object.keys(paths);

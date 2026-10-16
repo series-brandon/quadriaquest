@@ -838,7 +838,7 @@ User request: move the Iter Crystal, and add, move or delete resources and the s
 - **Placement rules:** one resource and one piece of cover per tile. Placing replaces whatever grew or was placed there.
 - **One path:** `townSource` (town-ground.js) merges these with what the land grows. They stream, chop, gather and respawn through the same resource entities and cover pool as anything generated. Placed resource ids are `placed:kind:x,z`.
 - **World editor:**
-  - **Nature** brush: drag to place an oak, birch, pine, willow, cherry or maple tree, copper, a boulder, sticks, stones, flint, or any cover kind. *Clear nature* takes away whatever is there. The 1 or 3 × 3 brush applies.
+  - **Nature** brush: drag to place any tree tier (Poplar to Cherry Blossom, labelled with its Lumberjack level), copper, a boulder, sticks, stones, flint, or any cover kind. *Clear nature* takes away whatever is there. The 1 or 3 × 3 brush applies.
   - **Select** on a generated tree, resource or flower takes it into the map's own list, so it can be moved (M, arrows) or deleted like anything placed.
   - **Erase** clears nature on a tile with nothing else on it.
   - **Crystal** tool places the Iter Crystal. Select also picks it, and M or the arrows move it. It can't be duplicated or rotated, and needs dry, empty ground. (Since: any number of crystals, *Iter Crystals* below.)

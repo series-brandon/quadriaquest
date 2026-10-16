@@ -21,7 +21,7 @@ const BRUISER_HIT=12,PLAYER_INTERVAL=2.55/1.02,CAST_INTERVAL=3/1.02;
 // openingWindup: null pins full-windup timing for tests of other mechanics (the opening is tested separately).
 function fixture(kind='bruiser',{openingWindup}={}){
  const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
- const sounds=[],started=[],faced=[],home=world.get('3,3'),inventory={swords:1,shields:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,wins=0,toasts=[],food,craft;const character=createCharacter(),mana=createResource(),energy=createResource();let auraResistance=0;
+ const sounds=[],started=[],faced=[],home=world.get('3,3'),inventory={swords:1,crudeShield:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,wins=0,toasts=[],food,craft;const character=createCharacter(),mana=createResource(),energy=createResource();let auraResistance=0;
  // As in the game: equipment may change mid-fight (only defeat blocks it).
  const equipment=createEquipment({inventory,busy:()=>system.busy});let telegraph=null;
  // One strike per attack keeps these mechanic tests' arithmetic simple; dual wielding (both hands,
@@ -36,18 +36,18 @@ function fixture(kind='bruiser',{openingWindup}={}){
  return {sounds,started,faced,system,a,food,craft,character,mana,energy,toasts,set auraResistance(v){auraResistance=v;},get wins(){return wins;},get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get telegraph(){return telegraph;},get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
 }
 test('equipment is available without an area, guards stale actions, and clears missing items',()=>{
- const inventory={swords:1,shields:1};let busy=false;const e=createEquipment({inventory,busy:()=>busy});
- assert.ok(e.toggle('swords'));assert.ok(e.isEquipped('swords'));const action=e.inventoryActions('shields')[0];busy=true;assert.equal(action.run(),false);assert.equal(e.isEquipped('shields'),false);busy=false;assert.ok(action.run());inventory.swords=0;assert.equal(e.isEquipped('swords'),false);e.reset();assert.ok(Object.values(e.state).every(value=>value===false));
+ const inventory={swords:1,crudeShield:1};let busy=false;const e=createEquipment({inventory,busy:()=>busy});
+ assert.ok(e.toggle('swords'));assert.ok(e.isEquipped('swords'));const action=e.inventoryActions('crudeShield')[0];busy=true;assert.equal(action.run(),false);assert.equal(e.isEquipped('crudeShield'),false);busy=false;assert.ok(action.run());inventory.swords=0;assert.equal(e.isEquipped('swords'),false);e.reset();assert.ok(Object.values(e.state).every(value=>value===false));
 });
 test('unarmed and equipped fights win once, award per-attack XP, retain equipment, and reset for repeated combat',()=>{
  const f=fixture('scrapper');assert.ok(f.system.start(f.a));assert.equal(f.system.start(f.a),false);for(let i=0;i<30;i++)f.system.update(1.5,i);assert.equal(f.wins,1);assert.equal(f.a.opened,true);assert.equal(f.home.blocked,false);
  // Unarmed Technical: strategy XP to Melee Technique and the same amount to Unarmed proficiency, 50 + 1 × HP removed per attack.
  const technique=f.character.tracks['melee.technique'].xp;assert.equal(technique,f.character.tracks['prof.unarmed'].xp);assert.equal(technique,8*XP_BASE+ENEMIES.scrapper.health);assert.ok(f.character.core.xp>0);
- f.system.reset();f.equipment.toggle('swords');f.equipment.toggle('shields');assert.ok(f.system.start(f.a));for(let i=0;i<15;i++)f.system.update(1.5,i);assert.equal(f.wins,2);assert.ok(f.character.tracks['prof.sword'].xp>0);assert.equal(f.inventory.swords,1);assert.equal(f.equipment.isEquipped('swords'),true);
+ f.system.reset();f.equipment.toggle('swords');f.equipment.toggle('crudeShield');assert.ok(f.system.start(f.a));for(let i=0;i<15;i++)f.system.update(1.5,i);assert.equal(f.wins,2);assert.ok(f.character.tracks['prof.sword'].xp>0);assert.equal(f.inventory.swords,1);assert.equal(f.equipment.isEquipped('swords'),true);
 });
 test('enemy misses, shield mitigation, shield XP and protected training health use shared rules',()=>{
  const f=fixture();f.roll=.005;f.system.start(f.a);f.system.update(PLAYER_INTERVAL,2.5);assert.ok(f.a.hp<ENEMIES.bruiser.health);f.system.update(2.5,5);assert.equal(f.health.value,30,'1% enemy miss');f.system.cancel();
- f.roll=.5;f.equipment.toggle('shields');f.system.start(f.a);f.system.update(2.5,7.5);f.system.update(2.5,10);
+ f.roll=.5;f.equipment.toggle('crudeShield');f.system.start(f.a);f.system.update(2.5,7.5);f.system.update(2.5,10);
  // Wooden Shield +30 and starting Defense/Toughness/Shield proficiency: 3.11% of a 12 roll still rounds to 12.
  assert.equal(f.health.value,30-BRUISER_HIT);assert.equal(f.character.tracks['prof.shield'].xp,XP_BASE+BRUISER_HIT);
  const training=fixture('scrapper');training.health.value=1;training.system.start(training.a);training.system.update(2.5,3);training.system.update(2.5,5.5);assert.equal(training.health.value,1);assert.equal(training.system.busy,false);
@@ -57,7 +57,7 @@ test('movement starts pursuit, reengagement preserves damage, leash returns safe
  f.system.disengage();f.system.setAutoRetaliate(false);f.a.leash=5;f.tile=f.world.get('0,0');f.reserved.add(f.home);f.system.update(.1,8);assert.equal(f.system.state.chase,null);assert.equal(f.a.returning,true);assert.equal(f.a.occupying,true);assert.equal(f.a.group.visible,true);f.reserved.clear();f.system.update(.1,6);assert.equal(f.a.returning,false);assert.equal(f.a.hp,ENEMIES.bruiser.health);
 });
 test('defeat waits for a safe respawn, preserves items and equipment, and can repeat',()=>{
- const f=fixture();f.equipment.toggle('shields');f.health.value=1;f.system.start(f.a);f.system.update(2.5,2.5);f.system.update(2.5,5);assert.equal(f.system.busy,true);f.respawnAllowed=false;f.system.update(5,7);assert.equal(f.respawns,0);assert.equal(f.health.value,0);f.respawnAllowed=true;f.system.update(.1,8);assert.equal(f.respawns,1);assert.equal(f.health.value,30);assert.equal(f.equipment.isEquipped('shields'),true);assert.equal(f.inventory.swords,1);f.system.lose();f.system.update(5,13);assert.equal(f.respawns,2);
+ const f=fixture();f.equipment.toggle('crudeShield');f.health.value=1;f.system.start(f.a);f.system.update(2.5,2.5);f.system.update(2.5,5);assert.equal(f.system.busy,true);f.respawnAllowed=false;f.system.update(5,7);assert.equal(f.respawns,0);assert.equal(f.health.value,0);f.respawnAllowed=true;f.system.update(.1,8);assert.equal(f.respawns,1);assert.equal(f.health.value,30);assert.equal(f.equipment.isEquipped('crudeShield'),true);assert.equal(f.inventory.swords,1);f.system.lose();f.system.update(5,13);assert.equal(f.respawns,2);
 });
 test('map identity, cancellation, removal and reset cannot duplicate rewards or leave occupancy',()=>{
  const f=fixture('bruiser',{openingWindup:null});f.system.start(f.a);f.system.update(.5,1);f.world.set('3,3',{...f.home,blocked:false});f.system.update(10,11);assert.equal(f.system.working,false);assert.equal(f.rewards,0);assert.equal(f.a.group.visible,false);f.world.set('3,3',f.home);f.system.update(.1,12);assert.ok(f.system.start(f.a));f.system.remove(f.a);f.system.update(10,22);assert.equal(f.rewards,0);assert.equal(f.home.blocked,false);assert.equal(f.system.start(f.a),false);
@@ -113,12 +113,12 @@ test('enemy cannot hit from a logically adjacent tile before its body arrives',(
  const f=fixture();f.tile=f.world.get('3,5');f.a.rules={...f.a.rules,interval:.1};f.a.aggro=true;f.system.start(f.a);f.system.update(.02,0);assert.equal(f.a.z,4);assert.equal(f.health.value,30);assert.ok(f.a.group.position.z<4-6);frames(f,.2);assert.equal(f.health.value,30);
 });
 test('a hit taken while casting keeps the cast animation, never a block',()=>{
- const f=fixture('bruiser',{openingWindup:null});f.styles.learn('energyStrike');f.styles.select('energyStrike');f.equipment.toggle('shields');
+ const f=fixture('bruiser',{openingWindup:null});f.styles.learn('energyStrike');f.styles.select('energyStrike');f.equipment.toggle('crudeShield');
  f.a.rules={...f.a.rules,interval:.6};f.a.aggressive=true;f.system.start(f.a);
  const hit=f.system.update(.6,.6);assert.equal(hit.kind,'Casting','the enemy hit lands mid-cast');
 });
 test('incoming hits select equipment-aware blocking, but simultaneous player attacks win',()=>{
- const f=fixture('bruiser',{openingWindup:null});f.equipment.toggle('swords');f.equipment.toggle('shields');f.a.rules={...f.a.rules,interval:.6};f.a.aggressive=true;f.system.start(f.a);const block=f.system.update(.6,.6);assert.equal(block.kind,'Block');assert.equal(block.profile.rightHand,'swords');assert.equal(block.profile.leftHand,'shields');
+ const f=fixture('bruiser',{openingWindup:null});f.equipment.toggle('swords');f.equipment.toggle('crudeShield');f.a.rules={...f.a.rules,interval:.6};f.a.aggressive=true;f.system.start(f.a);const block=f.system.update(.6,.6);assert.equal(block.kind,'Block');assert.equal(block.profile.rightHand,'swords');assert.equal(block.profile.leftHand,'crudeShield');
  f.system.reset();f.a.rules={...f.a.rules,interval:2.5};f.system.start(f.a);const simultaneous=f.system.update(2.5,2.5);assert.equal(simultaneous.kind,'Combat');assert.equal(simultaneous.profile.item,'swords');assert.ok(f.health.value<30);
  f.system.clear();assert.equal(f.system.update(.02,2),null);
 });

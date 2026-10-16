@@ -1,3 +1,5 @@
+import {TREES,WOODS} from './lumberjack.js';
+
 export const ITEMS={
  gold:{name:'Gold Pieces',description:'The coin of Quadria. Earn it by selling what you gather and make; spend it at shops.'},
  copperOre:{name:'Copper Ore',description:'Orange-veined ore. Smelt it into a Copper Ingot at a furnace.'},
@@ -7,7 +9,7 @@ export const ITEMS={
  bows:{name:'Training Bow',description:'Two hands · +10 ranged Power and Accuracy · range 6 tiles. Uses one Training Arrow per shot, including misses.'},
  arrows:{name:'Training Arrows',description:'Ammunition for the Training Bow. Fletch offers more when you run out.'},
  swords:{name:'Stone Sword',description:'A sturdy stone blade. One hand · +6 melee Power and Accuracy · trains Sword proficiency.'},
- shields:{name:'Wooden Shield',description:'One hand · +30 resistance (3% less damage) · trains Shield proficiency when hit or blocking.'},
+ crudeShield:{name:'Crude Shield',description:'Sticks lashed around a rock boss. One hand · +30 resistance (3% less damage) · trains Shield proficiency when hit or blocking.'},
  hammers:{name:'Crude Hammer',description:'A reusable tool for carpentry and bridge repairs.'},
  rods:{name:'Crude Fishing Rod',description:'Keep this reusable rod in your inventory to fish.'},
  flint:{name:'Flint',description:'A sharp fragment found near water. Useful for starting fires.'},
@@ -19,8 +21,9 @@ export const ITEMS={
  stones:{name:'Rocks',icon:'◆',description:'A handful of moderately sized rocks. Useful for crafting simple tools.'},
  pickaxes:{name:'Crude Pickaxe',icon:'⛏',description:'A simple pickaxe for mining boulders. Keep it in your inventory to use it.'},
  stone:{name:'Stone',icon:'⬟',description:'A larger piece of mined stone, useful for making stone equipment.'},
- axes:{name:'Crude Axe',icon:'⚒',description:'A simple axe for chopping trees. Keep it in your inventory to use it.'},
- logs:{name:'Small Logs',icon:'▰',description:'Freshly chopped wood. A useful crafting material.'},
+ crudeAxe:{name:'Crude Axe',icon:'⚒',description:'A simple axe for chopping trees. Keep it in your inventory to use it.'},
+ // Wood pieces, one per tree tier (lumberjack.js).
+ ...Object.fromEntries(Object.values(TREES).map(t=>[t.wood,{name:t.woodName,icon:'▰',description:t.description}])),
  hats:{name:'Top Hat',icon:'🎩',description:'A rather fancy reward for a hard-working adventurer. Equip it here to wear it.'},
  staffs:{name:'Simple Staff',description:'A wooden staff topped with a glowing crystal. Spell focus: +6 magic Power and Accuracy to your spells while held. One hand · +5 melee Power and Accuracy · bludgeoning swing · trains Staff proficiency.'},
  ironSkullcap:{name:'Iron Skullcap',description:"Sergeant Bristle's brimless iron cap, with a raised ridge and cheek guards. Equip it to wear it."},
@@ -33,7 +36,13 @@ export const ITEMS={
  companionHats:{name:'Companion Top Hat',description:'A tiny, very dapper top hat with a flower on the band. Put it on your companion here.'}
 };
 
-export function itemStack(id,quantity){return `${ITEMS[id]?.name||id} ×${quantity}`;}
+// Ingredient groups: a recipe may ask for any member (recipes.js spends the lowest tier first).
+export const ITEM_GROUPS={anyWood:{name:'Wood Pieces',hint:'Any kind; the lowest tier is used first',items:WOODS}};
+export function itemName(id){return ITEMS[id]?.name??ITEM_GROUPS[id]?.name??id;}
+// How many of an item, or of all of a group's members, the inventory holds.
+export function countOf(inventory,id){const group=ITEM_GROUPS[id];return group?group.items.reduce((n,item)=>n+(inventory[item]||0),0):inventory[id]||0;}
+
+export function itemStack(id,quantity){return `${itemName(id)} ×${quantity}`;}
 
 // What items are worth (docs/ECONOMY.md): `value` is the price at a shop that stocks it; selling pays a
 // share of it (economy.js). `category` decides which shops buy it. Gold is the currency, not an item
@@ -42,11 +51,12 @@ export function itemStack(id,quantity){return `${ITEMS[id]?.name||id} ×${quanti
 // (economy.test.js checks every item and recipe).
 const WORTH={
  gold:[0,'currency'],copperOre:[10,'metal'],copperIngots:[24,'metal'],copperDagger:[40,'weapon'],copperShield:[80,'armour'],
- bows:[30,'weapon'],arrows:[2,'ammo'],swords:[20,'weapon'],shields:[20,'armour'],hammers:[9,'tool'],rods:[9,'tool'],
+ bows:[30,'weapon'],arrows:[2,'ammo'],swords:[20,'weapon'],crudeShield:[12,'armour'],hammers:[9,'tool'],rods:[9,'tool'],
  flint:[4,'stone'],firestarters:[15,'tool'],campfires:[15,'tool'],rawFish:[8,'fish'],cookedFish:[15,'food'],
- sticks:[2,'wood'],stones:[2,'stone'],pickaxes:[9,'tool'],stone:[6,'stone'],axes:[9,'tool'],logs:[6,'wood'],
+ sticks:[2,'wood'],stones:[2,'stone'],pickaxes:[9,'tool'],stone:[6,'stone'],crudeAxe:[9,'tool'],
  hats:[60,'hat'],staffs:[45,'weapon'],ironSkullcap:[50,'hat'],minersCap:[40,'hat'],archerCap:[40,'hat'],wizardHat:[50,'hat'],
  breathHeadband:[40,'hat'],fishersHat:[40,'hat'],companionHats:[40,'hat'],package:[0,'quest'],
 };
+for(const t of Object.values(TREES))WORTH[t.wood]=[t.value,'wood'];
 for(const [id,[value,category]] of Object.entries(WORTH))Object.assign(ITEMS[id],{value,category});
 ITEMS.gold.sellable=false;ITEMS.package.sellable=false;

@@ -139,6 +139,8 @@
 .q-recipe-part .q-ingredients li { padding-block: 4px; border-block-start: 0; }
 .q-recipe-part__item { display: inline-flex; align-items: center; gap: 8px; min-inline-size: 0; }
 .q-recipe-part__item svg { flex: none; inline-size: 18px; block-size: 18px; }
+/* An ingredient group's note ("any kind") under its name. */
+.q-recipe-part__hint { display: block; color: var(--q-ink-muted); font-size: 12px; }
 /* The Station row's badge: a check at the right station, a cross elsewhere. */
 .q-recipe-part strong svg { display: block; inline-size: 14px; block-size: 14px; stroke-width: 2.4; }
 

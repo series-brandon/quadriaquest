@@ -26,3 +26,11 @@ export function miningMotion(time){
  // Stack both grips on the centered shaft throughout the vertical swing.
  return {right:[0,y,z,curl,0,0],left:[0,y+Math.cos(curl)*MINING_GRIP_SPACING,z+Math.sin(curl)*MINING_GRIP_SPACING,curl,0,0],body:{squash:1-.07*strike,stretch:1,lean:.09-.14*swing,twist:0},impact:strike*.018};
 }
+// What a mined-out boulder or copper rock leaves until it regrows (resource-entities.js): a few low,
+// broken stones in the rock's own colours.
+export function makeRubble(kind='boulder'){
+ const [main,side]=kind==='copper'?['#62616d','#55545f']:['#84939e','#9aa8ae'],group=new THREE.Group();group.name='rubble-'+kind;
+ group.add(cachedMergedMesh('rubble:'+kind,()=>[[-.18,.1,.12,.2,main],[.17,.09,-.1,.17,side],[.03,.07,-.24,.13,side],[.22,.06,.2,.11,main],[-.05,.12,-.02,.14,main]]
+  .map(([x,y,z,r,color])=>({geometry:new THREE.IcosahedronGeometry(r,0),color,position:[x,y,z],rotation:[x*3,z*4,.3],scale:[1,.65,1]})),{roughness:.95,flatShading:true}));
+ return group;
+}

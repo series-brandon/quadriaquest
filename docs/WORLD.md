@@ -104,11 +104,11 @@ The user asked for walls like the castle keep's: very tall, with large towers at
 
 ## Green spaces (user request, 2026-10-11: "more flowers, ponds, different types of trees")
 
-- **Tree species** (`tree-models.js`): oak (the original), birch, pine, willow, cherry and maple. All are the same choppable tree: logs, the falling animation, depletion and regrowth. A species only changes the look, the outline height and the label ("Chop willow"). The species is chosen by place (`countryside.js`):
+- **Tree species** (`tree-models.js`): one per Lumberjack tier (`lumberjack.js`; [DESIGN.md](DESIGN.md#skill-tiers-and-pacing)): poplar, asla, pine, oak, willow, maple, walnut, ironwood, mungil and cherry. All share the chop action, falling animation, depletion and regrowth; a species sets the level needed, the wood it yields, its effort, its look, the outline height and the label ("Chop Willow Tree"). Generated land picks the species by place (`countryside.js`); hand placement sets the real mix:
   - pines on the hills;
   - willows within 2 tiles of water;
   - cherry blossoms in groves in the meadows;
-  - elsewhere the local wood drifts between birch, oak and maple.
+  - elsewhere the local wood drifts between poplar, oak and maple.
 
   Gelton's park has a cherry and a willow (map `resources[].species`).
 - **Ponds:** small ponds dotted about the meadows and woods (one chance per 36-tile cell, away from the wall, roads and big water). They come with low shores, fishing spots and lily pads.
@@ -130,7 +130,7 @@ The user asked for walls like the castle keep's: very tall, with large towers at
   - *blossom garden*: cherries, pink and white flowers;
   - *willow green*: willows, purple and blue flowers, reeds and ferns;
   - *autumn grove*: maples, red and yellow flowers, mushrooms;
-  - *birch copse*: birches, white and yellow flowers, ferns;
+  - *poplar copse*: poplars, white and yellow flowers, ferns;
   - *meadow*: oaks, mixed flowers.
 
   Each separate patch of grass in a city is one biome. The big joined-up grass is split into organic cells about 14 tiles across, each its own theme: 80 mini biomes in Gelton (map `greens: {seed}`). The trees are shared choppable resources in their chunk. They stand only where every neighbour is grass and no other tree is within 2 tiles, and never by a doorstep or a townsfolk home, so no route closes (tested). The ground cover uses the same instanced pool as the countryside, and streams with the city's chunks (`chunkedCover`, driven by `city.onStream`). Each chunk's flowers are in the pool only while that chunk is shown. Before this fix they were all added at once, and drew in the void beyond the shown chunks (user report, 2026-10-12).
@@ -152,7 +152,7 @@ The user asked for walls like the castle keep's: very tall, with large towers at
 
 - Walking out of the west gateway onto the road, past woods.
 - At the lake shore: fishing from the bank (+1 Raw Pondfish).
-- In the hills: copper outcrops, boulders and three goblins (one passive, two aggressive); mining copper (+1 ore, 20 XP).
+- In the hills: copper outcrops, boulders and three goblins (one passive, two aggressive); mining copper (+1 ore, Mining XP).
 - The bridge on the east road.
 - Unit tests:
   - The land is the same every time.

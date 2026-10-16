@@ -6,8 +6,8 @@ test('automatic preview chooses gameplay motions; explicit overrides never swap 
  for(const [loadout,attack] of [[{},'punch'],[{rightHand:'swords'},'slash'],[{rightHand:'copperDagger'},'stab'],[{leftHand:'bows'},'bow']]){const {profile}=previewCombat('Attack',loadout);assert.equal(resolveAttackMotion(profile),attack);}
  const settings={rightHand:'copperDagger',leftHand:'copperShield',attackMotion:'slash',blockMotion:'fists'};
  const {profile}=previewCombat('Attack',settings);assert.equal(resolveAttackMotion(profile),'slash');assert.equal(resolveBlockMotion(profile),'fists');assert.equal(profile.rightHand,'copperDagger');assert.equal(profile.leftHand,'copperShield');
- const magic=previewCombat('Attack',{rightHand:'swords',leftHand:'shields',style:'magic'});assert.equal(magic.kind,'Casting');assert.equal(magic.profile.rightHand,'swords');assert.equal(magic.profile.item,null);assert.equal(resolveBlockMotion(magic.profile),'shield');
- assert.deepEqual(previewLoadout({rightHand:'bows',leftHand:'shields'}),{rightHand:'bows',leftHand:null},'a two-handed item frees the other hand');
+ const magic=previewCombat('Attack',{rightHand:'swords',leftHand:'crudeShield',style:'magic'});assert.equal(magic.kind,'Casting');assert.equal(magic.profile.rightHand,'swords');assert.equal(magic.profile.item,null);assert.equal(resolveBlockMotion(magic.profile),'shield');
+ assert.deepEqual(previewLoadout({rightHand:'bows',leftHand:'crudeShield'}),{rightHand:'bows',leftHand:null},'a two-handed item frees the other hand');
  assert.deepEqual(previewLoadout({rightHand:'copperShield',leftHand:'bows'}),{rightHand:null,leftHand:'bows'});
 });
 

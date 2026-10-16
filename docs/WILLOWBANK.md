@@ -25,9 +25,9 @@ Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. 
 
 ## Rules and materials
 
-- Health starts at 30. Carpentry, Fishing, and Culinary use 120 XP per level; skill levels reduce activity duration.
+- Health starts at 30. Carpentry, Fishing, and Culinary share every skill's XP curve and effort-based XP ([DESIGN.md](DESIGN.md#skill-tiers-and-pacing)); levels above an action's requirement shorten it, capped at +60% speed.
 - All required materials can be replenished locally through respawning ground bundles, trees, boulders, and Flint. Axes and pickaxes remain craftable. These are shared resource prefabs/actions: trees and boulders use a 3–6 second base duration (reduced by skill level), yield 1–3 materials and 20 XP, and respawn after eight seconds when their tile is free. Ground bundles remain walkable.
-- Repair requires a Crude Hammer in inventory and consumes Small Logs ×3 on completion; six seconds with three construction stages and 40 Carpentry XP.
+- Repair requires a Crude Hammer in inventory and consumes any Wood Pieces ×3 on completion (lowest tier first; Willowbank's trees are Poplars); six seconds with three construction stages and 21 Carpentry XP.
 - Fishing waits four seconds (skill-adjusted), then plays a hook pull followed by the shared acquire celebration before returning to idle. Each bite commits one Raw Pondfish and 20 Fishing XP exactly once; click the spot again for another. Movement can interrupt the wait for no reward, or skip the flourish after the catch while retaining its fish and XP. The lesson requires one Raw Pondfish.
 - Cooking is guaranteed, takes three seconds per fish, and grants 20 Culinary XP.
 - Campfires use clear buildable tiles, explicit placement confirmation, and can be packed up. Flint and Stone is reusable; no fuel/bait system yet.
@@ -42,7 +42,7 @@ Eating Cooked Pondfish restores 10 health, visibly healing the tutorial injury. 
 | Crude Hammer | Sticks ×1, Rocks ×1 | — | 2 |
 | Crude Fishing Rod | Sticks ×2 | — | 2 |
 | Flint and Stone | Flint ×1, Stone ×1 | — | 2 |
-| Campfire | Small Logs ×2 | Flint and Stone | 3 |
+| Campfire | Wood Pieces ×2 (any kind) | Flint and Stone | 3 |
 | Cooked Pondfish | Raw Pondfish ×1 | Placed Campfire | 3 |
 
 Crafting awards 20 Crafting XP; cooking awards Culinary XP instead.

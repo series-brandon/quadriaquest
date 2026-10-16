@@ -1,6 +1,8 @@
 import {RECIPES,missingFor} from './recipes.js';
 import {RESOURCE_RULES} from './resource-actions.js';
-import {ITEMS} from './items.js';
+import {ITEM_GROUPS,countOf,itemName} from './items.js';
+import {TREES} from './lumberjack.js';
+import {baseTool,ownsTool} from './tool-tiers.js';
 
 // What a player should do next to obtain items, from the shared recipes and resource rules, so
 // guidance in any area teaches the real path: gather ground items, chop or mine with the right
@@ -10,9 +12,13 @@ import {ITEMS} from './items.js';
 //          {step:'harvest', kind, item, have, count, for}    chop/mine a node with its tool in hand
 //          {step:'craft', item, for}                         everything is in hand; craft it
 //   `for` is the item the step works toward (null for a goal's own need).
-const SOURCES=Object.fromEntries(Object.entries(RESOURCE_RULES).map(([kind,rule])=>[rule.item,{kind,...rule}]));
+// A tree yields its tier's wood (lumberjack.js); a group (any wood) is planned as its lowest tier.
+const SOURCES={...Object.fromEntries(Object.entries(RESOURCE_RULES).filter(([,rule])=>rule.item).map(([kind,rule])=>[rule.item,{kind,...rule}])),
+ ...Object.fromEntries(Object.values(TREES).map(t=>[t.wood,{kind:'tree',...RESOURCE_RULES.tree,item:t.wood}]))};
 
 function plan(inventory,item,count,parent,seen){
+ const group=ITEM_GROUPS[item];
+ if(group){const have=countOf(inventory,item),first=group.items[0];if(have>=count)return null;const step=plan(inventory,first,count-have+(inventory[first]||0),parent,seen);if(!step)return null;if(step.item===first&&'have' in step)return {...step,item,have,count};return step.for===first?{...step,for:item}:step;}
  const have=inventory[item]||0;
  if(have>=count||seen.has(item))return null;
  const recipe=RECIPES[item];
@@ -27,7 +33,7 @@ function plan(inventory,item,count,parent,seen){
  }
  const source=SOURCES[item];
  if(!source)return null;
- if(source.tool&&!(inventory[source.tool]>0))return plan(inventory,source.tool,1,item,new Set([...seen,item]));
+ if(source.tool&&!ownsTool(source.tool,inventory))return plan(inventory,baseTool(source.tool),1,item,new Set([...seen,item]));
  return source.tool?{step:'harvest',kind:source.kind,item,have,count,for:parent}:{step:'gather',kinds:[source.kind],items:[item],have,count,for:parent};
 }
 export function nextStep(inventory,needs){
@@ -40,7 +46,7 @@ export function stepKey(step){if(!step)return 'null';const {have,...rest}=step;r
 
 // Plain-language tips for a step. `purpose` finishes a sentence about the goal's own needs
 // ("to repair the bridge"); `shown` says the targets are highlighted.
-const name=id=>ITEMS[id]?.name??id;
+const name=itemName;
 const list=ids=>ids.map(name).join(' and ');
 const article=text=>(/^[aeiou]/i.test(text)?'an ':'a ')+text;
 const HARVEST={tree:['Chop some wood','Chop','trees'],boulder:['Mine some stone','Mine','boulders'],copper:['Mine some ore','Mine','copper rocks']};

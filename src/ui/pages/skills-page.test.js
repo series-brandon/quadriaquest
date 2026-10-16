@@ -4,7 +4,7 @@ import {installDom} from '../test-dom.js';
 import {signal} from '../../reactive.js';
 import {mount} from '../dom.js';
 import {skillsPage} from './skills-page.js';
-import {createGatheringSkill, addSkillXp} from '../../skills.js';
+import {createSkill, addSkillXp} from '../../skills.js';
 import {createCharacter} from '../../character.js';
 
 installDom();
@@ -12,9 +12,9 @@ installDom();
 
 function setup() {
   const character = createCharacter();
-  const gathering = createGatheringSkill(), mining = createGatheringSkill();
+  const gathering = createSkill(), mining = createSkill();
   const extra = signal(false);
-  const skills = () => ({Gathering: gathering, Mining: mining, ...(extra.value ? {Fishing: createGatheringSkill()} : {})});
+  const skills = () => ({Gathering: gathering, Mining: mining, ...(extra.value ? {Fishing: createSkill()} : {})});
   const guidance = signal({}), toggles = [];
   const {node} = mount(() => skillsPage({skills, track: () => character.revision.value, guidance, onToggle: (name, open) => toggles.push([name, open])}));
   const row = name => node.querySelector(`[data-skill="${name}"]`);
@@ -25,12 +25,13 @@ test('skill rows follow their reactive records and keep their nodes', () => {
   const s = setup();
   const row = s.row('Gathering');
   assert.match(row.querySelector('.q-skill__level').textContent, /Lv 1/);
-  addSkillXp(s.gathering, 130, 'Gathering');
+  // Every skill shares the adopted curve: level 2 at about 562 XP, level 3 at about 852.
+  addSkillXp(s.gathering, 707, 'Gathering');
   assert.equal(row.querySelector('.q-skill__level').textContent, 'Lv 2');
-  assert.match(row.textContent, /130 total XP/);
-  assert.match(row.textContent, /10 \/ 120 XP toward Level 3/);
+  assert.match(row.textContent, /707 total XP/);
+  assert.match(row.textContent, /145 \/ 290 XP toward Level 3/);
   const bar = row.querySelector('[role=progressbar]');
-  assert.equal(bar.getAttribute('aria-valuenow'), '8');
+  assert.equal(bar.getAttribute('aria-valuenow'), '50');
   assert.equal(bar.getAttribute('aria-label'), 'Gathering progress toward level 3');
   Object.assign(s.gathering, {xp: 0, level: 1});
   assert.equal(row.querySelector('.q-skill__level').textContent, 'Lv 1', 'resets show too');

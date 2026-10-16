@@ -1,13 +1,14 @@
 import {commitFishingCatch} from './fishing-action.js';
 import {CAST_DURATION,CATCH_DURATION,catchSequence} from './catch-motion.js';
-import {createGatheringSkill,awardSkillXp} from './skills.js';
+import {createSkill,addSkillXp} from './skills.js';
+import {actionXp} from './skill-pacing.js';
 import {durationFor} from './recipes.js';
 
-export const PONDFISH={tool:'rods',item:'rawFish',quantity:1,wait:4};
+export const PONDFISH={tool:'rods',item:'rawFish',quantity:1,wait:4,level:1};
 
 // One app-owned action and skill. Spots supply availability, loot, and narrative observers.
 export function createFishingSystem(api){
- const skill=createGatheringSkill();let action=null;
+ const skill=createSkill();let action=null;
  function cancel(){if(!action)return;action=null;api.cancelled?.();}
  function start(spot){
   if(action?.target===spot)return false;
@@ -15,11 +16,11 @@ export function createFishingSystem(api){
   const loot=spot.loot||PONDFISH;
   if(!(api.inventory[loot.tool]>0)){api.toast?.('Missing the required tool!');return false;}
   api.stop();api.face(spot.x,spot.z);
-  const catchAt=CAST_DURATION+durationFor(loot.wait,skill.level);
+  const catchAt=CAST_DURATION+durationFor(loot.wait,skill.level,loot.level);
   action={kind:'Fishing',target:spot,age:0,catchAt,duration:catchAt+CATCH_DURATION,onCatch(){
    const changes={[loot.item]:loot.quantity};
    api.inventory[loot.item]=(api.inventory[loot.item]||0)+loot.quantity;
-   const reward=awardSkillXp(skill,'Fishing');api.caught?.(changes,reward,spot);spot.onCatch?.();
+   const reward=addSkillXp(skill,actionXp(CAST_DURATION+loot.wait+CATCH_DURATION,loot.level),'Fishing');api.caught?.(changes,reward,spot);spot.onCatch?.();
   }};
   api.started?.(spot);spot.onStart?.();return true;
  }

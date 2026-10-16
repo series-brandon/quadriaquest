@@ -1,7 +1,5 @@
 /* Inventory page (ui/pages/inventory-page.js): item stacks and the chosen item's detail. */
 .q-inventory__search { inline-size: 100%; }
-.q-inventory__gold { display: flex; align-items: center; gap: 6px; margin: 0; font: 700 14px / 1.2 var(--q-font-numeric); color: var(--q-ink); }
-.q-inventory__gold svg { inline-size: 20px; block-size: 20px; }
 
 /* The detail sits beside the stacks when there is room, below them otherwise. */
 .q-inventory__body { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }

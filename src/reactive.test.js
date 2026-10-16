@@ -6,12 +6,12 @@ test('reactive records behave like plain objects', () => {
   const inventory = reactiveRecord({sticks: 2});
   inventory.sticks--;
   inventory.stones = (inventory.stones || 0) + 3;
-  Object.assign(inventory, {axes: 1});
+  Object.assign(inventory, {crudeAxe: 1});
   assert.equal(inventory.sticks, 1);
-  assert.deepEqual(Object.entries(inventory), [['sticks', 1], ['stones', 3], ['axes', 1]]);
-  assert.equal(JSON.stringify(inventory), '{"sticks":1,"stones":3,"axes":1}');
+  assert.deepEqual(Object.entries(inventory), [['sticks', 1], ['stones', 3], ['crudeAxe', 1]]);
+  assert.equal(JSON.stringify(inventory), '{"sticks":1,"stones":3,"crudeAxe":1}');
   assert.equal('stones' in inventory, true);
-  delete inventory.axes;
+  delete inventory.crudeAxe;
   assert.deepEqual(Object.keys(inventory), ['sticks', 'stones']);
 });
 

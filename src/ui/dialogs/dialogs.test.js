@@ -178,7 +178,7 @@ test('shop dialog buys and sells through the shop system and follows gold, stock
   const {shopDialog} = await import('./shop-dialog.js');
   const {createShops} = await import('../../shops.js');
   const {createWallet, sellPrice} = await import('../../economy.js');
-  const inventory = reactiveRecord({gold: 100, logs: 3, axes: 1, copperDagger: 1});
+  const inventory = reactiveRecord({gold: 100, poplarWood: 3, crudeAxe: 1, copperDagger: 1});
   const wallet = createWallet({inventory}), shops = createShops({inventory, wallet, equipped: id => (id === 'copperDagger' ? 1 : 0)});
   const host = createModalHost(), traded = [], asked = [];
   host.open({id: 'shop', title: 'Smithy', size: 'wide', flush: true,
@@ -202,17 +202,17 @@ test('shop dialog buys and sells through the shop system and follows gold, stock
   press(node.querySelector('[data-item=copperShield]'));
   assert.equal(action().disabled, true);
   assert.equal(node.querySelector('.q-shop__item [role=status]').textContent, 'Not enough gold');
-  // Sell: the smithy won't buy logs; the worn dagger is refused; the last axe asks first.
+  // Sell: the smithy won't buy wood; the worn dagger is refused; the last axe asks first.
   press(button(node, 'Sell'));
-  assert.deepEqual(goods(), ['copperOre', 'copperDagger', 'axes', 'logs']);
-  assert.ok(node.querySelector('[data-item=logs]').hasAttribute('data-blocked'));
+  assert.deepEqual(goods(), ['copperOre', 'copperDagger', 'crudeAxe', 'poplarWood']);
+  assert.ok(node.querySelector('[data-item=poplarWood]').hasAttribute('data-blocked'));
   assert.ok(node.querySelector('[data-item=copperDagger]').hasAttribute('data-blocked'));
-  press(node.querySelector('[data-item=axes]'));
+  press(node.querySelector('[data-item=crudeAxe]'));
   press(action());
   assert.equal(asked.length, 1); assert.match(asked[0].message, /only Crude Axe/);
-  assert.equal(inventory.axes, 1, 'nothing sold until confirmed');
+  assert.equal(inventory.crudeAxe, 1, 'nothing sold until confirmed');
   asked[0].onConfirm();
-  assert.equal(inventory.axes, 0); assert.equal(wallet.gold, 70 + sellPrice('axes'));
+  assert.equal(inventory.crudeAxe, 0); assert.equal(wallet.gold, 70 + sellPrice('crudeAxe'));
   host.closeAll();
 });
 

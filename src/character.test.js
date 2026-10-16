@@ -62,12 +62,12 @@ test('resource maxima keep current amounts; regeneration scales and pauses Stami
 });
 
 test('non-combat skill XP (gathering, mining, fishing, carpentry…) feeds the same core conversion and remainder',async()=>{
- const {onSkillXp,awardSkillXp,addSkillXp,createGatheringSkill}=await import('./skills.js');
+ const {onSkillXp,addSkillXp,createSkill}=await import('./skills.js');
  const c=createCharacter();onSkillXp(amount=>c.convertProgression(amount));
  try{
-  const gathering=createGatheringSkill(),reward=awardSkillXp(gathering,'Gathering');
+  const gathering=createSkill(),reward=addSkillXp(gathering,20,'Gathering');
   assert.equal(reward.xp,20);assert.equal(reward.core.xp,4);assert.equal(c.core.xp,4,'20 skill XP → 4 core XP');
-  addSkillXp(createGatheringSkill(),7,'Carpentry');assert.equal(c.core.xp,5);assert.equal(c.core.remainder,2);
+  addSkillXp(createSkill(),7,'Carpentry');assert.equal(c.core.xp,5);assert.equal(c.core.remainder,2);
   // The remainder is shared with combat awards: 2 carried + 3 combat XP converts to one more core XP.
   c.award([{track:'melee.technique',amount:3}]);assert.equal(c.core.xp,6);assert.equal(c.core.remainder,0);
  }finally{onSkillXp(null);}

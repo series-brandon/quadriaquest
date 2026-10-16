@@ -25,7 +25,7 @@ As with every system (AGENTS.md), the economy is shared gameplay. Prices, buying
 ## Gold Pieces
 
 - **An inventory item** (user, 2026-10-10): `gold` in `ITEMS`, named **Gold Pieces**, kept as one stack in the inventory like RuneScape coins. Shops, jobs and drops add to and take from that stack. All changes go through two shared helpers, `earnGold(n, source)` and `spendGold(n, reason)`. `spendGold` refuses anything that would go below 0 and returns false. Both report an event that quests, jobs and notices can watch.
-- Gold can't be sold, crafted with or eaten. It sorts first in the inventory. Its count also shows in the Inventory header so it's easy to find.
+- Gold can't be sold or eaten. It sorts first in the inventory. It is an item like any other: the Inventory has no separate gold total (removed 2026-10-16), and Gold Pieces will double as a crafting ingredient ([DESIGN.md](DESIGN.md#skill-tiers-and-pacing)).
 - A pickup or earning shows the usual item notice ("+25 Gold Pieces"). The shop shows the new total.
 - The stack's icon changes with the amount (a few coins, a pile, a bag), like RuneScape coins. Short form in tight spaces: "250 GP".
 
@@ -69,7 +69,7 @@ Jobs are **repeatable paid tasks**, separate from story quests. They appear on t
 | Kind | Example | Done when |
 | --- | --- | --- |
 | `deliver` | "Take this package to the baker." | Talking to the recipient while holding the package item (`sellable: false`). The giver hands it over when you accept. |
-| `bring` | "Bring me 10 Small Logs." | Handing in the items. They're taken when you hand them in, not when you accept. |
+| `bring` | "Bring me 10 Poplar Wood Pieces." | Handing in the items. They're taken when you hand them in, not when you accept. |
 | `craft` | "Make 3 Cooked Pondfish for the inn." | Handing in the crafted items. Items crafted earlier count too. |
 | `gather` | "Catch 5 Pondfish." | Counted from shared completion events after accepting, then a handoff to the giver. |
 
@@ -108,6 +108,7 @@ User decision (2026-10-11): this phase builds gold, values and shops, hooked up 
 
 - **Gold** (`economy.js`): `gold` is the first item in `ITEMS` (Gold Pieces, `sellable: false`), so it sorts first. `createWallet({inventory})` has `earn`, `spend` (refuses to go below zero), `set` and `gold`; each change is reported through `last` (a signal) and `onChange` listeners for future notices, quests and jobs. `formatGold` gives the short form ("1,250 GP"). The Inventory page shows the total at the top, and each item's detail says what it sells for. The coin icon doesn't yet change with the amount.
 - **Values** (`items.js`): every item has a `value` and a `category` (metal, weapon, armour, ammo, tool, wood, stone, fish, food, hat, currency). `SELL_RATE` is 0.4 and `sellPrice` is `floor(value × 0.4)`, at least 1. `economy.test.js` sweeps every recipe both ways: the result sells for at least its materials' sell prices, and for less than buying those materials costs. So crafting pays, and buying, crafting and reselling never does.
+  - Wood pieces (2026-10-16) are worth more each tier, from Poplar 4 to Cherry 52 (table in [DESIGN.md](DESIGN.md#skill-tiers-and-pacing)). Shops stock only Poplar Wood Pieces, so higher tiers come from chopping. A recipe that takes any wood is priced in the sweep at its lowest tier, the one crafting spends first. The Crude Shield is worth 12 (Sticks ×2 + Rocks ×1).
 - **Shops** (`shops.js`): `SHOPS` covers the general store, smithy, weaponsmith, armourer, fishmonger, grocer, bakery, tavern, inn, hatter, carpenter and market stall. Each has a name, a greeting, its stock (unlimited unless `limit`; limited stock comes back one at a time every `RESTOCK_MINUTES` = 5 real minutes) and what it buys (`all` or categories).
   - `createShops` does the buying and selling. Each refusal has a reason the screen shows: sold out, not enough gold, "doesn't buy this", equipped (worn copies, including the companion's hat, can't be sold), or quest item.
   - Selling your last needed tool (`NEEDED_TOOLS`) asks first, using the compact confirmation.
@@ -143,7 +144,7 @@ User request (2026-10-11): "Let's do enemy drops and jobs next."
   - Rolled on every victory through the combat system's single `won` handler. Fixing this found a duplicate `won` key that had silently dropped the victory sound and happy face; both are back.
   - See COMBAT.md *Defeat drops*.
 - **Jobs** (`jobs.js`):
-  - All four kinds. The board pool has 12 jobs: bring sticks, rocks, logs, ore or stone; craft meals, rods or a dagger; gather fish, logs, ore or sticks. Four are posted at a time; you can take three, and each taken offer is replaced 20 s later. At least one posted job always needs no tools.
+  - All four kinds. The board pool has 12 jobs: bring sticks, rocks, wood, ore or stone; craft meals, rods or a dagger; gather fish, wood, ore or sticks. Four are posted at a time; you can take three, and each taken offer is replaced 20 s later. At least one posted job always needs no tools.
   - Townsfolk `GIVERS`: post (deliveries, 12–30 GP, 30 s cooldown), smith (bring ore), fishmonger (gather fish), baker (craft meals).
   - Gather jobs count from the shared gathering and fishing events after you accept.
   - Deliveries give a `package` (not sellable). You hand it in by talking to the recipient. Recipients are townsfolk with a house or shop in the giver's city.
@@ -167,7 +168,7 @@ User request (2026-10-11): "Let's do enemy drops and jobs next."
   - the fishmonger: pondfish to catch or bring;
   - the smithy: ore and ingots;
   - food shops: cooked fish;
-  - the carpenter: logs and sticks;
+  - the carpenter: Poplar Wood Pieces and sticks;
   - and so on. The hatter asks for nothing.
 
   The amount is random within the want's range. Pay is the item's value × count + 2 + a random bit up to the item's value (at least 3), plus some XP in the matching skill. The conversation goes "Well… I need 4 Raw Pondfish. The morning catch was thin." then "I'll pay you 37 gold if you bring me 4 Raw Pondfish, what do you say?" with *I'll do it!* or *I don't have time, sorry.* The same offer stands until taken; one job per giver, then a 45 s cooldown.

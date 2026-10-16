@@ -30,6 +30,22 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Resource remnants, no inventory gold total, dialogue portrait faces — 2026-10-16 (user request)
+- **Remnants:** a depleted tree, boulder or copper rock leaves a stump (`makeStumpModel`, `tree-models.js`; each species has `bark` and `trunk`) or rubble (`makeRubble`, `mining.js`) made lazily by `entity.showRemnant` (`resource-entities.js`). The tile stays blocked while depleted, so solid regrowth no longer waits for the tile; ground items are unchanged. Hover shows `depletedLabel`; clicking a remnant does nothing. `selectTree` now uses `resourceActions.blocker` instead of its own tool check. Playground: Lumberjack practice → *Fell planted trees (stumps)*; model viewer: *Stump (…)*, *Rubble (…)*.
+- **Gold:** the Inventory page's separate gold total is gone; Gold Pieces are just a stack.
+- **Dialogue portraits lagged a line behind** on expressions: faces change expression by swapping geometry (`slime-face.js`), but the portrait copy only mirrored transforms and was rebuilt per line, so it showed the previous line's face. `character-dialogue.js` now mirrors geometry and material each frame too.
+
+### Skill tiers, shared XP curve, Lumberjack tiers and wood pieces — 2026-10-16 (user design)
+- Design and numbers: [DESIGN.md, Skill tiers and pacing](DESIGN.md#skill-tiers-and-pacing). Every skill now uses the adopted curve (`createSkill`, `levelForXp`); the 120-XP prototype curve and the flat 20 XP award are gone. XP is effort-based (`skill-pacing.js` `actionXp`), speed is `workDuration` (+2%/level above the requirement, capped +60%, 1.5 s floor for tool work).
+- `lumberjack.js` holds the ten tree tiers; `resourceRules(node)` merges a tree's tier into the shared resource rules. `tool-tiers.js` holds tool families (`axe`, `pickaxe`); `resourceBlocker` explains a level or tool gate in the toast and hover text; the action's motion carries the tool tier so `slime-presentation.js` shows its model.
+- Item renames: `axes` → `crudeAxe`, `shields` → `crudeShield` (Crude Shield: Sticks ×2 + Rocks ×1), `logs` → ten wood items (`poplarWood` … `cherryWood`). Icon names (`axes`, `shields`, `logs`) stayed and items alias to them. `ITEM_GROUPS.anyWood` is a recipe ingredient group (Campfire, bridge repair; `resolveCost`/`spendCost` spend the lowest tier first); the recipe view, acquisition steps and Willowbank's prepare goal count any tier.
+- Tree models: birch became Poplar, the old willow became Mungil (with blue blossoms), and Asla, Willow, Walnut and Ironwood are new. Unknown or old species (such as `birch`) fall back to Poplar. Biome and countryside weights only renamed birch → poplar; the user will hand-place overworld trees.
+- The clearing's six pickups carry an entity XP modifier (×7 below Gathering 2) so the opening's level lesson still fires on the sixth item; checkpoints derive their Gathering XP from it (`openingGathering`).
+- Playground: World & water → **Lumberjack practice** (`dev/lumberjack-fixtures.js`); model viewer lists every tree tier with Hit/Deplete.
+- Verified: 703 unit tests, both builds, `check:ui`, `check:debug-isolation`. Browser (built playground): opening gather lesson (98 XP per pickup, level 2 on the sixth), tutorial chop (Poplar Wood Pieces, 14 XP), the chop-success checkpoint, Willowbank trees and prepare goal, the Oak gate at Lumberjack 1 and a level-30 chop (Oak Wood Pieces, 36 XP), planting from the panel, and every new model in the viewer.
+- **Waiting for the mining pass:** Copper Ore → furnace → Copper Pieces; smithing uses pieces; remove Copper Ingots; pickaxe tiers; the higher axe tiers. Parts (weapon, armor, tool) are not craftable: buy, find or loot; tutorial barrels later. Gold Pieces double as an ingredient.
+- Other crude tools (`pickaxes`, `hammers`, `rods`) keep their old ids; rename them to `crude…` when their families get tiers.
+
 ### Diagonal movement and companion following — 2026-10-15 (user: "let's implement it")
 - Plan, decisions and what was built: [MOVEMENT-PLAN.md](MOVEMENT-PLAN.md). Every walker steps diagonally round clear corners (RuneScape timing: a diagonal takes as long as a straight step); one route search in `world.js` serves everyone; reachability is unchanged on every shipped map (tested).
 - Combat geometry is a shared, provisional setting (`combat-geometry.js`): cardinal melee reach and Manhattan range/aggro/leash by default; the user expects to tune them.

@@ -122,7 +122,7 @@ Short drifting shimmer lines in the clearing and splash ponds. Compare surface w
 
 ## Skills
 
-Combat skills and every proficiency use the adopted XP curve and route through the production award (core XP converts 5:1; each core level grants 3 attribute points). Prototype skills keep 120 XP per level.
+Every skill and proficiency uses the adopted XP curve and routes through the production award (core XP converts 5:1; each core level grants 3 attribute points). Pacing rules are in [DESIGN.md](DESIGN.md#skill-tiers-and-pacing).
 
 ## Character & combat profile
 
@@ -160,15 +160,26 @@ Use 51, 50, 25, 24 and 0 to check orb colors. Set Stamina to a fraction such as 
 
 ## Carpentry practice
 
-The clearing pond has a practice bridge at (2, 4). Add a Crude Hammer and Small Logs ×3 with Inventory controls, then click the broken bridge. Move to cancel; Full test area resets the bridge and rewards. The Willowbank bridge checkpoint exercises the same action with its injury and rescue story. Carpentry XP is available in Skills; hammering and bridge stages are in the model viewer.
+The clearing pond has a practice bridge at (2, 4). Add a Crude Hammer and any Wood Pieces ×3 with Inventory controls (mixed tiers work; the lowest is spent first), then click the broken bridge. Move to cancel; Full test area resets the bridge and rewards. The Willowbank bridge checkpoint exercises the same action with its injury and rescue story. Carpentry XP is available in Skills; hammering and bridge stages are in the model viewer.
 
 ## Fishing practice
 
 The clearing pond has a Pondfish spot at (4, 4). Add a Crude Fishing Rod with Inventory controls, then click its ripples. Repeat catches, cancel by moving, and reset with Full test area. Willowbank · Catch Pondfish uses the same action. Fishing XP and levels use the Skills controls; cast, wait, and catch motions are in the shared model viewer.
 
+## Lumberjack practice
+
+Plants production trees next to the player in whichever map you are in (planting after travel starts over in the new map).
+- **Tree** picks a tier. **Plant this tree** plants one; **Plant every tier** plants one of each, lowest tier nearest, as far as nearby free tiles allow.
+- **Set Lumberjack to its level** sets the skill exactly to the tree's requirement, so you can try it one level under (use Skills to lower it) and at its level.
+- **Chop time and XP** reads the chop time for your level and best usable axe, and the XP per tree.
+- **Fell planted trees (stumps)** turns them all into stumps that regrow on the normal timer; **Regrow** resets them at once; **Remove** clears them.
+- **Give axe** adds an axe tier to the inventory. Only the Crude Axe exists for now; new tiers appear here automatically from `tool-tiers.js`.
+
+Clicking a tree above your level shows the level it needs, in the toast and the hover text. Each tier's model, with its hit and fall, is in the model viewer as *Tree (… · Lumberjack N)*, its stump as *Stump (…)*, and the boulder and copper remnants as *Rubble (…)*.
+
 ## Resource picking
 
-Trees, boulders, and ground items in both areas use shared actions. Inventory supplies axes/pickaxes; Skills adjusts Gathering, Lumberjack, and Mining. Move to cancel before depletion. Ground items, Trees, Boulders, and Full test area resets support repeats in the clearing. Willowbank resources respawn after 8 seconds; occupied or reserved tiles delay solid-resource respawns. Load Willowbank · Collect Flint to check its narrative callback. Model viewer motions reuse the production hit/depletion animations.
+Trees, boulders, and ground items in both areas use shared actions. Inventory supplies axes and pickaxes; Skills adjusts Gathering, Lumberjack, and Mining. Move to cancel before depletion. Ground items, Trees, Boulders, and Full test area resets support repeats in the clearing. Willowbank resources respawn after 8 seconds. A felled tree or mined rock leaves its stump or rubble on a still-blocked tile, so regrowth is never delayed. Load Willowbank · Collect Flint to check its narrative callback. Model viewer motions reuse the production hit/depletion animations.
 
 ## Performance
 

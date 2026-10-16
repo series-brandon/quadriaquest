@@ -14,7 +14,7 @@ export const ARMOR_PROFICIENCIES=['helm','chest','hands','legs','feet','back','w
 export const ELEMENTS=['energy','wind','earth','water','fire','explosive','dust','mist','mud','lava','steam','smoke','blood','shadow','death','light','life','soul','time','gravity','space','mind'];
 const title=s=>s[0].toUpperCase()+s.slice(1);
 const STYLE_ICON={melee:'Combat',ranged:'bows',magic:'quickRestore'};
-const PROFICIENCY_ICON={unarmed:'Combat',sword:'swords',dagger:'copperDagger',bow:'bows',shield:'shields',axe:'axes',hammer:'hammers'};
+const PROFICIENCY_ICON={unarmed:'Combat',sword:'swords',dagger:'copperDagger',bow:'bows',shield:'shields',axe:'crudeAxe',hammer:'hammers'};
 
 function trackDefinitions(){
  const defs=[];

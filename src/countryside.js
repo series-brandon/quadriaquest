@@ -98,14 +98,14 @@ export function createCountryside({mapData,seed=11}){
   tiles.set(k,t);return t;
  }
  const forest=(x,z)=>valueNoise(x,z,40,seed+3)>.58;
- // Cherry groves in the meadows; which wood is which (birch, oak, maple) drifts across the land.
+ // Cherry groves in the meadows; which wood is which (poplar, oak, maple) drifts across the land.
  const grove=(x,z)=>valueNoise(x,z,26,seed+60)>.7;
  const nearWater=(x,z)=>{for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const n=tile(x+dx,z+dz);if(n?.water&&!isSea(x+dx,z+dz))return true;}return false;};
  // A tree's species: willows by water, pines on the hills, cherries in groves, else the local wood.
  function species(t){
   if(t.h>=2)return 'pine';if(nearWater(t.x,t.z))return 'willow';if(grove(t.x,t.z))return 'cherry';
   const wood=valueNoise(t.x,t.z,60,seed+50),r=hash(t.x,t.z,seed+51);
-  return wood<.38?(r<.7?'birch':'oak'):wood<.62?(r<.85?'oak':'birch'):(r<.7?'maple':'oak');
+  return wood<.38?(r<.7?'poplar':'oak'):wood<.62?(r<.85?'oak':'poplar'):(r<.7?'maple':'oak');
  }
  // Resources for one chunk's tiles; ids are stable across loads.
  function entities(list){
