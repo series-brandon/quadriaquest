@@ -51,7 +51,7 @@ import {createCrystalPlaces} from './crystal-places.js';
 import {mapCrystals} from './map-file.js';
 import {createAtmosphere} from './atmosphere.js';
 import {configureProps,createProp,seatPosition,takeLoot,updateProps} from './props.js';
-import {createSpaces} from './spaces.js';
+import {createSpaces,entranceSpot} from './spaces.js';
 import {createCrowd} from './townsfolk.js';
 import {createResourceActions} from './resource-actions.js';
 import {createAttackTelegraphs} from './attack-telegraph.js';
@@ -556,7 +556,7 @@ function geltonReady(){
   countryside={source,streamer,maps};built.countryside=countryside;streamedWorlds.add({streamer,builtMap:built});
   areas.register({id:'gelton',name:data.name,music:'world',ambience:'meadow',description:'The capital of Quadria and the land around it',listed:()=>!!waking?.isWoken,group:built.group,tiles:built.tiles,camera:GELTON_CAMERA,
    arrival:()=>built.crystal?.tile||built.spawn,
-   enter(){if(!maps.includes(world))maps.push(world);streamer.prime(tile.x,tile.z,1);},
+   enter(){if(!maps.includes(world))maps.push(world);streamer.prime(tile.x,tile.z,1);},prime:(x,z)=>streamer.prime(x,z,1),
    leave(){const i=maps.indexOf(world);if(i>=0)maps.splice(i,1);},
    update:(dt,time,view)=>{const at=viewTile();built.stream(at);streamer.update(dt,at);streamWater.update(dt);built.walls?.update(dt);built.sentries?.update(dt,time,tile);built.crowd?.update(dt,time,{camera:view});},
    reset(){for(const d of built.doors)if(!d.locked)d.setOpen(false,{quiet:true});}});
@@ -1005,6 +1005,7 @@ if(__PLAYGROUND__){
    crystalPlaces.provide('world-editor',()=>{const b=editorArea.built;return b?mapCrystals(b.data).map(c=>({id:c.id,name:c.name,known:!!c.known,tile:()=>b.tiles.get(key(c.x,c.z)),prime:()=>{editorArea.land?.streamer.prime(c.x,c.z);b.stream?.(b.tiles.get(key(c.x,c.z)));}})):[];});
    streamedWorlds.add({get streamer(){return editorArea.land?.streamer;},get builtMap(){return editorArea.land?editorArea.built:null;}});
    areas.register({id:'world-editor',name:'World editor',description:'Playground: world editor',listed:()=>false,group,tiles:editorArea.tiles,arrival:()=>editorArea.built?.spawn,
+    prime:(x,z)=>{editorArea.land?.streamer.prime(x,z);const b=editorArea.built,t=b?.tiles.get(key(x,z));if(t)b.stream?.(t);},
     biomeAt:(x,z)=>editorArea.land?.land.biomeAt(x,z)??null,
     // The land around the map joins the live world map while you're here (as any streamed countryside).
     enter(){const m=editorArea.land?.maps;if(m&&!m.includes(world))m.push(world);},leave(){const m=editorArea.land?.maps,i=m?m.indexOf(world):-1;if(i>=0)m.splice(i,1);},
@@ -1073,7 +1074,7 @@ if(__PLAYGROUND__){
    if(level===0&&entry?.desc.interior!=='separate'){const t=builtMap.buildings[building]?.anchors.doors[0]?.doorstep;return spaces.enter({kind:'exit',area:'world-editor',tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...builtMap.data.spawn]});}
    return spaces.enter({kind:'floor',builtMap,building,level,via:null});},
   leaveFloor(){const here=spaces.here;if(!here)return false;const builtMap=here.builtMap;
-   if(here.dungeon!==undefined){const p=builtMap.props.find(q=>q.kind==='dungeonEntrance'&&builtMap.data.props.some(d=>d.link===here.dungeon&&d.x===q.tile.x&&d.z===q.tile.z)),t=p?.spots[0]?.tile||builtMap.spawn;return spaces.enter({kind:'exit',area:builtMap.areaId,tile:[t.x,t.z]});}
+   if(here.dungeon!==undefined){const t=entranceSpot(builtMap,here.dungeon)||builtMap.spawn;return spaces.enter({kind:'exit',area:builtMap.areaId,tile:[t.x,t.z]});}
    const t=builtMap.buildings[here.building]?.anchors.doors[0]?.doorstep;
    return spaces.enter({kind:'exit',area:builtMap.areaId,tile:t?(Array.isArray(t)?[...t]:[t.x,t.z]):[...builtMap.data.spawn]});},
   rebuildFloors(building){const builtMap=editorArea?.built;if(!builtMap)return false;spaces.rebuild(builtMap,building?.dungeon!==undefined?null:building,{at:[tile.x,tile.z],dungeon:building?.dungeon??null});updateFloorHere();return true;},

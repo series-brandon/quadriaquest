@@ -300,14 +300,21 @@ export function createWorldEditor(host){
     buttons(smallButton('Save as a stamp',saveStamp))));
  }
 
- // Box select (Select, drag): everything inside the box becomes the selection.
- let boxing=null,boxFill=null;
+ // Box select (Select, drag): everything inside the box becomes the selection. A drag that starts on what's
+ // selected moves it instead: it lifts once the pointer leaves the tile, and goes down where you let go.
+ let boxing=null,boxFill=null,dragMove=null;
+ const sameSel=(a,b)=>!!a&&!!b&&a.kind===b.kind&&a.kind!=='group'&&a.index===b.index&&a.owner===b.owner&&a.level===b.level;
+ function onSelection(tile){const sel=selection.peek();if(!sel||!tile)return false;if(sel.kind==='group')return cellsOf('group',sel).some(([a,b])=>a===tile.x&&b===tile.z);return sameSel(sel,pickAt(tile.x,tile.z));}
  function drawBox(){boxFill?.dispose();boxFill=null;if(!boxing)return;const [x0,x1]=[boxing.from.x,boxing.to.x].sort((a,b)=>a-b),[z0,z1]=[boxing.from.z,boxing.to.z].sort((a,b)=>a-b),cells=[];
   for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)cells.push({x,z,color:'#ffe14d'});boxFill=createCellFill({cells,heightAt,parent:overlayParent(),opacity:.25});}
  async function boxSelect(phase,tile,actor,point=null){
   // Holding something: press where it goes and drag the way it should face; let go to put it down.
   if(phase==='start'&&holding()){turning={at:tile};pinned=tile;refreshPreview();return;}
   if(turning){if(phase==='move'&&tile)faceTowards(turning.at,tile);if(phase==='end'){const at=turning.at;turning=null;pinned=null;await drop(at);}return;}
+  if(phase==='start'&&!heldDoor&&!pendingFlight&&onSelection(tile)){dragMove={from:tile,actor,point,lifted:false};return;}
+  if(dragMove){const d=dragMove;
+   if(phase==='move'&&tile&&!d.lifted&&(tile.x!==d.from.x||tile.z!==d.from.z)){d.lifted=true;lift(selection.peek(),d.from);refreshPreview();}
+   if(phase==='end'){dragMove=null;if(!d.lifted)await click(d.from,d.point,d.actor);else if(tile)await drop(tile);else cancel();}return;}
   if(phase==='start'){boxing={from:tile,to:tile,actor,point};clearPreview();return;}
   if(phase==='move'&&boxing){if(tile&&(tile.x!==boxing.to.x||tile.z!==boxing.to.z)){boxing.to=tile;drawBox();}return;}
   if(phase==='end'&&boxing){const b=boxing;boxing=null;drawBox();
@@ -1057,7 +1064,7 @@ export function createWorldEditor(host){
   if(e.key==='Escape')act=cancel;
   else if(mod&&k==='s')act=save;else if(mod&&k==='z')act=e.shiftKey?()=>step(redo,undo):()=>step(undo,redo);else if(mod&&k==='y')act=()=>step(redo,undo);
   else if(mod&&k==='v')act=pasteClipboard;else if(mod&&k==='c'&&selection.peek())act=copySelection;
-  else if(e.key==='PageUp'||e.key==='PageDown'){const dir=e.key==='PageUp'?1:-1;act=()=>goLevel(dir);}
+  else if(e.key==='PageUp'||e.key==='PageDown'){const dir=e.key==='PageUp'?1:-1;act=()=>goLevel(dir,{pointer:true});}
   // Held stairs, and the Stairs tool's, turn with , and . too.
   else if(!mod&&(e.key===','||e.key==='.'||k==='r')&&(pendingFlight||tool.peek()==='stairs'&&!holding())){const dir=e.key===','?-1:1;act=()=>{options.dir.value=(dir>0?CLOCKWISE:COUNTER)[options.dir.peek()];refreshPreview();};}
   // , and . turn what you hold (or the selection) one way and the other; R turns it clockwise.
@@ -1287,16 +1294,36 @@ export function createWorldEditor(host){
     await changeFloor(()=>{if(o.draftMode==='add')cells.add(k);else cells.delete(k);f.cells=[...cells].map(c=>c.split(',').map(Number));if(f.cells.length===foot.length)delete f.cells;},`${LEVEL_NAME(here.level)}: ${cells.size} tiles.`);return;}
   }
   throw Error('On a floor: Inspect, Prop, Room, Edge, Stairs, Footprint, Surface and Erase work (and the Floors panel).');}
- // Levels (docs/TOWN.md, Decorating indoors): Page Up / Page Down, or the bar's ▲ and ▼, go up and down in the
- // building you're in, the selected one, or the one under the pointer.
- function levelOwner(){const h=hereOwner();if(h!==null)return h;const sel=selection.peek();if(sel?.kind==='building')return sel.index;if(sel?.kind==='furniture'&&sel.owner!==undefined)return sel.owner;
-  const t=hoverAt&&at(hoverAt.x,hoverAt.z);return t?.building!==undefined&&data.buildings[t.building]?t.building:null;}
- function goLevel(dir){const o=levelOwner();if(o===null)throw Error('Select a building (or point at one) to go up or down in it.');
-  const now=floorHere.peek()?.level??0,next=now+dir,levels=new Set([0,...floorsOf(o).map(f=>f.level)]);
-  if(!levels.has(next))throw Error(dir>0?'No floor above: add one in the Floors panel (select the building).':'Nothing below.');
+ // Levels (docs/TOWN.md, Decorating indoors): Page Up / Page Down, or the bar's ▲ and ▼, go up and down. Which
+ // building: the one you're in, the selected one, the one under the pointer (the keys only: on the way to the bar
+ // the pointer crosses others), the one in the middle of the view,
+ // or else the nearest one to the middle of the view that has a floor that way (going down, a dungeon's entrance
+ // counts too). Nothing needs selecting first.
+ const LEVEL_REACH=16;
+ const levelsOf=o=>new Set([0,...floorsOf(o).map(f=>f.level)]);
+ function levelOwner(dir=0,pointer=false){const h=hereOwner();if(h!==null)return h;const sel=selection.peek();if(sel?.kind==='building')return sel.index;if(sel?.kind==='furniture'&&sel.owner!==undefined)return sel.owner;
+  const building=t=>t?.building!==undefined&&data.buildings[t.building]?t.building:null,hovered=pointer?building(hoverAt&&at(hoverAt.x,hoverAt.z)):null;if(hovered!==null)return hovered;
+  const view=host.viewTile?.(),centre=building(view&&at(view.x,view.z));if(centre!==null)return centre;
+  if(view){const gap=(x0,z0,x1,z1)=>Math.max(0,x0-view.x,view.x-x1)+Math.max(0,z0-view.z,view.z-z1),near=[];
+   data.buildings.forEach((b,i)=>{if(!dir||!levelsOf(i).has(dir))return;let cells;try{cells=cellsOf('building',b);}catch{return;}const xs=cells.map(c=>c[0]),zs=cells.map(c=>c[1]);near.push({o:i,d:gap(Math.min(...xs),Math.min(...zs),Math.max(...xs),Math.max(...zs))});});
+   if(dir<0)for(const p of data.props||[])if(p.kind==='dungeonEntrance'&&data.interiors?.[p.link]?.floors)near.push({o:{dungeon:p.link},d:gap(p.x,p.z,p.x+1,p.z+1)});
+   const best=near.filter(n=>n.d<=LEVEL_REACH).sort((a,c)=>a.d-c.d)[0];if(best)return best.o;}
+  return null;}
+ // The view moves onto a building's (or dungeon level's) tiles when it isn't over them already.
+ function focusOn(o,level){let cells;
+  // Out of a dungeon: its entrance on the map.
+  if(isDungeon(o)&&level===0){const p=(data.props||[]).find(q=>q.kind==='dungeonEntrance'&&q.link===o.dungeon);if(p)host.lookAt?.(p.x,p.z);return;}
+  try{cells=isDungeon(o)?(floorsOf(o).find(f=>f.level===level)?.cells||[]):cellsOf('building',ownerEntry(o));}catch{return;}if(!cells.length)return;
+  const view=host.viewTile?.();if(view&&cells.some(([x,z])=>x===view.x&&z===view.z))return;
+  const xs=cells.map(c=>c[0]),zs=cells.map(c=>c[1]);host.lookAt?.(Math.round((Math.min(...xs)+Math.max(...xs))/2),Math.round((Math.min(...zs)+Math.max(...zs))/2));}
+ const ownerName=o=>isDungeon(o)?ownerEntry(o)?.name||'The dungeon':ownerEntry(o)?.desc?.name||'The building';
+ function goLevel(dir,{pointer=false}={}){const o=levelOwner(dir,pointer);if(o===null)throw Error(dir>0?'No building with a floor above near the view: pan to one.':'No cellar or dungeon near the view: pan to one.');
+  const now=floorHere.peek()?.level??0,next=now+dir;
+  if(!levelsOf(o).has(next))throw Error(dir>0?`${ownerName(o)} has no floor above: select it and Add floor above.`:`${ownerName(o)} has nothing below.`);
   if(holding()||heldDoor||pendingFlight)cancel();
   const ok=next===0&&(isDungeon(o)||ownerEntry(o).desc?.interior!=='separate')?host.leaveFloor?.():host.enterFloor?.(o,next);
-  status.value=ok?`${next===0&&!isDungeon(o)?'Ground floor':LEVEL_NAME(next,o)}.`:'No way there yet: place the stairs to it.';}
+  if(ok)focusOn(o,next);
+  status.value=ok?(next===0?(isDungeon(o)?`Out of ${ownerName(o)}.`:`${ownerName(o)}: ground floor.`):`${ownerName(o)}: ${LEVEL_NAME(next,o).toLowerCase()}.`):'No way there yet: place the stairs to it.';}
  // Stairs between floors (docs/CITY.md, Floors): a flight belongs to the floor it rises from (that floor's `up`),
  // its bottom step where you click, rising the Stairs tool's “Up towards” way (, and . turn it). Stairs down from
  // a floor are the flight up from the floor below, on the same two tiles.
@@ -1335,10 +1362,12 @@ export function createWorldEditor(host){
   if(isDungeon(o))throw Error('Go into it first.');
   const b=data.buildings[o];if(await change(()=>{apply();return cellsOf('building',b);},cellsOf('building',b))){status.value=flightSaid(o,level,up);return true;}return false;}
  async function placeFlight(tile){const {building:o,level}=pendingFlight;pendingFlight=null;return setFlight(o,level,tile);}
+ function actorsBuildingSelected(actor){const sel=selection.peek();if(sel?.kind!=='building')return false;const tiles=actor.kind==='door'?[actor.a,actor.b]:[actor.tile];return tiles.some(t=>t&&at(t.x,t.z)?.building===sel.index);}
  async function click(tile,point=null,actor=null){if(problemMarks.length)clearProblem();
   // A door into a building, or a stairwell: Inspect and Select follow it (docs/CITY.md, Floors).
   // The Hand lifts a door or a floor's stairs; Inspect goes through doors and up and down stairs.
-  if(mode.peek()==='edit'&&HAND_TOOLS.includes(tool.peek())&&actor&&!holding()&&!heldDoor&&!pendingFlight){if(actor.kind==='door'&&liftDoor(actor))return true;if(actor.kind==='stairwell'&&liftFlight(actor))return true;}
+  // On the map, a building's door or stairs lift once that building is selected (the first click selects it).
+  if(mode.peek()==='edit'&&HAND_TOOLS.includes(tool.peek())&&actor&&!holding()&&!heldDoor&&!pendingFlight&&(floorHere.peek()||actorsBuildingSelected(actor))){if(actor.kind==='door'&&liftDoor(actor))return true;if(actor.kind==='stairwell'&&liftFlight(actor))return true;}
   if(mode.peek()==='edit'&&actor?.link&&tool.peek()==='inspect'){status.value=host.enterLink?.(actor.link)?`Through the ${actor.kind==='stairwell'?'stairs':'door'}.`:'Can’t go that way.';return true;}
   if(mode.peek()==='edit'&&pendingEntrance&&!floorHere.peek()){await placeEntrance(tile).catch(error=>{status.value=error.message;});return true;}
   if(mode.peek()==='edit'&&pendingFlight){const keep=pendingFlight;const ok=await placeFlight(tile).catch(error=>{status.value=error.message;return false;});if(!ok){pendingFlight=keep;refreshPreview();}return true;}
@@ -1356,14 +1385,15 @@ export function createWorldEditor(host){
     if(heldDoor){await (heldDoor.room?dropRoomDoor:dropDoor)(tile,point);break;}
     if(HAND_TOOLS.includes(tool.peek())&&holding()){await drop(tile);break;}
     const group=selection.peek()?.kind==='group'&&cellsOf('group',selection.peek()).some(([a,b])=>a===x&&b===z)?selection.peek():null;
-    let hit=group||pickAt(x,z);moving.value=false;
+    const before=selection.peek();let hit=group||pickAt(x,z);moving.value=false;
     // The game's own furnishing: placed first (one undo step), then it's yours to lift or recolour.
     if(hit?.kind==='furnished'){if(!await adoptFurniture(hit.owner))break;hit=pickAt(x,z);}
     // Nothing placed here: a tree, resource or cover that grew here becomes the map's own to move or delete.
     if(!hit&&!floorHere.peek()&&data.land&&(natureAt(x,z).resource||natureAt(x,z).cover))await change(()=>{hit=adopt(x,z);return [[x,z]];});
     selection.value=hit;showSelection();
-    if(hit&&HAND_TOOLS.includes(tool.peek()))lift(hit,tile);
-    else{const entry=entryOf(hit);status.value=entry?`Selected ${nameOf(hit.kind,entry)}.`:describe(x,z);}
+    // A click selects; a second click on what's selected (or a box-selected group) lifts it (user, 2026-10-16).
+    if(hit&&HAND_TOOLS.includes(tool.peek())&&(hit===group||sameSel(before,hit)))lift(hit,tile);
+    else{const entry=entryOf(hit);status.value=entry?`Selected ${nameOf(hit.kind,entry)}${HAND_TOOLS.includes(tool.peek())?': click it again, or drag it, to move it':''}.`:describe(x,z);}
     break;}
    // The eyedropper: a copy of what you click, colours and all, in your hand.
    case 'floorpaint':case 'wallpaint':await paintRoom(tile,point,tool.peek()==='floorpaint'?'floor':'walls').catch(error=>{status.value=error.message;});break;
@@ -1477,7 +1507,7 @@ export function createWorldEditor(host){
  const counts=computed(()=>{const list=problems.value;return `${list.filter(p=>p.severity==='error').length} errors · ${list.filter(p=>p.severity==='warning').length} warnings · ${list.filter(p=>p.severity==='info').length} notes`;});
  // Choosing a tool puts down nothing: what you hold goes away unless the new tool is the Hand.
  // Every tool's hint, shown in the status line as you switch to it (never what the last tool said).
- const TOOL_HINTS={deco:'Pick from the catalogue, then click where it goes (, and . turn it). Click something to lift it.',select:'Click something to lift it and see all its options; drag a box to select several.',design:'Click something to change its colours.',eyedropper:'Click something to copy it, colours and all.',erase:'Click something to remove it.',
+ const TOOL_HINTS={deco:'Pick from the catalogue, then click where it goes (, and . turn it). Click something to select it; again, or drag it, to move it.',select:'Click something to select it; click it again, or drag it, to move it. Drag a box to select several.',design:'Click something to change its colours.',eyedropper:'Click something to copy it, colours and all.',erase:'Click something to remove it.',
   floorpaint:'Click inside a room to paint its floor.',wallpaint:'Point at a wall inside a room to paint it (or the whole room’s walls).',stamp:'Pick a stamp, then click where its north-west corner goes.',
   room:'Drag a rectangle: on open ground a new building, inside one a room with a door.',resize:'Drag from beside a wall (outside or a room’s) the way it should move.',building:'Click where the building’s north-west corner goes.',
   footprint:'Drag to paint a footprint, then Build it.',walls:'Point at a building’s wall and click to change it.',edge:'Click a tile, or drag a line, to put an edge on its chosen side.',stairs:'Click where the bottom step goes (inside a building: stairs or a ladder to another floor); , and . turn them.',
@@ -1516,8 +1546,8 @@ export function createWorldEditor(host){
      else{host.freeCamera?.(true);status.value='Edit: clicks use the tool.';}}}),
     h('div',{class:'q-world-editor__edit',hidden:()=>mode.value!=='edit'},
      segmented({label:'Walls',options:[{value:'up',label:'Walls up'},{value:'cut',label:'Cutaway'},{value:'down',label:'Walls down'}],value:options.wallsMode,onChange:v=>{options.wallsMode.value=v;}}),
-     h('div',{class:'q-world-editor__actions q-world-editor__levels'},smallButton('▲',()=>goLevel(1),{title:'Up a level (Page Up)','aria-label':'Up a level'}),smallButton('▼',()=>goLevel(-1),{title:'Down a level (Page Down)','aria-label':'Down a level'}),
-      h('span',{class:'q-world-editor__level',hidden:()=>!floorHere.value},()=>{revision.value;const h0=floorHere.value;return h0?LEVEL_NAME(h0.level,hereOwner()):'';})),
+     h('div',{class:'q-world-editor__actions q-world-editor__levels'},smallButton('▲',()=>goLevel(1),{title:'Up a floor in the building you’re looking at (Page Up)','aria-label':'Up a floor'}),smallButton('▼',()=>goLevel(-1),{title:'Down a floor in the building you’re looking at (Page Down)','aria-label':'Down a floor'}),
+      h('span',{class:'q-world-editor__level',hidden:()=>!floorHere.value},()=>{revision.value;const h0=floorHere.value;return h0?`${ownerName(hereOwner())} · ${LEVEL_NAME(h0.level,hereOwner())}`:'';})),
      segmented({label:'Tools',options:TOOL_GROUPS.map(([value,label])=>({value,label})),value:toolGroup,onChange:v=>{setTool(TOOL_GROUPS.find(([g])=>g===v)[2][0][0]);}})),
     // Draw distance: how far the land streams around the view (the game's setting; Settings shows the same).
     host.drawDistance?h('label',{class:'q-world-editor__draw',title:'Draw distance: how far the world shows around the view'},'Draw',h('select',{class:'q-select','aria-label':'Draw distance',on:{change:e=>host.setDrawDistance(+e.target.value)}},

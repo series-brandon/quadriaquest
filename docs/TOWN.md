@@ -341,9 +341,9 @@ User request: hide what's lifted, wall and floor paint, Sims-like doors and stai
   - This is a cut-height uniform in the cutaway shader (`setCutHeight`, `cutaway.js`) and `setWalls` in main.js.
   - Play shows the game's own cutaway again.
   - Inside walls now belong to their building, so they cut with it.
-- **Levels:** Page Up / Page Down or the bar's ▲ ▼ go up and down in the building you're in, the selected one, or the one under the pointer. The bar shows where you are.
+- **Levels:** Page Up / Page Down or the bar's ▲ ▼ go up and down in the building you're in, the selected one, the one under the pointer (keys), or the one you're looking at (the middle of the view, or the nearest with a floor that way; going down, a dungeon's entrance too). The view moves onto it. The bar shows the building and floor (docs/CITY.md, *Going up and down in the editor*).
 - **Doors and stairs, as in the Sims:**
-  - The Hand picks up a building's door; it goes down on another of that building's walls (where you click). The door rule still applies, and a refused door stays in your hand.
+  - The Hand picks up a building's door; it goes down on another of that building's walls (where you click). The door rule still applies, and a refused door stays in your hand. On the map a door or stairs lift once their building is selected (the first click selects it); inside a floor they lift at once.
   - The Hand picks up a floor's stairs: they go down where you click (their bottom step), `,` and `.` turn them, and Esc puts them back.
   - The Stairs tool places them too: inside a building it joins floors (docs/CITY.md, *Floors, round three*).
   - Map stairs (outdoor flights) turn with `,` and `.` too.
@@ -524,7 +524,8 @@ User request: make the world editor work like the Sims 4 build/buy editor, for a
   - A click puts a new one in your hand. Inside a floor it's furniture on that floor.
   - Once you've picked an item, its saved colour presets show beside *Own colours*.
 - **The Hand** (Decorate's main tool, `select`):
-  - Click something to lift it: it follows the pointer, as a green or red ghost, and keeps the spot you took hold of under the pointer. Click again to put it down.
+  - Click something to select it (its options show); click it again to lift it (user, 2026-10-16: a first click lifting made selecting, e.g. a building to go up in, awkward). Or drag from what's selected: it lifts as the pointer leaves its tile and goes down where you let go. A drag that starts anywhere else draws a selection box.
+  - Lifted, it follows the pointer, as a green or red ghost, and keeps the spot you took hold of under the pointer. Click again to put it down.
   - Put it down where it was and nothing changes; anywhere else is one undo step.
   - Click inside a box-selected group to lift the whole group.
   - Turning: `,` and `.` turn what you hold one way or the other (R clockwise). Or press where it goes and drag the way its front should face, then let go.

@@ -45,16 +45,14 @@ export function stairwellModel(direction='up'){
  return mergedMesh(parts);
 }
 // Ladder models, one tile (−.5 … +.5 along local z, climbing towards +z): a ladder standing against the tile's
-// far side, up to the floor above; or the hatch it comes up through, railed on its three sides but the near one
-// (−z), where you step on, with the ladder's top showing.
+// far side, up to the floor above; or the open hatch it comes up through, with the ladder's top standing out of
+// it, two rungs showing, so it reads as a ladder (no railing: user, 2026-10-16).
 export function ladderModel(direction='up'){
- const wood='#9a7350',rail='#5a3d28',parts=[],height=1.5,back=.36;
+ const wood='#9a7350',parts=[],height=1.5,back=.36;
  if(direction==='down'){
   parts.push({geometry:new THREE.BoxGeometry(.9,.02,.9),color:'#1d1915',position:[0,.015,0]});
-  for(const x of [-.28,.28])parts.push({geometry:new THREE.BoxGeometry(.06,.34,.06),color:wood,position:[x,.17,back]});
-  for(const [x,z] of [[-.42,-.42],[.42,-.42],[-.42,.42],[.42,.42]])parts.push({geometry:new THREE.BoxGeometry(.06,.72,.06),color:rail,position:[x,.36,z]});
-  for(const x of [-.42,.42])parts.push({geometry:new THREE.BoxGeometry(.06,.06,.9),color:rail,position:[x,.72,0]});
-  parts.push({geometry:new THREE.BoxGeometry(.9,.06,.06),color:rail,position:[0,.72,.42]});
+  for(const x of [-.28,.28])parts.push({geometry:new THREE.BoxGeometry(.06,.46,.06),color:wood,position:[x,.23,back]});
+  for(const y of [.16,.38])parts.push({geometry:new THREE.BoxGeometry(.56,.04,.05),color:wood,position:[0,y,back]});
   return mergedMesh(parts);
  }
  for(const x of [-.28,.28])parts.push({geometry:new THREE.BoxGeometry(.06,height,.06),color:wood,position:[x,height/2,back]});
@@ -259,6 +257,10 @@ export function interiorProblems(data){
  return out;
 }
 
+// Where you come out of a dungeon: its entrance's spot on the map, or null. The built prop is found by its tiles
+// (its `tile` is the one you walk up to, not the placed corner).
+export function entranceSpot(builtMap,id){const d=builtMap.data.props.find(p=>p.kind==='dungeonEntrance'&&p.link===id);if(!d)return null;
+ return builtMap.props.find(p=>p.kind==='dungeonEntrance'&&p.tiles?.some(t=>t.x===d.x&&t.z===d.z))?.spots[0]?.tile||null;}
 // Moving between spaces. A link is {kind:'interior', city, building, door} (a city door into a
 // building), {kind:'floor', city, building, floor}, {kind:'dungeon', city, id} or {kind:'exit', area,
 // tile:[x, z]}. city: a built map (world-map.js) with `areaId`. The spaces for a building or dungeon
@@ -295,8 +297,8 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
  }
  function dungeonFor(builtMap,dungeon){
   const id=`${mapKey(builtMap)}:d:${dungeon}`;if(built.has(id))return built.get(id);
-  const spec=builtMap.data.interiors[dungeon],entrance=builtMap.data.props.find(p=>p.kind==='dungeonEntrance'&&p.link===dungeon);
-  const back=entrance?builtMap.props.find(p=>p.kind==='dungeonEntrance'&&p.tile.x===entrance.x&&p.tile.z===entrance.z)?.spots[0]?.tile:null;
+  const spec=builtMap.data.interiors[dungeon];
+  const back=entranceSpot(builtMap,dungeon);
   // Dungeons and caves by hand (docs/CITY.md, Dungeons and caves): levels −1, −2… like a building's floors
   // with no building (any shape, stone walls, stairs between levels); the top level's stairs up lead out
   // to the entrance.
@@ -320,7 +322,9 @@ export function createSpaces({areas,scene,pickables=[],stop=()=>{},fade=()=>{},a
   if(link.kind==='floor'&&link.level!==undefined&&link.dungeon===undefined){const r=spacesFor(link.builtMap,link.building),f=r.byLevel.get(link.level);return f?[f.areaId,f.space.arrival(link.via||null),f.space.arrivalFace(link.via||null)]:[null,null];}
   if(link.kind==='floor'){const r=spacesFor(link.builtMap,link.building);return [r.ids[link.floor],r.spaces[link.floor].arrival(link.via||null)];}
   if(link.kind==='dungeon'){const r=dungeonFor(link.builtMap,link.id),top=r.byLevel?.get(-1);if(top)return [top.areaId,top.space.arrival('down'),top.space.arrivalFace('down')];return [r.ids[0],r.spaces[0].arrival(null)];}
-  if(link.kind==='exit'){const area=areas.get(link.area);return [link.area,area?.tiles.get(key(...link.tile)),link.face||null];}
+  // Out onto a streamed map: its ground there may have been let go while you were inside (the view was in the
+  // space, far from it), so the area loads it first (`prime(x, z)`).
+  if(link.kind==='exit'){const area=areas.get(link.area);if(area&&!area.tiles.get(key(...link.tile)))area.prime?.(...link.tile);return [link.area,area?.tiles.get(key(...link.tile)),link.face||null];}
   void from;return [null,null];
  }
  let saved=null;

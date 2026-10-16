@@ -307,7 +307,7 @@ User request: arrive at the top of stairs facing away from them, as if you'd jus
 - **One way on:** a stairwell has an `approach` tile: the front going up, the landing going down. `interaction-route.js` routes only there, and you face the stairs from it (their foot, or their top). Legacy stairs into a corner (Gelton's separate interiors) have no landing and keep any side.
 - **Arriving:** `buildFloorSpace().arrival`/`arrivalFace`, and the map's ground-floor `ground` link, put you on the other end's tile, facing on: up onto the landing facing away from the stairs, down at the foot facing away from them. `createSpaces` passes the facing to `arrived(tile, face)`, and main.js turns the player.
 - **Railings:** `stairwellModel('up')` rails both sides; `stairwellModel('down')` rails both long sides and the bottom end, open at the top end, where you step down.
-- **Ladders:** a floor's `up` may be `{at, dir, kind: 'ladder'}`. `ladderModel('up')` is a ladder against the tile's far side; `ladderModel('down')` is the hatch, railed on three sides with the ladder's top showing. Labels: *Climb up* / *Climb down*.
+- **Ladders:** a floor's `up` may be `{at, dir, kind: 'ladder'}`. `ladderModel('up')` is a ladder against the tile's far side; `ladderModel('down')` is the open hatch with the ladder's top and two rungs standing out of it (no railing: user, 2026-10-16). Labels: *Climb up* / *Climb down*.
 - **Checks:** a flight needs room to stand at the foot (its own floor) and to step off at the top (the floor above); both are errors. The editor refuses the same, and keeps the foot and landing clear of the other stairs and of generated furniture.
 - **Editor:** the Stairs tool's *As* picks Stairs or A ladder. The ghost is the real model, and the blue tile is where you'd stand to use it. Lifting or moving a flight keeps its kind.
 - **Model catalogue:** Ladder (up) and Ladder (hatch), beside the stairwells.
@@ -322,6 +322,27 @@ User request: arrive at the top of stairs facing away from them, as if you'd jus
   - swapped the flight for a ladder from upstairs (*Down a floor*, *As: A ladder*) and climbed it both ways;
   - the rails on both kinds;
   - no check problems.
+
+### Going up and down in the editor (2026-10-16)
+
+User report: ▲ / ▼ in the bar said to select a building or point at one. Selecting meant Decorate → Hand, and clicking a building lifts it; and pointing is impossible while you click the bar.
+
+- **Which building** (world-editor.js `levelOwner`), first that applies:
+  - the one you're in;
+  - the selected one;
+  - the one under the pointer (Page Up / Page Down only: on the way to the bar the pointer crosses others);
+  - the one in the middle of the view;
+  - the nearest to the middle of the view (within 16 tiles) with a floor that way. Going down, a dungeon's entrance counts too.
+- **The view** moves onto the building (or the dungeon level, or out at its entrance) when it isn't over it already (`focusOn`).
+- **The bar** names where you are, e.g. *Building 1 · Floor 2*; the status says where you went, and with nothing near, to pan to a building.
+- **Fixed on the way:**
+  - leaving a dungeon from the editor failed once the view had been inside it: the land streamer had let go of the ground at its entrance. An area may now have `prime(x, z)` (the editor's and Gelton's), and `spaces.js` loads the tile before stepping out onto it.
+  - you came out of a dungeon at the map's spawn, not its entrance: the entrance was matched on its walk-up tile rather than its placed corner (`entranceSpot`). This was in the game too.
+- **Checked in the browser:**
+  - with nothing selected and the view beside Building 1, ▲ went to its floor 2 with the view on it, and ▼ back;
+  - far from any building, ▲ says to pan to one;
+  - ▼ beside a new cave went in, ▲ came out at its entrance;
+  - Page Up while pointing at a building.
 
 ### Interior size rules (user decision, 2026-10-10)
 

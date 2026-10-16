@@ -74,13 +74,14 @@ test('a cave by hand: in from its entrance, down a level and back out to the ent
  const data=cottage(),rect=(w,d,ox=0,oz=0)=>{const out=[];for(let z=0;z<d;z++)for(let x=0;x<w;x++)out.push([x+ox,z+oz]);return out;};
  data.interiors.cave={kind:'dungeon',name:'Old cave',floors:[{level:-1,cells:rect(12,8),up:{at:[2,3],dir:'n'},furniture:[{kind:'barrel',at:[10,6]}]},{level:-2,cells:rect(20,6,-4,0),up:{at:[6,3],dir:'n'}}]};
  data.props.push({kind:'dungeonEntrance',x:20,z:20,link:'cave'});
- const {areas,spaces,builtMap,run}=await world(data),entrance=builtMap.props.find(p=>p.kind==='dungeonEntrance');entrance.link={kind:'dungeon',builtMap,id:'cave'};
+ const {areas,spaces,builtMap,arrivals,run}=await world(data),entrance=builtMap.props.find(p=>p.kind==='dungeonEntrance');entrance.link={kind:'dungeon',builtMap,id:'cave'};
  assert.ok(spaces.enter(entrance.link));run();assert.equal(areas.active.dungeon,'cave');assert.equal(areas.active.level,-1);
  assert.equal([...areas.active.tiles.values()].filter(t=>t.indoor).length,96,'its own shape');
  const down=wells(areas.active.group).find(w=>w.direction==='down');assert.ok(down,'a way down');down.interact();run();assert.equal(areas.active.level,-2);
  assert.equal([...areas.active.tiles.values()].filter(t=>t.indoor).length,120,'any size underground');
  wells(areas.active.group).find(w=>w.direction==='up').interact();run();assert.equal(areas.active.level,-1);
  wells(areas.active.group).find(w=>w.direction==='up').interact();run();assert.equal(areas.id,'town','out by the entrance');
+ const spot=entrance.spots[0].tile;assert.deepEqual(arrivals.at(-1).at,[spot.x,spot.z],'at the entrance, not the map’s spawn');
  const {interiorProblems}=await import('./spaces.js');assert.deepEqual(interiorProblems(data).filter(p=>p.kind==='dungeon'),[]);
 });
 
