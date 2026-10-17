@@ -4,17 +4,19 @@ import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
 import {toggleSwitch} from '../controls.js';
 import {ITEMS} from '../../items.js';
-import {formatGold, sellPrice} from '../../economy.js';
+import {itemKind} from '../../item-facts.js';
+import {itemInfo} from '../item-info.js';
 
 const REFUSED = 'Finish what you’re doing first.';
 
-// Inventory page: a grid of item stacks and the chosen item's detail (description, actions such
-// as Eat, Equip or Place, and per-item permissions such as Allow auto eating). Item actions and
-// settings come from the shared systems that own them:
+// Inventory page: a grid of item stacks and the chosen item's detail (kind, description, actions such
+// as Eat, Equip or Place, per-item permissions such as Allow auto eating, then its stats, requirements,
+// uses and value from ui/item-info.js). Item actions and settings come from the shared systems that own them:
 //   actions(id)  → [{label, disabled, run}]: `disabled` uses state the page can follow (the
 //                  reactive inventory, signals, `track`); run() returns false when refused.
 //   settings(id) → [{label, checked(), onChange(on)}].
 //   isEquipped(id), track() reads the revisions of systems the actions depend on.
+//   levelOf(track) → the character's level in a track, for requirement checks (optional).
 // `view` holds the search, chosen item and phone detail view (inventoryView()); its owner may
 // reset it, as the Sticks lesson does. `guide` ({item, action} or null) highlights a stack until it
 // is chosen, then that item's action button with the matching label (Eat, Place…). From another
@@ -29,7 +31,7 @@ export function inventoryView() {
   return view;
 }
 
-export function inventoryPage({inventory, actions = () => [], settings = () => [], isEquipped = () => false, track = () => {}, onSelect = () => {}, guide = signal(null), view = inventoryView()}) {
+export function inventoryPage({inventory, actions = () => [], settings = () => [], isEquipped = () => false, track = () => {}, levelOf = null, onSelect = () => {}, guide = signal(null), view = inventoryView()}) {
   const {query, chosen, viewing} = view;
   const status = signal('');
 
@@ -81,7 +83,7 @@ export function inventoryPage({inventory, actions = () => [], settings = () => [
         h('span', {class: 'q-item-detail__icon', 'aria-hidden': 'true'}, iconNode(id)),
         h('span', {class: 'q-item-detail__title'},
           h('h3', null, ITEMS[id].name),
-          h('small', null, () => `Quantity ${inventory[id] ?? 0}${worn.value ? ' · Equipped' : ''}${sellPrice(id) ? ` · Sells for ${formatGold(sellPrice(id))}` : ''}`))),
+          h('small', {class: 'q-item-detail__kind'}, itemKind(id), h('span', {class: 'q-item-detail__tag', hidden: () => !worn.value}, 'Equipped')))),
       h('p', {class: 'q-item-detail__copy'}, ITEMS[id].description),
       keyedList(h('div', {class: 'q-item-detail__actions'}), itemActions, action => action.index, action => h('button', {
         type: 'button',
@@ -92,7 +94,8 @@ export function inventoryPage({inventory, actions = () => [], settings = () => [
       }, () => action.value.label)),
       h('p', {class: 'q-page__status', role: 'status', hidden: () => !status.value}, status),
       keyedList(h('div', {class: 'q-item-detail__settings'}), computed(() => (track(), settings(id))), setting => setting.label,
-        setting => toggleSwitch({label: setting.peek().label, on: () => setting.value.checked(), onChange: on => setting.peek().onChange(on)})));
+        setting => toggleSwitch({label: setting.peek().label, on: () => setting.value.checked(), onChange: on => setting.peek().onChange(on)})),
+      itemInfo(id, {quantity: () => inventory[id] ?? 0, levelOf, track}));
   });
 
   return h('div', {

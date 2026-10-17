@@ -179,11 +179,12 @@ const trees=[];
 for(const t of world.values())if(t.blocked&&!t.water)trees.push(createResourceEntity({kind:BOULDER_TILES.has(key(t.x,t.z))?'boulder':'tree',tile:t,parent:scene,pickables}));
 createTerrainBatch({tiles:[...grassFor.keys()],map:world,factory:t=>makeTerrainTile(t,world,grassFor.get(t)),parent:scene,pickables,preserve:grass,roughness:.9,
  decorate(t,model){if(!t.blocked&&(t.x*17+t.z*13)%7===0){const flowers=makeFlowers();flowers.position.y=t.h;model.add(flowers);}}});
-// The opening's six pickups reach Gathering level 2 (an entity XP modifier), so its lesson can explain levels.
-const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[],CLEARING_GATHER_XP={scale:7,belowLevel:2};
+// The opening's six pickups reach Gathering level 2 (the curve's first step, combat-formulas.js LEVEL_TWO_XP), so its
+// lesson can explain levels.
+const resourceSpecs=[[4,6,'sticks'],[5,3,'stones'],[8,3,'sticks'],[7,7,'stones'],[9,9,'sticks'],[4,10,'stones']],resources=[];
 // Gathering after n of the opening's pickups, for checkpoints and lessons that start partway.
-const openingGathering=n=>{const xp=n*Math.round(actionXp(GATHER_EFFORT)*CLEARING_GATHER_XP.scale);return {xp,level:levelForXp(xp)};};
-resourceSpecs.forEach(([x,z,kind],id)=>resources.push(createResourceEntity({kind,tile:world.get(key(x,z)),parent:scene,pickables,id,xpBoost:CLEARING_GATHER_XP})));
+const openingGathering=n=>{const xp=n*actionXp(GATHER_EFFORT);return {xp,level:levelForXp(xp)};};
+resourceSpecs.forEach(([x,z,kind],id)=>resources.push(createResourceEntity({kind,tile:world.get(key(x,z)),parent:scene,pickables,id})));
 const clearingObjects=scene.children.filter(object=>!object.isLight);
 const clearingGroup=new THREE.Group();scene.add(clearingGroup);for(const object of clearingObjects)if(object!==ground)clearingGroup.add(object);
 for(const object of clearingObjects)object.visible=false;
@@ -279,7 +280,7 @@ function itemSettings(id){
 // Several systems (food, campfires, equipment, assistance, fishing, cooking…) are created after the
 // menus; the Inventory and Skills pages track this signal so they follow them once they exist.
 const systemsReady=signal(false);
-const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,trackSkills:()=>{systemsReady.value;character.revision.value;},startCraft:id=>recipeCrafting.start(id),craftActive:()=>(systemsReady.value,recipeCrafting?.activeId??null),items:{settings:itemSettings,isEquipped:id=>equipment?.isEquipped(id),track:()=>{systemsReady.value;equipment?.revision.value;assistance?.revision.value;companions?.revision.value;},actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[]),...(companions?.inventoryActions(id)||[])]}});
+const menus=createGameMenus({getInventory:()=>inventory,getSkills:()=>playerSkills(),getCharacter:()=>character,trackSkills:()=>{systemsReady.value;character.revision.value;},startCraft:id=>recipeCrafting.start(id),craftActive:()=>(systemsReady.value,recipeCrafting?.activeId??null),items:{settings:itemSettings,isEquipped:id=>equipment?.isEquipped(id),levelOf:track=>character.level(track),track:()=>{systemsReady.value;equipment?.revision.value;assistance?.revision.value;companions?.revision.value;character.revision.value;},actions:id=>[...(food?.inventoryActions(id)||[]),...(id==='cookedFish'?[{label:'Use as quick food',run:()=>playerInterface?.assignFood(id)}]:[]),...(campfires?.inventoryActions(id)||[]),...(equipment?.inventoryActions(id)||[]),...(companions?.inventoryActions(id)||[])]}});
 const craftingTutorial=createCraftingTutorial({menus,narrator,tip,freePlay:__PLAYGROUND__,onComplete:()=>finale.begin()});
 // Combat skills always list; proficiencies and armor skills appear once trained (Unarmed from the start).
 // Combat skills always list; proficiencies (Unarmed included) appear once they have XP.

@@ -104,12 +104,19 @@ test('action timing, requirements and backfire',()=>{
 });
 
 test('XP curve, caps and core conversion',()=>{
- assert.equal(Math.ceil(f.totalXpForLevel(2)),562);assert.equal(Math.ceil(f.totalXpForLevel(3)),852);
+ // Cheap first levels (level 2 at 84 XP), each step a little dearer, joining the adopted curve at level 40.
+ assert.equal(Math.ceil(f.totalXpForLevel(2)),f.LEVEL_TWO_XP);assert.equal(Math.ceil(f.totalXpForLevel(3)),231);
+ const adopted=l=>12500*(9**(l/100)-1);
+ for(const l of [40,41,60,100,200])close(f.totalXpForLevel(l),adopted(l),1e-6);
  close(f.totalXpForLevel(100),100000,1e-6);
- assert.equal(f.levelForXp(0),1);assert.equal(f.levelForXp(562),2);assert.equal(f.levelForXp(561),1);
+ for(let l=2;l<60;l++){
+  assert.ok(f.totalXpForLevel(l+1)-f.totalXpForLevel(l)>=f.totalXpForLevel(l)-f.totalXpForLevel(l-1),`each step costs at least the last (${l})`);
+  assert.equal(f.levelForXp(Math.ceil(f.totalXpForLevel(l))),l);assert.equal(f.levelForXp(Math.ceil(f.totalXpForLevel(l))-1),l-1);
+ }
+ assert.equal(f.levelForXp(0),1);assert.equal(f.levelForXp(84),2);assert.equal(f.levelForXp(83),1);
  assert.equal(f.levelForXp(1e12),500);
  const progress=f.levelProgress(0);assert.equal(progress.floor,0);close(progress.next,f.totalXpForLevel(2));
- assert.equal(f.XP_BASE,15);assert.equal(f.actionXp(3),18,'15 base + 1 per HP (health is 10× the source scale)');assert.equal(f.actionXp(0),15);assert.equal(f.actionXp(-4),15);
+ assert.equal(f.XP_BASE,6);assert.equal(f.actionXp(10),16,'6 base + 1 per HP');assert.equal(f.actionXp(0),6);assert.equal(f.actionXp(-4),6);
  assert.equal(f.cappedAward(200,0,{multiplier:.5,levelCap:3}),100);
  const near=f.totalXpForLevel(3)-10;close(f.cappedAward(80,near,{multiplier:.5,levelCap:3}),10);
  assert.equal(f.cappedAward(80,f.totalXpForLevel(3)+1,{multiplier:.5,levelCap:3}),0);

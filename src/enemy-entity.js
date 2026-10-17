@@ -18,9 +18,9 @@ const MODELS={
  scrapper:{create:()=>goblin(),animate:animateGoblin,height:1.7,character:true},
  bruiser:{create:()=>goblin(true),animate:animateGoblin,scale:1.18,height:1.7,character:true},
  // A 2×2 body: its placement tile is the anchor corner (footprint.js).
- vole:{create:()=>critter('vole'),animate:animateCritter,height:.9,plateLift:1,aimHeight:.3,character:true},
- squirrel:{create:()=>critter('squirrel'),animate:animateCritter,scale:.95,height:1,plateLift:1.15,aimHeight:.35,shots:{ranged:'acorn'},character:true},
- cragRat:{create:()=>critter('cragRat'),animate:animateCritter,scale:1.1,height:.95,plateLift:1.05,aimHeight:.35,character:true},
+ vole:{create:()=>critter('vole'),animate:animateCritter,height:.6,plateLift:.75,aimHeight:.22,character:true},
+ squirrel:{create:()=>critter('squirrel'),animate:animateCritter,scale:.95,height:.9,plateLift:1.05,aimHeight:.35,shots:{ranged:'acorn'},character:true},
+ cragRat:{create:()=>critter('cragRat'),animate:animateCritter,scale:1.1,height:.65,plateLift:.8,aimHeight:.22,character:true},
  crab:{create:()=>arthropod('crab'),animate:animateArthropod,scale:1.1,height:.9,plateLift:1,aimHeight:.3,character:true},
  spider:{create:()=>arthropod('spider'),animate:animateArthropod,scale:1.15,height:1,plateLift:1.1,aimHeight:.4,shots:{ranged:'silk'},character:true},
  scorpion:{create:()=>arthropod('scorpion'),animate:animateArthropod,scale:1.3,height:1.2,plateLift:1.3,aimHeight:.35,character:true},
@@ -48,11 +48,11 @@ export function createEnemyEntity({kind,tile,parent,pickables,patrol,patrolRadiu
  // read live so the NPCs tool's edits reach spawned enemies.
  if(patrol)a.patrol=patrol;else Object.defineProperty(a,'patrol',{get:()=>patrolArea(a),enumerable:true});
  Object.defineProperty(a,'hp',{get(){return hp.value;},set(next){hp.value=next;},enumerable:true});
- // The hover (ui/hud/hover-tip.js): "Attack <name>", then its Threat as "Level N" (coloured against the player's
+ // The hover (ui/hud/hover-tip.js): "Attack" (the verb, drawn lighter) and the name, then its Threat as "Level N" (coloured against the player's
  // by whoever shows it) and short notes. Inert targets have no Threat, so no level. `label` is the same as one line.
  Object.defineProperty(a,'hover',{get(){const notes=[rules.boss?'Boss':null,a.attacksPacifists??rules.attacksPacifists?'⚠ Hunts pacifists':null].filter(Boolean).join(' · ');
-  return {text:`Attack ${rules.name}`,level:rules.threat?.level??null,notes};},enumerable:true});
- Object.defineProperty(a,'label',{get(){const {text,level,notes}=a.hover;return [text,level!=null?`Level ${level}`:null,notes||null].filter(Boolean).join(' · ');},enumerable:true});
+  return {verb:'Attack',text:rules.name,level:rules.threat?.level??null,notes};},enumerable:true});
+ Object.defineProperty(a,'label',{get(){const {verb,text,level,notes}=a.hover;return [`${verb} ${text}`,level!=null?`Level ${level}`:null,notes||null].filter(Boolean).join(' · ');},enumerable:true});
  const meshes=[];group.traverse(m=>{if(m.isMesh){m.userData.actor=a;m.userData.tile=tile;pickables.push(m);meshes.push(m);}});
  a.highlight=highlightResource(group,{height:model.height});
  a.dispose=()=>{plateView.dispose();group.removeFromParent();for(const m of meshes){const index=pickables.indexOf(m);if(index>=0)pickables.splice(index,1);}group.traverse(m=>{if(!m.geometry?.userData.shared)m.geometry?.dispose();});};

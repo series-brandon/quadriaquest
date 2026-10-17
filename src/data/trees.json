@@ -4,6 +4,7 @@
   "level": 1,
   "effort": 4,
   "respawn": 10,
+  "xp": 28,
   "drops": {
    "always": [
     {
@@ -18,6 +19,7 @@
   "level": 10,
   "effort": 6,
   "respawn": 15,
+  "xp": 50,
   "drops": {
    "always": [
     {
@@ -32,6 +34,7 @@
   "level": 20,
   "effort": 6,
   "respawn": 20,
+  "xp": 60,
   "drops": {
    "always": [
     {
@@ -46,6 +49,7 @@
   "level": 30,
   "effort": 6,
   "respawn": 30,
+  "xp": 72,
   "drops": {
    "always": [
     {
@@ -60,6 +64,7 @@
   "level": 40,
   "effort": 9,
   "respawn": 45,
+  "xp": 130,
   "drops": {
    "always": [
     {
@@ -74,6 +79,7 @@
   "level": 50,
   "effort": 9,
   "respawn": 60,
+  "xp": 156,
   "drops": {
    "always": [
     {
@@ -88,6 +94,7 @@
   "level": 60,
   "effort": 9,
   "respawn": 90,
+  "xp": 188,
   "drops": {
    "always": [
     {
@@ -102,6 +109,7 @@
   "level": 70,
   "effort": 13,
   "respawn": 120,
+  "xp": 326,
   "drops": {
    "always": [
     {
@@ -116,6 +124,7 @@
   "level": 80,
   "effort": 13,
   "respawn": 180,
+  "xp": 392,
   "drops": {
    "always": [
     {
@@ -130,6 +139,7 @@
   "level": 90,
   "effort": 13,
   "respawn": 240,
+  "xp": 470,
   "drops": {
    "always": [
     {

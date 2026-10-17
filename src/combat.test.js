@@ -20,7 +20,7 @@ import {markCharacter} from './world-occupancy.js';
 import {findPath,setEdge} from './world.js';
 import {createCharacter} from './character.js';
 import {createResource} from './player-resources.js';
-import {totalXpForLevel,XP_BASE} from './combat-formulas.js';
+import {totalXpForLevel,XP_BASE,XP_PER_HP,actionXp} from './combat-formulas.js';
 // roll .5: ordinary hit both ways (no crit, dodge, block or 1% enemy miss). roll .005: enemy misses; player crits.
 const BRUISER_HIT=12,PLAYER_INTERVAL=2.55/1.02,CAST_INTERVAL=3/1.02;
 // openingWindup: null pins full-windup timing for tests of other mechanics (the opening is tested separately).
@@ -47,15 +47,15 @@ test('equipment is available without an area, guards stale actions, and clears m
 test('unarmed and equipped fights win once, award per-attack XP, retain equipment, and reset for repeated combat',()=>{
  // Nonlethal, so the 30 HP fixture player outlasts a long unarmed fight (the Scrapper itself can defeat the player).
  const f=fixture('scrapper');f.a.rules=nonlethal(f.a.rules);assert.ok(f.system.start(f.a));assert.equal(f.system.start(f.a),false);for(let i=0;i<30;i++)f.system.update(1.5,i);assert.equal(f.wins,1);assert.equal(f.a.opened,true);assert.equal(f.home.blocked,false);
- // Unarmed Technical: strategy XP to Melee Technique and the same amount to Unarmed proficiency, 50 + 1 × HP removed per attack.
- const technique=f.character.tracks['melee.technique'].xp;assert.equal(technique,f.character.tracks['prof.unarmed'].xp);assert.equal(technique,8*XP_BASE+ENEMIES.scrapper.health);assert.ok(f.character.core.xp>0);
+ // Unarmed Technical: strategy XP to Melee Technique and the same amount to Unarmed proficiency, XP_BASE + XP_PER_HP × HP removed per attack.
+ const technique=f.character.tracks['melee.technique'].xp;assert.equal(technique,f.character.tracks['prof.unarmed'].xp);assert.ok(Math.abs(technique-(8*XP_BASE+XP_PER_HP*ENEMIES.scrapper.health))<1e-9,`${technique}`);assert.ok(f.character.core.xp>0);
  f.system.reset();f.equipment.toggle('swords');f.equipment.toggle('crudeShield');assert.ok(f.system.start(f.a));for(let i=0;i<15;i++)f.system.update(1.5,i);assert.equal(f.wins,2);assert.ok(f.character.tracks['prof.sword'].xp>0);assert.equal(f.inventory.swords,1);assert.equal(f.equipment.isEquipped('swords'),true);
 });
 test('enemy misses, shield mitigation, shield XP and the nonlethal setting use shared rules',()=>{
  const f=fixture();f.roll=.005;f.system.start(f.a);f.system.update(PLAYER_INTERVAL,2.5);assert.ok(f.a.hp<ENEMIES.bruiser.health);f.system.update(2.5,5);assert.equal(f.health.value,30,'1% enemy miss');f.system.cancel();
  f.roll=.5;f.equipment.toggle('crudeShield');f.system.start(f.a);f.system.update(2.5,7.5);f.system.update(2.5,10);
  // Wooden Shield +30 and starting Defense/Toughness/Shield proficiency: 3.11% of a 12 roll still rounds to 12.
- assert.equal(f.health.value,30-BRUISER_HIT);assert.equal(f.character.tracks['prof.shield'].xp,XP_BASE+BRUISER_HIT);
+ assert.equal(f.health.value,30-BRUISER_HIT);assert.ok(Math.abs(f.character.tracks['prof.shield'].xp-actionXp(BRUISER_HIT))<1e-9);
  // "Can't defeat the player" leaves 1 HP; without it (the Scrapper since 2026-10-17) a hit at 1 HP defeats.
  const training=fixture('scrapper');training.a.rules=nonlethal(training.a.rules);training.health.value=1;training.system.start(training.a);training.system.update(2.5,3);training.system.update(2.5,5.5);assert.equal(training.health.value,1);assert.equal(training.system.busy,false);
  assert.equal(ENEMIES.scrapper.protected,undefined,'the Scrapper can defeat the player');
@@ -89,11 +89,11 @@ test('inert targets never attack, award half XP below level 3, spend Mana per ca
  // Energy Strike at starting stats: 1–22; roll .5 → 12. Four casts leave 2 HP; the fifth removes 2.
  const f=fixture('target');f.a.respawn=1;f.styles.learn('energyStrike');f.styles.select('energyStrike');f.system.start(f.a);for(let i=0;i<20&&!f.a.opened;i++)f.system.update(1,i);
  assert.equal(f.a.opened,true);assert.equal(f.health.value,30);assert.equal(f.mana.value,100-5*4);
- const expected=.5*(4*(XP_BASE+12)+(XP_BASE+2));assert.equal(f.character.tracks['magic.technique'].xp,expected);assert.equal(f.character.tracks['prof.energy'].xp,expected);
+ const expected=.5*(4*actionXp(12)+actionXp(2));for(const t of ['magic.technique','prof.energy'])assert.ok(Math.abs(f.character.tracks[t].xp-expected)<1e-9,`${t} ${f.character.tracks[t].xp}`);
  f.system.update(3,21);assert.equal(f.a.opened,false);assert.equal(f.a.hp,ENEMIES.target.health);assert.ok(f.system.start(f.a));f.system.disengage();assert.equal(f.system.state.chase,null);
 });
 test('practice target XP stops at each receiving track level 3 without overflow',()=>{
- const f=fixture('target');f.character.setLevel('melee.technique',3);f.character.tracks['prof.unarmed'].xp=850;f.system.start(f.a);f.system.update(2.5,2.5);
+ const f=fixture('target');f.character.setLevel('melee.technique',3);f.character.tracks['prof.unarmed'].xp=Math.ceil(totalXpForLevel(3))-2;f.system.start(f.a);f.system.update(2.5,2.5);
  const threshold=totalXpForLevel(3);
  assert.equal(f.character.tracks['melee.technique'].xp,Math.ceil(threshold),'already at the cap: no XP');
  assert.equal(f.character.tracks['prof.unarmed'].xp,threshold,'truncated to the level-3 threshold');assert.equal(f.character.tracks['prof.unarmed'].level,3);

@@ -5,6 +5,7 @@ import {iconNode} from '../icon.js';
 import {keyedList} from '../list.js';
 import {segmented} from '../controls.js';
 import {formatGold, GOLD, NEEDED_TOOLS} from '../../economy.js';
+import {itemInfo} from '../item-info.js';
 
 // The shared shop screen (docs/ECONOMY.md) for the modal host: Buy and Sell, the goods on the left
 // and the chosen item's detail on the right (one at a time on phones), with quantity buttons
@@ -86,6 +87,7 @@ export function shopDialog({shopId, shops, items, inventory, wallet, greeting = 
         h('div', {class: 'q-item-detail__title'}, h('h3', null, name(id)),
           h('small', null, () => `${verb()} ${formatGold(price(id))} each · you have ${inventory[id] || 0}`))),
       h('p', {class: 'q-item-detail__copy'}, items[id]?.description || ''),
+      itemInfo(id),
       h('div', {class: 'q-shop__amount', role: 'group', 'aria-label': 'Quantity'},
         ...[1, 5].map(k => h('button', {type: 'button', class: 'q-button q-button--small q-button--quiet', 'aria-pressed': () => n.value === k && most.value >= k, disabled: () => most.value < k, on: {click: () => { amount.value = k; }}}, String(k))),
         h('button', {type: 'button', class: 'q-button q-button--small q-button--quiet', 'aria-pressed': () => most.value > 0 && n.value === most.value, disabled: () => most.value < 1, on: {click: () => { amount.value = most.value; }}}, 'All'),

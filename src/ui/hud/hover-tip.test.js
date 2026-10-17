@@ -16,17 +16,21 @@ test('an opponent shows "Attack <name>" over its coloured Level; plain hints are
   tip.show({text: 'Move here'});
   assert.equal(node.hidden, false);
   assert.equal(part('title').textContent, 'Move here');
+  assert.equal(part('verb').hidden, true, 'a plain hint has no separate verb');
   assert.equal(part('detail').hidden, true, 'no second line for a plain hint');
 
-  tip.show({text: 'Attack Stone Scorpion', level: 21, tone: 'high', notes: ''});
+  tip.show({verb: 'Attack', text: 'Stone Scorpion', level: 21, tone: 'high', notes: ''});
   assert.equal(part('title').textContent, 'Attack Stone Scorpion');
+  assert.equal(part('verb').textContent, 'Attack ', 'the verb is its own, lighter part');
+  assert.equal(part('verb').hidden, false);
+  assert.equal(tip.state.text, 'Attack Stone Scorpion');
   assert.equal(part('detail').hidden, false);
   assert.equal(part('level').textContent, 'Level 21');
   assert.equal(part('level').dataset.tone, 'high');
   assert.equal(part('notes').hidden, true);
 
   const label = part('level').firstChild;
-  tip.show({text: 'Attack Stone Scorpion', level: 21, tone: 'high', notes: ''});
+  tip.show({verb: 'Attack', text: 'Stone Scorpion', level: 21, tone: 'high', notes: ''});
   assert.equal(part('level').firstChild, label, 'the same hover again leaves its text alone');
 
   tip.show({text: 'Attack Cinder Golem', level: 75, tone: 'high', notes: 'Boss · ⚠ Hunts pacifists'});

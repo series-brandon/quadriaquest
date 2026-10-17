@@ -86,16 +86,30 @@ export const elementalPowerBonus=weightedLevel=>weightedLevel/20;
 export const weightedLevel=(shares,levels)=>Object.entries(shares).reduce((s,[k,share])=>s+share*(levels[k]??1),0);
 
 // ── XP curve ────────────────────────────────────────────────────────────────
-export const totalXpForLevel=level=>level<=1?0:12500*(9**(level/100)-1);
-export const rawLevel=xp=>100*Math.log(1+Math.max(0,xp)/12500)/Math.log(9);
+// One curve for every skill, combat track, proficiency and core level. From level 40 it is the adopted curve
+// (100,000 XP at level 100). Below it the first levels are cheap: level 2 needs LEVEL_TWO_XP (three Poplars,
+// six pickups) and each level costs a little more than the last, joining the adopted curve at
+// EARLY_CURVE_UNTIL with almost the same step. Rewards are tuned against it (docs/COMBAT.md, Levels and XP).
+export const LEVEL_TWO_XP=84;
+export const EARLY_CURVE_UNTIL=40;
+const adoptedXp=level=>12500*(9**(level/100)-1);
+const EARLY_XP=adoptedXp(EARLY_CURVE_UNTIL),EARLY_POWER=Math.log(EARLY_XP/LEVEL_TWO_XP)/Math.log(EARLY_CURVE_UNTIL-1);
+export const totalXpForLevel=level=>level<=1?0:level>=EARLY_CURVE_UNTIL?adoptedXp(level):EARLY_XP*((level-1)/(EARLY_CURVE_UNTIL-1))**EARLY_POWER;
+export const rawLevel=xp=>{
+ xp=Math.max(0,xp);
+ return xp>=EARLY_XP?100*Math.log(1+xp/12500)/Math.log(9):1+(EARLY_CURVE_UNTIL-1)*(xp/EARLY_XP)**(1/EARLY_POWER);
+};
 export const levelForXp=xp=>Math.min(MAX_LEVEL,Math.max(1,Math.floor(rawLevel(xp)+1e-9)));
 export function levelProgress(xp){
  const level=levelForXp(xp),floor=totalXpForLevel(level),next=level>=MAX_LEVEL?null:totalXpForLevel(level+1);
  return {level,xp,floor,next,remaining:next==null?0:Math.max(0,next-xp),fraction:next==null?1:(xp-floor)/(next-floor)};
 }
-// Action XP: a flat base per resolved action plus 1 XP per HP of damage/healing. Health and damage are
-// 10× the source design's scale, so its +10 per HP becomes +1 here (same XP per original-scale hit).
-export const XP_BASE=15,XP_PER_HP=1;
+// Action XP: a small flat base per resolved action (a miss still teaches a little) plus 1 XP per HP of
+// damage/healing, in whole numbers. Tuned against the curve's cheap first levels (decided 2026-10-17): the
+// first combat levels come in a handful of attacks, and from about level 15 on a fight levels within a few
+// percent of its pace on the plain adopted curve with the old 15 + 1 per HP (combat-systems.test.js,
+// combat pacing).
+export const XP_BASE=6,XP_PER_HP=1;
 export const actionXp=amount=>XP_BASE+XP_PER_HP*Math.max(0,amount);
 
 // Entity multiplier then exclusive level cap with threshold truncation; never overflows.

@@ -30,6 +30,13 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 
 ## Recent fixes already made
 
+### Early levels, tree XP, combat rewards and item details — 2026-10-17 (user feedback and decisions)
+
+- **One shared XP curve, cheap first levels** (`combat-formulas.js`): level 2 at 84 XP, each step a little dearer, the adopted curve unchanged from level 40. It covers every skill, combat track, proficiency and core level. The user ruled out level-based boosts and separate curves: tune activities by their rewards.
+- **Tree XP is data**: each tier's `xp` in `trees.json` is 2× the effort pace (Poplar 28). Lumberjack 2 after 3 Poplars, 10 in ~5 minutes, 100 in ~1.3 h. The opening's ×7 pickup boost is gone; plain pickups reach Gathering 2 on the sixth.
+- **Combat rewards retuned** to `6 + 1 × HP` (was 15 + 1; whole numbers, user request) so combat keeps its pace from about level 15 on; the first combat and core levels are now quick. `combat-systems.test.js` (combat pacing) holds core 20/40 and Dagger 20/40 within 10% of the old attack counts. Not yet played through the Cinderhold tutorial fights on the new numbers.
+- **Item details** (`item-facts.js`, `ui/item-info.js`): kind line, Stats, Requires (against your levels), Use and Value rows in Inventory, shops and recipe details; item descriptions are flavour only.
+
 ### Drop tables carry every yield; effort in seconds; gold an item — 2026-10-16 (user feedback)
 - `src/data/trees.json` is one row per tree (`name`, `level`, `effort` seconds, `respawn`, `drops`, optional `xp`); effort size classes are gone. `resources.json` the same without `name`. Their wood/stone/ore comes from `drops.always`; `yield`, `item` and tree `value`/`wood`/`woodName`/`description` are gone. Wood items (names, descriptions, prices) are written out in `items.js`, which now exports `WOODS`.
 - `rollDrops(table, random, {boost})` boosts sure drops (the level yield bonus for tool work); resources roll their table at reward (`resource-actions.js`). The drop format has no `gold` field: Gold Pieces are the `gold` item (`enemies.json` lists it in `always`).

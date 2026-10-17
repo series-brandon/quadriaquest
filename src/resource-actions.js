@@ -25,7 +25,7 @@ export function resourceBlocker(node,inventory,skills){
  return rules.tool?toolBlocker(rules.tool,inventory,level):null;
 }
 // A node's XP for one reward: its configured `xp`, else the effort pace; then its entity modifier
-// (`xpBoost: {scale, belowLevel}`; tutorial areas boost early levels this way, as Cinderhold's creatures do).
+// (`xpBoost: {scale, belowLevel}`, like Cinderhold's creature boost; no resource uses one now).
 export function resourceXp(node,rules,skill){
  const base=rules.xp??actionXp(rules.effort,rules.level),boost=node.xpBoost;
  return boost&&skill.level<(boost.belowLevel??Infinity)?Math.round(base*(boost.scale??1)):base;

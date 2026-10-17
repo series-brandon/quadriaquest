@@ -5,12 +5,13 @@ import {keyedList} from '../list.js';
 import {subTabs, toggleSwitch} from '../controls.js';
 import {SPELLS, ABILITIES} from '../../combat-styles.js';
 import {AURAS} from '../../auras.js';
+import {XP_BASE, XP_PER_HP} from '../../combat-formulas.js';
 import {TRACKS} from '../../character.js';
 
 const title = s => s[0].toUpperCase() + s.slice(1);
 const trackName = id => TRACKS.find(track => track.id === id)?.name ?? id;
 // Damage spells earn the shared per-action award (docs/COMBAT.md, combat XP).
-const SPELL_XP = '15 XP per cast, +1 per damage dealt';
+const SPELL_XP = `${XP_BASE} XP per cast, +${XP_PER_HP} per damage dealt`;
 
 // Powers page: Spells, Auras and Abilities as sub-tabs. Each lists what you know, plus `listed`
 // entries you haven't learned yet (greyed, with requirements and where to learn them); unlisted

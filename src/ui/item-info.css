@@ -1,0 +1,32 @@
+/* Item facts in an item detail (ui/item-info.js): titled parts of label/value rows. */
+.q-item-info { display: grid; gap: 12px; }
+.q-item-info__part { display: grid; gap: 2px; }
+.q-item-info__part h4 { margin: 0; padding-block-end: 4px; border-block-end: 1px solid var(--q-line); }
+.q-facts { display: grid; margin: 0; }
+.q-facts__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 5px;
+  border-block-end: 1px solid var(--q-line);
+  font-size: 13px;
+}
+.q-facts__row:last-child { border-block-end: 0; }
+.q-facts dt { flex: none; color: var(--q-ink-muted); }
+.q-facts dd { margin: 0; min-inline-size: 0; color: var(--q-ink); font-family: var(--q-font-numeric); font-weight: 700; text-align: end; }
+.q-facts__row[data-missing] dd { color: var(--q-missing); }
+.q-item-info__note { margin: 4px 0 0; padding: 6px 8px; border-radius: 6px; background: var(--q-missing-wash); color: var(--q-missing); font-size: 12px; }
+.q-item-info__note[hidden] { display: none; }
+
+/* The detail head's kind line and Equipped tag. */
+.q-item-detail__kind { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.q-item-detail__tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--q-control-pressed);
+  color: var(--q-ink-on-dark);
+  font-size: 10px;
+  font-weight: 700;
+}
+.q-item-detail__tag[hidden] { display: none; }

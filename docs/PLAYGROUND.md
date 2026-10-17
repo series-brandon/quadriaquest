@@ -122,7 +122,7 @@ Short drifting shimmer lines in the clearing and splash ponds. Compare surface w
 
 ## Skills
 
-Every skill and proficiency uses the adopted XP curve and routes through the production award (core XP converts 5:1; each core level grants 3 attribute points). Pacing rules are in [DESIGN.md](DESIGN.md#skill-tiers-and-pacing).
+Every skill and proficiency uses the one shared XP curve (cheap first levels, then the adopted curve from 40) and routes through the production award (core XP converts 5:1; each core level grants 3 attribute points). Pacing rules are in [DESIGN.md](DESIGN.md#skill-tiers-and-pacing).
 
 ## Character & combat profile
 
@@ -133,6 +133,10 @@ Abilities and auras use the production queue and Ki system (no mentor yet: learn
 ## Assistance, dual wield, armor, control & backfire
 
 All production systems. **Assistance**: the Combat menu's Auto/Manual, Pacifist, Class (runs Optimize), training goal and Advanced settings; Auto reads actual enemy stats for warnings (HUD status), adaptive retaliation (withheld at 1–3 hits unless you attacked that target), auto-eat at ≤150% of the max hit and auto auras. Lower health or fight a Bruiser to see bands; Show assistance state prints the assessment. **Hands**: any one-handed item (shields too) fits either hand, and a bow can be held in either. Add a second Copper Dagger via Inventory, equip the right and left hands from Equipment, then set Dominant hand, Attack hands and per-hand damage types in Combat → Attack setup. The model viewer previews every combination, left-handed included. **Armor**: add test pieces (Medium/Heavy ones need levels 10/20 to be fully effective), wear them, take hits for armor XP. **Crude gear**: Inventory → *Add crude gear* gives one Crude Dagger, Crude Sword, Crude Shield and Crude Helm (real items, the weakest tier; the helm is light Head armor, so *Add all test armor* adds it too). Equip them from Equipment (the daggers stab or slash by damage type, the sword slashes), fight a practice enemy, and take hits in the helm for Light Armor and Helm XP. Crafting makes all four from Sticks and Rocks; the Weaponsmith and Armourer stock them. The model viewer holds the dagger and sword in either hand and wears the helm in the Head slot. **Control**: test stuns/slows on you or the nearest enemy; protection windows show in the HUD status and enemy label. **Backfire**: raise Energy Strike's Magic Technique requirement, then cast (Combat shows the risk). Full test area resets all of these.
+
+## Item details
+
+The Inventory page's item detail (and the shop and Crafting details) lays out the item's kind, Stats, Requires, Use and Value from the shared item facts (`item-facts.js`, `ui/item-info.js`). Add items with Inventory controls, then open each in Inventory: *Add crude gear* and a Copper Dagger for weapon and shield stats, *Add all test armor* for armor (the Medium/Heavy pieces need levels 10/20, so their requirement rows turn red and the note says how much the bonuses shrink; raise the armor skill in Skills and watch it clear), Cooked Pondfish for food, a Crude Axe for a tool, gold for an unsellable stack. Change a quantity and the Value part follows. Edit an item's stats in the Items type tool and reopen it to see the change. Full test area resets the inventory.
 
 ## Economy
 

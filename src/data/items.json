@@ -20,7 +20,7 @@
  },
  "copperDagger": {
   "name": "Copper Dagger",
-  "description": "A copper blade you can smith yourself. One hand · +10 melee Power and Accuracy · stab or slash · trains Dagger proficiency.",
+  "description": "A copper blade you can smith yourself. Stab or slash.",
   "value": 40,
   "category": "weapon",
   "equipment": {
@@ -39,7 +39,7 @@
  },
  "copperShield": {
   "name": "Copper Shield",
-  "description": "One hand · +50 resistance (5% less damage) · trains Shield proficiency when hit or blocking. Cannot be held with a bow.",
+  "description": "A sturdy copper shield. Cannot be held with a bow.",
   "value": 80,
   "category": "armour",
   "equipment": {
@@ -53,7 +53,7 @@
  },
  "bows": {
   "name": "Training Bow",
-  "description": "Two hands · +10 ranged Power and Accuracy · range 6 tiles. Uses one Training Arrow per shot, including misses.",
+  "description": "A simple practice bow. Uses one Training Arrow per shot, including misses.",
   "value": 30,
   "category": "weapon",
   "equipment": {
@@ -80,7 +80,7 @@
  },
  "swords": {
   "name": "Stone Sword",
-  "description": "A sturdy stone blade. One hand · +6 melee Power and Accuracy · trains Sword proficiency.",
+  "description": "A sturdy stone blade.",
   "value": 20,
   "category": "weapon",
   "equipment": {
@@ -99,7 +99,7 @@
  },
  "crudeShield": {
   "name": "Crude Shield",
-  "description": "Sticks lashed around a rock boss. One hand · +30 resistance (3% less damage) · trains Shield proficiency when hit or blocking.",
+  "description": "Sticks lashed around a rock boss.",
   "value": 12,
   "category": "armour",
   "equipment": {
@@ -113,7 +113,7 @@
  },
  "crudeDagger": {
   "name": "Crude Dagger",
-  "description": "A sharp rock lashed to a stick. One hand · +3 melee Power and Accuracy · stab or slash · trains Dagger proficiency.",
+  "description": "A sharp rock lashed to a stick. Stab or slash.",
   "value": 8,
   "category": "weapon",
   "equipment": {
@@ -132,7 +132,7 @@
  },
  "crudeSword": {
   "name": "Crude Sword",
-  "description": "A flat stick blade studded with rock chips. One hand · +4 melee Power and Accuracy · trains Sword proficiency.",
+  "description": "A flat stick blade studded with rock chips.",
   "value": 12,
   "category": "weapon",
   "equipment": {
@@ -151,7 +151,7 @@
  },
  "crudeHelm": {
   "name": "Crude Helm",
-  "description": "Sticks bent and bound into a cap, with a rock on top. Head · light armor · +10 resistance (1% less damage) · trains Helm proficiency when hit.",
+  "description": "Sticks bent and bound into a cap, with a rock on top.",
   "value": 12,
   "category": "armour",
   "equipment": {
@@ -212,7 +212,7 @@
  },
  "cookedFish": {
   "name": "Cooked Pondfish",
-  "description": "A warm meal. Restores 20 health, up to your maximum.",
+  "description": "A warm meal.",
   "value": 15,
   "category": "food",
   "consume": {
@@ -239,7 +239,7 @@
  },
  "pickaxes": {
   "name": "Crude Pickaxe",
-  "description": "A simple pickaxe for mining boulders. Keep it in your inventory to use it.",
+  "description": "A simple pickaxe for mining boulders.",
   "value": 9,
   "category": "tool",
   "equipment": {
@@ -255,7 +255,7 @@
  },
  "crudeAxe": {
   "name": "Crude Axe",
-  "description": "A simple axe for chopping trees. Keep it in your inventory to use it.",
+  "description": "A simple axe for chopping trees.",
   "value": 9,
   "category": "tool",
   "equipment": {
@@ -325,7 +325,7 @@
  },
  "hats": {
   "name": "Top Hat",
-  "description": "A rather fancy reward for a hard-working adventurer. Equip it here to wear it.",
+  "description": "A rather fancy reward for a hard-working adventurer.",
   "value": 60,
   "category": "hat",
   "equipment": {
@@ -334,7 +334,7 @@
  },
  "staffs": {
   "name": "Simple Staff",
-  "description": "A wooden staff topped with a glowing crystal. Spell focus: +6 magic Power and Accuracy to your spells while held. One hand · +5 melee Power and Accuracy · bludgeoning swing · trains Staff proficiency.",
+  "description": "A wooden staff topped with a glowing crystal. Its crystal strengthens your spells while held; up close, it swings.",
   "value": 45,
   "category": "weapon",
   "equipment": {
@@ -357,7 +357,7 @@
  },
  "ironSkullcap": {
   "name": "Iron Skullcap",
-  "description": "Sergeant Bristle's brimless iron cap, with a raised ridge and cheek guards. Equip it to wear it.",
+  "description": "Sergeant Bristle's brimless iron cap, with a raised ridge and cheek guards.",
   "value": 50,
   "category": "hat",
   "equipment": {
@@ -366,7 +366,7 @@
  },
  "minersCap": {
   "name": "Miner's Cap",
-  "description": "Borin's sturdy cap, with a little lamp at the front. Equip it to wear it.",
+  "description": "Borin's sturdy cap, with a little lamp at the front.",
   "value": 40,
   "category": "hat",
   "equipment": {
@@ -375,7 +375,7 @@
  },
  "archerCap": {
   "name": "Archer's Cap",
-  "description": "Fletch's feathered felt cap: peak in front, brim turned up behind. Equip it to wear it.",
+  "description": "Fletch's feathered felt cap: peak in front, brim turned up behind.",
   "value": 40,
   "category": "hat",
   "equipment": {
@@ -384,7 +384,7 @@
  },
  "wizardHat": {
   "name": "Wizard Hat",
-  "description": "Wisp's tall hat with a curled tip, gold band and stars. Equip it to wear it.",
+  "description": "Wisp's tall hat with a curled tip, gold band and stars.",
   "value": 50,
   "category": "hat",
   "equipment": {
@@ -393,7 +393,7 @@
  },
  "breathHeadband": {
   "name": "Breath Headband",
-  "description": "Ember's cloth headband, with a ring of calm breath floating above. Equip it to wear it.",
+  "description": "Ember's cloth headband, with a ring of calm breath floating above.",
   "value": 40,
   "category": "hat",
   "equipment": {
@@ -402,7 +402,7 @@
  },
  "fishersHat": {
   "name": "Fisher's Hat",
-  "description": "Reed's wide-brimmed straw hat, for long days by the water. Equip it to wear it.",
+  "description": "Reed's wide-brimmed straw hat, for long days by the water.",
   "value": 40,
   "category": "hat",
   "equipment": {

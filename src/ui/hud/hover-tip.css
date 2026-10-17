@@ -16,7 +16,9 @@
   white-space: nowrap;
 }
 .q-hover-tip[hidden] { display: none; }
-.q-hover-tip__title { font-weight: 600; }
+.q-hover-tip__title { font-weight: 700; }
+.q-hover-tip__verb { font-weight: 400; opacity: .85; }
+.q-hover-tip__verb[hidden] { display: none; }
 .q-hover-tip__detail { display: flex; gap: 6px; font-size: 11px; }
 .q-hover-tip__detail[hidden], .q-hover-tip__level[hidden], .q-hover-tip__notes[hidden] { display: none; }
 .q-hover-tip__level { font-weight: 700; }

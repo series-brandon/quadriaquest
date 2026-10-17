@@ -4,6 +4,7 @@ import {Group} from 'three';
 import {createResourceActions,resourceRules} from './resource-actions.js';
 import {actionXp} from './skill-pacing.js';
 import {TOOL_TIERS} from './tool-tiers.js';
+import {TREES} from './lumberjack.js';
 const context=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]||(()=>{})});
 globalThis.document={createElement:()=>({getContext:()=>context})};
 const {createResourceEntity}=await import('./resource-entities.js');
@@ -19,7 +20,7 @@ test('all resource kinds share rewards, tool checks, depletion, and finite reset
   if(solid){const tool=kind==='tree'?'crudeAxe':'pickaxes';f.inventory[tool]=0;assert.equal(f.system.start(f.node),false);f.inventory[tool]=1;}
   assert.ok(f.system.start(f.node));assert.equal(f.system.start(f.node),false);f.system.update(10);
   if(solid){assert.equal(f.inventory[item],undefined);assert.equal(f.tile.blocked,true);f.system.update(.85);}
-  assert.equal(f.inventory[item],solid?2:1);assert.equal(f.skills[skill].xp,actionXp(resourceRules(f.node).effort));assert.equal(f.rewards,1);assert.equal(f.node.group.visible,false);
+  assert.equal(f.inventory[item],solid?2:1);assert.equal(f.skills[skill].xp,resourceRules(f.node).xp??actionXp(resourceRules(f.node).effort));assert.equal(f.rewards,1);assert.equal(f.node.group.visible,false);
   assert.equal(f.tile.blocked,solid,'a remnant keeps a solid tile blocked; a ground item frees it');assert.equal(!!f.node.remnant?.visible,solid);
   f.system.update(30);assert.equal(f.rewards,1);assert.equal(f.system.start(f.node),false);f.system.reset(f.node);assert.equal(f.node.group.scale.x,1);assert.equal(!!f.node.remnant?.visible,false);assert.ok(f.system.start(f.node));
  }
@@ -65,7 +66,7 @@ test('trees need their tier\'s Lumberjack level, yield its wood and pay its XP',
  assert.equal(f.system.start(f.node),false);assert.equal(f.toasts.at(-1),'You need Lumberjack level 30 to chop the Oak Tree.');assert.equal(f.system.blocker(f.node),f.toasts.at(-1));
  f.skills.Lumberjack.level=30;assert.equal(f.system.blocker(f.node),null);assert.ok(f.system.start(f.node));
  assert.equal(f.system.state.duration,6,'Small effort, no level bonus at the requirement');assert.equal(f.system.state.tool,'crudeAxe');
- f.system.update(10);f.system.update(.85);assert.equal(f.inventory.oakWood,2);assert.equal(f.skills.Lumberjack.xp,actionXp(6,30));
+ f.system.update(10);f.system.update(.85);assert.equal(f.inventory.oakWood,2);assert.equal(f.skills.Lumberjack.xp,TREES.oak.xp);
  assert.equal(fixture('tree',null,{species:'not-a-tree'}).node.species,'poplar','unknown species fall back to the Poplar');
 });
 test('the best usable tool tier works; a locked tier explains itself',()=>{
@@ -92,16 +93,19 @@ test('trees regrow on their tier\'s timer unless a placement sets its own; level
 });
 test('configuration layers: the type\'s table, then the placement\'s overrides, the formula only for what neither sets',async()=>{
  const {TREES}=await import('./lumberjack.js');
- // Type: an Oak's tier table sets its respawn and drop table (its wood); XP falls back to the effort pace.
+ // Type: an Oak's tier table sets its respawn, XP and drop table (its wood).
  const plain=fixture('tree',null,{species:'oak',respawn:undefined});plain.skills.Lumberjack.level=30;
  assert.equal(plain.node.respawn,TREES.oak.respawn);assert.deepEqual(resourceRules(plain.node).drops,TREES.oak.drops);
- plain.system.start(plain.node);plain.system.update(10);plain.system.update(.85);assert.equal(plain.skills.Lumberjack.xp,actionXp(6,30));assert.equal(plain.inventory.oakWood,2,'its table: oak wood ×1–3 (random .5)');
- // A tier may set its XP, and its table may add more drops.
- const table=TREES.oak.drops;TREES.oak.xp=50;TREES.oak.drops={...table,rolls:[{item:'sticks',chance:1,count:2}]};
+ plain.system.start(plain.node);plain.system.update(10);plain.system.update(.85);assert.equal(plain.skills.Lumberjack.xp,TREES.oak.xp);assert.equal(plain.inventory.oakWood,2,'its table: oak wood ×1–3 (random .5)');
+ // A tier's XP may change, and its table may add more drops; without XP it falls back to the effort pace.
+ const table=TREES.oak.drops,xp=TREES.oak.xp;TREES.oak.xp=50;TREES.oak.drops={...table,rolls:[{item:'sticks',chance:1,count:2}]};
  try{
   const typed=fixture('tree',null,{species:'oak'});typed.skills.Lumberjack.level=30;typed.system.start(typed.node);typed.system.update(10);typed.system.update(.85);
   assert.equal(typed.skills.Lumberjack.xp,50);assert.equal(typed.inventory.sticks,2);assert.equal(typed.inventory.oakWood,2);
- }finally{delete TREES.oak.xp;TREES.oak.drops=table;}
+  delete TREES.oak.xp;TREES.oak.drops=table;
+  const paced=fixture('tree',null,{species:'oak'});paced.skills.Lumberjack.level=30;paced.system.start(paced.node);paced.system.update(10);paced.system.update(.85);
+  assert.equal(paced.skills.Lumberjack.xp,actionXp(6,30));
+ }finally{TREES.oak.xp=xp;TREES.oak.drops=table;}
  // Instance: this one tree regrows slower, gives 5 oak wood and a flint, and pays 99 XP.
  const own=fixture('tree',null,{species:'oak',respawn:undefined,config:{respawn:300,xp:99,drops:{always:[{item:'oakWood',count:5},{item:'flint',count:1}]},colour:'ignored'}});
  assert.equal(own.node.respawn,300);assert.deepEqual(Object.keys(own.node.config).sort(),['drops','xp']);

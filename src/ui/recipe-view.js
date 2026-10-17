@@ -1,6 +1,7 @@
 import {h} from './dom.js';
 import {iconNode} from './icon.js';
 import {ITEM_GROUPS, countOf} from '../items.js';
+import {itemInfo} from './item-info.js';
 
 // Shared recipe UI for the Crafting page and the station dialogs (campfire, furnace, anvil), so
 // both browse and read recipes the same way. Owned counts follow the reactive inventory.
@@ -57,6 +58,7 @@ export function recipeDetailBody({id, recipe, items, inventory, time, timeId = n
         h('h3', null, recipe.name),
         h('small', {id: timeId}, time))),
     items[id]?.description ? h('p', {class: 'q-item-detail__copy'}, items[id].description) : null,
+    itemInfo(id),
     part('Ingredients', Object.entries(recipe.cost).map(([item, count]) => need(item, count))),
     part('Tools', tools.length ? tools.map(([item, count]) => need(item, count)) : [plain('None needed')]),
     part('Station', [station()]),

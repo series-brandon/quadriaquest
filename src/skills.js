@@ -3,7 +3,7 @@ import {levelForXp,levelProgress,totalXpForLevel} from './combat-formulas.js';
 import {reactiveRecord,signal} from './reactive.js';
 import {workDuration} from './skill-pacing.js';
 
-// Every skill shares the adopted XP curve (docs/COMBAT.md, Levels and XP); awards come from effort
+// Every skill shares the one XP curve (combat-formulas.js; docs/COMBAT.md, Levels and XP); awards come from effort
 // (skill-pacing.js). Reactive so menus follow XP from any source (awards, resets, dev grants) without polling.
 export function createSkill(){return reactiveRecord({xp:0,level:1});}
 // Every non-combat skill award passes through here so it also feeds the character's single core-XP

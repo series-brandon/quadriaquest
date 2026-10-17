@@ -25,11 +25,11 @@ test('skill rows follow their reactive records and keep their nodes', () => {
   const s = setup();
   const row = s.row('Gathering');
   assert.match(row.querySelector('.q-skill__level').textContent, /Lv 1/);
-  // Every skill shares the adopted curve: level 2 at about 562 XP, level 3 at about 852.
-  addSkillXp(s.gathering, 707, 'Gathering');
+  // Every skill shares one curve: level 2 at 84 XP, level 3 at about 231.
+  addSkillXp(s.gathering, 158, 'Gathering');
   assert.equal(row.querySelector('.q-skill__level').textContent, 'Lv 2');
-  assert.match(row.textContent, /707 total XP/);
-  assert.match(row.textContent, /145 \/ 290 XP toward Level 3/);
+  assert.match(row.textContent, /158 total XP/);
+  assert.match(row.textContent, /74 \/ 146 XP toward Level 3/);
   const bar = row.querySelector('[role=progressbar]');
   assert.equal(bar.getAttribute('aria-valuenow'), '50');
   assert.equal(bar.getAttribute('aria-label'), 'Gathering progress toward level 3');

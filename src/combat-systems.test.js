@@ -13,7 +13,7 @@ import {createCombatSystem} from './combat.js';
 import {createAssistance} from './assistance.js';
 import {playerAttackProfile,playerDefense,armorAwards} from './combat-profile.js';
 import {ENEMIES} from './combat-rules.js';
-import {XP_BASE,roundFinal} from './combat-formulas.js';
+import {XP_BASE,actionXp,roundFinal} from './combat-formulas.js';
 import {OFF_HAND_DAMAGE,FOLLOW_UP_DELAY,offHandFactor} from './combat-profile.js';
 const close=(a,b,eps=1e-6)=>assert.ok(Math.abs(a-b)<eps,`${a} ≈ ${b}`);
 
@@ -72,7 +72,7 @@ test('dual wielding strikes both hands each attack: the off hand a beat later at
  f.system.update(2.5,2.5);assert.equal(f.a.hp,H-14);assert.equal(f.system.state.followUps,1);
  f.system.update(FOLLOW_UP_DELAY,2.5+FOLLOW_UP_DELAY);const off=roundFinal(14*OFF_HAND_DAMAGE);assert.equal(f.a.hp,H-14-off);assert.equal(f.system.state.followUps,0);
  // Each strike trains Dagger proficiency for its own damage.
- assert.equal(f.character.tracks['prof.dagger'].xp,.5*(XP_BASE+14)+.5*(XP_BASE+off));
+ close(f.character.tracks['prof.dagger'].xp,.5*actionXp(14)+.5*actionXp(off));
  // One cycle per interval: the next pair lands after another full interval.
  f.system.update(2.5-FOLLOW_UP_DELAY,5);assert.equal(f.a.hp,H-28-off);
 });
@@ -81,7 +81,7 @@ test('Dual Wield proficiency: trained once per two-weapon attack, it shrinks the
  const f=combatFixture();f.equipment.toggle('copperDagger','main');f.equipment.toggle('copperDagger','off');f.system.start(f.a);
  const H=ENEMIES.target.health,off=roundFinal(14*OFF_HAND_DAMAGE);
  f.system.update(2.5,2.5);assert.equal(f.character.tracks['prof.dualWield'].xp,0,'not from the main-hand strike');
- f.system.update(FOLLOW_UP_DELAY,2.75);assert.equal(f.character.tracks['prof.dualWield'].xp,.5*(XP_BASE+off),'once, with the off-hand strike');
+ f.system.update(FOLLOW_UP_DELAY,2.75);close(f.character.tracks['prof.dualWield'].xp,.5*actionXp(off));
  assert.equal(offHandFactor(1),OFF_HAND_DAMAGE);assert.equal(offHandFactor(100),1);close(offHandFactor(50),.75+.25*49/99);
  f.character.setLevel('prof.dualWield',100);f.system.cancel();f.system.start(f.a);const before=f.a.hp;
  f.system.update(2.5,5.25);f.system.update(FOLLOW_UP_DELAY,5.5);assert.equal(before-f.a.hp,28,'level 100: the off hand hits as hard as the main hand');
@@ -368,4 +368,24 @@ test('Optimize for Magic holds an owned staff, because its focus raises spell da
  const f=assistFixture();f.inventory.staffs=1;f.styles.learn('energyStrike');
  assert.match(f.assistance.optimize('magic'),/Simple Staff/);assert.ok([f.equipment.slots.right,f.equipment.slots.left].includes('staffs'));
  assert.equal(f.assistance.optimize('magic'),'No better setup found.');
+});
+
+// docs/COMBAT.md, Levels and XP: rewards are tuned to the shared curve. A Copper Dagger fighter hitting a
+// Scrapper (rotating Technical, Accurate and Strong, spending points on Strength) gets the first core level
+// within a few attacks, then from level 20 levels about as fast as on the plain adopted curve with the old
+// 15 + 1 per HP rewards (core 20 after 329 attacks, 40 after 590; Dagger 20 after 171, 40 after 334).
+test('combat pacing: quick first levels, then the established pace',async()=>{
+ const {resolveAttack,resolvePortions}=await import('./combat-formulas.js');
+ let seed=1;const random=()=>(seed=(seed*16807)%2147483647)/2147483647;
+ const c=createCharacter(),enemy=ENEMIES.scrapper,dagger={...GEAR.copperDagger,item:'copperDagger'},at={core:{},dagger:{}},strategies=['technical','accurate','strong'];
+ for(let attacks=1;c.core.level<40;attacks++){
+  const p=playerAttackProfile(c,dagger,strategies[attacks%3]);
+  const r=resolveAttack({dodgePercent:enemy.canDodge?enemy.dodgePercent||0:0,canCritical:true,criticalPercent:p.critPercent,min:p.min,max:p.max,random,mitigate:raw=>resolvePortions([{amount:raw,resistancePct:enemy.resistancePct?.melee||0}])});
+  const xp=actionXp(r.damage);c.award([{track:p.xpTrack,amount:xp},{track:p.proficiencyTrack,amount:xp}]);
+  while(c.unspent>0)c.allocate('strength');
+  for(const m of [2,20,40]){at.core[m]??=c.core.level>=m?attacks:undefined;at.dagger[m]??=c.level('prof.dagger')>=m?attacks:undefined;}
+ }
+ assert.ok(at.core[2]<=15,`first core level after ${at.core[2]} attacks`);
+ for(const [track,m,before] of [['core',20,329],['core',40,590],['dagger',20,171],['dagger',40,334]])
+  assert.ok(Math.abs(at[track][m]/before-1)<.1,`${track} ${m} after ${at[track][m]} attacks (was ${before})`);
 });

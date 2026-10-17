@@ -28,7 +28,7 @@ test('sub-tabs list spells, auras and abilities; listed powers show locked until
   assert.equal(spell.hasAttribute('data-locked'), true);
   assert.match(spell.textContent, /Taught by Wisp in Cinderhold/);
   assert.match(spell.textContent, /Requires Magic Technique 1/);
-  assert.match(spell.textContent, /20 power · 3s cast · range 6 · 4 Mana · 15 XP per cast/);
+  assert.match(spell.textContent, /20 power · 3s cast · range 6 · 4 Mana · 6 XP per cast, \+1 per damage dealt/);
   assert.equal(visible(spell.querySelector('.q-star')), false, 'no quick slot until learned');
   s.styles.learn('energyStrike');
   assert.equal(spell.hasAttribute('data-locked'), false);
