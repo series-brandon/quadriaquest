@@ -5,11 +5,11 @@ import {keyedList} from '../list.js';
 import {row, segmented} from '../controls.js';
 import {GEAR, ARMOR_SLOTS} from '../../equipment.js';
 import {ITEMS} from '../../items.js';
-import {ICON_NAMES} from '../../icons.js';
+import {hasIcon} from '../../icons.js';
 
 const title = s => s[0].toUpperCase() + s.slice(1);
 const SLOT_LABEL = {right: 'Right hand', left: 'Left hand', head: 'Head'};
-const icon = id => iconNode(ICON_NAMES.includes(id) ? id : 'shields');
+const icon = id => iconNode(hasIcon(id) ? id : 'shields');
 
 // The few numbers that tell gear apart, from the shared item definitions.
 export function gearFacts(item) {

@@ -183,7 +183,7 @@ export const MODEL_CATALOG=[
  ...['sticks','stones','flint'].map((id,i)=>staticModel(['Sticks','Rocks','Flint'][i],()=>createGroundItemModel(id))),
  staticModel('Crude Axe',makeAxe),staticModel('Crude Pickaxe',makePickaxe),
  staticModel('Raw Pondfish',makePondfish),
- ...[['swords','Stone Sword'],['crudeShield','Crude Shield'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod'],['staffs','Simple Staff']].map(([id,name])=>staticModel(name,()=>tool(id))),
+ ...[['swords','Stone Sword'],['crudeDagger','Crude Dagger'],['crudeSword','Crude Sword'],['crudeShield','Crude Shield'],['hammers','Crude Hammer'],['rods','Crude Fishing Rod'],['staffs','Simple Staff']].map(([id,name])=>staticModel(name,()=>tool(id))),
  staticModel('Top Hat',makeTopHat),staticModel('Companion Top Hat',makeCompanionTopHat),
  ...Object.entries(WORN_MODELS).filter(([id])=>!['hats','companionHats'].includes(id)).map(([id,make])=>staticModel(ITEMS[id].name,make)),
  // Edge features (docs/CITY.md, Walls and doors): the production pieces side by side, and the shared door

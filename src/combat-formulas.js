@@ -186,6 +186,11 @@ export function threat(sheet){
  return {candidates,offensive,defensive,support,raw,level:Math.max(1,Math.floor(raw+1e-9))};
 }
 
+// How an opponent's Threat Level compares with yours, for its hover (user decision, 2026-10-17, RuneScape style):
+// 'low' (green) more than THREAT_BAND below you, 'high' (red) more than THREAT_BAND above, 'even' (orange) between.
+export const THREAT_BAND=5;
+export function threatTone(level,playerLevel){const gap=level-playerLevel;return gap<-THREAT_BAND?'low':gap>THREAT_BAND?'high':'even';}
+
 // ── Assistance danger ───────────────────────────────────────────────────────
 export function hitsToDefeat(currentHp,finalMaxHit){return finalMaxHit>0?Math.ceil(currentHp/finalMaxHit):Infinity;}
 export const DANGER_BANDS=[

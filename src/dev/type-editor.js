@@ -10,7 +10,7 @@ import {ITEMS, dataItems, itemsData} from '../items.js';
 import {SELL_RATE, sellPrice} from '../economy.js';
 import {ARMOR_SLOTS, refreshGear} from '../equipment.js';
 import {RESTORE_RESOURCES, refreshFood} from '../player-health.js';
-import {ATTRIBUTES, TRACKS, WEAPON_PROFICIENCIES} from '../character.js';
+import {ARMOR_PROFICIENCIES, ATTRIBUTES, TRACKS, WEAPON_PROFICIENCIES} from '../character.js';
 import {actionXp} from '../skill-pacing.js';
 import {formatData} from '../data-file.js';
 
@@ -164,6 +164,12 @@ export function typeEditor({tool = 'nodes', start = null, post}) {
   const equipmentSection = e => {
     const eq = () => e.row.equipment, of = key => at(e, eq, key), focus = key => at(e, () => eq().focus, key, () => (eq().focus ??= {}));
     const focusField = key => num({...focus(key), set: v => { focus(key).set(v); if (eq().focus && !Object.keys(eq().focus).length) delete eq().focus; }, blank: () => '–'});
+    // Armor (`armor: {class, slot}`): the class sets which armor skill it needs and trains, the slot which armor
+    // proficiency. No class removes the block; a new block's proficiency follows the item's slot (head → helm).
+    const armor = key => ({get: () => eq().armor?.[key], set: v => {
+      if (key === 'class' && !v) delete eq().armor;
+      else if (v) eq().armor = {class: 'light', slot: ARMOR_PROFICIENCIES.includes(eq().slot) ? eq().slot : 'helm', ...eq().armor, [key]: v};
+      changed(e); }});
     const requirements = () => Object.entries(eq().requirements || {});
     const setRequirements = list => { if (list.length) eq().requirements = Object.fromEntries(list); else delete eq().requirements; changed(e); };
     const damage = type => check(titleCase(type), {get: () => eq().damageTypes?.includes(type), set: on => {
@@ -175,7 +181,9 @@ export function typeEditor({tool = 'nodes', start = null, post}) {
         field('Hands', choice({get: () => eq().hands ?? 1, set: v => of('hands').set(v === '2' ? 2 : null), list: [['1', 'One'], ['2', 'Two']]}), {size: 'pick'}),
         field('Attack style', choice({...of('style'), list: [['', 'None'], ['melee', 'Melee'], ['ranged', 'Ranged']]}), {size: 'pick'}),
         field('Proficiency', choice({...of('proficiency'), list: [['', 'None'], ...options(WEAPON_PROFICIENCIES)]}), {size: 'pick'}),
-        field('Ammo', choice({...of('ammo'), list: [['', 'None'], ...ITEM_CHOICES]}), {size: 'pick'})),
+        field('Ammo', choice({...of('ammo'), list: [['', 'None'], ...ITEM_CHOICES]}), {size: 'pick'}),
+        field('Armor class', choice({...armor('class'), list: [['', 'None'], ...options(['light', 'medium', 'heavy'])]}), {size: 'pick'}),
+        field('Armor proficiency', choice({...armor('slot'), list: [['', '–'], ...options(ARMOR_PROFICIENCIES)]}), {size: 'pick'})),
       switches(check('Shield', of('shield')), check('Cosmetic (a held tool)', of('cosmetic'))),
       subheading('Bonuses'),
       fields(

@@ -128,7 +128,7 @@ export function mountPlayground(api){
     <fieldset><legend>Inventory</legend>
       <label>Item <select id="dev-item">${Object.entries(ITEMS).map(([id,item])=>`<option value="${id}">${item.name}</option>`).join('')}</select></label>
       <label>Quantity <input id="dev-quantity" type="number" min="0" max="1000000" step="1" value="1"></label>
-      <div><button data-dev="add">Add item</button><button data-dev="remove">Remove item</button></div>
+      <div><button data-dev="add">Add item</button><button data-dev="remove">Remove item</button><button data-dev="crude-gear">Add crude gear</button></div>
     </fieldset>
     <fieldset><legend>Economy</legend><label>Gold <input id="dev-gold" type="number" min="0" step="1" value="500"></label>
       <div><button data-dev="gold-set">Set gold</button><button data-dev="gold-add">+100 gold</button><button data-dev="gold-reset">Reset gold to 0</button></div>
@@ -305,6 +305,7 @@ export function mountPlayground(api){
         if(action==='attribute-set'){const a=$('attribute').value;api.character.setAttribute(a,amount('attribute-value'));status(`${a}: ${api.character.attribute(a)} · ${api.character.unspent} unspent points.`);}
         if(action==='attribute-points'){api.character.grantPoints(3);status(`${api.character.unspent} unspent attribute points. Spend them in Skills.`);}
         if(action==='assist-state'){const a=api.assistance,d=a.danger,s=a.settings;status(`${s.mode} mode · retaliate ${s.retaliate} · class ${s.style} · goal ${s.goal||'none'} · ${d?`${d.enemy.rules.name}: max hit ${d.maxHit} after your defenses, ${d.hits} hit(s) to defeat you (${d.band}; auto-retaliate ${d.retaliate?'yes':'withheld'})`:'no engaged enemy'} · warning: ${a.warning||'none'} · manual overrides: ${JSON.stringify(s.manual)} · target override: ${s.override||'none'}.`);}
+        if(action==='crude-gear'){const changes={};for(const id of ['crudeDagger','crudeSword','crudeShield','crudeHelm']){const before=api.inventory[id]||0;api.inventory[id]=Math.max(1,before);if(api.inventory[id]>before)changes[id]=api.inventory[id]-before;}api.showItemChanges(changes);status('Crude Dagger, Sword, Shield and Helm in the inventory. Equip them from Equipment.');}
         if(action==='test-armor'){api.addTestArmor();status('Added one of each test armor piece. Wear them from Equipment.');}
         if(action==='control-test')status(api.controlTest($('control').value));
         if(action==='spell-requirement'){api.spellRequirement(amount('spell-requirement'));const p=api.combatPreview();status(`Energy Strike now needs Magic Technique ${Math.max(1,amount('spell-requirement'))}${p.spell?`: ${+p.backfirePercent.toFixed(2)}% backfire, ${Math.round(p.effectiveness*100)}% effectiveness.`:'. Select Energy Strike to see the risk.'}`);}

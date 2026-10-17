@@ -16,6 +16,8 @@ When a player cannot avoid being attacked, they should be able to choose pacifis
 
 **Patrol radius (user decision, 2026-10-17).** While calm, an enemy wanders inside the square `patrolRadius` tiles each way from its spawn tile: every 2–4 seconds there is a 25% chance it walks to a random reachable dry tile inside it (`wander.js`). Each type sets a radius (`src/data/enemies.json`, NPCs tool; 2 when unset) and a spawn may override it (the world editor's *Override for this one*, where the selected spawn's area is shaded). Pushed outside, it walks back; pushed more than 8 tiles away, it reappears at home. Patrol is only calm wandering: pursuit is bounded by the leash (6 tiles from home) or a boss's `territory`. An area may still give an encounter an explicit box in code (Cinderhold's practice yard). Hand-drawn patrol areas are a possible later addition.
 
+**Enemy hover (user decision, 2026-10-17).** Pointing at an enemy you can attack shows **"Attack <name>"** with **"Level N"** under it, where N is its Threat Level, RuneScape style. The level is **green** when it is more than 5 below your Threat, **orange** within 5 either way (inclusive) and **red** when more than 5 above (`threatTone`, `THREAT_BAND` in `combat-formulas.js`). Boss and "⚠ Hunts pacifists" notes follow the level. Health is on the health plate, not the hover. Inert practice targets have no Threat and show no level.
+
 **Prevented attacks also turn aggression off.** While Attacks is Prevented (Pacifist, or Custom with attacks prevented), creatures never become aggressive on their own: proximity aggression is skipped for every enemy. The two are one policy, never separate options. Exceptions:
 
 - **Creatures configured to attack pacifists** (`attacksPacifists` on the enemy type, overridable per placement) still engage. Reserve it for the most aggressive creatures and some bosses, and make sure such encounters can be escaped (leash, safe tiles), because a Pacifist player cannot fight back. Their hover shows **“⚠ Hunts pacifists”**, so Pacifist players can avoid them.
@@ -599,7 +601,21 @@ Damage-type advantages must be defined through actual resistance/equipment value
 
 ## Equipment bonuses and dual wielding
 
-**Where item stats live (2026-10-16, user decision).** Each equipment item's slot, hands, shield, style, Power, Accuracy and resistance bonuses, base attack interval (seconds), range (tiles), proficiency, damage types, ammo, requirements (`{track: level}`) and spell-focus bonuses are data: the `equipment` block of the item in `src/data/items.json`, edited in the world editor's Items tool. `GEAR` in `equipment.js` is the live view combat reads. The formulas in this document, the motions and the models stay in code. The values described below are the approved starting values in that file.
+**Where item stats live (2026-10-16, user decision).** Each equipment item's slot, hands, shield, style, Power, Accuracy and resistance bonuses, base attack interval (seconds), range (tiles), proficiency, damage types, ammo, requirements (`{track: level}`) and spell-focus bonuses are data: the `equipment` block of the item in `src/data/items.json`, edited in the world editor's Items tool. `GEAR` in `equipment.js` is the live view combat reads. The formulas in this document, the motions and the models stay in code; an item's attack and guard motions follow its data (a `dagger` proficiency stabs or slashes by damage type, `sword` and `staff` slash, a `shield` guards with the shield block), so a new weapon of a known kind needs no motion code. The values described below are the approved starting values in that file.
+
+**Gear tiers (2026-10-17).** Crude gear is the weakest real tier, below stone and copper, and is always craftable by hand from Sticks and Rocks (DESIGN.md, *the Crude exception*):
+
+| Item | Slot | Bonuses | Proficiency / armor | Recipe |
+|---|---|---|---|---|
+| Crude Dagger | one hand | +3 melee Power and Accuracy; piercing or slashing | Dagger | Sticks ×1, Rocks ×1 |
+| Crude Sword | one hand | +4 melee Power and Accuracy; slashing | Sword | Sticks ×2, Rocks ×2 |
+| Crude Shield | one hand (shield) | +30 resistance | Shield | Sticks ×2, Rocks ×1 |
+| Crude Helm | Head | +10 resistance; needs Light Armor 1 | Light armor, Helm proficiency | Sticks ×3, Rocks ×1 |
+| Stone Sword | one hand | +6 melee Power and Accuracy; slashing | Sword | Stone ×2, Sticks ×1 |
+| Copper Dagger | one hand | +10 melee Power and Accuracy; piercing or slashing | Dagger | Copper Ingot at an anvil |
+| Copper Shield | one hand (shield) | +50 resistance | Shield | Copper Ingot ×3 at an anvil |
+
+The Crude Helm is the first real armor piece: an `armor: {class, slot}` block in its `equipment` data (class light, slot helm), so it uses the armor effectiveness, resistance, slot-proficiency and armor-XP rules below and Optimize wears it over a cosmetic hat. The Items tool edits the armor class and proficiency.
 
 Separate equipped bonuses into two explicit scopes:
 
@@ -1165,7 +1181,7 @@ The first rollout implements every rule above. These remain open; several have a
 - Abilities: behaviour of a queued ability not yet assigned to an attack (provisional: pressing again withdraws it; travel, defeat, consumables and stuns clear it; movement does not) and future ability-cost efficiency.
 - Combat calculation: remaining spell/ability modifier ordering, additional spell definitions and presentation, and concrete item special-effect eligibility. Preserve the current final rounding, per-portion mitigation and commitment rules.
 - Control content: no enemy or spell applies stun, immobilize or slow yet; real sources must define durations, protection windows and refresh rules. Disarm-style effects remain undesigned.
-- Armor content: real armor items, recipes and balance (only playground test pieces exist).
+- Armor content: real armor items, recipes and balance beyond the Crude Helm (otherwise only playground test pieces exist).
 - Content/rollout: review the drafted Ki mentor (Ember, see CINDERHOLD.md), old-to-new skill mapping, non-combat rollout boundaries, and a full production replay plan.
 
 Validate rather than silently redesign: combat XP pacing, attack-speed growth, rounded resistance benefits, tutorial encounter outcomes, and normal-flow/runtime ordering. Current coefficients are initial tuning, not proof of final balance.

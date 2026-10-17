@@ -65,6 +65,7 @@ import {batch,effect,reactiveRecord,signal,untracked} from './reactive.js';
 import {mount} from './ui/dom.js';
 import {resourceMeter} from './ui/hud/meter.js';
 import {healthPlate} from './ui/hud/health-plate.js';
+import {hoverTip} from './ui/hud/hover-tip.js';
 import './player-health.css';
 import './campfires.css';
 import {createRecipeCrafting} from './recipe-crafting.js';
@@ -119,7 +120,7 @@ import {createCraftingTutorial} from './crafting-tutorial.js';
 import {createGameMenus} from './game-menus.js';
 import {createSkill,showSkillReward,updateSkillRewards,clearSkillRewards,onSkillXp,grantSkillXp,GATHER_EFFORT} from './skills.js';
 import {actionXp} from './skill-pacing.js';
-import {levelForXp,threat} from './combat-formulas.js';
+import {levelForXp,threat,threatTone} from './combat-formulas.js';
 import {rollDrops,dropOdds,seededRandom} from './drops.js';
 import {ENEMIES} from './combat-rules.js';
 import {createLootPiles} from './loot-piles.js';
@@ -251,6 +252,8 @@ document.body.append(mount(()=>resourceMeter({id:'player-health',kind:'health',l
 // Player health plate just above the slime (floating XP starts above it): shown in combat, whenever
 // health is below full, and while a control effect is active.
 let playerPlate;document.body.append(mount(()=>{playerPlate=healthPlate({kind:'player',value:()=>health.value,max:()=>health.max});return playerPlate.node;}).node);
+// The hover hint beside the pointer (what a click does; an opponent's name and Level).
+let hoverHint;document.body.append(mount(()=>{hoverHint=hoverTip();return hoverHint.node;}).node);
 const plateAnchor=new THREE.Vector3(),PLAYER_PLATE_LIFT=1;
 function updatePlayerPlate(){
  // Control effects (stunned, slowed…) ride on the player's plate, which also shows while one is active.
@@ -359,7 +362,7 @@ resourceActions=createResourceActions({world,inventory,skills:{Gathering:gatheri
  face(x,z){facing=Math.atan2(x-tile.x,z-tile.z);},toast,sound:name=>gameAudio.play(name),
  started(node,rules){feedback.destination(tile);feedback.interacting(rules.motion);},interacting:kind=>feedback.interacting(kind),completed(){feedback.complete();},cancelled(){feedback.clearDestination();},
  rewarded(node,changes,reward){areas.broadcast('resourceCompleted',changes);jobs.gathered(changes);showSkillReward(reward,player.position);showItemChanges(changes);succeeded();
-  if(clearingTiles.get(key(node.x,node.z))===node.tile){if(node.kind==='tree')craftingTutorial.chopped(changes);else if(node.kind==='boulder')craftingTutorial.mined();else {gatherTime=0;$('tooltip').style.display='none';updateUI(reward);}}
+  if(clearingTiles.get(key(node.x,node.z))===node.tile){if(node.kind==='tree')craftingTutorial.chopped(changes);else if(node.kind==='boulder')craftingTutorial.mined();else {gatherTime=0;hoverHint.hide();updateUI(reward);}}
  }
 });
 for(const node of [...trees,...resources])resourceActions.add(node);
@@ -746,13 +749,13 @@ canvas.addEventListener('pointerup',e=>{
 });
 function cancelGesture(){activePointers.clear();down=null;pinchDistance=null;dragged=true;}
 canvas.addEventListener('pointercancel',cancelGesture);addEventListener('blur',cancelGesture);
-canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;hoverCleared=true;if(__PLAYGROUND__&&tileHover){hoverTileId=null;tileHover(null);}campfires.hoverPlacement(null);$('tooltip').style.display='none';feedback.hover(null);});
+canvas.addEventListener('pointerleave',()=>{pointerOnCanvas=false;hoverCleared=true;if(__PLAYGROUND__&&tileHover){hoverTileId=null;tileHover(null);}campfires.hoverPlacement(null);hoverHint.hide();feedback.hover(null);});
 // Re-pick immediately after pointer movement; otherwise refresh at 10 Hz for moving actors and camera follow.
 function updateHover(){
- if(!pointerOnCanvas||!canMove()){if(!hoverCleared){hoverCleared=true;hoverDirty=true;hover=null;campfires.hoverPlacement(null);feedback.hover(null);$('tooltip').style.display='none';}return;}
+ if(!pointerOnCanvas||!canMove()){if(!hoverCleared){hoverCleared=true;hoverDirty=true;hover=null;campfires.hoverPlacement(null);feedback.hover(null);hoverHint.hide();}return;}
  // Editing (playground world editor): the editor shows its own previews, so the game's hover (a route to the tile
  // under the pointer, found every frame the pointer moves) stays off: on a big map it starved the frames.
- if(__PLAYGROUND__&&editorScreen){if(!hoverCleared){hoverCleared=true;hoverDirty=true;hover=null;feedback.hover(null);$('tooltip').style.display='none';renderer.domElement.style.cursor='default';}return;}
+ if(__PLAYGROUND__&&editorScreen){if(!hoverCleared){hoverCleared=true;hoverDirty=true;hover=null;feedback.hover(null);hoverHint.hide();renderer.domElement.style.cursor='default';}return;}
  // The free camera panning (keys or a drag): no hover picking until it stops (playground).
  if(__PLAYGROUND__&&freeCam&&(panKeys.has('w')||panKeys.has('a')||panKeys.has('s')||panKeys.has('d')||down))return;
  const now=performance.now();if(!hoverDirty&&!hoverCleared&&now-hoverAt<100)return;hoverDirty=false;hoverCleared=false;hoverAt=now;
@@ -765,8 +768,13 @@ function updateHover(){
  feedback.hover(t,valid);
  renderer.domElement.style.cursor=t?(valid?'pointer':'not-allowed'):'default';
  // Editing (playground world editor): the editor previews what a click does, so the game's hint stays away.
- const hint=t&&!(__PLAYGROUND__&&editorScreen);$('tooltip').style.display=hint?'block':'none';
- if(hint){$('tooltip').textContent=placementStatus?placementStatus.label:actor?(actor.opened?(actor.enemy?'Recovering…':'Empty chest'):!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(tree.depleted?tree.depletedLabel:resourceActions.blocker(tree)||(valid?tree.label:'No safe route')):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+ITEMS[hover.resource.kind].name:'Move here';$('tooltip').style.left=(pointerClient.x+16)+'px';$('tooltip').style.top=(pointerClient.y-32)+'px';}
+ const hint=t&&!(__PLAYGROUND__&&editorScreen);
+ // An enemy you can attack shows "Attack <name>" over its Level, coloured against your Threat (ui/hud/hover-tip.js).
+ const opponent=hint&&actor?.enemy&&actor.ready&&!actor.opened&&valid?actor.hover:null;
+ if(!hint)hoverHint.hide();
+ else{if(opponent)hoverHint.show({...opponent,tone:opponent.level==null?null:threatTone(opponent.level,threat(character.sheet()).level)});
+  else hoverHint.show({text:placementStatus?placementStatus.label:actor?(actor.opened?(actor.enemy?'Recovering…':'Empty chest'):!actor.ready?'Landing…':valid?actor.label:'No safe route'):tree?(tree.depleted?tree.depletedLabel:resourceActions.blocker(tree)||(valid?tree.label:'No safe route')):!valid?(t.blocked?'Blocked terrain':'No safe route'):hover?.resource?'Gather '+ITEMS[hover.resource.kind].name:'Move here'});
+  hoverHint.place(pointerClient.x+16,pointerClient.y-32);}
 }
 function changeZoom(delta){if(!areas.canOrbit||travel.busy)return;if(!opening.playable){introZoom=THREE.MathUtils.clamp(introZoom*Math.exp(delta/22),3,10);return;}const before=zoom;zoom=THREE.MathUtils.clamp(zoom*Math.exp(delta/22),3,__PLAYGROUND__&&freeCam?FREE_MAX_ZOOM:areas.active?.maxZoom??34);opening.zoomed(Math.log(zoom/before));}renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();changeZoom(e.deltaY*.012);},{passive:false});
 function resize(){const {left,width,height}=measureGameViewport();document.documentElement.style.setProperty('--game-viewport-width',`${width}px`);document.documentElement.style.setProperty('--game-viewport-center',`${left+width/2}px`);camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);}addEventListener('resize',resize);new ResizeObserver(resize).observe($('game'));resize();
@@ -1317,7 +1325,7 @@ if(__PLAYGROUND__){
   addTestArmor(){for(const id of Object.keys(GEAR))if(GEAR[id].armor)inventory[id]=Math.max(1,inventory[id]||0);},
   learnCombatKit(on){if(on){styles.learnAbility('strongStrike');auras.learn('rush');auras.learn('harden');}else{auras.reset();styles.reset();}},
    // Quick slots (docs/COMBAT.md): Energy Strike as the quick spell, Rush and Harden in the quick-aura set.
-   quickSlotKit(){styles.learn('energyStrike');this.learnCombatKit(true);styles.setQuickSpell('energyStrike');auras.setQuick('rush',true);auras.setQuick('harden',true);},queueStrongStrike:()=>combat.queue('strongStrike'),combatPending:()=>({pending:combat.pending,committed:combat.committedAbility,cooldown:food.cooldown}),combatDefense(){const p=combat.preview();return playerDefense(character,{activeStyle:p.combatStyle,strategy:p.strategy,shield:equipment.shield,bonusResistancePct:auras.resistancePct});},
+   quickSlotKit(){styles.learn('energyStrike');this.learnCombatKit(true);styles.setQuickSpell('energyStrike');auras.setQuick('rush',true);auras.setQuick('harden',true);},queueStrongStrike:()=>combat.queue('strongStrike'),combatPending:()=>({pending:combat.pending,committed:combat.committedAbility,cooldown:food.cooldown}),combatDefense(){const p=combat.preview();return playerDefense(character,{activeStyle:p.combatStyle,strategy:p.strategy,shield:equipment.shield,armor:equipment.armorPieces,bonusResistancePct:auras.resistancePct});},
   willow,areaId:()=>areas.id,travelTo:id=>{finale.ensurePortal();return travel.request(id);},cancelTravel:()=>travel.cancel(),usePortal(){const crystal=crystals.current()[0];if(crystal)selectActor(crystal);},resetFinale(){travel.cancel();if(areas.id!=='clearing')areas.activate('clearing',{landing:clearingTiles.get(key(SPAWN.x,SPAWN.z)),arrival:false});finale.reset();},enterWillow(){craftingTutorial.reset();opening.enterFreePlay();finale.ensurePortal();travel.request('willowbank');},
   equipment,inventory,player,feedback,getTile:()=>tile,finale,
   doze(){idleClock.update(30,true);},
@@ -1347,7 +1355,7 @@ systemsReady.value=true;
 const splash=createSplash(renderer,!__PLAYGROUND__,settingsUI);
 animate();
 // Small read-only inspection surface for checking the prototype in a browser.
-if(__PLAYGROUND__)window.quadriaquest={getState:()=>({cutaway:cutawayState(),atmosphere:atmosphere.state,facing:+(Math.atan2(Math.sin(facing),Math.cos(facing))).toFixed(2),telegraphs:telegraphs.active,hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,face:playerFace,body:{squash:visual.scale.y,twist:visual.rotation.y,lean:visual.rotation.x},finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),atmosphere,screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
+if(__PLAYGROUND__)window.quadriaquest={getState:()=>({hoverTip:hoverHint.state,cutaway:cutawayState(),atmosphere:atmosphere.state,facing:+(Math.atan2(Math.sin(facing),Math.cos(facing))).toFixed(2),telegraphs:telegraphs.active,hands:hands.map(h=>({position:h.position.toArray(),rotation:[h.rotation.x,h.rotation.y,h.rotation.z],visible:h.visible})),resources:playerResources.state,playerUI:playerInterface?.state,viewport:{width:gameViewport().width,height:gameViewport().height},render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles},area:areas.id,travel:travel.state,tile:{x:tile.x,z:tile.z,h:tile.h},moving:!!segment||path.length>0,movement:{position:player.position.toArray(),from:segment&&{x:segment.from.x,z:segment.from.z},to:segment&&{x:segment.to.x,z:segment.to.z},queuedAction:afterStep.pending},eating:food.working,target:target?.id??null,gatherTime,inventory:{...inventory},gathering:{...gatheringSkill},crafting:{...craftingSkill},lumberjack:{...lumberjackSkill},mining:{...miningSkill},combat:combat.state,character:character.state,equipment:equipment.state,resourceAction:resourceActions.state,carpentry:{...carpentry.skill,action:carpentry.state},fishing:{...fishing.skill,action:fishing.state},tutorialStage:craftingTutorial.stage,face:playerFace,body:{squash:visual.scale.y,twist:visual.rotation.y,lean:visual.rotation.x},finale:finale.state,willow:willow.state,cinder:cinder.state,smithing:{...smithing.skill,action:smithing.state},styles:styles.state,health:health.value,companion:{...companions.state},action:recipeCrafting.state,angle,elevation,zoom,profile:opening.profile,tutorialReady:opening.playable}),atmosphere,screenFor:(x,z)=>{const t=world.get(key(x,z));const p=new THREE.Vector3(x-6,t.h+.16,z-6).project(camera);const v=gameViewport();return{x:v.left+(p.x+1)*v.width/2,y:v.top+(1-p.y)*v.height/2};}};
 // Playground inspection: the renderer (compiled programs, render stats).
 if(__PLAYGROUND__)Object.defineProperty(window.quadriaquest,'renderer',{get:()=>renderer});
 // The playground's own API, for scripted browser checks (playground only).

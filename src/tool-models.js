@@ -10,6 +10,10 @@ export function tool(kind){
  if(kind==='swords'){part(g,new THREE.BoxGeometry(.13,.65,.07),'#b1c4cd',0,.35,0);part(g,new THREE.BoxGeometry(.34,.07,.09),'#957145',0,.05);part(g,new THREE.CylinderGeometry(.035,.035,.23,6),'#674933',0,-.08);}
  // Crude Shield: sticks lashed into a round face, a cross-brace and a rock for a boss.
  if(kind==='crudeShield'){part(g,new THREE.CylinderGeometry(.27,.27,.09,8),'#ae8056').rotation.x=Math.PI/2;for(const x of [-.14,0,.14])part(g,new THREE.BoxGeometry(.05,.5,.035),'#8f6a45',x,0,.05);part(g,new THREE.BoxGeometry(.07,.45,.11),'#cdb281');part(g,new THREE.DodecahedronGeometry(.075,0),'#9aa19b',0,0,.09);}
+ // Crude Dagger: a chipped rock shard bound to a stick handle; the grip is the origin, the blade points up +Y.
+ if(kind==='crudeDagger'){part(g,new THREE.CylinderGeometry(.03,.034,.24,6),'#8f6a45',0,-.06);part(g,new THREE.CylinderGeometry(.045,.045,.09,6),'#cdb281',0,.08);const shard=part(g,new THREE.ConeGeometry(.075,.34,4),'#9aa19b',0,.29);shard.scale.z=.45;shard.rotation.y=Math.PI/4;}
+ // Crude Sword: a flat stick blade studded with rock chips along both edges, a stick crossguard and a bound grip.
+ if(kind==='crudeSword'){part(g,new THREE.BoxGeometry(.11,.6,.045),'#ae8056',0,.36);part(g,new THREE.ConeGeometry(.055,.1,4),'#ae8056',0,.71).scale.z=.4;for(const y of [.14,.27,.4,.53])for(const x of [-.065,.065])part(g,new THREE.OctahedronGeometry(.032,0),'#9aa19b',x,y);part(g,new THREE.BoxGeometry(.3,.05,.06),'#8f6a45',0,.05);part(g,new THREE.CylinderGeometry(.035,.035,.23,6),'#cdb281',0,-.08);}
  if(kind==='hammers'){part(g,new THREE.CylinderGeometry(.03,.035,.38,6),'#98704e',0,.11);part(g,new THREE.BoxGeometry(.26,.15,.15),'#a1aaa5',0,.30);}
  if(kind==='rods')return makeFishingRod();
  if(kind==='crudeAxe')return makeAxe();
@@ -24,4 +28,4 @@ export function carriedTool(kind){if(kind!=='rods')return heldTool(kind);const g
 // Inventory slots and physical gripping hands differ for a two-handed bow.
 export function heldToolHand(kind){return ['crudeShield','copperShield','bows'].includes(kind)?1:0;}
 // A held rod rests on the shoulder (the carry transform); other items are held as authored.
-export function heldTool(kind){if(kind==='rods')return carriedTool('rods');const group=tool(kind);if(kind==='bows')group.position.z=-.22;if(['swords','crudeShield','hammers','copperDagger','copperShield'].includes(kind))group.rotation.y=Math.PI/2;return group;}
+export function heldTool(kind){if(kind==='rods')return carriedTool('rods');const group=tool(kind);if(kind==='bows')group.position.z=-.22;if(['swords','crudeSword','crudeDagger','crudeShield','hammers','copperDagger','copperShield'].includes(kind))group.rotation.y=Math.PI/2;return group;}

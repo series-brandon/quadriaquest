@@ -111,6 +111,61 @@
    }
   }
  },
+ "crudeDagger": {
+  "name": "Crude Dagger",
+  "description": "A sharp rock lashed to a stick. One hand · +3 melee Power and Accuracy · stab or slash · trains Dagger proficiency.",
+  "value": 8,
+  "category": "weapon",
+  "equipment": {
+   "slot": "hand",
+   "style": "melee",
+   "power": 3,
+   "accuracy": 3,
+   "attackInterval": 2.55,
+   "range": 1,
+   "proficiency": "dagger",
+   "damageTypes": ["piercing", "slashing"],
+   "requirements": {
+    "melee.technique": 1
+   }
+  }
+ },
+ "crudeSword": {
+  "name": "Crude Sword",
+  "description": "A flat stick blade studded with rock chips. One hand · +4 melee Power and Accuracy · trains Sword proficiency.",
+  "value": 12,
+  "category": "weapon",
+  "equipment": {
+   "slot": "hand",
+   "style": "melee",
+   "power": 4,
+   "accuracy": 4,
+   "attackInterval": 2.55,
+   "range": 1,
+   "proficiency": "sword",
+   "damageTypes": ["slashing"],
+   "requirements": {
+    "melee.technique": 1
+   }
+  }
+ },
+ "crudeHelm": {
+  "name": "Crude Helm",
+  "description": "Sticks bent and bound into a cap, with a rock on top. Head · light armor · +10 resistance (1% less damage) · trains Helm proficiency when hit.",
+  "value": 12,
+  "category": "armour",
+  "equipment": {
+   "slot": "head",
+   "armor": {
+    "class": "light",
+    "slot": "helm"
+   },
+   "resistance": 10,
+   "requirements": {
+    "armor.light": 1
+   }
+  }
+ },
  "hammers": {
   "name": "Crude Hammer",
   "description": "A reusable tool for carpentry and bridge repairs.",

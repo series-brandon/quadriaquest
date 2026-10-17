@@ -48,8 +48,11 @@ export function createEnemyEntity({kind,tile,parent,pickables,patrol,patrolRadiu
  // read live so the NPCs tool's edits reach spawned enemies.
  if(patrol)a.patrol=patrol;else Object.defineProperty(a,'patrol',{get:()=>patrolArea(a),enumerable:true});
  Object.defineProperty(a,'hp',{get(){return hp.value;},set(next){hp.value=next;},enumerable:true});
- // The hover label carries the name and exact health (the plate is only a bar).
- Object.defineProperty(a,'label',{get(){return `Fight ${rules.name} · ${Math.ceil(hp.value)}/${rules.health} HP${rules.boss?' · Boss':''}${a.attacksPacifists??rules.attacksPacifists?' · ⚠ Hunts pacifists':''}`;},enumerable:true});
+ // The hover (ui/hud/hover-tip.js): "Attack <name>", then its Threat as "Level N" (coloured against the player's
+ // by whoever shows it) and short notes. Inert targets have no Threat, so no level. `label` is the same as one line.
+ Object.defineProperty(a,'hover',{get(){const notes=[rules.boss?'Boss':null,a.attacksPacifists??rules.attacksPacifists?'⚠ Hunts pacifists':null].filter(Boolean).join(' · ');
+  return {text:`Attack ${rules.name}`,level:rules.threat?.level??null,notes};},enumerable:true});
+ Object.defineProperty(a,'label',{get(){const {text,level,notes}=a.hover;return [text,level!=null?`Level ${level}`:null,notes||null].filter(Boolean).join(' · ');},enumerable:true});
  const meshes=[];group.traverse(m=>{if(m.isMesh){m.userData.actor=a;m.userData.tile=tile;pickables.push(m);meshes.push(m);}});
  a.highlight=highlightResource(group,{height:model.height});
  a.dispose=()=>{plateView.dispose();group.removeFromParent();for(const m of meshes){const index=pickables.indexOf(m);if(index>=0)pickables.splice(index,1);}group.traverse(m=>{if(!m.geometry?.userData.shared)m.geometry?.dispose();});};

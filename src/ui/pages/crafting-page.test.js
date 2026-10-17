@@ -91,7 +91,7 @@ test('search and Show filters narrow the grid', () => {
   assert.equal(stations.getAttribute('aria-pressed'), 'false');
   assert.ok(!shown().includes('copperIngots'), 'station recipes hidden');
   press(missing);
-  assert.deepEqual(shown(), ['crudeAxe', 'pickaxes', 'hammers'], 'only what the Sticks and Rocks can make');
+  assert.deepEqual(shown(), ['crudeAxe', 'pickaxes', 'crudeDagger', 'hammers'], 'only what the Sticks and Rocks can make');
   const search = s.node.querySelector('.q-crafting__search');
   search.value = 'pick';
   search.dispatchEvent(new window.Event('input'));

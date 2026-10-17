@@ -8,6 +8,7 @@
 @import './hud/dialogue.css';
 @import './hud/tip.css';
 @import './hud/notices.css';
+@import './hud/hover-tip.css';
 @import './controls.css';
 @import './tabbar.css';
 @import './page.css';

@@ -54,6 +54,7 @@ const paths={
  stones:'<path d="m2 17 3-5 5 1 2 6-7 2zm10-8 4-5 5 3 1 5-7 1zm0 10 3-5 5 1 2 5-6 1z"/>',
  stone:'<path d="m3 16 3-10 10-3 6 9-5 9H7zM6 6l6 7 10-1M12 13l-5 8"/>',
  logs:'<path d="m3 15 12-9q5-1 6 4L8 20zM4 10l10-7 4 1"/><ellipse cx="6" cy="17" rx="3" ry="4"/><path d="m10 14 7-5"/>',
+ helms:'<path d="M4 16a8 8 0 0 1 16 0zM3 16h18v3H3zM10 8l2-4 2 4"/>',
  hats:'<path d="m7 16-2-12q7-3 14 0l-2 12M7 12h10"/><ellipse cx="12" cy="17" rx="10" ry="4"/>',
  companionHats:'<path d="m8.5 17-1.5-8q5-2 10 0l-1.5 8M8 13.5h8"/><ellipse cx="12" cy="17.5" rx="7.5" ry="3"/><circle cx="15.5" cy="13.5" r="1.4"/>',
  sound:'<path d="M3 9h4l5-5v16l-5-5H3zM16 8q5 4 0 8M19 4q8 8 0 16"/>',
@@ -65,6 +66,8 @@ const paths={
  check:'<path d="m4 12 5 5L20 6"/>',
 };
 // Item ids that share a drawing: tiered items and wood pieces (lumberjack.js) use their family's icon.
-const aliases={crudeAxe:'axes',crudeShield:'shields',anyWood:'logs',...Object.fromEntries(WOODS.map(id=>[id,'logs'])),Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes',ironSkullcap:'hats',minersCap:'hats',archerCap:'hats',wizardHat:'hats',breathHeadband:'hats',fishersHat:'hats'};
+const aliases={crudeAxe:'axes',crudeShield:'shields',crudeDagger:'copperDagger',crudeSword:'swords',crudeHelm:'helms',anyWood:'logs',...Object.fromEntries(WOODS.map(id=>[id,'logs'])),Smithing:'hammers',Crafting:'crafting',Lumberjack:'axes',Mining:'pickaxes',ironSkullcap:'hats',minersCap:'hats',archerCap:'hats',wizardHat:'hats',breathHeadband:'hats',fishersHat:'hats'};
 export function icon(name){return `<svg class="game-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[aliases[name]||name]||paths.skills}</svg>`;}
 export const ICON_NAMES=Object.keys(paths);
+// Whether an item or icon id has its own drawing (directly or through its family's alias).
+export const hasIcon=name=>!!paths[aliases[name]||name];

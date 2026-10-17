@@ -135,3 +135,12 @@ export function fishersHat(){
  part(g,new THREE.CylinderGeometry(.47,.47,.045,16),'#bba074',0,y(.78),.06);
  return g;
 }
+// Crude Helm: a bark cap, two bent sticks crossing over the crown, a bound band and a rock on top.
+export function crudeHelm(){
+ const g=new THREE.Group(),y=v=>v-ANCHOR_Y;
+ part(g,new THREE.SphereGeometry(.36,10,5,0,Math.PI*2,0,Math.PI/2),'#a07a52',0,y(.77));
+ for(const turn of [0,Math.PI/2])part(g,new THREE.TorusGeometry(.37,.022,5,12,Math.PI),'#8f6a45',0,y(.77)).rotation.y=turn;
+ part(g,new THREE.CylinderGeometry(.38,.38,.07,10),'#cdb281',0,y(.8));
+ part(g,new THREE.DodecahedronGeometry(.07,0),'#9aa19b',0,y(1.17));
+ return g;
+}

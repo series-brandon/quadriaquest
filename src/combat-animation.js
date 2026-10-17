@@ -1,15 +1,18 @@
 import {punchMotion,castMotion,PUNCH_GUARD} from './combat-motion.js';
 import {idlePose} from './slime-motion.js';
 import {FOLLOW_UP_DELAY} from './combat-profile.js';
+import {GEAR} from './equipment.js';
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t);
 const arc=(a,control,b,t)=>a.map((v,i)=>(1-t)*(1-t)*v+2*(1-t)*t*control[i]+t*t*b[i]);
 export const BLOCK_DURATION=.42;
 export const PROJECTILE_FLIGHT=.22;
 export function attackWindow(profile,time){const interval=profile.interval||1.5,clock=time%interval,windup=profile.style==='ranged'?.8:.48;return clock>=interval-windup||time>=interval&&clock<.28;}
-// Damage type chooses the blade motion: Piercing stabs, Slashing slashes.
-export function resolveAttackMotion(profile={}){return profile.attackMotion|| (profile.style==='magic'?'cast':profile.style==='ranged'?'bow':profile.item==='copperDagger'?(profile.damageType==='slashing'?'slash':'stab'):['swords','staffs'].includes(profile.item)?'slash':'punch');}
-const SHIELDS=['crudeShield','copperShield'];
+// Motions follow the held item's data (items.json), so any new weapon of a kind moves like the rest: a dagger's
+// damage type chooses its motion (Piercing stabs, Slashing slashes); swords and staves slash.
+const proficiencyOf=id=>GEAR[id]?.proficiency;
+export function resolveAttackMotion(profile={}){const kind=proficiencyOf(profile.item);return profile.attackMotion|| (profile.style==='magic'?'cast':profile.style==='ranged'?'bow':kind==='dagger'?(profile.damageType==='slashing'?'slash':'stab'):kind==='sword'||kind==='staff'?'slash':'punch');}
+const isShield=id=>!!GEAR[id]?.shield;
 // Hands are [right, left]: index 0 is the slime's right hand. Profiles name what each hand holds
 // (rightHand, leftHand) and, for an attack, the striking side. Motions are authored for one side
 // (strikes and blade guards right-handed; bow and shield held in the left) and mirrored for the other.
@@ -25,18 +28,18 @@ export function heldItems(profile={}){
 const sideHolding=(profile,test)=>{const h=heldItems(profile);return test(h.right)?'right':test(h.left)?'left':null;};
 export function resolveBlockMotion(profile={}){
  if(profile.blockMotion)return profile.blockMotion;
- return sideHolding(profile,id=>SHIELDS.includes(id))?'shield':sideHolding(profile,id=>id==='bows')?'bow':sideHolding(profile,id=>BLADES.includes(id))?'blade':'fists';
+ return sideHolding(profile,isShield)?'shield':sideHolding(profile,id=>id==='bows')?'bow':sideHolding(profile,isBlade)?'blade':'fists';
 }
 export function combatEquipmentVisible(kind){return !['Gathering','Crafting','Chopping','Mining','Repairing','Smithing','Smelting','Fishing','Fishing cast','Fishing catch','Celebration','Eating','Cooking','Petting','Hammer injury','Defeated'].includes(kind);}
 // Shared relaxed carry pose, independent of the selected attack style.
-// Blades rest tilted forward in either hand.
-const BLADES=['swords','copperDagger'];
+// Blades (swords and daggers) rest tilted forward in either hand.
+const isBlade=id=>['sword','dagger'].includes(proficiencyOf(id));
 // Most one-handed items rest tilted forward like a blade: weapons and the axe, pickaxe and hammer. The
 // staff stands upright like a walking staff; a rod rests on the shoulder (its model's carry transform).
-const TILTED_CARRY=[...BLADES,'crudeAxe','pickaxes','hammers'];
+const tiltedCarry=id=>isBlade(id)||['crudeAxe','pickaxes','hammers'].includes(id);
 export function equipmentIdleHands(profile={}){
  const hands=[[-.46,.33,.08,0,0,0],[.46,.33,.08,0,0,0]],held=heldItems(profile);
- for(const side of ['right','left']){const id=held[side],i=SIDE_INDEX[side];if(TILTED_CARRY.includes(id))hands[i][3]=1.85;if(id==='bows')hands[i][3]=Math.PI/2;}
+ for(const side of ['right','left']){const id=held[side],i=SIDE_INDEX[side];if(tiltedCarry(id))hands[i][3]=1.85;if(id==='bows')hands[i][3]=Math.PI/2;}
  return hands;
 }
 // Poses that only place the hands (waving, hopping, sleeping) keep each held weapon's grip from
@@ -117,7 +120,7 @@ export function blockAnimation(profile={},age=0){
  // Settle back into the stance the attack resumes from: bare hands keep their boxing guard between
  // punches (dropping to the sides here made the fists dip, then slide back up for the next punch).
  // Guards are authored with the shield or bow in the left hand and a blade in the right; mirror otherwise.
- const mirrored=motion==='shield'?sideHolding(profile,id=>SHIELDS.includes(id))==='right':motion==='bow'?sideHolding(profile,id=>id==='bows')==='right':motion==='blade'?!BLADES.includes(heldItems(profile).right):false;
+ const mirrored=motion==='shield'?sideHolding(profile,isShield)==='right':motion==='bow'?sideHolding(profile,id=>id==='bows')==='right':motion==='blade'?!isBlade(heldItems(profile).right):false;
  const physical=motion==='fists'?PUNCH_GUARD:equipmentIdleHands(profile),rest=mirrored?mirrorHands(physical):physical;
  // Bare hands: a boxing high guard, fists nearly touching in front of the face (radius .105 each),
  // clear of the 0.72 body, wrists tilted and angled slightly inward.

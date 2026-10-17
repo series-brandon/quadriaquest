@@ -16,6 +16,12 @@
   --q-tone-warning: #ffb547;
   --q-tone-danger: #ff6b6b;
 
+  /* Hover hint, and an opponent's Level coloured by Threat against yours (lower, close, higher) */
+  --q-hover-tip-bg: #493452f2;
+  --q-level-low: #8be28f;
+  --q-level-even: #ffb547;
+  --q-level-high: #ff6b6b;
+
   /* Sizing */
   --q-touch: 44px;
   --q-meter-size: 48px;

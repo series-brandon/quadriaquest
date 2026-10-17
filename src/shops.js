@@ -14,9 +14,9 @@ export const SHOPS={
  smithy:{name:'Smithy',greeting:'Copper, fresh from the forge.',buys:['metal','weapon','armour','tool'],
   stock:[{item:'copperOre'},{item:'copperIngots'},{item:'copperDagger',limit:3},{item:'copperShield',limit:2},{item:'hammers'},{item:'pickaxes'}]},
  weapons:{name:'Weaponsmith',greeting:'A good blade for a good slime.',buys:['weapon','ammo','metal'],
-  stock:[{item:'copperDagger',limit:3},{item:'swords'},{item:'bows',limit:2},{item:'arrows'},{item:'staffs',limit:1}]},
+  stock:[{item:'crudeDagger'},{item:'crudeSword'},{item:'copperDagger',limit:3},{item:'swords'},{item:'bows',limit:2},{item:'arrows'},{item:'staffs',limit:1}]},
  armour:{name:'Armourer',greeting:'Shields and helms. Mind the edges.',buys:['armour','hat','metal'],
-  stock:[{item:'copperShield',limit:2},{item:'crudeShield'},{item:'ironSkullcap',limit:1}]},
+  stock:[{item:'copperShield',limit:2},{item:'crudeShield'},{item:'crudeHelm'},{item:'ironSkullcap',limit:1}]},
  // A village smith (docs/TOWN.md, Mistrom): a little of the smithy, weaponsmith and armourer in one.
  villageSmith:{name:'Smith',greeting:'Metal, blades and shields. Whatever the forge can make.',buys:['metal','weapon','armour','tool','ammo'],
   stock:[{item:'copperOre'},{item:'copperIngots'},{item:'copperDagger',limit:3},{item:'swords',limit:2},{item:'copperShield',limit:2},{item:'crudeShield',limit:1},{item:'ironSkullcap',limit:1},{item:'hammers'},{item:'pickaxes'},{item:'arrows'}]},
