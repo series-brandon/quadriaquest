@@ -1,41 +1,113 @@
 import ENEMY_DATA from './data/enemies.json' with {type:'json'};
-import {attackProfile,resourceMaxima,resistanceBonus,threat} from './combat-formulas.js';
+import {STYLES,attackProfile,resourceMaxima,resistanceBonus,threat} from './combat-formulas.js';
 
 // Enemy types (docs/COMBAT.md; docs/DESIGN.md, Resource and enemy configuration) are data in
 // src/data/enemies.json, edited in the world editor's NPCs tool: each type's `name`; its `sheet` (attributes,
-// skill levels per style, proficiencies), from which health, damage, attack interval, resistances and Threat are
-// derived with the shared formulas (every Threat input is configured deliberately); its attack setup (`style`,
-// `strategy`, `damageTypes`, `baseInterval` seconds, `missPercent`, and `canCritical`/`canDodge`/`canBlock`, which
-// default off: enemies never inherit player-only baselines); behaviour (`aggressive`, the default for new spawns;
-// `aggroRange` tiles; `moveSpeed` ×; `telegraphed`: no quick opening swing, every attack winds up for its full
-// interval, so stepping out of reach in time avoids it; `attacksPacifists`; `protected`: can't take the player below
-// 1 HP; `boss`); XP (`xpMultiplier`, `xpLevelCap`); `overrides` for any derived value (`health`, `min`, `max`,
-// `interval`, `resistancePct`); and `respawn` and `drops` (drops.js), which a map spawn may rarely override.
+// skill levels per style, proficiencies), from which health, each style's damage and attack interval, resistances
+// and Threat are derived with the shared formulas (every Threat input is configured deliberately); its attack setup
+// (`strategy`, `damageTypes`, `baseInterval` seconds, `missPercent`, `attackRange` tiles for its ranged and magic
+// attacks, and `canCritical`/`canDodge`/`canBlock`, which default off: enemies never inherit player-only
+// baselines); its attack mix (`attacks`: a weight per regular style, 0 or absent for off; `specialAttacks`:
+// [{id, chance %}] from SPECIAL_ATTACKS below); behaviour (`aggressiveUntil`: it attacks players whose Threat is
+// below this on sight, 0 never; `aggroRange` tiles; `moveSpeed` ×; `attacksPacifists`; `protected`: can't take
+// the player below 1 HP; `boss`); XP (`xpMultiplier`, `xpLevelCap`); `overrides` for any derived value (`health`,
+// `resistancePct`, and `attacks.<style>` {`min`, `max`, `interval`}; a type without a sheet sets flat `min`, `max`,
+// `interval`); and `respawn` and `drops` (drops.js), which a map spawn may rarely override.
 // ENEMIES is the live view combat reads; enemyRow/refreshEnemy rebuild it from the data.
-export const ENEMY_DATA_FIELDS=['name','sheet','style','strategy','damageTypes','baseInterval','missPercent','canCritical','canDodge','canBlock',
- 'aggressive','aggroRange','moveSpeed','telegraphed','attacksPacifists','protected','boss','xpMultiplier','xpLevelCap','overrides','respawn','drops'];
-export const ENEMY_OVERRIDES=['health','min','max','interval','resistancePct'];
+export const ENEMY_DATA_FIELDS=['name','sheet','strategy','damageTypes','baseInterval','missPercent','attackRange','canCritical','canDodge','canBlock',
+ 'attacks','specialAttacks','aggressiveUntil','aggroRange','moveSpeed','attacksPacifists','protected','boss','xpMultiplier','xpLevelCap','overrides','respawn','drops'];
+// Reach of an enemy's regular ranged and magic attacks when its type sets none (a bow's range).
+export const ENEMY_ATTACK_RANGE=6;
+
+// Special attacks: programmed here, given to a type by id with a chance (the NPCs tool lists them by name). Each
+// says how it plays; its damage and interval come from the enemy's own derived attack for `style`, so stronger
+// enemies hit harder with the same special.
+//   style       damage type: melee, ranged or magic (also the player's resistance that applies)
+//   range       'melee' (beside its body) or tiles (needs line of sight)
+//   windup      seconds of windup before impact; 'interval' winds up for its whole interval (slow and readable)
+//   target      'character' locks onto the player at the commit point and follows them; 'tile' locks the
+//               (2·area+1)² tiles around the player there and hits whoever stands on them at impact (an area attack)
+//   telegraph   marks the locked tiles (or the locked-on player's tile) on the ground from the commit point
+//   after       only once the player has stayed out of its melee reach this many seconds (a punish for kiting);
+//               it chases again for the full delay after each use
+//   projectile  thrown or shot: 'rock', 'ranged' or 'magic', flying `flight` seconds (arc: lob height)
+//   pose        'strike' (its attack motion) or 'throw'
+//   damageScale × its style's damage (default 1)
+// Only the player can be targeted today; companions and other slimes will join as targets later.
+export const SPECIAL_ATTACKS={
+ groundSlam:{name:'Ground Slam',style:'melee',range:'melee',windup:'interval',target:'tile',area:1,telegraph:true,pose:'strike'},
+ rockThrow:{name:'Rock Throw',style:'ranged',range:8,windup:2.4,target:'tile',area:1,telegraph:true,after:1.5,projectile:'rock',flight:.6,arc:1.2,pose:'throw'},
+};
+// Regular attacks: one per style, aimed at the player.
+const REGULAR={
+ melee:{name:'Melee',range:'melee'},
+ ranged:{name:'Ranged',projectile:'ranged'},
+ magic:{name:'Magic',projectile:'magic'},
+};
 // Behaviour that stays in code, by type.
 const ENEMY_CODE={
  // Inert: no attack or retaliation (no sheet; its numbers are overrides). Half XP until the receiving track reaches level 3.
  target:{inert:true},
- // Unwinnable by design: a single slam ends any tutorial player, but it is slow and telegraphed, so running at
- // once escapes. Its health refills whenever it walks home, and it awards no XP, so it can't be chipped down or farmed.
- golem:{
-  // The slam locks the 3×3 tiles around the player at its commit point (docs/COMBAT.md, Enemy attack commitment).
-  target:'tile',area:1,
-  // Ranged punish: after 1.5 s out of its reach (within 8 tiles and sight) it stands and throws a rock.
-  rangedAttack:{name:'Rock Throw',style:'ranged',telegraphed:false,min:40,max:90,interval:3.4,windup:2.4,flight:.6,target:'tile',area:1,range:8,after:1.5}},
 };
+// Each style's attack from the sheet (unarmed, with the type's strategy and base interval).
 export function deriveEnemy(sheet,config){
- const attack=attackProfile(sheet,{player:false,style:config.style,strategy:config.strategy,proficiency:'unarmed',baseInterval:config.baseInterval});
- return {...config,sheet,health:resourceMaxima(sheet.attributes).health,min:attack.min,max:attack.max,interval:attack.interval,attack,
-  resistancePct:Object.fromEntries(['melee','ranged','magic'].map(s=>[s,resistanceBonus(sheet,s)/10])),threat:threat(sheet)};
+ const profiles=Object.fromEntries(STYLES.map(style=>[style,{style,...attackProfile(sheet,{player:false,style,strategy:config.strategy,proficiency:'unarmed',baseInterval:config.baseInterval})}]));
+ return {...config,sheet,health:resourceMaxima(sheet.attributes).health,profiles,
+  resistancePct:Object.fromEntries(STYLES.map(s=>[s,resistanceBonus(sheet,s)/10])),threat:threat(sheet)};
 }
-// One type's live row: its data, the values derived from its sheet, its overrides, then its code behaviour.
+// One of a type's attacks as combat uses it: what it does (code), with its style's damage and interval (data).
+// id: a style (a regular attack) or a SPECIAL_ATTACKS id.
+export function enemyMove(row,id,{weight=1,chance=100}={}){
+ const special=SPECIAL_ATTACKS[id],def=special||REGULAR[id];if(!def||!row.profiles)return null;
+ const style=special?.style||id,profile=row.profiles[style],scale=def.damageScale??1;
+ const move={id,name:def.name,special:!!special,style,min:Math.round(profile.min*scale),max:Math.round(profile.max*scale),interval:profile.interval,
+  range:def.range??row.attackRange??ENEMY_ATTACK_RANGE,target:def.target||'character',area:def.area??0,telegraph:!!def.telegraph,after:def.after??null,
+  projectile:def.projectile||null,flight:def.flight??null,arc:def.arc??0,pose:def.pose||'strike',
+  missPercent:row.missPercent||0,canCritical:!!row.canCritical,criticalPercent:row.criticalPercent||0,protected:!!row.protected};
+ // Regular windups follow the style (combat.js attackWindup); a special's is its own.
+ if(special)move.windup=Math.min(move.interval,def.windup==='interval'?move.interval:def.windup);
+ if(special)move.chance=chance;else move.weight=weight;
+ return move;
+}
+// A type's attacks: its specials in list order, then its regular attacks.
+function enemyMoves(row){
+ const specials=(row.specialAttacks||[]).filter(s=>SPECIAL_ATTACKS[s.id]).map(s=>enemyMove(row,s.id,{chance:s.chance??0})).filter(Boolean);
+ const regular=STYLES.filter(style=>row.attacks?.[style]>0).map(style=>enemyMove(row,style,{weight:row.attacks[style]}));
+ return [...specials,...regular];
+}
+// Picks the next attack from the ones it can use (docs/COMBAT.md, Enemy attack choice), from one roll (0..1):
+// each special, in list order, takes its chance (%) of the roll; the rest is shared by the regular attacks by weight.
+// With no regular attacks the specials share the whole roll by their chances.
+export function chooseEnemyMove(moves,roll){
+ const specials=moves.filter(m=>m.special&&m.chance>0),regular=moves.filter(m=>!m.special&&m.weight>0);
+ const chances=specials.reduce((s,m)=>s+m.chance,0),span=regular.length?100:Math.min(100,chances);
+ if(!span)return null;
+ let r=roll*span;
+ for(const m of specials){if(r<m.chance)return m;r-=m.chance;}
+ if(!regular.length)return specials.at(-1);
+ const weights=regular.reduce((s,m)=>s+m.weight,0);let w=r/Math.max(1e-9,100-chances)*weights;
+ for(const m of regular){if(w<m.weight)return m;w-=m.weight;}
+ return regular.at(-1);
+}
+// The share of attack choices each attack gets (the NPCs tool's mix): [move, %] for the usual roll, then any
+// conditional special (`after`: a kiting punish) with its own chance while its condition holds, marked by a third entry.
+export function attackMix(moves){
+ const usual=moves.filter(m=>m.after==null),specials=usual.filter(m=>m.special&&m.chance>0),regular=usual.filter(m=>!m.special&&m.weight>0);
+ const chances=specials.reduce((s,m)=>s+m.chance,0),span=regular.length?100:Math.min(100,chances),weights=regular.reduce((s,m)=>s+m.weight,0);
+ let left=span;const shares=specials.map(m=>{const share=Math.max(0,Math.min(m.chance,left));left-=share;return [m,span?share/span*100:0];});
+ const conditional=moves.filter(m=>m.after!=null&&m.special&&m.chance>0).map(m=>[m,Math.min(100,m.chance),true]);
+ return [...shares,...regular.map(m=>[m,Math.max(0,100-chances)*m.weight/weights])].filter(([,p])=>p>0).concat(conditional);
+}
+// One type's live row: its data, the values derived from its sheet, its overrides, its attacks, then its code behaviour.
+// Top-level min/max/interval/style are its basic attack (its most used regular style, else melee), for summaries.
 export function enemyRow(kind){
  const {sheet,overrides={},...config}=structuredClone(ENEMY_DATA[kind]);
- return {...(sheet?deriveEnemy(sheet,config):config),...overrides,...structuredClone(ENEMY_CODE[kind]||{})};
+ const {attacks:attackOverrides={},...flat}=overrides,row={...(sheet?deriveEnemy(sheet,config):config),...flat};
+ if(row.profiles)for(const [style,o] of Object.entries(attackOverrides))Object.assign(row.profiles[style],o);
+ row.moves=enemyMoves(row);
+ const basic=row.profiles&&(STYLES.filter(s=>row.attacks?.[s]>0).sort((a,b)=>row.attacks[b]-row.attacks[a])[0]||'melee');
+ if(basic){const p=row.profiles[basic];Object.assign(row,{style:basic,min:p.min,max:p.max,interval:p.interval});}
+ return {...row,...structuredClone(ENEMY_CODE[kind]||{})};
 }
 export const ENEMIES={};
 // Rebuilds one type's row in place after its data changes (the NPCs tool), so spawned enemies follow.
@@ -46,3 +118,7 @@ export const ENEMY_SHEETS=Object.fromEntries(Object.entries(ENEMY_DATA).filter((
 // The data rows (the NPCs tool edits these, then refreshEnemy), and the file as they write it.
 export const enemyData=kind=>ENEMY_DATA[kind];
 export function enemiesData(){return Object.fromEntries(Object.entries(ENEMY_DATA).map(([kind,d])=>[kind,Object.fromEntries(ENEMY_DATA_FIELDS.filter(f=>d[f]!==undefined).map(f=>[f,d[f]]))]));}
+// Whether an enemy attacks this player on sight: their Threat is below its `aggressiveUntil` (a spawn's own, else its
+// type's). 0 never; a high number always.
+export const aggressiveUntil=a=>a.aggressiveUntil??a.rules.aggressiveUntil??0;
+export const hostileTo=(a,playerThreat)=>!a.rules.inert&&playerThreat<aggressiveUntil(a);

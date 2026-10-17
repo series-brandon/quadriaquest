@@ -119,7 +119,7 @@ import {createCraftingTutorial} from './crafting-tutorial.js';
 import {createGameMenus} from './game-menus.js';
 import {createSkill,showSkillReward,updateSkillRewards,clearSkillRewards,onSkillXp,grantSkillXp,GATHER_EFFORT} from './skills.js';
 import {actionXp} from './skill-pacing.js';
-import {levelForXp} from './combat-formulas.js';
+import {levelForXp,threat} from './combat-formulas.js';
 import {rollDrops,dropOdds,seededRandom} from './drops.js';
 import {ENEMIES} from './combat-rules.js';
 import {createLootPiles} from './loot-piles.js';
@@ -335,7 +335,7 @@ handsKey=`${equipment.slots.right}|${equipment.slots.left}`;
 styles=createCombatStyles({equipment,busy:()=>combat?.busy||smithing?.working||recipeCrafting?.working||!canMove()});
 const supplies=createSupplyOffers({inventory,changed:showItemChanges});
 const projectiles=createProjectileEffects(scene),telegraphs=createAttackTelegraphs(scene);
-combat=createCombatSystem({playerMoving:()=>!!segment||path.length>0,telegraph:(owner,tiles,progress)=>telegraphs.show(owner,tiles,progress),world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,passive:()=>!!assistance?.attacksPrevented,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),danger:a=>assistance?.danger?.enemy===a?assistance.danger.band:null,resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:changes=>showItemChanges(changes,{sound:null}),projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
+combat=createCombatSystem({threat:()=>threat(character.sheet()).level,playerMoving:()=>!!segment||path.length>0,telegraph:(owner,tiles,progress)=>telegraphs.show(owner,tiles,progress),world,player,health,equipment,inventory,character,control:playerControl,canAttack:a=>assistance?assistance.canAttack(a):true,shouldRetaliate:a=>assistance?assistance.shouldRetaliate(a):combat.autoRetaliate,passive:()=>!!assistance?.attacksPrevented,mana:playerResources.mana,energy:playerResources.energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),danger:a=>assistance?.danger?.enemy===a?assistance.danger.band:null,resistanceBonus:()=>auras.resistancePct,strategy:()=>styles.strategy,attack:()=>styles.attack,toast,items:changes=>showItemChanges(changes,{sound:null}),projectile:(...args)=>projectiles.launch(...args),clearProjectiles:()=>projectiles.clear(),stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),defeatStop:stopAll,
  attacked:()=>playerInterface?.attacked(),interrupt:()=>cancelWork({keepCombat:true,keepFood:true}),retaliate:a=>selectActor(a),eating:()=>food?.working,
  blocked:()=>!areas.canMove||travel.busy,
  inReach:a=>!segment&&!path.length&&withinAttackRange(world,tile,a,attackRange()),
@@ -515,7 +515,7 @@ function placeLandExtra(e,{tile:t,parent,tileAt},saved){
    const respawn=e.respawn??ENEMIES[e.enemy]?.respawn??ENEMY_RESPAWN;
    if(saved?.away>elapsed)return {dispose(){},save:()=>saved};
    if(t.blocked||characterAt(t))return null;
-   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressive:e.aggressive,aggroRange:3,respawn,drops:e.drops??null}));
+   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressiveUntil:e.aggressiveUntil,respawn,drops:e.drops??null}));
    return {dispose:()=>combat.remove(a),busy:()=>combat.matches(a)||combat.engagedEnemy===a,save:()=>a.opened?{away:elapsed+respawn}:null};}
   return null;}
 // A chunk's dressing: its animated water and its ground cover (flowers, grass, reeds, lily pads…),

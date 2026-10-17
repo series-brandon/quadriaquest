@@ -134,7 +134,7 @@ export function createCountryside({mapData,seed=11}){
    const road=roadDistance(t.x,t.z);
    if(road>10&&outside(t.x,t.z)>22&&!reserved.has(`${t.x},${t.z}`)&&!taken(t)&&hash(t.x,t.z,seed+31)<.0012){
     const deep=road>18&&hash(t.x,t.z,seed+32)<.45;
-    out.push({id:`goblin:${t.x},${t.z}`,kind:'enemy',enemy:deep?'bruiser':'scrapper',aggressive:deep,x:t.x,z:t.z});}
+    out.push({id:`goblin:${t.x},${t.z}`,kind:'enemy',enemy:deep?'bruiser':'scrapper',x:t.x,z:t.z});}
   }
   for(const b of bridges){const [x,z]=b.axis==='x'?[b.from,b.at]:[b.at,b.from];if(keys.has(`${x},${z}`))out.push({id:b.id,kind:'bridge',x,z,axis:b.axis,length:b.to-b.from+1,width:ROAD_HALF*2+1});}
   for(const l of LANDMARKS)for(const [i,p] of l.props.entries())if(keys.has(`${p.x},${p.z}`))out.push({id:`${l.id}:${i}`,kind:'prop',prop:p.kind,x:p.x,z:p.z,rotation:p.rotation||0});

@@ -45,7 +45,7 @@ test('resources, fishing spots, goblins and landmarks follow the rules',()=>{
  for(const f of fish)assert.ok([[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>{const n=map.get(key(f.x+dx,f.z+dz));return n&&!n.water&&n.h-.5<=.5&&reach.has(n);}),`fished from a reachable shore: ${f.id}`);
  const goblins=extras.filter(e=>e.kind==='enemy');assert.ok(goblins.length>=8&&goblins.length<=80,`goblins: ${goblins.length}`);
  assert.ok(goblins.every(g=>land.roadDistance(g.x,g.z)>10&&land.outside(g.x,g.z)>22),'away from roads and the wall');
- assert.ok(goblins.every(g=>!g.aggressive||land.roadDistance(g.x,g.z)>18),'only deep ones are aggressive');
+ assert.ok(goblins.every(g=>g.enemy!=='bruiser'||land.roadDistance(g.x,g.z)>18),'only deep ones are Bruisers');
  const props=extras.filter(e=>e.kind==='prop');assert.equal(props.length,land.landmarks.reduce((n,l)=>n+l.props.length,0),'every landmark prop placed');
  for(const p of props){const t=map.get(key(p.x,p.z));assert.ok(t&&!t.water,`${p.id} on land`);}
  assert.ok(SEA>0);

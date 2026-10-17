@@ -130,7 +130,7 @@ export function createWorldEditor(host){
  const catalogue=mapCatalogue(),choice=signal(catalogue[0].id);
  let view=null,data=null,built=null,stopDrag=null,stopBiomes=null,stopPreview=null,stopFloors=null,stopScreen=null;
  const tool=signal('select'),toolGroup=signal('decorate'),mode=signal('edit'),brush=signal('1'),status=signal(''),problems=signal([]),revision=signal(0);
- const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),floorPattern:signal('checker'),floorIntensity:signal(String(FLOOR_INTENSITY)),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyMood:signal('passive'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),flight:signal('up'),flightKind:signal('stairs'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
+ const options={rampMode:signal('add'),rampPaths:signal(true),paintColour:signal('#e8c8a0'),floorPattern:signal('checker'),floorIntensity:signal(String(FLOOR_INTENSITY)),paintScope:signal('room'),paintErase:signal(false),wallsMode:signal('cut'),brushShape:signal('brush'),enemyKind:signal('scrapper'),enemyRespawn:signal('45'),growSide:signal('all'),growBy:signal('1'),nature:signal('tree:oak'),wallKind:signal('window'),biome:signal('meadow'),terrain:signal('plains'),landLayer:signal('biome'),biomeBrush:signal('1'),landDefault:signal('meadow'),draftMode:signal('add'),storeys:signal('1'),roof:signal('gable'),style:signal('timber'),use:signal('home'),surface:signal('cobble'),preset:signal('cottage'),rotation:signal('0'),prop:signal('bench'),dir:signal('n'),flight:signal('up'),flightKind:signal('stairs'),length:signal('2'),width:signal('2'),edge:signal('wall'),side:signal('s')};
  const undo=[],redo=[],history=signal({undo:0,redo:0}),grid=signal(true);
  let overlay=null,outline=null,draftOutline=null,biomeOverlay=null,checkTimer=null;
  // The footprint being painted: tiles ('x,z'), and the building it reshapes (its index) or null for a new one.
@@ -254,7 +254,7 @@ export function createWorldEditor(host){
    const flight=flightAt(inside,0,x,z);if(flight)return flight;
    if(!Array.isArray(data.buildings[inside].floors)&&built.buildings[inside]?.furniture?.some(p=>p.tiles.some(t=>t.x===x&&t.z===z)))return {kind:'furnished',owner:inside,x,z};}
   return hit('townsfolk',l.townsfolk,f=>f.home&&f.home[0]===x&&f.home[1]===z)||hit('crystal',l.crystal,c=>on(crystalCells(c)))||hit('building',l.building,b=>on(cellsOf('building',b)))||hit('prop',l.prop,p=>on(propCells(p)))||hit('stairs',l.stairs,s=>on(stairSteps(s)))||hit('enemy',l.enemy,e=>on(cellsOf('enemy',e)))||hit('resource',l.resource,r=>r.x===x&&r.z===z)||hit('cover',l.cover,c=>c.x===x&&c.z===z);}
- const nameOf=(kind,entry)=>SPECIAL[kind]?SPECIAL[kind].name(entry):kind==='group'?`${entry.items.length} things`:kind==='edge'?`a ${entry.kind}`:kind==='furniture'?PROPS[entry.kind]?.name||entry.kind:kind==='enemy'?`${ENEMIES[entry.enemy]?.name||entry.enemy}${entry.aggressive?' (aggressive)':''}`:kind==='crystal'?`the Iter Crystal ${entry.name||entry.id||''}`.trim():kind==='resource'?natureName(entry):kind==='cover'?`${entry.kind} (cover)`:kind==='building'?entry.desc.name||'Building':kind==='prop'?PROPS[entry.kind]?.name||entry.kind:kind==='stairs'?`Stairs up ${SIDE_LABELS[entry.dir].toLowerCase()}`:entry.name||entry.id||'Townsfolk';
+ const nameOf=(kind,entry)=>SPECIAL[kind]?SPECIAL[kind].name(entry):kind==='group'?`${entry.items.length} things`:kind==='edge'?`a ${entry.kind}`:kind==='furniture'?PROPS[entry.kind]?.name||entry.kind:kind==='enemy'?`${ENEMIES[entry.enemy]?.name||entry.enemy}`:kind==='crystal'?`the Iter Crystal ${entry.name||entry.id||''}`.trim():kind==='resource'?natureName(entry):kind==='cover'?`${entry.kind} (cover)`:kind==='building'?entry.desc.name||'Building':kind==='prop'?PROPS[entry.kind]?.name||entry.kind:kind==='stairs'?`Stairs up ${SIDE_LABELS[entry.dir].toLowerCase()}`:entry.name||entry.id||'Townsfolk';
  const anchorOf=(kind,entry)=>SPECIAL[kind]?SPECIAL[kind].anchor(entry):kind==='group'?(c=>[Math.min(...c.map(p=>p[0])),Math.min(...c.map(p=>p[1]))])(cellsOf('group',entry)):kind==='edge'?entry.a:kind==='townsfolk'?entry.home:kind==='furniture'?(p=>[p.x0+entry.at[0],p.z0+entry.at[1]])(planOf(homeOf(entry)?.owner??hereOwner())):[entry.x,entry.z];
  const setAnchor=(kind,entry,[x,z])=>{if(kind==='edge'){const [ax,az]=entry.a;entry.b=[entry.b[0]+x-ax,entry.b[1]+z-az];entry.a=[x,z];return;}if(kind==='furniture'){const p=planOf(homeOf(entry)?.owner??hereOwner());entry.at=[x-p.x0,z-p.z0];return;}if(kind==='townsfolk')entry.home=[x,z];else{entry.x=x;entry.z=z;}};
  // Checks an entry where it now stands (own: the tiles it covered before, which it may reuse).
@@ -662,10 +662,14 @@ export function createWorldEditor(host){
  const spawnRev=signal(0);
  function spawnPanel(){
   return h('div',{class:'q-world-editor__group',hidden:()=>{revision.value;return selection.value?.kind!=='enemy';}},heading('Spawn'),
-   fields(spawnControl('Enemy',s=>s.enemy,Object.entries(ENEMIES).map(([id,e])=>[id,e.name]),(s,v)=>{s.enemy=v;}),
-    spawnControl('Behaviour',s=>s.aggressive?'aggressive':'passive',[['passive','Passive'],['aggressive','Aggressive']],(s,v)=>{s.aggressive=v==='aggressive';})),
+   fields(spawnControl('Enemy',s=>s.enemy,Object.entries(ENEMIES).map(([id,e])=>[id,e.name]),(s,v)=>{s.enemy=v;})),
    buttons(smallButton(()=>{revision.value;selection.value;const s=spawnOf();return s?`Edit ${ENEMIES[s.enemy]?.name||s.enemy} type`:'Edit type';},()=>{const s=spawnOf();if(s)openTypes(`enemy:${s.enemy}`);})),
-   overrides('Override for this one (rare)',fields(spawnControl('Respawns after',s=>s.respawn===undefined?'':String(s.respawn),[['',()=>{revision.value;selection.value;const s=spawnOf();return s?`Type (${ENEMIES[s.enemy]?.respawn??45} s)`:'Type';}],...RESPAWNS],(s,v)=>{if(v==='')delete s.respawn;else s.respawn=+v;})),
+   overrides('Override for this one (rare)',fields(spawnControl('Respawns after',s=>s.respawn===undefined?'':String(s.respawn),[['',()=>{revision.value;selection.value;const s=spawnOf();return s?`Type (${ENEMIES[s.enemy]?.respawn??45} s)`:'Type';}],...RESPAWNS],(s,v)=>{if(v==='')delete s.respawn;else s.respawn=+v;}),
+    // Attacks players below this Threat (0 never); blank follows the type.
+    h('label',{class:'q-world-editor__field'},'Aggressive until Threat',h('input',{type:'number',class:'q-input',min:0,step:1,
+     placeholder:()=>{revision.value;selection.value;const s=spawnOf();return s?`Type (${ENEMIES[s.enemy]?.aggressiveUntil??0})`:'Type';},
+     value:()=>{revision.value;selection.value;return spawnOf()?.aggressiveUntil??'';},
+     on:{change:e=>{const v=e.target.value;setSpawn(s=>{if(v==='')delete s.aggressiveUntil;else s.aggressiveUntil=Math.max(0,+v);},'aggression').catch(error=>{status.value=error.message;});}}}))),
     h('h5',{class:'q-label'},'Drops (blank: the type\u2019s table)'),
     dropTableEditor({get:()=>{selection.value;revision.value;return spawnOf()?.drops;},set:t=>setSpawn(e=>{if(t)e.drops=t;else delete e.drops;},'drops').catch(error=>{status.value=error.message;}),rev:spawnRev})));
  }
@@ -1110,7 +1114,7 @@ export function createWorldEditor(host){
    case 'room':case 'resize':return null;
    case 'prop':{const [px,pz]=wallAim?.at||[x,z];return placed('prop',{kind:o.prop,x:px,z:pz,rotation});}
    case 'townsfolk':return (data.townsfolk||[]).some(f=>f.home&&f.home[0]===x&&f.home[1]===z)?{cells:[{x,z,color:BRUSH}]}:placed('townsfolk',{home:[x,z]});
-   case 'enemy':return placed('enemy',{enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z});
+   case 'enemy':return placed('enemy',{enemy:o.enemyKind,respawn:+o.enemyRespawn,x,z});
    case 'building':{const desc={...structuredClone(BUILDING_PRESETS[o.preset]),rotation};let cells=[];try{cells=planBuilding(desc,[x,z]).tiles;}catch(error){return {cells:[],refused:error.message};}
     const refused=fits(()=>{oneChunk(cells);taken(cells);});return {cells:tint(cells,refused?NO:OK),refused,ghosts:[{kind:'building',entry:{x,z,desc}}]};}
    case 'stairs':{if(inPlaceAt(x,z)!==null)return stairsPreview(inPlaceAt(x,z),0,x,z);const cells=stairCells({x,z,dir:o.dir,length:+o.length,width:+o.width}),missing=cells.find(([a,b])=>!at(a,b));return {cells:tint(cells,missing?NO:OK),refused:missing?`${missing.join(',')} is off the map.`:null};}
@@ -1555,7 +1559,7 @@ export function createWorldEditor(host){
     if(await change(()=>{const cells=validate('townsfolk',person,[]);lists().townsfolk.push(person);return cells;})){selection.value={kind:'townsfolk',index:data.townsfolk.length-1};showSelection();status.value=`${person.name} lives at ${x},${z}. Set them up in the Townsfolk panel.`;}break;}
    case 'stamp':{const st=stampOf(chosenStamp.peek());if(!st){status.value='Pick a stamp first.';break;}if(await applyStamp(st,x,z))status.value=`Stamped ${st.name||chosenStamp.peek()} at ${x},${z}.`;break;}
    case 'spawn':await change(()=>{data.spawn=[x,z];return [];});status.value=`Arrival at ${x},${z}.`;break;
-   case 'enemy':{const spawn={enemy:o.enemyKind,aggressive:o.enemyMood==='aggressive',respawn:+o.enemyRespawn,x,z};
+   case 'enemy':{const spawn={enemy:o.enemyKind,respawn:+o.enemyRespawn,x,z};
     if(await change(()=>{const cells=validate('enemy',spawn,[]);lists().enemy.push(spawn);return cells;}))status.value=`${nameOf('enemy',spawn)} spawns at ${x},${z}.`;break;}
    // A new Iter Crystal (docs/TOWN.md, Iter Crystals): a unique id and a name to change in its panel (the Hand).
    case 'crystal':{const there=mapCrystals(data).findIndex(c=>crystalCells(c).some(([a,b])=>a===x&&b===z));
@@ -1728,7 +1732,7 @@ export function createWorldEditor(host){
         opts(['townsfolk'],personPanel()),
         opts(['crystal'],crystalPanel()),
         opts(['nature'],group(null,fields(select('Nature',options.nature,NATURE_CHOICES)))),
-        opts(['enemy'],group(null,fields(select('Enemy',options.enemyKind,Object.entries(ENEMIES).map(([id,e])=>[id,e.name])),select('Behaviour',options.enemyMood,[['passive','Passive (fights back)'],['aggressive','Aggressive']]),select('Respawns after',options.enemyRespawn,RESPAWNS)))),
+        opts(['enemy'],group(null,fields(select('Enemy',options.enemyKind,Object.entries(ENEMIES).map(([id,e])=>[id,e.name])),select('Respawns after',options.enemyRespawn,RESPAWNS)))),
         opts(['raise','lower','flatten','smooth','ramp','ramps','nature','surface','footprint'],group(null,fields(select('Brush',brush,[['1','1 tile'],['3','3 × 3'],['5','5 × 5'],['7','7 × 7'],['9','9 × 9']]),
          h('label',{class:'q-world-editor__field',hidden:shown('raise','lower','flatten','smooth','ramps','nature','surface')},'Shape',h('select',{class:'q-select',on:{change:e=>{options.brushShape.value=e.target.value;}}},[['brush','Paint as you drag'],['line','A straight line']].map(([id,name])=>h('option',{value:id,selected:()=>options.brushShape.value===id},name))))))),
         opts(['ramps'],group(null,fields(select('Ramps',options.rampMode,[['add','Ledges to ramps'],['remove','Ramps to ledges']])),

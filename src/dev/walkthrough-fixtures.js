@@ -56,7 +56,7 @@ export function createWalkThroughFixtures(api){
   const {run,side}=found,cells=[run[1],run[2],side(run[1]),side(run[2])];
   const tile=at(Math.min(...cells.map(c=>c.x)),Math.min(...cells.map(c=>c.z)));
   if(!canStand(api.world,tile,2)||cells.some(c=>api.occupied(c)))return 'No level 2×2 space for the golem on the lane.';
-  ensureRoot();golem=api.combat.add(createEnemyEntity({kind:'golem',tile,parent:root,pickables:api.pickables,aggressive:false,attacksPacifists:false,patrol:{minX:tile.x,maxX:tile.x,minZ:tile.z,maxZ:tile.z}}));
+  ensureRoot();golem=api.combat.add(createEnemyEntity({kind:'golem',tile,parent:root,pickables:api.pickables,aggressiveUntil:0,attacksPacifists:false,patrol:{minX:tile.x,maxX:tile.x,minZ:tile.z,maxZ:tile.z}}));
   golemBeyond=run[3];
   return 'Placed a passive Cinder Golem across the lane (it does not wander or engage). Walk through the golem crosses its 2×2 body.';
  }

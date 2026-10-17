@@ -4,7 +4,7 @@ import {keyedList} from '../ui/list.js';
 import {subTabs} from '../ui/controls.js';
 import {TREES, treesData} from '../lumberjack.js';
 import {RESOURCE_RULES, resourcesData} from '../resource-rules.js';
-import {ENEMIES, deriveEnemy, enemyData, enemiesData, refreshEnemy} from '../combat-rules.js';
+import {ENEMIES, ENEMY_ATTACK_RANGE, SPECIAL_ATTACKS, attackMix, enemyData, enemiesData, refreshEnemy} from '../combat-rules.js';
 import {STRATEGIES, STYLES, COMBAT_SKILLS} from '../combat-formulas.js';
 import {ITEMS, dataItems, itemsData} from '../items.js';
 import {SELL_RATE, sellPrice} from '../economy.js';
@@ -202,31 +202,60 @@ export function typeEditor({tool = 'nodes', start = null, post}) {
       smallButton('Add an effect', () => edit(list => { list.push({type: 'restore', resource: 'health', amount: 10}); })));
   };
 
-  // NPCs (docs/COMBAT.md): the authored sheet and setup; health, damage, interval, resistance and Threat are derived
-  // with the shared formulas (shown live in Results) unless an override sets them. Special attacks stay in code.
-  const derivedOf = e => { const {sheet, overrides, ...config} = e.row; return sheet ? deriveEnemy(sheet, config) : null; };
+  // NPCs (docs/COMBAT.md): the authored sheet and setup; health, each style's damage and interval, resistance and
+  // Threat are derived with the shared formulas (shown live in Results) unless an override sets them. Special
+  // attacks are programmed in code (SPECIAL_ATTACKS); a type lists the ones it uses, each with a chance.
   const npcSections = e => {
     const sheet = () => e.row.sheet, attr = key => at(e, () => sheet().attributes, key, () => sheet().attributes);
     const skill = (style, key) => at(e, () => sheet().skills[style], key, () => sheet().skills[style]);
     const override = key => at(e, () => e.row.overrides, key, () => (e.row.overrides ??= {}));
-    const tidy = () => { if (e.row.overrides && !Object.keys(e.row.overrides).length) delete e.row.overrides; };
-    const overrideField = (label, key, show = d => d?.[key]) => field(label, num({...override(key), set: v => { override(key).set(v); tidy(); }, step: key === 'interval' ? .05 : 1,
-      blank: () => { const d = derivedOf(e), v = show(d); return v == null ? 'none' : String(round(v)); }}));
+    const tidy = () => {
+      const o = e.row.overrides; if (!o) return;
+      for (const style of STYLES) if (o.attacks?.[style] && !Object.keys(o.attacks[style]).length) delete o.attacks[style];
+      if (o.attacks && !Object.keys(o.attacks).length) delete o.attacks;
+      if (!Object.keys(o).length) delete e.row.overrides;
+    };
+    const live = () => { rev.value; return ENEMIES[e.id]; };
+    const overrideField = (label, key, show) => field(label, num({...override(key), set: v => { override(key).set(v); tidy(); }, step: key === 'interval' ? .05 : 1,
+      blank: () => { const v = show(); return v == null ? 'none' : String(round(v)); }}));
+    // A style's attack override: overrides.attacks.<style>.{min, max, interval}; blank shows the sheet's value.
+    const attackOverride = (style, key) => num({get: () => e.row.overrides?.attacks?.[style]?.[key], step: key === 'interval' ? .05 : 1, label: `${titleCase(style)} ${key}`,
+      set: v => { const o = (e.row.overrides ??= {}), a = ((o.attacks ??= {})[style] ??= {}); if (v === null) delete a[key]; else a[key] = v; tidy(); changed(e); },
+      blank: () => { const p = live().profiles?.[style]; return p ? String(round(p[key])) : 'none'; }});
     const resistance = style => field(`${titleCase(style)} resist %`, num({get: () => e.row.overrides?.resistancePct?.[style], step: .1,
       set: v => { const r = {...(e.row.overrides?.resistancePct || {})}; if (v === null) delete r[style]; else r[style] = v; override('resistancePct').set(Object.keys(r).length ? r : null); tidy(); },
-      blank: () => { const d = derivedOf(e); return d ? String(round(d.resistancePct[style])) : 'none'; }}));
+      blank: () => { const d = live(); return d.resistancePct ? String(round(d.resistancePct[style])) : 'none'; }}));
+    // Regular attacks: on or off, and a weight (how often, against its other regular attacks).
+    const weight = style => ({get: () => e.row.attacks?.[style], set: v => { const a = {...(e.row.attacks || {})}; if (v > 0) a[style] = v; else delete a[style]; if (Object.keys(a).length) e.row.attacks = a; else delete e.row.attacks; changed(e); }});
+    const regular = style => h('div', {class: 'q-types__field q-types__field--pick'},
+      check(titleCase(style), {get: () => e.row.attacks?.[style] > 0, set: on => weight(style).set(on ? 1 : 0)}),
+      num({...weight(style), min: 0, step: 1, label: `${titleCase(style)} weight`}));
+    // Special attacks: [{id, chance}], checked in order before the regular ones.
+    const specials = () => e.row.specialAttacks || [];
+    const setSpecials = list => { if (list.length) e.row.specialAttacks = list; else delete e.row.specialAttacks; changed(e); };
+    const specialChoices = Object.entries(SPECIAL_ATTACKS).map(([id, a]) => [id, a.name]);
+    const chanceTotal = () => { rev.value; return specials().reduce((sum, s) => sum + (s.chance ?? 0), 0); };
     return [
       section('General', fields(field('Name', text(e, 'name'), {size: 'text'}), field('Respawn (s)', number(e, 'respawn')))),
       section('Behaviour',
-        fields(field('Aggro range (tiles)', number(e, 'aggroRange')), field('Move speed (×)', number(e, 'moveSpeed', {step: .05, blank: () => '1'})),
+        fields(field('Aggressive until Threat', number(e, 'aggressiveUntil', {blank: () => '0'}), {size: 'pick', hint: 'Attacks players below it. 0: never'}),
+          field('Aggro range (tiles)', number(e, 'aggroRange')), field('Move speed (×)', number(e, 'moveSpeed', {step: .05, blank: () => '1'})),
           field('XP multiplier', number(e, 'xpMultiplier', {step: .1, blank: () => '1'})), field('XP level cap', number(e, 'xpLevelCap', {blank: () => 'none'}))),
-        switches(check('Aggressive by default', at(e, () => e.row, 'aggressive')), check('Telegraphed', at(e, () => e.row, 'telegraphed')),
-          check('Attacks pacifists', at(e, () => e.row, 'attacksPacifists')), check("Can't defeat the player", at(e, () => e.row, 'protected')), check('Boss', at(e, () => e.row, 'boss')))),
-      sheet() ? section('Attack',
+        switches(check('Attacks pacifists', at(e, () => e.row, 'attacksPacifists')), check("Can't defeat the player", at(e, () => e.row, 'protected')), check('Boss', at(e, () => e.row, 'boss')))),
+      sheet() ? section('Attacks',
         fields(
-          field('Style', choice({...at(e, () => e.row, 'style'), list: options(STYLES)}), {size: 'pick'}),
           field('Strategy', choice({...at(e, () => e.row, 'strategy'), list: options(Object.keys(STRATEGIES))}), {size: 'pick'}),
-          field('Base interval (s)', number(e, 'baseInterval', {step: .05})), field('Miss %', number(e, 'missPercent'))),
+          field('Base interval (s)', number(e, 'baseInterval', {step: .05})), field('Miss %', number(e, 'missPercent')),
+          field('Ranged/magic range (tiles)', number(e, 'attackRange', {blank: () => String(ENEMY_ATTACK_RANGE)}), {size: 'pick'})),
+        subheading('Regular attacks (weight)'), fields(...STYLES.map(regular)),
+        subheading('Special attacks (chance, checked first)'),
+        rowList(specials, ({row: s, i}) => [
+          choice({get: () => s.id, set: v => setSpecials(specials().map((x, j) => (j === i ? {...x, id: v} : x))), list: specialChoices}),
+          h('span', {class: 'q-types__inline'}, num({get: () => s.chance, set: v => setSpecials(specials().map((x, j) => (j === i ? {...x, chance: Math.max(0, v ?? 0)} : x))), step: 1, label: 'Chance %'}), '%'),
+          smallButton('Up', () => { if (i) { const list = [...specials()]; [list[i - 1], list[i]] = [list[i], list[i - 1]]; setSpecials(list); } }),
+          smallButton('Remove', () => setSpecials(specials().filter((_, j) => j !== i)))]),
+        smallButton('Add a special attack', () => setSpecials([...specials(), {id: specialChoices[0][0], chance: 10}])),
+        h('p', {class: 'q-types__note', hidden: () => chanceTotal() <= 100}, () => `Special chances add to ${chanceTotal()}%: later ones get only what is left of 100%.`),
         subheading('Damage types'), switches(...DAMAGE_TYPES.map(type => check(titleCase(type), {get: () => e.row.damageTypes?.includes(type), set: on => {
           const list = (e.row.damageTypes || []).filter(t => t !== type); if (on) list.push(type); at(e, () => e.row, 'damageTypes').set(list.length ? list : null); }}))),
         subheading('Can'), switches(check('Critical hit', at(e, () => e.row, 'canCritical')), check('Dodge', at(e, () => e.row, 'canDodge')), check('Block', at(e, () => e.row, 'canBlock')))) : null,
@@ -239,21 +268,30 @@ export function typeEditor({tool = 'nodes', start = null, post}) {
             COMBAT_SKILLS.map(k => h('td', null, num({...skill(style, k), min: -100, label: `${titleCase(style)} ${k}`}))))))),
         fields(field('Unarmed proficiency', num(at(e, () => sheet().proficiencies, 'unarmed')), {size: 'pick'}))) : null,
       section('Overrides', h('p', {class: 'q-types__note'}, sheet() ? 'Blank uses the value from the sheet.' : 'No sheet: these set its numbers.'),
-        fields(overrideField('Health', 'health'), overrideField('Min damage', 'min'), overrideField('Max damage', 'max'), overrideField('Interval (s)', 'interval'),
-          ...STYLES.map(resistance))),
+        fields(overrideField('Health', 'health', () => live().health), ...STYLES.map(resistance)),
+        sheet()
+          ? h('table', {class: 'q-types__table'},
+            h('thead', null, h('tr', null, h('th', null, ''), ['Min damage', 'Max damage', 'Interval (s)'].map(k => h('th', {scope: 'col'}, k)))),
+            h('tbody', null, STYLES.map(style => h('tr', null, h('th', {scope: 'row'}, titleCase(style)), ['min', 'max', 'interval'].map(k => h('td', null, attackOverride(style, k)))))))
+          : fields(overrideField('Min damage', 'min', () => live().min), overrideField('Max damage', 'max', () => live().max), overrideField('Interval (s)', 'interval', () => live().interval))),
       drops(e)];
   };
-  // NPC Results: what the game uses now (derived, or the override), beside the inputs.
+  // NPC Results: what the game uses now (derived, or the override), beside the inputs. Each attack's share is how
+  // often it is picked; a kiting punish shows its own chance, which applies only while the player keeps away.
   const npcResults = e => {
     const live = () => { rev.value; return ENEMIES[e.id]; };
     const stat = (label, value) => h('div', {class: 'q-types__stat'}, h('dt', null, label), h('dd', null, value));
+    const moveLine = ([m, share, when]) => `${round(share, 1)}%${when ? ' (while kited)' : ''} · ${m.min}–${m.max} · ${round(m.interval)} s${m.special ? ` · ${m.style}${m.target === 'tile' ? `, ${2 * m.area + 1}×${2 * m.area + 1} area` : ''}${m.after != null ? `, after ${m.after} s out of reach` : ''}` : ''}`;
     return h('aside', {class: 'q-types__results', 'aria-label': 'Results'}, h('h4', {class: 'q-types__heading'}, 'Results'),
       h('dl', null,
         stat('Health', () => String(live().health)),
-        stat('Damage', () => `${live().min}–${live().max}`),
-        stat('Interval', () => `${round(live().interval)} s`),
-        ...STYLES.map(style => stat(`${titleCase(style)} resist`, () => `${round(live().resistancePct?.[style] ?? 0)}%`)),
-        stat('Threat Level', () => (live().threat ? String(live().threat.level) : '–'))));
+        stat('Threat Level', () => (live().threat ? String(live().threat.level) : '–')),
+        stat('Aggressive', () => (live().aggressiveUntil > 0 ? `Below Threat ${live().aggressiveUntil}` : 'Never')),
+        ...STYLES.map(style => stat(`${titleCase(style)} resist`, () => `${round(live().resistancePct?.[style] ?? 0)}%`))),
+      h('h5', {class: 'q-types__subheading'}, 'Attacks'),
+      keyedList(h('dl', null), () => { const row = live(); return attackMix(row.moves || []).map(entry => ({entry, key: `${entry[0].id}:${rev.value}`})); }, x => x.key,
+        item => { const {entry} = item.peek(); return stat(entry[0].name, moveLine(entry)); }),
+      h('p', {class: 'q-types__note', hidden: () => (live().moves || []).length > 0}, 'No attacks.'));
   };
 
   const sectionsFor = e => (e.kind === 'item' ? itemSections(e) : e.kind === 'enemy' ? npcSections(e) : nodeSections(e));

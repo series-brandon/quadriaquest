@@ -9,7 +9,10 @@ import {createEquipment,GEAR} from './equipment.js';
 import {createPlayerHealth,createFoodSystem} from './player-health.js';
 import {cancelPlayerActions} from './action-interruption.js';
 import {createRecipeCrafting} from './recipe-crafting.js';
-import {ENEMIES} from './combat-rules.js';
+import {ENEMIES,chooseEnemyMove,attackMix,enemyMove} from './combat-rules.js';
+const ROCK_THROW=ENEMIES.golem.moves.find(m=>m.id==='rockThrow');
+// An enemy type's row with every attack on this interval.
+const paced=(rules,interval)=>({...rules,interval,moves:rules.moves.map(m=>({...m,interval}))});
 import {footprintGap} from './footprint.js';
 import {markCharacter} from './world-occupancy.js';
 import {findPath,setEdge} from './world.js';
@@ -21,7 +24,7 @@ const BRUISER_HIT=12,PLAYER_INTERVAL=2.55/1.02,CAST_INTERVAL=3/1.02;
 // openingWindup: null pins full-windup timing for tests of other mechanics (the opening is tested separately).
 function fixture(kind='bruiser',{openingWindup}={}){
  const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
- const sounds=[],started=[],faced=[],home=world.get('3,3'),inventory={swords:1,crudeShield:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,wins=0,toasts=[],food,craft;const character=createCharacter(),mana=createResource(),energy=createResource();let auraResistance=0;
+ const sounds=[],started=[],faced=[],home=world.get('3,3'),inventory={swords:1,crudeShield:1},health=createPlayerHealth(30),skills={};let tile=world.get('3,4'),reach=true,blocked=false,safe=false,reserved=new Set(),rewards=0,respawnAllowed=true,respawns=0,roll=.5,interrupts=0,attacks=0,wins=0,toasts=[],food,craft;const character=createCharacter(),mana=createResource(),energy=createResource();let auraResistance=0,threatLevel=1;
  // As in the game: equipment may change mid-fight (only defeat blocks it).
  const equipment=createEquipment({inventory,busy:()=>system.busy});let telegraph=null;
  // One strike per attack keeps these mechanic tests' arithmetic simple; dual wielding (both hands,
@@ -29,11 +32,11 @@ function fixture(kind='bruiser',{openingWindup}={}){
  equipment.setAttackHands('main');
  const styles=createCombatStyles({equipment,busy:()=>system.working});
  const interrupt=()=>{interrupts++;cancelPlayerActions({food,craft},{keepCombat:true,keepFood:true});};
- const system=createCombatSystem({telegraph:(owner,tiles)=>{telegraph=tiles;},openingWindup,world,health,equipment,inventory,character,mana,energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),resistanceBonus:()=>auraResistance,strategy:()=>styles.strategy,won(){wins++;},toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,attacked(){attacks++;},eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(x,z){faced.push([x,z]);},sound(name){sounds.push(name);},soundStart(name,arg){const h={name,arg,stopped:false,stop(){h.stopped=true;}};started.push(h);return h;},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
+ const system=createCombatSystem({threat:()=>threatLevel,telegraph:(owner,tiles)=>{telegraph=tiles;},openingWindup,world,health,equipment,inventory,character,mana,energy,knowsAbility:id=>styles.knowsAbility(id),knowsSpell:id=>styles.knowsSpell(id),resistanceBonus:()=>auraResistance,strategy:()=>styles.strategy,won(){wins++;},toast:m=>toasts.push(m),attack:()=>styles.attack,player:new Group(),random:()=>roll,stop:interrupt,interrupt,attacked(){attacks++;},eating:()=>food?.working,defeatStop(){system.cancel();food?.cancel();},blocked:()=>blocked,safe:()=>safe,inReach:()=>reach,tile:()=>tile,reserved:t=>reserved.has(t),face(x,z){faced.push([x,z]);},sound(name){sounds.push(name);},soundStart(name,arg){const h={name,arg,stopped:false,stop(){h.stopped=true;}};started.push(h);return h;},hit(){},reward(){rewards++;},respawn(){if(!respawnAllowed)return false;respawns++;tile=world.get('0,0');return true;}});
  food=createFoodSystem({inventory,health,stop:interrupt,busy:()=>system.busy,consumed:()=>system.consumableUsed()});
  craft=createRecipeCrafting({inventory,skill:{level:1,xp:0},stop(){},busy:()=>system.working,completed(){}});
- const a=system.add({kind,aggressive:false,rules:ENEMIES[kind],group:kind==='target'?new Group():markCharacter(new Group()),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
- return {sounds,started,faced,system,a,food,craft,character,mana,energy,toasts,set auraResistance(v){auraResistance=v;},get wins(){return wins;},get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get telegraph(){return telegraph;},get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
+ const a=system.add({kind,aggressiveUntil:0,rules:ENEMIES[kind],group:kind==='target'?new Group():markCharacter(new Group()),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
+ return {sounds,started,faced,system,a,food,craft,character,mana,energy,toasts,set auraResistance(v){auraResistance=v;},set threat(v){threatLevel=v;},get wins(){return wins;},get interrupts(){return interrupts;},get attacks(){return attacks;},health,equipment,styles,inventory,world,home,reserved,get telegraph(){return telegraph;},get rewards(){return rewards;},get respawns(){return respawns;},set tile(t){tile=t;},set reach(v){reach=v;},set blocked(v){blocked=v;},set safe(v){safe=v;},set respawnAllowed(v){respawnAllowed=v;},set roll(v){roll=v;}};
 }
 test('equipment is available without an area, guards stale actions, and clears missing items',()=>{
  const inventory={swords:1,crudeShield:1};let busy=false;const e=createEquipment({inventory,busy:()=>busy});
@@ -110,16 +113,16 @@ test('leash return walks visibly, retains destination occupancy, waits for home 
  assert.equal(f.a.returning,false);assert.equal(f.a.tile,f.home);assert.equal(f.a.hp,ENEMIES.bruiser.health);
 });
 test('enemy cannot hit from a logically adjacent tile before its body arrives',()=>{
- const f=fixture();f.tile=f.world.get('3,5');f.a.rules={...f.a.rules,interval:.1};f.a.aggro=true;f.system.start(f.a);f.system.update(.02,0);assert.equal(f.a.z,4);assert.equal(f.health.value,30);assert.ok(f.a.group.position.z<4-6);frames(f,.2);assert.equal(f.health.value,30);
+ const f=fixture();f.tile=f.world.get('3,5');f.a.rules=paced(f.a.rules,.1);f.a.aggro=true;f.system.start(f.a);f.system.update(.02,0);assert.equal(f.a.z,4);assert.equal(f.health.value,30);assert.ok(f.a.group.position.z<4-6);frames(f,.2);assert.equal(f.health.value,30);
 });
 test('a hit taken while casting keeps the cast animation, never a block',()=>{
  const f=fixture('bruiser',{openingWindup:null});f.styles.learn('energyStrike');f.styles.select('energyStrike');f.equipment.toggle('crudeShield');
- f.a.rules={...f.a.rules,interval:.6};f.a.aggressive=true;f.system.start(f.a);
+ f.a.rules=paced(f.a.rules,.6);f.a.aggressiveUntil=99;f.system.start(f.a);
  const hit=f.system.update(.6,.6);assert.equal(hit.kind,'Casting','the enemy hit lands mid-cast');
 });
 test('incoming hits select equipment-aware blocking, but simultaneous player attacks win',()=>{
- const f=fixture('bruiser',{openingWindup:null});f.equipment.toggle('swords');f.equipment.toggle('crudeShield');f.a.rules={...f.a.rules,interval:.6};f.a.aggressive=true;f.system.start(f.a);const block=f.system.update(.6,.6);assert.equal(block.kind,'Block');assert.equal(block.profile.rightHand,'swords');assert.equal(block.profile.leftHand,'crudeShield');
- f.system.reset();f.a.rules={...f.a.rules,interval:2.5};f.system.start(f.a);const simultaneous=f.system.update(2.5,2.5);assert.equal(simultaneous.kind,'Combat');assert.equal(simultaneous.profile.item,'swords');assert.ok(f.health.value<30);
+ const f=fixture('bruiser',{openingWindup:null});f.equipment.toggle('swords');f.equipment.toggle('crudeShield');f.a.rules=paced(f.a.rules,.6);f.a.aggressiveUntil=99;f.system.start(f.a);const block=f.system.update(.6,.6);assert.equal(block.kind,'Block');assert.equal(block.profile.rightHand,'swords');assert.equal(block.profile.leftHand,'crudeShield');
+ f.system.reset();f.a.rules=paced(f.a.rules,2.5);f.system.start(f.a);const simultaneous=f.system.update(2.5,2.5);assert.equal(simultaneous.kind,'Combat');assert.equal(simultaneous.profile.item,'swords');assert.ok(f.health.value<30);
  f.system.clear();assert.equal(f.system.update(.02,2),null);
 });
 
@@ -141,13 +144,13 @@ for(const style of ['unarmed','ranged','magic'])for(const outcome of ['damage','
 });
 test('passive creatures ignore proximity; aggressive awareness respects configured radius and obstacles',()=>{
  const f=fixture();frames(f,.5);assert.equal(f.a.aggro,false);
- f.a.aggressive=true;f.a.aggroRange=1;f.tile=f.world.get('3,6');frames(f,.1);assert.equal(f.a.aggro,false);
+ f.a.aggressiveUntil=99;f.a.aggroRange=1;f.tile=f.world.get('3,6');frames(f,.1);assert.equal(f.a.aggro,false);
  f.tile=f.world.get('3,4');f.blocked=true;frames(f,.1);assert.equal(f.a.aggro,false);f.blocked=false;
  f.world.get('3,4').h=3;frames(f,.1);assert.equal(f.a.aggro,false);f.world.get('3,4').h=1;
  frames(f,.1);assert.equal(f.a.aggro,true);assert.equal(f.system.state.fight,null);
 });
 test('auto-retaliate responds to incoming misses, Off permits manual combat, and clear preserves preference',()=>{
- const f=fixture();f.a.aggressive=true;f.roll=.005;frames(f,2.6);assert.equal(f.system.state.fight,'bruiser');assert.equal(f.health.value,30);
+ const f=fixture();f.a.aggressiveUntil=99;f.roll=.005;frames(f,2.6);assert.equal(f.system.state.fight,'bruiser');assert.equal(f.health.value,30);
  f.system.clear();f.system.setAutoRetaliate(false);frames(f,2.6);assert.equal(f.system.state.fight,null);assert.equal(f.a.aggro,true);
  assert.ok(f.system.start(f.a));f.system.setAutoRetaliate(true);f.system.setAutoRetaliate(false);assert.equal(f.system.state.fight,'bruiser');
  f.system.clear();assert.equal(f.a.aggro,false);assert.equal(f.system.autoRetaliate,false);
@@ -161,7 +164,7 @@ test('eating mid-fight heals at once, restarts the windup, clears the pending ac
 });
 test('combat can begin during the eating animation; defeat ends the animation and the meal stays eaten',()=>{
  const f=fixture();f.inventory.cookedFish=1;f.health.value=10;f.food.start('cookedFish');assert.equal(f.inventory.cookedFish,0);f.system.start(f.a);assert.ok(f.food.working);
- f.a.aggressive=true;f.health.value=1;frames(f,2.6);assert.equal(f.system.busy,true);assert.equal(f.food.working,false);f.food.update(10);assert.equal(f.inventory.cookedFish,0);
+ f.a.aggressiveUntil=99;f.health.value=1;frames(f,2.6);assert.equal(f.system.busy,true);assert.equal(f.food.working,false);f.food.update(10);assert.equal(f.inventory.cookedFish,0);
 });
 test('Strong Strike attaches to the next melee windup, spends 50 Energy on impact, trains Melee Power and does not repeat',()=>{
  const f=fixture('target',{openingWindup:null});assert.equal(f.system.queue('strongStrike'),'Not learned');f.styles.learnAbility('strongStrike');
@@ -187,7 +190,7 @@ test('Harden adds its resistance once to incoming hits',()=>{
 });
 test('combat interrupts real crafting before consumption and prevents restarting it',()=>{
  const f=fixture();Object.assign(f.inventory,{sticks:10,stone:10});assert.ok(f.craft.start('swords'));f.craft.update(.1);
- f.a.aggressive=true;frames(f,.1);assert.equal(f.craft.working,false);f.craft.update(100);assert.equal(f.inventory.swords,1);assert.equal(f.inventory.sticks,10);assert.equal(f.craft.start('swords'),false);
+ f.a.aggressiveUntil=99;frames(f,.1);assert.equal(f.craft.working,false);f.craft.update(100);assert.equal(f.inventory.swords,1);assert.equal(f.inventory.sticks,10);assert.equal(f.craft.start('swords'),false);
 });
 test('combat cancellation policy preserves food and combat while cancelling every other registered action',()=>{
  const called=[];const actions=Object.fromEntries(['combat','food','crafting','carpentry','fishing','cooking','smithing','gathering'].map(name=>[name,{cancel:()=>called.push(name)}]));
@@ -196,15 +199,15 @@ test('combat cancellation policy preserves food and combat while cancelling ever
 });
 
 test('awareness cannot cross walls or safe zones and reset clears multiple aggressors',()=>{
- const f=fixture();f.a.aggressive=true;f.a.aggroRange=3;f.tile=f.world.get('3,6');
+ const f=fixture();f.a.aggressiveUntil=99;f.a.aggroRange=3;f.tile=f.world.get('3,6');
  f.world.get('3,5').blocksSight=true;frames(f,.1);assert.equal(f.a.aggro,false);f.world.get('3,5').blocksSight=false;
  f.safe=true;frames(f,.1);assert.equal(f.a.aggro,false);f.safe=false;frames(f,.1);assert.equal(f.a.aggro,true);
- const home=f.world.get('4,5');const other=f.system.add({kind:'scrapper',aggressive:true,aggroRange:3,rules:ENEMIES.scrapper,group:new Group(),tile:home,home,x:4,z:5,scale:1});
+ const home=f.world.get('4,5');const other=f.system.add({kind:'scrapper',aggressiveUntil:99,aggroRange:3,rules:ENEMIES.scrapper,group:new Group(),tile:home,home,x:4,z:5,scale:1});
  frames(f,.1);assert.equal(other.aggro,true);f.system.clear();assert.equal(other.aggro,false);assert.equal(f.a.aggro,false);assert.equal(f.system.working,false);
 });
 
 test('incoming misses notify responsive UI just like damaging attacks',()=>{
- for(const roll of [.5,.005]){const f=fixture();f.roll=roll;f.a.aggressive=true;f.system.setAutoRetaliate(false);frames(f,2.6);assert.equal(f.attacks,1);assert.equal(f.health.value===30,roll===.005);}
+ for(const roll of [.5,.005]){const f=fixture();f.roll=roll;f.a.aggressiveUntil=99;f.system.setAutoRetaliate(false);frames(f,2.6);assert.equal(f.attacks,1);assert.equal(f.health.value===30,roll===.005);}
 });
 
 test('quick spell queues one cast for the next attack, opens a fight with it, then the normal attack resumes',()=>{
@@ -263,7 +266,7 @@ test('windups by style: a bow opens after its draw, a spell after its whole cast
 });
 
 test('an aggressive enemy opens with a short windup once in reach, then keeps its interval',()=>{
- const f=fixture('bruiser');f.a.aggressive=true;const start=f.health.value;const hits=[];let time=0;
+ const f=fixture('bruiser');f.a.aggressiveUntil=99;const start=f.health.value;const hits=[];let time=0;
  for(let i=0;i<300&&hits.length<2;i++){f.system.update(.02,time+=.02);if(f.health.value<(hits.at(-1)?.health??start))hits.push({time,health:f.health.value});}
  assert.equal(hits.length,2);
  assert.ok(hits[0].time<=OPENING_WINDUP+.1,`first enemy hit at ${hits[0].time.toFixed(2)}s`);
@@ -271,7 +274,7 @@ test('an aggressive enemy opens with a short windup once in reach, then keeps it
 });
 
 test('the golem slam: leaving early cancels it, after the commit point it locks 3×3 tiles, and standing on them at impact is deadly',()=>{
- const f=fixture('golem');f.a.aggressive=true;f.a.control.apply({kind:'immobilize',duration:99,protection:0});
+ const f=fixture('golem');f.a.aggressiveUntil=99;f.a.control.apply({kind:'immobilize',duration:99,protection:0});
  let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
  const near=f.world.get('3,4'),away=f.world.get('3,6'),interval=ENEMIES.golem.interval;
  step(interval/2-.2);f.tile=away;step(1.2);assert.equal(f.health.value,30,'left in the first half: cancelled');
@@ -283,22 +286,22 @@ test('the golem slam: leaving early cancels it, after the commit point it locks 
  assert.ok(ENEMIES.golem.max>=450&&ENEMIES.golem.attacksPacifists&&ENEMIES.golem.xpMultiplier===0);
 });
 test('the golem punishes staying out of reach with a tile-targeted Rock Throw',()=>{
- const r=ENEMIES.golem.rangedAttack;
- const f=fixture('golem');f.a.aggressive=true;f.a.control.apply({kind:'immobilize',duration:99,protection:0});f.tile=f.world.get('3,5');
+ const r=ROCK_THROW;
+ const f=fixture('golem');f.a.aggressiveUntil=99;f.a.control.apply({kind:'immobilize',duration:99,protection:0});f.tile=f.world.get('3,5');
  let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
  step(r.after-.2);assert.equal(f.telegraph,null,'no throw before it has waited');
  step(.2+r.windup/2+.1);assert.equal(f.telegraph?.length,9,'the throw locked the tiles around the player');
  step(r.windup/2+r.flight);assert.ok(f.health.value<30,'stayed on the marked tiles: hit');
  // A chasing golem (not held in place) stops to throw once the punish is ready.
- const c=fixture('golem');c.a.aggressive=true;c.tile=c.world.get('0,0');time=0;
+ const c=fixture('golem');c.a.aggressiveUntil=99;c.tile=c.world.get('0,0');time=0;
  for(let t=0;t<r.after+r.windup/2+.4;t+=.02)c.system.update(.02,time+=.02);
  assert.ok(c.telegraph,'it stopped chasing and wound up a throw');assert.ok(footprintGap(c.a.tile,1,c.world.get('0,0'))>1);
- const g=fixture('golem');g.a.aggressive=true;g.a.control.apply({kind:'immobilize',duration:99,protection:0});g.tile=g.world.get('3,5');
+ const g=fixture('golem');g.a.aggressiveUntil=99;g.a.control.apply({kind:'immobilize',duration:99,protection:0});g.tile=g.world.get('3,5');
  time=0;const gstep=s=>{for(let t=0;t<s;t+=.02)g.system.update(.02,time+=.02);};
  gstep(r.after+r.windup/2+.1);assert.ok(g.telegraph);g.tile=g.world.get('0,0');gstep(r.windup/2+r.flight+.1);assert.equal(g.health.value,30,'dodged the rock');
 });
 test('an enemy attack left in its first half is cancelled; past its commit point it lands wherever the player went',()=>{
- const setup=()=>{const f=fixture('bruiser');f.a.aggressive=true;f.a.control.apply({kind:'immobilize',duration:99,protection:0});return f;};
+ const setup=()=>{const f=fixture('bruiser');f.a.aggressiveUntil=99;f.a.control.apply({kind:'immobilize',duration:99,protection:0});return f;};
  const run=(f,s)=>{for(let t=0;t<s;t+=.01)f.system.update(.01,f.time=(f.time||0)+.01);};
  const early=setup();run(early,.15);early.tile=early.world.get('3,6');run(early,1);assert.equal(early.attacks,0,'escaped in the first half');
  early.tile=early.world.get('3,4');run(early,.4);assert.equal(early.attacks,0);run(early,.15);assert.equal(early.attacks,1,'back in reach: a fresh windup only, no new cooldown');
@@ -307,7 +310,7 @@ test('an enemy attack left in its first half is cancelled; past its commit point
  run(late,ENEMIES.bruiser.interval);late.tile=late.world.get('3,4');run(late,.45);assert.equal(late.attacks,1);run(late,.1);assert.equal(late.attacks,2);
 });
 test('walking into an enemy keeps its windup going while it shuffles beside the player',()=>{
- const f=fixture('bruiser');f.a.aggressive=true;let time=0;const run=s=>{for(let t=0;t<s;t+=.01)f.system.update(.01,time+=.01);};
+ const f=fixture('bruiser');f.a.aggressiveUntil=99;let time=0;const run=s=>{for(let t=0;t<s;t+=.01)f.system.update(.01,time+=.01);};
  run(.15);f.tile=f.home;run(.4);assert.equal(f.attacks,1,'still landed');run(1);assert.notEqual(f.a.tile,f.home,'it moved off the shared tile');
 });
 test('a hand swap interrupts the unlanded attack; the next lands on the previous timer or the new windup, whichever is later',()=>{
@@ -336,18 +339,18 @@ test('a hand swap leaves a released arrow in flight to land',()=>{
  for(let s=0;s<PROJECTILE_FLIGHT+.05;s+=.01)f.system.update(.01,t+=.01);assert.ok(f.a.hp<hp,'the arrow landed');
 });
 test('a territory bounds aggression and pursuit; moveSpeed slows walking',()=>{
- const f=fixture('golem');Object.assign(f.a,{aggressive:true,territory:{minX:2,maxX:4,minZ:2,maxZ:4}});let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ const f=fixture('golem');Object.assign(f.a,{aggressiveUntil:99,territory:{minX:2,maxX:4,minZ:2,maxZ:4}});let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
  f.tile=f.world.get('3,6');step(.5);assert.equal(f.a.aggro,false,'within awareness range but outside the territory');
  f.tile=f.world.get('3,4');step(.1);assert.equal(f.a.aggro,true);
  f.tile=f.world.get('3,6');step(.1);assert.equal(f.a.aggro,false,'leaving the territory ends pursuit');
  assert.ok(f.a.returning||f.a.tile===f.home);
  // Walking speed: a slow boss covers less ground than a goblin in the same time.
- const travelled=kind=>{const g=fixture(kind);Object.assign(g.a,{aggressive:true});g.tile=g.world.get('3,6');let t=0;for(let i=0;i<10;i++)g.system.update(.02,t+=.02);return g.a.group.position.distanceTo({x:g.home.x-6,y:g.home.h,z:g.home.z-6});};
+ const travelled=kind=>{const g=fixture(kind);Object.assign(g.a,{aggressiveUntil:99});g.tile=g.world.get('3,6');let t=0;for(let i=0;i<10;i++)g.system.update(.02,t+=.02);return g.a.group.position.distanceTo({x:g.home.x-6,y:g.home.h,z:g.home.z-6});};
  assert.ok(travelled('golem')<travelled('bruiser')*.7);
 });
 test('a 2×2 enemy occupies its four tiles without blocking them, fights from any side, pursues as a body and frees its tiles when removed',()=>{
  const f=fixture('bruiser');f.system.remove(f.a);f.tile=f.world.get('3,6');
- const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressive:true,rules:{...ENEMIES.golem,rangedAttack:null},group:markCharacter(new Group()),tile:home,home,x:2,z:1,scale:1,patrol:{minX:1,maxX:3,minZ:0,maxZ:2}});
+ const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressiveUntil:99,rules:{...ENEMIES.golem,moves:ENEMIES.golem.moves.filter(m=>m.id!=='rockThrow')},group:markCharacter(new Group()),tile:home,home,x:2,z:1,scale:1,patrol:{minX:1,maxX:3,minZ:0,maxZ:2}});
  const cells=['2,1','3,1','2,2','3,2'].map(k=>f.world.get(k));assert.ok(cells.every(c=>f.system.occupies(c)&&!c.blocked));
  assert.deepEqual(findPath(f.world,f.world.get('1,1'),f.world.get('4,1')).map(t=>`${t.x},${t.z}`),['2,1','3,1','4,1'],'walkers pass straight through its body');
  assert.equal(a.group.position.x,2.5-6,'the model stands at the body centre');
@@ -363,12 +366,12 @@ test('solid practice targets still block their tile; creatures never do',()=>{
  const f=fixture('scrapper');assert.equal(f.home.blocked,false);assert.equal(f.system.occupies(f.home),true);
 });
 test('a pursuer stops on a free spot beside the player, and passes through someone only when it must',()=>{
- const f=fixture('scrapper');f.a.aggressive=true;f.a.aggroRange=4;f.tile=f.world.get('3,6');
+ const f=fixture('scrapper');f.a.aggressiveUntil=99;f.a.aggroRange=4;f.tile=f.world.get('3,6');
  const companion=f.world.get('3,5');f.reserved.add(companion);
  let time=0;const step=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
  step(3);assert.equal(f.a.aggro,true);assert.equal(footprintGap(f.a.tile,1,f.world.get('3,6')),1);assert.notEqual(f.a.tile,companion,'it avoids stopping on the companion');
  // Wall the other spots off: the occupied one is the only way in, so it is used anyway.
- const g=fixture('scrapper');g.a.aggressive=true;g.a.aggroRange=4;g.tile=g.world.get('3,6');g.reserved.add(g.world.get('3,5'));
+ const g=fixture('scrapper');g.a.aggressiveUntil=99;g.a.aggroRange=4;g.tile=g.world.get('3,6');g.reserved.add(g.world.get('3,5'));
  for(const k of ['2,6','4,6'])g.world.get(k).blocked=true;
  time=0;for(let t=0;t<3;t+=.02)g.system.update(.02,time+=.02);assert.equal(g.a.tile,g.world.get('3,5'));
 });
@@ -395,7 +398,7 @@ test('a spell gathers audibly with its hands: from cast start to the toss, never
 
 test('the player faces a large creature at its centre, not its anchor tile',()=>{
  const f=fixture('bruiser');f.system.remove(f.a);f.tile=f.world.get('1,2');
- const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressive:false,rules:ENEMIES.golem,group:new Group(),tile:home,home,x:2,z:1,scale:1,patrol:{minX:2,maxX:2,minZ:1,maxZ:1}});
+ const home=f.world.get('2,1'),a=f.system.add({kind:'golem',size:2,aggressiveUntil:0,rules:ENEMIES.golem,group:new Group(),tile:home,home,x:2,z:1,scale:1,patrol:{minX:2,maxX:2,minZ:1,maxZ:1}});
  assert.ok(f.system.start(a));frames(f,.1);assert.deepEqual(f.faced.at(-1),[2.5,1.5]);
 });
 test('Strong Strike sounds its charge when it attaches and lands with its own heavy hit',()=>{
@@ -415,7 +418,7 @@ test('a held staff is a spell focus: its magic bonus raises spell damage, for ca
  assert.equal(f.system.preview().max,focused.max,'combat uses it');
 });
 test('after a Rock Throw the golem chases again for the full delay before the next one',()=>{
- const r=ENEMIES.golem.rangedAttack,f=fixture('golem');f.a.aggressive=true;f.a.control.apply({kind:'immobilize',duration:99,protection:0});let at=f.world.get('3,6');f.tile=at;
+ const r=ROCK_THROW,f=fixture('golem');f.a.aggressiveUntil=99;f.a.control.apply({kind:'immobilize',duration:99,protection:0});let at=f.world.get('3,6');f.tile=at;
  // Step aside each time a throw locks on, so the rocks miss and the fight goes on.
  let time=0,throws=0,was=null;const step=s=>{for(let t=0;t<s;t+=.02){f.system.update(.02,time+=.02);if(f.telegraph&&!was){throws++;at=f.world.get(at.x===3?'0,6':'3,6');f.tile=at;}was=f.telegraph;}};
  // First throw: released at after + windup. The next locks on no sooner than release + after + windup/2.
@@ -433,10 +436,44 @@ test('a calm creature is pushed aside when the player stops on it; pushed out of
  for(let t=0;t<4;t+=.02)g.system.update(.02,time+=.02);assert.equal(g.a.tile,g.home,'walked home');
 });
 test('an enemy that sees the player through a window walks around to strike; one behind a wall never notices',()=>{
- const hidden=fixture('scrapper');hidden.a.aggressive=true;setEdge(hidden.home,hidden.world.get('3,4'),{kind:'wall'});
+ const hidden=fixture('scrapper');hidden.a.aggressiveUntil=99;setEdge(hidden.home,hidden.world.get('3,4'),{kind:'wall'});
  for(let t=0;t<2;t+=.02)hidden.system.update(.02,t);assert.equal(hidden.a.aggro,false,'a wall blocks its sight');
- const f=fixture('scrapper');f.a.aggressive=true;setEdge(f.home,f.world.get('3,4'),{kind:'window'});
+ const f=fixture('scrapper');f.a.aggressiveUntil=99;setEdge(f.home,f.world.get('3,4'),{kind:'window'});
  let time=0;const run=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
  run(.6);assert.equal(f.a.aggro,true);assert.equal(f.attacks,0,'no hit through the window');
  run(5);assert.ok(f.attacks>0,'came around and attacked');assert.notEqual(f.a.tile,f.home);
+});
+
+test('attack choice: specials take their chance of one roll in order, regular attacks share the rest by weight',()=>{
+ const moves=[{id:'a',special:true,chance:10},{id:'b',special:true,chance:10},{id:'melee',weight:3},{id:'ranged',weight:1}];
+ const counts={};for(let i=0;i<1000;i++){const id=chooseEnemyMove(moves,i/1000).id;counts[id]=(counts[id]||0)+1;}
+ assert.deepEqual(counts,{a:100,b:100,melee:600,ranged:200});
+ assert.deepEqual(attackMix(moves).map(([m,p])=>[m.id,p]),[['a',10],['b',10],['melee',60],['ranged',20]]);
+ // Two specials at 50% always use one of them; without regular attacks, specials share the whole roll.
+ assert.equal(chooseEnemyMove([{id:'a',special:true,chance:50},{id:'b',special:true,chance:50},{id:'melee',weight:1}],.99).id,'b');
+ assert.equal(chooseEnemyMove([{id:'a',special:true,chance:10}],.95).id,'a');
+ assert.equal(chooseEnemyMove([],.5),null);
+ assert.deepEqual(attackMix(ENEMIES.golem.moves).map(([m,p,when])=>[m.id,p,!!when]),[['groundSlam',100,false],['rockThrow',100,true]],'a kiting punish is listed apart from the usual roll');
+});
+test('aggression follows Threat: an enemy attacks players below its aggressiveUntil on sight and leaves stronger ones alone',()=>{
+ for(const [threat,hostile] of [[4,true],[5,false]]){
+  const f=fixture('bruiser');f.a.aggressiveUntil=5;f.threat=threat;f.tile=f.world.get('3,6');frames(f,.1);
+  assert.equal(f.a.aggro,hostile,`Threat ${threat} against aggressive until 5`);assert.equal(f.system.state.enemies[0].aggressive,hostile);
+ }
+ const never=fixture('bruiser');never.a.aggressiveUntil=0;never.tile=never.world.get('3,6');frames(never,.1);assert.equal(never.a.aggro,false,'0: never aggressive');
+ // Unset on the spawn, the type's value applies (the Bruiser's).
+ const typed=fixture('bruiser');delete typed.a.aggressiveUntil;typed.threat=ENEMIES.bruiser.aggressiveUntil-1;typed.tile=typed.world.get('3,6');frames(typed,.1);assert.equal(typed.a.aggro,true);
+});
+test('a ranged-only enemy stands within range and shoots instead of closing in',()=>{
+ const f=fixture('scrapper',{openingWindup:null}),rules={...ENEMIES.scrapper,attacks:{ranged:1}};rules.moves=[enemyMove(rules,'ranged')];
+ f.a.rules=rules;f.a.aggressiveUntil=99;f.a.aggroRange=4;f.tile=f.world.get('3,6');
+ let time=0;const shots=[];const run=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ const before=f.health.value;run(rules.moves[0].interval+.6);
+ assert.equal(f.a.tile,f.home,'it never stepped toward the player');assert.ok(f.attacks>=1,'its shot landed');assert.ok(f.health.value<=before);
+});
+test('a forced attack replaces the roll: a Bruiser slams the 3×3 tiles around the player',()=>{
+ const f=fixture('bruiser');f.a.aggressiveUntil=99;f.a.control.apply({kind:'immobilize',duration:99,protection:0});f.system.forceAttack(f.a,'groundSlam');
+ let time=0;const run=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
+ run(ENEMIES.bruiser.interval/2+.1);assert.equal(f.telegraph?.length,9,'the slam locked and marked its tiles');assert.equal(f.system.state.enemies[0].windup,'groundSlam');
+ f.system.forceAttack(f.a,null);assert.equal(f.telegraph,null);run(1);assert.equal(f.system.state.enemies[0].plan,'melee','back to its own mix');
 });

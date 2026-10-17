@@ -282,8 +282,8 @@ test('a lethal hit at fractional health reports the visible health, as a whole n
  const shown=[];const g=(()=>{const world=new Map();for(let z=0;z<7;z++)for(let x=0;x<7;x++)world.set(`${x},${z}`,{x,z,h:1,blocked:false,water:false});
   const home=world.get('3,3'),inventory={},health=createResource(100),character=createCharacter(),equipment=createEquipment({inventory}),styles=createCombatStyles({equipment});
   const system=createCombatSystem({world,health,equipment,inventory,character,mana:createResource(),energy:createResource(),strategy:()=>styles.strategy,attack:()=>styles.attack,player:new Group(),random:()=>.5,stop(){},face(){},sound(){},hit:(p,d,o)=>shown.push([d,o]),blocked:()=>false,inReach:()=>true,tile:()=>world.get('3,4'),reserved:()=>false,respawn:()=>false,defeatStop(){system.cancel();}});
-  const a=system.add({kind:'bruiser',rules:{...ENEMIES.bruiser,aggressive:true},group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});return {system,a,health};})();
- g.health.value=5.947837283474;g.a.aggressive=true;for(let t=0;t<3;t+=.02)g.system.update(.02,t);
+  const a=system.add({kind:'bruiser',rules:{...ENEMIES.bruiser,aggressiveUntil:99},group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});return {system,a,health};})();
+ g.health.value=5.947837283474;g.a.aggressiveUntil=99;for(let t=0;t<3;t+=.02)g.system.update(.02,t);
  const lethal=shown.find(([,o])=>o==='hit');assert.deepEqual(lethal,[6,'hit']);assert.equal(g.health.value,0);
 });
 
@@ -342,7 +342,7 @@ test('Pacifist draws no aggression unless a creature attacks pacifists; aggressi
   const home=world.get('3,3'),inventory={},health=createResource(100),character=createCharacter(),equipment=createEquipment({inventory}),styles=createCombatStyles({equipment});
   const state={passive,player:world.get('3,5')};
   const system=createCombatSystem({world,health,equipment,inventory,character,mana:createResource(),energy:createResource(),strategy:()=>styles.strategy,attack:()=>styles.attack,player:new Group(),random:()=>.5,stop(){},face(){},sound(){},hit(){},blocked:()=>false,inReach:()=>true,tile:()=>state.player,reserved:()=>false,respawn:()=>false,defeatStop(){system.cancel();},passive:()=>state.passive});
-  const a=system.add({kind:'bruiser',rules:ENEMIES.bruiser,aggressive:true,aggroRange:4,attacksPacifists,group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
+  const a=system.add({kind:'bruiser',rules:ENEMIES.bruiser,aggressiveUntil:99,aggroRange:4,attacksPacifists,group:new Group(),tile:home,home,x:3,z:3,scale:1,patrol:{minX:2,maxX:4,minZ:2,maxZ:4}});
   const run=seconds=>{for(let t=0;t<seconds;t+=.05)system.update(.05,t);};
   return {system,a,state,health,run};
  };

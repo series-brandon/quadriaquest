@@ -47,11 +47,14 @@ export function createAssistance(api){
  const engaged=()=>combat.engagedEnemy;
  const meanDps=p=>((p.min+p.max)/2*(p.damageScale??1))/p.interval;
 
- // Final post-mitigation maximum hit from the enemy's actual capabilities and current player defenses.
+ // Final post-mitigation maximum hit from the enemy's actual capabilities and current player defenses: the
+ // hardest of its attacks (regular and special), each against the player's resistance to its style.
  function assess(enemy=engaged()){
-  if(!enemy||enemy.rules.inert||!(enemy.rules.max>0))return null;
-  const current=combat.preview(),d=playerDefense(character,{activeStyle:current.combatStyle,strategy:current.strategy,incomingStyle:enemy.rules.style||'melee',shield:equipment.shield,armor:equipment.armorPieces,bonusResistancePct:auras.resistancePct});
-  const maxHit=roundFinal(enemy.rules.max*(enemy.rules.canCritical?3:1)*Math.max(0,1-d.resistancePct/100)),hits=hitsToDefeat(health.value,maxHit);
+  const moves=enemy?.rules.moves?.length?enemy.rules.moves:enemy?[enemy.rules]:[];
+  if(!enemy||enemy.rules.inert||!moves.some(m=>m.max>0))return null;
+  const current=combat.preview(),hardest=m=>{const d=playerDefense(character,{activeStyle:current.combatStyle,strategy:current.strategy,incomingStyle:m.style||'melee',shield:equipment.shield,armor:equipment.armorPieces,bonusResistancePct:auras.resistancePct});
+   return roundFinal(m.max*(m.canCritical?3:1)*Math.max(0,1-d.resistancePct/100));};
+  const maxHit=Math.max(...moves.map(hardest)),hits=hitsToDefeat(health.value,maxHit);
   return {enemy,maxHit,hits,...dangerBand(hits)};
  }
 

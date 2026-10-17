@@ -10,7 +10,7 @@
 //   cover       ground cover kinds (ground-cover.js) with densities and where they grow
 //   resources   {kind, chance, where}: where is any, open, forest, high (rocky) or shore
 //   fishing     spot chance on water beside land; fish by water kind (one fish exists today)
-//   enemies     density per tile and a weighted table {enemy, weight, aggressive}
+//   enemies     density per tile and a weighted table {enemy, weight} (aggression is the enemy type's)
 //   atmosphere {fog {color, density 0..1}, light {sky, ground, sun tints, brightness}}: the look of the air
 //               there (atmosphere.js)
 //   wildlife, npcs, landmarks, audio {music, ambience}: data for later steps (docs/BIOMES.md, Building it)
@@ -34,7 +34,7 @@ export const BIOME_RULES={
   trees:{density:.006,species:{oak:3,poplar:2}},
   cover:[{kind:'flowerWhite',density:.05},{kind:'flowerYellow',density:.05},{kind:'flowerPink',density:.03},{kind:'flowerPurple',density:.025},{kind:'flowerBlue',density:.02},{kind:'grass',density:.14}],
   resources:[{kind:'sticks',chance:.004,where:'open'},{kind:'stones',chance:.004,where:'open'},{kind:'flint',chance:.0015,where:'open'}],
-  enemies:{density:.0002,table:[{enemy:'scrapper',weight:1,aggressive:false}]},
+  enemies:{density:.0002,table:[{enemy:'scrapper',weight:1}]},
   wildlife:['butterflies','songbirds'],landmarks:['picnic','standing stone'],
   audio:{ambience:'meadow'},atmosphere:{light:{sun:'#fff4dc'}}},
  forest:{name:'Broadleaf forest',
@@ -43,7 +43,7 @@ export const BIOME_RULES={
   trees:{density:.03,clusters:.6,clusterScale:26,clusterDensity:.2,species:{oak:4,poplar:2,maple:2},byWater:{species:'willow'}},
   cover:[{kind:'fern',density:.08,where:'forest'},{kind:'mushrooms',density:.03,where:'forest'},{kind:'grass',density:.1},{kind:'flowerWhite',density:.015,where:'open'},{kind:'shrub',density:.02}],
   resources:[{kind:'sticks',chance:.02,where:'forest'},{kind:'stones',chance:.003}],
-  enemies:{density:.0006,table:[{enemy:'scrapper',weight:2,aggressive:false},{enemy:'bruiser',weight:1,aggressive:true}]},
+  enemies:{density:.0006,table:[{enemy:'scrapper',weight:2},{enemy:'bruiser',weight:1}]},
   wildlife:['squirrels','woodland birds'],npcs:['woodcutter'],landmarks:["woodcutter's camp",'hunter\'s hide'],
   audio:{ambience:'meadow'},atmosphere:{fog:{color:'#d6e0cc',density:.08},light:{sky:'#f1f7e8',sun:'#fff0d8',brightness:.94}}},
  pines:{name:'Pine forest',
@@ -52,7 +52,7 @@ export const BIOME_RULES={
   trees:{density:.05,clusters:.7,clusterScale:30,clusterDensity:.24,species:{pine:6,poplar:1}},
   cover:[{kind:'fern',density:.06,where:'forest'},{kind:'grass',density:.06},{kind:'pebbles',density:.04,where:'high'}],
   resources:[{kind:'sticks',chance:.015,where:'forest'},{kind:'boulder',chance:.02,where:'high'},{kind:'stones',chance:.006,where:'high'}],
-  enemies:{density:.0006,table:[{enemy:'scrapper',weight:1,aggressive:false},{enemy:'bruiser',weight:1,aggressive:true}]},
+  enemies:{density:.0006,table:[{enemy:'scrapper',weight:1},{enemy:'bruiser',weight:1}]},
   wildlife:['owls'],landmarks:["hunter's hide"],
   audio:{ambience:'meadow'},atmosphere:{fog:{color:'#d3dcd6',density:.12},light:{sky:'#eef3f2',sun:'#f4f2ea',brightness:.92}}},
  hills:{name:'Hills',
@@ -61,7 +61,7 @@ export const BIOME_RULES={
   trees:{density:.004,species:{oak:1,poplar:1},onHigh:{at:3,species:'pine'}},
   cover:[{kind:'grass',density:.18},{kind:'flowerYellow',density:.02,where:'open'},{kind:'pebbles',density:.06,where:'high'}],
   resources:[{kind:'copper',chance:.012,where:'high'},{kind:'boulder',chance:.02,where:'high'},{kind:'stones',chance:.006},{kind:'flint',chance:.002}],
-  enemies:{density:.0004,table:[{enemy:'scrapper',weight:1,aggressive:false},{enemy:'bruiser',weight:2,aggressive:true}]},
+  enemies:{density:.0004,table:[{enemy:'scrapper',weight:1},{enemy:'bruiser',weight:2}]},
   wildlife:['hawks'],landmarks:['old watchtower','cairn'],
   audio:{ambience:'breeze'},atmosphere:{light:{sun:'#fffaf0',brightness:1.03}}},
  coast:{name:'Coast',

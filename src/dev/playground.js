@@ -15,7 +15,7 @@ import {organizePlayground} from './playground-layout.js';
 import {DIAGONAL_MOVES} from '../world.js';
 import {COMBAT_GEOMETRY,METRICS} from '../combat-geometry.js';
 import {FOLLOW,FOLLOW_DEFAULTS} from '../companion-follow.js';
-import {enemySheetDetails} from './combat-fixtures.js';
+import {enemySheetDetails,FORCE_ATTACKS} from './combat-fixtures.js';
 import {playerActionMotion} from '../player-action-motion.js';
 import {createModelViewer} from './model-viewer.js';
 import {musicLab} from './music-lab.js';
@@ -150,7 +150,7 @@ export function mountPlayground(api){
     <fieldset><legend>Visual feedback only</legend><div>
       ${['Damage splat','Blocked splat','Miss splat','Going','Gathering','Crafting','Chopping','Mining','Smelting','Smithing','Opening','Traveling','Arrived','Done','Blocked','XP gain','Level gain','Item gain','Item loss','Clear'].map(a=>`<button data-juice="${a}">${a}</button>`).join('')}
     </div></fieldset>
-    <fieldset><legend>Combat practice</legend><label>Action<select id="dev-combat"><option value="spawn">Spawn passive enemies</option><option value="spawn-aggressive">Spawn aggressive enemies (3 tiles)</option><option value="spawn-hunters">Spawn pacifist-hunting enemies (3 tiles)</option><option value="spawn-golem">Spawn Cinder Golem (boss, hunts pacifists)</option><option value="scrapper">Fight Scrapper</option><option value="bruiser">Fight Bruiser</option><option value="golem">Fight Cinder Golem</option><option value="reset">Reset enemies</option><option value="defeat">Defeat and respawn</option><option value="remove">Remove enemies</option><option value="sheets">Show enemy stat sheets</option></select></label><button data-dev="combat">Run</button><details><summary>Enemy stat sheets</summary>${enemySheetDetails()}</details></fieldset>
+    <fieldset><legend>Combat practice</legend><label>Action<select id="dev-combat"><option value="spawn">Spawn passive enemies</option><option value="spawn-typed">Spawn enemies as their types</option><option value="spawn-aggressive">Spawn aggressive enemies (3 tiles)</option><option value="spawn-hunters">Spawn pacifist-hunting enemies (3 tiles)</option><option value="spawn-golem">Spawn Cinder Golem (boss, hunts pacifists)</option><option value="scrapper">Fight Scrapper</option><option value="bruiser">Fight Bruiser</option><option value="golem">Fight Cinder Golem</option><option value="reset">Reset enemies</option><option value="defeat">Defeat and respawn</option><option value="remove">Remove enemies</option><option value="sheets">Show enemy stat sheets</option><option value="threat">Threat and aggression</option></select></label><button data-dev="combat">Run</button><label>Force attack<select id="dev-combat-attack"><option value="">Type’s mix</option>${FORCE_ATTACKS.map(([id,name])=>`<option value="${id}">${name}</option>`).join('')}</select></label><button data-dev="combat-force">Force</button><details><summary>Enemy stat sheets</summary>${enemySheetDetails()}</details></fieldset>
     <fieldset><legend>Player health</legend><label>Resource<select id="dev-resource"><option value="health">Health</option><option value="mana">Mana</option><option value="stamina">Stamina</option><option value="energy">Energy</option><option value="ki">Ki</option></select></label><label>Value<input id="dev-resource-value" type="number" min="0" max="5000" step="any" value="100"></label><button data-dev="resource-set">Set resource</button><button data-dev="resource-reset">Restore all resources</button><label>Action<select id="dev-health"><option value="heal">Restore health</option><option value="hurt">Lose 10 health</option></select></label><button data-dev="health">Apply</button></fieldset>
     <fieldset><legend>Carpentry practice</legend></fieldset>
     <fieldset><legend>Fishing practice</legend></fieldset>
@@ -225,6 +225,7 @@ export function mountPlayground(api){
         if(action==='perf-census'){const census=api.perf.census();console.table(census.byKind);console.log('Scene census',census);status(`Census: ${census.objects} objects, ${census.visibleMeshes} visible meshes, ${census.programs} programs (details in console).`);}
         if(action==='reset-area'){stop();api.closeSplash();api.resetCurrentArea();status('Current area reset.');}
         if(action==='combat'){status(api.combatAction($('combat').value));}
+        if(action==='combat-force'){status(api.combatAction('force:'+$('combat-attack').value));}
         if(action==='walkthrough'){status(api.walkThroughAction($('walkthrough').value));}
         if(action==='edges'){status(api.edgeAction($('edges').value));}
         if(action==='movement'){status(api.movementAction($('movement').value));}

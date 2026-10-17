@@ -262,7 +262,7 @@
 .q-types__pick:hover { background: var(--q-control-track); }
 .q-types__pick[aria-pressed='true'] { background: var(--q-control-selected); font-weight: 600; }
 .q-types__detail { min-block-size: 0; overflow: auto; }
-.q-types__body { display: grid; align-content: start; gap: 0; max-inline-size: 980px; padding: 16px var(--q-modal-pad) 24px; }
+.q-types__body { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 0; max-inline-size: 980px; padding: 16px var(--q-modal-pad) 24px; }
 .q-types__title { padding-block-end: 12px; }
 .q-types__title h3 { margin: 0; }
 .q-types__file { margin: 2px 0 0; color: var(--q-ink-muted); font-size: 12px; }
@@ -294,7 +294,8 @@ textarea.q-types__text { padding-block: 8px; resize: vertical; }
 .q-types__row .q-input { inline-size: 5rem; }
 .q-types__row > .q-button:last-child { margin-inline-start: auto; }
 /* NPC stat sheet: skills as a table; Results beside the inputs, kept in view while they scroll. */
-.q-types__table { border-collapse: collapse; }
+/* Wide tables scroll sideways rather than widening the column under Results. */
+.q-types__table { display: block; max-inline-size: 100%; overflow-x: auto; border-collapse: collapse; }
 .q-types__table th { padding: 4px 6px; color: var(--q-ink-muted); font-size: 12px; font-weight: 600; text-align: start; }
 .q-types__table td { padding: 3px; }
 .q-types__table .q-input { inline-size: 5.5rem; }

@@ -32,12 +32,15 @@ test('equipment and foods are the items data, in the field names their code read
  try{ITEMS.swords.equipment.power=99;refreshGear('swords');assert.equal(GEAR.swords,row,'updated in place');assert.equal(row.power,99);}
  finally{ITEMS.swords.equipment.power=before;refreshGear('swords');}
 });
-test('enemy types are data: the sheet derives health, damage, interval and Threat; overrides and code behaviour win',async()=>{
+test('enemy types are data: the sheet derives health, each style\'s damage and interval, and Threat; overrides and code behaviour win',async()=>{
  const {ENEMIES,enemyData,refreshEnemy,deriveEnemy}=await import('./combat-rules.js');
  const {sheet,overrides,...config}=enemyData('bruiser'),derived=deriveEnemy(sheet,config);
- for(const key of ['health','min','max','interval'])assert.equal(ENEMIES.bruiser[key],derived[key],key);
+ assert.equal(ENEMIES.bruiser.health,derived.health);
+ for(const key of ['min','max','interval'])assert.equal(ENEMIES.bruiser[key],derived.profiles.melee[key],key);
  assert.equal(ENEMIES.golem.health,enemyData('golem').overrides.health,'an override replaces the derived value');
- assert.ok(ENEMIES.golem.rangedAttack&&ENEMIES.target.inert,'special attacks and inertness stay in code');
+ assert.equal(ENEMIES.golem.moves.find(m=>m.id==='groundSlam').max,enemyData('golem').overrides.attacks.melee.max,'a style override reaches its special attacks');
+ assert.deepEqual(ENEMIES.golem.moves.map(m=>m.id),['rockThrow','groundSlam'],'special attacks are listed by id; what they do stays in code');
+ assert.ok(ENEMIES.target.inert,'inertness stays in code');
  const row=ENEMIES.scrapper,data=enemyData('scrapper'),before=data.sheet.attributes.constitution;
  try{data.sheet.attributes.constitution=before+10;refreshEnemy('scrapper');assert.equal(ENEMIES.scrapper,row,'updated in place');assert.ok(row.health>50,"more Constitution, more health");}
  finally{data.sheet.attributes.constitution=before;refreshEnemy('scrapper');}

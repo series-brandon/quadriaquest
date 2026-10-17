@@ -13,7 +13,7 @@ import {projectileModel} from '../projectile-effects.js';
 import {makeCrystal,animateCrystal} from '../crystal-model.js';
 import {goblin,animateGoblin} from '../enemy-model.js';
 import {makeCinderGolem,animateGolem} from '../golem-model.js';
-import {ENEMIES} from '../combat-rules.js';
+import {ENEMIES,enemyMove} from '../combat-rules.js';
 import {tool} from '../tool-models.js';
 import {SPELL_VISUALS} from '../spell-visuals.js';
 import {makeBridge} from '../bridge-model.js';
@@ -169,9 +169,9 @@ export const MODEL_CATALOG=[
 
  {name:'Slime',loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(makeSlime)},
  {name:'Reed',loadout:true,wear:SLIME_WEAR,motions:SLIME_MOTIONS,expressions,create:()=>slimePreview(fisher,{carry:'rods',loadout:{head:'fishersHat'}})},
- // Slam loops the real boss timing: the full telegraphed windup (ENEMIES.golem.interval), then the landing.
- // Throw loops the real Rock Throw windup (ENEMIES.golem.rangedAttack.windup), then the follow-through.
- {name:'Cinder Golem',motions:['Idle','Walk','Slam','Throw','Hit'],create(){const group=makeCinderGolem(),interval=ENEMIES.golem.interval,throwWindup=ENEMIES.golem.rangedAttack.windup;return {group,update(time,motion){const t=time%(interval+.6),u=time%(throwWindup+.7);animateGolem(group,time,{walk:motion==='Walk'?1:0,charge:motion==='Slam'&&t<interval?t/interval:0,slam:motion==='Slam'&&t>=interval?1-(t-interval)/.6:0,thrown:motion==='Throw'?(u<throwWindup?u/throwWindup:Math.min(2,1+(u-throwWindup)/.5)):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}},
+ // Slam loops the real Ground Slam timing (its whole interval of windup), then the landing.
+ // Throw loops the real Rock Throw windup, then the follow-through.
+ {name:'Cinder Golem',motions:['Idle','Walk','Slam','Throw','Hit'],create(){const move=id=>enemyMove(ENEMIES.golem,id),group=makeCinderGolem(),interval=move('groundSlam').windup,throwWindup=move('rockThrow').windup;return {group,update(time,motion){const t=time%(interval+.6),u=time%(throwWindup+.7);animateGolem(group,time,{walk:motion==='Walk'?1:0,charge:motion==='Slam'&&t<interval?t/interval:0,slam:motion==='Slam'&&t>=interval?1-(t-interval)/.6:0,thrown:motion==='Throw'?(u<throwWindup?u/throwWindup:Math.min(2,1+(u-throwWindup)/.5)):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}},
  ...[false,true].map(big=>({name:big?'Goblin Bruiser':'Goblin',motions:['Idle','Walk','Attack','Hit'],create(){const group=goblin(big);return {group,update(time,motion){animateGoblin(group,time,{walk:motion==='Walk'?1:0,attack:motion==='Attack'?attackPose(time):0,hit:motion==='Hit'?Math.max(0,Math.sin(time*4)):0});}};}})),
  // Cosmetics come from the viewer's Head cosmetic dropdown (options.worn), through the shared outfit code.
  {name:'Corgi',wear:COMPANION_WEAR,motions:['Idle','Walk','Jump up','Jump down','Sit','Scratch','Petting','Sleeping'],expressions:['Idle','Happy','Sad','Sleeping'],create(){const group=companion();return {group,update(time,motion,dt,expressionOverride,heldItem='Generic item',options={}){setCompanionOutfit(group,{head:options.worn?.head||null});animateCompanion(group,time,{moving:motion==='Walk',expression:expressionOverride||'Default',motion,age:motion==='Sleeping'?time:time%2.6});}};}},

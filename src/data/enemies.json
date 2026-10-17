@@ -73,7 +73,6 @@
     "unarmed": 1
    }
   },
-  "style": "melee",
   "strategy": "technical",
   "damageTypes": ["bludgeoning"],
   "baseInterval": 2.5,
@@ -81,9 +80,11 @@
   "canCritical": false,
   "canDodge": false,
   "canBlock": false,
-  "aggressive": false,
+  "attacks": {
+   "melee": 1
+  },
+  "aggressiveUntil": 0,
   "aggroRange": 3,
-  "protected": true,
   "xpMultiplier": 1,
   "xpLevelCap": null,
   "respawn": 45,
@@ -164,7 +165,6 @@
     "unarmed": 1
    }
   },
-  "style": "melee",
   "strategy": "technical",
   "damageTypes": ["bludgeoning"],
   "baseInterval": 2.5,
@@ -172,7 +172,10 @@
   "canCritical": false,
   "canDodge": false,
   "canBlock": false,
-  "aggressive": true,
+  "attacks": {
+   "melee": 1
+  },
+  "aggressiveUntil": 10,
   "aggroRange": 4,
   "xpMultiplier": 1,
   "xpLevelCap": null,
@@ -263,7 +266,6 @@
     "unarmed": 60
    }
   },
-  "style": "melee",
   "strategy": "technical",
   "damageTypes": ["bludgeoning"],
   "baseInterval": 3.4,
@@ -271,19 +273,37 @@
   "canCritical": false,
   "canDodge": false,
   "canBlock": false,
-  "aggressive": true,
+  "specialAttacks": [
+   {
+    "id": "rockThrow",
+    "chance": 100
+   },
+   {
+    "id": "groundSlam",
+    "chance": 100
+   }
+  ],
+  "aggressiveUntil": 999,
   "aggroRange": 7,
   "moveSpeed": 0.55,
-  "telegraphed": true,
   "attacksPacifists": true,
   "boss": true,
   "xpMultiplier": 0,
   "xpLevelCap": null,
   "overrides": {
    "health": 3000,
-   "min": 250,
-   "max": 450,
-   "interval": 3.4,
+   "attacks": {
+    "melee": {
+     "min": 250,
+     "max": 450,
+     "interval": 3.4
+    },
+    "ranged": {
+     "min": 40,
+     "max": 90,
+     "interval": 3.4
+    }
+   },
    "resistancePct": {
     "melee": 50,
     "ranged": 50,

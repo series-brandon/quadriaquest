@@ -14,6 +14,7 @@ import {wanderDelay,shouldWander,wanderRoute} from './wander.js';
 import {blocksMovement,occupancy,OCCUPIED_COST,PLAYER_COST} from './world-occupancy.js';
 import {attackPose,CAST_TIMING} from './combat-motion.js';
 import {attackWindow,BLOCK_DURATION,PROJECTILE_FLIGHT} from './combat-animation.js';
+import {chooseEnemyMove,enemyMove,hostileTo,aggressiveUntil} from './combat-rules.js';
 // Follow-through window after a release (matches the attack animation's recovery).
 const RECOVERY=.28;
 import {animateTarget} from './training-models.js';
@@ -40,6 +41,8 @@ export function createCombatSystem(api){
  let gather=null;
  const stopGather=()=>{gather?.sound?.stop();gather=null;};
  const enemyShots=[];let lastInterval=0;
+ // The player's Threat Level (api.threat), read at most once a frame and only when an aggression check needs it.
+ let threatNow=null;const playerThreat=()=>threatNow??=(api.threat?.()??1);
  let fight=null,chase=null,defeated=0,defense=null,autoRetaliate=true,sinceActivity=Infinity,pending=null,sinceRelease=Infinity;
  // `openingWindup` may be null to pin full-windup timing in tests of other mechanics.
  const opening=api.openingWindup===undefined?OPENING_WINDUP:api.openingWindup;
@@ -175,7 +178,7 @@ export function createCombatSystem(api){
  function resetEnemy(a){
   for(let i=shots.length-1;i>=0;i--)if(shots[i].enemy===a)shots.splice(i,1);
   for(let i=enemyShots.length-1;i>=0;i--)if(enemyShots[i].enemy===a)enemyShots.splice(i,1);
-  cancelWindup(a);a.awayFor=0;a.thrownAge=null;
+  cancelWindup(a);a.awayFor=0;a.thrownAge=null;a.plan=null;
   returningAfterWin.delete(a);fleeing.delete(a);release(a);
   a.patrolRoute=[];a.patrolClock=wanderDelay(random);a.hitAge=a.attackAge=a.enemyClock=0;a.sinceStrike=Infinity;a.hp=a.rules.health;a.opened=false;a.aggro=false;(a.control||=createControlState()).reset();
   a.group.scale.setScalar(a.scale);a.group.rotation.set(0,0,0);
@@ -184,7 +187,7 @@ export function createCombatSystem(api){
  }
  function returnHome(a){
   if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;
-  a.aggro=false;a.returning=true;a.enemyClock=a.attackAge=0;a.patrolRoute=[];cancelWindup(a);a.awayFor=0;
+  a.aggro=false;a.returning=true;a.enemyClock=a.attackAge=0;a.patrolRoute=[];cancelWindup(a);a.awayFor=0;a.plan=null;
   if(settled(a)&&a.tile===a.home&&!bodyTaken(a,a.home)){a.returning=false;a.hp=a.rules.health;}
  }
  function cancel(){if(fight){const a=fight.enemy;fight=null;if(a.rules.inert)resetEnemy(a);else if(a.aggro)returnHome(a);}api.complete?.();}
@@ -227,18 +230,30 @@ export function createCombatSystem(api){
   const retaliate=api.shouldRetaliate?api.shouldRetaliate(a):autoRetaliate;
   if(retaliate&&!fight){if(api.inReach(a))start(a);else api.retaliate?.(a);}
  }
- // Enemy attack commitment (docs/COMBAT.md). Each enemy attack (its own, or its optional ranged punish)
- // has an interval ending in a windup. The cooldown runs whether or not the player is in reach; the
- // windup starts once the player is in reach (or, for the ranged punish, has stayed out of reach long
- // enough). Leaving reach in the first half cancels it, without a new cooldown. At the halfway commit
- // point it will land: a character-targeted attack hits the player wherever they are; a tile-targeted
- // one locks the (2r+1)² tiles around the player and hits whoever stands on them at impact.
- const attackOf=(a,kind)=>kind==='ranged'?{...a.rules,...a.rules.rangedAttack}:a.rules;
- const windupOf=x=>x.telegraphed?x.interval:attackWindup({interval:x.interval,combatStyle:x.style||'melee',windup:x.windup});
+ // Enemy attack choice (docs/COMBAT.md): an aggressive enemy plans its next attack from the ones it may use now
+ // (a special with `after` only once the player has kept out of its reach that long), rolled with chooseEnemyMove,
+ // and moves to use it: beside the player for melee, within range and sight for the rest (where it stands still).
+ // The plan is rolled again whenever that set of usable attacks changes, and after every attack.
+ // Enemy attack commitment: each attack has an interval ending in a windup. The cooldown runs whether or not the
+ // player is in reach; the windup starts once the planned attack can reach them. Leaving its reach in the first
+ // half cancels it, without a new cooldown. At the halfway commit point it will land: a character-targeted attack
+ // hits the player wherever they are; a tile-targeted one locks the (2r+1)² tiles around the player and hits
+ // whoever stands on them at impact.
+ const windupOf=m=>m.windup??attackWindup({interval:m.interval,combatStyle:m.style});
  const inReachOf=a=>reachesBody(api.world,a.tile,sizeOf(a),api.tile());
- function canThrow(a){
-  const p=api.tile(),r=a.rules.rangedAttack,size=sizeOf(a),from=size>1?nearestCell(a.tile,size,p):a.tile;
-  return !!r&&inTerritory(a,p)&&rangeGap(a.tile,size,p)<=r.range&&lineOfSight(api.world,from,p)&&!api.safe?.(p);
+ const allowed=(a,m)=>m.after==null||!inReachOf(a)&&(a.awayFor||0)>=m.after;
+ function inRange(a,m){
+  if(m.range==='melee')return inReachOf(a);
+  const p=api.tile(),size=sizeOf(a),from=size>1?nearestCell(a.tile,size,p):a.tile;
+  return inTerritory(a,p)&&rangeGap(a.tile,size,p)<=m.range&&lineOfSight(api.world,from,p)&&!api.safe?.(p);
+ }
+ const usable=(a,m)=>allowed(a,m)&&inRange(a,m);
+ // A practice override (the playground's Force attack) replaces the roll with one attack, the type's or not.
+ const movesOf=a=>{if(!a.forcedMove)return a.rules.moves||[];if(a.forced?.id!==a.forcedMove||a.forced.rules!==a.rules)a.forced={id:a.forcedMove,rules:a.rules,move:enemyMove(a.rules,a.forcedMove)};return a.forced.move?[a.forced.move]:[];};
+ function plan(a){
+  const options=movesOf(a).filter(m=>allowed(a,m)),key=options.map(m=>m.id).join();
+  if(a.plan&&a.planKey===key&&options.includes(a.plan))return a.plan;
+  a.planKey=key;a.plan=a.forcedMove?options[0]||null:chooseEnemyMove(options,random());return a.plan;
  }
  // Solid tiles (walls, rock) are left out: nobody can stand there, so they are never marked.
  function lockTiles(area){const p=api.tile(),tiles=[];for(let dz=-area;dz<=area;dz++)for(let dx=-area;dx<=area;dx++){const t=api.world.get(key(p.x+dx,p.z+dz));if(t&&(!t.blocked||t===p))tiles.push(t);}return tiles;}
@@ -250,30 +265,35 @@ export function createCombatSystem(api){
   else{api.hit(api.player.position,null,'dodge');api.sound('whiff');}
  }
  function enemyAttackUpdate(a,dt,settledNow){
-  const reach=inReachOf(a);a.awayFor=reach?0:(a.awayFor||0)+dt;
+  a.awayFor=inReachOf(a)?0:(a.awayFor||0)+dt;
   if(!a.windup){
-   const kind=reach?'melee':a.rules.rangedAttack&&a.awayFor>=a.rules.rangedAttack.after&&canThrow(a)?'ranged':null;
-   if(!kind||!settledNow)return;
-   const attack=attackOf(a,kind),windup=windupOf(attack);
+   const move=plan(a);
+   if(!move||!settledNow||!usable(a,move))return;
+   const windup=windupOf(move);
    // Cooldown: the rest of the interval before this windup, counted from the last strike.
-   if(a.sinceStrike<attack.interval-windup)return;
-   a.windup={kind,attack,windup,age:0,tiles:null};
+   if(a.sinceStrike<move.interval-windup)return;
+   a.windup={move,windup,age:0,tiles:null};
   }
-  const w=a.windup;w.age+=dt;
+  const w=a.windup,m=w.move;w.age+=dt;
   if(!w.committed){
-   const valid=w.kind==='melee'?reach:!reach&&canThrow(a);
-   if(!valid){cancelWindup(a);return;}
-   if(w.age>=w.windup/2){w.committed=true;w.at=api.tile();if(w.attack.target==='tile')w.tiles=lockTiles(w.attack.area??0);}
+   if(!usable(a,m)){cancelWindup(a);return;}
+   if(w.age>=w.windup/2){w.committed=true;w.at=api.tile();if(m.target==='tile')w.tiles=lockTiles(m.area);}
   }
-  if(w.tiles)api.telegraph?.(a,w.tiles,Math.min(1,(w.age-w.windup/2)/(w.windup/2)));
+  // From the commit point the telegraph marks the locked tiles, or follows the locked-on player.
+  if(w.committed&&m.telegraph){const progress=Math.min(1,(w.age-w.windup/2)/(w.windup/2));
+   if(w.tiles)api.telegraph?.(a,w.tiles,progress);else{if(w.marked?.[0]!==api.tile())w.marked=[api.tile()];api.telegraph?.(a,w.marked,progress);}}
   if(w.age<w.windup)return;
-  a.windup=null;a.sinceStrike=0;a.attackAge=.28;
-  // After a throw it chases again for the full delay before the next one (never a standing turret).
-  if(w.kind==='ranged'){a.thrownAge=0;a.awayFor=0;
-   // The rock flies to the locked centre (a character-targeted throw follows the player).
-   api.projectile?.(a.group.position.clone().add(new Vector3(0,(a.aimHeight??.55)+.6,0)),position(w.tiles?w.at:api.tile()).add(new Vector3(0,.3,0)),'rock',null,{duration:w.attack.flight,arc:1.2});
-   enemyShots.push({enemy:a,attack:w.attack,tiles:w.tiles,left:w.attack.flight});}
-  else impact(a,w.attack,w.tiles);
+  a.windup=null;a.plan=null;a.sinceStrike=0;a.attackAge=.28;
+  // After a kiting punish it chases again for the full delay before the next one (never a standing turret).
+  if(m.after!=null)a.awayFor=0;
+  if(m.pose==='throw')a.thrownAge=0;
+  if(m.projectile){
+   if(!w.tiles)api.telegraph?.(a,null);
+   // A tile-targeted shot flies to the locked centre; a character-targeted one to the player.
+   const flight=m.flight??PROJECTILE_FLIGHT;
+   api.projectile?.(a.group.position.clone().add(new Vector3(0,(a.aimHeight??.55)+(m.pose==='throw'?.6:0),0)),position(w.tiles?w.at:api.tile()).add(new Vector3(0,m.pose==='throw'?.3:.55,0)),m.projectile,null,{duration:flight,arc:m.arc});
+   enemyShots.push({enemy:a,attack:m,tiles:w.tiles,left:flight});}
+  else impact(a,m,w.tiles);
  }
  function win(a,weapon){
   if(fight?.enemy===a)fight=null;if(chase?.enemy===a)chase=null;a.aggro=false;a.opened=true;release(a);cancelWindup(a);
@@ -333,6 +353,7 @@ export function createCombatSystem(api){
  function update(dt,time,camera){
    sinceRelease+=dt;
   if(gather&&gather.fight!==fight)stopGather(); // the cast ended: cancelled, defeated, won or interrupted
+  threatNow=null;
   sinceActivity=fight||chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened)?0:sinceActivity+dt;
   inCombatState.value=sinceActivity<5;
   if(defense){defense.age+=dt;if(defense.age>=BLOCK_DURATION)defense=null;}
@@ -358,16 +379,17 @@ export function createCombatSystem(api){
    if(a.group.visible&&(a.size||1)===1&&!a.opened&&occupancy.covered(a,a.tile,{player:false}))a.group.visible=false;
    a.highlight?.update(!!a.guided&&!a.opened,time,api.hover?.()===a&&!a.opened);
    if(a.opened)continue;a.hitAge=Math.max(0,a.hitAge-dt);a.attackAge=Math.max(0,a.attackAge-dt);a.control.update(dt);const canMove=a.control.can('move');
+   // Enemies attack on sight players whose Threat is below their `aggressiveUntil` (combat-rules.js hostileTo).
    // Players whose attacks are prevented (Pacifist) draw no aggression, except from creatures configured
    // to attack pacifists. Aggression that already started is kept until it ends normally (leash, safety, defeat).
-   if(!a.aggro&&!a.returning&&!a.rules.inert&&(a.aggressive??a.rules.aggressive)&&(!api.passive?.()||(a.attacksPacifists??a.rules.attacksPacifists))&&!defeated&&!api.blocked()&&!api.safe?.(api.tile())&&settled(a)){
+   if(!a.aggro&&!a.returning&&!a.rules.inert&&hostileTo(a,playerThreat())&&(!api.passive?.()||(a.attacksPacifists??a.rules.attacksPacifists))&&!defeated&&!api.blocked()&&!api.safe?.(api.tile())&&settled(a)){
     const p=api.tile(),target={x:p.x,z:p.z,tile:p},range=a.aggroRange??a.rules.aggroRange??3;
     if(inTerritory(a,p)&&(sizeOf(a)>1?cellsOf(a).some(c=>withinAttackRange(api.world,c,target,range)):withinAttackRange(api.world,a.tile,target,range)&&findPath(api.world,a.tile,p)))engage(a);
    }
    // Stun and immobilize hold the enemy in place; slows scale its walking below.
-   // A thrower stops chasing once its ranged punish is ready, finishes its step and winds up in place.
-   const throwing=a.windup?.kind==='ranged'||!a.windup&&a.aggro&&a.rules.rangedAttack&&(a.awayFor||0)>=a.rules.rangedAttack.after&&!inReachOf(a)&&canThrow(a);
-   if(canMove&&!throwing){if(a.returning)walkHome(a);else if(a.aggro)pursue(a);}
+   // An enemy planning an attack beyond melee stops chasing once it can use it, finishes its step and winds up in place.
+   const planned=a.windup?.move||(a.aggro?plan(a):null),shooting=!!planned&&planned.range!=='melee'&&(!!a.windup||usable(a,planned));
+   if(canMove&&!shooting){if(a.returning)walkHome(a);else if(a.aggro)pursue(a);}
    const targeted=fight?.enemy===a||chase?.enemy===a;
    if(a.rules.inert||targeted||a.aggro||a.returning||api.blocked()||defeated||api.approaching?.()===a||!canMove)a.patrolRoute=[];
    else if(settled(a)&&cellsOf(a).includes(api.tile())&&!api.playerMoving?.())pushAside(a);
@@ -385,10 +407,11 @@ export function createCombatSystem(api){
    if(a.aggro&&!defeated&&!api.blocked()&&a.control.can('attack'))enemyAttackUpdate(a,dt,!moving);
    else{cancelWindup(a);a.awayFor=0;}
    // The animation clock: the windup ends the interval; between attacks it rests before the windup.
-   const melee=a.windup?.kind!=='ranged',interval=a.rules.interval,windupStart=interval-windupOf(a.rules);
+   // The attack shown: the one winding up, else the planned one, else its basic attack.
+   const shown=a.windup?.move||a.plan||a.rules.moves?.[0]||a.rules,melee=shown.pose!=='throw',interval=shown.interval||1.5,windupStart=interval-(a.windup?.windup??windupOf(shown));
    a.enemyClock=a.windup&&melee?windupStart+a.windup.age:a.aggro?Math.min(a.sinceStrike,windupStart):0;
    if(a.thrownAge!=null){a.thrownAge+=dt;if(a.thrownAge>.5)a.thrownAge=null;}
-   const thrown=a.windup?.kind==='ranged'?a.windup.age/a.windup.windup:a.thrownAge!=null?1+a.thrownAge/.5:0;
+   const thrown=a.windup&&!melee?a.windup.age/a.windup.windup:a.thrownAge!=null?1+a.thrownAge/.5:0;
    animate(a,time+a.patrolPhase,{walk:moving?1:0,attack:a.aggro&&melee&&(a.enemyClock>=.28||a.attackAge>0)?attackPose(a.enemyClock,interval):0,hit:Math.sin(Math.PI*a.hitAge/.25),charge:a.aggro&&melee?a.enemyClock/interval:0,slam:melee&&a.thrownAge==null?a.attackAge/.28:0,thrown});
    if(labelled){projected.copy(a.group.position);projected.y+=a.plateLift??1.7;projected.project(camera);const view=gameViewport();a.plate.place(view.left+(projected.x+1)*view.width/2,view.top+(1-projected.y)*view.height/2);a.plate.effects.value=a.control.kinds.join(',');a.plate.danger.value=api.danger?.(a)||null;}
   }
@@ -459,6 +482,8 @@ export function createCombatSystem(api){
   get engagedEnemy(){return fight?.enemy||chase?.enemy||[...enemies].find(a=>current(a)&&a.aggro&&!a.opened&&!a.returning)||null;},
   // Pacifist switch: cancel the unreleased windup and pending action; released projectiles still land.
   stopAttacking(){pending=null;disengage();notify();},
-  get state(){return {followUps:followUps.length,pending:pending?.ability||null,queuedSpell:pending?.spell||null,committedAbility:fight?.ability?.name||null,autoRetaliate,fight:fight?.enemy.kind||null,chase:chase?.enemy.kind||null,defeated:!!defeated,blocking:!!defense,enemies:[...enemies].filter(current).map(a=>({kind:a.kind,x:a.x,z:a.z,hp:a.hp,opened:a.opened,aggressive:!!(a.aggressive??a.rules.aggressive),aggroRange:a.aggroRange??a.rules.aggroRange??3,aggro:!!a.aggro,returning:!!a.returning,moving:!settled(a),position:a.group.position.toArray()}))};}
+  // Practice (the playground's Force attack): this enemy uses only this attack (a style or a special attack id) until cleared (null).
+  forceAttack(a,id){a.forcedMove=id||null;a.forced=null;a.plan=null;cancelWindup(a);},
+  get state(){return {followUps:followUps.length,pending:pending?.ability||null,queuedSpell:pending?.spell||null,committedAbility:fight?.ability?.name||null,autoRetaliate,fight:fight?.enemy.kind||null,chase:chase?.enemy.kind||null,defeated:!!defeated,blocking:!!defense,threat:playerThreat(),enemies:[...enemies].filter(current).map(a=>({kind:a.kind,x:a.x,z:a.z,hp:a.hp,opened:a.opened,aggressive:hostileTo(a,playerThreat()),aggressiveUntil:aggressiveUntil(a),plan:a.plan?.id||null,windup:a.windup?.move.id||null,forced:a.forcedMove||null,aggroRange:a.aggroRange??a.rules.aggroRange??3,aggro:!!a.aggro,returning:!!a.returning,moving:!settled(a),position:a.group.position.toArray()}))};}
  };
 }

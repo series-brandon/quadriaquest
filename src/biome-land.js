@@ -116,7 +116,7 @@ export function createBiomeLand({seed=1,bounds,map={},rules=BIOME_RULES}){
    if(t.water){const land=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dz])=>tile(t.x+dx,t.z+dz)).find(n=>n&&!n.water&&!taken(n));
     if(land&&hash(t.x,t.z,seed+21)<b.fishing.spots)out.push({id:`fish:${t.x},${t.z}`,kind:'fishing',x:t.x,z:t.z,fish:b.fishing.fish[t.waterKind]||'rawFish'});continue;}
    if(b.enemies.density>0&&!t.shore&&hash(t.x,t.z,seed+31)<b.enemies.density&&!taken(t)){const e=pickEnemy(b.enemies.table,hash(t.x,t.z,seed+32));
-    if(e)out.push({id:`${e.enemy}:${t.x},${t.z}`,kind:'enemy',enemy:e.enemy,aggressive:!!e.aggressive,x:t.x,z:t.z});}
+    if(e)out.push({id:`${e.enemy}:${t.x},${t.z}`,kind:'enemy',enemy:e.enemy,x:t.x,z:t.z});}
   }
   return out;
  }

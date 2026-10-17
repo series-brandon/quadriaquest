@@ -149,9 +149,9 @@ test('placed enemy spawns stream with their kind, behaviour and respawn, even wi
  const data=createMapData({id:'camp',size:[64,64],land:{seed:2,default:'meadow',cells:{},enemies:false}});
  const built=buildMap(data,{scene:new THREE.Group()}),source=townSource(built.ground.land,()=>built.ground,()=>built.tiles,()=>data);
  const all=[...built.tiles.values()],dry=all.find(t=>!t.water&&t.x>10&&t.z>10);
- data.enemies=[{x:dry.x,z:dry.z,enemy:'bruiser',aggressive:true,respawn:120}];
+ data.enemies=[{x:dry.x,z:dry.z,enemy:'bruiser',aggressiveUntil:20,respawn:120}];
  const spawns=source.extras(all).filter(e=>e.kind==='enemy');
- assert.deepEqual(spawns.map(e=>[e.enemy,e.aggressive,e.respawn,e.x,e.z]),[['bruiser',true,120,dry.x,dry.z]]);
+ assert.deepEqual(spawns.map(e=>[e.enemy,e.aggressiveUntil,e.respawn,e.x,e.z]),[['bruiser',20,120,dry.x,dry.z]]);
  assert.equal(spawns[0].id,`placed:enemy:${dry.x},${dry.z}`);
  growMap(data,{west:64,north:64});assert.deepEqual([data.enemies[0].x,data.enemies[0].z],[dry.x+64,dry.z+64],'spawns move when the map grows');
 });

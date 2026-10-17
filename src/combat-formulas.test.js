@@ -43,10 +43,10 @@ test('enemy stat sheets derive their documented values',()=>{
  assert.deepEqual([s.health,s.min,s.max],[50,1,10]);
  assert.deepEqual([b.health,b.min,b.max],[100,3,20]);
  close(s.interval,2.5);close(b.interval,2.5);
- close(s.attack.bonuses.power,.2);close(b.attack.bonuses.power,10.2);
- close(s.attack.bonuses.accuracy,1.2);close(b.attack.bonuses.accuracy,4.2);
+ close(s.profiles.melee.bonuses.power,.2);close(b.profiles.melee.bonuses.power,10.2);
+ close(s.profiles.melee.bonuses.accuracy,1.2);close(b.profiles.melee.bonuses.accuracy,4.2);
  assert.deepEqual(s.resistancePct,{melee:0,ranged:0,magic:0});
- close(s.attack.bonuses.speed,0);close(b.attack.bonuses.speed,0);assert.equal(s.baseInterval,2.5);assert.equal(b.baseInterval,2.5);
+ close(s.profiles.melee.bonuses.speed,0);close(b.profiles.melee.bonuses.speed,0);assert.equal(s.baseInterval,2.5);assert.equal(b.baseInterval,2.5);
  close(s.threat.offensive,.4);close(s.threat.support,.25);close(s.threat.raw,.65);assert.equal(s.threat.level,1);
  close(b.threat.offensive,3);close(b.threat.support,.5);close(b.threat.raw,3.5);assert.equal(b.threat.level,3);
  assert.equal(f.resourceMaxima(ENEMY_SHEETS.bruiser.attributes).mana,0);
