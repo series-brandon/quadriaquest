@@ -28,8 +28,9 @@ export const TREE_SPECIES={
  asla:{bark:'#cfc9bb',trunk:0.15,height:3.2,parts:()=>[part(C(.09,.15,1.9),'#cfc9bb',[0,.95,0]),foot(.15,'#cfc9bb'),branch(.62,.06,'#cfc9bb',1.78,.6,1.05),branch(.6,.055,'#cfc9bb',1.84,2.7,1.05),branch(.56,.05,'#cfc9bb',1.9,4.7,1.05),
   ...crown([[0,2.2,0,.6,0],[.66,2.06,.2,.48,0],[-.62,2.1,-.24,.5,0],[.2,2.08,-.66,.46,0],[-.26,2.12,.62,.46,1],[.4,2.36,.36,.4,1],[-.38,2.38,-.3,.4,1],[.04,2.5,.02,.42,2]],['#8fbf5e','#a6d273','#c0e391'],.55)]},
  pine:{bark:'#7a5a3c',trunk:0.13,height:3.4,parts:()=>[part(C(.08,.13,.9),'#7a5a3c',[0,.45,0]),foot(.13,'#7a5a3c'),
-  // Tiers that droop a little, each turned against the one below, dark at the foot and lighter up top.
-  ...[0,1,2,3].map(j=>part(K(.82-j*.17,.9-j*.1,8),['#365f42','#3f6b4a','#4b7a54','#5a8a60'][j],[0,1.05+j*.52,0],[0,j*.45,0])),part(K(.12,.3,6),'#5f9065',[0,3.12,0])]},
+  // Tiers that droop a little, each turned against the one below, dark at the foot and lighter up top; the tip
+  // sinks into the top tier.
+  ...[0,1,2,3].map(j=>part(K(.82-j*.17,.9-j*.1,8),['#365f42','#3f6b4a','#4b7a54','#5a8a60'][j],[0,1.05+j*.52,0],[0,j*.45,0])),part(K(.12,.3,6),'#5f9065',[0,2.86,0])]},
  oak:{bark:'#a68c6b',trunk:0.15,height:2.9,parts:()=>[part(C(.09,.15,1.3),'#a68c6b',[0,.65,0]),foot(.15,'#a68c6b'),branch(.5,.06,'#a68c6b',1.05,.8),branch(.45,.055,'#a68c6b',1.15,3.6),
   ...crown([[0,1.22,0,.66,0],[.34,1.42,.18,.46,0],[-.36,1.4,-.12,.48,0],[.12,1.62,-.28,.44,1],[-.14,1.7,.24,.46,1],[.06,2.02,.02,.46,2],[.3,1.86,-.06,.3,2]],['#6f9159','#88aa6b','#a3c283'])]},
 // Willow: a few small weeping peaks on stems that split from one short trunk.
