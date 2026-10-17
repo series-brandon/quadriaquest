@@ -170,7 +170,7 @@ export function mountPlayground(api){
   const launcher=document.getElementById('show-debug-menu');launcher.setAttribute('aria-controls',panel.id);launcher.setAttribute('aria-expanded','false');
   async function openWorldEditor(){const {createWorldEditor}=await import('./world-editor.js');worldEditor??=createWorldEditor(api);await worldEditor.open();window.quadriaquest.worldEditor=worldEditor;}
   // The playground opens in the world editor on the overworld (docs/PLAYGROUND.md), unless the address asks for
-  // the game (?game; the perf harness always does). The editor's Map list switches to the game's clearing.
+  // the game (?game; the perf harness always does). The editor's World → Maps list switches to the game's clearing.
   if(!new URLSearchParams(location.search).has('game'))setTimeout(()=>openWorldEditor().catch(error=>console.error(error)),0);
   panel.addEventListener('toggle',()=>{launcher.setAttribute('aria-expanded',String(panel.open));if(!panel.open&&panel.contains(document.activeElement))launcher.focus();});
 

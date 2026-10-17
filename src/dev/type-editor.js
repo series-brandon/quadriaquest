@@ -17,7 +17,7 @@ import {formatData} from '../data-file.js';
 // Type editors (docs/DESIGN.md, Resource and enemy configuration): the shared configuration every instance of a
 // type uses (every Poplar, every boulder, every Goblin Scrapper, every Sticks), edited live and saved to src/data/*.json
 // through the dev server. Edits change the live tables, so the world uses them at once; a map placement only
-// rarely overrides them (the editor's Resource and Spawn panels). The world editor's Map group opens one window
+// rarely overrides them (the editor's Resource and Spawn panels). The world editor's World group opens one window
 // per tool (TYPE_TOOLS), all built from the shared pieces here.
 const FILES = {
   trees: {save: () => treesData()},
@@ -29,7 +29,7 @@ const ITEM_CHOICES = Object.entries(ITEMS).map(([id, item]) => [id, item.name]);
 const titleCase = id => id[0].toUpperCase() + id.slice(1);
 // Shops buy by category (shops.js), so the choices are the ones items already use; a new one needs a shop that buys it.
 const CATEGORIES = [...new Set(dataItems().map(([, item]) => item.category))].sort();
-// The Map group's type tools: which kinds of type each window edits.
+// The World group's type tools: which kinds of type each window edits.
 export const TYPE_TOOLS = {
   nodes: {title: 'Resource Nodes', kinds: ['tree', 'resource']},
   npcs: {title: 'NPCs', kinds: ['enemy']},

@@ -45,7 +45,7 @@ Previews run in place without consuming items or earning XP. Stop to play normal
 
 ## Maps
 
-- **On start:** the playground opens in the world editor on the Quadria overworld, with the free camera on. A tool's options and what's selected show bottom left (in Decorate, above the catalogue); the map's settings and checks are under the *Map* tool group. Its *Map* list's *The clearing (where the game starts)* leaves the editor for the game's start (a fresh session). Add `?game` to the address to start in the game instead (the perf harness always does).
+- **On start:** the playground opens in the world editor on the Quadria overworld, with the free camera on. A tool's options and what's selected show bottom left (in Decorate, above the catalogue); this map's file, size and checks are under *Map* → *This map*, and other maps under *World* → *Maps*. That list's *The clearing (where the game starts)* leaves the editor for the game's start (a fresh session). Add `?game` to the address to start in the game instead (the perf harness always does).
 - **Open world editor:** opens on the map you're on. That's the map you were editing, left as it was, or the city you're standing in (you stay where you are), and otherwise the Quadria overworld. Its *Map* group opens any other map: the repo's maps (overworld first), the prop gallery, or a blank map. While editing, the world fills the window (Sims-style: tools along the top, a side panel, and the catalogue along the bottom in Decorate). *Play* is a test walk with the player interface back, where clicks move you as in the game. The editor's tools are described in docs/CITY.md (*Authoring*) and docs/TOWN.md.
 - **World editor decorating** (docs/TOWN.md, *Sims-style editor* and *Colours*):
   - Select (in the bar, before the tabs; the editor opens on it, Esc comes back to it): click any placed thing (a building, prop, furniture, townsfolk, enemy, crystal, tree, door, floor stairs or ladder) to select it and bring its tab forward; a second click, or a drag from it, lifts it; a click puts it down. Empty ground deselects and names the tile. See docs/CITY.md, *Select*.
@@ -67,7 +67,7 @@ Previews run in place without consuming items or earning XP. Stop to play normal
 - **Force cutaway:** cuts every building at once (no roofs, one-storey walls).
 - **Ramps** (docs/TOWN.md, *Ramps*): *Terrain* → *Ramp ledges* turns ledges under the brush into ramps (paths only by default) or back; *Play* walks them smoothly. The old *Ramp* drag tool is now *Slope*.
 - **Townsfolk** (docs/TOWN.md, *The Townsfolk and Crystal tools' panels*): the Townsfolk tool places someone and opens their panel; clicking someone there opens theirs.
-- **Iter Crystals** (docs/TOWN.md, *Iter Crystals*): the editor's *World* → *Crystal* places any number; the Hand's panel names them and sets their id and *Known from the start*. In *Play*, walking up to one discovers it for the teleport list. The debug panel's *Maps* has *Discover all crystals* and *Forget crystals*.
+- **Iter Crystals** (docs/TOWN.md, *Iter Crystals*): the editor's *Map* → *Crystal* places any number; the Hand's panel names them and sets their id and *Known from the start*. In *Play*, walking up to one discovers it for the teleport list. The debug panel's *Maps* has *Discover all crystals* and *Forget crystals*.
 - **Play from where you work:** *Play* puts the slime on the open tile nearest the view and gives the camera back to it, as in the game; *Edit* frees the camera again. *Player here* (*Map* → *View*) moves the slime there without leaving Edit. The debug panel's *Maps* has *Player to camera* for the same outside the editor.
 - **Save** (top row, or Ctrl/⌘+S): saves the map to its file in `src/maps`, as *Map* → *Save to repo*; it shows a dot while there are unsaved changes.
 - **Draw distance:** the world editor's top row has it too (*Draw*), the same setting as Settings.
@@ -168,7 +168,7 @@ The clearing pond has a Pondfish spot at (4, 4). Add a Crude Fishing Rod with In
 
 ## Type tools (shared configuration)
 
-World editor → **Map** group → **Resource Nodes**, **NPCs** or **Items** (each opens nearly full-window, with its own *Save* to `src/data/*.json`; dev server only). Edits apply in the world as you make them.
+World editor → **World** group → **Resource Nodes**, **NPCs** or **Items** (each opens nearly full-window, with its own *Save* to `src/data/*.json`; dev server only). Edits apply in the world as you make them.
 - **Resource Nodes:** every tree and rock or ground-item type's level, effort (seconds), respawn, XP and drop table. Plant a tree with Lumberjack practice to try a change at once.
 - **NPCs:** every enemy type's stat sheet, attack setup, behaviour, XP, overrides, respawn and drop table (townsfolk later). *Results* shows the derived health, damage, interval, resistance and Threat as you type; spawn the enemy (Combat practice) to fight the change.
 - **Items:** tabs Weapons, Armor, Tools, Resources, Consumables and Other, by category (changing an item's category moves it). Every item has name, description, value, category and *Shops buy it*; a shop opened afterwards shows the new name and price. Equipment adds slot, hands, stats, damage types and requirements: equip the item (Inventory controls, then Equipment) to try a change. Consumables add restore effects: lower health or a resource and eat one.

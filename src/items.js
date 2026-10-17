@@ -1,7 +1,7 @@
 import ITEMS from './data/items.json' with {type:'json'};
 
 // Items (docs/DESIGN.md, Resource and enemy configuration; docs/ECONOMY.md). Each item's shared configuration is
-// data in src/data/items.json, edited in the world editor's Items tool (Map group): `name`, `description`, `value` (the
+// data in src/data/items.json, edited in the world editor's Items tool (World group): `name`, `description`, `value` (the
 // price at a shop that stocks it; selling pays a share of it, economy.js), `category` (which shops buy it) and
 // `sellable: false` for gold (the currency) and quest items. Two optional blocks give an item its kind:
 // `equipment` (slot, hands, stats and requirements; equipment.js reads it as GEAR) and `consume` (what using it

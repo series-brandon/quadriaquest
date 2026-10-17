@@ -250,25 +250,26 @@ Enemy definitions may configure zero or negative combat stats to reduce offense 
 
 ### Candidate Scrapper and Bruiser stat sheets
 
-**Where enemy stats live (2026-10-16, user decision).** Each enemy type's sheet, attack setup, behaviour, XP and any overrides are data in `src/data/enemies.json`, edited in the world editor's NPCs tool, which shows the derived results beside the inputs. `combat-rules.js` derives health, damage, interval, resistance and Threat from the sheet with this document's formulas (`deriveEnemy`), applies overrides, and keeps special attacks (the Cinder Golem's area slam and Rock Throw) and the Practice Target's inertness in code. The values below are the starting values in that file.
+**Where enemy stats live (2026-10-16, user decision).** Each enemy type's sheet, attack setup, behaviour, XP and any overrides are data in `src/data/enemies.json`, edited in the world editor's NPCs tool, which shows the derived results beside the inputs. `combat-rules.js` derives health, damage, interval, resistance and Threat from the sheet with this document's formulas (`deriveEnemy`), applies overrides, and keeps special attacks (the Cinder Golem's area slam and Rock Throw) and the Practice Target's inertness in code. The values below are the values in that file. The user retuned both goblins in the NPCs tool (2026-10-16): Celerity, Melee Speed and the Scrapper's Charisma went to 0, and the base interval to 2.5 seconds, so the effective interval stays 2.5 seconds and only Threat moved (Scrapper 0.9 → 0.65, Bruiser 3.75 → 3.5; displayed Threat still 1 and 3).
 
 These are first-pass design candidates for the shared stat-based combat model, not implemented enemy changes or final encounter balance. They preserve the target HP and effective attack intervals using derived values. Their offensive inputs derive the target 10/20 raw maximum hits; minimum-roll scaling retains a base of 1. Use shared entity configuration in any map; tutorial context supplies the Scrapper encounter's nonlethal protection. Do not add location-specific combat formulas.
 
-Use the explicitly listed combat skill values. Light, Medium and Heavy Armor skills are 0. All weapon, armor-slot and elemental proficiencies are 0 except Unarmed, which is 1. All unspecified attributes are 1, rather than importing the player's creation defaults into an enemy. Both use no equipped armor or shield, no elemental infusion and no item/natural-armor stat bonuses. Enemy-specific starting attributes, including Constitution below the player's starting 10, are proposed data values rather than changes to player creation.
+Use the explicitly listed combat skill values. Light, Medium and Heavy Armor skills are 0. All weapon, armor-slot and elemental proficiencies are 0 except Unarmed, which is 1. Every attribute is set explicitly below, rather than importing the player's creation defaults into an enemy. Both use no equipped armor or shield, no elemental infusion and no item/natural-armor stat bonuses. Enemy-specific starting attributes, including Constitution below the player's starting 10, are proposed data values rather than changes to player creation.
 
 | Input | Goblin Scrapper | Goblin Bruiser |
 |---|---:|---:|
 | Constitution | 5 | 10 |
 | Strength | -1 | 5 |
 | Precision / Intelligence | 0 / 0 | 0 / 0 |
-| Celerity / Dexterity / Luck | 1 / 0 / 0 | 1 / 0 / 0 |
+| Celerity / Dexterity / Luck | 0 / 0 / 0 | 0 / 0 / 0 |
+| Charisma | 0 | 1 |
 | Toughness | 0 | 0 |
 | Mentis / Tenacity / Aura | 0 / 0 / 0 | 0 / 0 / 0 |
 | Endurance | 0 | 0 |
 | Regeneration | 0 | 0 |
 | Fortitude / Recuperation / Meditation | all 0 | all 0 |
 | Recovery | 0 | 0 |
-| Melee Technique / Power / Accuracy / Speed | 1 / 1 / 1 / 1 | 1 / 5 / 4 / 1 |
+| Melee Technique / Power / Accuracy / Speed | 1 / 1 / 1 / 0 | 1 / 5 / 4 / 0 |
 | Ranged Technique / Power / Accuracy / Speed | all 0 | all 0 |
 | Magic Technique / Power / Accuracy / Speed | all 0 | all 0 |
 | Melee / Ranged / Magic Defense | all 0 | all 0 |
@@ -279,7 +280,7 @@ Use the explicitly listed combat skill values. Light, Medium and Heavy Armor ski
 | Allowed action | basic melee punch only | basic melee punch only |
 | Allowed strategy | Technical only | Technical only |
 | Damage categories | Melee, physical, bludgeoning | Melee, physical, bludgeoning |
-| Base attack interval | 2.55 seconds | 2.55 seconds |
+| Base attack interval | 2.5 seconds | 2.5 seconds |
 | Reach | one adjacent cardinal tile | one adjacent cardinal tile |
 | Resource cost per attack | none | none |
 | Sprint capability | disabled | disabled |
@@ -298,15 +299,15 @@ Derived results, with no external effects:
 | Melee Power bonus (`skill + Strength + Unarmed / 5`) | 0.2 | 10.2 |
 | Melee Accuracy bonus (`skill + Unarmed / 5`) | 1.2 | 4.2 |
 | Raw damage bounds | 1–10 | 3–20 |
-| Melee speed bonus (`Speed + Celerity`) | 2 | 2 |
-| Effective attack interval (`base / 1.02`) | 2.5 seconds | 2.5 seconds |
+| Melee speed bonus (`Speed + Celerity`) | 0 | 0 |
+| Effective attack interval (`base / 1.00`) | 2.5 seconds | 2.5 seconds |
 | Applicable baseline resistance (`(Defense * 0.5 + Toughness * 0.5) / 10`) | 0% | 0% |
-| Highest offensive Threat candidate, including applicable Magic support | 0.6 | 3.2 |
+| Highest offensive Threat candidate, including applicable Magic support | 0.4 | 3 |
 | Defensive Threat contribution | 0 | 0 |
-| Support-attribute Threat contribution | 0.3 | 0.55 |
-| Raw / displayed Threat | 0.9 / **1** | 3.75 / **3** |
+| Support-attribute Threat contribution | 0.25 | 0.5 |
+| Raw / displayed Threat | 0.65 / **1** | 3.5 / **3** |
 
-Enemies use exactly the same Threat formula as players, evaluating all three offensive candidates without filtering by available attacks or active style. Configure every enemy stat deliberately, including unused styles, because all formula inputs can affect its rating. Both enemies explicitly have zero Ranged/Magic offensive skills, Precision and Intelligence, so their Ranged and Magic candidates and secondary Magic Technique support are zero. Melee supplies the highest score: 0.6 for Scrapper and 3.2 for Bruiser. No style filtering or alternate enemy formula is needed. Player-only baseline dodge/block/crit opportunities are not granted to enemies by this calculation. The enemy may possess underlying levels while its capability flags disable those outcomes. Mentis, Tenacity, Aura, Fortitude, Recuperation and Meditation are zero for both enemies: they have no Mana, Energy or Ki capacity or passive recovery, and no actions that require those resources. Both enemies have Regeneration 0, so the shared regeneration formula gives no passive HP recovery in or out of combat. Preserve full recovery on completing leash return or respawn; that reset is separate from passive regeneration. The attack arithmetic here evaluates fixed stats without progression during the encounter. Both enemies have Endurance 0 and Recovery 0, giving zero Stamina capacity and recovery. Sprint capability is disabled. Normal walking, patrol, pursuit and leash return remain available and unchanged; their basic attacks spend no Stamina.
+Enemies use exactly the same Threat formula as players, evaluating all three offensive candidates without filtering by available attacks or active style. Configure every enemy stat deliberately, including unused styles, because all formula inputs can affect its rating. Both enemies explicitly have zero Ranged/Magic offensive skills, Precision and Intelligence, so their Ranged and Magic candidates and secondary Magic Technique support are zero. Melee supplies the highest score: 0.4 for Scrapper and 3 for Bruiser. No style filtering or alternate enemy formula is needed. Player-only baseline dodge/block/crit opportunities are not granted to enemies by this calculation. The enemy may possess underlying levels while its capability flags disable those outcomes. Mentis, Tenacity, Aura, Fortitude, Recuperation and Meditation are zero for both enemies: they have no Mana, Energy or Ki capacity or passive recovery, and no actions that require those resources. Both enemies have Regeneration 0, so the shared regeneration formula gives no passive HP recovery in or out of combat. Preserve full recovery on completing leash return or respawn; that reset is separate from passive regeneration. The attack arithmetic here evaluates fixed stats without progression during the encounter. Both enemies have Endurance 0 and Recovery 0, giving zero Stamina capacity and recovery. Sprint capability is disabled. Normal walking, patrol, pursuit and leash return remain available and unchanged; their basic attacks spend no Stamina.
 
 Behavior and reward configuration:
 

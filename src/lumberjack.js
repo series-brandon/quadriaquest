@@ -1,5 +1,5 @@
 // Lumberjack tiers (docs/DESIGN.md, Lumberjack). Every tree species is one tier, in src/data/trees.json (edited
-// in the world editor's type tools (Map group), or by hand): its name, the level it needs, its `effort` in seconds, how
+// in the world editor's type tools (World group), or by hand): its name, the level it needs, its `effort` in seconds, how
 // many seconds its stump takes to regrow, and its `drops` (the wood pieces it yields and how many, in the shared
 // drop-table format, drops.js); optionally `xp`. A map placement may rarely override one tree
 // (resource-rules.js). Chopping itself is the shared resource action (resource-actions.js); looks live in

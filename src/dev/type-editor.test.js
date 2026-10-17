@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {ITEMS} from '../items.js';
 import {TYPE_TOOLS, ITEM_TABS, itemTab, toolForType, typeEntries} from './type-editor.js';
 
-// The Map group's type tools (docs/DESIGN.md, Resource and enemy configuration): every type belongs to one tool,
+// The World group's type tools (docs/DESIGN.md, Resource and enemy configuration): every type belongs to one tool,
 // and every item to one Items tab by its category.
 test('every type belongs to exactly one type tool, and Edit-type keys open the matching tool', () => {
   const all = typeEntries(), split = Object.keys(TYPE_TOOLS).flatMap(tool => typeEntries(tool));

@@ -42,6 +42,9 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 - Playground test armour (`dev/test-armor.js`) adds itself to `ITEMS` with `playground: true`; `dataItems()` leaves it out of the file and the list.
 - Item names in drop-table selects refresh only when the Types screen is reopened.
 
+### Editor groups: Map is this map, World is everything shared — 2026-10-16 (user decision)
+- *Map* now holds what's placed on a map (Nature, Enemy, Townsfolk, Crystal, Arrival), Inspect and *This map* (save, copy, download, size and grow, checks). *World* holds *Maps* (open another map) and the type tools (Resource Nodes, NPCs, Items). The view switches (free camera, atmosphere, grid lines, mist wall, player here) moved to a *View* menu in the top bar. A selected spawn, resource or crystal brings the Map tab forward (`HOME_GROUP`).
+
 ### NPC stats as data; type tool cleanup — 2026-10-16 (user request; fields confirmed by the user)
 - `src/data/enemies.json` holds each enemy type's `name`, `sheet` (attributes, skills per style, proficiencies), attack setup, behaviour flags, XP, `overrides` (health, min, max, interval, resistancePct), `respawn` and `drops`. `combat-rules.js` builds `ENEMIES` from it (`enemyRow`: derive from the sheet, apply overrides, add `ENEMY_CODE` behaviour: target `inert`, golem slam and `rangedAttack`); `refreshEnemy(kind)` rebuilds a row in place. `ENEMY_SHEETS` is now read from the data. The move was checked to give exactly the old `ENEMIES`.
 - NPCs tool: General, Behaviour, Attack, Stat sheet (attributes, a skills table), Overrides (placeholders show the derived values) and Drops, with a sticky *Results* card. Spawned enemies keep the row reference, so most edits apply at once; health applies to the next spawn, and a spawn with its own map XP setting holds a copy taken when it was created, so it keeps the old values until then.

@@ -46,8 +46,9 @@ test('enemy stat sheets derive their documented values',()=>{
  close(s.attack.bonuses.power,.2);close(b.attack.bonuses.power,10.2);
  close(s.attack.bonuses.accuracy,1.2);close(b.attack.bonuses.accuracy,4.2);
  assert.deepEqual(s.resistancePct,{melee:0,ranged:0,magic:0});
- close(s.threat.offensive,.6);close(s.threat.support,.3);close(s.threat.raw,.9);assert.equal(s.threat.level,1);
- close(b.threat.offensive,3.2);close(b.threat.support,.55);close(b.threat.raw,3.75);assert.equal(b.threat.level,3);
+ close(s.attack.bonuses.speed,0);close(b.attack.bonuses.speed,0);assert.equal(s.baseInterval,2.5);assert.equal(b.baseInterval,2.5);
+ close(s.threat.offensive,.4);close(s.threat.support,.25);close(s.threat.raw,.65);assert.equal(s.threat.level,1);
+ close(b.threat.offensive,3);close(b.threat.support,.5);close(b.threat.raw,3.5);assert.equal(b.threat.level,3);
  assert.equal(f.resourceMaxima(ENEMY_SHEETS.bruiser.attributes).mana,0);
  assert.equal(s.canCritical||s.canDodge||s.canBlock,false);
 });

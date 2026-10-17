@@ -40,6 +40,13 @@
 /* Draw distance in the top row: its label beside a compact dropdown. */
 .q-world-editor__draw { display: flex; align-items: center; gap: 6px; font-weight: 600; white-space: nowrap; }
 .q-world-editor__draw .q-select { inline-size: auto; }
+/* View (top bar): the editor's own display switches, in a small menu under its button. */
+.q-world-editor__view { position: relative; }
+.q-world-editor__view > summary { display: inline-flex; align-items: center; list-style: none; cursor: pointer; }
+.q-world-editor__view > summary::-webkit-details-marker { display: none; }
+.q-world-editor__view[open] > summary { background: var(--q-control-selected); }
+.q-world-editor__view-menu { position: absolute; inset-block-start: calc(100% + 6px); inset-inline-end: 0; z-index: 5; display: grid; gap: 10px; inline-size: 300px; padding: 12px; border: 1px solid var(--q-line); border-radius: var(--q-control-radius); background: var(--q-card); box-shadow: 0 8px 24px var(--q-choice-shadow); }
+.q-world-editor__view-menu .q-world-editor__toggles { inline-size: 100%; }
 /* Up and down a level: two small square buttons and where you are. */
 .q-world-editor__levels { align-items: center; flex-wrap: nowrap; }
 /* Select, before the tool tabs: pressed while it's the tool. */

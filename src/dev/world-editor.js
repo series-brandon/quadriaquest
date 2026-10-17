@@ -99,17 +99,19 @@ const RESOURCE_XP=['0','10','25','50','100','250','500'].map(n=>[n,`${n} XP`]);
 // The Nature brush (docs/TOWN.md, Nature by hand): trees by species, resources, ground cover, or clear.
 const NATURE_CHOICES=[['grow','Grow (biome)'],['clear','Clear nature'],['fishing','Fishing spot (on water)'],...Object.keys(TREE_SPECIES).map(id=>[`tree:${id}`,`${TREES[id].name} (Lv ${TREES[id].level})`]),
  ...['copper','boulder','sticks','stones','flint'].map(k=>[`resource:${k}`,k[0].toUpperCase()+k.slice(1)]),...COVER_KINDS.filter(k=>k!=='lilyPad').map(k=>[`cover:${k}`,`Cover: ${k}`])];
-// Tools in four groups, as in a Sims build/buy mode (docs/TOWN.md, Sims-style editor). Decorate opens the
+// Tools in groups, as in a Sims build/buy mode (docs/TOWN.md, Sims-style editor). Decorate opens the
 // catalogue (Deco: pick something new and put it down); the Hand ('select') lifts what you click and has the
 // whole panel for what's selected. Both hold, turn and put down the same way (HAND_TOOLS).
 const TOOL_GROUPS=[
  ['decorate','Decorate',[['deco','Deco'],['design','Colours'],['eyedropper','Eyedropper'],['erase','Sledgehammer'],['floorpaint','Floor paint'],['wallpaint','Wall paint'],['stamp','Stamp']]],
  ['build','Build',[['room','Room'],['resize','Push/pull walls'],['building','Building'],['footprint','Footprint'],['walls','Walls'],['edge','Edge'],['stairs','Stairs'],['use','Use'],['reroll','Reroll furniture'],['underground','Underground']]],
  ['terrain','Terrain',[['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['smooth','Smooth'],['ramp','Slope'],['ramps','Ramp ledges'],['surface','Surface'],['biome','Biome']]],
- ['world','World',[['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['spawn','Arrival']]],
- // Map: open, save and grow the map, its lines, and its checks (with Inspect). Resource Nodes, NPCs and Items
- // open the shared type settings (each a window of its own, not a tool you click the map with).
- ['map','Map',[['inspect','Inspect'],...Object.entries(TYPE_TOOLS).map(([id,t])=>[id,t.title])]]];
+ // Map (user, 2026-10-16): what's placed on this map (nature, enemies, townsfolk, crystals, where you arrive),
+ // Inspect, and This map: its file, size and checks.
+ ['map','Map',[['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['spawn','Arrival'],['inspect','Inspect'],['mapfile','This map']]],
+ // World: what every map shares: the list of maps, and the type tools (Resource Nodes, NPCs, Items; each a window
+ // of its own, not a tool you click the map with).
+ ['world','World',[['maps','Maps'],...Object.entries(TYPE_TOOLS).map(([id,t])=>[id,t.title])]]];
 const TOOLS=TOOL_GROUPS.flatMap(([,,tools])=>tools),groupOf=id=>TOOL_GROUPS.find(([,,tools])=>tools.some(([t])=>t===id))?.[0]||'decorate';
 const SIDES=['n','e','s','w'],COUNTER={n:'w',w:'s',s:'e',e:'n'};
 // The colour picker's quick swatches: the game's own palette (any colour is allowed; these are only quick picks).
@@ -216,7 +218,7 @@ export function createWorldEditor(host){
   grown:{entry:sel=>{const n=natureAt(sel.x,sel.z),e=n.resource||n.cover;return e&&!e.placed?{...e,x:sel.x,z:sel.z}:null;},cells:e=>[[e.x,e.z]],name:e=>`${natureName(e)} (grew here)`,anchor:e=>[e.x,e.z]},
   furnished:{entry:sel=>built?.buildings[sel.owner]?.furniture?.find(p=>p.tiles.some(t=>t.x===sel.x&&t.z===sel.z))||null,cells:e=>e.tiles.map(t=>[t.x,t.z]),name:e=>PROPS[e.kind]?.name||e.kind,anchor:e=>[e.tiles[0].x,e.tiles[0].z]}};
  // Each kind's own tab: selecting brings it forward (Select stays the tool).
- const HOME_GROUP={building:'build',stairs:'build',edge:'build',door:'build',flight:'build',prop:'decorate',furniture:'decorate',furnished:'decorate',group:'decorate',townsfolk:'world',enemy:'world',crystal:'world',resource:'world',cover:'world',fishing:'world',grown:'world'};
+ const HOME_GROUP={building:'build',stairs:'build',edge:'build',door:'build',flight:'build',prop:'decorate',furniture:'decorate',furnished:'decorate',group:'decorate',townsfolk:'map',enemy:'map',crystal:'map',resource:'map',cover:'map',fishing:'map',grown:'map'};
  function entryOf(sel){if(!sel||!data)return null;if(SPECIAL[sel.kind])return SPECIAL[sel.kind].entry(sel);if(sel.kind==='group')return sel.items.length?sel:null;
   if(sel.kind==='furniture'&&sel.owner!==undefined)return floorsOf(sel.owner).find(f=>f.level===sel.level)?.furniture?.[sel.index]??null;return lists()[sel.kind]?.[sel.index]??null;}
  // An in-place building whose ground floor is the map, at a tile (its index), or null.
@@ -1637,7 +1639,7 @@ export function createWorldEditor(host){
   use:'Click a building to set what it’s used for.',reroll:'Click a building to roll its furniture again.',underground:'Make a dungeon or cave here, then place its entrance.',
   raise:'Click or drag to raise the ground half a block.',lower:'Click or drag to lower the ground half a block.',flatten:'Drag to level the ground to where you start.',smooth:'Drag to ease the ground to its neighbours.',
   ramp:'Drag from the low end to the high end.',ramps:'Click or drag over ledges to turn them into ramps (or back).',surface:'Click or drag to paint the ground.',biome:'Drag to paint biomes or terrain (8 × 8 cells).',nature:'Click or drag to place nature, or clear it.',
-  enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk, or click one to change them.',crystal:'Click to set an Iter Crystal (2 × 2), or click one to name it.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
+  enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk, or click one to change them.',crystal:'Click to set an Iter Crystal (2 × 2), or click one to name it.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.',mapfile:'This map: save it, grow it, and see its checks.',maps:'Open another map, the prop gallery or a blank map.'};
   // On a floor some tools say what they do there.
  const FLOOR_HINTS={room:'Drag a rectangle on this floor: a room with a door.',stairs:'Click where the bottom step goes; , and . turn them.'};
  function setTool(id){if(TYPE_TOOLS[id]){openTypes(id);return;}if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id)??toolGroup.peek();const hint=floorHere.peek()&&FLOOR_HINTS[id]||TOOL_HINTS[id];if(hint)status.value=hint;}
@@ -1677,8 +1679,15 @@ export function createWorldEditor(host){
     // Draw distance: how far the land streams around the view (the game's setting; Settings shows the same).
     host.drawDistance?h('label',{class:'q-world-editor__draw',title:'Draw distance: how far the world shows around the view'},'Draw',h('select',{class:'q-select','aria-label':'Draw distance',on:{change:e=>host.setDrawDistance(+e.target.value)}},
      DRAW_DISTANCES.map(d=>h('option',{value:String(d.chunks),selected:()=>host.drawDistance.value===d.chunks},d.label)))):null,
+    // View: how the editor shows the world (not part of any map): the camera, atmosphere, grid lines.
+    h('details',{class:'q-world-editor__view'},h('summary',{class:'q-button q-button--small'},'View'),
+     h('div',{class:'q-world-editor__view-menu'},
+      h('div',{class:'q-world-editor__toggles'},host.freeCameraOn?toggleSwitch({label:'Free camera',description:'WASD or middle-drag to pan',on:()=>host.freeCameraOn.value,onChange:v=>host.freeCamera(v)}):null,
+       host.atmosphereOn?toggleSwitch({label:'Atmosphere',description:'Fog and light by biome (the haze stays)',on:()=>host.atmosphereOn.value,onChange:v=>{host.atmosphereOn.value=v;}}):null,
+       toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}})),
+      buttons(smallButton('Show the mist wall',showMist,{title:'Look at the world’s edge nearest the view'}),host.playerHere?smallButton('Player here',()=>{status.value=host.playerHere()?'The slime is where the view is.':'No open ground near the view.';},{title:'Move the slime to where the view is (Play does too)'}):null))),
     h('div',{class:'q-world-editor__actions'},
-     // Save to the map's file in the repo (as Map → Save to repo); a dot while there are unsaved changes.
+     // Save to the map's file in the repo (as Map → This map → Save to repo); a dot while there are unsaved changes.
      smallButton(()=>unsaved.value?'Save •':'Save',save,{title:`Save to src/maps (${MOD}+S)`,'aria-label':()=>unsaved.value?'Save (unsaved changes)':'Save'}),
      smallButton('Undo',()=>step(undo,redo),{title:`${MOD}+Z`,disabled:()=>!history.value.undo}),
      smallButton('Redo',()=>step(redo,undo),{title:`${MOD}+Shift+Z`,disabled:()=>!history.value.redo}),
@@ -1746,16 +1755,14 @@ export function createWorldEditor(host){
            ...[['Smaller','−',()=>resize(-1)],['Bigger','+',()=>resize(1)]].map(([name,keyName,act])=>h('button',{type:'button',class:'q-button q-button--small',title:keyName,hidden:()=>!['prop','furniture'].includes(selection.value?.kind),on:{click:fail(act)}},name)))))),
         // Floors show with a selected building (Build) or while you're on one.
         h('div',{class:'q-world-editor__opts',hidden:()=>{revision.value;return !floorHere.value||tool.value==='deco'||!!selection.value&&['select','design'].includes(tool.value);}},floorsPanel())),
-       // Map: the map itself, its size, the view, and its checks.
-       h('div',{class:'q-world-editor__opts',hidden:()=>toolGroup.value!=='map'||tool.value==='select'},
-        group('Map',h('div',{class:'q-world-editor__fields q-world-editor__fields--wide'},select('Map',choice,catalogue.map(c=>[c.id,c.name]))),buttons(smallButton('Open',()=>{const c=catalogue.find(m=>m.id===choice.peek());if(c.area){editor.close();host.reset?.('all');return;}return load(c.make());}),
-          smallButton('Save to repo',save),smallButton('Copy JSON',async()=>{try{await navigator.clipboard.writeText(json());status.value='Copied the map JSON.';}catch{status.value='Copy failed: use Download.';}}),smallButton('Download',download))),
+       // World → Maps: open any map (the repo's maps, overworld first; the prop gallery; a blank map).
+       h('div',{class:'q-world-editor__opts',hidden:()=>tool.value!=='maps'},
+        group('Maps',h('div',{class:'q-world-editor__fields q-world-editor__fields--wide'},select('Map',choice,catalogue.map(c=>[c.id,c.name]))),buttons(smallButton('Open',()=>{const c=catalogue.find(m=>m.id===choice.peek());if(c.area){editor.close();host.reset?.('all');return;}return load(c.make());})))),
+       // Map → This map (and Inspect, for its checks): the map's file, its size, and its checks.
+       h('div',{class:'q-world-editor__opts',hidden:()=>!['mapfile','inspect'].includes(tool.value)},
+        group(()=>{revision.value;return data?`This map · ${data.name}`:'This map';},buttons(smallButton('Save to repo',save),smallButton('Copy JSON',async()=>{try{await navigator.clipboard.writeText(json());status.value='Copied the map JSON.';}catch{status.value='Copy failed: use Download.';}}),smallButton('Download',download))),
         group(()=>{revision.value;return data?`Size · ${data.size.join(' × ')}`:'Size';},fields(select('Grow',options.growSide,[['all','All sides'],['north','North'],['east','East'],['south','South'],['west','West']]),select('By',options.growBy,[['1',`1 region (${REGION})`],['2','2 regions']])),
          buttons(smallButton('Grow map',()=>growBy()),h('span',{hidden:()=>{revision.value;return !data||data.size.every(v=>v%REGION===0);}},smallButton('Round up to whole regions',()=>growBy(true))))),
-        group('View',h('div',{class:'q-world-editor__toggles'},host.freeCameraOn?toggleSwitch({label:'Free camera',description:'WASD or middle-drag to pan',on:()=>host.freeCameraOn.value,onChange:v=>host.freeCamera(v)}):null,
-         host.atmosphereOn?toggleSwitch({label:'Atmosphere',description:'Fog and light by biome (the haze stays)',on:()=>host.atmosphereOn.value,onChange:v=>{host.atmosphereOn.value=v;}}):null,
-         toggleSwitch({label:'Chunk and region lines',description:`Chunks ${CHUNK} × ${CHUNK} (pink), regions (gold)`,on:grid,onChange:v=>{grid.value=v;showGrid();}})),
-         buttons(smallButton('Show the mist wall',showMist,{title:'Look at the world’s edge nearest the view'}),host.playerHere?smallButton('Player here',()=>{status.value=host.playerHere()?'The slime is where the view is.':'No open ground near the view.';},{title:'Move the slime to where the view is (Play does too)'}):null)),
         wideGroup(()=>`Checks · ${counts.value}`,
          keyedList(h('ol',{class:'q-world-editor__checks'}),problems,p=>`${p.kind}:${p.tile.join(',')}:${p.text}`,p=>h('li',null,h('button',{type:'button',class:'q-world-editor__check','data-severity':p.peek().severity,
           'aria-current':()=>String(shownProblem.value===p.value),on:{click:()=>showProblem(p.peek())}},label(p.peek())))))))))));

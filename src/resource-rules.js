@@ -2,7 +2,7 @@ import RESOURCE_DATA from './data/resources.json' with {type:'json'};
 
 // Resource configuration (docs/DESIGN.md, Resource and enemy configuration), in three layers:
 //   1. the type: src/data/resources.json, and each tree tier in src/data/trees.json (lumberjack.js), edited
-//      in the world editor's type tools (Map group);
+//      in the world editor's type tools (World group);
 //   2. the instance: a map placement may rarely override `respawn`, `xp` and `drops` (map data and the
 //      editor's folded override section);
 //   3. the formula: only for what neither sets. XP falls back to the effort pace (skill-pacing.js).
