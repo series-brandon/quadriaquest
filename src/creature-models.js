@@ -100,16 +100,18 @@ export function animateCritter(group,time,{walk=0,attack=0,hit=0}={}){
 }
 
 // ── Arthropods ──────────────────────────────────────────────────────────────
-// A leg is a hip (yaw), a thigh (raised) and a shin (down to the ground). legs: [z, spread] per side.
+// A leg is a hip (yaw), a thigh (raised) and a shin (down to the ground). legs: [z, spread] per side; hipX
+// sets how far out the hips sit and lift how steeply the thigh rises (a crab's hips sit at its shell's rim with
+// low thighs, so its knees clear the shell).
 export const ARTHROPODS={
- crab:{shell:'#d4583c',under:'#f0b48c',leg:'#c44a32',hipY:.26,legs:[[.06,.25],[-.08,0],[-.22,-.3]],thigh:.2,shin:.3,claws:{at:[.34,.3,.2],size:1.15},eyes:'stalks'},
+ crab:{shell:'#d4583c',under:'#f0b48c',leg:'#c44a32',hipX:.3,hipY:.26,lift:.45,legs:[[.06,.25],[-.08,0],[-.22,-.3]],thigh:.2,shin:.3,claws:{at:[.34,.3,.2],size:1.15},eyes:'stalks'},
  spider:{shell:'#6d5f8f',under:'#a596c4',leg:'#4f4469',hipY:.36,legs:[[.2,.55],[.08,.18],[-.04,-.18],[-.16,-.55]],thigh:.28,shin:.5,eyes:'spider'},
  scorpion:{shell:'#a98b62',under:'#d3bc92',leg:'#86694a',hipY:.24,legs:[[.08,.35],[-.04,.05],[-.16,-.25],[-.28,-.5]],thigh:.22,shin:.3,claws:{at:[.14,.27,.22],size:.9,reach:.24},tail:'#7f6346',eyes:'small'},
 };
 const TAIL_CURL=.55;
-function leg(rig,name,side,z,spread,{hipY,thigh,shin,leg:color}){
- const hip=group(rig,name,side*.16,hipY,z);hip.rotation.y=side>0?-spread:Math.PI+spread;
- const upper=group(hip,'thigh-'+name);upper.rotation.z=.75;
+function leg(rig,name,side,z,spread,{hipX=.16,hipY,lift=.75,thigh,shin,leg:color}){
+ const hip=group(rig,name,side*hipX,hipY,z);hip.rotation.y=side>0?-spread:Math.PI+spread;
+ const upper=group(hip,'thigh-'+name);upper.rotation.z=upper.userData.lift=lift;
  part(upper,capsule(.035,thigh),M(color),thigh/2).rotation.z=Math.PI/2;
  const knee=group(upper,'shin-'+name,thigh);knee.rotation.z=-1.95;
  part(knee,capsule(.03,shin),M(color),shin/2).rotation.z=Math.PI/2;
@@ -167,7 +169,7 @@ export function animateArthropod(group,time,{walk=0,attack=0,hit=0}={}){
  rig.rotation.set(-load*.08+lunge*.06,0,hit*.14);
  for(let i=0;i<8;i++){const hip=findPart(group,'leg'+i);if(!hip)break;
   const phase=((i>>1)+(i&1))%2?1:-1,swing=Math.sin(scuttle+phase*Math.PI/2)*walk;
-  hip.rotation.y=hip.userData.yaw+swing*.3;findPart(group,'thigh-leg'+i).rotation.z=.75+Math.max(0,swing*phase)*.35+(i<2?lunge*.6:0);}
+  hip.rotation.y=hip.userData.yaw+swing*.3;const thigh=findPart(group,'thigh-leg'+i);thigh.rotation.z=thigh.userData.lift+Math.max(0,swing*phase)*.35+(i<2?lunge*.6:0);}
  for(const side of [-1,1]){
   const arm=findPart(group,'claw'+side);
   if(arm){arm.rotation.x=-lunge*.7+load*.3+Math.sin(time*1.6+side)*.05;arm.rotation.y=-side*lunge*.25;findPart(group,'pinch'+side).rotation.x=-.35*(1-lunge)+Math.max(0,Math.sin(time*3+side))*.15;}

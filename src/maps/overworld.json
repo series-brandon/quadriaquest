@@ -1966,6 +1966,108 @@
    "species": "cherry",
    "x": 178,
    "z": 189
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 191,
+   "z": 131
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 193,
+   "z": 128
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 195,
+   "z": 131
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 197,
+   "z": 134
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 192,
+   "z": 135
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 201,
+   "z": 127
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 198,
+   "z": 123
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 195,
+   "z": 125
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 194,
+   "z": 124
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 196,
+   "z": 125
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 201,
+   "z": 135
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 200,
+   "z": 131
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 194,
+   "z": 137
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 188,
+   "z": 134
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 188,
+   "z": 123
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 195,
+   "z": 113
+  },
+  {
+   "kind": "tree",
+   "species": "poplar",
+   "x": 207,
+   "z": 135
   }
  ],
  "cover": [],
@@ -1988,6 +2090,114 @@
    "respawn": 45,
    "x": 167,
    "z": 144
+  },
+  {
+   "enemy": "crab",
+   "respawn": 45,
+   "x": 184,
+   "z": 237
+  },
+  {
+   "enemy": "crab",
+   "respawn": 45,
+   "x": 191,
+   "z": 234
+  },
+  {
+   "enemy": "crab",
+   "respawn": 45,
+   "x": 193,
+   "z": 238
+  },
+  {
+   "enemy": "crab",
+   "respawn": 45,
+   "x": 201,
+   "z": 233
+  },
+  {
+   "enemy": "scorpion",
+   "respawn": 45,
+   "x": 93,
+   "z": 148
+  },
+  {
+   "enemy": "scorpion",
+   "respawn": 45,
+   "x": 99,
+   "z": 147
+  },
+  {
+   "enemy": "spider",
+   "respawn": 45,
+   "x": 373,
+   "z": 220
+  },
+  {
+   "enemy": "spider",
+   "respawn": 45,
+   "x": 377,
+   "z": 228
+  },
+  {
+   "enemy": "cragRat",
+   "respawn": 45,
+   "x": 87,
+   "z": 116
+  },
+  {
+   "enemy": "cragRat",
+   "respawn": 45,
+   "x": 85,
+   "z": 120
+  },
+  {
+   "enemy": "cragRat",
+   "respawn": 45,
+   "x": 90,
+   "z": 123
+  },
+  {
+   "enemy": "squirrel",
+   "respawn": 45,
+   "x": 194,
+   "z": 129
+  },
+  {
+   "enemy": "squirrel",
+   "respawn": 45,
+   "x": 197,
+   "z": 130
+  },
+  {
+   "enemy": "squirrel",
+   "respawn": 45,
+   "x": 194,
+   "z": 133
+  },
+  {
+   "enemy": "squirrel",
+   "respawn": 45,
+   "x": 199,
+   "z": 135
+  },
+  {
+   "enemy": "squirrel",
+   "respawn": 45,
+   "x": 204,
+   "z": 128
+  },
+  {
+   "enemy": "squirrel",
+   "respawn": 45,
+   "x": 191,
+   "z": 119
+  },
+  {
+   "enemy": "squirrel",
+   "respawn": 45,
+   "x": 188,
+   "z": 129
   }
  ]
 }

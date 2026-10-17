@@ -19,7 +19,7 @@ const MODELS={
  bruiser:{create:()=>goblin(true),animate:animateGoblin,scale:1.18,height:1.7,character:true},
  // A 2×2 body: its placement tile is the anchor corner (footprint.js).
  vole:{create:()=>critter('vole'),animate:animateCritter,height:.6,plateLift:.75,aimHeight:.22,character:true},
- squirrel:{create:()=>critter('squirrel'),animate:animateCritter,scale:.95,height:.9,plateLift:1.05,aimHeight:.35,shots:{ranged:'acorn'},character:true},
+ squirrel:{create:()=>critter('squirrel'),animate:animateCritter,scale:.75,height:.72,plateLift:.85,aimHeight:.28,shots:{ranged:'acorn'},character:true},
  cragRat:{create:()=>critter('cragRat'),animate:animateCritter,scale:1.1,height:.65,plateLift:.8,aimHeight:.22,character:true},
  crab:{create:()=>arthropod('crab'),animate:animateArthropod,scale:1.1,height:.9,plateLift:1,aimHeight:.3,character:true},
  spider:{create:()=>arthropod('spider'),animate:animateArthropod,scale:1.15,height:1,plateLift:1.1,aimHeight:.4,shots:{ranged:'silk'},character:true},
