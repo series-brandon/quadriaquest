@@ -9,15 +9,17 @@ import {STYLES,attackProfile,resourceMaxima,resistanceBonus,threat} from './comb
 // attacks, and `canCritical`/`canDodge`/`canBlock`, which default off: enemies never inherit player-only
 // baselines); its attack mix (`attacks`: a weight per regular style, 0 or absent for off; `specialAttacks`:
 // [{id, chance %}] from SPECIAL_ATTACKS below); behaviour (`aggressiveUntil`: it attacks players whose Threat is
-// below this on sight, 0 never; `aggroRange` tiles; `moveSpeed` ×; `attacksPacifists`; `protected`: can't take
+// below this on sight, 0 never; `aggroRange` tiles; `patrolRadius` tiles it wanders from home while calm; `moveSpeed` ×; `attacksPacifists`; `protected`: can't take
 // the player below 1 HP; `boss`); XP (`xpMultiplier`, `xpLevelCap`); `overrides` for any derived value (`health`,
 // `resistancePct`, and `attacks.<style>` {`min`, `max`, `interval`}; a type without a sheet sets flat `min`, `max`,
 // `interval`); and `respawn` and `drops` (drops.js), which a map spawn may rarely override.
 // ENEMIES is the live view combat reads; enemyRow/refreshEnemy rebuild it from the data.
 export const ENEMY_DATA_FIELDS=['name','sheet','strategy','damageTypes','baseInterval','missPercent','attackRange','canCritical','canDodge','canBlock',
- 'attacks','specialAttacks','aggressiveUntil','aggroRange','moveSpeed','attacksPacifists','protected','boss','xpMultiplier','xpLevelCap','overrides','respawn','drops'];
+ 'attacks','specialAttacks','aggressiveUntil','aggroRange','patrolRadius','moveSpeed','attacksPacifists','protected','boss','xpMultiplier','xpLevelCap','overrides','respawn','drops'];
 // Reach of an enemy's regular ranged and magic attacks when its type sets none (a bow's range).
 export const ENEMY_ATTACK_RANGE=6;
+// How far (tiles, each way) a calm enemy wanders from home when neither its spawn nor its type sets `patrolRadius`.
+export const ENEMY_PATROL_RADIUS=2;
 
 // Special attacks: programmed here, given to a type by id with a chance (the NPCs tool lists them by name). Each
 // says how it plays; its damage and interval come from the enemy's own derived attack for `style`, so stronger
@@ -102,7 +104,9 @@ export function attackMix(moves){
 // Top-level min/max/interval/style are its basic attack (its most used regular style, else melee), for summaries.
 export function enemyRow(kind){
  const {sheet,overrides={},...config}=structuredClone(ENEMY_DATA[kind]);
- const {attacks:attackOverrides={},...flat}=overrides,row={...(sheet?deriveEnemy(sheet,config):config),...flat};
+ const {attacks:attackOverrides={},...flat}=overrides,derived=sheet?deriveEnemy(sheet,config):config,row={...derived,...flat};
+ // A resistance override sets only the styles it names; the others keep their derived values.
+ if(derived.resistancePct&&flat.resistancePct)row.resistancePct={...derived.resistancePct,...flat.resistancePct};
  if(row.profiles)for(const [style,o] of Object.entries(attackOverrides))Object.assign(row.profiles[style],o);
  row.moves=enemyMoves(row);
  const basic=row.profiles&&(STYLES.filter(s=>row.attacks?.[s]>0).sort((a,b)=>row.attacks[b]-row.attacks[a])[0]||'melee');
@@ -122,3 +126,6 @@ export function enemiesData(){return Object.fromEntries(Object.entries(ENEMY_DAT
 // type's). 0 never; a high number always.
 export const aggressiveUntil=a=>a.aggressiveUntil??a.rules.aggressiveUntil??0;
 export const hostileTo=(a,playerThreat)=>!a.rules.inert&&playerThreat<aggressiveUntil(a);
+// The square a calm enemy wanders in: `patrolRadius` tiles each way from home (a spawn's own, else its type's).
+export const patrolRadius=a=>a.patrolRadius??a.rules.patrolRadius??ENEMY_PATROL_RADIUS;
+export function patrolArea(a){const r=patrolRadius(a),{x,z}=a.home;return {minX:x-r,maxX:x+r,minZ:z-r,maxZ:z+r};}

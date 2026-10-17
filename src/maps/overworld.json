@@ -563,7 +563,7 @@
      "12,4,east": "window",
      "12,1,east": "wall",
      "0,4,west": "window",
-     "12,2,east": "window",
+     "12,2,east": "wall",
      "0,2,west": "window"
     },
     "flowerBoxes": [],
@@ -1970,5 +1970,24 @@
  ],
  "cover": [],
  "fishing": [],
- "enemies": []
+ "enemies": [
+  {
+   "enemy": "vole",
+   "respawn": 45,
+   "x": 163,
+   "z": 143
+  },
+  {
+   "enemy": "vole",
+   "respawn": 45,
+   "x": 165,
+   "z": 140
+  },
+  {
+   "enemy": "vole",
+   "respawn": 45,
+   "x": 167,
+   "z": 144
+  }
+ ]
 }

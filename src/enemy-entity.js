@@ -1,7 +1,8 @@
 import {trainingTarget} from './training-models.js';
 import {goblin,animateGoblin} from './enemy-model.js';
 import {makeCinderGolem,animateGolem} from './golem-model.js';
-import {ENEMIES} from './combat-rules.js';
+import {critter,animateCritter,arthropod,animateArthropod} from './creature-models.js';
+import {ENEMIES,patrolArea} from './combat-rules.js';
 import {highlightResource} from './resource-highlight.js';
 import './combat.css';
 import {signal} from './reactive.js';
@@ -9,18 +10,25 @@ import {markCharacter} from './world-occupancy.js';
 import {mount} from './ui/dom.js';
 import {healthPlate} from './ui/hud/health-plate.js';
 
-// Model, rig animation, scale, highlight height, body size (tiles per side), health-plate height and the
-// height shots aim at, per enemy kind. Practice targets animate in combat.js. `character`: a living
+// Model, rig animation, scale, highlight height, body size (tiles per side), health-plate height, the
+// height shots aim at and how its own shots look (`shots`: a projectile kind per attack projectile), per enemy kind. Practice targets animate in combat.js. `character`: a living
 // creature, walk-through like every character; a practice target is a solid object.
 const MODELS={
  target:{create:trainingTarget,height:1.7},
  scrapper:{create:()=>goblin(),animate:animateGoblin,height:1.7,character:true},
  bruiser:{create:()=>goblin(true),animate:animateGoblin,scale:1.18,height:1.7,character:true},
  // A 2×2 body: its placement tile is the anchor corner (footprint.js).
+ vole:{create:()=>critter('vole'),animate:animateCritter,height:.9,plateLift:1,aimHeight:.3,character:true},
+ squirrel:{create:()=>critter('squirrel'),animate:animateCritter,scale:.95,height:1,plateLift:1.15,aimHeight:.35,shots:{ranged:'acorn'},character:true},
+ cragRat:{create:()=>critter('cragRat'),animate:animateCritter,scale:1.1,height:.95,plateLift:1.05,aimHeight:.35,character:true},
+ crab:{create:()=>arthropod('crab'),animate:animateArthropod,scale:1.1,height:.9,plateLift:1,aimHeight:.3,character:true},
+ spider:{create:()=>arthropod('spider'),animate:animateArthropod,scale:1.15,height:1,plateLift:1.1,aimHeight:.4,shots:{ranged:'silk'},character:true},
+ scorpion:{create:()=>arthropod('scorpion'),animate:animateArthropod,scale:1.3,height:1.2,plateLift:1.3,aimHeight:.35,character:true},
  golem:{create:makeCinderGolem,animate:animateGolem,height:3.3,size:2,plateLift:3.1,aimHeight:1.4,scale:1.25,character:true},
 };
 // Tiles per side an enemy kind's body covers (its placement tile is the north-west corner).
 export const enemySize=kind=>MODELS[kind]?.size||1;
+// patrol: an explicit wander box {minX,maxX,minZ,maxZ}; patrolRadius: this spawn's radius, overriding its type's.
 // xp: optional placement-specific XP modifiers {multiplier, levelCap, afterCapMultiplier} (e.g. a tutorial boost).
 // territory: optional {minX,maxX,minZ,maxZ}; the enemy never walks out of it and stops pursuing a player
 // who leaves it (a boss arena). Without it, pursuit uses the leash distance from home.
@@ -28,14 +36,17 @@ export const enemySize=kind=>MODELS[kind]?.size||1;
 // players below that Threat on sight; attacksPacifists is the rare opt-in (the most aggressive creatures, some
 // bosses) to engage players whose attacks are prevented. Unset follows the type, including later edits to it.
 // drops: this spawn's own drop table, overriding its type's (drops.js format).
-export function createEnemyEntity({kind,tile,parent,pickables,patrol,respawn=null,id,aggressiveUntil,aggroRange,attacksPacifists,territory=null,xp=null,drops=null}){
+export function createEnemyEntity({kind,tile,parent,pickables,patrol,patrolRadius,respawn=null,id,aggressiveUntil,aggroRange,attacksPacifists,territory=null,xp=null,drops=null}){
  const rules=xp?{...ENEMIES[kind],xpMultiplier:xp.multiplier??1,xpLevelCap:xp.levelCap??null,xpAfterCapMultiplier:xp.afterCapMultiplier??0}:ENEMIES[kind],model=MODELS[kind],group=model.create(),scale=model.scale??1;
  if(model.character)markCharacter(group);
  group.scale.setScalar(scale);group.position.set(tile.x-6,tile.h,tile.z-6);parent.add(group);
  // Signal-backed HP: combat keeps assigning a.hp; the health plate (target frame) follows it.
  const hp=signal(rules.health);let plate;
  const plateView=mount(()=>{plate=healthPlate({value:hp,max:rules.health});return plate.node;});document.body.append(plateView.node);
- const a={kind,id,respawn,drops,aggressiveUntil,aggroRange,attacksPacifists,tile,home:tile,x:tile.x,z:tile.z,group,scale,rules,animate:model.animate,territory,size:model.size??1,plateLift:model.plateLift,aimHeight:model.aimHeight,patrol:patrol||{minX:tile.x-2,maxX:tile.x+2,minZ:tile.z-2,maxZ:tile.z+2},enemy:true,ready:true,opened:false,duration:0,plate};
+ const a={kind,id,respawn,drops,aggressiveUntil,aggroRange,attacksPacifists,tile,home:tile,x:tile.x,z:tile.z,group,scale,rules,animate:model.animate,territory,size:model.size??1,plateLift:model.plateLift,aimHeight:model.aimHeight,shots:model.shots||null,patrolRadius,enemy:true,ready:true,opened:false,duration:0,plate};
+ // Patrol: an area-owned box (Cinderhold's encounters) or, by default, the square patrolRadius tiles around home,
+ // read live so the NPCs tool's edits reach spawned enemies.
+ if(patrol)a.patrol=patrol;else Object.defineProperty(a,'patrol',{get:()=>patrolArea(a),enumerable:true});
  Object.defineProperty(a,'hp',{get(){return hp.value;},set(next){hp.value=next;},enumerable:true});
  // The hover label carries the name and exact health (the plate is only a bar).
  Object.defineProperty(a,'label',{get(){return `Fight ${rules.name} · ${Math.ceil(hp.value)}/${rules.health} HP${rules.boss?' · Boss':''}${a.attacksPacifists??rules.attacksPacifists?' · ⚠ Hunts pacifists':''}`;},enumerable:true});

@@ -8,6 +8,8 @@ import {key} from '../world.js';
 //   and a doorway (an open door between walls), to walk diagonally past their ends and corners.
 //   Route overlay: the routes the player, the companion and creatures are about to walk.
 const ROUTE_COLORS={player:[.3,.85,1],companion:[1,.75,.3],enemy:[1,.35,.35]};
+// Creatures' patrol areas (the square they wander in while calm) are outlined with the routes.
+const AREA_COLOR=[1,.85,.3];
 export function createMovementFixtures(api){
  let edges=null,root=null,anchor=null,overlay=null,overlayClock=0;
  const at=(x,z)=>api.world.get(key(x,z));
@@ -41,6 +43,8 @@ export function createMovementFixtures(api){
   const pos=[],col=[];
   for(const {kind,tiles} of api.routes())for(let i=1;i<tiles.length;i++){const a=tiles[i-1],b=tiles[i];if(!a||!b)continue;
    const color=ROUTE_COLORS[kind]||[1,1,1];pos.push(a.x-6,a.h+.08,a.z-6,b.x-6,b.h+.08,b.z-6);col.push(...color,...color);}
+  for(const {minX,maxX,minZ,maxZ,h} of api.areas?.()||[]){const x0=minX-6.5,x1=maxX-5.5,z0=minZ-6.5,z1=maxZ-5.5,y=h+.06;
+   for(const [ax,az,bx,bz] of [[x0,z0,x1,z0],[x1,z0,x1,z1],[x1,z1,x0,z1],[x0,z1,x0,z0]]){pos.push(ax,y,az,bx,y,bz);col.push(...AREA_COLOR,...AREA_COLOR);}}
   overlay.geometry.setAttribute('position',new Float32BufferAttribute(pos,3));overlay.geometry.setAttribute('color',new Float32BufferAttribute(col,3));
  }
  return {clear,setOverlay,get overlay(){return !!overlay;},

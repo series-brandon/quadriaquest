@@ -9,10 +9,12 @@ import {createEquipment,GEAR} from './equipment.js';
 import {createPlayerHealth,createFoodSystem} from './player-health.js';
 import {cancelPlayerActions} from './action-interruption.js';
 import {createRecipeCrafting} from './recipe-crafting.js';
-import {ENEMIES,chooseEnemyMove,attackMix,enemyMove} from './combat-rules.js';
+import {ENEMIES,chooseEnemyMove,attackMix,enemyMove,patrolArea,ENEMY_PATROL_RADIUS} from './combat-rules.js';
 const ROCK_THROW=ENEMIES.golem.moves.find(m=>m.id==='rockThrow');
 // An enemy type's row with every attack on this interval.
 const paced=(rules,interval)=>({...rules,interval,moves:rules.moves.map(m=>({...m,interval}))});
+// An enemy type's row with "Can't defeat the player" on (every attack leaves the player at 1 HP).
+const nonlethal=rules=>({...rules,protected:true,moves:rules.moves.map(m=>({...m,protected:true}))});
 import {footprintGap} from './footprint.js';
 import {markCharacter} from './world-occupancy.js';
 import {findPath,setEdge} from './world.js';
@@ -43,17 +45,21 @@ test('equipment is available without an area, guards stale actions, and clears m
  assert.ok(e.toggle('swords'));assert.ok(e.isEquipped('swords'));const action=e.inventoryActions('crudeShield')[0];busy=true;assert.equal(action.run(),false);assert.equal(e.isEquipped('crudeShield'),false);busy=false;assert.ok(action.run());inventory.swords=0;assert.equal(e.isEquipped('swords'),false);e.reset();assert.ok(Object.values(e.state).every(value=>value===false));
 });
 test('unarmed and equipped fights win once, award per-attack XP, retain equipment, and reset for repeated combat',()=>{
- const f=fixture('scrapper');assert.ok(f.system.start(f.a));assert.equal(f.system.start(f.a),false);for(let i=0;i<30;i++)f.system.update(1.5,i);assert.equal(f.wins,1);assert.equal(f.a.opened,true);assert.equal(f.home.blocked,false);
+ // Nonlethal, so the 30 HP fixture player outlasts a long unarmed fight (the Scrapper itself can defeat the player).
+ const f=fixture('scrapper');f.a.rules=nonlethal(f.a.rules);assert.ok(f.system.start(f.a));assert.equal(f.system.start(f.a),false);for(let i=0;i<30;i++)f.system.update(1.5,i);assert.equal(f.wins,1);assert.equal(f.a.opened,true);assert.equal(f.home.blocked,false);
  // Unarmed Technical: strategy XP to Melee Technique and the same amount to Unarmed proficiency, 50 + 1 × HP removed per attack.
  const technique=f.character.tracks['melee.technique'].xp;assert.equal(technique,f.character.tracks['prof.unarmed'].xp);assert.equal(technique,8*XP_BASE+ENEMIES.scrapper.health);assert.ok(f.character.core.xp>0);
  f.system.reset();f.equipment.toggle('swords');f.equipment.toggle('crudeShield');assert.ok(f.system.start(f.a));for(let i=0;i<15;i++)f.system.update(1.5,i);assert.equal(f.wins,2);assert.ok(f.character.tracks['prof.sword'].xp>0);assert.equal(f.inventory.swords,1);assert.equal(f.equipment.isEquipped('swords'),true);
 });
-test('enemy misses, shield mitigation, shield XP and protected training health use shared rules',()=>{
+test('enemy misses, shield mitigation, shield XP and the nonlethal setting use shared rules',()=>{
  const f=fixture();f.roll=.005;f.system.start(f.a);f.system.update(PLAYER_INTERVAL,2.5);assert.ok(f.a.hp<ENEMIES.bruiser.health);f.system.update(2.5,5);assert.equal(f.health.value,30,'1% enemy miss');f.system.cancel();
  f.roll=.5;f.equipment.toggle('crudeShield');f.system.start(f.a);f.system.update(2.5,7.5);f.system.update(2.5,10);
  // Wooden Shield +30 and starting Defense/Toughness/Shield proficiency: 3.11% of a 12 roll still rounds to 12.
  assert.equal(f.health.value,30-BRUISER_HIT);assert.equal(f.character.tracks['prof.shield'].xp,XP_BASE+BRUISER_HIT);
- const training=fixture('scrapper');training.health.value=1;training.system.start(training.a);training.system.update(2.5,3);training.system.update(2.5,5.5);assert.equal(training.health.value,1);assert.equal(training.system.busy,false);
+ // "Can't defeat the player" leaves 1 HP; without it (the Scrapper since 2026-10-17) a hit at 1 HP defeats.
+ const training=fixture('scrapper');training.a.rules=nonlethal(training.a.rules);training.health.value=1;training.system.start(training.a);training.system.update(2.5,3);training.system.update(2.5,5.5);assert.equal(training.health.value,1);assert.equal(training.system.busy,false);
+ assert.equal(ENEMIES.scrapper.protected,undefined,'the Scrapper can defeat the player');
+ const live=fixture('scrapper');live.health.value=1;live.system.start(live.a);live.system.update(2.5,3);live.system.update(2.5,5.5);assert.equal(live.health.value,0);assert.equal(live.system.busy,true);
 });
 test('movement starts pursuit, reengagement preserves damage, leash returns safely',()=>{
  const f=fixture();f.system.start(f.a);f.system.update(2.5,1);const hp=f.a.hp;assert.ok(hp<ENEMIES.bruiser.health);f.system.disengage();assert.equal(f.system.state.chase,'bruiser');assert.equal(f.system.matches(f.a),false);assert.ok(f.system.start(f.a));assert.equal(f.a.hp,hp);
@@ -476,4 +482,16 @@ test('a forced attack replaces the roll: a Bruiser slams the 3×3 tiles around t
  let time=0;const run=s=>{for(let t=0;t<s;t+=.02)f.system.update(.02,time+=.02);};
  run(ENEMIES.bruiser.interval/2+.1);assert.equal(f.telegraph?.length,9,'the slam locked and marked its tiles');assert.equal(f.system.state.enemies[0].windup,'groundSlam');
  f.system.forceAttack(f.a,null);assert.equal(f.telegraph,null);run(1);assert.equal(f.system.state.enemies[0].plan,'melee','back to its own mix');
+});
+
+test('a calm creature wanders only inside its patrol radius: the spawn\'s, else its type\'s, else the default',()=>{
+ const home={x:3,z:3},of=(spawn,type)=>patrolArea({...spawn,home,rules:{...type}});
+ assert.deepEqual(of({},{}),{minX:3-ENEMY_PATROL_RADIUS,maxX:3+ENEMY_PATROL_RADIUS,minZ:3-ENEMY_PATROL_RADIUS,maxZ:3+ENEMY_PATROL_RADIUS});
+ assert.deepEqual(of({},{patrolRadius:3}),{minX:0,maxX:6,minZ:0,maxZ:6},'the type sets it');
+ assert.deepEqual(of({patrolRadius:0},{patrolRadius:3}),{minX:3,maxX:3,minZ:3,maxZ:3},'a spawn overrides it');
+ for(const kind of Object.keys(ENEMIES))if(!ENEMIES[kind].inert)assert.ok(ENEMIES[kind].patrolRadius>=0,`${kind} has a patrol radius`);
+ // Live, as enemy-entity.js gives it: radius 1 keeps a wandering Scrapper on the 3×3 around home.
+ const f=fixture('scrapper');f.roll=.1;f.tile=f.world.get('0,6');Object.defineProperty(f.a,'patrol',{get:()=>patrolArea(f.a),configurable:true});f.a.patrolRadius=1;
+ let time=0;const seen=new Set();for(let i=0;i<3000;i++){f.system.update(.02,time+=.02);seen.add(`${f.a.tile.x},${f.a.tile.z}`);}
+ assert.ok(seen.size>1,'it wandered');assert.ok([...seen].every(k=>{const [x,z]=k.split(',').map(Number);return Math.abs(x-3)<=1&&Math.abs(z-3)<=1;}),[...seen].join(' '));
 });

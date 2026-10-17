@@ -291,7 +291,7 @@ export function createCombatSystem(api){
    if(!w.tiles)api.telegraph?.(a,null);
    // A tile-targeted shot flies to the locked centre; a character-targeted one to the player.
    const flight=m.flight??PROJECTILE_FLIGHT;
-   api.projectile?.(a.group.position.clone().add(new Vector3(0,(a.aimHeight??.55)+(m.pose==='throw'?.6:0),0)),position(w.tiles?w.at:api.tile()).add(new Vector3(0,m.pose==='throw'?.3:.55,0)),m.projectile,null,{duration:flight,arc:m.arc});
+   api.projectile?.(a.group.position.clone().add(new Vector3(0,(a.aimHeight??.55)+(m.pose==='throw'?.6:0),0)),position(w.tiles?w.at:api.tile()).add(new Vector3(0,m.pose==='throw'?.3:.55,0)),a.shots?.[m.projectile]??m.projectile,null,{duration:flight,arc:m.arc});
    enemyShots.push({enemy:a,attack:m,tiles:w.tiles,left:flight});}
   else impact(a,m,w.tiles);
  }
@@ -476,6 +476,8 @@ export function createCombatSystem(api){
   matches:a=>fight?.enemy===a,get working(){return !!fight||!!chase||[...enemies].some(a=>current(a)&&a.aggro&&!a.opened);},get busy(){return defeated>0;},
   // The tiles each current creature plans to walk (pursuit, the way home or a wander), for the
   // playground's route overlay.
+  // Each calm creature's patrol box and home height, for the same overlay.
+  patrolAreas(){return [...enemies].filter(a=>current(a)&&!a.opened&&!a.rules.inert&&a.patrol).map(a=>({...a.patrol,h:a.home.h}));},
   routes(){return [...enemies].filter(a=>current(a)&&!a.opened).map(a=>{const plan=a.aggro||a.returning?a.plannedRoute||[]:a.patrolRoute||[];const rest=plan[0]===a.tile?plan.slice(1):plan;return [a.tile,...rest];}).filter(r=>r.length>1);},
   nearestEnemy(){const p=api.tile();return [...enemies].filter(a=>current(a)&&!a.opened).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0]||null;},
   // The enemy currently fighting or pursuing the player (single-enemy assistance scope).

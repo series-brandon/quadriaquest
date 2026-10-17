@@ -515,7 +515,7 @@ function placeLandExtra(e,{tile:t,parent,tileAt},saved){
    const respawn=e.respawn??ENEMIES[e.enemy]?.respawn??ENEMY_RESPAWN;
    if(saved?.away>elapsed)return {dispose(){},save:()=>saved};
    if(t.blocked||characterAt(t))return null;
-   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressiveUntil:e.aggressiveUntil,respawn,drops:e.drops??null}));
+   const a=combat.add(createEnemyEntity({kind:e.enemy,tile:t,parent,pickables,id:e.id,aggressiveUntil:e.aggressiveUntil,patrolRadius:e.patrolRadius,respawn,drops:e.drops??null}));
    return {dispose:()=>combat.remove(a),busy:()=>combat.matches(a)||combat.engagedEnemy===a,save:()=>a.opened?{away:elapsed+respawn}:null};}
   return null;}
 // A chunk's dressing: its animated water and its ground cover (flowers, grass, reeds, lily pads…),
@@ -920,7 +920,7 @@ if(__PLAYGROUND__){
  walkThroughFixtures=playground.createWalkThroughFixtures({scene,world,pickables,combat,tile:()=>tile,stop:stopAll,moveTo:t=>moveTo(t),characterAt,occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  edgeFixtures=playground.createEdgeFixtures({scene,world,pickables,tile:()=>tile,stop:stopAll,moveTo:t=>moveTo(t),occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');}});
  movementFixtures=playground.createMovementFixtures({scene,world,pickables,tile:()=>tile,stop:stopAll,occupied:t=>t===tile||characterAt(t)||pickables.some(m=>m.userData.tile===t&&isVisible(m)&&(m.userData.resource||m.userData.actor)),clearUI(){areas.notify('clearUI');},
-  routes:()=>[{kind:'player',tiles:[tile,...(segment?[segment.to]:[]),...path]},{kind:'companion',tiles:companions.route},...combat.routes().map(tiles=>({kind:'enemy',tiles}))]});
+  routes:()=>[{kind:'player',tiles:[tile,...(segment?[segment.to]:[]),...path]},{kind:'companion',tiles:companions.route},...combat.routes().map(tiles=>({kind:'enemy',tiles}))],areas:()=>combat.patrolAreas()});
  carpentryFixture=playground.addCarpentryFixture({world:clearingTiles,currentWorld:world,scene:clearingGroup,pickables,clearingObjects});
  playground.addFishingFixture({world:clearingTiles,scene:clearingGroup,fishingSpots,clearingObjects});
  // Streaming test (playground only): a generated 512 × 512 world streamed in chunks (world-grid.js) through the

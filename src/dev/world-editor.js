@@ -21,7 +21,7 @@ import {CHUNK,REGION,withinChunk,chunksAround} from '../world-grid.js';
 import {createGridOverlay,createCellOutline,createBiomeOverlay,createCellFill,createFaceFill} from './grid-overlay.js';
 import {BIOME_IDS,biomeRule} from '../biome-rules.js';
 import {TERRAIN_IDS,terrainRule} from '../terrain-rules.js';
-import {ENEMIES} from '../combat-rules.js';
+import {ENEMIES,ENEMY_PATROL_RADIUS} from '../combat-rules.js';
 import {GEAR} from '../equipment.js';
 import {ITEMS} from '../items.js';
 import {ACTIVITIES} from '../townsfolk.js';
@@ -669,7 +669,12 @@ export function createWorldEditor(host){
     h('label',{class:'q-world-editor__field'},'Aggressive until Threat',h('input',{type:'number',class:'q-input',min:0,step:1,
      placeholder:()=>{revision.value;selection.value;const s=spawnOf();return s?`Type (${ENEMIES[s.enemy]?.aggressiveUntil??0})`:'Type';},
      value:()=>{revision.value;selection.value;return spawnOf()?.aggressiveUntil??'';},
-     on:{change:e=>{const v=e.target.value;setSpawn(s=>{if(v==='')delete s.aggressiveUntil;else s.aggressiveUntil=Math.max(0,+v);},'aggression').catch(error=>{status.value=error.message;});}}}))),
+     on:{change:e=>{const v=e.target.value;setSpawn(s=>{if(v==='')delete s.aggressiveUntil;else s.aggressiveUntil=Math.max(0,+v);},'aggression').catch(error=>{status.value=error.message;});}}})),
+    // How far it wanders from its spawn tile while calm; blank follows the type. The area shows on the map.
+    h('label',{class:'q-world-editor__field'},'Patrol radius (tiles)',h('input',{type:'number',class:'q-input',min:0,step:1,
+     placeholder:()=>{revision.value;selection.value;const s=spawnOf();return s?`Type (${ENEMIES[s.enemy]?.patrolRadius??ENEMY_PATROL_RADIUS})`:'Type';},
+     value:()=>{revision.value;selection.value;return spawnOf()?.patrolRadius??'';},
+     on:{change:e=>{const v=e.target.value;setSpawn(s=>{if(v==='')delete s.patrolRadius;else s.patrolRadius=Math.max(0,Math.round(+v));},'patrol radius').then(showSelection).catch(error=>{status.value=error.message;});}}}))),
     h('h5',{class:'q-label'},'Drops (blank: the type\u2019s table)'),
     dropTableEditor({get:()=>{selection.value;revision.value;return spawnOf()?.drops;},set:t=>setSpawn(e=>{if(t)e.drops=t;else delete e.drops;},'drops').catch(error=>{status.value=error.message;}),rev:spawnRev})));
  }
@@ -696,7 +701,11 @@ export function createWorldEditor(host){
   if(await change(()=>{apply(p);return [...own,...validate('townsfolk',p,own),...(p.patrol||[])];},own)){status.value=`${p.name}: ${label}.`;showSelection();}}
  const weightOf=(p,a)=>p.routine?.find(r=>r.do===a)?.weight??0;
  // Their places: home (gold), their building (sand), patrol stops (pink) and the spots their routine uses (blue).
- function showPersonSpots(){spotsFill?.dispose();spotsFill=null;const p=personOf();if(!built||!p)return;const cells=[],seen=new Set(),add=(x,z,color)=>{const k=`${x},${z}`;if(seen.has(k))return;seen.add(k);cells.push({x,z,color});};
+ // A selected enemy spawn: the square it wanders in while calm (its own Patrol radius, else its type's).
+ function showSpawnArea(s){const r=s.patrolRadius??ENEMIES[s.enemy]?.patrolRadius??ENEMY_PATROL_RADIUS,cells=[];
+  for(let z=s.z-r;z<=s.z+r;z++)for(let x=s.x-r;x<=s.x+r;x++){const t=at(x,z);if(t&&!t.water)cells.push({x,z,color:'#ffd23f'});}
+  spotsFill=createCellFill({cells,heightAt,parent:overlayParent(),opacity:.3});}
+ function showPersonSpots(){spotsFill?.dispose();spotsFill=null;const s=spawnOf();if(built&&s){showSpawnArea(s);return;}const p=personOf();if(!built||!p)return;const cells=[],seen=new Set(),add=(x,z,color)=>{const k=`${x},${z}`;if(seen.has(k))return;seen.add(k);cells.push({x,z,color});};
   if(p.home)add(...p.home,'#ffd23f');for(const pt of p.patrol||[])add(...pt,'#ff7ac8');
   const b=p.house!==undefined?data.buildings[p.house]:null;if(b)for(const [x,z] of cellsOf('building',b))add(x,z,'#e8d6a8');
   const kinds=new Set((p.routine||[]).filter(r=>(r.weight??1)>0).map(r=>r.do)),[hx,hz]=p.home||b&&[b.x,b.z]||[0,0];

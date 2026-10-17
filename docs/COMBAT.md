@@ -14,6 +14,8 @@ When a player cannot avoid being attacked, they should be able to choose pacifis
 
 **Aggression follows Threat (user decision, 2026-10-17).** Each enemy type has an **aggressive until** Threat Level (`aggressiveUntil`; a spawn may override it). It attacks on sight, within its aggro range, any player whose Threat Level is below that number, and leaves stronger players alone unless they attack it: creatures know when you have outgrown them. 0 means never aggressive (it only fights back); a high number (999) means always. The check happens when it notices the player; a fight already under way continues as before. Threat Level excludes equipment, so a well-geared player may outgrow a creature's aggression before outclassing it.
 
+**Patrol radius (user decision, 2026-10-17).** While calm, an enemy wanders inside the square `patrolRadius` tiles each way from its spawn tile: every 2–4 seconds there is a 25% chance it walks to a random reachable dry tile inside it (`wander.js`). Each type sets a radius (`src/data/enemies.json`, NPCs tool; 2 when unset) and a spawn may override it (the world editor's *Override for this one*, where the selected spawn's area is shaded). Pushed outside, it walks back; pushed more than 8 tiles away, it reappears at home. Patrol is only calm wandering: pursuit is bounded by the leash (6 tiles from home) or a boss's `territory`. An area may still give an encounter an explicit box in code (Cinderhold's practice yard). Hand-drawn patrol areas are a possible later addition.
+
 **Prevented attacks also turn aggression off.** While Attacks is Prevented (Pacifist, or Custom with attacks prevented), creatures never become aggressive on their own: proximity aggression is skipped for every enemy. The two are one policy, never separate options. Exceptions:
 
 - **Creatures configured to attack pacifists** (`attacksPacifists` on the enemy type, overridable per placement) still engage. Reserve it for the most aggressive creatures and some bosses, and make sure such encounters can be escaped (leash, safe tiles), because a Pacifist player cannot fight back. Their hover shows **“⚠ Hunts pacifists”**, so Pacifist players can avoid them.
@@ -232,7 +234,7 @@ Strong Strike costs 50 Energy at the starting baseline. Energy Strike's explicit
 
 | Enemy | Health | Ordinary damage range | Attack interval | Tutorial protection |
 |---|---:|---:|---:|---|
-| Goblin Scrapper | 50 | 1–10 | 2.5 seconds | Cannot reduce player health below 1 |
+| Goblin Scrapper | 50 | 1–10 | 2.5 seconds | Can defeat the player (protection removed 2026-10-17) |
 | Goblin Bruiser | 100 | 3–20 | 2.5 seconds | Can defeat the player |
 
 An effective attack interval of 2.5 seconds is the intended most common baseline pace in the game; both starter enemies use it. This is not a universal fixed interval or an exemption from shared speed modifiers.
@@ -313,7 +315,7 @@ Enemies use exactly the same Threat formula as players, evaluating all three off
 
 Behavior and reward configuration:
 
-- Scrapper: non-aggressive (`aggressiveUntil` 0); resolved hostile attempts provoke retaliation. Preserve current encounter protection against reducing the player below 1 HP. This is an encounter safety setting, not an inherent property of all creatures or all fights in an area.
+- Scrapper: non-aggressive (`aggressiveUntil` 0); resolved hostile attempts provoke retaliation. **It can defeat the player** (user decision, 2026-10-17: its "Can't defeat the player" setting is off). Defeat costs nothing (back to an Iter Crystal). The nonlethal setting (`protected`) remains available to any type in the NPCs tool as an encounter safety setting, not an inherent property of all creatures or all fights in an area.
 - Bruiser: aggressive within the current configured range of 4 tiles to players below Threat 10 (a starting placeholder to tune); lethal. Both pursue and return home by walking, using the existing shared leash boundary (6 Manhattan tiles from home), range/path validity and safe-area rules. Keep the current shared movement implementation; base movement-speed redesign is not part of these sheets.
 - Preserve map-authored placement/patrol. Cinderhold currently configures a one-tile patrol radius and respawn value of 8 seconds; the controller also includes its existing defeat/exit presentation delay. Do not mistake the configuration value for a newly specified total defeat-to-respawn duration.
 - Both use normal attack XP multiplier 1 and no target-specific receiving-track cap; additional flat defeat core XP is 0. Their drops follow *Defeat drops* below. Healing/utility eligibility and special XP overrides are not introduced by these sheets; use the agreed shared defaults where the recipient is valid.
@@ -326,6 +328,23 @@ User decision, 2026-10-10: defeated enemies drop loot. Each enemy stat sheet car
 **As implemented (2026-10-11):** `drops` on `ENEMIES` (`combat-rules.js`): the Goblin Scrapper (2–6 gold; sticks, raw fish, a little copper ore) and the Goblin Bruiser (5–12 gold, always 2 Rocks; copper ore, logs, cooked fish, stone). The practice target and the Cinder Golem have none. `drops.js` rolls them on the combat system's `won` event (`main.js`), and `loot-piles.js` leaves the pile on the enemy's tile (3 minutes). Tutorial piles are cleared on waking. Story fights don't drop yet only because none exist outside the tutorial; a spawn can't opt out per fight yet.
 
 **Defeat costs nothing.** Being defeated sends the player back to an Iter Crystal and changes nothing else: no gold or item loss.
+
+### Wild creatures (first batch, 2026-10-17)
+
+User decisions (2026-10-17): monsters range from easy early fights to ones that need levels and good equipment. Tone mixes everywhere (cute isn't only for low levels), but nothing creepy or evil appears at low levels. **Special attacks are for bosses only**: ordinary creatures differ by their regular attack mix, stats, resistances, speed and aggression. **Drops are Gold Pieces only** until crafting needs new materials.
+
+Each is a type in `src/data/enemies.json` (tune in the NPCs tool) on a shared rig in `creature-models.js`: `critter` (rodents) or `arthropod` (jointed legs, optional claws and tail). Starting values:
+
+| Creature | Biomes | Threat | HP | Attacks | Aggressive until | Notes |
+|---|---|---|---|---|---|---|
+| Burrow Vole | meadow, wetland | 1 | 40 | Melee 1–8 | 0 | Easy XP. |
+| Acorn Squirrel | broadleaf, pines | 1 | 40 | Ranged 3 (acorns, 5 tiles) : Melee 1 | 0 | The first enemy that keeps its distance. |
+| Crag Rat | hills | 4 | 60 | Melee 3–13, quick | 6 | Fast walker. |
+| Shore Crab | coast, wetland | 4 | 90 | Melee 3–16, slow | 4 | 40% melee resistance: a reason for the bow or magic. |
+| Loom Spider | broadleaf, pines | 10 | 120 | Melee 3 : Ranged 1 (silk, 4 tiles), 4–25 | 12 | Wants copper gear. |
+| Stone Scorpion | hills | 21 | 250 | Melee 10–44 | 22 | 25% melee and ranged, 10% magic resistance; needs levels and gear. |
+
+Brainstormed for later (not built): Bumble Beetle, Meadow Wasp, Stag Beetle, Pine Marten, Thornback Badger, Tide Eel, Bog Toad, Marsh Leech, and mini-bosses (Mudback Croc, Brood Mother, Crag Basilisk) where special attacks belong. A pull, lifesteal, burrow ambush, summoned adds and cone targeting would each be a new mechanic.
 
 ### Balance findings from the candidate enemies
 
@@ -1075,7 +1094,7 @@ A backfired cast grants the normal eligible base progression XP for a zero-targe
 
 Elemental immunity can make the matching backfire portions deal zero to the caster without preventing the backfire outcome: the normal spell effect still fails, resources are still consumed and the same eligible base XP rules apply. A Fire-immune caster can therefore safely absorb the Fire damage of their own mishap, while non-Fire portions remain independently subject to their own defenses.
 
-Backfire damage can reduce the caster to zero HP and cause defeat through the normal defeat flow. There is no hidden leave-at-1-HP safeguard for a mishap. Do not inherit an intended target's tutorial protection, such as the Scrapper's nonlethal attack configuration, onto self-inflicted backfire damage. The spell UI must clearly warn when potential backfire damage can be lethal, using the known cast power, caster defenses and current HP; defensive state is still evaluated at resolution.
+Backfire damage can reduce the caster to zero HP and cause defeat through the normal defeat flow. There is no hidden leave-at-1-HP safeguard for a mishap. Do not inherit an intended target's nonlethal ("Can't defeat the player") attack configuration onto self-inflicted backfire damage. The spell UI must clearly warn when potential backfire damage can be lethal, using the known cast power, caster defenses and current HP; defensive state is still evaluated at resolution.
 
 Self-inflicted backfires grant no defensive progression: no armor-skill XP, armor-slot proficiency XP or Shield proficiency XP, regardless of damage taken or prevented. Only the eligible base casting progression specified above is awarded. Do not treat the caster's own mishap as an enemy attack for defensive XP or grant any corresponding defensive-derived core XP. Other unlisted consequences remain unresolved; do not implement additional rewards or effects by assumption.
 

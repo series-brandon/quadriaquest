@@ -70,10 +70,11 @@ test('foliage and resources follow the biome: woods are dense, coasts bare, pine
 });
 test('extras and cover: fishing spots on water by land, enemies from the biome table, cover kinds from the rules',()=>{
  const land=only('forest',2,160),tiles=grid(land,160),extras=land.extras(tiles);
- assert.ok(extras.some(e=>e.kind==='enemy'&&['scrapper','bruiser'].includes(e.enemy)),'goblins in the woods');
+ const table=new Set(biomeRule('forest').enemies.table.map(e=>e.enemy)),woods=extras.filter(e=>e.kind==='enemy');
+ assert.ok(woods.length&&woods.every(e=>table.has(e.enemy)),'woods enemies come from the forest table');
  assert.ok(extras.filter(e=>e.kind==='fishing').every(e=>land.tile(e.x,e.z).water));
  const kinds=new Set(land.cover(tiles).map(c=>c.kind));for(const k of kinds)assert.ok(biomeRule('forest').cover.some(c=>c.kind===k)||k==='lilyPad',k);
- assert.equal(only('coast',2,96).extras(grid(only('coast',2,96),96)).filter(e=>e.kind==='enemy').length,0,'no enemies on the coast');
+ assert.ok(only('coast',2,160).extras(grid(only('coast',2,160),160)).filter(e=>e.kind==='enemy').every(e=>e.enemy==='crab'),'only crabs on the coast');
 });
 test('rivers are water, and the land paints by the map it is given',()=>{
  const cells={},terrain={};for(let cz=0;cz<10;cz++)terrain[`5,${cz}`]='river';for(const a of [-1,0,1])for(const b of [-1,0,1])cells[`${1+a},${8+b}`]='coast';

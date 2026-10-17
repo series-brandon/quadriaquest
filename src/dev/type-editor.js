@@ -4,7 +4,7 @@ import {keyedList} from '../ui/list.js';
 import {subTabs} from '../ui/controls.js';
 import {TREES, treesData} from '../lumberjack.js';
 import {RESOURCE_RULES, resourcesData} from '../resource-rules.js';
-import {ENEMIES, ENEMY_ATTACK_RANGE, SPECIAL_ATTACKS, attackMix, enemyData, enemiesData, refreshEnemy} from '../combat-rules.js';
+import {ENEMIES, ENEMY_ATTACK_RANGE, ENEMY_PATROL_RADIUS, SPECIAL_ATTACKS, attackMix, enemyData, enemiesData, refreshEnemy} from '../combat-rules.js';
 import {STRATEGIES, STYLES, COMBAT_SKILLS} from '../combat-formulas.js';
 import {ITEMS, dataItems, itemsData} from '../items.js';
 import {SELL_RATE, sellPrice} from '../economy.js';
@@ -239,7 +239,8 @@ export function typeEditor({tool = 'nodes', start = null, post}) {
       section('General', fields(field('Name', text(e, 'name'), {size: 'text'}), field('Respawn (s)', number(e, 'respawn')))),
       section('Behaviour',
         fields(field('Aggressive until Threat', number(e, 'aggressiveUntil', {blank: () => '0'}), {size: 'pick', hint: 'Attacks players below it. 0: never'}),
-          field('Aggro range (tiles)', number(e, 'aggroRange')), field('Move speed (×)', number(e, 'moveSpeed', {step: .05, blank: () => '1'})),
+          field('Aggro range (tiles)', number(e, 'aggroRange')), field('Patrol radius (tiles)', number(e, 'patrolRadius', {blank: () => String(ENEMY_PATROL_RADIUS)}), {size: 'pick'}),
+          field('Move speed (×)', number(e, 'moveSpeed', {step: .05, blank: () => '1'})),
           field('XP multiplier', number(e, 'xpMultiplier', {step: .1, blank: () => '1'})), field('XP level cap', number(e, 'xpLevelCap', {blank: () => 'none'}))),
         switches(check('Attacks pacifists', at(e, () => e.row, 'attacksPacifists')), check("Can't defeat the player", at(e, () => e.row, 'protected')), check('Boss', at(e, () => e.row, 'boss')))),
       sheet() ? section('Attacks',

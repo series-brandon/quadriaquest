@@ -1,4 +1,4 @@
-import {createEnemyEntity} from '../enemy-entity.js';
+import {createEnemyEntity,enemySize} from '../enemy-entity.js';
 import {interactionRoute} from '../interaction-route.js';
 import {ENEMIES,SPECIAL_ATTACKS,attackMix,aggressiveUntil} from '../combat-rules.js';
 import {STYLES} from '../combat-formulas.js';
@@ -27,7 +27,7 @@ export function createCombatFixtures(api){
  function spawn(until,attacksPacifists=false,kinds=['scrapper','bruiser']){
   api.stop();api.clearUI();clear();
   for(const kind of kinds){
-   const p=api.tile(),size=kind==='golem'?2:1,tile=[...api.world.values()].filter(t=>!t.water&&!t.blocked&&!api.occupied(t)&&footprintGap(t,size,p)>=2&&(size===1||canStand(api.world,t,size)&&footprint(api.world,t,size).every(c=>!api.occupied(c)))&&interactionRoute(api.world,p,{x:t.x,z:t.z,tile:t})).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
+   const p=api.tile(),size=enemySize(kind),tile=[...api.world.values()].filter(t=>!t.water&&!t.blocked&&!api.occupied(t)&&footprintGap(t,size,p)>=2&&(size===1||canStand(api.world,t,size)&&footprint(api.world,t,size).every(c=>!api.occupied(c)))&&interactionRoute(api.world,p,{x:t.x,z:t.z,tile:t})).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z))[0];
    if(!tile)continue;actors.push(api.combat.add(createEnemyEntity(kind==='golem'?{kind,tile,parent:api.scene,pickables:api.pickables,aggroRange:4}:{kind,tile,parent:api.scene,pickables:api.pickables,aggressiveUntil:until,aggroRange:3,...attacksPacifists?{attacksPacifists}:{}})));
   }
   if(kinds.includes('golem'))return actors.length?'Spawned the Cinder Golem nearby (notices you within 4 tiles, even as a pacifist). Run when it winds up!':'No clear reachable tile for the golem.';
@@ -49,7 +49,8 @@ export function createCombatFixtures(api){
   if(action==='spawn-golem')return spawn(undefined,false,['golem']);
   if(action==='threat'){const c=api.combat.state;return `Your Threat ${c.threat}. `+(c.enemies.filter(e=>!e.opened).map(e=>`${ENEMIES[e.kind].name}: ${e.aggressive?'aggressive':'passive'} (below ${e.aggressiveUntil})${e.plan?`, next ${e.plan}`:''}${e.forced?`, forced ${e.forced}`:''}`).join('; ')||'No enemies here.');}
   if(action.startsWith('force:'))return force(action.slice(6));
-  if(action==='sheets')return ['scrapper','bruiser','golem'].map(enemySheetSummary).join(' ')+' All values are live: enemy attacks resolve miss → your dodge → your block → damage → your resistance.';
+  if(action.startsWith('spawn-kind:')){const kind=action.slice(11);return spawn(undefined,false,[kind]).replace(' combat practice enemies',` ${ENEMIES[kind].name}`);}
+  if(action==='sheets')return Object.keys(ENEMIES).filter(k=>!ENEMIES[k].inert).map(enemySheetSummary).join(' ')+' All values are live: enemy attacks resolve miss → your dodge → your block → damage → your resistance.';
   if(action==='remove'){clear();return 'Removed combat practice enemies.';}
   if(action==='reset'){api.stop();api.combat.reset();return 'Reset enemy health, positions, and combat.';}
   if(action==='defeat'){api.combat.lose();return 'Playing the real defeat and safe respawn flow.';}

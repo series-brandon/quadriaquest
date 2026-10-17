@@ -113,7 +113,7 @@ export function createTownGround(data,land=townLand(data),{offset=()=>0,surface=
 //   data.land.nature false: the land grows no trees, resources or cover of its own (a blank slate; user,
 //   2026-10-14): only what is placed. data.land.enemies false: no enemies from the biomes either (spawns
 //   will be placed with the editor's tools). data.land.fishing false: no fishing spots of its own;
-//   data.fishing [{x, z}]: placed ones (on water). data.enemies [{x, z, enemy, aggressiveUntil, respawn}]: placed
+//   data.fishing [{x, z}]: placed ones (on water). data.enemies [{x, z, enemy, aggressiveUntil, patrolRadius, respawn}]: placed
 //   enemy spawns (combat-rules.js kinds; respawn in seconds). Generation sets a map up; what's placed is the map.
 export const coverId=(x,z)=>`cover:${x},${z}`;
 export const placedId=r=>`placed:${r.kind}:${r.x},${r.z}`;
@@ -140,7 +140,7 @@ export function townSource(land,ground,townTiles,townData=()=>null){
   extras(list){const data=townData(),{removed}=hand(list),on=new Set(list.map(t=>key(t.x,t.z)));
    const grown=land.extras(keep(list)).filter(e=>!removed.has(e.id)&&(e.kind==='enemy'?data?.land?.enemies!==false:e.kind==='fishing'?data?.land?.fishing!==false:true));
    const placed=notHeld(data?.fishing).filter(f=>on.has(key(f.x,f.z))).map(f=>({id:`placed:fishing:${f.x},${f.z}`,kind:'fishing',x:f.x,z:f.z,fish:f.fish||'rawFish'}));
-   const spawns=notHeld(data?.enemies).filter(e=>on.has(key(e.x,e.z))).map(e=>({id:`placed:enemy:${e.x},${e.z}`,kind:'enemy',enemy:e.enemy,...e.aggressiveUntil!=null?{aggressiveUntil:e.aggressiveUntil}:{},respawn:e.respawn??null,...e.drops?{drops:e.drops}:{},x:e.x,z:e.z}));
+   const spawns=notHeld(data?.enemies).filter(e=>on.has(key(e.x,e.z))).map(e=>({id:`placed:enemy:${e.x},${e.z}`,kind:'enemy',enemy:e.enemy,...e.aggressiveUntil!=null?{aggressiveUntil:e.aggressiveUntil}:{},...e.patrolRadius!=null?{patrolRadius:e.patrolRadius}:{},respawn:e.respawn??null,...e.drops?{drops:e.drops}:{},x:e.x,z:e.z}));
    const taken=new Set(placed.map(f=>key(f.x,f.z)));return [...grown.filter(e=>!(e.kind==='fishing'&&taken.has(key(e.x,e.z)))),...placed,...spawns];},
   cover(list){const {removed,cover}=hand(list),byKey=new Map(list.map(t=>[key(t.x,t.z),t]));
    const grown=!grows()?[]:land.cover(keep(list)).filter(c=>{const k=key(Math.round(c.x),Math.round(c.z));return !removed.has(`cover:${k}`)&&!cover.has(k);});
