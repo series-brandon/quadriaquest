@@ -250,6 +250,8 @@ Enemy definitions may configure zero or negative combat stats to reduce offense 
 
 ### Candidate Scrapper and Bruiser stat sheets
 
+**Where enemy stats live (2026-10-16, user decision).** Each enemy type's sheet, attack setup, behaviour, XP and any overrides are data in `src/data/enemies.json`, edited in the world editor's NPCs tool, which shows the derived results beside the inputs. `combat-rules.js` derives health, damage, interval, resistance and Threat from the sheet with this document's formulas (`deriveEnemy`), applies overrides, and keeps special attacks (the Cinder Golem's area slam and Rock Throw) and the Practice Target's inertness in code. The values below are the starting values in that file.
+
 These are first-pass design candidates for the shared stat-based combat model, not implemented enemy changes or final encounter balance. They preserve the target HP and effective attack intervals using derived values. Their offensive inputs derive the target 10/20 raw maximum hits; minimum-roll scaling retains a base of 1. Use shared entity configuration in any map; tutorial context supplies the Scrapper encounter's nonlethal protection. Do not add location-specific combat formulas.
 
 Use the explicitly listed combat skill values. Light, Medium and Heavy Armor skills are 0. All weapon, armor-slot and elemental proficiencies are 0 except Unarmed, which is 1. All unspecified attributes are 1, rather than importing the player's creation defaults into an enemy. Both use no equipped armor or shield, no elemental infusion and no item/natural-armor stat bonuses. Enemy-specific starting attributes, including Constitution below the player's starting 10, are proposed data values rather than changes to player creation.

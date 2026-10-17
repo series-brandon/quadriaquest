@@ -170,7 +170,7 @@ The clearing pond has a Pondfish spot at (4, 4). Add a Crude Fishing Rod with In
 
 World editor → **Map** group → **Resource Nodes**, **NPCs** or **Items** (each opens nearly full-window, with its own *Save* to `src/data/*.json`; dev server only). Edits apply in the world as you make them.
 - **Resource Nodes:** every tree and rock or ground-item type's level, effort (seconds), respawn, XP and drop table. Plant a tree with Lumberjack practice to try a change at once.
-- **NPCs:** every enemy type's respawn and drop table (townsfolk later).
+- **NPCs:** every enemy type's stat sheet, attack setup, behaviour, XP, overrides, respawn and drop table (townsfolk later). *Results* shows the derived health, damage, interval, resistance and Threat as you type; spawn the enemy (Combat practice) to fight the change.
 - **Items:** tabs Weapons, Armor, Tools, Resources, Consumables and Other, by category (changing an item's category moves it). Every item has name, description, value, category and *Shops buy it*; a shop opened afterwards shows the new name and price. Equipment adds slot, hands, stats, damage types and requirements: equip the item (Inventory controls, then Equipment) to try a change. Consumables add restore effects: lower health or a resource and eat one.
 - A selected placement's *Edit … type* opens Resource Nodes (trees, rocks, ground items) or NPCs (enemy spawns) on its type; its rare per-placement override is folded away under it.
 

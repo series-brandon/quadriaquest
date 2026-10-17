@@ -32,3 +32,14 @@ test('equipment and foods are the items data, in the field names their code read
  try{ITEMS.swords.equipment.power=99;refreshGear('swords');assert.equal(GEAR.swords,row,'updated in place');assert.equal(row.power,99);}
  finally{ITEMS.swords.equipment.power=before;refreshGear('swords');}
 });
+test('enemy types are data: the sheet derives health, damage, interval and Threat; overrides and code behaviour win',async()=>{
+ const {ENEMIES,enemyData,refreshEnemy,deriveEnemy}=await import('./combat-rules.js');
+ const {sheet,overrides,...config}=enemyData('bruiser'),derived=deriveEnemy(sheet,config);
+ for(const key of ['health','min','max','interval'])assert.equal(ENEMIES.bruiser[key],derived[key],key);
+ assert.equal(ENEMIES.golem.health,enemyData('golem').overrides.health,'an override replaces the derived value');
+ assert.ok(ENEMIES.golem.rangedAttack&&ENEMIES.target.inert,'special attacks and inertness stay in code');
+ const row=ENEMIES.scrapper,data=enemyData('scrapper'),before=data.sheet.attributes.constitution;
+ try{data.sheet.attributes.constitution=before+10;refreshEnemy('scrapper');assert.equal(ENEMIES.scrapper,row,'updated in place');assert.ok(row.health>50,"more Constitution, more health");}
+ finally{data.sheet.attributes.constitution=before;refreshEnemy('scrapper');}
+ assert.equal(ENEMIES.scrapper.health,50);
+});
