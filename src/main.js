@@ -376,7 +376,7 @@ fishing=createFishingSystem({inventory,stop:()=>stopAll({keepMenu:true}),busy:()
  caught(changes,reward){jobs.gathered(changes);showItemChanges(changes,{sound:'catch'});showSkillReward(reward,player.position);succeeded();},
  completed(){feedback.complete();},cancelled(){presentation.clearFishing();feedback.clearDestination();}
 });
-food=createFoodSystem({inventory,health,defer:afterStep.defer,busy:()=>!canMove()||areas.working,stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),
+food=createFoodSystem({inventory,health,resources:playerResources,defer:afterStep.defer,busy:()=>!canMove()||areas.working,stop:()=>stopAll({keepCombat:true,keepFood:true,keepMenu:true}),
  started(){feedback.destination(tile);feedback.interacting('Eating');},
  // Effects apply at initiation: the meal also cancels an unreleased attack windup and clears the pending action.
  consumed(changes){showItemChanges(changes,{sound:'eat'});areas.notify('foodEaten');combat?.consumableUsed();},

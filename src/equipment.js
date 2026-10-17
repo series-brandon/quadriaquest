@@ -1,31 +1,29 @@
 import {UNARMED} from './combat-profile.js';
 import {signal} from './reactive.js';
+import {ITEMS} from './items.js';
 
 // Items contribute bonuses; damage comes from the shared formulas (docs/COMBAT.md).
 // Hand items (slot 'hand') fit either hand, shields included; a two-handed item is held in the hand
 // it is equipped to and occupies the other.
-export const GEAR={
- swords:{slot:'hand',name:'Stone Sword',style:'melee',power:6,accuracy:6,baseInterval:2.55,range:1,proficiency:'sword',damageTypes:['slashing'],requirements:{'melee.technique':1}},
- copperDagger:{slot:'hand',name:'Copper Dagger',style:'melee',power:10,accuracy:10,baseInterval:2.55,range:1,proficiency:'dagger',damageTypes:['piercing','slashing'],requirements:{'melee.technique':1}},
- crudeShield:{slot:'hand',name:'Crude Shield',shield:true,resistance:30,requirements:{'prof.shield':1}},
- copperShield:{slot:'hand',name:'Copper Shield',shield:true,resistance:50,requirements:{'prof.shield':1}},
- bows:{slot:'hand',name:'Training Bow',twoHanded:true,style:'ranged',power:10,accuracy:10,baseInterval:2.55,range:6,proficiency:'bow',ammo:'arrows',damageTypes:['piercing'],requirements:{'ranged.technique':1}},
- // Tools can be held for looks only (`cosmetic`): no combat stats, and the hand still fights as a bare fist.
- // They keep working as tools from the inventory whether held or not.
- crudeAxe:{slot:'hand',name:'Crude Axe',cosmetic:true},
- pickaxes:{slot:'hand',name:'Crude Pickaxe',cosmetic:true},
- hammers:{slot:'hand',name:'Crude Hammer',cosmetic:true},
- rods:{slot:'hand',name:'Crude Fishing Rod',cosmetic:true},
- // Staves bludgeon in melee (spells need no staff).
- staffs:{slot:'hand',name:'Simple Staff',style:'melee',power:5,accuracy:5,baseInterval:2.55,range:1,proficiency:'staff',damageTypes:['bludgeoning'],requirements:{'melee.technique':1},magic:{power:6,accuracy:6}},
- hats:{slot:'head'},
- ironSkullcap:{slot:'head'},
- minersCap:{slot:'head'},
- archerCap:{slot:'head'},
- wizardHat:{slot:'head'},
- breathHeadband:{slot:'head'},
- fishersHat:{slot:'head'}
-};
+// GEAR is the live view of each item's `equipment` block in src/data/items.json (edited on the type tools),
+// in the field names combat code reads: `hands: 2` → twoHanded, `attackInterval` → baseInterval (seconds before
+// speed), `focus` → magic (a spell focus's power and accuracy), plus the item's name. Data fields: `slot`;
+// `shield`; `cosmetic` (a tool held for looks only: no combat stats, and the hand still fights as a bare fist;
+// it keeps working as a tool from the inventory); `style` (melee or ranged); `power`, `accuracy` and
+// `resistance` bonus points; `range` in tiles; `proficiency`, `damageTypes` and `ammo` ids; `requirements`
+// ({track: level}). Staves bludgeon in melee (spells need no staff).
+export const GEAR={};
+export function gearOf(id){
+ const item=ITEMS[id],data=item?.equipment;if(!data)return null;
+ const {hands,attackInterval,focus,...rest}=data;
+ return {...structuredClone(rest),name:item.name,...(hands===2?{twoHanded:true}:{}),...(attackInterval!=null?{baseInterval:attackInterval}:{}),...(focus?{magic:{...focus}}:{})};
+}
+// Rebuilds one item's GEAR entry in place after its data changes (the type tools), so held references follow.
+export function refreshGear(id){
+ const next=gearOf(id);if(!next){delete GEAR[id];return;}
+ const row=GEAR[id]??={};for(const key of Object.keys(row))delete row[key];Object.assign(row,next);
+}
+for(const id of Object.keys(ITEMS))refreshGear(id);
 // A spell focus: the held item with the best `magic` bonus (a staff), or null. Its bonus adds to spells.
 export function spellFocus(slots={}){
  let best=null;for(const id of [slots.right,slots.left]){const magic=GEAR[id]?.magic;if(magic&&(!best||magic.power>best.power))best={item:id,...magic};}

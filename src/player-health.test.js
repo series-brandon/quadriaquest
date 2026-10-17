@@ -19,3 +19,15 @@ test('full health confirmation rechecks inventory and can be cancelled',()=>{
  f.food.start('cookedFish');f.confirm();assert.equal(f.food.working,true);f.food.update(30);assert.equal(f.completed,1);assert.equal(f.health.value,30);
  f.food.start('cookedFish');f.inventory.cookedFish=0;f.confirm();assert.equal(f.food.working,false);
 });
+test('foods come from the items data and may restore any resource; editing the data follows at once',async()=>{
+ const {ITEMS}=await import('./items.js'),{refreshFood}=await import('./player-health.js');
+ assert.deepEqual(FOODS.cookedFish.effects,ITEMS.cookedFish.consume.effects);
+ const mana=createPlayerHealth(50),before=structuredClone(ITEMS.cookedFish.consume);
+ try{
+  ITEMS.cookedFish.consume.effects.push({type:'restore',resource:'mana',amount:15});refreshFood('cookedFish');
+  const health=createPlayerHealth(30),inventory={cookedFish:1};health.value=10;mana.value=0;
+  const food=createFoodSystem({inventory,health,resources:{mana},stop:()=>{}});
+  assert.ok(food.start('cookedFish'));assert.equal(health.value,30);assert.equal(mana.value,15);
+ }finally{ITEMS.cookedFish.consume=before;refreshFood('cookedFish');}
+ assert.equal(FOODS.cookedFish.healing,20);
+});

@@ -166,9 +166,13 @@ The clearing pond has a practice bridge at (2, 4). Add a Crude Hammer and any Wo
 
 The clearing pond has a Pondfish spot at (4, 4). Add a Crude Fishing Rod with Inventory controls, then click its ripples. Repeat catches, cancel by moving, and reset with Full test area. Willowbank · Catch Pondfish uses the same action. Fishing XP and levels use the Skills controls; cast, wait, and catch motions are in the shared model viewer.
 
-## Types (shared configuration)
+## Type tools (shared configuration)
 
-World editor → **Map** group → **Types** tool button (opens nearly full-window). Every tree and rock type's shared level, effort (seconds), respawn, XP and drop table, and every enemy type's respawn and drop table, applied in the world as you edit and saved to `src/data/*.json` with *Save* (dev server only). Plant a tree with Lumberjack practice to try a change at once. A selected placement's *Edit … type* jumps to its type; its rare per-placement override is folded away under it.
+World editor → **Map** group → **Resource Nodes**, **NPCs** or **Items** (each opens nearly full-window, with its own *Save* to `src/data/*.json`; dev server only). Edits apply in the world as you make them.
+- **Resource Nodes:** every tree and rock or ground-item type's level, effort (seconds), respawn, XP and drop table. Plant a tree with Lumberjack practice to try a change at once.
+- **NPCs:** every enemy type's respawn and drop table (townsfolk later).
+- **Items:** tabs Weapons, Armor, Tools, Resources, Consumables and Other, by category (changing an item's category moves it). Every item has name, description, value, category and *Shops buy it*; a shop opened afterwards shows the new name and price. Equipment adds slot, hands, stats, damage types and requirements: equip the item (Inventory controls, then Equipment) to try a change. Consumables add restore effects: lower health or a resource and eat one.
+- A selected placement's *Edit … type* opens Resource Nodes (trees, rocks, ground items) or NPCs (enemy spawns) on its type; its rare per-placement override is folded away under it.
 
 ## Lumberjack practice
 

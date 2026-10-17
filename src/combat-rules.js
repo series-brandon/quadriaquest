@@ -45,10 +45,10 @@ export const ENEMIES={
   rangedAttack:{name:'Rock Throw',style:'ranged',telegraphed:false,min:40,max:90,interval:3.4,windup:2.4,flight:.6,target:'tile',area:1,range:8,after:1.5}},
 };
 // Shared per-type configuration (src/data/enemies.json; docs/DESIGN.md, Resource and enemy configuration), edited
-// in the world editor's Types screen: `respawn` seconds before a defeated spawn returns, and `drops` (drops.js:
+// in the world editor's type tools (Map group): `respawn` seconds before a defeated spawn returns, and `drops` (drops.js:
 // a gold range, items that always drop and chance rolls, favouring materials that feed crafting and selling
 // over large amounts of gold). A map spawn may rarely override either.
 export const ENEMY_DATA_FIELDS=['respawn','drops'];
 for(const [kind,data] of Object.entries(ENEMY_DATA))Object.assign(ENEMIES[kind],data);
-// The live tables as the file holds them (the Types screen saves this).
+// The live tables as the file holds them (the type tools save this).
 export function enemiesData(){return Object.fromEntries(Object.entries(ENEMIES).map(([kind,e])=>[kind,Object.fromEntries(ENEMY_DATA_FIELDS.filter(f=>e[f]!==undefined).map(f=>[f,e[f]]))]));}

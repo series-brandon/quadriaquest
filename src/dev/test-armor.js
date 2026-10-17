@@ -14,5 +14,6 @@ export const TEST_ARMOR={
 };
 for(const [id,gear] of Object.entries(TEST_ARMOR)){
  GEAR[id]=gear;
- ITEMS[id]={name:gear.name,description:`Playground test armor · ${gear.armor.class[0].toUpperCase()+gear.armor.class.slice(1)} · ${gear.armor.slot} · +${gear.resistance} resistance${Object.values(gear.requirements)[0]>1?` · needs ${Object.entries(gear.requirements).map(([t,l])=>`${t.split('.')[1]} armor ${l}`).join(', ')}`:''}.`};
+ // `playground`: never saved to src/data/items.json nor listed on the type tools.
+ ITEMS[id]={playground:true,name:gear.name,description:`Playground test armor · ${gear.armor.class[0].toUpperCase()+gear.armor.class.slice(1)} · ${gear.armor.slot} · +${gear.resistance} resistance${Object.values(gear.requirements)[0]>1?` · needs ${Object.entries(gear.requirements).map(([t,l])=>`${t.split('.')[1]} armor ${l}`).join(', ')}`:''}.`};
 }

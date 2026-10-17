@@ -46,7 +46,7 @@ Validate shared changes in the clearing before visiting Willowbank and in a seco
 
 ## Configuration is data, in layers
 
-Respawn times, drops and yields, XP, levels and similar tuning are written down as data: a shared table for each type (an item, resource, tree tier or enemy) in `src/data/*.json`, edited on the world editor's Types screen, then rare overrides on a placed instance (map data, the editor's folded "Override for this one" section). A formula may fill in what neither sets, but never as the only source; every value a formula produces must be overridable per type and per instance. When adding a tunable, add its field to the type table and to the instance overrides, and let the editor change it where placements are edited. See [docs/DESIGN.md](docs/DESIGN.md#resource-and-enemy-configuration).
+Respawn times, drops and yields, XP, levels and similar tuning are written down as data: a shared table for each type (an item, resource, tree tier or enemy) in `src/data/*.json`, edited in the world editor's type tools (Map group: Resource Nodes, NPCs, Items), then rare overrides on a placed instance (map data, the editor's folded "Override for this one" section). A formula may fill in what neither sets, but never as the only source; every value a formula produces must be overridable per type and per instance. When adding a tunable, add its field to the type table and to the instance overrides, and let the editor change it where placements are edited. See [docs/DESIGN.md](docs/DESIGN.md#resource-and-enemy-configuration).
 
 ## Bounded browser verification
 

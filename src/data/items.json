@@ -1,0 +1,370 @@
+{
+ "gold": {
+  "name": "Gold Pieces",
+  "description": "The coin of Quadria. Earn it by selling what you gather and make; spend it at shops.",
+  "value": 0,
+  "category": "currency",
+  "sellable": false
+ },
+ "copperOre": {
+  "name": "Copper Ore",
+  "description": "Orange-veined ore. Smelt it into a Copper Ingot at a furnace.",
+  "value": 10,
+  "category": "metal"
+ },
+ "copperIngots": {
+  "name": "Copper Ingot",
+  "description": "Refined copper. Work it at an anvil with a Crude Hammer.",
+  "value": 24,
+  "category": "metal"
+ },
+ "copperDagger": {
+  "name": "Copper Dagger",
+  "description": "A copper blade you can smith yourself. One hand · +10 melee Power and Accuracy · stab or slash · trains Dagger proficiency.",
+  "value": 40,
+  "category": "weapon",
+  "equipment": {
+   "slot": "hand",
+   "style": "melee",
+   "power": 10,
+   "accuracy": 10,
+   "attackInterval": 2.55,
+   "range": 1,
+   "proficiency": "dagger",
+   "damageTypes": ["piercing", "slashing"],
+   "requirements": {
+    "melee.technique": 1
+   }
+  }
+ },
+ "copperShield": {
+  "name": "Copper Shield",
+  "description": "One hand · +50 resistance (5% less damage) · trains Shield proficiency when hit or blocking. Cannot be held with a bow.",
+  "value": 80,
+  "category": "armour",
+  "equipment": {
+   "slot": "hand",
+   "shield": true,
+   "resistance": 50,
+   "requirements": {
+    "prof.shield": 1
+   }
+  }
+ },
+ "bows": {
+  "name": "Training Bow",
+  "description": "Two hands · +10 ranged Power and Accuracy · range 6 tiles. Uses one Training Arrow per shot, including misses.",
+  "value": 30,
+  "category": "weapon",
+  "equipment": {
+   "slot": "hand",
+   "hands": 2,
+   "style": "ranged",
+   "power": 10,
+   "accuracy": 10,
+   "attackInterval": 2.55,
+   "range": 6,
+   "proficiency": "bow",
+   "damageTypes": ["piercing"],
+   "ammo": "arrows",
+   "requirements": {
+    "ranged.technique": 1
+   }
+  }
+ },
+ "arrows": {
+  "name": "Training Arrows",
+  "description": "Ammunition for the Training Bow. Fletch offers more when you run out.",
+  "value": 2,
+  "category": "ammo"
+ },
+ "swords": {
+  "name": "Stone Sword",
+  "description": "A sturdy stone blade. One hand · +6 melee Power and Accuracy · trains Sword proficiency.",
+  "value": 20,
+  "category": "weapon",
+  "equipment": {
+   "slot": "hand",
+   "style": "melee",
+   "power": 6,
+   "accuracy": 6,
+   "attackInterval": 2.55,
+   "range": 1,
+   "proficiency": "sword",
+   "damageTypes": ["slashing"],
+   "requirements": {
+    "melee.technique": 1
+   }
+  }
+ },
+ "crudeShield": {
+  "name": "Crude Shield",
+  "description": "Sticks lashed around a rock boss. One hand · +30 resistance (3% less damage) · trains Shield proficiency when hit or blocking.",
+  "value": 12,
+  "category": "armour",
+  "equipment": {
+   "slot": "hand",
+   "shield": true,
+   "resistance": 30,
+   "requirements": {
+    "prof.shield": 1
+   }
+  }
+ },
+ "hammers": {
+  "name": "Crude Hammer",
+  "description": "A reusable tool for carpentry and bridge repairs.",
+  "value": 9,
+  "category": "tool",
+  "equipment": {
+   "slot": "hand",
+   "cosmetic": true
+  }
+ },
+ "rods": {
+  "name": "Crude Fishing Rod",
+  "description": "Keep this reusable rod in your inventory to fish.",
+  "value": 9,
+  "category": "tool",
+  "equipment": {
+   "slot": "hand",
+   "cosmetic": true
+  }
+ },
+ "flint": {
+  "name": "Flint",
+  "description": "A sharp fragment found near water. Useful for starting fires.",
+  "value": 4,
+  "category": "stone"
+ },
+ "firestarters": {
+  "name": "Flint and Stone",
+  "description": "A reusable fire-starting tool. Required to craft a Campfire.",
+  "value": 15,
+  "category": "tool"
+ },
+ "campfires": {
+  "name": "Campfire",
+  "description": "Place on clear ground to cook fish. Can be packed up again.",
+  "value": 15,
+  "category": "tool"
+ },
+ "rawFish": {
+  "name": "Raw Pondfish",
+  "description": "A fresh catch. Cook it at a Campfire before eating.",
+  "value": 8,
+  "category": "fish"
+ },
+ "cookedFish": {
+  "name": "Cooked Pondfish",
+  "description": "A warm meal. Restores 20 health, up to your maximum.",
+  "value": 15,
+  "category": "food",
+  "consume": {
+   "effects": [
+    {
+     "type": "restore",
+     "resource": "health",
+     "amount": 20
+    }
+   ]
+  }
+ },
+ "sticks": {
+  "name": "Sticks",
+  "description": "A small handful of fallen sticks. Useful for crafting simple tools.",
+  "value": 2,
+  "category": "wood"
+ },
+ "stones": {
+  "name": "Rocks",
+  "description": "A handful of moderately sized rocks. Useful for crafting simple tools.",
+  "value": 2,
+  "category": "stone"
+ },
+ "pickaxes": {
+  "name": "Crude Pickaxe",
+  "description": "A simple pickaxe for mining boulders. Keep it in your inventory to use it.",
+  "value": 9,
+  "category": "tool",
+  "equipment": {
+   "slot": "hand",
+   "cosmetic": true
+  }
+ },
+ "stone": {
+  "name": "Stone",
+  "description": "A larger piece of mined stone, useful for making stone equipment.",
+  "value": 6,
+  "category": "stone"
+ },
+ "crudeAxe": {
+  "name": "Crude Axe",
+  "description": "A simple axe for chopping trees. Keep it in your inventory to use it.",
+  "value": 9,
+  "category": "tool",
+  "equipment": {
+   "slot": "hand",
+   "cosmetic": true
+  }
+ },
+ "poplarWood": {
+  "name": "Poplar Wood Pieces",
+  "description": "Light, pale wood from a Poplar Tree. The everyday crafting wood.",
+  "value": 4,
+  "category": "wood"
+ },
+ "aslaWood": {
+  "name": "Asla Wood Pieces",
+  "description": "Feather-light wood from an Asla Tree. Soft and easy to shape.",
+  "value": 6,
+  "category": "wood"
+ },
+ "pineWood": {
+  "name": "Pine Wood Pieces",
+  "description": "Resinous wood from a Pine Tree. Cheap and plentiful.",
+  "value": 8,
+  "category": "wood"
+ },
+ "oakWood": {
+  "name": "Oak Wood Pieces",
+  "description": "Strong, dependable wood from an Oak Tree.",
+  "value": 11,
+  "category": "wood"
+ },
+ "willowWood": {
+  "name": "Willow Wood Pieces",
+  "description": "Supple wood from a Willow Tree. It bends before it breaks.",
+  "value": 15,
+  "category": "wood"
+ },
+ "mapleWood": {
+  "name": "Maple Wood Pieces",
+  "description": "Hard, fine-grained wood from a Maple Tree.",
+  "value": 20,
+  "category": "wood"
+ },
+ "walnutWood": {
+  "name": "Walnut Wood Pieces",
+  "description": "Dark, handsome wood from a Walnut Tree.",
+  "value": 26,
+  "category": "wood"
+ },
+ "ironwood": {
+  "name": "Ironwood Pieces",
+  "description": "Wood from an Ironwood Tree, heavy as stone.",
+  "value": 33,
+  "category": "wood"
+ },
+ "mungilWood": {
+  "name": "Mungil Wood Pieces",
+  "description": "Oily, very dense wood from a Mungil Tree. It sinks in water.",
+  "value": 42,
+  "category": "wood"
+ },
+ "cherryWood": {
+  "name": "Cherry Wood Pieces",
+  "description": "Rosy wood from a Cherry Blossom Tree. Prized by fine crafters.",
+  "value": 52,
+  "category": "wood"
+ },
+ "hats": {
+  "name": "Top Hat",
+  "description": "A rather fancy reward for a hard-working adventurer. Equip it here to wear it.",
+  "value": 60,
+  "category": "hat",
+  "equipment": {
+   "slot": "head"
+  }
+ },
+ "staffs": {
+  "name": "Simple Staff",
+  "description": "A wooden staff topped with a glowing crystal. Spell focus: +6 magic Power and Accuracy to your spells while held. One hand · +5 melee Power and Accuracy · bludgeoning swing · trains Staff proficiency.",
+  "value": 45,
+  "category": "weapon",
+  "equipment": {
+   "slot": "hand",
+   "style": "melee",
+   "power": 5,
+   "accuracy": 5,
+   "attackInterval": 2.55,
+   "range": 1,
+   "proficiency": "staff",
+   "damageTypes": ["bludgeoning"],
+   "requirements": {
+    "melee.technique": 1
+   },
+   "focus": {
+    "power": 6,
+    "accuracy": 6
+   }
+  }
+ },
+ "ironSkullcap": {
+  "name": "Iron Skullcap",
+  "description": "Sergeant Bristle's brimless iron cap, with a raised ridge and cheek guards. Equip it to wear it.",
+  "value": 50,
+  "category": "hat",
+  "equipment": {
+   "slot": "head"
+  }
+ },
+ "minersCap": {
+  "name": "Miner's Cap",
+  "description": "Borin's sturdy cap, with a little lamp at the front. Equip it to wear it.",
+  "value": 40,
+  "category": "hat",
+  "equipment": {
+   "slot": "head"
+  }
+ },
+ "archerCap": {
+  "name": "Archer's Cap",
+  "description": "Fletch's feathered felt cap: peak in front, brim turned up behind. Equip it to wear it.",
+  "value": 40,
+  "category": "hat",
+  "equipment": {
+   "slot": "head"
+  }
+ },
+ "wizardHat": {
+  "name": "Wizard Hat",
+  "description": "Wisp's tall hat with a curled tip, gold band and stars. Equip it to wear it.",
+  "value": 50,
+  "category": "hat",
+  "equipment": {
+   "slot": "head"
+  }
+ },
+ "breathHeadband": {
+  "name": "Breath Headband",
+  "description": "Ember's cloth headband, with a ring of calm breath floating above. Equip it to wear it.",
+  "value": 40,
+  "category": "hat",
+  "equipment": {
+   "slot": "head"
+  }
+ },
+ "fishersHat": {
+  "name": "Fisher's Hat",
+  "description": "Reed's wide-brimmed straw hat, for long days by the water. Equip it to wear it.",
+  "value": 40,
+  "category": "hat",
+  "equipment": {
+   "slot": "head"
+  }
+ },
+ "package": {
+  "name": "Package",
+  "description": "A parcel for someone in town. Deliver it by talking to them.",
+  "value": 0,
+  "category": "quest",
+  "sellable": false
+ },
+ "companionHats": {
+  "name": "Companion Top Hat",
+  "description": "A tiny, very dapper top hat with a flower on the band. Put it on your companion here.",
+  "value": 40,
+  "category": "hat"
+ }
+}

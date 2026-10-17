@@ -25,7 +25,7 @@
 .q-modal--wide { inline-size: min(900px, calc(100vw - 48px)); max-block-size: min(760px, calc(100dvh - 48px)); }
 .q-modal--compact { inline-size: min(360px, calc(100vw - 2 * var(--q-modal-edge))); }
 .q-modal--large { inline-size: min(1000px, calc(100vw - 48px)); block-size: min(820px, calc(100dvh - 48px)); }
-/* Full: nearly the whole window, for work that doesn't need to see the game behind it (the editor's Types screen). */
+/* Full: nearly the whole window, for work that doesn't need to see the game behind it (the editor's type tools: Resource Nodes, NPCs, Items). */
 .q-modal--full { inline-size: calc(100vw - 32px); block-size: calc(100dvh - 32px); max-inline-size: none; max-block-size: none; }
 
 .q-modal__header {

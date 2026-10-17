@@ -2,7 +2,7 @@ import RESOURCE_DATA from './data/resources.json' with {type:'json'};
 
 // Resource configuration (docs/DESIGN.md, Resource and enemy configuration), in three layers:
 //   1. the type: src/data/resources.json, and each tree tier in src/data/trees.json (lumberjack.js), edited
-//      in the world editor's Types screen;
+//      in the world editor's type tools (Map group);
 //   2. the instance: a map placement may rarely override `respawn`, `xp` and `drops` (map data and the
 //      editor's folded override section);
 //   3. the formula: only for what neither sets. XP falls back to the effort pace (skill-pacing.js).
@@ -20,7 +20,7 @@ const KINDS={
 };
 export const RESOURCE_DATA_FIELDS=['level','effort','respawn','xp','drops'];
 export const RESOURCE_RULES=Object.fromEntries(Object.entries(KINDS).map(([kind,behaviour])=>[kind,Object.assign(RESOURCE_DATA[kind]||{},behaviour)]));
-// The live tables as the file holds them (the Types screen saves this).
+// The live tables as the file holds them (the type tools save this).
 export function resourcesData(){
  return Object.fromEntries(Object.entries(RESOURCE_RULES).filter(([kind])=>kind!=='tree').map(([kind,r])=>[kind,Object.fromEntries(RESOURCE_DATA_FIELDS.filter(f=>r[f]!==undefined).map(f=>[f,r[f]]))]));
 }

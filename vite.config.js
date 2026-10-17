@@ -42,7 +42,7 @@ function gamePublicAssets(){
 // World editor saving (playground dev server only, docs/CITY.md Authoring): POST /__map-save
 // {id, json, kind} writes src/maps/<id>.json (kind 'stamp': src/stamps/<id>.json; kind 'palette', a colour preset: src/palettes/<id>.json;
 // kind 'data', the shared type tables: src/data/<id>.json, only the known ones). Builds never include it (configureServer runs only in dev).
-const DATA_FILES=['trees','resources','enemies'];
+const DATA_FILES=['trees','resources','enemies','items'];
 function mapSave(){
   return {name:'map-save',
    // A saved map must not reload the page either (the editor imports every map, so Vite would): you'd lose the

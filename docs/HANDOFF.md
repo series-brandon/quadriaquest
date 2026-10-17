@@ -34,7 +34,23 @@ Use shared action completion/progress callbacks for tutorial updates. Normal gam
 - `src/data/trees.json` is one row per tree (`name`, `level`, `effort` seconds, `respawn`, `drops`, optional `xp`); effort size classes are gone. `resources.json` the same without `name`. Their wood/stone/ore comes from `drops.always`; `yield`, `item` and tree `value`/`wood`/`woodName`/`description` are gone. Wood items (names, descriptions, prices) are written out in `items.js`, which now exports `WOODS`.
 - `rollDrops(table, random, {boost})` boosts sure drops (the level yield bonus for tool work); resources roll their table at reward (`resource-actions.js`). The drop format has no `gold` field: Gold Pieces are the `gold` item (`enemies.json` lists it in `always`).
 - Types screen: resources show Level, Effort (seconds), Respawn (seconds), XP and Drops; enemies show Respawn and Drops (their stats stay in code). One drop editor (sure and chance drops) for both. The placement override lost Yield (its drops replace the type's table).
-- Next: an item editor (value, stats) on the same screen.
+- Next: an item editor (value, stats) on the same screen. Values done (below); stats wait on the user.
+
+### Items on the Types screen — 2026-10-16 (user request)
+- Item configuration moved to `src/data/items.json` (`name`, `description`, `value`, `category`, optional `sellable: false`); `items.js` imports it as `ITEMS` and keeps only code (`WOODS`, `ITEM_GROUPS`, helpers). `itemsData()` writes it back and is in the `data-file.test.js` round trip; `items` is in `vite.config.js` `DATA_FILES`. The unused text glyphs (`icon` on a few items) were dropped; item icons are `icons.js`.
+- Types screen: an *Items* group edits name, description, value, category (the categories items already use, since shops buy by category) and *Shops buy it*, with the sell price shown. Shops read `ITEMS` live, so prices follow at once.
+- Playground test armour (`dev/test-armor.js`) adds itself to `ITEMS` with `playground: true`; `dataItems()` leaves it out of the file and the list.
+- Item names in drop-table selects refresh only when the Types screen is reopened.
+
+### Type tools split: Resource Nodes, NPCs, Items — 2026-10-16 (user request; design confirmed by the user)
+- The Map group's *Types* button became three tools (`TYPE_TOOLS` in `dev/type-editor.js`): **Resource Nodes** (trees, rocks, ground items), **NPCs** (enemies; townsfolk later) and **Items**. Each opens its own `full`, `flush` modal (`world-editor-<tool>`) with its own *Save*. `typeEditor({tool, start, post})` and `typeEntries(tool)` take the tool; `toolForType(key)` maps an *Edit <type> type* key to its tool, so the Resource and Spawn panels jump to the right window.
+- Items has `subTabs` by category (`ITEM_TABS`, `itemTab`): Weapons, Armor, Tools, Resources, Consumables, Other. Changing an item's category moves it to its tab; switching tabs opens that tab's first item. `dev/type-editor.test.js` checks every type has one tool and only currency and quest items fall to Other.
+
+### Item kinds: equipment and consumables as data — 2026-10-16 (user request; shape confirmed by the user)
+- Every equipment field moved into an `equipment` block per item in `src/data/items.json` (data names `hands: 2`, `attackInterval`, `focus`). `GEAR` (`equipment.js`) is the live view in the old field names (`twoHanded`, `baseInterval`, `magic`, plus `name` from the item), so combat, Optimize, presentation and the Equipment page read it unchanged. `refreshGear(id)` rebuilds one entry in place.
+- `consume: {effects: [{type:'restore', resource, amount}]}` replaces the `FOODS` constant. `FOODS` (`player-health.js`) is now its live view (`healing` = health restored, for auto-eat; `duration` = the eating motion); `refreshFood(id)`. Eating applies every restore effect (`createFoodSystem` takes `resources`), and asks first only when everything it restores is full. Buffs are planned, not built.
+- Types screen: items grouped Equipment / Food and consumables / Items, each kind with its own panel. `formatData` now keeps short word lists on one line too.
+- Not done: buffs (temporary and permanent) need a shared buff system and a design pass. The full-health confirmation still says "health" (only health foods exist). `COMPANION_GEAR` (the companion's hat slot) stays in `companions.js`. Playground test armour stays in `dev/test-armor.js`.
 
 ### Types screen and shared type data files — 2026-10-16 (user request)
 - Type tables moved to `src/data/trees.json`, `resources.json`, `enemies.json` (imported with `with {type:'json'}`; Node 22 and Vite both handle it). `treesData()`, `resourcesData()`, `enemiesData()` write the live tables back; `data-file.js` `formatData` keeps them readable; `data-file.test.js` checks they round-trip unchanged.

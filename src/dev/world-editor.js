@@ -30,7 +30,7 @@ import {townSource,resourceFits,coverId,placedId} from '../town-ground.js';
 import {TREE_SPECIES,makeTreeModel} from '../tree-models.js';
 import {TREES,DEFAULT_TREE,treeOf} from '../lumberjack.js';
 import {resourceRules} from '../resource-actions.js';
-import {typeEditor,dropTableEditor} from './type-editor.js';
+import {typeEditor,dropTableEditor,TYPE_TOOLS,toolForType} from './type-editor.js';
 import {resourceRespawn} from '../resource-entities.js';
 import {actionXp} from '../skill-pacing.js';
 import {makeCrystal,crystalCentre} from '../crystal-model.js';
@@ -107,9 +107,9 @@ const TOOL_GROUPS=[
  ['build','Build',[['room','Room'],['resize','Push/pull walls'],['building','Building'],['footprint','Footprint'],['walls','Walls'],['edge','Edge'],['stairs','Stairs'],['use','Use'],['reroll','Reroll furniture'],['underground','Underground']]],
  ['terrain','Terrain',[['raise','Raise'],['lower','Lower'],['flatten','Flatten'],['smooth','Smooth'],['ramp','Slope'],['ramps','Ramp ledges'],['surface','Surface'],['biome','Biome']]],
  ['world','World',[['nature','Nature'],['enemy','Enemy'],['townsfolk','Townsfolk'],['crystal','Crystal'],['spawn','Arrival']]],
- // Map: open, save and grow the map, its lines, and its checks (with Inspect). Types opens the shared type
- // settings (a screen of its own, not a tool you click the map with).
- ['map','Map',[['inspect','Inspect'],['types','Types']]]];
+ // Map: open, save and grow the map, its lines, and its checks (with Inspect). Resource Nodes, NPCs and Items
+ // open the shared type settings (each a window of its own, not a tool you click the map with).
+ ['map','Map',[['inspect','Inspect'],...Object.entries(TYPE_TOOLS).map(([id,t])=>[id,t.title])]]];
 const TOOLS=TOOL_GROUPS.flatMap(([,,tools])=>tools),groupOf=id=>TOOL_GROUPS.find(([,,tools])=>tools.some(([t])=>t===id))?.[0]||'decorate';
 const SIDES=['n','e','s','w'],COUNTER={n:'w',w:'s',s:'e',e:'n'};
 // The colour picker's quick swatches: the game's own palette (any colour is allowed; these are only quick picks).
@@ -629,9 +629,11 @@ export function createWorldEditor(host){
   if(await change(()=>{apply(e);return [...own,...validate('enemy',e,own)];},own))status.value=`${nameOf('enemy',e)}: ${label}.`;}
  const spawnControl=(label,value,choices,apply)=>h('label',{class:'q-world-editor__field'},label,h('select',{class:'q-select',on:{change:e=>setSpawn(s=>apply(s,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
   choices.map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const s=spawnOf();return !!s&&value(s)===id;}},name))));
- // The Types screen (type-editor.js): shared per-type settings, saved to src/data/*.json.
+ // The type tools (type-editor.js): shared per-type settings, saved to src/data/*.json.
  async function postData(id,json){const response=await fetch('/__map-save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({kind:'data',id,json})});const result=await response.json();if(!response.ok)throw Error(result.error||response.statusText);}
- function openTypes(start=null){if(!host.modals){status.value='No dialog host here.';return;}host.modals.open({id:'world-editor-types',title:'Types',size:'full',build:()=>typeEditor({start,post:postData})});}
+ // Opens a type tool's window, or the tool that edits a type key ('enemy:goblin') on that type.
+ function openTypes(toolOrKey){const tool=TYPE_TOOLS[toolOrKey]?toolOrKey:toolForType(toolOrKey),start=TYPE_TOOLS[toolOrKey]?null:toolOrKey;
+  if(!host.modals){status.value='No dialog host here.';return;}host.modals.open({id:`world-editor-${tool}`,title:TYPE_TOOLS[tool].title,size:'full',flush:true,build:()=>typeEditor({tool,start,post:postData})});}
  // A selected placed resource: its own respawn, XP and drops, or its type's (one undo step each).
  const resourceOf=()=>{const sel=selection.peek();return sel?.kind==='resource'?lists().resource[sel.index]:null;};
  async function setResource(apply,label){const r=resourceOf();if(!r)throw Error('Select a resource.');const own=cellsOf('resource',r);
@@ -640,7 +642,7 @@ export function createWorldEditor(host){
  const resourceControl=(label,value,typeLabel,choices,apply)=>h('label',{class:'q-world-editor__field'},label,h('select',{class:'q-select',on:{change:e=>setResource(r=>apply(r,e.target.value),label.toLowerCase()).catch(error=>{status.value=error.message;})}},
   [['',()=>{revision.value;selection.value;const r=resourceOf();return r?`Type (${typeLabel(r)})`:'Type';}],...choices].map(([id,name])=>h('option',{value:id,selected:()=>{revision.value;selection.value;const r=resourceOf();return !!r&&value(r)===id;}},name))));
  const own=(field,parse)=>(r,v)=>{if(v==='')delete r[field];else r[field]=parse(v);};
- // The type comes first (shared by every one of it, edited on the Types screen); this placement's own
+ // The type comes first (shared by every one of it, edited on the type tools); this placement's own
  // overrides are rare, so they sit folded away.
  const typeKeyOf=r=>r.kind==='tree'?`tree:${r.species||DEFAULT_TREE}`:`resource:${r.kind}`;
  const typeName=r=>r.kind==='tree'?treeOf(r.species).name:r.kind[0].toUpperCase()+r.kind.slice(1);
@@ -1638,7 +1640,7 @@ export function createWorldEditor(host){
   enemy:'Click to place an enemy spawn.',townsfolk:'Click to place a townsfolk, or click one to change them.',crystal:'Click to set an Iter Crystal (2 × 2), or click one to name it.',spawn:'Click where you arrive on this map.',inspect:'Click a tile to see what’s there.'};
   // On a floor some tools say what they do there.
  const FLOOR_HINTS={room:'Drag a rectangle on this floor: a room with a door.',stairs:'Click where the bottom step goes; , and . turn them.'};
- function setTool(id){if(id==='types'){openTypes();return;}if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id)??toolGroup.peek();const hint=floorHere.peek()&&FLOOR_HINTS[id]||TOOL_HINTS[id];if(hint)status.value=hint;}
+ function setTool(id){if(TYPE_TOOLS[id]){openTypes(id);return;}if(!HAND_TOOLS.includes(id)&&holding())cancel();tool.value=id;toolGroup.value=groupOf(id)??toolGroup.peek();const hint=floorHere.peek()&&FLOOR_HINTS[id]||TOOL_HINTS[id];if(hint)status.value=hint;}
  // The dock's panel: always outside Decorate; in Decorate only for what's selected, paint and stamps.
  // The panel: always outside Decorate; in Decorate for paint and stamps, and for what's selected (the Hand and Colours
  // give it the whole card; Deco, a column beside the catalogue for a selected prop).

@@ -575,6 +575,8 @@ Damage-type advantages must be defined through actual resistance/equipment value
 
 ## Equipment bonuses and dual wielding
 
+**Where item stats live (2026-10-16, user decision).** Each equipment item's slot, hands, shield, style, Power, Accuracy and resistance bonuses, base attack interval (seconds), range (tiles), proficiency, damage types, ammo, requirements (`{track: level}`) and spell-focus bonuses are data: the `equipment` block of the item in `src/data/items.json`, edited in the world editor's Items tool. `GEAR` in `equipment.js` is the live view combat reads. The formulas in this document, the motions and the models stay in code. The values described below are the approved starting values in that file.
+
 Separate equipped bonuses into two explicit scopes:
 
 - **Character-wide bonuses:** attributes, resistance, resource bonuses and explicitly global attack bonuses apply while the item is equipped. Both equipped weapons may contribute these bonuses.
