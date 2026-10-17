@@ -25,16 +25,25 @@ function eye(parent,name,r,x,y,z){const e=namedPart(parent,name,sphere(r,12,8),M
 // Blocky like the corgi: a rounded-box body and head, nub feet tucked under the body, and every part sunk into
 // the one it hangs from, so nothing floats. A look sets the colours and sizes (body and head [w, h, l]), the
 // ears (round, big or tufted), snout (blunt or pointed), tail (nub, long or bushy) and pose (`sit`: a squirrel
-// sits up on its haunches, front paws holding an acorn).
+// sits up on its haunches, front paws held up).
 export const CRITTERS={
  vole:{fur:'#8b6b4c',belly:'#c9ab86',ear:'#b58a6c',body:[.36,.27,.44],head:[.32,.27,.27],headAt:[.3,.22],ears:'round',snout:'blunt',tail:'nub'},
- squirrel:{fur:'#b8643a',belly:'#efd9b4',ear:'#d98a5c',tuft:'#7a3e22',tailTip:'#cf7a4c',body:[.3,.34,.3],head:[.3,.27,.27],headAt:[.5,.1],ears:'tufted',snout:'blunt',tail:'bushy',sit:true},
+ squirrel:{fur:'#b8643a',belly:'#efd9b4',ear:'#d98a5c',tuft:'#7a3e22',body:[.3,.34,.3],head:[.3,.27,.27],headAt:[.5,.1],ears:'tufted',snout:'blunt',tail:'bushy',sit:true},
  cragRat:{fur:'#7c746e',belly:'#b9b0a6',ear:'#d6a09b',body:[.3,.24,.52],head:[.26,.22,.28],headAt:[.27,.3],ears:'big',snout:'pointed',tail:'long'},
 };
 const FEET_Y=.04,BODY_FLOOR=.065;
 // A pointed ear (squirrel), extruded once and shared.
 const pointedEar=()=>G('ear:pointed',()=>{const s=new THREE.Shape();s.moveTo(-.055,-.04);s.lineTo(.055,-.04);s.lineTo(.01,.12);s.quadraticCurveTo(0,.145,-.01,.12);s.closePath();
  const geo=new THREE.ExtrudeGeometry(s,{depth:.035,bevelEnabled:true,bevelSize:.008,bevelThickness:.008,bevelSegments:2,curveSegments:6,steps:1});geo.translate(0,0,-.0175);return geo;});
+// A squirrel's tail: one smooth plume, thin where it leaves the body, full in the middle, curling up and
+// forward over the back (the tube's open tip gets a round cap).
+const BUSHY_TAIL=[[0,-.02,.08],[0,.02,-.12],[0,.2,-.26],[0,.44,-.27],[0,.62,-.17],[0,.68,-.03]];
+const bushyTail=()=>G('tail:bushy',()=>{
+ const curve=new THREE.CatmullRomCurve3(BUSHY_TAIL.map(p=>new THREE.Vector3(...p))),seg=40,rad=12;
+ const geo=new THREE.TubeGeometry(curve,seg,1,rad,false),pos=geo.attributes.position,p=new THREE.Vector3(),c=new THREE.Vector3();
+ for(let i=0;i<=seg;i++){const u=i/seg,r=.075+.075*Math.sin(Math.PI*Math.min(1,u*1.15));curve.getPointAt(u,c);
+  for(let j=0;j<=rad;j++){const k=i*(rad+1)+j;p.fromBufferAttribute(pos,k).sub(c).multiplyScalar(r).add(c);pos.setXYZ(k,p.x,p.y,p.z);}}
+ geo.computeVertexNormals();return geo;});
 // A rat's tail: one tube from inside the rump, dipping, then curling to the side.
 const ratTail=()=>G('tail:rat',()=>new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[0,0,.06],[0,-.04,-.12],[.04,-.1,-.32],[.14,-.13,-.48],[.26,-.12,-.56]].map(p=>new THREE.Vector3(...p))),24,.022,6,false));
 export function critter(kind){
@@ -43,7 +52,8 @@ export function critter(kind){
  // Body: a sitting squirrel leans back on its haunches; the others stand level.
  const torso=group(rig,'torso',0,BODY_FLOOR+bh/2,look.sit?-.06:-.02);if(look.sit)torso.rotation.x=-.35;
  namedPart(torso,'body',box(bw,bh,bl,.09),fur);
- part(torso,box(bw*.62,bh*.66,.04,.018),belly,0,-bh*.1,bl/2-.012);
+ // The belly: a lighter rounded box sunk into the body, showing only along the underside and lower front.
+ part(torso,box(bw*.7,bh*.72,bl*.9,.08),belly,0,-bh*.16,.02);
  const head=group(rig,'head',0,...look.headAt);
  part(head,box(hw,hh,hl,.09),fur);
  if(look.snout==='pointed'){const s=part(head,cone(.085,.17,8),fur,0,-.04,hl/2+.05);s.rotation.x=Math.PI/2;part(head,sphere(.03,8,6),M(look.ear),0,-.04,hl/2+.14);}
@@ -51,32 +61,30 @@ export function critter(kind){
  for(const side of [-1,1]){
   eye(head,'eye'+side,.04,side*hw*.27,hh*.1,hl/2-.012);
   // Buck teeth, side by side, tucked into the underside of the snout.
-  part(head,box(.026,.045,.014,.005),M('#fff6e2'),side*.015,look.snout==='pointed'?-.093:-hh*.39-.012,hl/2+(look.snout==='pointed'?.005:.012));
+  part(head,box(.026,.036,.014,.005),M('#fff6e2'),side*.015,look.snout==='pointed'?-.09:-hh*.39-.004,hl/2+(look.snout==='pointed'?.005:.012));
   // Ears sit sunk into the top of the head.
   const ear=group(head,'ear'+side,side*hw*.3,hh/2-.015,-.02);
-  if(look.ears==='tufted'){part(ear,pointedEar(),M(look.fur)).rotation.z=-side*.12;part(ear,pointedEar(),M(look.ear),0,.01,.012).scale.set(.6,.62,.6);
-   part(ear,cone(.026,.1,5),M(look.tuft),side*-.012,.15).rotation.z=-side*.2;}
+  if(look.ears==='tufted'){const tilt=group(ear,'tilt');tilt.rotation.z=-side*.12;
+   part(tilt,pointedEar(),M(look.fur));part(tilt,pointedEar(),M(look.ear),0,.01,.012).scale.set(.6,.62,.6);
+   part(tilt,cone(.026,.1,5),M(look.tuft),0,.165);}
   else{const r=look.ears==='big'?.085:.065,o=part(ear,disc(r,.03),fur,0,r*.5);o.rotation.x=Math.PI/2;
    const inner=part(ear,disc(r*.62,.032),M(look.ear),0,r*.5,.004);inner.rotation.x=Math.PI/2;}
  }
- // Legs: nub feet under the body's corners. A sitting squirrel has long back feet under its haunches and
- // little front paws held up, with an acorn between them.
+ // Legs: round nub feet under the body's corners. A sitting squirrel has long back feet under its haunches and
+ // little front paws held up before its chest.
  const feet=[[.14,bl/2-.09],[-.14,-bl/2+.09]];
  for(const side of [-1,1])for(const [i,[,z]] of feet.entries()){
   const front=i===0,leg=group(rig,'leg'+(i*2+(side>0?1:0)),side*(bw/2-.06),FEET_Y+.05,z+torso.position.z);
-  if(look.sit&&front){leg.position.set(side*.075,.3,.13);part(leg,capsule(.032,.07),fur,0,-.03,.03).rotation.x=1.1;part(leg,sphere(.035,8,6),belly,0,-.06,.08);}
-  else if(look.sit){leg.position.set(side*.12,FEET_Y+.05,-.04);leg.userData.swing=.15;part(leg,box(.13,.17,.24,.06),fur,0,.07,-.02);part(leg,box(.1,.05,.2,.022),belly,0,-.04,.05);}
-  else part(leg,sphere(.058,10,8),belly,0,-.05,0).scale.set(1,.6,1.25);
+  if(look.sit&&front){leg.position.set(side*.08,.33,.06);leg.userData.swing=.15;
+   part(leg,capsule(.03,.07),fur,0,-.036,.054).rotation.x=2.16;part(leg,sphere(.037,10,8),belly,-side*.01,-.072,.108);}
+  else if(look.sit){leg.position.set(side*.12,FEET_Y+.05,-.04);leg.userData.swing=.15;part(leg,box(.13,.17,.24,.06),fur,0,.07,-.02);part(leg,box(.1,.05,.15,.025),belly,0,-.04,.03);}
+  else part(leg,sphere(.046,12,10),belly,0,-.046,0);
  }
- if(look.sit){const nut=group(rig,'acorn',0,.25,.19);part(nut,sphere(.045,10,8),M('#a8743a')).scale.set(1,1.15,1);part(nut,sphere(.05,10,6),M('#6b4a2b'),0,.035).scale.set(1,.5,1);}
  // Tails start inside the body so they stay attached while they sway.
  const tail=group(rig,'tail',0,look.sit?.2:BODY_FLOOR+bh*.55,look.sit?-.18:torso.position.z-bl/2+.03);
  if(look.tail==='nub')part(tail,sphere(.065,10,8),fur,0,0,-.03);
  else if(look.tail==='long')part(tail,ratTail(),M(look.ear));
- else{// A bushy S curling up behind the back.
-  for(const [w,h,l,y,z,rx,color] of [[.2,.22,.22,.02,-.1,-.3,fur],[.24,.28,.22,.24,-.2,.15,fur],[.23,.26,.2,.47,-.15,.4,fur],[.19,.16,.16,.6,-.03,.6,M(look.tailTip)]])
-   part(tail,box(w,h,l,.055),color,0,y,z).rotation.x=rx;
- }
+ else{part(tail,bushyTail(),fur);part(tail,sphere(.075,12,10),fur,...BUSHY_TAIL.at(-1));}
  return g;
 }
 export function animateCritter(group,time,{walk=0,attack=0,hit=0}={}){
@@ -98,6 +106,7 @@ export const ARTHROPODS={
  spider:{shell:'#6d5f8f',under:'#a596c4',leg:'#4f4469',hipY:.36,legs:[[.2,.55],[.08,.18],[-.04,-.18],[-.16,-.55]],thigh:.28,shin:.5,eyes:'spider'},
  scorpion:{shell:'#a98b62',under:'#d3bc92',leg:'#86694a',hipY:.24,legs:[[.08,.35],[-.04,.05],[-.16,-.25],[-.28,-.5]],thigh:.22,shin:.3,claws:{at:[.14,.27,.22],size:.9,reach:.24},tail:'#7f6346',eyes:'small'},
 };
+const TAIL_CURL=.55;
 function leg(rig,name,side,z,spread,{hipY,thigh,shin,leg:color}){
  const hip=group(rig,name,side*.16,hipY,z);hip.rotation.y=side>0?-spread:Math.PI+spread;
  const upper=group(hip,'thigh-'+name);upper.rotation.z=.75;
@@ -126,10 +135,11 @@ export function arthropod(kind){
   const body=namedPart(rig,'body',sphere(.34,18,12),shell,0,.3,0);body.scale.set(1.25,.5,.9);
   part(rig,sphere(.3,14,10),under,0,.25,.02).scale.set(1.2,.35,.85);
  }else{
-  namedPart(rig,'body',box(.38,.18,.56,.07),shell,0,.26,0);
-  for(const z of [.12,-.06])part(rig,box(.4,.04,.1,.02),under,0,.36,z);
+  // A pale core under overlapping shell plates (its segments), each front edge raised like a shingle.
+  namedPart(rig,'body',box(.34,.14,.52,.06),under,0,.24,0);
+  for(let i=0;i<4;i++)part(rig,box(.39-.025*i,.13,.17,.05),shell,0,.29,.17-.125*i).rotation.x=-.1;
  }
- const head=group(rig,'head',0,kind==='spider'?.4:.32,kind==='crab'?.2:kind==='spider'?.22:.28);
+ const head=group(rig,'head',0,kind==='spider'?.4:.32,kind==='crab'?.2:kind==='spider'?.22:.25);
  for(const side of [-1,1]){
   if(look.eyes==='stalks'){const stalk=group(head,'stalk'+side,side*.09,.08,0);part(stalk,capsule(.022,.1),under,0,.06);
    part(stalk,sphere(.055,10,8),M('#fff8ec'),0,.15);eye(stalk,'eye'+side,.032,0,.15,.035);}
@@ -140,13 +150,13 @@ export function arthropod(kind){
   if(look.claws)claw(rig,side,look.claws,look);
  }
  if(look.tail){
-  // Five segments curling up and over the back, then the stinger.
+  // Five segments curling up and over the back until the last points forward, then the stinger.
   let joint=group(rig,'tail',0,.3,-.28);joint.rotation.x=.5;
   for(let i=0;i<5;i++){part(joint,sphere(.085-i*.008,10,8),M(i%2?look.tail:look.shell),0,0,-.07).scale.set(1,.85,1.2);
-   joint=group(joint,'tail'+i,0,0,-.13);joint.rotation.x=.42;}
+   joint=group(joint,'tail'+i,0,0,-.13);joint.rotation.x=TAIL_CURL;}
   // The stinger: a bulb sunk into the last segment, its barb curling forward out of the bulb.
   part(joint,sphere(.06,10,8),M(look.tail),0,0,.02).scale.set(1,.9,1.15);
-  part(joint,cone(.032,.13,6),M('#3c2f26'),0,.06,-.013).rotation.x=-.49;
+  part(joint,cone(.032,.13,6),M('#3c2f26'),0,.036,-.04).rotation.x=-1.03;
  }
  return g;
 }
@@ -165,7 +175,7 @@ export function animateArthropod(group,time,{walk=0,attack=0,hit=0}={}){
   const eye=findPart(group,'eye'+side);if(eye)eye.scale.y=time%4.1>3.98?.15:1;
  }
  // The tail draws back while loading and whips over to strike.
- const tail=findPart(group,'tail');if(tail){tail.rotation.x=.5-load*.2+lunge*.3+Math.sin(time*1.4)*.04;for(let i=0;i<5;i++)findPart(group,'tail'+i).rotation.x=.42+lunge*.12-load*.06;}
+ const tail=findPart(group,'tail');if(tail){tail.rotation.x=.5-load*.2+lunge*.3+Math.sin(time*1.4)*.04;for(let i=0;i<5;i++)findPart(group,'tail'+i).rotation.x=TAIL_CURL+lunge*.12-load*.06;}
  // A spider's abdomen breathes.
  if(group.userData.creature==='spider')findPart(group,'body').scale.y=.88*(1+Math.sin(time*2.2)*.03);
 }
